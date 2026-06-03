@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Models\Sales;
+
+use App\Enums\QuotationStatus;
+use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\LogsActivity;
+use App\Models\Crm\Customer;
+use App\Models\Crm\Lead;
+use App\Models\User;
+use Database\Factories\Sales\QuotationFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+
+class Quotation extends Model
+{
+    /** @use HasFactory<QuotationFactory> */
+    use BelongsToTenant, HasFactory, LogsActivity;
+
+    protected bool $tenantScopedToBranch = true;
+
+    protected $fillable = [
+        'company_id', 'branch_id', 'customer_id', 'lead_id', 'quotation_number',
+        'quotation_date', 'valid_until', 'currency', 'subtotal', 'tax_amount',
+        'discount_amount', 'total_amount', 'status', 'revision_number',
+        'prepared_by', 'approved_by', 'approved_at', 'notes',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'status' => QuotationStatus::class,
+            'quotation_date' => 'date',
+            'valid_until' => 'date',
+            'approved_at' => 'datetime',
+            'subtotal' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'total_amount' => 'decimal:2',
+        ];
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function lead(): BelongsTo
+    {
+        return $this->belongsTo(Lead::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(QuotationItem::class)->orderBy('sort_order');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(QuotationRevision::class)->orderByDesc('revision_number');
+    }
+
+    public function quotationNotes(): HasMany
+    {
+        return $this->hasMany(QuotationNote::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(QuotationAttachment::class);
+    }
+
+    public function preparer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'prepared_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function salesOrder(): HasOne
+    {
+        return $this->hasOne(SalesOrder::class);
+    }
+
+    public function conversion(): HasOne
+    {
+        return $this->hasOne(QuotationConversion::class);
+    }
+
+    public function transitionTo(QuotationStatus $status): void
+    {
+        if (! $this->status->canTransitionTo($status)) {
+            throw new \InvalidArgumentException(
+                "Cannot transition from {$this->status->value} to {$status->value}",
+            );
+        }
+
+        $this->update(['status' => $status]);
+    }
+}

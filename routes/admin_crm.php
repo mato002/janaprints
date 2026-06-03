@@ -1,0 +1,89 @@
+<?php
+
+use App\Http\Controllers\Admin\Crm\CrmDashboardController;
+use App\Http\Controllers\Admin\Crm\CustomerActivityController;
+use App\Http\Controllers\Admin\Crm\CustomerContactController;
+use App\Http\Controllers\Admin\Crm\CustomerController;
+use App\Http\Controllers\Admin\Crm\CustomerFileController;
+use App\Http\Controllers\Admin\Crm\CustomerNoteController;
+use App\Http\Controllers\Admin\Crm\CustomerSegmentController;
+use App\Http\Controllers\Admin\Crm\LeadController;
+use App\Http\Controllers\Admin\Crm\LeadFollowUpController;
+use Illuminate\Support\Facades\Route;
+
+Route::middleware(['auth', 'verified', 'tenant'])
+    ->prefix('admin/crm')
+    ->name('admin.crm.')
+    ->group(function () {
+        Route::get('/', CrmDashboardController::class)
+            ->middleware('permission:crm.customers.view')
+            ->name('dashboard');
+
+        Route::middleware('permission:crm.customers.view')->group(function () {
+            Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+            Route::get('segments', [CustomerSegmentController::class, 'index'])->name('segments.index');
+        });
+
+        Route::middleware('permission:crm.customers.create')->group(function () {
+            Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
+            Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
+            Route::get('segments/create', [CustomerSegmentController::class, 'create'])->name('segments.create');
+            Route::post('segments', [CustomerSegmentController::class, 'store'])->name('segments.store');
+        });
+
+        Route::middleware('permission:crm.customers.view')->group(function () {
+            Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
+        });
+
+        Route::middleware('permission:crm.customers.edit')->group(function () {
+            Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
+            Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+            Route::post('customers/{customer}/contacts', [CustomerContactController::class, 'store'])->name('customers.contacts.store');
+            Route::delete('customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy'])->name('customers.contacts.destroy');
+            Route::post('customers/{customer}/notes', [CustomerNoteController::class, 'store'])->name('customers.notes.store');
+            Route::delete('customers/{customer}/notes/{note}', [CustomerNoteController::class, 'destroy'])->name('customers.notes.destroy');
+            Route::post('customers/{customer}/files', [CustomerFileController::class, 'store'])->name('customers.files.store');
+            Route::delete('customers/{customer}/files/{file}', [CustomerFileController::class, 'destroy'])->name('customers.files.destroy');
+            Route::get('segments/{segment}/edit', [CustomerSegmentController::class, 'edit'])->name('segments.edit');
+            Route::put('segments/{segment}', [CustomerSegmentController::class, 'update'])->name('segments.update');
+        });
+
+        Route::middleware('permission:crm.customers.delete')->group(function () {
+            Route::delete('customers/{customer}', [CustomerController::class, 'destroy'])->name('customers.destroy');
+            Route::delete('segments/{segment}', [CustomerSegmentController::class, 'destroy'])->name('segments.destroy');
+        });
+
+        Route::middleware('permission:crm.leads.view')->group(function () {
+            Route::get('leads', [LeadController::class, 'index'])->name('leads.index');
+        });
+
+        Route::middleware('permission:crm.leads.create')->group(function () {
+            Route::get('leads/create', [LeadController::class, 'create'])->name('leads.create');
+            Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
+        });
+
+        Route::middleware('permission:crm.leads.view')->group(function () {
+            Route::get('leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
+        });
+
+        Route::middleware('permission:crm.leads.edit')->group(function () {
+            Route::get('leads/{lead}/edit', [LeadController::class, 'edit'])->name('leads.edit');
+            Route::put('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+            Route::post('leads/{lead}/follow-ups', [LeadFollowUpController::class, 'store'])->name('leads.follow-ups.store');
+            Route::patch('leads/{lead}/follow-ups/{followUp}', [LeadFollowUpController::class, 'update'])->name('leads.follow-ups.update');
+            Route::delete('leads/{lead}/follow-ups/{followUp}', [LeadFollowUpController::class, 'destroy'])->name('leads.follow-ups.destroy');
+        });
+
+        Route::middleware('permission:crm.leads.delete')->group(function () {
+            Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
+        });
+
+        Route::middleware('permission:crm.activities.create')->group(function () {
+            Route::post('customers/{customer}/activities', [CustomerActivityController::class, 'storeForCustomer'])->name('customers.activities.store');
+            Route::post('leads/{lead}/activities', [CustomerActivityController::class, 'storeForLead'])->name('leads.activities.store');
+        });
+
+        Route::middleware('permission:crm.activities.delete')->group(function () {
+            Route::delete('activities/{activity}', [CustomerActivityController::class, 'destroy'])->name('activities.destroy');
+        });
+    });

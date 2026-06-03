@@ -17,6 +17,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform Queue Names
+    |--------------------------------------------------------------------------
+    |
+    | Named queues for job routing. See config/platform.php for assignments.
+    | Use database driver now; switch QUEUE_CONNECTION to redis when ready.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
     | Queue Connections
     |--------------------------------------------------------------------------
     |

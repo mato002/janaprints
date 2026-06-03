@@ -1,9 +1,246 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
-@source '../../storage/framework/views/*.php';
+@layer base {
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 
-@theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+.turbo-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    height: 3px;
+    width: 0;
+    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    opacity: 0;
+    pointer-events: none;
+    transition: width 120ms ease-out, opacity 80ms ease-out;
+}
+
+.turbo-progress.turbo-progress--visible {
+    opacity: 1;
+}
+
+@layer components {
+    .erp-input {
+        @apply block w-full rounded-lg border-erp-border text-sm text-erp-primary shadow-sm transition-colors duration-150;
+        @apply focus:border-erp-accent focus:ring-erp-accent;
+    }
+
+    .erp-select {
+        @apply erp-input py-2;
+    }
+
+    .erp-table {
+        @apply min-w-full divide-y divide-erp-border text-sm;
+    }
+
+    .erp-table thead {
+        @apply bg-erp-page sticky top-0 z-10;
+    }
+
+    .erp-table th {
+        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .erp-table td {
+        @apply px-4 py-3 text-slate-700 whitespace-nowrap;
+    }
+
+    .erp-table tbody tr {
+        @apply transition-colors duration-150 hover:bg-slate-50/80;
+    }
+
+    .erp-btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-erp-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-150;
+        @apply hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-erp-accent focus:ring-offset-2;
+    }
+
+    .erp-btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-erp-border bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all duration-150;
+        @apply hover:bg-erp-page focus:outline-none focus:ring-2 focus:ring-erp-accent focus:ring-offset-2;
+    }
+
+    .erp-btn-ghost {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900;
+    }
+
+    .erp-skeleton {
+        @apply animate-pulse rounded-lg bg-slate-200/80;
+    }
+
+    .erp-form-grid {
+        @apply grid grid-cols-1 gap-5 md:grid-cols-2;
+    }
+
+    .erp-form-field label {
+        @apply mb-1.5 block text-sm font-medium text-slate-700;
+    }
+
+    .erp-form-field .required::after {
+        content: ' *';
+        @apply text-erp-danger;
+    }
+
+    .permission-matrix-chips {
+        @apply flex gap-2 overflow-x-auto overscroll-x-contain pb-0.5;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .permission-matrix-chips::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .permission-matrix-chips::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300;
+    }
+
+    .permission-matrix-search {
+        @apply py-1.5 text-xs;
+    }
+
+    .permission-matrix-bulk-btn {
+        @apply inline-flex items-center rounded-md border border-erp-border bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-white hover:text-erp-primary;
+    }
+
+    .permission-matrix-grid {
+        @apply text-xs;
+    }
+
+    .permission-matrix-grid-row {
+        @apply grid border-b border-erp-border bg-white;
+    }
+
+    .permission-matrix-grid-head {
+        @apply text-[10px];
+    }
+
+    .permission-matrix-head-cell {
+        @apply flex items-center justify-center px-2 py-1.5 text-center font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .permission-matrix-cell {
+        @apply flex items-center justify-center px-2 py-1.5 text-center;
+    }
+
+    .permission-matrix-empty {
+        @apply px-4 py-6 text-center text-xs text-slate-500;
+    }
+
+    .permission-matrix-more {
+        @apply px-4 py-2 text-center text-[10px] text-slate-400;
+    }
+
+    .permission-matrix-table {
+        @apply min-w-full border-collapse text-xs;
+    }
+
+    .permission-matrix-table thead {
+        @apply sticky top-0 z-20;
+    }
+
+    .permission-matrix-table th,
+    .permission-matrix-table td {
+        @apply border-b border-erp-border px-2 py-1;
+    }
+
+    .permission-matrix-table th {
+        @apply bg-erp-page text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .permission-matrix-table tbody tr {
+        @apply bg-white transition-colors hover:bg-slate-50/80;
+    }
+
+    .permission-matrix-sticky-col {
+        @apply sticky left-0 z-10 bg-white text-left;
+        box-shadow: 2px 0 4px -2px rgb(15 23 42 / 0.08);
+    }
+
+    .permission-matrix-sticky-corner {
+        @apply z-30 bg-erp-page;
+    }
+
+    .permission-matrix-action-col {
+        @apply w-14 min-w-[3.25rem] text-center;
+    }
+
+    .permission-matrix-check {
+        @apply h-3.5 w-3.5 rounded border-slate-300 text-erp-accent transition-colors;
+        @apply focus:ring-1 focus:ring-erp-accent/40 focus:ring-offset-0;
+    }
+
+    .permission-matrix-check:checked {
+        @apply border-erp-accent bg-erp-accent;
+    }
+
+    .permission-matrix-status {
+        @apply inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold;
+    }
+
+    .permission-matrix-status.is-granted {
+        @apply bg-emerald-50 text-emerald-700;
+    }
+
+    .permission-matrix-status.is-denied {
+        @apply bg-slate-100 text-slate-400;
+    }
+
+    .role-dashboard-stat {
+        @apply rounded-lg border border-erp-border bg-erp-card px-4 py-3 shadow-card;
+    }
+
+    .role-dashboard-stat-label {
+        @apply text-[11px] font-medium uppercase tracking-wide text-slate-500;
+    }
+
+    .role-dashboard-stat-value {
+        @apply mt-1 text-xl font-semibold tabular-nums text-erp-primary;
+    }
+
+    .role-category-badge {
+        @apply inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-inset;
+    }
+
+    .role-category-badge--info {
+        @apply bg-sky-50 text-sky-700 ring-sky-600/20;
+    }
+
+    .role-category-badge--success {
+        @apply bg-green-50 text-green-700 ring-green-600/20;
+    }
+
+    .role-category-badge--warning {
+        @apply bg-amber-50 text-amber-700 ring-amber-600/20;
+    }
+
+    .role-category-badge--neutral {
+        @apply bg-slate-100 text-slate-600 ring-slate-500/20;
+    }
+
+    .role-category-badge--purple {
+        @apply bg-violet-50 text-violet-700 ring-violet-600/20;
+    }
+
+    .role-category-badge--teal {
+        @apply bg-teal-50 text-teal-700 ring-teal-600/20;
+    }
+
+    .role-category-badge--emerald {
+        @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20;
+    }
+
+    .role-governance-drawer {
+        @apply fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-erp-border bg-white shadow-xl;
+    }
 }

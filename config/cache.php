@@ -19,6 +19,16 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Platform Cache Standards
+    |--------------------------------------------------------------------------
+    |
+    | TTL and category conventions live in config/platform.php. Switch to redis
+    | by setting CACHE_STORE=redis when infrastructure is ready.
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
     |
