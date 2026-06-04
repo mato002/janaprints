@@ -2,11 +2,17 @@
 
 namespace App\Support\Inventory;
 
+use App\Enums\NormalBalance;
+use App\Models\Accounting\GlAccount;
+use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryCostLayer;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventoryValuation;
 use App\Models\Inventory\InventoryValuationSnapshot;
 use App\Models\Inventory\Warehouse;
+use App\Models\Branch;
+use App\Support\Accounting\LedgerSignedBalance;
+use App\Support\Accounting\Reports\PostedJournalQuery;
 use App\Support\InventoryStockService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +50,7 @@ class InventoryValuationService
      */
     public static function byItem(int $companyId, ?int $branchId = null): Collection
     {
-        $query = InventoryItem::query()->where('company_id', $companyId);
+        $query = InventoryItem::query()->with('category')->where('company_id', $companyId);
         if ($branchId) {
             $query->where('branch_id', $branchId);
         }
@@ -136,5 +142,125 @@ class InventoryValuationService
         return (float) $query
             ->selectRaw('SUM(quantity_remaining * unit_cost) as total')
             ->value('total');
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function byWarehouse(int $companyId, ?int $branchId = null): Collection
+    {
+        $warehouses = Warehouse::query()
+            ->where('company_id', $companyId)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $items = InventoryItem::query()
+            ->where('company_id', $companyId)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->get();
+
+        return $warehouses->map(function (Warehouse $warehouse) use ($items) {
+            $fifo = 0.0;
+            $avg = 0.0;
+            $qty = 0.0;
+
+            foreach ($items as $item) {
+                $values = self::itemWarehouseValue($item->id, $warehouse->id);
+                $fifo += $values['fifo_value'];
+                $avg += $values['average_cost_value'];
+                $qty += $values['quantity'];
+            }
+
+            return [
+                'warehouse' => $warehouse,
+                'quantity' => $qty,
+                'fifo_value' => round($fifo, 2),
+                'average_cost_value' => round($avg, 2),
+            ];
+        });
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function byCategory(int $companyId, ?int $branchId = null): Collection
+    {
+        $rows = self::byItem($companyId, $branchId);
+
+        return $rows
+            ->groupBy(fn ($r) => $r['item']->inventory_category_id)
+            ->map(function ($group, $categoryId) {
+                $category = $group->first()['item']->category
+                    ?? InventoryCategory::query()->find($categoryId);
+
+                return [
+                    'category' => $category,
+                    'category_name' => $category?->name ?? __('Uncategorised'),
+                    'quantity' => $group->sum('quantity'),
+                    'fifo_value' => round($group->sum('fifo_value'), 2),
+                    'average_cost_value' => round($group->sum('average_cost_value'), 2),
+                    'item_count' => $group->count(),
+                ];
+            })
+            ->sortByDesc('fifo_value')
+            ->values();
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
+    public static function byBranch(int $companyId): Collection
+    {
+        $branches = Branch::query()->where('company_id', $companyId)->orderBy('name')->get();
+
+        return $branches->map(function (Branch $branch) use ($companyId) {
+            $totals = self::dashboardTotals($companyId, $branch->id);
+
+            return [
+                'branch' => $branch,
+                'fifo_value' => $totals['fifo_total'],
+                'average_cost_value' => $totals['average_total'],
+                'item_count' => $totals['item_count'],
+            ];
+        });
+    }
+
+    /**
+     * @return array{gl_balance: float, fifo_layers: float, variance: float, account_code: string}
+     */
+    public static function inventoryGlReconciliation(int $companyId, ?float $fifoTotal = null): array
+    {
+        $code = config('posting_account_keys.raw_materials.default_code', '1410');
+        $account = GlAccount::query()
+            ->where('company_id', $companyId)
+            ->where('code', $code)
+            ->first();
+
+        $glBalance = 0.0;
+
+        if ($account) {
+            $agg = PostedJournalQuery::aggregateByAccount([
+                'company_id' => $companyId,
+            ])->where('gl_account_id', $account->id)->first();
+
+            if ($agg) {
+                $glBalance = LedgerSignedBalance::balanceSheetAmount(
+                    (float) $agg->total_debit,
+                    (float) $agg->total_credit,
+                    NormalBalance::from($account->normal_balance),
+                );
+            }
+        }
+
+        $fifoTotal ??= self::layersRemainingValue($companyId);
+
+        return [
+            'account_code' => $code,
+            'gl_balance' => round($glBalance, 2),
+            'fifo_layers' => round($fifoTotal, 2),
+            'variance' => round($glBalance - $fifoTotal, 2),
+        ];
     }
 }

@@ -48,7 +48,7 @@ class WorkspaceNavigationRegistry
         }
 
         foreach (config('workspaces', []) as $workspaceKey => $definition) {
-            if ($workspaceKey === 'accounting' || ! empty($definition['managed_by'])) {
+            if (in_array($workspaceKey, ['accounting', 'supply-chain', 'commercial'], true) || ! empty($definition['managed_by'])) {
                 continue;
             }
 
@@ -56,6 +56,8 @@ class WorkspaceNavigationRegistry
         }
 
         $this->registerAccounting();
+        $this->registerSupplyChain();
+        $this->registerCommercial();
 
         $this->built = true;
     }
@@ -191,6 +193,150 @@ class WorkspaceNavigationRegistry
         }
     }
 
+    protected function registerSupplyChain(): void
+    {
+        $workspaceKey = 'supply-chain';
+        $hubRoute = 'admin.workspaces.supply-chain';
+        $hubTitle = __('Supply Chain');
+
+        $this->registerEntry($hubRoute, [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => null,
+            'workspace_title' => $hubTitle,
+            'parent_workspace_title' => null,
+            'parent_route' => null,
+            'parent_route_params' => [],
+            'ancestors' => [],
+        ]);
+
+        $presenter = app(SupplyChainWorkspacePresenter::class);
+
+        $this->registerEntry('admin.workspaces.supply-chain.section', [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => $workspaceKey,
+            'workspace_title' => null,
+            'parent_workspace_title' => $hubTitle,
+            'parent_route' => $hubRoute,
+            'parent_route_params' => [],
+            'ancestors' => [
+                $this->ancestor($hubTitle, $hubRoute),
+            ],
+            'dynamic_section' => true,
+        ]);
+
+        foreach ($presenter->sectionDefinitions() as $sectionKey => $section) {
+            $sectionRoute = 'admin.workspaces.supply-chain.section';
+            $sectionTitle = $section['title'] ?? $sectionKey;
+
+            $this->registerEntry("admin.workspaces.supply-chain.section:{$sectionKey}", [
+                'workspace_key' => "{$workspaceKey}:{$sectionKey}",
+                'parent_workspace_key' => $workspaceKey,
+                'workspace_title' => $sectionTitle,
+                'parent_workspace_title' => $hubTitle,
+                'parent_route' => $hubRoute,
+                'parent_route_params' => [],
+                'ancestors' => [
+                    $this->ancestor($hubTitle, $hubRoute),
+                ],
+                'route' => $sectionRoute,
+                'route_params' => ['section' => $sectionKey],
+            ]);
+
+            foreach ($section['groups'] ?? [] as $group) {
+                $groupLabel = $group['label'] ?? '';
+
+                foreach ($group['items'] ?? [] as $item) {
+                    if (! empty($item['coming_soon'])) {
+                        continue;
+                    }
+
+                    $this->registerFeatureItem(
+                        $workspaceKey,
+                        $hubRoute,
+                        $hubTitle,
+                        $groupLabel,
+                        $item,
+                        $sectionKey,
+                        $sectionTitle,
+                        $sectionRoute,
+                    );
+                }
+            }
+        }
+    }
+
+    protected function registerCommercial(): void
+    {
+        $workspaceKey = 'commercial';
+        $hubRoute = 'admin.workspaces.commercial';
+        $hubTitle = __('Commercial');
+
+        $this->registerEntry($hubRoute, [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => null,
+            'workspace_title' => $hubTitle,
+            'parent_workspace_title' => null,
+            'parent_route' => null,
+            'parent_route_params' => [],
+            'ancestors' => [],
+        ]);
+
+        $presenter = app(CommercialWorkspacePresenter::class);
+
+        $this->registerEntry('admin.workspaces.commercial.section', [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => $workspaceKey,
+            'workspace_title' => null,
+            'parent_workspace_title' => $hubTitle,
+            'parent_route' => $hubRoute,
+            'parent_route_params' => [],
+            'ancestors' => [
+                $this->ancestor($hubTitle, $hubRoute),
+            ],
+            'dynamic_section' => true,
+        ]);
+
+        foreach ($presenter->sectionDefinitions() as $sectionKey => $section) {
+            $sectionRoute = 'admin.workspaces.commercial.section';
+            $sectionTitle = $section['title'] ?? $sectionKey;
+
+            $this->registerEntry("admin.workspaces.commercial.section:{$sectionKey}", [
+                'workspace_key' => "{$workspaceKey}:{$sectionKey}",
+                'parent_workspace_key' => $workspaceKey,
+                'workspace_title' => $sectionTitle,
+                'parent_workspace_title' => $hubTitle,
+                'parent_route' => $hubRoute,
+                'parent_route_params' => [],
+                'ancestors' => [
+                    $this->ancestor($hubTitle, $hubRoute),
+                ],
+                'route' => $sectionRoute,
+                'route_params' => ['section' => $sectionKey],
+            ]);
+
+            foreach ($section['groups'] ?? [] as $group) {
+                $groupLabel = $group['label'] ?? '';
+
+                foreach ($group['items'] ?? [] as $item) {
+                    if (! empty($item['coming_soon'])) {
+                        continue;
+                    }
+
+                    $this->registerFeatureItem(
+                        $workspaceKey,
+                        $hubRoute,
+                        $hubTitle,
+                        $groupLabel,
+                        $item,
+                        $sectionKey,
+                        $sectionTitle,
+                        $sectionRoute,
+                    );
+                }
+            }
+        }
+    }
+
     /**
      * @param  array<string, mixed>  $item
      */
@@ -219,11 +365,15 @@ class WorkspaceNavigationRegistry
         $parentTitle = $hubTitle;
 
         if ($sectionKey !== null) {
-            $parentRoute = $sectionRoute ?? 'admin.workspaces.accounting.section';
+            $parentRoute = $sectionRoute ?? match ($workspaceKey) {
+                'supply-chain' => 'admin.workspaces.supply-chain.section',
+                'commercial' => 'admin.workspaces.commercial.section',
+                default => 'admin.workspaces.accounting.section',
+            };
             $parentParams = ['section' => $sectionKey];
             $parentKey = "{$workspaceKey}:{$sectionKey}";
             $sectionLabel = $sectionTitle ?? $sectionKey;
-            $useGroup = $sectionKey === 'general-ledger' && $groupLabel !== '';
+            $useGroup = $workspaceKey === 'accounting' && $sectionKey === 'general-ledger' && $groupLabel !== '';
             $parentTitle = $useGroup ? $groupLabel : $sectionLabel;
             $breadcrumbLabel = $parentTitle;
             $ancestors[] = $this->ancestor($breadcrumbLabel, $parentRoute, $parentParams);

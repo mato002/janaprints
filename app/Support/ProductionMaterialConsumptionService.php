@@ -69,6 +69,9 @@ class ProductionMaterialConsumptionService
                 'consumed_at' => now(),
             ]);
 
+            app(\App\Support\Accounting\InventoryAccountingPostingService::class)
+                ->postMaterialConsumption($consumption, $userId);
+
             \App\Support\Production\JobCostingService::syncFromConsumption($consumption);
 
             return $consumption;

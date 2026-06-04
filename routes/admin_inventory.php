@@ -48,6 +48,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:inventory.valuation.view')->group(function () {
             Route::get('valuation', [InventoryValuationController::class, 'index'])->name('valuation.index');
+            Route::post('valuation/snapshot', [InventoryValuationController::class, 'snapshot'])->name('valuation.snapshot');
         });
 
         Route::middleware('permission:catalogue.view')->group(function () {

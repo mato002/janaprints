@@ -5,6 +5,7 @@ namespace App\Support;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\InventoryMovementType;
 use App\Models\Inventory\StockReceipt;
+use App\Support\Accounting\InventoryAccountingPostingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -53,6 +54,8 @@ class StockReceiptService
                 'status' => InventoryDocumentStatus::Posted,
                 'posted_at' => now(),
             ]);
+
+            app(InventoryAccountingPostingService::class)->postStockReceipt($receipt, $userId);
 
             return $receipt->fresh(['items', 'warehouse']);
         });

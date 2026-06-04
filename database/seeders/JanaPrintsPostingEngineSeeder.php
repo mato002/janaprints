@@ -202,6 +202,15 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                 ],
                 'events' => [PostingEventCode::SupplierBillCreditNotePosted],
             ],
+            'asset_depreciation' => [
+                'module' => PostingModule::Assets,
+                'name' => 'Asset depreciation',
+                'lines' => [
+                    ['debit', 'depreciation_expense', PostingAmountSource::TotalAmount],
+                    ['credit', 'accumulated_depreciation', PostingAmountSource::TotalAmount],
+                ],
+                'events' => [PostingEventCode::AssetDepreciationPosted],
+            ],
         ];
 
         foreach ($definitions as $code => $def) {

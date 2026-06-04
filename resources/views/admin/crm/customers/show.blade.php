@@ -4,7 +4,10 @@
             <h2 class="text-xl font-semibold">{{ $customer->company_name }}</h2>
             <p class="text-sm text-gray-500">{{ $customer->customer_code }} · {{ $customer->branch?->name }}</p>
         </div>
-        @can('update', $customer)<a href="{{ route('admin.crm.customers.edit', $customer) }}" class="text-erp-accent hover:text-erp-accent-hover text-sm">{{ __('Edit') }}</a>@endcan
+        <div class="flex items-center gap-3">
+            <x-admin.customer-360-action :customer="$customer" />
+            @can('update', $customer)<a href="{{ route('admin.crm.customers.edit', $customer) }}" class="text-erp-accent hover:text-erp-accent-hover text-sm">{{ __('Edit') }}</a>@endcan
+        </div>
     </x-slot>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -64,10 +67,20 @@
         </div>
 
         <div class="bg-white shadow rounded-lg p-6">
-            <h3 class="font-medium mb-3">{{ __('Activities') }}</h3>
-            @foreach ($customer->activities as $activity)
+            <div class="mb-3 flex items-center justify-between">
+                <h3 class="font-medium">{{ __('Activities') }}</h3>
+                @can('viewAny', App\Models\Crm\CustomerActivity::class)
+                    <a href="{{ route('admin.commercial.activities.index', ['customer_id' => $customer->id]) }}" class="text-xs text-erp-accent">{{ __('All activities') }}</a>
+                @endcan
+            </div>
+            @foreach ($customer->activities->sortByDesc('activity_at')->take(10) as $activity)
                 <div class="text-sm border-b py-2">
-                    <strong>{{ $activity->activity_type->value }}</strong>: {{ $activity->subject }}
+                    @can('view', $activity)
+                        <a href="{{ route('admin.commercial.activities.show', $activity) }}" class="font-medium text-erp-accent">{{ $activity->subject }}</a>
+                    @else
+                        <strong>{{ $activity->subject }}</strong>
+                    @endcan
+                    <p>{{ ucfirst(str_replace('_', ' ', $activity->activity_type->value)) }} · {{ $activity->user?->name }}</p>
                     <p class="text-xs text-gray-400">{{ $activity->activity_at }}</p>
                 </div>
             @endforeach

@@ -40,6 +40,7 @@
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.crm.customers.show', $customer)">{{ __('View') }}</x-admin.table-row-action>
+                            <x-admin.table-row-action href="#" class="pointer-events-none opacity-60" title="{{ __('Customer 360 profile') }}">{{ __('View 360') }} — {{ __('Coming Soon') }}</x-admin.table-row-action>
                             @can('update', $customer)
                                 <x-admin.table-row-action :href="route('admin.crm.customers.edit', $customer)">{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan

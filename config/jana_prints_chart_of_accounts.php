@@ -27,6 +27,7 @@ return [
         ['type' => 'asset', 'kind' => 'account', 'code' => '1520', 'name' => 'Printers', 'parent_code' => '1500', 'postable' => true, 'sort' => 52],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1530', 'name' => 'Machinery', 'parent_code' => '1500', 'postable' => true, 'sort' => 53],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1540', 'name' => 'Vehicles', 'parent_code' => '1500', 'postable' => true, 'sort' => 54],
+        ['type' => 'asset', 'kind' => 'account', 'code' => '1550', 'name' => 'Accumulated Depreciation', 'parent_code' => '1500', 'postable' => true, 'sort' => 55],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1600', 'name' => 'Prepayments', 'parent_code' => '1000', 'postable' => true, 'sort' => 60],
 
         // —— Liabilities ——
@@ -72,6 +73,7 @@ return [
         ['type' => 'expense', 'kind' => 'account', 'code' => '6500', 'name' => 'Internet', 'parent_code' => '6000', 'postable' => true, 'sort' => 60],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6600', 'name' => 'Fuel', 'parent_code' => '6000', 'postable' => true, 'sort' => 70],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6700', 'name' => 'Repairs', 'parent_code' => '6000', 'postable' => true, 'sort' => 80],
+        ['type' => 'expense', 'kind' => 'account', 'code' => '6710', 'name' => 'Depreciation Expense', 'parent_code' => '6000', 'postable' => true, 'sort' => 85],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6800', 'name' => 'Marketing', 'parent_code' => '6000', 'postable' => true, 'sort' => 90],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6900', 'name' => 'Office Expenses', 'parent_code' => '6000', 'postable' => true, 'sort' => 100],
     ],

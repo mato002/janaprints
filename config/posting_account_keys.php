@@ -19,4 +19,9 @@ return [
     'material_consumption' => ['default_code' => '5100', 'label' => 'Paper Consumption'],
     'wip_consumption' => ['default_code' => '5200', 'label' => 'Ink Consumption'],
     'operating_expense' => ['default_code' => '6100', 'label' => 'Salaries'],
+    'accumulated_depreciation' => ['default_code' => '1550', 'label' => 'Accumulated Depreciation'],
+    'depreciation_expense' => ['default_code' => '6710', 'label' => 'Depreciation Expense'],
+    'fixed_asset' => ['default_code' => '1530', 'label' => 'Fixed Assets — Machinery'],
+    'asset_disposal_gain' => ['default_code' => '4110', 'label' => 'Gain on Disposal'],
+    'asset_disposal_loss' => ['default_code' => '6700', 'label' => 'Loss on Disposal'],
 ];

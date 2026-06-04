@@ -107,9 +107,16 @@ class RfqController extends Controller
             'lines.*.warranty' => ['nullable', 'string', 'max:255'],
             'lines.*.delivery_terms' => ['nullable', 'string', 'max:255'],
             'lines.*.comments' => ['nullable', 'string'],
+            'attachment' => ['nullable', 'file', 'max:10240'],
         ]);
 
-        RFQService::recordVendorResponse($rfqVendor, $validated['lines']);
+        $lines = $validated['lines'];
+        if ($request->hasFile('attachment')) {
+            $path = $request->file('attachment')->store('rfq-responses/'.$rfq->id, 'public');
+            $lines[0]['attachment_path'] = $path;
+        }
+
+        RFQService::recordVendorResponse($rfqVendor, $lines);
 
         return back()->with('status', __('Vendor response recorded.'));
     }
@@ -118,8 +125,9 @@ class RfqController extends Controller
     {
         $this->authorize('compare', $rfq);
         VendorComparisonService::persistComparison($rfq, (int) auth()->id());
+        \App\Support\Procurement\RfqQuotationSyncService::syncAll($rfq->fresh());
 
-        return back()->with('status', __('Vendor comparison saved.'));
+        return back()->with('status', __('Vendor comparison saved and supplier quotations synced.'));
     }
 
     public function award(Request $request, Rfq $rfq): RedirectResponse

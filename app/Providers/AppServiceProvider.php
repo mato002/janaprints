@@ -12,6 +12,7 @@ use App\Enums\LeadStatus;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerSegment;
 use App\Models\Crm\CustomerActivity;
+use App\Models\Pos\PosSale;
 use App\Models\Crm\Lead;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\Artwork\ArtworkVersion;
@@ -76,6 +77,7 @@ use App\Policies\SalesOrderPolicy;
 use Illuminate\Support\Facades\Route;
 use App\Policies\ActivityLogPolicy;
 use App\Policies\CustomerActivityPolicy;
+use App\Policies\PosSalePolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\CustomerSegmentPolicy;
 use App\Policies\LeadPolicy;
@@ -125,6 +127,7 @@ class AppServiceProvider extends ServiceProvider
         CustomerSegment::class => CustomerSegmentPolicy::class,
         Lead::class => LeadPolicy::class,
         CustomerActivity::class => CustomerActivityPolicy::class,
+        PosSale::class => PosSalePolicy::class,
         Quotation::class => QuotationPolicy::class,
         ArtworkRequest::class => ArtworkRequestPolicy::class,
         ArtworkVersion::class => ArtworkVersionPolicy::class,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Crm;
 
+use App\Enums\ActivityStatus;
 use App\Enums\ActivityType;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -40,9 +41,11 @@ class CustomerActivityController extends Controller
     {
         $this->authorize('delete', $activity);
 
-        $redirect = $activity->lead_id
-            ? route('admin.crm.leads.show', $activity->lead_id)
-            : route('admin.crm.customers.show', $activity->customer_id);
+        $redirect = auth()->user()?->can('crm.activities.view')
+            ? route('admin.commercial.activities.index')
+            : ($activity->lead_id
+                ? route('admin.crm.leads.show', $activity->lead_id)
+                : route('admin.crm.customers.show', $activity->customer_id));
 
         $activity->delete();
 
@@ -53,10 +56,13 @@ class CustomerActivityController extends Controller
     {
         $data = $request->validate([
             'activity_type' => ['required', Rule::enum(ActivityType::class)],
+            'status' => ['nullable', Rule::enum(ActivityStatus::class)],
             'subject' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'activity_at' => ['required', 'date'],
         ]);
+
+        $data['status'] ??= ActivityStatus::Completed;
 
         CustomerActivity::query()->create([
             ...$data,

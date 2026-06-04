@@ -32,6 +32,59 @@
             </ul>
         </x-admin.card>
     </div>
+    @if (! empty($stats['material_category_profitability']))
+        <x-admin.card class="mt-6">
+            <h3 class="mb-3 text-sm font-semibold">{{ __('Material cost by category') }}</h3>
+            <table class="erp-table text-sm">
+                <thead><tr><th>{{ __('Category') }}</th><th>{{ __('Cost') }}</th><th>{{ __('Allocated revenue') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
+                <tbody>
+                    @foreach ($stats['material_category_profitability'] as $row)
+                        <tr>
+                            <td>{{ $row['category_name'] }}</td>
+                            <td>{{ number_format($row['cost'], 2) }}</td>
+                            <td>{{ number_format($row['revenue'], 2) }}</td>
+                            <td>{{ $row['margin_percent'] }}%</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </x-admin.card>
+    @endif
+
+    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <x-admin.card>
+            <h3 class="mb-3 text-sm font-semibold">{{ __('Product profitability (production type)') }}</h3>
+            <table class="erp-table text-sm">
+                <thead><tr><th>{{ __('Product type') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
+                <tbody>
+                    @foreach ($stats['product_profitability'] as $row)
+                        <tr>
+                            <td>{{ $row['label'] }}</td>
+                            <td>{{ number_format($row['revenue'], 2) }}</td>
+                            <td>{{ number_format($row['profit'], 2) }}</td>
+                            <td>{{ $row['margin_percent'] }}%</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </x-admin.card>
+        <x-admin.card>
+            <h3 class="mb-3 text-sm font-semibold">{{ __('Branch profitability') }}</h3>
+            <table class="erp-table text-sm">
+                <thead><tr><th>{{ __('Branch') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
+                <tbody>
+                    @foreach ($stats['branch_profitability'] as $row)
+                        <tr>
+                            <td>{{ $row['branch_name'] }}</td>
+                            <td>{{ number_format($row['revenue'], 2) }}</td>
+                            <td>{{ number_format($row['profit'], 2) }}</td>
+                            <td>{{ $row['margin_percent'] }}%</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </x-admin.card>
+    </div>
     <x-admin.card class="mt-6">
         <h3 class="mb-3 text-sm font-semibold">{{ __('Customer profitability') }}</h3>
         <table class="erp-table text-sm">

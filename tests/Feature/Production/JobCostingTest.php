@@ -15,7 +15,11 @@ use App\Support\Production\JobCostingService;
 use App\Support\StockReceiptService;
 use App\Support\Production\JobProfitabilityService;
 use App\Support\ProductionMaterialConsumptionService;
+use Database\Seeders\GlAccountTypeSeeder;
 use Database\Seeders\InventoryFoundationSeeder;
+use Database\Seeders\JanaPrintsAccountingPeriodsSeeder;
+use Database\Seeders\JanaPrintsChartOfAccountsSeeder;
+use Database\Seeders\JanaPrintsPostingEngineSeeder;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\PlatformConfigurationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -33,6 +37,10 @@ class JobCostingTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
         $this->seed(PlatformConfigurationSeeder::class);
         $this->seed(InventoryFoundationSeeder::class);
+        $this->seed(GlAccountTypeSeeder::class);
+        $this->seed(JanaPrintsChartOfAccountsSeeder::class);
+        $this->seed(JanaPrintsAccountingPeriodsSeeder::class);
+        $this->seed(JanaPrintsPostingEngineSeeder::class);
     }
 
     public function test_job_cost_sheet_from_material_consumption(): void

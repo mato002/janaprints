@@ -10,11 +10,15 @@ class SupplierQuotationItem extends Model
 {
     protected $fillable = [
         'supplier_quotation_id',
+        'purchase_request_item_id',
         'inventory_item_id',
         'description',
         'quantity',
         'unit_cost',
         'line_total',
+        'lead_time_days',
+        'warranty',
+        'delivery_terms',
     ];
 
     protected function casts(): array

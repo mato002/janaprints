@@ -86,4 +86,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:crm.activities.delete')->group(function () {
             Route::delete('activities/{activity}', [CustomerActivityController::class, 'destroy'])->name('activities.destroy');
         });
+
+        Route::redirect('activities', '/admin/commercial/activities')
+            ->middleware('permission:crm.activities.view')
+            ->name('activities.index');
     });

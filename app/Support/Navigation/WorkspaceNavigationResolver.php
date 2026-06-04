@@ -37,9 +37,13 @@ class WorkspaceNavigationResolver
             return null;
         }
 
-        if ($routeName === 'admin.workspaces.accounting.section') {
+        if (in_array($routeName, [
+            'admin.workspaces.accounting.section',
+            'admin.workspaces.supply-chain.section',
+            'admin.workspaces.commercial.section',
+        ], true)) {
             $section = $request->route('section');
-            $sectionEntry = $this->registry->resolve("admin.workspaces.accounting.section:{$section}");
+            $sectionEntry = $this->registry->resolve("{$routeName}:{$section}");
 
             if ($sectionEntry) {
                 $entry = $sectionEntry;

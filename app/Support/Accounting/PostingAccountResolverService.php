@@ -83,4 +83,16 @@ class PostingAccountResolverService
 
         return $accountId;
     }
+
+    public function resolveGlAccountId(int $companyId, string $accountKey): int
+    {
+        return $this->fromAccountKey($companyId, $accountKey, new PostingContext(
+            companyId: $companyId,
+            userId: 0,
+            event: PostingEventCode::AssetDepreciationPosted,
+            sourceType: 'resolver',
+            sourceId: 0,
+            journalDate: now()->toDateString(),
+        ));
+    }
 }

@@ -8,9 +8,13 @@ class WorkspacePresenter
 {
     public function __construct(
         protected ?AccountingWorkspacePresenter $accounting = null,
+        protected ?SupplyChainWorkspacePresenter $supplyChain = null,
+        protected ?CommercialWorkspacePresenter $commercial = null,
         protected ?WorkspaceNavigationResolver $navigation = null,
     ) {
         $this->accounting ??= app(AccountingWorkspacePresenter::class);
+        $this->supplyChain ??= app(SupplyChainWorkspacePresenter::class);
+        $this->commercial ??= app(CommercialWorkspacePresenter::class);
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
     }
     /**
@@ -67,6 +71,14 @@ class WorkspacePresenter
             return $this->accounting->isVisible();
         }
 
+        if ($key === 'supply-chain') {
+            return $this->supplyChain->isVisible();
+        }
+
+        if ($key === 'commercial') {
+            return $this->commercial->isVisible();
+        }
+
         $definition = $this->definitions()[$key] ?? null;
 
         if ($definition === null) {
@@ -104,6 +116,14 @@ class WorkspacePresenter
     {
         if ($key === 'accounting') {
             return $this->accounting->collectActiveRoutes();
+        }
+
+        if ($key === 'supply-chain') {
+            return $this->supplyChain->collectActiveRoutes();
+        }
+
+        if ($key === 'commercial') {
+            return $this->commercial->collectActiveRoutes();
         }
 
         $routes = ["admin.workspaces.{$key}"];
@@ -148,6 +168,18 @@ class WorkspacePresenter
                 continue;
             }
 
+            if ($key === 'supply-chain') {
+                $flat = array_merge($flat, $this->supplyChain->flattenForSearch());
+
+                continue;
+            }
+
+            if ($key === 'commercial') {
+                $flat = array_merge($flat, $this->commercial->flattenForSearch());
+
+                continue;
+            }
+
             $workspaceTitle = $definition['title'] ?? $key;
 
             foreach ($definition['groups'] ?? [] as $group) {
@@ -188,14 +220,38 @@ class WorkspacePresenter
             return null;
         }
 
-        if ($currentRoute === 'admin.workspaces.accounting.section') {
+        if (in_array($currentRoute, [
+            'admin.workspaces.accounting.section',
+            'admin.workspaces.supply-chain.section',
+            'admin.workspaces.commercial.section',
+        ], true)) {
+            if (str_contains($currentRoute, 'supply-chain')) {
+                return 'supply-chain';
+            }
+
+            if (str_contains($currentRoute, 'commercial')) {
+                return 'commercial';
+            }
+
             return 'accounting';
         }
 
         if (str_starts_with($currentRoute, 'admin.workspaces.')) {
             $key = str_replace('admin.workspaces.', '', $currentRoute);
 
-            return $key === 'accounting' ? 'accounting' : $key;
+            if (str_starts_with($key, 'accounting')) {
+                return 'accounting';
+            }
+
+            if (str_starts_with($key, 'supply-chain')) {
+                return 'supply-chain';
+            }
+
+            if (str_starts_with($key, 'commercial')) {
+                return 'commercial';
+            }
+
+            return $key;
         }
 
         foreach ($this->definitions() as $key => $definition) {
@@ -264,6 +320,36 @@ class WorkspacePresenter
     /**
      * @param  array<string, mixed>  $definition
      */
+    protected function isVisibleFromDefinition(?array $definition): bool
+    {
+        if ($definition === null) {
+            return false;
+        }
+
+        $hasAccessibleFeature = false;
+        $onlyComingSoon = true;
+
+        foreach ($definition['groups'] ?? [] as $group) {
+            foreach ($group['items'] ?? [] as $item) {
+                if (! empty($item['coming_soon'])) {
+                    continue;
+                }
+
+                $onlyComingSoon = false;
+
+                if ($this->itemIsAccessible($item)) {
+                    $hasAccessibleFeature = true;
+                }
+            }
+        }
+
+        if ($hasAccessibleFeature) {
+            return true;
+        }
+
+        return $onlyComingSoon && $this->workspaceHasComingSoon($definition);
+    }
+
     protected function workspaceHasComingSoon(array $definition): bool
     {
         foreach ($definition['groups'] ?? [] as $group) {

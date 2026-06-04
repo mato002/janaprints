@@ -3,8 +3,15 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\RfqVendorPortalController;
+
 Route::get('/', function () {
     return view('welcome');
+});
+
+Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
+    Route::get('{token}', [RfqVendorPortalController::class, 'show'])->name('show');
+    Route::post('{token}', [RfqVendorPortalController::class, 'submit'])->name('submit');
 });
 
 Route::redirect('/dashboard', '/admin')->middleware(['auth', 'verified'])->name('dashboard');

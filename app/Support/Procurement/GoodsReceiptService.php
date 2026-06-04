@@ -9,6 +9,7 @@ use App\Enums\StockReceiptSource;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Procurement\GoodsReceipt;
 use App\Support\Platform\NumberingService;
+use App\Support\Accounting\InventoryAccountingPostingService;
 use App\Support\StockReceiptService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -88,6 +89,8 @@ class GoodsReceiptService
                 'status' => GoodsReceiptStatus::Posted,
                 'posted_at' => now(),
             ]);
+
+            app(InventoryAccountingPostingService::class)->postGoodsReceipt($goodsReceipt, $userId);
 
             return $goodsReceipt->fresh(['items', 'stockReceipt', 'purchaseOrder']);
         });

@@ -86,38 +86,40 @@ class WorkspaceNavigationTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.workspaces.commercial'));
 
         $response->assertOk();
-        $response->assertSee(route('admin.quotations.dashboard'), false);
-        $response->assertDontSee(route('admin.crm.customers.index'), false);
+        $response->assertSee(route('admin.workspaces.commercial.section', ['section' => 'sales']), false);
+        $response->assertDontSee(route('admin.workspaces.commercial.section', ['section' => 'crm']), false);
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.commercial.section', ['section' => 'sales']))
+            ->assertOk()
+            ->assertSee(route('admin.quotations.dashboard'), false)
+            ->assertDontSee(route('admin.crm.customers.index'), false);
     }
 
     public function test_active_workspace_route_patterns_include_child_routes(): void
     {
         $this->actingAs($this->companyAdmin());
 
-        $patterns = app(WorkspacePresenter::class)->collectActiveRoutes('commercial');
+        $patterns = app(\App\Support\Navigation\CommercialWorkspacePresenter::class)->collectActiveRoutes();
 
         $this->assertContains('admin.workspaces.commercial', $patterns);
         $this->assertContains('admin.crm.customers.*', $patterns);
         $this->assertContains('admin.quotations.*', $patterns);
+        $this->assertContains('admin.commercial.activities.*', $patterns);
+        $this->assertContains('admin.commercial.pos.*', $patterns);
     }
 
-    public function test_coming_soon_cards_have_no_href_on_workspace_page(): void
+    public function test_commercial_activities_and_pos_sections_are_active(): void
     {
         $user = $this->companyAdmin();
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.commercial'));
+        $crm = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'crm']));
+        $crm->assertOk();
+        $crm->assertSee(route('admin.commercial.activities.index'), false);
 
-        $response->assertOk();
-        $response->assertSee(__('Coming Soon'), false);
-        $content = $response->getContent();
-        $this->assertMatchesRegularExpression(
-            '/Activities[\s\S]*?aria-disabled="true"/',
-            $content,
-        );
-        $this->assertDoesNotMatchRegularExpression(
-            '/Activities[\s\S]*?href="[^"]*activities/i',
-            $content,
-        );
+        $pos = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'point-of-sale']));
+        $pos->assertOk();
+        $pos->assertSee(route('admin.commercial.pos.dashboard'), false);
     }
 
     public function test_existing_feature_routes_still_work(): void

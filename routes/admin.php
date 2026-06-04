@@ -12,6 +12,8 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
+use App\Http\Controllers\Admin\Commercial\CommercialWorkspaceController;
+use App\Http\Controllers\Admin\SupplyChain\SupplyChainWorkspaceController;
 use App\Http\Controllers\Admin\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 use App\Support\Navigation\WorkspacePresenter;
@@ -28,8 +30,20 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             ->where('section', 'general-ledger|receivables|payables|tax|setup')
             ->name('workspaces.accounting.section');
 
+        Route::get('workspaces/supply-chain', [SupplyChainWorkspaceController::class, 'hub'])
+            ->name('workspaces.supply-chain');
+        Route::get('workspaces/supply-chain/{section}', [SupplyChainWorkspaceController::class, 'section'])
+            ->where('section', 'catalogue|store-operations|procurement|inventory-control|costing|assets|reports')
+            ->name('workspaces.supply-chain.section');
+
+        Route::get('workspaces/commercial', [CommercialWorkspaceController::class, 'hub'])
+            ->name('workspaces.commercial');
+        Route::get('workspaces/commercial/{section}', [CommercialWorkspaceController::class, 'section'])
+            ->where('section', 'crm|sales|customer-service|point-of-sale|reports')
+            ->name('workspaces.commercial.section');
+
         foreach (array_keys(config('workspaces', [])) as $workspace) {
-            if ($workspace === 'accounting') {
+            if (in_array($workspace, ['accounting', 'supply-chain', 'commercial'], true)) {
                 continue;
             }
 
@@ -114,6 +128,7 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
         });
     });
 
+require __DIR__.'/admin_commercial.php';
 require __DIR__.'/admin_crm.php';
 require __DIR__.'/admin_quotations.php';
 require __DIR__.'/admin_artwork.php';

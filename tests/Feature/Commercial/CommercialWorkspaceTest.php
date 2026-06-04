@@ -1,0 +1,229 @@
+<?php
+
+namespace Tests\Feature\Commercial;
+
+use App\Enums\ActivityStatus;
+use App\Enums\ActivityType;
+use App\Enums\PosSaleStatus;
+use App\Models\Branch;
+use App\Models\Company;
+use App\Models\Crm\Customer;
+use App\Models\Crm\CustomerActivity;
+use App\Models\Inventory\InventoryItem;
+use App\Models\Pos\PosSale;
+use App\Models\User;
+use App\Support\Commercial\PosSaleCalculator;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class CommercialWorkspaceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesAndPermissionsSeeder::class);
+    }
+
+    public function test_activities_index_requires_permission(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['crm.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.activities.index'))
+            ->assertForbidden();
+    }
+
+    public function test_activity_creation_works_for_permitted_user(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'crm.activities.view', 'crm.activities.create',
+        ]);
+
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)->post(route('admin.commercial.activities.store'), [
+            'customer_id' => $customer->id,
+            'activity_type' => ActivityType::Call->value,
+            'status' => ActivityStatus::Completed->value,
+            'subject' => 'Follow-up call',
+            'activity_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('customer_activities', [
+            'company_id' => $company->id,
+            'customer_id' => $customer->id,
+            'subject' => 'Follow-up call',
+        ]);
+    }
+
+    public function test_activity_is_tenant_scoped(): void
+    {
+        $companyA = Company::factory()->create();
+        $branchA = Branch::factory()->create(['company_id' => $companyA->id]);
+        $companyB = Company::factory()->create();
+        $branchB = Branch::factory()->create(['company_id' => $companyB->id]);
+
+        $activityB = CustomerActivity::query()->create([
+            'company_id' => $companyB->id,
+            'branch_id' => $branchB->id,
+            'user_id' => User::factory()->create(['company_id' => $companyB->id])->id,
+            'activity_type' => ActivityType::Note,
+            'status' => ActivityStatus::Completed,
+            'subject' => 'Other tenant',
+            'activity_at' => now(),
+        ]);
+
+        $user = $this->tenantUser([
+            'crm.activities.view',
+        ], $companyA, $branchA)[2];
+
+        session(['active_company_id' => $companyA->id, 'active_branch_id' => $branchA->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.activities.show', $activityB))
+            ->assertNotFound();
+    }
+
+    public function test_pos_index_requires_permission(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['crm.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.pos.dashboard'))
+            ->assertForbidden();
+    }
+
+    public function test_pos_sale_can_be_created(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'pos.view', 'pos.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)->post(route('admin.commercial.pos.store'), [
+            'action' => 'save',
+            'is_walk_in' => true,
+            'lines' => [[
+                'description' => 'Test product',
+                'quantity' => 2,
+                'unit_price' => 50,
+                'discount_amount' => 0,
+                'tax_amount' => 0,
+            ]],
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('pos_sales', [
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'cashier_id' => $user->id,
+            'status' => PosSaleStatus::Draft->value,
+        ]);
+    }
+
+    public function test_pos_sale_totals_calculate_correctly(): void
+    {
+        $calculator = app(PosSaleCalculator::class);
+
+        $totals = $calculator->totals([
+            ['quantity' => 2, 'unit_price' => 100, 'discount_amount' => 10, 'tax_amount' => 5],
+            ['quantity' => 1, 'unit_price' => 50, 'discount_amount' => 0, 'tax_amount' => 0],
+        ], 5, 10);
+
+        $this->assertSame('240.00', $totals['subtotal']);
+        $this->assertSame('15.00', $totals['discount_amount']);
+        $this->assertSame('15.00', $totals['tax_amount']);
+        $this->assertSame('250.00', $totals['total_amount']);
+    }
+
+    public function test_pos_sale_is_tenant_scoped(): void
+    {
+        $companyA = Company::factory()->create();
+        $branchA = Branch::factory()->create(['company_id' => $companyA->id]);
+        $companyB = Company::factory()->create();
+        $branchB = Branch::factory()->create(['company_id' => $companyB->id]);
+        $cashier = User::factory()->create(['company_id' => $companyB->id]);
+
+        $saleB = PosSale::query()->create([
+            'company_id' => $companyB->id,
+            'branch_id' => $branchB->id,
+            'cashier_id' => $cashier->id,
+            'sale_number' => 'POS-TEST-0001',
+            'sale_date' => today(),
+            'status' => PosSaleStatus::Paid,
+        ]);
+
+        $user = $this->tenantUser(['pos.view'], $companyA, $branchA)[2];
+
+        session(['active_company_id' => $companyA->id, 'active_branch_id' => $branchA->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.pos.show', $saleB))
+            ->assertNotFound();
+    }
+
+    public function test_crm_section_shows_activities_as_active(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'crm.activities.view',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'crm']));
+
+        $response->assertOk();
+        $response->assertSee(__('Activities'), false);
+        $response->assertSee(__('Active'), false);
+        $response->assertSee(route('admin.commercial.activities.index'), false);
+    }
+
+    public function test_user_without_pos_permission_cannot_see_pos_on_section(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'crm.activities.view', 'crm.customers.view',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.commercial.section', ['section' => 'point-of-sale']))
+            ->assertForbidden();
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     * @return array{0: Company, 1: Branch, 2: User}
+     */
+    protected function tenantUser(array $permissions, ?Company $company = null, ?Branch $branch = null): array
+    {
+        $company ??= Company::factory()->create();
+        $branch ??= Branch::factory()->create(['company_id' => $company->id]);
+
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $role = Role::findByName('Sales', 'web');
+        $role->syncPermissions($permissions);
+        $user->assignRole('Sales');
+
+        return [$company, $branch, $user];
+    }
+}

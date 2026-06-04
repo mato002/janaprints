@@ -148,6 +148,16 @@ return [
                         ['label' => 'Close', 'permission' => 'sales_orders.close'],
                     ],
                 ],
+                'pos' => [
+                    'label' => 'Point of Sale',
+                    'permissions' => [
+                        'view' => 'pos.view',
+                        'create' => 'pos.create',
+                        'edit' => 'pos.edit',
+                        'cancel' => 'pos.cancel',
+                        'refund' => 'pos.refund',
+                    ],
+                ],
             ],
         ],
 
@@ -187,6 +197,8 @@ return [
                         ['label' => 'Schedule', 'permission' => 'production.schedule'],
                         ['label' => 'Start', 'permission' => 'production.start'],
                         ['label' => 'Complete', 'permission' => 'production.complete'],
+                        ['label' => 'Job costing', 'permission' => 'production.costing.view'],
+                        ['label' => 'Manage costing', 'permission' => 'production.costing.manage'],
                     ],
                 ],
             ],
@@ -232,6 +244,79 @@ return [
                         ['label' => 'Issue', 'permission' => 'inventory.issue'],
                         ['label' => 'Adjust', 'permission' => 'inventory.adjust'],
                         ['label' => 'Transfer', 'permission' => 'inventory.transfer'],
+                        ['label' => 'Valuation', 'permission' => 'inventory.valuation.view'],
+                    ],
+                ],
+            ],
+        ],
+
+        'procurement' => [
+            'label' => 'Procurement',
+            'entities' => [
+                'vendors' => [
+                    'label' => 'Vendors',
+                    'permissions' => [
+                        'view' => 'procurement.vendors.view',
+                        'create' => 'procurement.vendors.create',
+                        'edit' => 'procurement.vendors.edit',
+                        'delete' => 'procurement.vendors.delete',
+                    ],
+                ],
+                'requests' => [
+                    'label' => 'Purchase Requests',
+                    'permissions' => [
+                        'view' => 'procurement.requests.view',
+                        'create' => 'procurement.requests.create',
+                        'edit' => 'procurement.requests.edit',
+                        'delete' => 'procurement.requests.delete',
+                        'approve' => 'procurement.requests.approve',
+                    ],
+                ],
+                'orders' => [
+                    'label' => 'Purchase Orders',
+                    'permissions' => [
+                        'view' => 'procurement.orders.view',
+                        'create' => 'procurement.orders.create',
+                        'edit' => 'procurement.orders.edit',
+                        'delete' => 'procurement.orders.delete',
+                        'approve' => 'procurement.orders.approve',
+                    ],
+                    'extra' => [
+                        ['label' => 'Receive goods', 'permission' => 'procurement.orders.receive'],
+                    ],
+                ],
+                'rfq' => [
+                    'label' => 'RFQ',
+                    'permissions' => [
+                        'view' => 'procurement.rfq.view',
+                        'create' => 'procurement.rfq.create',
+                        'edit' => 'procurement.rfq.edit',
+                    ],
+                ],
+                'comparison' => [
+                    'label' => 'Vendor Comparison',
+                    'permissions' => [
+                        'view' => 'procurement.comparison.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Award vendor', 'permission' => 'procurement.comparison.manage'],
+                    ],
+                ],
+            ],
+        ],
+
+        'assets' => [
+            'label' => 'Fixed Assets',
+            'entities' => [
+                'register' => [
+                    'label' => 'Asset Register',
+                    'permissions' => [
+                        'view' => 'assets.view',
+                        'create' => 'assets.create',
+                        'edit' => 'assets.edit',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage lifecycle', 'permission' => 'assets.manage'],
                     ],
                 ],
             ],

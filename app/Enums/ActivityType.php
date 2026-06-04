@@ -10,4 +10,6 @@ enum ActivityType: string
     case Whatsapp = 'whatsapp';
     case Sms = 'sms';
     case Visit = 'visit';
+    case FollowUp = 'follow_up';
+    case Note = 'note';
 }

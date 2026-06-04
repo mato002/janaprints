@@ -16,9 +16,46 @@ class InventoryValuationController extends Controller
         $companyId = (int) tenant()->companyId();
         $branchId = tenant()->branchId();
 
-        $totals = InventoryValuationService::dashboardTotals($companyId, $branchId);
-        $rows = InventoryValuationService::byItem($companyId, $branchId);
+        $scope = $request->query('scope', 'item');
+        $valuationDate = $request->query('date', now()->toDateString());
 
-        return view('admin.inventory.valuation.index', compact('totals', 'rows'));
+        $totals = InventoryValuationService::dashboardTotals($companyId, $branchId);
+        $reconciliation = InventoryValuationService::inventoryGlReconciliation($companyId, $totals['fifo_total']);
+
+        $rows = match ($scope) {
+            'warehouse' => InventoryValuationService::byWarehouse($companyId, $branchId),
+            'category' => InventoryValuationService::byCategory($companyId, $branchId),
+            'branch' => InventoryValuationService::byBranch($companyId),
+            default => InventoryValuationService::byItem($companyId, $branchId),
+        };
+
+        return view('admin.inventory.valuation.index', compact(
+            'totals',
+            'rows',
+            'scope',
+            'valuationDate',
+            'reconciliation',
+        ));
+    }
+
+    public function snapshot(Request $request): \Illuminate\Http\RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('inventory.valuation.view'), 403);
+
+        $validated = $request->validate([
+            'valuation_date' => ['required', 'date'],
+            'scope' => ['required', 'string', 'in:branch,item'],
+        ]);
+
+        InventoryValuationService::snapshot(
+            (int) tenant()->companyId(),
+            tenant()->branchId(),
+            $validated['valuation_date'],
+            $validated['scope'],
+        );
+
+        return back()->with('status', __('Valuation snapshot saved for :date.', [
+            'date' => $validated['valuation_date'],
+        ]));
     }
 }

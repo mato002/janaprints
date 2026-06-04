@@ -6,6 +6,7 @@ use App\Enums\InventoryDocumentStatus;
 use App\Enums\InventoryMovementType;
 use App\Enums\StockAdjustmentDirection;
 use App\Models\Inventory\StockAdjustment;
+use App\Support\Accounting\InventoryAccountingPostingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -67,6 +68,8 @@ class StockAdjustmentService
                 'status' => InventoryDocumentStatus::Posted,
                 'posted_at' => now(),
             ]);
+
+            app(InventoryAccountingPostingService::class)->postStockAdjustment($adjustment, $userId);
 
             return $adjustment->fresh(['items', 'warehouse']);
         });

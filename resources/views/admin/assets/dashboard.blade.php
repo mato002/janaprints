@@ -10,6 +10,7 @@
     </div>
     <x-admin.card class="mt-6">
         <a href="{{ route('admin.assets.index') }}" class="erp-btn-primary">{{ __('Asset register') }}</a>
+        <a href="{{ route('admin.assets.categories.index') }}" class="erp-btn-secondary ml-2">{{ __('Categories') }}</a>
         @can('assets.create')
             <a href="{{ route('admin.assets.create') }}" class="erp-btn-secondary ml-2">{{ __('Register asset') }}</a>
         @endcan

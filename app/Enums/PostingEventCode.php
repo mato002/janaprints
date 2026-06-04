@@ -28,6 +28,10 @@ enum PostingEventCode: string
     case SupplierBillPosted = 'supplier_bill.posted';
     case SupplierBillCreditNotePosted = 'supplier_bill.credit_note.posted';
 
+    case AssetAcquisitionPosted = 'asset.acquisition.posted';
+    case AssetDepreciationPosted = 'asset.depreciation.posted';
+    case AssetDisposalPosted = 'asset.disposal.posted';
+
     public function module(): PostingModule
     {
         return match ($this) {
@@ -54,6 +58,10 @@ enum PostingEventCode: string
 
             self::SupplierBillPosted,
             self::SupplierBillCreditNotePosted => PostingModule::Procurement,
+
+            self::AssetAcquisitionPosted,
+            self::AssetDepreciationPosted,
+            self::AssetDisposalPosted => PostingModule::Assets,
         };
     }
 
@@ -77,6 +85,9 @@ enum PostingEventCode: string
             self::PaymentRefundPosted => __('Payment refund posted'),
             self::SupplierBillPosted => __('Supplier bill posted'),
             self::SupplierBillCreditNotePosted => __('Supplier credit note posted'),
+            self::AssetAcquisitionPosted => __('Asset acquisition posted'),
+            self::AssetDepreciationPosted => __('Asset depreciation posted'),
+            self::AssetDisposalPosted => __('Asset disposal posted'),
         };
     }
 }

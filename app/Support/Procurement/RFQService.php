@@ -81,9 +81,20 @@ class RFQService
             ]);
         }
 
+        $rfq->load('vendors');
+
+        foreach ($rfq->vendors as $rfqVendor) {
+            if (! $rfqVendor->response_token) {
+                $rfqVendor->update([
+                    'response_token' => bin2hex(random_bytes(32)),
+                    'invited_at' => $rfqVendor->invited_at ?? now(),
+                ]);
+            }
+        }
+
         $rfq->update(['status' => RfqStatus::Open]);
 
-        return $rfq->fresh();
+        return $rfq->fresh(['vendors']);
     }
 
     public static function close(Rfq $rfq): Rfq
@@ -124,6 +135,7 @@ class RFQService
                         'warranty' => $line['warranty'] ?? null,
                         'delivery_terms' => $line['delivery_terms'] ?? null,
                         'comments' => $line['comments'] ?? null,
+                        'attachment_path' => $line['attachment_path'] ?? null,
                     ],
                 );
             }
@@ -132,6 +144,8 @@ class RFQService
                 'invitation_status' => 'responded',
                 'responded_at' => now(),
             ]);
+
+            RfqQuotationSyncService::syncFromVendorResponse($rfqVendor->fresh());
 
             return $rfqVendor->fresh(['responses.rfqItem', 'vendor']);
         });

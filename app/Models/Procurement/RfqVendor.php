@@ -14,6 +14,7 @@ class RfqVendor extends Model
         'invitation_status',
         'invited_at',
         'responded_at',
+        'response_token',
     ];
 
     protected function casts(): array

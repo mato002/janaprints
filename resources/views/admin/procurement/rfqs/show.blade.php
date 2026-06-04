@@ -84,7 +84,13 @@
         @can('manage', $rfq)
             <x-admin.card class="mt-4">
                 <h3 class="text-sm font-semibold">{{ __('Record response') }} — {{ $rfqVendor->vendor->vendor_name }}</h3>
-                <form method="POST" action="{{ route('admin.procurement.rfqs.respond', [$rfq, $rfqVendor]) }}" class="mt-3 space-y-2">
+                @if ($rfqVendor->response_token)
+                    <p class="mb-2 text-xs text-slate-500">
+                        {{ __('Vendor portal') }}:
+                        <a href="{{ route('rfq.portal.show', $rfqVendor->response_token) }}" class="erp-link" target="_blank">{{ route('rfq.portal.show', $rfqVendor->response_token) }}</a>
+                    </p>
+                @endif
+                <form method="POST" action="{{ route('admin.procurement.rfqs.respond', [$rfq, $rfqVendor]) }}" enctype="multipart/form-data" class="mt-3 space-y-2">
                     @csrf
                     @foreach ($rfq->items as $index => $item)
                         <div class="grid grid-cols-1 gap-2 border-b border-slate-100 pb-2 sm:grid-cols-4">
@@ -94,6 +100,10 @@
                             <input type="number" name="lines[{{ $index }}][lead_time_days]" class="erp-input" placeholder="{{ __('Lead days') }}">
                         </div>
                     @endforeach
+                    <div>
+                        <x-input-label :value="__('Attachment (optional)')" />
+                        <input type="file" name="attachment" class="mt-1 block w-full text-sm">
+                    </div>
                     <x-primary-button>{{ __('Save response') }}</x-primary-button>
                 </form>
             </x-admin.card>
