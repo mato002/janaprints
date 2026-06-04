@@ -4,22 +4,25 @@ namespace App\Http\Controllers\Admin\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
+use App\Services\Production\JobProfitabilityDashboardService;
 use App\Support\Production\JobCostingService;
-use App\Support\Production\JobProfitabilityService;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class JobCostingController extends Controller
 {
-    public function dashboard(): View
+    public function dashboard(Request $request, JobProfitabilityDashboardService $dashboardService): View
     {
         abort_unless(auth()->user()?->can('production.costing.view'), 403);
 
-        $companyId = (int) tenant()->companyId();
-        $branchId = tenant()->branchId();
+        $dashboard = $dashboardService->build($request);
 
-        $stats = JobProfitabilityService::dashboard($companyId, $branchId);
-
-        return view('admin.production.costing.dashboard', compact('stats'));
+        return view('admin.production.costing.dashboard', [
+            'dashboard' => $dashboard,
+            'filters' => $dashboard['filters'],
+            'filterOptions' => $dashboard['filter_options'],
+            'activeChips' => $dashboard['active_filter_chips'],
+        ]);
     }
 
     public function show(ProductionJobCard $jobCard): View

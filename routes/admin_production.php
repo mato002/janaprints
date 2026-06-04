@@ -4,7 +4,9 @@ use App\Http\Controllers\Admin\Production\JobCostingController;
 use App\Http\Controllers\Admin\Production\ProductionDashboardController;
 use App\Http\Controllers\Admin\Production\ProductionJobCardController;
 use App\Http\Controllers\Admin\Production\ProductionOperationController;
+use App\Http\Controllers\Admin\Production\ProductionQualityController;
 use App\Http\Controllers\Admin\Production\ProductionQueueController;
+use App\Http\Controllers\Admin\Production\ProductionSchedulingController;
 use App\Http\Controllers\Admin\Production\QualityCheckController;
 use App\Http\Controllers\Admin\Production\WorkCenterController;
 use Illuminate\Support\Facades\Route;
@@ -19,7 +21,23 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:production.view')->group(function () {
             Route::get('job-cards', [ProductionJobCardController::class, 'index'])->name('job-cards.index');
+        });
+
+        Route::middleware('permission:production.work-centers.view')->group(function () {
             Route::get('work-centers', [WorkCenterController::class, 'index'])->name('work-centers.index');
+            Route::get('work-centers/{workCenter}', [WorkCenterController::class, 'show'])->name('work-centers.show');
+        });
+
+        Route::middleware('permission:production.queue.view')->group(function () {
+            Route::get('queue', [ProductionQueueController::class, 'index'])->name('queue.index');
+        });
+
+        Route::middleware('permission:production.scheduling.view')->group(function () {
+            Route::get('scheduling', [ProductionSchedulingController::class, 'index'])->name('scheduling.index');
+        });
+
+        Route::middleware('permission:production.quality.view')->group(function () {
+            Route::get('quality', [ProductionQualityController::class, 'index'])->name('quality.index');
         });
 
         Route::middleware('permission:production.create')->group(function () {
@@ -58,6 +76,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:production.start')->group(function () {
             Route::post('job-cards/{jobCard}/start', [ProductionJobCardController::class, 'start'])->name('job-cards.start');
             Route::post('job-cards/{jobCard}/operations', [ProductionOperationController::class, 'store'])->name('operations.store');
+            Route::put('job-cards/{jobCard}/operations/{operation}', [ProductionOperationController::class, 'update'])->name('operations.update');
         });
 
         Route::middleware('permission:production.complete')->group(function () {

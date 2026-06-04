@@ -2,6 +2,7 @@
     <div class="mb-3">
         <a
             href="{{ $workspaceNavigation['parent_url'] }}"
+            data-turbo-frame="erp-main"
             data-turbo-action="advance"
             class="inline-flex items-center gap-2 rounded-lg border border-erp-border bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-erp-accent/40 hover:bg-slate-50 hover:text-erp-accent"
         >

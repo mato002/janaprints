@@ -16,6 +16,11 @@ class ProductionJobCardPolicy
         return $user->can('production.view');
     }
 
+    public function viewSchedulingWorkspace(User $user): bool
+    {
+        return $user->can('production.scheduling.view');
+    }
+
     public function view(User $user, ProductionJobCard $jobCard): bool
     {
         return $user->can('production.view') && $this->sameTenant($user, $jobCard);

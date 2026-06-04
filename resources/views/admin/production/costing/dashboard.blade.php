@@ -1,105 +1,69 @@
-<x-admin-layout :title="__('Job Profitability')" :breadcrumbs="[['label' => __('Production'), 'url' => route('admin.production.dashboard')], ['label' => __('Costing')]]">
-    <x-admin.page-header :title="__('Production Profitability')" />
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <x-admin.card>
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Top profitable jobs') }}</h3>
-            <ul class="space-y-2 text-sm">
-                @forelse ($stats['top_profitable'] as $sheet)
-                    <li>
-                        <a href="{{ route('admin.production.job-cards.costing', $sheet->jobCard) }}" class="erp-link">
-                            {{ $sheet->jobCard->job_card_number }}
-                        </a>
-                        — {{ number_format($sheet->gross_profit, 2) }}
-                    </li>
-                @empty
-                    <li class="text-slate-500">{{ __('No data yet.') }}</li>
-                @endforelse
-            </ul>
-        </x-admin.card>
-        <x-admin.card>
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Loss-making jobs') }}</h3>
-            <ul class="space-y-2 text-sm">
-                @forelse ($stats['loss_making'] as $sheet)
-                    <li>
-                        <a href="{{ route('admin.production.job-cards.costing', $sheet->jobCard) }}" class="erp-link">
-                            {{ $sheet->jobCard->job_card_number }}
-                        </a>
-                        — {{ number_format($sheet->gross_profit, 2) }}
-                    </li>
-                @empty
-                    <li class="text-slate-500">{{ __('No losses recorded.') }}</li>
-                @endforelse
-            </ul>
-        </x-admin.card>
-    </div>
-    @if (! empty($stats['material_category_profitability']))
-        <x-admin.card class="mt-6">
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Material cost by category') }}</h3>
-            <table class="erp-table text-sm">
-                <thead><tr><th>{{ __('Category') }}</th><th>{{ __('Cost') }}</th><th>{{ __('Allocated revenue') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
-                <tbody>
-                    @foreach ($stats['material_category_profitability'] as $row)
-                        <tr>
-                            <td>{{ $row['category_name'] }}</td>
-                            <td>{{ number_format($row['cost'], 2) }}</td>
-                            <td>{{ number_format($row['revenue'], 2) }}</td>
-                            <td>{{ $row['margin_percent'] }}%</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </x-admin.card>
-    @endif
+<x-admin-layout
+    :title="__('Job Profitability')"
+    :breadcrumbs="[
+        ['label' => __('Production'), 'url' => route('admin.workspaces.production')],
+        ['label' => __('Job Costing & Profitability')],
+    ]"
+>
+    <x-admin.page-header
+        :title="__('Job Profitability Command Center')"
+        :description="__('Decision-focused profitability intelligence from existing job costing data — revenue, margins, cost drivers, and alerts.')"
+    >
+        @if ($dashboard['has_export_route'] ?? false)
+            <x-slot name="actions">
+                <a href="{{ route('admin.production.costing.export', request()->query()) }}" class="erp-btn-secondary">
+                    {{ __('Export') }}
+                </a>
+            </x-slot>
+        @endif
+    </x-admin.page-header>
 
-    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <x-admin.card>
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Product profitability (production type)') }}</h3>
-            <table class="erp-table text-sm">
-                <thead><tr><th>{{ __('Product type') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
-                <tbody>
-                    @foreach ($stats['product_profitability'] as $row)
-                        <tr>
-                            <td>{{ $row['label'] }}</td>
-                            <td>{{ number_format($row['revenue'], 2) }}</td>
-                            <td>{{ number_format($row['profit'], 2) }}</td>
-                            <td>{{ $row['margin_percent'] }}%</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </x-admin.card>
-        <x-admin.card>
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Branch profitability') }}</h3>
-            <table class="erp-table text-sm">
-                <thead><tr><th>{{ __('Branch') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
-                <tbody>
-                    @foreach ($stats['branch_profitability'] as $row)
-                        <tr>
-                            <td>{{ $row['branch_name'] }}</td>
-                            <td>{{ number_format($row['revenue'], 2) }}</td>
-                            <td>{{ number_format($row['profit'], 2) }}</td>
-                            <td>{{ $row['margin_percent'] }}%</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </x-admin.card>
+    <p class="mb-4 text-xs text-slate-500">
+        {{ __('As of') }} {{ $dashboard['as_of'] ?? now()->format('Y-m-d H:i') }}
+        @if (($dashboard['totals']['job_count'] ?? 0) > 0)
+            · {{ __(':count jobs in scope', ['count' => $dashboard['totals']['job_count']]) }}
+        @endif
+    </p>
+
+    {{-- Section 10: Filters --}}
+    <div class="mb-4">
+        @include('admin.production.costing.command-center.filters')
     </div>
-    <x-admin.card class="mt-6">
-        <h3 class="mb-3 text-sm font-semibold">{{ __('Customer profitability') }}</h3>
-        <table class="erp-table text-sm">
-            <thead><tr><th>{{ __('Customer') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Cost') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin %') }}</th></tr></thead>
-            <tbody>
-                @foreach ($stats['customer_profitability'] as $row)
-                    <tr>
-                        <td>{{ $row['customer_name'] }}</td>
-                        <td>{{ number_format($row['revenue'], 2) }}</td>
-                        <td>{{ number_format($row['cost'], 2) }}</td>
-                        <td>{{ number_format($row['profit'], 2) }}</td>
-                        <td>{{ $row['margin_percent'] }}%</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </x-admin.card>
+
+    {{-- Section 1: Executive KPI strip --}}
+    <div class="mb-4">
+        @include('admin.production.costing.command-center.kpi-strip')
+    </div>
+
+    {{-- Section 2: Profitability health panel --}}
+    <div class="mb-6">
+        @include('admin.production.costing.command-center.health-panel')
+    </div>
+
+    {{-- Sections 3 & 4: Top profitable vs loss-making (two-column) --}}
+    <div class="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+        @include('admin.production.costing.command-center.top-profitable')
+        @include('admin.production.costing.command-center.loss-making')
+    </div>
+
+    {{-- Section 5: Product / service profitability --}}
+    <div class="mb-6">
+        @include('admin.production.costing.command-center.product-profitability')
+    </div>
+
+    {{-- Section 6: Customer profitability --}}
+    <div class="mb-6">
+        @include('admin.production.costing.command-center.customer-profitability')
+    </div>
+
+    {{-- Section 7: Branch profitability --}}
+    <div class="mb-6">
+        @include('admin.production.costing.command-center.branch-profitability')
+    </div>
+
+    {{-- Sections 8 & 9: Cost drivers + alerts --}}
+    <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        @include('admin.production.costing.command-center.cost-drivers')
+        @include('admin.production.costing.command-center.alerts')
+    </div>
 </x-admin-layout>

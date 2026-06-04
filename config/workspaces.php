@@ -35,11 +35,28 @@ return [
                     ['label' => 'Production Dashboard', 'description' => 'Live production KPIs and workload overview.', 'route' => 'admin.production.dashboard', 'permission' => 'production.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.production.dashboard']],
                     ['label' => 'Job Cards', 'description' => 'Production jobs from order to completion.', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'icon' => 'collection', 'active_routes' => ['admin.production.job-cards.*']],
                     ['label' => 'Job Costing & Profitability', 'description' => 'Job cost sheets and margin analysis.', 'route' => 'admin.production.costing.dashboard', 'permission' => 'production.costing.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.production.costing.*', 'admin.production.job-cards.costing']],
-                    ['label' => 'Scheduling', 'description' => 'Plan jobs across work centers and shifts.', 'coming_soon' => true, 'icon' => 'calendar'],
-                    ['label' => 'Production Queue', 'description' => 'Queued operations awaiting execution.', 'coming_soon' => true, 'icon' => 'switch-horizontal'],
-                    ['label' => 'Work Centers', 'description' => 'Machines, cells, and capacity definitions.', 'route' => 'admin.production.work-centers.index', 'permission' => 'production.view', 'icon' => 'chip', 'active_routes' => ['admin.production.work-centers.*']],
-                    ['label' => 'Quality Control', 'description' => 'Inspections, holds, and QC sign-off.', 'coming_soon' => true, 'icon' => 'badge-check'],
-                    ['label' => 'Dispatch', 'description' => 'Ready jobs and outbound delivery.', 'coming_soon' => true, 'icon' => 'truck'],
+                    ['label' => 'Scheduling', 'description' => 'Plan jobs across work centers and shifts.', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view', 'icon' => 'calendar', 'active_routes' => ['admin.production.scheduling.*']],
+                    ['label' => 'Production Queue', 'description' => 'Queued operations awaiting execution.', 'route' => 'admin.production.queue.index', 'permission' => 'production.queue.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.production.queue.*']],
+                    ['label' => 'Work Centers', 'description' => 'Machines, cells, and capacity definitions.', 'route' => 'admin.production.work-centers.index', 'permission' => 'production.work-centers.view', 'icon' => 'chip', 'active_routes' => ['admin.production.work-centers.*']],
+                    ['label' => 'Quality Control', 'description' => 'Inspections, holds, and QC sign-off.', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'icon' => 'badge-check', 'active_routes' => ['admin.production.quality.*']],
+                    ['label' => 'Dispatch (legacy)', 'description' => 'Use Dispatch workspace for delivery notes.', 'route' => 'admin.workspaces.dispatch', 'permission' => 'dispatch.view', 'icon' => 'truck', 'active_routes' => ['admin.workspaces.dispatch']],
+                ],
+            ],
+        ],
+    ],
+
+    'dispatch' => [
+        'title' => 'Dispatch',
+        'description' => 'Delivery notes, dispatch lifecycle, and outbound delivery truth.',
+        'icon' => 'truck',
+        'quick_create' => [],
+        'groups' => [
+            [
+                'label' => 'Outbound',
+                'items' => [
+                    ['label' => 'Dispatch Dashboard', 'description' => 'Ready jobs, dispatch and delivery metrics.', 'route' => 'admin.dispatch.dashboard', 'permission' => 'dispatch.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.dispatch.dashboard']],
+                    ['label' => 'Delivery Notes', 'description' => 'Create, dispatch, and confirm deliveries.', 'route' => 'admin.dispatch.delivery-notes.index', 'permission' => 'dispatch.view', 'icon' => 'document-text', 'active_routes' => ['admin.dispatch.delivery-notes.*']],
+                    ['label' => 'Delivery Calendar', 'description' => 'Scheduled deliveries calendar.', 'route' => 'admin.dispatch.calendar', 'permission' => 'dispatch.view', 'icon' => 'calendar', 'active_routes' => ['admin.dispatch.calendar']],
                 ],
             ],
         ],

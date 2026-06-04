@@ -1,27 +1,39 @@
-<x-admin-layout :title="__('Work centers')" :breadcrumbs="[['label' => __('Production'), 'url' => route('admin.production.dashboard')], ['label' => __('Work centers')]]">
-    <x-admin.page-header :title="__('Work centers & stages')" />
+<x-admin-layout
+    :title="__('Work Centers')"
+    :breadcrumbs="[
+        ['label' => __('Production'), 'url' => route('admin.production.dashboard')],
+        ['label' => __('Work Centers')],
+    ]"
+>
+    <x-admin.page-header
+        :title="__('Production Capacity & Work Centers')"
+        :description="__('Manage production capacity, stage flow, workload, and bottlenecks across work centers.')"
+    />
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <x-admin.card>
-            <h3 class="font-medium mb-3">{{ __('Work centers') }}</h3>
-            <ul class="text-sm space-y-2">
-                @forelse ($workCenters as $center)
-                    <li>{{ $center->name }} <span class="text-slate-500">({{ $center->code }})</span></li>
-                @empty
-                    <li class="text-slate-500">{{ __('No work centers. Run Production foundation seeder.') }}</li>
-                @endforelse
-            </ul>
-            <div class="mt-4">{{ $workCenters->links() }}</div>
-        </x-admin.card>
-        <x-admin.card>
-            <h3 class="font-medium mb-3">{{ __('Production stages') }}</h3>
-            <ul class="text-sm space-y-2">
-                @forelse ($stages as $stage)
-                    <li>{{ $stage->sort_order }}. {{ $stage->name }} <span class="text-slate-500">({{ $stage->code }})</span></li>
-                @empty
-                    <li class="text-slate-500">{{ __('No stages configured.') }}</li>
-                @endforelse
-            </ul>
-        </x-admin.card>
+    <p class="mb-4 text-xs text-slate-500">{{ __('As of') }} {{ $dashboard['as_of'] ?? now()->format('Y-m-d H:i') }}</p>
+
+    <div class="mb-4">
+        @include('admin.production.work-centers.command-center.filters')
+    </div>
+
+    <div class="mb-4">
+        @include('admin.production.work-centers.command-center.kpi-strip')
+    </div>
+
+    <div class="mb-4">
+        @include('admin.production.work-centers.command-center.stage-map')
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <div class="xl:col-span-7">
+            @include('admin.production.work-centers.command-center.register')
+        </div>
+        <div class="xl:col-span-5">
+            @include('admin.production.work-centers.command-center.workload')
+        </div>
+    </div>
+
+    <div class="mt-4">
+        @include('admin.production.work-centers.command-center.bottlenecks')
     </div>
 </x-admin-layout>

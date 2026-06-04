@@ -10,6 +10,7 @@ enum DocumentType: string
     case ArtworkRequest = 'artwork_request';
     case SalesOrder = 'sales_order';
     case JobCard = 'job_card';
+    case DeliveryNote = 'delivery_note';
     case StockReceipt = 'stock_receipt';
     case StockIssue = 'stock_issue';
     case StockAdjustment = 'stock_adjustment';
@@ -37,6 +38,7 @@ enum DocumentType: string
             self::ArtworkRequest => 'ART',
             self::SalesOrder => 'SO',
             self::JobCard => 'JOB',
+            self::DeliveryNote => 'DN',
             self::StockReceipt => 'RCPT',
             self::StockIssue => 'ISSUE',
             self::StockAdjustment => 'ADJ',

@@ -2,27 +2,41 @@
 
 namespace App\Http\Controllers\Admin\Production;
 
-use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Production\WorkCenter;
+use App\Services\Production\WorkCenterWorkspaceService;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class WorkCenterController extends Controller
 {
-    use ScopesToTenant;
-
-    public function index(): View
+    public function index(Request $request, WorkCenterWorkspaceService $workspace): View
     {
-        $this->authorize('viewAny', \App\Models\Production\ProductionJobCard::class);
+        $this->authorize('viewAny', WorkCenter::class);
 
-        $workCenters = $this->scopeToTenant(
-            WorkCenter::query()->orderBy('name')
-        )->paginate(config('platform.pagination.default', 15));
+        $dashboard = $workspace->build($request);
 
-        $stages = $this->scopeToTenant(
-            \App\Models\Production\ProductionStage::query()->orderBy('sort_order')
-        )->get();
+        return view('admin.production.work-centers.index', [
+            'dashboard' => $dashboard,
+            'workspace' => $workspace,
+            'filters' => $dashboard['filters'],
+            'filterOptions' => $dashboard['filter_options'],
+            'activeChips' => $dashboard['active_filter_chips'],
+        ]);
+    }
 
-        return view('admin.production.work-centers.index', compact('workCenters', 'stages'));
+    public function show(WorkCenter $workCenter, WorkCenterWorkspaceService $workspace): View
+    {
+        $this->authorize('view', $workCenter);
+
+        $detail = $workspace->buildShow($workCenter);
+
+        return view('admin.production.work-centers.show', [
+            'workCenter' => $workCenter,
+            'detail' => $detail,
+            'metrics' => $detail['metrics'],
+            'activeQueues' => $detail['active_queues'],
+            'defaultCapacity' => $detail['default_capacity'],
+        ]);
     }
 }

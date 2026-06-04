@@ -144,6 +144,7 @@ require __DIR__.'/admin_invoices.php';
 require __DIR__.'/admin_payments.php';
 require __DIR__.'/admin_payables.php';
 require __DIR__.'/admin_production.php';
+require __DIR__.'/admin_dispatch.php';
 require __DIR__.'/admin_inventory.php';
 require __DIR__.'/admin_procurement.php';
 require __DIR__.'/admin_assets.php';

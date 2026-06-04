@@ -11,6 +11,9 @@ use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
+use App\Services\Production\Job360WorkspaceService;
+use App\Services\Production\JobProductionControlService;
+use App\Services\Production\ProductionJobCardIndexService;
 use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,15 +25,11 @@ class ProductionJobCardController extends Controller
 {
     use ScopesToTenant;
 
-    public function index(): View
+    public function index(Request $request, ProductionJobCardIndexService $index): View
     {
         $this->authorize('viewAny', ProductionJobCard::class);
 
-        $jobCards = $this->scopeToTenant(
-            ProductionJobCard::query()->with(['customer', 'salesOrder', 'creator'])
-        )->latest()->paginate(15);
-
-        return view('admin.production.job-cards.index', compact('jobCards'));
+        return view('admin.production.job-cards.index', $index->build($request));
     }
 
     public function create(): View
@@ -81,19 +80,24 @@ class ProductionJobCardController extends Controller
             ->with('status', __('Job card created.'));
     }
 
-    public function show(ProductionJobCard $jobCard): View
+    public function show(Request $request, ProductionJobCard $jobCard, Job360WorkspaceService $workspace): View
     {
         $this->authorize('view', $jobCard);
 
-        $jobCard->load([
-            'customer', 'salesOrder', 'quotation', 'artworkRequest', 'creator',
-            'queues.workCenter', 'queues.assignedOperator',
-            'operations.workCenter', 'operations.stage', 'operations.assignedEmployee',
-            'qualityChecks.checker',
-            'materialConsumptions.inventoryItem', 'materialConsumptions.warehouse',
-        ]);
+        $payload = $workspace->build(
+            $jobCard,
+            $request->query('tab'),
+            [
+                'timeline_filter' => $request->query('timeline_filter'),
+                'timeline_search' => $request->query('timeline_search'),
+                'timeline_page' => $request->query('timeline_page'),
+            ],
+        );
 
-        return view('admin.production.job-cards.show', compact('jobCard'));
+        return view('admin.production.job-cards.show', [
+            'workspace' => $payload,
+            'jobCard' => $payload['jobCard'],
+        ]);
     }
 
     public function edit(ProductionJobCard $jobCard): View
@@ -181,10 +185,14 @@ class ProductionJobCardController extends Controller
         return back()->with('status', __('Job card completed.'));
     }
 
-    public function readyForDispatch(ProductionJobCard $jobCard): RedirectResponse
+    public function readyForDispatch(ProductionJobCard $jobCard, JobProductionControlService $controls): RedirectResponse
     {
         $this->authorize('complete', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch), 403);
+
+        $eligibility = $controls->dispatchEligibility($jobCard);
+        abort_unless($eligibility['eligible'], 403, implode(' ', $eligibility['blockers']));
+
         $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch);
 
         if ($jobCard->salesOrder && $jobCard->salesOrder->status === SalesOrderStatus::InProduction) {

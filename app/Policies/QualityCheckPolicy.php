@@ -11,6 +11,11 @@ class QualityCheckPolicy
 {
     use ChecksCrmTenant;
 
+    public function viewWorkspace(User $user): bool
+    {
+        return $user->can('production.quality.view');
+    }
+
     public function viewAny(User $user, ProductionJobCard $jobCard): bool
     {
         return $user->can('production.view') && $this->sameTenant($user, $jobCard);

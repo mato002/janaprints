@@ -11,6 +11,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerSegment;
+use App\Services\Crm\Customer360WorkspaceService;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,10 +66,11 @@ class CustomerController extends Controller
         return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer created.'));
     }
 
-    public function show(Customer $customer): View
+    public function show(Request $request, Customer $customer, Customer360WorkspaceService $workspace): View
     {
         $this->authorize('view', $customer);
 
+<<<<<<< Updated upstream
         $customer->load(['contacts', 'customerNotes.user', 'files.uploader', 'activities.user', 'segments', 'branch']);
 
         $logService = app(\App\Support\Communications\CommunicationLogService::class);
@@ -98,6 +100,27 @@ class CustomerController extends Controller
             'emailTimeline',
             'inboxConversations',
         ));
+=======
+        $payload = $workspace->build(
+            $customer,
+            $request->query('tab'),
+            [
+                'timeline_filter' => $request->query('timeline_filter'),
+                'timeline_search' => $request->query('timeline_search'),
+                'timeline_page' => $request->query('timeline_page'),
+            ],
+            [
+                'financial_section' => $request->query('financial_section', 'overview'),
+                'statement_from' => $request->query('statement_from'),
+                'statement_to' => $request->query('statement_to'),
+            ],
+        );
+
+        return view('admin.crm.customers.show', [
+            'workspace' => $payload,
+            'customer' => $payload['customer'],
+        ]);
+>>>>>>> Stashed changes
     }
 
     public function edit(Customer $customer): View

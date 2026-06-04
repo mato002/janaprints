@@ -24,9 +24,11 @@ use App\Models\Inventory\Warehouse;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\StockAdjustment;
+use App\Models\Dispatch\DeliveryNote;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\QualityCheck;
+use App\Models\Production\WorkCenter;
 use App\Models\Procurement\GoodsReceipt;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
@@ -58,6 +60,7 @@ use App\Policies\StockIssuePolicy;
 use App\Policies\StockReceiptPolicy;
 use App\Policies\ProductionQueuePolicy;
 use App\Policies\QualityCheckPolicy;
+use App\Policies\WorkCenterPolicy;
 use App\Policies\GoodsReceiptPolicy;
 use App\Policies\PurchaseOrderPolicy;
 use App\Policies\PurchaseRequestPolicy;
@@ -75,6 +78,7 @@ use App\Policies\TaxCodePolicy;
 use App\Policies\VendorPolicy;
 use App\Policies\SalesOrderPolicy;
 use Illuminate\Support\Facades\Route;
+use App\Policies\DeliveryNotePolicy;
 use App\Policies\ActivityLogPolicy;
 use App\Policies\CustomerActivityPolicy;
 use App\Policies\PosSalePolicy;
@@ -135,6 +139,7 @@ class AppServiceProvider extends ServiceProvider
         ProductionJobCard::class => ProductionJobCardPolicy::class,
         ProductionQueue::class => ProductionQueuePolicy::class,
         QualityCheck::class => QualityCheckPolicy::class,
+        WorkCenter::class => WorkCenterPolicy::class,
         InventoryItem::class => InventoryItemPolicy::class,
         Warehouse::class => WarehousePolicy::class,
         StockReceipt::class => StockReceiptPolicy::class,
@@ -158,6 +163,7 @@ class AppServiceProvider extends ServiceProvider
         GoodsReceipt::class => GoodsReceiptPolicy::class,
         SupplierQuotation::class => SupplierQuotationPolicy::class,
         Rfq::class => RfqPolicy::class,
+        DeliveryNote::class => DeliveryNotePolicy::class,
         SettingsGovernance::class => SettingsPolicy::class,
         \App\Models\Communications\CommunicationTemplate::class => \App\Policies\CommunicationTemplatePolicy::class,
         \App\Models\Communications\ErpNotification::class => \App\Policies\ErpNotificationPolicy::class,

@@ -90,6 +90,11 @@ class ProductionJobCard extends Model
         return $this->hasMany(\App\Models\Inventory\ProductionMaterialConsumption::class);
     }
 
+    public function deliveryNotes(): HasMany
+    {
+        return $this->hasMany(\App\Models\Dispatch\DeliveryNote::class, 'production_job_card_id');
+    }
+
     public function transitionTo(ProductionJobCardStatus $status): void
     {
         if (! $this->status->canTransitionTo($status)) {
