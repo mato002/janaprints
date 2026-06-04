@@ -594,6 +594,54 @@ return [
             ],
         ],
 
+        'reports_intelligence' => [
+            'label' => 'Reports & Intelligence',
+            'entities' => [
+                'reports' => [
+                    'label' => 'Module Reports',
+                    'permissions' => [
+                        'view' => 'reports.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'reports.export'],
+                    ],
+                ],
+                'kpi_center' => [
+                    'label' => 'KPI Center',
+                    'permissions' => [
+                        'view' => 'kpi.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage KPI settings', 'permission' => 'kpi.manage'],
+                    ],
+                ],
+                'inventory_360' => [
+                    'label' => 'Inventory 360',
+                    'permissions' => ['view' => 'intelligence.inventory.view'],
+                ],
+                'procurement_360' => [
+                    'label' => 'Procurement 360',
+                    'permissions' => ['view' => 'intelligence.vendor.view'],
+                ],
+                'branch_360' => [
+                    'label' => 'Branch 360',
+                    'permissions' => ['view' => 'intelligence.branch.view'],
+                ],
+                'production_360' => [
+                    'label' => 'Production 360',
+                    'permissions' => ['view' => 'intelligence.production.view'],
+                ],
+                'financial_360' => [
+                    'label' => 'Financial 360',
+                    'permissions' => ['view' => 'intelligence.financial.view'],
+                ],
+                'commercial_360' => [
+                    'label' => 'Commercial 360',
+                    'permissions' => ['view' => 'intelligence.commercial.view'],
+                ],
+            ],
+        ],
+
     ],
 
 ];

@@ -237,6 +237,16 @@ class RolesAndPermissionsSeeder extends Seeder
         'communications.inbox.escalate',
         'communications.inbox.executive',
         'communications.inbox.admin',
+        'reports.view',
+        'reports.export',
+        'kpi.view',
+        'kpi.manage',
+        'intelligence.inventory.view',
+        'intelligence.vendor.view',
+        'intelligence.branch.view',
+        'intelligence.production.view',
+        'intelligence.financial.view',
+        'intelligence.commercial.view',
     ];
 
     /**
@@ -295,6 +305,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'communications.whatsapp.view', 'communications.whatsapp.send', 'communications.whatsapp.manage', 'communications.whatsapp.audit',
             'communications.email.view', 'communications.email.send', 'communications.email.schedule', 'communications.email.manage', 'communications.email.audit',
             'communications.inbox.view', 'communications.inbox.reply', 'communications.inbox.assign', 'communications.inbox.close', 'communications.inbox.notes', 'communications.inbox.attachments', 'communications.inbox.audit', 'communications.inbox.escalate', 'communications.inbox.executive', 'communications.inbox.admin',
+            'reports.view', 'reports.export', 'kpi.view', 'kpi.manage',
+            'intelligence.inventory.view', 'intelligence.vendor.view', 'intelligence.branch.view',
+            'intelligence.production.view', 'intelligence.financial.view', 'intelligence.commercial.view',
         ],
         'Branch Manager' => [
             'users.view', 'users.edit',
@@ -314,6 +327,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'communications.whatsapp.view', 'communications.whatsapp.send',
             'communications.email.view', 'communications.email.send',
             'communications.inbox.view', 'communications.inbox.reply', 'communications.inbox.assign', 'communications.inbox.notes', 'communications.inbox.escalate',
+            'reports.view',
         ],
         'Sales' => [
             'crm.customers.view', 'crm.customers.create', 'crm.customers.edit',
@@ -376,6 +390,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'inventory.view',
             'catalogue.view',
             'procurement.vendors.view', 'procurement.requests.view', 'procurement.orders.view',
+            'reports.view',
         ],
         'Accountant' => [
             'crm.customers.view',
@@ -402,6 +417,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'payables.payments.view', 'payables.payments.create', 'payables.payments.edit', 'payables.payments.post', 'payables.payments.cancel',
             'payables.ledger.view', 'payables.statement.view', 'payables.aging.view',
             'tax.codes.view', 'tax.codes.manage', 'tax.reports.view', 'tax.ledger.view', 'tax.returns.manage', 'tax.periods.view', 'tax.audit.view',
+            'reports.view', 'reports.export',
         ],
         'HR' => [
             'users.view', 'users.create', 'users.edit',
@@ -409,6 +425,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'departments.manage',
             'branches.manage',
             'activity_logs.view',
+            'reports.view', 'kpi.view',
         ],
     ];
 

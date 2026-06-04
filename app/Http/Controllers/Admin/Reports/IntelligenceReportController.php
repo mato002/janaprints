@@ -1,0 +1,144 @@
+<?php
+
+namespace App\Http\Controllers\Admin\Reports;
+
+use App\Http\Controllers\Controller;
+use App\Support\Reports\Branch360Presenter;
+use App\Support\Reports\Commercial360Presenter;
+use App\Support\Reports\ExecutiveReportPresenter;
+use App\Support\Reports\Financial360Presenter;
+use App\Support\Reports\IntelligenceReportPresenter;
+use App\Support\Reports\Inventory360Presenter;
+use App\Support\Reports\KpiCenterPresenter;
+use App\Support\Reports\Procurement360Presenter;
+use App\Support\Reports\Production360Presenter;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class IntelligenceReportController extends Controller
+{
+    public function __construct(
+        protected IntelligenceReportPresenter $legacyPresenter,
+        protected ExecutiveReportPresenter $executivePresenter,
+        protected Inventory360Presenter $inventory360Presenter,
+        protected Procurement360Presenter $procurement360Presenter,
+        protected KpiCenterPresenter $kpiPresenter,
+        protected Branch360Presenter $branch360Presenter,
+        protected Production360Presenter $production360Presenter,
+        protected Financial360Presenter $financial360Presenter,
+        protected Commercial360Presenter $commercial360Presenter,
+    ) {}
+
+    public function executive(Request $request): View
+    {
+        $this->authorizeReport($request, 'reports.view');
+
+        return view('admin.reports.executive', $this->executivePresenter->present($request));
+    }
+
+    public function commercial(Request $request): View
+    {
+        return $this->legacy('commercial', $request);
+    }
+
+    public function production(Request $request): View
+    {
+        return $this->legacy('production', $request);
+    }
+
+    public function inventory(Request $request): View
+    {
+        return $this->legacy('inventory', $request);
+    }
+
+    public function procurement(Request $request): View
+    {
+        return $this->legacy('procurement', $request);
+    }
+
+    public function accounting(Request $request): View
+    {
+        return $this->legacy('accounting', $request);
+    }
+
+    public function hr(Request $request): View
+    {
+        return $this->legacy('hr', $request);
+    }
+
+    public function kpi(Request $request): View
+    {
+        abort_unless(
+            $request->user()?->can('kpi.view') || $request->user()?->can('reports.view'),
+            403,
+        );
+
+        return view('admin.reports.kpi', $this->kpiPresenter->present($request));
+    }
+
+    public function inventory360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.inventory.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->inventory360Presenter->present($request));
+    }
+
+    public function procurement360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.vendor.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->procurement360Presenter->present($request));
+    }
+
+    public function branch360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.branch.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->branch360Presenter->present($request));
+    }
+
+    public function production360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.production.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->production360Presenter->present($request));
+    }
+
+    public function financial360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.financial.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->financial360Presenter->present($request));
+    }
+
+    public function commercial360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.commercial.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->commercial360Presenter->present($request));
+    }
+
+    protected function legacy(string $key, Request $request): View
+    {
+        $this->authorizeReport($request, 'reports.view');
+
+        abort_unless($this->legacyPresenter->exists($key), 404);
+
+        return view('admin.reports.show', $this->legacyPresenter->present($request, $key));
+    }
+
+    protected function authorizeReport(Request $request, string ...$permissions): void
+    {
+        $user = $request->user();
+
+        abort_unless($user, 403);
+
+        foreach ($permissions as $permission) {
+            if ($user->can($permission)) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+}

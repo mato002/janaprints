@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 <x-admin-layout
     :title="__('Customer 360 Workspace').' · '.$customer->company_name"
     :breadcrumbs="[['label' => __('Customers'), 'url' => route('admin.crm.customers.index')], ['label' => $customer->company_name]]"
@@ -63,38 +62,6 @@
             <div x-show="tab === 'timeline'" x-cloak class="crm-360__panel">
                 @include('admin.crm.customers.360.tab-timeline')
             </div>
-=======
-@php
-    $header = $workspace['header'];
-    $activeTab = $workspace['active_tab'];
-    $tabData = $workspace['tab_data'];
-@endphp
-
-<x-admin-layout
-    :title="$header['name']"
-    :breadcrumbs="[
-        ['label' => __('Customers'), 'url' => route('admin.crm.customers.index')],
-        ['label' => $header['name']],
-    ]"
->
-    <div class="customer-360 w-full min-w-0" data-turbo-frame="erp-main">
-        @include('admin.crm.customers.workspace.header', [
-            'customer' => $customer,
-            'header' => $header,
-            'quickActions' => $workspace['quick_actions'],
-        ])
-
-        @include('admin.crm.customers.workspace.kpi-strip', ['kpis' => $workspace['kpis']])
-
-        @include('admin.crm.customers.workspace.tabs-nav', ['tabs' => $workspace['tabs']])
-
-        <div class="customer-360__panel mt-4">
-            @include('admin.crm.customers.workspace.tabs.' . $activeTab, [
-                'customer' => $customer,
-                'tabData' => $tabData,
-                'activeTab' => $activeTab,
-            ])
->>>>>>> Stashed changes
         </div>
     </div>
 </x-admin-layout>

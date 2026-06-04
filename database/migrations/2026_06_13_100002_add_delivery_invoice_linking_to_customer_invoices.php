@@ -16,8 +16,6 @@ return new class extends Migration
             if (! Schema::hasColumn('customer_invoices', 'billing_source')) {
                 $table->string('billing_source', 30)->default('delivery_note')->after('delivery_note_id');
             }
-
-            $table->index('delivery_note_id', 'customer_invoices_delivery_note_id_idx');
         });
 
         Schema::table('customer_invoice_lines', function (Blueprint $table) {
@@ -25,8 +23,6 @@ return new class extends Migration
                 $table->foreignId('delivery_note_item_id')->nullable()->after('sales_order_item_id')
                     ->constrained('delivery_note_items')->nullOnDelete();
             }
-
-            $table->index('delivery_note_item_id', 'customer_invoice_lines_delivery_note_item_idx');
         });
     }
 
