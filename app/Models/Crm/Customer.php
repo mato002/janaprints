@@ -4,8 +4,10 @@ namespace App\Models\Crm;
 
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
+use App\Models\Branch;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Database\Factories\Crm\CustomerFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,12 +37,22 @@ class Customer extends Model
         ];
     }
 
+    public function getNameAttribute(): string
+    {
+        return $this->company_name ?: ($this->contact_person ?: (string) $this->customer_code);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function contacts(): HasMany
     {
         return $this->hasMany(CustomerContact::class);
     }
 
-    public function notes(): HasMany
+    public function customerNotes(): HasMany
     {
         return $this->hasMany(CustomerNote::class);
     }

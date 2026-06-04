@@ -102,7 +102,7 @@ return [
                         ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'coming_soon' => true, 'icon' => 'exclamation'],
                         ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'coming_soon' => true, 'icon' => 'inbox'],
                         ['label' => 'Customer Statements', 'description' => 'Period statements of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],
-                        ['label' => 'Customer History', 'description' => 'Orders, quotes, and interactions by customer.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'active_routes' => ['admin.crm.customers.*']],
+                        ['label' => 'Customer 360', 'description' => 'Enterprise customer workspace — commercial, conversations, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'active_routes' => ['admin.crm.customers.*']],
                     ],
                 ],
             ],

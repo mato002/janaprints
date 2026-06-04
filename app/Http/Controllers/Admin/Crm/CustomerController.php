@@ -69,9 +69,35 @@ class CustomerController extends Controller
     {
         $this->authorize('view', $customer);
 
-        $customer->load(['contacts', 'notes.user', 'files.uploader', 'activities.user', 'segments', 'branch']);
+        $customer->load(['contacts', 'customerNotes.user', 'files.uploader', 'activities.user', 'segments', 'branch']);
 
-        return view('admin.crm.customers.show', compact('customer'));
+        $logService = app(\App\Support\Communications\CommunicationLogService::class);
+        $communicationTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('customer', $customer->id, $customer->company_id)
+            : collect();
+        $whatsappTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('customer', $customer->id, $customer->company_id, 15, \App\Enums\CommunicationLogChannel::WhatsApp)
+            : collect();
+        $whatsappConversations = auth()->user()->can('communications.whatsapp.view')
+            ? app(\App\Support\Communications\Whatsapp\WhatsappConversationService::class)
+                ->forCustomer($customer->company_id, $customer->id)
+            : collect();
+        $emailTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('customer', $customer->id, $customer->company_id, 15, \App\Enums\CommunicationLogChannel::Email)
+            : collect();
+        $inboxConversations = auth()->user()->can('communications.inbox.view')
+            ? app(\App\Support\Communications\Inbox\InboxConversationService::class)
+                ->forCustomer($customer->company_id, $customer->id)
+            : collect();
+
+        return view('admin.crm.customers.show', compact(
+            'customer',
+            'communicationTimeline',
+            'whatsappTimeline',
+            'whatsappConversations',
+            'emailTimeline',
+            'inboxConversations',
+        ));
     }
 
     public function edit(Customer $customer): View

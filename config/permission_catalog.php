@@ -503,6 +503,97 @@ return [
             ],
         ],
 
+        'communications' => [
+            'label' => 'Communications',
+            'entities' => [
+                'templates' => [
+                    'label' => 'Communication Templates',
+                    'permissions' => [
+                        'view' => 'communications.templates.view',
+                        'create' => 'communications.templates.create',
+                        'edit' => 'communications.templates.edit',
+                    ],
+                    'extra' => [
+                        ['label' => 'View version history', 'permission' => 'communications.templates.version_view'],
+                        ['label' => 'Restore template versions', 'permission' => 'communications.templates.restore'],
+                    ],
+                ],
+                'notifications' => [
+                    'label' => 'Notification Center',
+                    'permissions' => [
+                        'view' => 'communications.notifications.view',
+                        'edit' => 'communications.notifications.manage',
+                    ],
+                    'extra' => [
+                        ['label' => 'Administer all user notifications', 'permission' => 'communications.notifications.admin'],
+                    ],
+                ],
+                'communication_logs' => [
+                    'label' => 'Communication Logs',
+                    'permissions' => [
+                        'view' => 'communications.logs.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Audit delivery events', 'permission' => 'communications.logs.audit'],
+                        ['label' => 'Export logs', 'permission' => 'communications.logs.export'],
+                        ['label' => 'Administer all logs', 'permission' => 'communications.logs.admin'],
+                    ],
+                ],
+                'sms' => [
+                    'label' => 'Bulk SMS',
+                    'permissions' => [
+                        'view' => 'communications.sms.view',
+                        'create' => 'communications.sms.send',
+                        'approve' => 'communications.sms.approve',
+                    ],
+                    'extra' => [
+                        ['label' => 'Schedule campaigns', 'permission' => 'communications.sms.schedule'],
+                        ['label' => 'SMS audit & credits', 'permission' => 'communications.sms.audit'],
+                    ],
+                ],
+                'whatsapp' => [
+                    'label' => 'WhatsApp',
+                    'permissions' => [
+                        'view' => 'communications.whatsapp.view',
+                        'create' => 'communications.whatsapp.send',
+                        'edit' => 'communications.whatsapp.manage',
+                    ],
+                    'extra' => [
+                        ['label' => 'Delivery audit', 'permission' => 'communications.whatsapp.audit'],
+                    ],
+                ],
+                'email' => [
+                    'label' => 'Email Center',
+                    'permissions' => [
+                        'view' => 'communications.email.view',
+                        'create' => 'communications.email.send',
+                        'edit' => 'communications.email.manage',
+                    ],
+                    'extra' => [
+                        ['label' => 'Schedule sends', 'permission' => 'communications.email.schedule'],
+                        ['label' => 'Delivery audit', 'permission' => 'communications.email.audit'],
+                    ],
+                ],
+                'inbox' => [
+                    'label' => 'Shared Inbox',
+                    'permissions' => [
+                        'view' => 'communications.inbox.view',
+                        'create' => 'communications.inbox.reply',
+                        'edit' => 'communications.inbox.assign',
+                    ],
+                    'extra' => [
+                        ['label' => 'Close conversations', 'permission' => 'communications.inbox.close'],
+                        ['label' => 'Internal notes', 'permission' => 'communications.inbox.notes'],
+                        ['label' => 'Attachments', 'permission' => 'communications.inbox.attachments'],
+                        ['label' => 'Inbox audit', 'permission' => 'communications.inbox.audit'],
+                        ['label' => 'Escalate conversations', 'permission' => 'communications.inbox.escalate'],
+                        ['label' => 'Executive inbox view', 'permission' => 'communications.inbox.executive'],
+                        ['label' => 'Inbox admin', 'permission' => 'communications.inbox.admin'],
+                    ],
+                ],
+            ],
+        ],
+
     ],
 
 ];

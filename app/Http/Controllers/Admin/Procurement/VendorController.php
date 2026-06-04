@@ -61,7 +61,15 @@ class VendorController extends Controller
 
         $vendor->load(['contacts']);
 
-        return view('admin.procurement.vendors.show', compact('vendor'));
+        $logService = app(\App\Support\Communications\CommunicationLogService::class);
+        $communicationTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('vendor', $vendor->id, $vendor->company_id)
+            : collect();
+        $emailTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('vendor', $vendor->id, $vendor->company_id, 15, \App\Enums\CommunicationLogChannel::Email)
+            : collect();
+
+        return view('admin.procurement.vendors.show', compact('vendor', 'communicationTimeline', 'emailTimeline'));
     }
 
     public function edit(Vendor $vendor): View

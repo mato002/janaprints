@@ -148,10 +148,11 @@ class WorkspaceNavigationTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.workspaces.administration'));
 
         $response->assertOk();
-        $response->assertSee('Access Control', false);
-        $response->assertSee('Settings Hub', false);
-        $response->assertSee('Audit Center', false);
-        $response->assertSee(route('admin.users.index'), false);
+        $response->assertSeeText(__('Security & Access'));
+        $response->assertSeeText(__('Configuration'));
+        $response->assertSeeText(__('System Operations'));
+        $response->assertSee(route('admin.workspaces.administration.section', ['section' => 'security-access']), false);
+        $response->assertDontSee('User accounts, branches, and role assignment', false);
     }
 
     public function test_all_workspace_routes_are_registered(): void

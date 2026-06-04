@@ -191,6 +191,22 @@ class CommercialWorkspaceTest extends TestCase
         $response->assertSee(route('admin.commercial.activities.index'), false);
     }
 
+    public function test_reports_section_renders_coming_soon_tiles(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'quotations.view',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.workspaces.commercial.section', ['section' => 'reports']));
+
+        $response->assertOk();
+        $response->assertSee(__('Sales Reports'), false);
+        $response->assertSee(__('Coming Soon'), false);
+    }
+
     public function test_user_without_pos_permission_cannot_see_pos_on_section(): void
     {
         [$company, $branch, $user] = $this->tenantUser([

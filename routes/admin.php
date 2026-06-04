@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
+use App\Http\Controllers\Admin\Administration\AdministrationWorkspaceController;
 use App\Http\Controllers\Admin\Commercial\CommercialWorkspaceController;
 use App\Http\Controllers\Admin\SupplyChain\SupplyChainWorkspaceController;
 use App\Http\Controllers\Admin\WorkspaceController;
@@ -42,8 +43,14 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             ->where('section', 'crm|sales|customer-service|point-of-sale|reports')
             ->name('workspaces.commercial.section');
 
+        Route::get('workspaces/administration', [AdministrationWorkspaceController::class, 'hub'])
+            ->name('workspaces.administration');
+        Route::get('workspaces/administration/{section}', [AdministrationWorkspaceController::class, 'section'])
+            ->where('section', 'security-access|organization|configuration|workflow-governance|integrations|system-operations')
+            ->name('workspaces.administration.section');
+
         foreach (array_keys(config('workspaces', [])) as $workspace) {
-            if (in_array($workspace, ['accounting', 'supply-chain', 'commercial'], true)) {
+            if (in_array($workspace, ['accounting', 'supply-chain', 'commercial', 'administration'], true)) {
                 continue;
             }
 
@@ -143,3 +150,9 @@ require __DIR__.'/admin_assets.php';
 require __DIR__.'/admin_accounting.php';
 require __DIR__.'/admin_tax.php';
 require __DIR__.'/admin_settings.php';
+require __DIR__.'/admin_communications.php';
+require __DIR__.'/admin_communications_sms.php';
+require __DIR__.'/admin_communication_logs.php';
+require __DIR__.'/admin_communications_whatsapp.php';
+require __DIR__.'/admin_communications_email.php';
+require __DIR__.'/admin_communications_inbox.php';

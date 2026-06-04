@@ -33,4 +33,11 @@
             <div class="mt-6"><x-primary-button>{{ __('Save') }}</x-primary-button></div>
         </form>
     </div>
+
+    @if ($employee && isset($communicationTimeline))
+        @include('admin.communications.logs.partials.entity-timeline', ['logs' => $communicationTimeline, 'title' => __('Employee communication history')])
+    @endif
+    @if ($employee && isset($emailTimeline) && $emailTimeline->isNotEmpty())
+        @include('admin.communications.logs.partials.entity-timeline', ['logs' => $emailTimeline, 'title' => __('Employee email history')])
+    @endif
 </x-admin-layout>

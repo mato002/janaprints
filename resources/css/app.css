@@ -1115,4 +1115,1580 @@
             @apply max-h-72;
         }
     }
+
+    /* Shared Inbox — premium workspace polish */
+    .shared-inbox-page {
+        @apply flex h-full min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-2;
+    }
+
+    .shared-inbox {
+        @apply mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .shared-inbox__toolbar {
+        @apply flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3;
+    }
+
+    .shared-inbox__toolbar-title h1 {
+        @apply leading-tight;
+    }
+
+    .shared-inbox__toolbar-actions {
+        @apply flex flex-wrap items-center gap-1.5;
+    }
+
+    .shared-inbox__icon-btn {
+        @apply inline-flex h-9 w-9 items-center justify-center rounded-full text-slate-500 transition-colors;
+        @apply hover:bg-slate-100 hover:text-erp-primary focus:outline-none focus:ring-2 focus:ring-indigo-500/20;
+    }
+
+    .shared-inbox__icon-btn--active {
+        @apply bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200;
+    }
+
+    .shared-inbox__toolbar-link {
+        @apply ml-1 hidden rounded-full border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors sm:inline-flex;
+        @apply hover:border-indigo-200 hover:bg-indigo-50/50 hover:text-indigo-800;
+    }
+
+    .shared-inbox__layout {
+        @apply grid h-full min-h-0 flex-1 overflow-hidden;
+    }
+
+    .shared-inbox__layout--split {
+        @apply grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(360px,400px)_minmax(0,1fr)];
+    }
+
+    .shared-inbox__layout--workspace {
+        @apply grid-cols-1 grid-rows-[minmax(0,1fr)] lg:grid-cols-[minmax(300px,380px)_minmax(0,1fr)];
+    }
+
+    .shared-inbox__list-col {
+        @apply relative z-0 flex h-full max-h-full min-h-0 min-w-0 flex-col overflow-hidden border-slate-200 bg-white lg:border-r;
+    }
+
+    .shared-inbox__list-panel {
+        @apply min-h-0 flex-1;
+    }
+
+    .shared-inbox__thread-col {
+        @apply relative flex h-full max-h-full min-h-0 min-w-0 flex-col overflow-hidden border-slate-200;
+        background-color: #e5ddd5;
+    }
+
+    .shared-inbox__drawer-backdrop {
+        @apply absolute inset-0 z-20 bg-slate-900/35;
+    }
+
+    .shared-inbox__drawer-col {
+        @apply absolute inset-y-0 right-0 z-30 flex h-full w-full max-w-[320px] min-w-0 flex-col overflow-hidden border-l border-slate-200 bg-white shadow-2xl;
+    }
+
+    .shared-inbox__drawer-toggle {
+        @apply absolute right-3 top-3 z-10 hidden rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-sm transition-colors lg:inline-flex;
+        @apply hover:border-indigo-300 hover:bg-indigo-50;
+    }
+
+    .shared-inbox__thread-col--drawer-open .shared-inbox__drawer-toggle {
+        @apply z-40;
+    }
+
+    .shared-inbox__ctx-head {
+        @apply flex shrink-0 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 py-2.5;
+    }
+
+    .shared-inbox__ctx-head-title {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .shared-inbox__ctx-close {
+        @apply inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800;
+    }
+
+    .shared-inbox__ctx-panel {
+        @apply min-h-0 bg-white;
+    }
+
+    .shared-inbox__list-header {
+        @apply sticky top-0 z-10 shrink-0 space-y-2.5 border-b border-slate-200 bg-white p-3;
+    }
+
+    .shared-inbox__new-panel {
+        @apply rounded-xl border border-indigo-100 bg-indigo-50/40 p-2.5;
+    }
+
+    .shared-inbox__search-wrap {
+        @apply relative;
+    }
+
+    .shared-inbox__search-icon {
+        @apply pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400;
+    }
+
+    .shared-inbox__search {
+        @apply w-full rounded-full border-0 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-800 shadow-sm ring-1 ring-slate-200/90 placeholder:text-slate-400;
+        @apply focus:outline-none focus:ring-2 focus:ring-indigo-500/25;
+    }
+
+    .shared-inbox__filters {
+        @apply flex flex-wrap gap-1.5;
+    }
+
+    .shared-inbox__chip {
+        @apply inline-flex shrink-0 items-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors;
+        @apply hover:border-indigo-200 hover:bg-slate-50 hover:text-indigo-800;
+    }
+
+    .shared-inbox__chip--active {
+        @apply border-indigo-300 bg-indigo-50 text-indigo-800 ring-1 ring-indigo-200/80;
+    }
+
+    .shared-inbox__more-filters {
+        @apply text-[10px] text-slate-500;
+    }
+
+    .shared-inbox__list-scroll {
+        @apply min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain bg-white px-2 py-2;
+        scrollbar-width: thin;
+        scrollbar-color: rgb(148 163 184 / 0.45) transparent;
+    }
+
+    .shared-inbox__list-scroll::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .shared-inbox__list-scroll::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300/80;
+    }
+
+    .shared-inbox__conv-row {
+        @apply mx-0.5 mb-1 flex gap-3 rounded-xl border border-transparent px-2.5 py-2.5 transition-colors;
+        @apply hover:bg-slate-50;
+    }
+
+    .shared-inbox__conv-row--active {
+        @apply border-indigo-100 bg-indigo-50 hover:bg-indigo-50;
+        border-left-width: 4px;
+        @apply border-l-indigo-600 pl-[calc(0.625rem-3px)];
+    }
+
+    .shared-inbox__avatar {
+        @apply flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-indigo-100/80 text-base font-semibold text-indigo-800;
+    }
+
+    .shared-inbox__unread-badge {
+        @apply flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[11px] font-bold text-white shadow-sm;
+    }
+
+    .shared-inbox__empty {
+        @apply hidden min-h-0 flex-1 flex-col items-center justify-center bg-gradient-to-b from-slate-50/80 to-white px-8 py-12 text-center lg:flex;
+    }
+
+    .shared-inbox__empty-art {
+        @apply mb-4 flex h-28 w-28 items-center justify-center rounded-full bg-indigo-50/80;
+    }
+
+    .shared-inbox__empty-title {
+        @apply text-lg font-semibold text-slate-800;
+    }
+
+    .shared-inbox__empty-desc {
+        @apply mt-2 max-w-sm text-sm leading-relaxed text-slate-500;
+    }
+
+    .shared-inbox__thread {
+        @apply flex h-full min-h-0 flex-col;
+    }
+
+    .shared-inbox__thread-header {
+        @apply sticky top-0 z-10 shrink-0 border-b border-[#d1d7db] bg-[#f0f2f5] px-4 py-3;
+    }
+
+    .shared-inbox__thread-header-avatar {
+        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-800;
+    }
+
+    .shared-inbox__thread-messages {
+        @apply absolute inset-0 overflow-y-auto px-4 py-3;
+        scrollbar-width: thin;
+        scrollbar-color: rgb(134 150 165 / 0.5) transparent;
+        background-color: #e5ddd5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='%23c5b9a8' fill-opacity='.22'%3E%3Cpath d='M45 38h8v8h-8zm30 0h8v8h-8zm30 0h8v8h-8zM30 68h8v8h-8zm60 0h8v8h-8zm30 0h8v8h-8zM45 98h8v8h-8zm45 0h8v8h-8zm30 0h8v8h-8zM30 128h8v8h-8zm60 0h8v8h-8zm30 0h8v8h-8zM45 158h8v8h-8zm45 0h8v8h-8zm30 0h8v8h-8zM30 188h8v8h-8zm60 0h8v8h-8zm30 0h8v8h-8zM45 218h8v8h-8zm45 0h8v8h-8zm30 0h8v8h-8z'/%3E%3Ccircle cx='195' cy='55' r='6'/%3E%3Ccircle cx='75' cy='195' r='5'/%3E%3Ccircle cx='210' cy='200' r='7'/%3E%3Cpath d='M170 120c8 0 14 6 14 14s-6 14-14 14-14-6-14-14 6-14 14-14zm-100 20c6 0 11 5 11 11s-5 11-11 11-11-5-11-11 5-11 11-11z'/%3E%3C/g%3E%3C/svg%3E");
+        background-size: 260px 260px;
+    }
+
+    .shared-inbox__thread-messages::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .shared-inbox__thread-messages::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300/80;
+    }
+
+    .shared-inbox__msg-in {
+        @apply rounded-lg rounded-tl-none bg-white px-3 py-1.5 text-[14.2px] leading-snug text-[#111b21] shadow-sm;
+    }
+
+    .shared-inbox__msg-out {
+        @apply rounded-lg rounded-tr-none bg-[#d9fdd3] px-3 py-1.5 text-[14.2px] leading-snug text-[#111b21] shadow-sm;
+    }
+
+    .shared-inbox__composer {
+        @apply shrink-0 border-t border-[#d1d7db] bg-[#f0f2f5] px-4 py-2.5;
+    }
+
+    .shared-inbox__composer-inner {
+        @apply flex items-end gap-2;
+    }
+
+    .shared-inbox__composer-tools {
+        @apply flex shrink-0 items-center gap-0.5 pb-1;
+    }
+
+    .shared-inbox__composer-tool {
+        @apply flex h-9 w-9 items-center justify-center rounded-full text-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700;
+    }
+
+    .shared-inbox__composer-field {
+        @apply flex min-w-0 flex-1 items-end gap-1 rounded-full bg-white px-3 py-1.5 shadow-md ring-1 ring-slate-200/90;
+    }
+
+    .shared-inbox__composer-send {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#25d366] text-white shadow-sm transition-colors;
+        @apply hover:bg-[#20bd5a] disabled:cursor-not-allowed disabled:opacity-40;
+    }
+
+    .shared-inbox__ctx-tabs {
+        @apply flex shrink-0 flex-wrap gap-1 border-b border-slate-200 bg-white px-2 py-2;
+        scrollbar-width: none;
+    }
+
+    .shared-inbox__ctx-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .shared-inbox__ctx-tab {
+        @apply shrink-0 rounded-full px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 transition-colors whitespace-nowrap;
+        @apply hover:bg-slate-100 hover:text-slate-700;
+    }
+
+    .shared-inbox__ctx-tab--active {
+        @apply bg-indigo-50 text-indigo-800 ring-1 ring-indigo-200/80;
+    }
+
+    .shared-inbox__ctx-body {
+        @apply min-h-0 flex-1 overflow-y-auto p-3 text-xs;
+        scrollbar-width: thin;
+        scrollbar-color: rgb(148 163 184 / 0.45) transparent;
+    }
+
+    .shared-inbox__ctx-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .shared-inbox__ctx-body::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300/80;
+    }
+
+    .shared-inbox-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(148 163 184 / 0.45) transparent;
+    }
+
+    .shared-inbox-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .shared-inbox-scrollbar::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300/80;
+    }
+
+    @media print {
+        .shared-inbox__toolbar-actions,
+        .shared-inbox__list-col,
+        .shared-inbox__drawer-toggle {
+            display: none !important;
+        }
+    }
+
+    /* CEO Inbox — Executive Communication Command Center */
+    .exec-inbox-cc {
+        @apply min-w-0 space-y-3;
+    }
+
+    .exec-inbox-cc__metrics-row {
+        @apply grid grid-cols-1 gap-3 lg:grid-cols-2;
+    }
+
+    .exec-inbox-cc__section-panel {
+        @apply h-full;
+    }
+
+    .exec-inbox-cc__metric-tile {
+        @apply min-h-[3.75rem];
+    }
+
+    .exec-inbox-cc__metric-foot {
+        @apply mt-0.5 block text-[9px] leading-tight text-slate-400;
+    }
+
+    .exec-inbox-cc__attention {
+        @apply p-3;
+    }
+
+    .exec-inbox-cc__attention-grid {
+        @apply grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .exec-inbox-cc__attention-col {
+        @apply rounded-lg border border-erp-border/80 bg-white/90 p-2;
+    }
+
+    .exec-inbox-cc__attention-col--critical {
+        @apply border-red-200/80 bg-red-50/20;
+    }
+
+    .exec-inbox-cc__attention-col--warning {
+        @apply border-amber-200/80 bg-amber-50/20;
+    }
+
+    .exec-inbox-cc__attention-col-head {
+        @apply mb-1.5 flex items-center justify-between gap-2 border-b border-erp-border/60 pb-1.5;
+    }
+
+    .exec-inbox-cc__attention-col-title {
+        @apply text-[10px] font-bold uppercase tracking-wide text-erp-primary;
+    }
+
+    .exec-inbox-cc__thread-list {
+        @apply max-h-[9.5rem] space-y-0.5 overflow-y-auto pr-0.5;
+        scrollbar-width: thin;
+    }
+
+    .exec-inbox-cc__thread-row {
+        @apply flex flex-col gap-0 rounded-md px-1.5 py-1 transition-colors hover:bg-white;
+    }
+
+    .exec-inbox-cc__thread-row--static {
+        @apply flex-row items-center justify-between hover:bg-transparent;
+    }
+
+    .exec-inbox-cc__thread-name {
+        @apply truncate text-[11px] font-medium text-erp-accent;
+    }
+
+    .exec-inbox-cc__thread-meta {
+        @apply text-[9px] text-slate-400;
+    }
+
+    .exec-inbox-cc__thread-empty {
+        @apply px-1.5 py-2 text-[10px] leading-snug text-slate-500;
+    }
+
+    .exec-inbox-cc__channel-list {
+        @apply space-y-2.5;
+    }
+
+    .exec-inbox-cc__channel-row {
+        @apply space-y-1;
+    }
+
+    .exec-inbox-cc__channel-label {
+        @apply flex items-center justify-between text-[11px] font-medium text-slate-700;
+    }
+
+    .exec-inbox-cc__channel-pct {
+        @apply font-bold tabular-nums text-erp-primary;
+    }
+
+    .exec-inbox-cc__channel-count {
+        @apply text-[9px] text-slate-400;
+    }
+
+    .exec-inbox-cc__channel-bar--whatsapp {
+        @apply bg-emerald-500;
+    }
+
+    .exec-inbox-cc__channel-bar--sms {
+        @apply bg-sky-500;
+    }
+
+    .exec-inbox-cc__channel-bar--email {
+        @apply bg-indigo-500;
+    }
+
+    .exec-inbox-cc__workload-split {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+    }
+
+    .exec-inbox-cc__subhead {
+        @apply mb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500;
+    }
+
+    .exec-inbox-cc__workload-bars {
+        @apply space-y-1.5;
+    }
+
+    .exec-inbox-cc__workload-bar-row {
+        @apply grid grid-cols-[minmax(0,5.5rem)_1fr_1.5rem] items-center gap-2;
+    }
+
+    .exec-inbox-cc__workload-name {
+        @apply truncate text-[10px] font-medium text-slate-700;
+    }
+
+    .exec-inbox-cc__workload-track {
+        @apply h-1.5;
+    }
+
+    .exec-inbox-cc__workload-count {
+        @apply text-right text-[10px] font-bold tabular-nums text-erp-primary;
+    }
+
+    .exec-inbox-cc__feed {
+        @apply max-h-[calc(100vh-14rem)] space-y-0;
+    }
+
+    .exec-inbox-cc__feed-item {
+        @apply relative flex gap-2 border-b border-erp-border/50 py-2.5 pl-3 last:border-b-0;
+    }
+
+    .exec-inbox-cc__feed-dot {
+        @apply absolute left-0 top-3 h-2 w-2 shrink-0 rounded-full;
+    }
+
+    .exec-inbox-cc__feed-dot--danger {
+        @apply bg-red-500;
+    }
+
+    .exec-inbox-cc__feed-dot--warning {
+        @apply bg-amber-500;
+    }
+
+    .exec-inbox-cc__feed-dot--default {
+        @apply bg-erp-accent;
+    }
+
+    .exec-inbox-cc__feed-body {
+        @apply min-w-0 flex-1;
+    }
+
+    .exec-inbox-cc__feed-head {
+        @apply flex items-start justify-between gap-2;
+    }
+
+    .exec-inbox-cc__feed-type {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .exec-inbox-cc__feed-time {
+        @apply shrink-0 text-[9px] text-slate-400;
+    }
+
+    .exec-inbox-cc__feed-link {
+        @apply mt-0.5 block truncate text-[11px] font-medium text-erp-primary hover:text-erp-accent;
+    }
+
+    .exec-inbox-cc__feed-meta {
+        @apply mt-0.5 text-[10px] text-slate-400;
+    }
+
+    .exec-inbox-cc__activity {
+        @apply sticky top-20 flex max-h-[calc(100vh-7rem)] flex-col;
+    }
+
+    @media (max-width: 1279px) {
+        .exec-inbox-cc__activity {
+            @apply static max-h-none;
+        }
+
+        .exec-inbox-cc__feed {
+            @apply max-h-80;
+        }
+    }
+
+    /* Team Performance — Operations Command Center */
+    .exec-team-cc {
+        @apply min-w-0 space-y-3;
+    }
+
+    .exec-team-cc__summary {
+        @apply p-3;
+    }
+
+    .exec-team-cc__summary-grid {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5;
+    }
+
+    .exec-team-cc__summary-metric {
+        @apply rounded-lg border border-erp-border/80 bg-erp-page/40 px-2.5 py-2;
+    }
+
+    .exec-team-cc__summary-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .exec-team-cc__summary-value {
+        @apply mt-1 block text-xl font-bold tabular-nums tracking-tight;
+    }
+
+    .exec-team-cc__workload-panel {
+        @apply h-full p-3;
+    }
+
+    .exec-team-cc__workload-grid {
+        @apply grid grid-cols-1 gap-2 sm:grid-cols-2;
+    }
+
+    .exec-team-cc__member-card {
+        @apply rounded-lg border border-erp-border bg-white p-3 shadow-sm;
+    }
+
+    .exec-team-cc__member-card--overloaded {
+        @apply border-red-200 bg-red-50/30;
+    }
+
+    .exec-team-cc__member-card--idle {
+        @apply border-slate-200 bg-slate-50/50;
+    }
+
+    .exec-team-cc__member-head {
+        @apply mb-2 flex items-start justify-between gap-2;
+    }
+
+    .exec-team-cc__member-name {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .exec-team-cc__status {
+        @apply shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide;
+    }
+
+    .exec-team-cc__status--danger {
+        @apply bg-red-100 text-red-800;
+    }
+
+    .exec-team-cc__status--success {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .exec-team-cc__status--muted {
+        @apply bg-slate-100 text-slate-600;
+    }
+
+    .exec-team-cc__member-bar-block {
+        @apply mb-2 space-y-1;
+    }
+
+    .exec-team-cc__member-bar-label {
+        @apply flex items-center justify-between text-[10px] font-medium text-slate-600;
+    }
+
+    .exec-team-cc__member-track {
+        @apply h-2.5;
+    }
+
+    .exec-team-cc__bar--idle {
+        @apply bg-slate-300;
+    }
+
+    .exec-team-cc__member-stats {
+        @apply grid grid-cols-2 gap-x-3 gap-y-1 text-[10px];
+    }
+
+    .exec-team-cc__member-stats dt {
+        @apply text-slate-500;
+    }
+
+    .exec-team-cc__member-stats dd {
+        @apply font-bold tabular-nums text-erp-primary;
+    }
+
+    .exec-team-cc__rankings,
+    .exec-team-cc__insights {
+        @apply p-3;
+    }
+
+    .exec-team-cc__leaderboard {
+        @apply space-y-2;
+    }
+
+    .exec-team-cc__leaderboard-item {
+        @apply flex gap-2 rounded-lg border border-erp-border/80 bg-erp-page/30 px-2.5 py-2;
+    }
+
+    .exec-team-cc__leaderboard-rank {
+        @apply flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-erp-primary text-[11px] font-bold text-white;
+    }
+
+    .exec-team-cc__leaderboard-body {
+        @apply min-w-0 flex-1;
+    }
+
+    .exec-team-cc__leaderboard-name {
+        @apply block text-[11px] font-semibold text-erp-primary;
+    }
+
+    .exec-team-cc__leaderboard-meta {
+        @apply mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[9px] text-slate-500;
+    }
+
+    .exec-team-cc__leaderboard-meta strong {
+        @apply font-semibold text-slate-700;
+    }
+
+    .exec-team-cc__insights-list {
+        @apply space-y-1.5;
+    }
+
+    .exec-team-cc__insight-row {
+        @apply flex items-start justify-between gap-2 rounded-md border border-erp-border/60 bg-white/80 px-2 py-1.5 text-[11px];
+    }
+
+    .exec-team-cc__insight-row dt {
+        @apply text-slate-500;
+    }
+
+    .exec-team-cc__insight-row dd {
+        @apply text-right font-semibold text-erp-primary;
+    }
+
+    .exec-team-cc__insight-row--highlight {
+        @apply border-erp-accent/30 bg-erp-accent/5;
+    }
+
+    .exec-team-cc__insight-row--highlight dd {
+        @apply text-erp-accent;
+    }
+
+    .exec-team-cc__unassigned,
+    .exec-team-cc__capacity-panel {
+        @apply p-3;
+    }
+
+    .exec-team-cc__queue-card {
+        @apply rounded-lg border border-amber-200 bg-amber-50/40 p-4 text-center;
+    }
+
+    .exec-team-cc__queue-count {
+        @apply text-4xl font-bold tabular-nums text-amber-700;
+    }
+
+    .exec-team-cc__queue-title {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .exec-team-cc__unassigned-meta {
+        @apply mt-3 grid grid-cols-3 gap-2 text-left text-[10px];
+    }
+
+    .exec-team-cc__unassigned-meta--queue {
+        @apply max-w-md mx-auto;
+    }
+
+    .exec-team-cc__unassigned-meta dt {
+        @apply text-slate-500;
+    }
+
+    .exec-team-cc__unassigned-meta dd {
+        @apply font-semibold text-erp-primary;
+    }
+
+    .exec-team-cc__capacity-list {
+        @apply max-h-72 space-y-2 overflow-y-auto pr-0.5;
+        scrollbar-width: thin;
+    }
+
+    .exec-team-cc__capacity-row {
+        @apply rounded-md border border-erp-border/70 bg-erp-page/30 px-2.5 py-2;
+    }
+
+    .exec-team-cc__capacity-row--danger {
+        @apply border-red-200 bg-red-50/30;
+    }
+
+    .exec-team-cc__capacity-row--success {
+        @apply border-emerald-200/80 bg-emerald-50/20;
+    }
+
+    .exec-team-cc__capacity-label {
+        @apply mb-1 flex items-center justify-between gap-2;
+    }
+
+    .exec-team-cc__capacity-name {
+        @apply truncate text-[11px] font-medium text-slate-700;
+    }
+
+    .exec-team-cc__capacity-pct {
+        @apply text-sm font-bold text-erp-primary;
+    }
+
+    .exec-team-cc__capacity-track {
+        @apply h-2;
+    }
+
+    .exec-team-cc__capacity-flag {
+        @apply mt-1 block text-[9px] font-medium text-red-700;
+    }
+
+    .exec-team-cc__capacity-flag--idle {
+        @apply text-emerald-700;
+    }
+
+    /* CRM — Customer 360 Workspace */
+    .crm-360 {
+        @apply min-w-0 space-y-4;
+    }
+
+    .crm-360__header {
+        @apply sticky top-16 z-20 -mx-4 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:-mx-6 sm:px-5 lg:-mx-8 lg:px-6;
+    }
+
+    .crm-360__header-main {
+        @apply flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between;
+    }
+
+    .crm-360__identity {
+        @apply min-w-0 space-y-1.5;
+    }
+
+    .crm-360__back {
+        @apply inline-block text-xs font-semibold text-indigo-700 hover:underline;
+    }
+
+    .crm-360__title {
+        @apply text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+    }
+
+    .crm-360__subtitle {
+        @apply text-sm text-slate-600;
+    }
+
+    .crm-360__since {
+        @apply text-xs text-slate-500;
+    }
+
+    .crm-360__status {
+        @apply mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider;
+    }
+
+    .crm-360__status--active {
+        @apply bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/80;
+    }
+
+    .crm-360__status--inactive {
+        @apply bg-slate-100 text-slate-600 ring-1 ring-slate-200;
+    }
+
+    .crm-360__status--prospect {
+        @apply bg-sky-100 text-sky-800 ring-1 ring-sky-200/80;
+    }
+
+    .crm-360__action-bar {
+        @apply flex flex-wrap items-center gap-2 lg:justify-end;
+    }
+
+    .crm-360__btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors;
+    }
+
+    .crm-360__btn--primary {
+        @apply bg-erp-accent text-white shadow-sm hover:bg-erp-accent-hover;
+    }
+
+    .crm-360__btn--outline {
+        @apply border-2 border-erp-primary bg-white text-erp-primary hover:bg-erp-primary/[0.06];
+    }
+
+    .crm-360__btn--ghost {
+        @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50;
+    }
+
+    .crm-360__btn--sm {
+        @apply px-3 py-2 text-xs;
+    }
+
+    .crm-360__btn--danger {
+        @apply border border-red-200 bg-white text-red-700 shadow-sm hover:border-red-300 hover:bg-red-50;
+    }
+
+    .crm-360__card-head {
+        @apply -mt-1 mb-3 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .crm-360__card-head .crm-360__card-title {
+        @apply mb-0;
+    }
+
+    .crm-360__channel-card .erp-card-title {
+        @apply mb-0 text-xs font-semibold uppercase tracking-wide text-erp-primary;
+    }
+
+    .crm-360__channel-card {
+        @apply mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .crm-360__row-link {
+        @apply font-semibold text-erp-primary transition-colors hover:text-erp-accent;
+    }
+
+    .crm-360__more-menu {
+        @apply absolute end-0 z-30 mt-1 min-w-[14rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
+    }
+
+    .crm-360__more-item {
+        @apply block px-4 py-2.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-erp-primary;
+    }
+
+    .crm-360__more-divider {
+        @apply my-1 border-slate-100;
+    }
+
+    .crm-360__kpi-strip {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6;
+    }
+
+    .crm-360__kpi {
+        @apply relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .crm-360__kpi--high {
+        @apply border-indigo-100 bg-gradient-to-br from-white to-indigo-50/40;
+    }
+
+    .crm-360__kpi--high .crm-360__kpi-value {
+        @apply text-2xl font-bold text-erp-primary sm:text-[1.65rem];
+    }
+
+    .crm-360__kpi--medium .crm-360__kpi-value {
+        @apply text-xl font-bold text-slate-800;
+    }
+
+    .crm-360__kpi--low {
+        @apply bg-slate-50/50 px-3 py-3;
+    }
+
+    .crm-360__kpi--low .crm-360__kpi-value {
+        @apply text-base font-semibold text-slate-700;
+    }
+
+    .crm-360__kpi-top {
+        @apply mb-2 flex items-center justify-between;
+    }
+
+    .crm-360__kpi-icon {
+        @apply flex h-9 w-9 items-center justify-center rounded-lg;
+    }
+
+    .crm-360__kpi-icon--revenue {
+        @apply bg-emerald-100 text-emerald-700;
+    }
+
+    .crm-360__kpi-icon--balance {
+        @apply bg-amber-100 text-amber-800;
+    }
+
+    .crm-360__kpi-icon--chat {
+        @apply bg-indigo-100 text-indigo-700;
+    }
+
+    .crm-360__kpi-icon--quote {
+        @apply bg-sky-100 text-sky-700;
+    }
+
+    .crm-360__kpi-icon--order {
+        @apply bg-violet-100 text-violet-700;
+    }
+
+    .crm-360__kpi-icon--activity {
+        @apply bg-slate-200 text-slate-600;
+    }
+
+    .crm-360__kpi-trend {
+        @apply flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold;
+    }
+
+    .crm-360__kpi-trend--up {
+        @apply bg-emerald-100 text-emerald-700;
+    }
+
+    .crm-360__kpi-trend--alert {
+        @apply bg-rose-100 text-rose-700;
+    }
+
+    .crm-360__kpi-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .crm-360__kpi-value {
+        @apply mt-1 block tabular-nums;
+    }
+
+    .crm-360__kpi-value--empty {
+        @apply text-slate-400;
+    }
+
+    .crm-360__kpi-hint {
+        @apply mt-1 block text-[10px] leading-snug text-slate-500;
+    }
+
+    .crm-360__tabs {
+        @apply flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm;
+        scrollbar-width: thin;
+    }
+
+    .crm-360__tab {
+        @apply shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50;
+    }
+
+    .crm-360__tab--active {
+        @apply bg-erp-primary text-white shadow-sm hover:bg-erp-primary;
+    }
+
+    .crm-360__panels {
+        @apply min-h-0;
+    }
+
+    .crm-360__panel {
+        @apply min-h-0;
+    }
+
+    .crm-360__panel .erp-card {
+        @apply mt-0 rounded-xl border-slate-200 shadow-sm;
+    }
+
+    .crm-360__grid {
+        @apply grid gap-3;
+    }
+
+    .crm-360__grid--overview {
+        @apply grid-cols-1 md:grid-cols-2 xl:grid-cols-3;
+    }
+
+    .crm-360__grid--commercial {
+        @apply grid-cols-1 lg:grid-cols-2;
+    }
+
+    .crm-360__card {
+        @apply rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .crm-360__card--form {
+        @apply border-erp-accent/20 bg-erp-page/30;
+    }
+
+    .crm-360__card-title {
+        @apply mb-3 text-xs font-semibold uppercase tracking-wide text-erp-primary;
+    }
+
+    .crm-360__dl {
+        @apply grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2;
+    }
+
+    .crm-360__dl dt {
+        @apply text-slate-500;
+    }
+
+    .crm-360__dl dd {
+        @apply font-medium text-erp-primary;
+    }
+
+    .crm-360__mini-list {
+        @apply space-y-2 text-sm;
+    }
+
+    .crm-360__pill {
+        @apply ml-1 rounded bg-erp-accent/10 px-1 py-0.5 text-[9px] font-semibold uppercase text-erp-accent;
+    }
+
+    .crm-360__empty-inline {
+        @apply text-[11px] text-slate-500;
+    }
+
+    .crm-360__tab-stack {
+        @apply space-y-3;
+    }
+
+    .crm-360__tab-toolbar {
+        @apply flex flex-wrap gap-2;
+    }
+
+    .crm-360__commercial-summary {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5;
+    }
+
+    .crm-360__commercial-card {
+        @apply rounded-xl border border-slate-200 bg-white px-3 py-3 text-center shadow-sm;
+    }
+
+    .crm-360__commercial-card-label {
+        @apply block text-[10px] font-semibold uppercase text-slate-500;
+    }
+
+    .crm-360__commercial-card-value {
+        @apply mt-1 block text-2xl font-bold tabular-nums text-erp-primary;
+    }
+
+    .crm-360__table-scroll {
+        @apply -mx-1 overflow-x-auto;
+    }
+
+    .crm-360__table {
+        @apply w-full min-w-[16rem] text-left text-[11px];
+    }
+
+    .crm-360__table thead th {
+        @apply border-b border-slate-200 py-1.5 font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .crm-360__table tbody td {
+        @apply border-b border-slate-100 py-2;
+    }
+
+    .crm-360__file-list {
+        @apply divide-y divide-slate-100;
+    }
+
+    .crm-360__file-row {
+        @apply flex items-start justify-between gap-2 py-2 text-sm;
+    }
+
+    .crm-360__upload-form {
+        @apply max-w-md;
+    }
+
+    .crm-360__form-grid {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
+    }
+
+    .crm-360__activity-group {
+        @apply mb-4 last:mb-0;
+    }
+
+    .crm-360__activity-type {
+        @apply mb-2 text-[10px] font-bold uppercase tracking-wide text-slate-500;
+    }
+
+    .crm-360__feed {
+        @apply space-y-2;
+    }
+
+    .crm-360__feed-item {
+        @apply rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2;
+    }
+
+    .crm-360__feed-head {
+        @apply flex items-start justify-between gap-2;
+    }
+
+    .crm-360__feed-title {
+        @apply text-sm font-medium text-erp-accent hover:underline;
+    }
+
+    .crm-360__feed-time {
+        @apply shrink-0 text-[10px] text-slate-400;
+    }
+
+    .crm-360__feed-meta {
+        @apply mt-0.5 text-[10px] text-slate-500;
+    }
+
+    .crm-360__notes-feed {
+        @apply space-y-2;
+    }
+
+    .crm-360__note-card {
+        @apply rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5;
+    }
+
+    .crm-360__note-head {
+        @apply flex items-center justify-between gap-2;
+    }
+
+    .crm-360__note-author {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .crm-360__note-time {
+        @apply text-[10px] text-slate-400;
+    }
+
+    .crm-360__note-body {
+        @apply mt-1 text-sm leading-snug text-slate-700;
+    }
+
+    .crm-360__timeline {
+        @apply space-y-0;
+    }
+
+    .crm-360__timeline-item {
+        @apply relative flex gap-3 border-b border-slate-100 py-3 pl-4 last:border-b-0;
+    }
+
+    .crm-360__timeline-dot {
+        @apply absolute left-0 top-4 h-2 w-2 rounded-full bg-erp-accent ring-4 ring-erp-accent/10;
+    }
+
+    .crm-360__timeline-head {
+        @apply mb-0.5 flex flex-wrap items-center gap-2;
+    }
+
+    .crm-360__timeline-date {
+        @apply text-[10px] text-slate-400;
+    }
+
+    .crm-360__timeline-title {
+        @apply block text-sm font-semibold text-erp-primary hover:text-erp-accent;
+    }
+
+    .crm-360__timeline-meta {
+        @apply text-[11px] text-slate-500;
+    }
+
+    .crm-360__badge {
+        @apply rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide;
+    }
+
+    .crm-360__badge--comm {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .crm-360__badge--commercial {
+        @apply bg-indigo-100 text-indigo-800;
+    }
+
+    .crm-360__badge--payment {
+        @apply bg-sky-100 text-sky-800;
+    }
+
+    .crm-360__badge--activity {
+        @apply bg-amber-100 text-amber-800;
+    }
+
+    .crm-360__badge--default {
+        @apply bg-slate-100 text-slate-600;
+    }
+
+    /* Communication Log — 360 intelligence workspace */
+    .comm-log-360 {
+        @apply min-w-0 space-y-4 pb-6;
+    }
+
+    .comm-log-360__header {
+        @apply rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5;
+    }
+
+    .comm-log-360__header-top {
+        @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .comm-log-360__back {
+        @apply text-xs font-semibold text-indigo-700 hover:underline;
+    }
+
+    .comm-log-360__export-link {
+        @apply rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50;
+    }
+
+    .comm-log-360__header-main {
+        @apply flex flex-wrap items-start justify-between gap-3;
+    }
+
+    .comm-log-360__ref {
+        @apply font-mono text-xs font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .comm-log-360__title {
+        @apply mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+    }
+
+    .comm-log-360__datetime {
+        @apply mt-1 text-sm text-slate-500;
+    }
+
+    .comm-log-360__status {
+        @apply shrink-0 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide;
+    }
+
+    .comm-log-360__status--success {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .comm-log-360__status--danger {
+        @apply bg-red-100 text-red-800;
+    }
+
+    .comm-log-360__status--info {
+        @apply bg-blue-100 text-blue-800;
+    }
+
+    .comm-log-360__status--warning {
+        @apply bg-amber-100 text-amber-900;
+    }
+
+    .comm-log-360__status--neutral {
+        @apply bg-slate-100 text-slate-700;
+    }
+
+    .comm-log-360__kpi-strip {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6;
+    }
+
+    .comm-log-360__kpi {
+        @apply rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm;
+    }
+
+    .comm-log-360__kpi-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .comm-log-360__kpi-value {
+        @apply mt-1 block text-lg font-bold tabular-nums text-erp-primary;
+    }
+
+    .comm-log-360__kpi-value--sm {
+        @apply text-sm font-semibold;
+    }
+
+    .comm-log-360__tabs {
+        @apply flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm;
+        scrollbar-width: thin;
+    }
+
+    .comm-log-360__tab {
+        @apply shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50;
+    }
+
+    .comm-log-360__tab--active {
+        @apply bg-erp-primary text-white shadow-sm hover:bg-erp-primary;
+    }
+
+    .comm-log-360__grid {
+        @apply grid gap-4;
+    }
+
+    .comm-log-360__grid--overview {
+        @apply grid-cols-1 lg:grid-cols-2;
+    }
+
+    .comm-log-360__card {
+        @apply rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5;
+    }
+
+    .comm-log-360__card--message {
+        @apply lg:row-span-1;
+    }
+
+    .comm-log-360__card-title {
+        @apply mb-4 text-xs font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .comm-log-360__bubble-wrap {
+        @apply flex justify-start;
+    }
+
+    .comm-log-360__bubble {
+        @apply max-w-full rounded-2xl px-4 py-3 shadow-sm;
+    }
+
+    .comm-log-360__bubble--whatsapp {
+        @apply rounded-tl-none bg-[#d9fdd3] text-[#111b21];
+    }
+
+    .comm-log-360__bubble--sms {
+        @apply rounded-tl-none border border-slate-200 bg-white text-slate-900;
+    }
+
+    .comm-log-360__bubble--email {
+        @apply w-full rounded-xl border border-slate-200 bg-slate-50 text-slate-900;
+    }
+
+    .comm-log-360__bubble--neutral {
+        @apply rounded-tl-none border border-slate-200 bg-white text-slate-900;
+    }
+
+    .comm-log-360__email-subject {
+        @apply mb-3 border-b border-slate-200 pb-2 text-base font-semibold text-slate-900;
+    }
+
+    .comm-log-360__bubble-body {
+        @apply text-[15px] leading-relaxed;
+    }
+
+    .comm-log-360__bubble-empty {
+        @apply text-sm italic text-slate-500;
+    }
+
+    .comm-log-360__bubble-meta {
+        @apply mt-2 text-right text-[11px] text-slate-500;
+    }
+
+    .comm-log-360__link {
+        @apply font-medium text-emerald-700 underline hover:text-emerald-800;
+    }
+
+    .comm-log-360__attachments {
+        @apply mt-4 rounded-lg border border-dashed border-slate-200 bg-slate-50/80 p-3;
+    }
+
+    .comm-log-360__attachments-label {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .comm-log-360__attachments-list {
+        @apply mt-2 space-y-1.5 text-sm text-slate-700;
+    }
+
+    .comm-log-360__attachment-item {
+        @apply flex items-center gap-2;
+    }
+
+    .comm-log-360__dl {
+        @apply grid gap-3 sm:grid-cols-2;
+    }
+
+    .comm-log-360__dl dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .comm-log-360__dl dd {
+        @apply mt-0.5 text-sm font-medium text-slate-900;
+    }
+
+    .comm-log-360__badge {
+        @apply inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide;
+    }
+
+    .comm-log-360__timeline {
+        @apply relative space-y-0 border-l-2 border-slate-200 pl-6;
+    }
+
+    .comm-log-360__timeline-item {
+        @apply relative pb-6 last:pb-0;
+    }
+
+    .comm-log-360__timeline-dot {
+        @apply absolute -left-[1.65rem] top-1.5 h-3 w-3 rounded-full bg-slate-300 ring-4 ring-white;
+    }
+
+    .comm-log-360__timeline-dot--success {
+        @apply bg-emerald-500;
+    }
+
+    .comm-log-360__timeline-dot--danger {
+        @apply bg-red-500;
+    }
+
+    .comm-log-360__timeline-dot--default {
+        @apply bg-indigo-400;
+    }
+
+    .comm-log-360__timeline-title {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .comm-log-360__timeline-sub {
+        @apply text-xs text-slate-600;
+    }
+
+    .comm-log-360__timeline-meta {
+        @apply mt-0.5 text-[11px] text-slate-500;
+    }
+
+    .comm-log-360__recipient-grid {
+        @apply grid gap-3 sm:grid-cols-2;
+    }
+
+    .comm-log-360__recipient-card {
+        @apply rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .comm-log-360__recipient-head {
+        @apply mb-3 flex flex-wrap items-start justify-between gap-2;
+    }
+
+    .comm-log-360__recipient-name {
+        @apply text-base font-semibold text-slate-900;
+    }
+
+    .comm-log-360__recipient-meta {
+        @apply space-y-2 text-sm;
+    }
+
+    .comm-log-360__recipient-meta dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .comm-log-360__recipient-meta dd {
+        @apply font-medium text-slate-800;
+    }
+
+    .comm-log-360__ledger {
+        @apply divide-y divide-slate-100;
+    }
+
+    .comm-log-360__ledger-row {
+        @apply grid gap-1 py-3 sm:grid-cols-[1fr_1fr_auto] sm:items-center sm:gap-4;
+    }
+
+    .comm-log-360__ledger-action {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .comm-log-360__ledger-user {
+        @apply text-sm text-slate-600;
+    }
+
+    .comm-log-360__ledger-time {
+        @apply text-xs tabular-nums text-slate-500;
+    }
+
+    .comm-log-360__analytics-grid {
+        @apply grid gap-3 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .comm-log-360__analytics-card {
+        @apply rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .comm-log-360__analytics-card--rate {
+        @apply border-emerald-200 bg-emerald-50/40;
+    }
+
+    .comm-log-360__analytics-card--failures {
+        @apply border-red-200 bg-red-50/30;
+    }
+
+    .comm-log-360__analytics-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .comm-log-360__analytics-value {
+        @apply mt-2 block text-3xl font-bold tabular-nums text-erp-primary;
+    }
+
+    .comm-log-360__analytics-value--sm {
+        @apply text-xl;
+    }
+
+    .comm-log-360__analytics-hint {
+        @apply mt-1 block text-[10px] text-slate-500;
+    }
+
+    .comm-log-360__empty {
+        @apply rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500;
+    }
+
+    /* CRM — Customers directory */
+    .crm-customers__header {
+        @apply rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:px-5;
+    }
+
+    .crm-customers__header-main {
+        @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+    }
+
+    .crm-customers__title {
+        @apply text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+    }
+
+    .crm-customers__subtitle {
+        @apply mt-1 text-sm text-slate-500;
+    }
+
+    .crm-customers__kpi-strip {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-4;
+    }
+
+    .crm-customers__kpi {
+        @apply rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm;
+    }
+
+    .crm-customers__kpi-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .crm-customers__kpi-value {
+        @apply mt-1 block text-xl font-bold tabular-nums text-erp-primary;
+    }
+
+    .crm-customers__hint {
+        @apply text-xs text-slate-500;
+    }
+
+    .crm-customers__data-grid .erp-card {
+        @apply overflow-hidden rounded-xl border-slate-200 shadow-sm;
+    }
+
+    .crm-customers__data-grid .erp-filter-pill {
+        @apply rounded-full border border-slate-200 px-3 py-1 text-xs font-medium;
+    }
+
+    .crm-customers__data-grid .erp-filter-pill--active {
+        @apply border-indigo-300 bg-indigo-50 text-indigo-800 ring-1 ring-indigo-200/80;
+    }
+
+    .crm-customers .erp-table--grid {
+        @apply border-0;
+    }
+
+    .crm-customers .erp-table--grid thead {
+        @apply bg-slate-50;
+    }
+
+    .crm-customers .erp-table th {
+        @apply h-11 bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .crm-customers .erp-table--grid th,
+    .crm-customers .erp-table--grid td {
+        @apply border-0 border-b border-slate-100;
+    }
+
+    .crm-customers .erp-table td {
+        @apply h-auto max-w-none py-3.5 align-middle;
+    }
+
+    .crm-customers__row {
+        @apply cursor-pointer transition-colors;
+    }
+
+    .crm-customers__row:hover,
+    .crm-customers__row:focus-visible {
+        @apply bg-indigo-50/70 outline-none ring-2 ring-inset ring-indigo-500/15;
+    }
+
+    .crm-customers__row:nth-child(even) {
+        @apply bg-white;
+    }
+
+    .crm-customers__row:nth-child(even):hover {
+        @apply bg-indigo-50/70;
+    }
+
+    .crm-customers__avatar {
+        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-800;
+    }
+
+    .crm-customers__status {
+        @apply inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+    }
+
+    .crm-customers__status--active {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .crm-customers__status--inactive {
+        @apply bg-slate-100 text-slate-600;
+    }
+
+    .crm-customers__status--prospect {
+        @apply bg-sky-100 text-sky-800;
+    }
+
+    .crm-customers__cell-customer {
+        @apply min-w-[12rem];
+    }
 }

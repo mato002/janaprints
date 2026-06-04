@@ -55,30 +55,11 @@
             </form>
         @endif
 
-        @if (! empty($quickCreate))
-            <x-dropdown align="right" width="48">
-                <x-slot name="trigger">
-                    <button type="button" class="erp-btn-primary py-2">
-                        <x-admin.icon name="plus" class="w-4 h-4" />
-                        <span class="hidden sm:inline">{{ __('Create') }}</span>
-                    </button>
-                </x-slot>
-                <x-slot name="content">
-                    @foreach ($quickCreate as $item)
-                        @if (! empty($item['coming_soon']))
-                            <span class="block w-full px-4 py-2 text-start text-sm leading-5 text-slate-400 cursor-not-allowed">{{ $item['label'] }} <span class="text-xs">({{ __('Soon') }})</span></span>
-                        @elseif (! empty($item['route']))
-                            <x-dropdown-link :href="route($item['route'])">{{ $item['label'] }}</x-dropdown-link>
-                        @endif
-                    @endforeach
-                </x-slot>
-            </x-dropdown>
-        @endif
+        <div id="erp-quick-create" class="contents">
+            @include('layouts.admin.partials.quick-create', ['quickCreate' => $quickCreate ?? []])
+        </div>
 
-        <button type="button" class="relative rounded-lg p-2 text-slate-500 transition-colors hover:bg-erp-page hover:text-slate-700" title="{{ __('Notifications') }}" aria-label="{{ __('Notifications') }}">
-            <x-admin.icon name="bell" class="w-5 h-5" />
-            <span class="absolute right-1.5 top-1.5 block h-2 w-2 rounded-full bg-erp-warning ring-2 ring-white" title="{{ __('Coming soon') }}"></span>
-        </button>
+        @include('layouts.admin.partials.notification-bell')
 
         <x-dropdown align="right" width="48">
             <x-slot name="trigger">

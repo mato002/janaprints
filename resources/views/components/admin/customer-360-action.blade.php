@@ -1,15 +1,16 @@
 @props(['customer'])
 
-@php
-    $has360 = \Illuminate\Support\Facades\Route::has('admin.crm.customers.360');
-@endphp
-
-@if ($has360)
-    <a href="{{ route('admin.crm.customers.360', $customer) }}" {{ $attributes->merge(['class' => 'erp-btn-secondary text-xs']) }}>
-        {{ __('View 360') }}
-    </a>
-@else
-    <span {{ $attributes->merge(['class' => 'inline-flex cursor-not-allowed items-center rounded-md border border-erp-border bg-slate-50 px-3 py-1.5 text-xs text-slate-400']) }} title="{{ __('Customer 360 profile') }}">
-        {{ __('View 360') }} — {{ __('Coming Soon') }}
-    </span>
-@endif
+<div {{ $attributes->merge(['class' => 'flex flex-wrap items-center gap-2']) }}>
+    <x-admin.crm-btn
+        variant="outline"
+        size="sm"
+        :href="route('admin.crm.customers.show', $customer)"
+        data-turbo-frame="erp-main"
+    >{{ __('Customer 360') }}</x-admin.crm-btn>
+    @can('viewAny', App\Models\Communications\Inbox\CommunicationConversation::class)
+        <form method="POST" action="{{ route('admin.communications.inbox.customers.start', $customer) }}" class="inline" data-turbo-frame="erp-main">
+            @csrf
+            <x-admin.crm-btn type="submit" variant="primary" size="sm">{{ __('Start conversation') }}</x-admin.crm-btn>
+        </form>
+    @endcan
+</div>

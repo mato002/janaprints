@@ -39,4 +39,9 @@
             @endcan
         </x-admin.card>
     </div>
+
+    @include('admin.communications.logs.partials.entity-timeline', ['logs' => $communicationTimeline, 'title' => __('Supplier communication history')])
+    @if ($emailTimeline->isNotEmpty())
+        @include('admin.communications.logs.partials.entity-timeline', ['logs' => $emailTimeline, 'title' => __('Supplier email history')])
+    @endif
 </x-admin-layout>

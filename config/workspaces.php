@@ -129,13 +129,17 @@ return [
             [
                 'label' => 'Channels',
                 'items' => [
-                    ['label' => 'SMS', 'description' => 'Bulk and transactional SMS.', 'coming_soon' => true, 'icon' => 'inbox'],
-                    ['label' => 'WhatsApp', 'description' => 'WhatsApp Business messaging.', 'coming_soon' => true, 'icon' => 'inbox'],
-                    ['label' => 'Email', 'description' => 'Email delivery and templates.', 'coming_soon' => true, 'icon' => 'inbox'],
-                    ['label' => 'Campaigns', 'description' => 'Marketing and outreach campaigns.', 'coming_soon' => true, 'icon' => 'sparkles'],
-                    ['label' => 'Templates', 'description' => 'Reusable message templates.', 'coming_soon' => true, 'icon' => 'document-text'],
-                    ['label' => 'Notifications', 'description' => 'In-app and push notification rules.', 'coming_soon' => true, 'icon' => 'bell'],
-                    ['label' => 'Communication Logs', 'description' => 'Sent message history and delivery status.', 'coming_soon' => true, 'icon' => 'clock'],
+                    ['label' => 'SMS Dashboard', 'description' => 'Credits, usage charts, and delivery KPIs.', 'route' => 'admin.communications.sms.dashboard', 'permission' => 'communications.sms.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.communications.sms.dashboard']],
+                    ['label' => 'SMS Campaigns', 'description' => 'Create, preview, schedule, and send bulk SMS.', 'route' => 'admin.communications.sms.campaigns.index', 'permission' => 'communications.sms.view', 'icon' => 'sparkles', 'active_routes' => ['admin.communications.sms.campaigns.*']],
+                    ['label' => 'SMS Queue', 'description' => 'Queued, processing, sent, and failed messages.', 'route' => 'admin.communications.sms.queues.index', 'permission' => 'communications.sms.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.communications.sms.queues.*']],
+                    ['label' => 'Provider Logs', 'description' => 'SMS provider request and response audit trail.', 'route' => 'admin.communications.sms.provider-logs.index', 'permission' => 'communications.sms.audit', 'icon' => 'clock', 'active_routes' => ['admin.communications.sms.provider-logs.*']],
+                    ['label' => 'SMS Credit Ledger', 'description' => 'Credits, purchases, usage, and balances.', 'route' => 'admin.communications.sms.credits.index', 'permission' => 'communications.sms.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.communications.sms.credits.*']],
+                    ['label' => 'WhatsApp', 'description' => 'Conversation center — inbox, templates, and delivery.', 'route' => 'admin.communications.whatsapp.inbox', 'permission' => 'communications.whatsapp.view', 'icon' => 'inbox', 'active_routes' => ['admin.communications.whatsapp.*']],
+                    ['label' => 'Email Center', 'description' => 'Compose, campaigns, delivery tracking, and analytics.', 'route' => 'admin.communications.email.dashboard', 'permission' => 'communications.email.view', 'icon' => 'mail', 'active_routes' => ['admin.communications.email.*']],
+                    ['label' => 'Templates', 'description' => 'Reusable message templates with versioning and preview.', 'route' => 'admin.communications.templates.index', 'permission' => 'communications.templates.view', 'icon' => 'document-text', 'active_routes' => ['admin.communications.templates.*']],
+                    ['label' => 'Notification Center', 'description' => 'Internal ERP alerts, preferences, and notification history.', 'route' => 'admin.communications.notifications.index', 'permission' => 'communications.notifications.view', 'icon' => 'bell', 'active_routes' => ['admin.communications.notifications.*']],
+                    ['label' => 'Communication Logs', 'description' => 'Communication truth ledger — all channels in one timeline.', 'route' => 'admin.communications.logs.dashboard', 'permission' => 'communications.logs.view', 'icon' => 'clock', 'active_routes' => ['admin.communications.logs.*']],
+                    ['label' => 'Shared Inbox', 'description' => 'WhatsApp-style team inbox — threads, notes, handover, and CEO view.', 'route' => 'admin.communications.inbox.index', 'permission' => 'communications.inbox.view', 'icon' => 'inbox', 'active_routes' => ['admin.communications.inbox.*']],
                 ],
             ],
         ],
@@ -167,52 +171,14 @@ return [
         'title' => 'Administration',
         'description' => 'Access control, organization structure, settings, and audit.',
         'icon' => 'shield-check',
+        'managed_by' => 'administration_workspaces',
         'quick_create' => [
             ['label' => 'User', 'route' => 'admin.users.create', 'permission' => 'users.create'],
             ['label' => 'Role', 'route' => 'admin.roles.create', 'permission' => 'roles.create'],
             ['label' => 'Branch', 'route' => 'admin.branches.create', 'permission' => 'branches.manage'],
             ['label' => 'Department', 'route' => 'admin.departments.create', 'permission' => 'departments.manage'],
         ],
-        'groups' => [
-            [
-                'label' => 'Access Control',
-                'items' => [
-                    ['label' => 'Users', 'description' => 'User accounts, branches, and role assignment.', 'route' => 'admin.users.index', 'permission' => 'users.view', 'icon' => 'users', 'active_routes' => ['admin.users.*']],
-                    ['label' => 'Roles', 'description' => 'Security groups and role governance.', 'route' => 'admin.access-control.roles', 'permission' => 'roles.view', 'icon' => 'shield-check', 'active_routes' => ['admin.access-control.roles', 'admin.roles.*']],
-                    ['label' => 'Permissions', 'description' => 'Permission matrix and access rights.', 'route' => 'admin.access-control.matrix', 'permission' => 'roles.view', 'icon' => 'key', 'active_routes' => ['admin.access-control.matrix', 'admin.permissions.*', 'admin.roles.permissions.*']],
-                ],
-            ],
-            [
-                'label' => 'Organization',
-                'items' => [
-                    ['label' => 'Companies', 'description' => 'Legal entities and tenant companies.', 'route' => 'admin.companies.index', 'permission' => 'companies.manage', 'icon' => 'building', 'active_routes' => ['admin.companies.*']],
-                    ['label' => 'Branches', 'description' => 'Branch locations and defaults.', 'route' => 'admin.branches.index', 'permission' => 'branches.manage', 'icon' => 'location-marker', 'active_routes' => ['admin.branches.*']],
-                    ['label' => 'Departments', 'description' => 'Organizational units and hierarchy.', 'route' => 'admin.departments.index', 'permission' => 'departments.manage', 'icon' => 'view-grid', 'active_routes' => ['admin.departments.*']],
-                    ['label' => 'Employees', 'description' => 'Employee master records.', 'route' => 'admin.employees.index', 'permission' => 'employees.manage', 'icon' => 'identification', 'active_routes' => ['admin.employees.*']],
-                ],
-            ],
-            [
-                'label' => 'Settings Hub',
-                'items' => [
-                    ['label' => 'System Settings', 'description' => 'Company-wide configuration and preferences.', 'route' => 'admin.settings.index', 'permission' => 'settings.view', 'icon' => 'cog', 'active_routes' => ['admin.settings.index', 'admin.settings.show', 'admin.settings.update', 'admin.settings.branding.*']],
-                    ['label' => 'Form Controls', 'description' => 'Required fields and form visibility rules.', 'route' => 'admin.settings.forms.index', 'permission' => 'settings.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.settings.forms.*']],
-                    ['label' => 'Approval Rules', 'description' => 'Discount, credit, and workflow approvals.', 'route' => 'admin.settings.approvals.index', 'permission' => 'settings.view', 'icon' => 'badge-check', 'active_routes' => ['admin.settings.approvals.*']],
-                    ['label' => 'Numbering Rules', 'description' => 'Document sequences and prefixes.', 'route' => 'admin.settings.numbering.index', 'permission' => 'settings.view', 'icon' => 'template', 'active_routes' => ['admin.settings.numbering.*']],
-                    ['label' => 'Notifications', 'description' => 'System notification preferences.', 'coming_soon' => true, 'icon' => 'bell'],
-                    ['label' => 'Integrations', 'description' => 'Third-party connectors and webhooks.', 'coming_soon' => true, 'icon' => 'switch-horizontal'],
-                    ['label' => 'API', 'description' => 'API keys and developer access.', 'coming_soon' => true, 'icon' => 'key'],
-                ],
-            ],
-            [
-                'label' => 'Audit Center',
-                'items' => [
-                    ['label' => 'Activity Logs', 'description' => 'User actions and system activity trail.', 'route' => 'admin.activity-logs.index', 'permission' => 'activity_logs.view', 'icon' => 'clock', 'active_routes' => ['admin.activity-logs.*']],
-                    ['label' => 'Audit Logs', 'description' => 'Compliance-grade audit records.', 'coming_soon' => true, 'icon' => 'document-text'],
-                    ['label' => 'Login Logs', 'description' => 'Authentication and session history.', 'coming_soon' => true, 'icon' => 'key'],
-                    ['label' => 'System Events', 'description' => 'Infrastructure and integration events.', 'coming_soon' => true, 'icon' => 'chip'],
-                ],
-            ],
-        ],
+        'groups' => [],
     ],
 
 ];

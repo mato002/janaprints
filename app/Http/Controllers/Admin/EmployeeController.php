@@ -50,7 +50,18 @@ class EmployeeController extends Controller
     {
         $this->authorize('update', $employee);
 
-        return view('admin.employees.edit', array_merge(['employee' => $employee], $this->formData($employee)));
+        $logService = app(\App\Support\Communications\CommunicationLogService::class);
+        $communicationTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('employee', $employee->id, $employee->company_id)
+            : collect();
+        $emailTimeline = auth()->user()->can('communications.logs.view')
+            ? $logService->forEntity('employee', $employee->id, $employee->company_id, 15, \App\Enums\CommunicationLogChannel::Email)
+            : collect();
+
+        return view('admin.employees.edit', array_merge(
+            ['employee' => $employee, 'communicationTimeline' => $communicationTimeline, 'emailTimeline' => $emailTimeline],
+            $this->formData($employee),
+        ));
     }
 
     public function update(Request $request, Employee $employee): RedirectResponse

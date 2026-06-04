@@ -69,7 +69,8 @@ class CommercialWorkspacePresenter
         $groups = [];
 
         foreach ($definition['groups'] ?? [] as $group) {
-            $items = $this->filterItems($group['items'] ?? []);
+            // Include coming-soon tiles so sections like Reports still render (hub uses the same rule).
+            $items = $this->filterItems($group['items'] ?? [], includeComingSoon: true);
 
             if ($items === []) {
                 continue;

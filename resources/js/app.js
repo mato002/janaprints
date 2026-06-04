@@ -17,7 +17,7 @@ document.addEventListener('turbo:visit', () => {
     }
 });
 
-document.addEventListener('turbo:frame-render', () => {
+document.addEventListener('turbo:frame-render', (event) => {
     const bar = progressBar();
 
     if (bar) {
@@ -26,6 +26,10 @@ document.addEventListener('turbo:frame-render', () => {
             bar.classList.remove('turbo-progress--visible');
             bar.style.width = '0';
         }, 200);
+    }
+
+    if (event.target?.id === 'erp-main') {
+        syncShellFromFrame();
     }
 });
 
@@ -1287,6 +1291,529 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('smsCampaignForm', (bootstrap = {}) => ({
+        previewUrl: bootstrap.previewUrl,
+        sendMode: 'immediate',
+        messageTemplate: '',
+        preview: null,
+
+        onTemplateChange(event) {
+            const option = event.target.selectedOptions[0];
+            const body = option?.dataset?.body;
+
+            if (body) {
+                this.messageTemplate = body;
+            }
+        },
+
+        async runPreview() {
+            const templateId = document.querySelector('[name=communication_template_id]')?.value || null;
+
+            const response = await fetch(this.previewUrl, {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    communication_template_id: templateId || null,
+                    message_template: this.messageTemplate,
+                }),
+            });
+
+            if (response.ok) {
+                this.preview = await response.json();
+            }
+        },
+    }));
+
+    Alpine.data('erpNotificationBell', (bootstrap = {}) => ({
+        routes: bootstrap.routes ?? {},
+        unreadCount: bootstrap.unreadCount ?? 0,
+        open: false,
+        loading: false,
+        items: [],
+
+        init() {
+            window.addEventListener('erp:notifications-updated', (event) => {
+                if (event.detail?.unreadCount !== undefined) {
+                    this.unreadCount = event.detail.unreadCount;
+                }
+            });
+        },
+
+        async toggle() {
+            this.open = ! this.open;
+
+            if (this.open) {
+                await this.fetchPanel();
+            }
+        },
+
+        close() {
+            this.open = false;
+        },
+
+        async fetchPanel() {
+            this.loading = true;
+
+            try {
+                const response = await fetch(this.routes.panel, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.items = data.notifications ?? [];
+                    this.unreadCount = data.unread_count ?? 0;
+                }
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async markRead(item) {
+            const response = await fetch(this.routes.markRead.replace('__ID__', String(item.id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                this.unreadCount = data.unread_count ?? this.unreadCount;
+                item.is_unread = false;
+                item.status = 'read';
+                this.broadcastUnread();
+            }
+        },
+
+        async markAllRead() {
+            const response = await fetch(this.routes.markAllRead, {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            });
+
+            if (response.ok) {
+                this.unreadCount = 0;
+                this.items = this.items.map((item) => ({ ...item, is_unread: false, status: 'read' }));
+                this.broadcastUnread();
+            }
+        },
+
+        async openNotification(item) {
+            const response = await fetch(this.routes.open.replace('__ID__', String(item.id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            });
+
+            if (! response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            this.unreadCount = data.unread_count ?? this.unreadCount;
+            item.is_unread = false;
+            this.broadcastUnread();
+            this.close();
+
+            if (data.redirect_url) {
+                window.Turbo?.visit(data.redirect_url) ?? (window.location.href = data.redirect_url);
+            }
+        },
+
+        broadcastUnread() {
+            window.dispatchEvent(new CustomEvent('erp:notifications-updated', {
+                detail: { unreadCount: this.unreadCount },
+            }));
+        },
+
+        jsonHeaders() {
+            return {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+        },
+
+        formatDate(iso) {
+            if (! iso) {
+                return '—';
+            }
+
+            try {
+                return new Date(iso).toLocaleString();
+            } catch {
+                return iso;
+            }
+        },
+    }));
+
+    Alpine.data('notificationCenterWorkspace', (bootstrap = {}) => ({
+        routes: bootstrap.routes ?? {},
+        can: bootstrap.can ?? {},
+        types: bootstrap.types ?? [],
+        preferences: bootstrap.preferences ?? {
+            commercial_alerts: true,
+            production_alerts: true,
+            accounting_alerts: true,
+            hr_alerts: true,
+            system_alerts: true,
+        },
+        prefsSaving: false,
+        selectedIds: [],
+        testForm: {
+            recipient_user_id: bootstrap.recipientId,
+            type: 'quotation_approved',
+            title: 'Test notification',
+            body: 'This is an internal ERP test alert.',
+        },
+
+        async markRead(id) {
+            await fetch(this.routes.mark_read.replace('__ID__', String(id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            });
+            window.location.reload();
+        },
+
+        async dismiss(id) {
+            await fetch(this.routes.dismiss.replace('__ID__', String(id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            });
+            window.location.reload();
+        },
+
+        async archive(id) {
+            await fetch(this.routes.archive.replace('__ID__', String(id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            });
+            window.location.reload();
+        },
+
+        toggleAll(event) {
+            const checked = event.target.checked;
+            this.selectedIds = checked
+                ? [...document.querySelectorAll('tbody input[type=checkbox][value]')].map((el) => Number(el.value))
+                : [];
+        },
+
+        async bulkRead() {
+            if (this.selectedIds.length === 0) {
+                return;
+            }
+
+            await fetch(this.routes.bulk_read, {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+                body: JSON.stringify({ ids: this.selectedIds }),
+            });
+            window.location.reload();
+        },
+
+        async bulkDismiss() {
+            if (this.selectedIds.length === 0) {
+                return;
+            }
+
+            await fetch(this.routes.bulk_dismiss, {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+                body: JSON.stringify({ ids: this.selectedIds }),
+            });
+            window.location.reload();
+        },
+
+        async savePreferences() {
+            this.prefsSaving = true;
+
+            try {
+                await fetch(this.routes.preferences, {
+                    method: 'PUT',
+                    headers: this.jsonHeaders(),
+                    body: JSON.stringify(this.preferences),
+                });
+            } finally {
+                this.prefsSaving = false;
+            }
+        },
+
+        async sendTest() {
+            await fetch(this.routes.store, {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+                body: JSON.stringify(this.testForm),
+            });
+            window.location.reload();
+        },
+
+        jsonHeaders() {
+            return {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+        },
+    }));
+
+    Alpine.data('communicationTemplatesWorkspace', (bootstrap = {}) => ({
+        routes: bootstrap.routes ?? {},
+        can: bootstrap.can ?? {},
+        options: bootstrap.options ?? {},
+        variables: bootstrap.variables ?? [],
+        sampleData: bootstrap.sampleData ?? {},
+        templates: bootstrap.templates ?? [],
+        viewMode: bootstrap.activeFilters?.view === 'category' ? 'category' : 'list',
+        selectedId: null,
+        selected: null,
+        previewData: { ...bootstrap.sampleData },
+        previewResult: null,
+        previewLoading: false,
+        editorOpen: false,
+        editorMode: 'create',
+        editorSaving: false,
+        editorError: null,
+        form: {},
+        versionsOpen: false,
+        versionsLoading: false,
+        versions: [],
+        compareLeft: null,
+        compareRight: null,
+        compareResult: null,
+
+        init() {
+            const first = this.templates[0];
+
+            if (first) {
+                this.selectTemplate(first.id);
+            }
+        },
+
+        selectTemplate(id) {
+            this.selectedId = id;
+            this.selected = this.templates.find((t) => t.id === id) ?? null;
+            this.previewResult = null;
+            this.previewData = { ...this.sampleData };
+        },
+
+        async runPreview() {
+            if (! this.selectedId) {
+                return;
+            }
+
+            this.previewLoading = true;
+
+            try {
+                const response = await fetch(this.routes.preview.replace('__ID__', String(this.selectedId)), {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({ data: this.previewData }),
+                });
+
+                if (response.ok) {
+                    this.previewResult = await response.json();
+                }
+            } finally {
+                this.previewLoading = false;
+            }
+        },
+
+        openEditor(template = null) {
+            this.editorMode = template ? 'edit' : 'create';
+            this.editorError = null;
+            this.form = template
+                ? {
+                    name: template.name,
+                    channel: template.channel,
+                    template_type: template.template_type,
+                    category: template.category,
+                    status: template.status,
+                    subject: template.subject ?? '',
+                    body: template.body,
+                    description: template.description ?? '',
+                    change_notes: '',
+                }
+                : {
+                    code: '',
+                    name: '',
+                    channel: 'sms',
+                    template_type: 'transactional',
+                    category: 'quotation_ready',
+                    status: 'active',
+                    subject: '',
+                    body: 'Dear {{customer_name}}, your quotation {{quotation_number}} is ready.',
+                    description: '',
+                    change_notes: '',
+                };
+            this.editorOpen = true;
+        },
+
+        closeEditor() {
+            this.editorOpen = false;
+        },
+
+        async saveTemplate() {
+            this.editorSaving = true;
+            this.editorError = null;
+
+            const isCreate = this.editorMode === 'create';
+            const url = isCreate
+                ? this.routes.store
+                : this.routes.update.replace('__ID__', String(this.selectedId));
+            const method = isCreate ? 'POST' : 'PUT';
+
+            try {
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(this.form),
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (! response.ok) {
+                    const message = data.message
+                        ?? Object.values(data.errors ?? {}).flat().join(' ')
+                        ?? 'Unable to save template.';
+                    this.editorError = message;
+
+                    return;
+                }
+
+                if (isCreate) {
+                    this.templates.push(data.template);
+                    this.selectTemplate(data.template.id);
+                } else {
+                    const index = this.templates.findIndex((t) => t.id === data.template.id);
+
+                    if (index >= 0) {
+                        this.templates[index] = data.template;
+                    }
+
+                    this.selectTemplate(data.template.id);
+                }
+
+                this.closeEditor();
+            } finally {
+                this.editorSaving = false;
+            }
+        },
+
+        async openVersions() {
+            if (! this.selectedId || ! this.can.versionView) {
+                return;
+            }
+
+            this.versionsOpen = true;
+            this.versionsLoading = true;
+            this.compareLeft = null;
+            this.compareRight = null;
+            this.compareResult = null;
+
+            try {
+                const response = await fetch(this.routes.versions.replace('__ID__', String(this.selectedId)), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.versions = data.versions ?? [];
+                }
+            } finally {
+                this.versionsLoading = false;
+            }
+        },
+
+        comparePick(version, side) {
+            if (side === 'left') {
+                this.compareLeft = version;
+            } else {
+                this.compareRight = version;
+            }
+
+            if (this.compareLeft && this.compareRight) {
+                this.runCompare();
+            }
+        },
+
+        async runCompare() {
+            const params = new URLSearchParams({
+                left_id: String(this.compareLeft.id),
+                right_id: String(this.compareRight.id),
+            });
+
+            const response = await fetch(
+                `${this.routes.compare.replace('__ID__', String(this.selectedId))}?${params}`,
+                { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } },
+            );
+
+            if (response.ok) {
+                this.compareResult = await response.json();
+            }
+        },
+
+        async restoreVersion(version) {
+            if (! this.can.restore || ! confirm('Restore this version? A new version will be created.')) {
+                return;
+            }
+
+            const response = await fetch(this.routes.restore.replace('__ID__', String(this.selectedId)), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({ version_id: version.id }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const index = this.templates.findIndex((t) => t.id === data.template.id);
+
+                if (index >= 0) {
+                    this.templates[index] = data.template;
+                }
+
+                this.selectTemplate(data.template.id);
+                this.openVersions();
+            }
+        },
+
+        closePanels() {
+            this.closeEditor();
+            this.versionsOpen = false;
+        },
+
+        formatDate(iso) {
+            if (! iso) {
+                return '—';
+            }
+
+            try {
+                return new Date(iso).toLocaleString();
+            } catch {
+                return iso;
+            }
+        },
+    }));
+
     Alpine.data('postingRulesWorkspace', (bootstrap = {}) => ({
         routes: bootstrap.routes ?? {},
         canAudit: bootstrap.canAudit ?? false,
@@ -1394,12 +1921,133 @@ function navTokenIsActive(token, currentRoute) {
     return currentRoute.startsWith(`${token}.`) || currentRoute === token;
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function parseQuickCreatePayload(meta) {
+    if (! meta?.dataset?.quickCreate) {
+        return [];
+    }
+
+    try {
+        const parsed = JSON.parse(meta.dataset.quickCreate);
+
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function quickCreateMarkup(items, labels = {}) {
+    if (! Array.isArray(items) || items.length === 0) {
+        return '';
+    }
+
+    const createLabel = escapeHtml(labels.create ?? 'Create');
+    const soonLabel = escapeHtml(labels.soon ?? 'Soon');
+
+    const links = items.map((item) => {
+        const label = escapeHtml(item.label);
+
+        if (item.coming_soon) {
+            return `<span class="block w-full px-4 py-2 text-start text-sm leading-5 text-slate-400 cursor-not-allowed">${label} <span class="text-xs">(${soonLabel})</span></span>`;
+        }
+
+        if (! item.href) {
+            return '';
+        }
+
+        const href = escapeHtml(item.href);
+
+        return `<a href="${href}" data-turbo-frame="erp-main" class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">${label}</a>`;
+    }).join('');
+
+    return `
+        <div
+            class="relative z-20 inline-block text-left"
+            x-data="erpRowActionsMenu('right')"
+            @click.outside="closeFromOutside()"
+            @keydown.escape.window="close()"
+            @scroll.window="close()"
+            @resize.window="close()"
+        >
+            <div x-ref="trigger" @click.stop="toggle($event)">
+                <button type="button" class="erp-btn-primary py-2">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                    <span class="hidden sm:inline">${createLabel}</span>
+                </button>
+            </div>
+            <div
+                x-ref="menu"
+                :style="open ? menuStyle : null"
+                :class="open ? 'erp-row-actions-menu--open' : ''"
+                class="erp-row-actions-menu w-48 rounded-xl shadow-card-hover"
+            >
+                <div class="rounded-md ring-1 ring-black ring-opacity-5 py-1 bg-white border border-erp-border">
+                    ${links}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function syncQuickCreateFromFrame(meta) {
+    const root = document.getElementById('erp-quick-create');
+
+    if (! root) {
+        return;
+    }
+
+    const items = parseQuickCreatePayload(meta);
+    const markup = quickCreateMarkup(items, {
+        create: meta.dataset.i18nCreate,
+        soon: meta.dataset.i18nSoon,
+    });
+
+    if (window.__erpOpenRowMenu?.close) {
+        window.__erpOpenRowMenu.close();
+    }
+
+    root.innerHTML = markup;
+
+    if (markup) {
+        Alpine.initTree(root);
+    }
+}
+
+function applyShellLayout(compact) {
+    const shell = document.getElementById('erp-app-shell');
+    const frame = document.getElementById('erp-main');
+
+    document.body.classList.toggle('overflow-hidden', compact);
+
+    if (shell) {
+        shell.classList.toggle('h-screen', compact);
+        shell.classList.toggle('max-h-screen', compact);
+        shell.classList.toggle('overflow-hidden', compact);
+        shell.classList.toggle('min-h-screen', ! compact);
+    }
+
+    if (frame) {
+        frame.classList.toggle('overflow-hidden', compact);
+    }
+}
+
 function syncShellFromFrame() {
     const meta = document.getElementById('erp-route-meta');
 
     if (! meta) {
         return;
     }
+
+    const compact = meta.dataset.compactPage === '1';
+
+    applyShellLayout(compact);
 
     const currentRoute = meta.dataset.route ?? '';
     const pageTitle = meta.dataset.title ?? '';
@@ -1442,6 +2090,8 @@ function syncShellFromFrame() {
             alpine.open = open;
         }
     });
+
+    syncQuickCreateFromFrame(meta);
 
     document.dispatchEvent(new CustomEvent('erp:page-loaded'));
 }

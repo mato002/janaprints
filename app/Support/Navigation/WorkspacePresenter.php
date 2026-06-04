@@ -10,11 +10,13 @@ class WorkspacePresenter
         protected ?AccountingWorkspacePresenter $accounting = null,
         protected ?SupplyChainWorkspacePresenter $supplyChain = null,
         protected ?CommercialWorkspacePresenter $commercial = null,
+        protected ?AdministrationWorkspacePresenter $administration = null,
         protected ?WorkspaceNavigationResolver $navigation = null,
     ) {
         $this->accounting ??= app(AccountingWorkspacePresenter::class);
         $this->supplyChain ??= app(SupplyChainWorkspacePresenter::class);
         $this->commercial ??= app(CommercialWorkspacePresenter::class);
+        $this->administration ??= app(AdministrationWorkspacePresenter::class);
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
     }
     /**
@@ -79,6 +81,10 @@ class WorkspacePresenter
             return $this->commercial->isVisible();
         }
 
+        if ($key === 'administration') {
+            return $this->administration->isVisible();
+        }
+
         $definition = $this->definitions()[$key] ?? null;
 
         if ($definition === null) {
@@ -124,6 +130,10 @@ class WorkspacePresenter
 
         if ($key === 'commercial') {
             return $this->commercial->collectActiveRoutes();
+        }
+
+        if ($key === 'administration') {
+            return $this->administration->collectActiveRoutes();
         }
 
         $routes = ["admin.workspaces.{$key}"];
@@ -180,6 +190,12 @@ class WorkspacePresenter
                 continue;
             }
 
+            if ($key === 'administration') {
+                $flat = array_merge($flat, $this->administration->flattenForSearch());
+
+                continue;
+            }
+
             $workspaceTitle = $definition['title'] ?? $key;
 
             foreach ($definition['groups'] ?? [] as $group) {
@@ -224,6 +240,7 @@ class WorkspacePresenter
             'admin.workspaces.accounting.section',
             'admin.workspaces.supply-chain.section',
             'admin.workspaces.commercial.section',
+            'admin.workspaces.administration.section',
         ], true)) {
             if (str_contains($currentRoute, 'supply-chain')) {
                 return 'supply-chain';
@@ -231,6 +248,10 @@ class WorkspacePresenter
 
             if (str_contains($currentRoute, 'commercial')) {
                 return 'commercial';
+            }
+
+            if (str_contains($currentRoute, 'administration')) {
+                return 'administration';
             }
 
             return 'accounting';
@@ -249,6 +270,10 @@ class WorkspacePresenter
 
             if (str_starts_with($key, 'commercial')) {
                 return 'commercial';
+            }
+
+            if (str_starts_with($key, 'administration')) {
+                return 'administration';
             }
 
             return $key;

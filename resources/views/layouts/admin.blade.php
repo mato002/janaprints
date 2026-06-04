@@ -15,7 +15,10 @@
     <script>window.__erpRoutes = @json($navRouteUrls ?? []);</script>
 </head>
 <body
-    class="font-sans antialiased bg-erp-page text-erp-primary"
+    @class([
+        'font-sans antialiased bg-erp-page text-erp-primary',
+        'overflow-hidden' => $compactPage,
+    ])
     x-data="erpShell(@js($navSearchIndex ?? []))"
     @keydown.escape.window="closeMobileNav()"
     @close-nav.window="closeMobileNav()"
@@ -38,23 +41,62 @@
     @include('layouts.admin.partials.sidebar')
 
     <div
-        class="flex min-h-screen min-w-0 flex-col transition-[margin-left] duration-sidebar max-lg:ml-0"
+        id="erp-app-shell"
+        @class([
+            'flex min-w-0 flex-col transition-[margin-left] duration-sidebar max-lg:ml-0',
+            'h-screen max-h-screen overflow-hidden' => $compactPage,
+            'min-h-screen' => ! $compactPage,
+        ])
         :class="sidebarCollapsed ? 'lg:ml-sidebar-collapsed' : 'lg:ml-sidebar'"
     >
         @include('layouts.admin.partials.topbar')
 
-        <turbo-frame id="erp-main" data-turbo-action="advance" class="flex flex-1 flex-col">
+        <turbo-frame
+            id="erp-main"
+            data-turbo-action="advance"
+            @class([
+                'flex min-h-0 flex-1 flex-col',
+                'overflow-hidden' => $compactPage,
+            ])
+        >
+            @php
+                $frameQuickCreate = array_values(array_map(
+                    fn (array $item) => [
+                        'label' => $item['label'],
+                        'coming_soon' => (bool) ($item['coming_soon'] ?? false),
+                        'href' => empty($item['coming_soon']) && ! empty($item['route']) && Route::has($item['route'])
+                            ? route($item['route'])
+                            : null,
+                    ],
+                    array_filter(
+                        app(\App\Support\Navigation\WorkspacePresenter::class)->quickCreateForRoute(Route::currentRouteName()),
+                        fn (array $item) => $item['visible'] ?? true,
+                    ),
+                ));
+            @endphp
             <span
                 id="erp-route-meta"
                 class="sr-only"
                 data-route="{{ Route::currentRouteName() }}"
                 data-title="{{ $title }}"
+                data-compact-page="{{ $compactPage ? '1' : '0' }}"
                 data-app-name="{{ config('app.name') }}"
+                data-quick-create="{{ json_encode($frameQuickCreate, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
+                data-i18n-create="{{ __('Create') }}"
+                data-i18n-soon="{{ __('Soon') }}"
                 aria-hidden="true"
             ></span>
-            <main class="flex-1 p-4 sm:p-6 lg:p-8">
-                @include('admin.partials.breadcrumbs')
-                @include('admin.partials.alerts')
+            <main @class([
+                'flex min-h-0 flex-1 flex-col',
+                'overflow-hidden p-2' => $compactPage,
+                'p-4 sm:p-6 lg:p-8' => ! $compactPage,
+            ])>
+                @unless ($compactPage)
+                    @include('admin.partials.breadcrumbs')
+                @endunless
+                @if (! $compactPage)
+                    @include('admin.partials.alerts')
+                @endif
 
                 @isset($header)
                     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -62,7 +104,12 @@
                     </div>
                 @endisset
 
-                {{ $slot }}
+                <div @class([
+                    'flex min-h-0 flex-1 flex-col',
+                    'overflow-hidden' => $compactPage,
+                ])>
+                    {{ $slot }}
+                </div>
             </main>
         </turbo-frame>
     </div>

@@ -19,6 +19,7 @@ return [
         'documents' => env('PLATFORM_QUEUE_DOCUMENTS', 'documents'),
         'emails' => env('PLATFORM_QUEUE_EMAILS', 'emails'),
         'sms' => env('PLATFORM_QUEUE_SMS', 'sms'),
+        'whatsapp' => env('PLATFORM_QUEUE_WHATSAPP', 'whatsapp'),
         'imports' => env('PLATFORM_QUEUE_IMPORTS', 'imports'),
         'exports' => env('PLATFORM_QUEUE_EXPORTS', 'exports'),
         'integrations' => env('PLATFORM_QUEUE_INTEGRATIONS', 'integrations'),

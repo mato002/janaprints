@@ -159,6 +159,13 @@ class AppServiceProvider extends ServiceProvider
         SupplierQuotation::class => SupplierQuotationPolicy::class,
         Rfq::class => RfqPolicy::class,
         SettingsGovernance::class => SettingsPolicy::class,
+        \App\Models\Communications\CommunicationTemplate::class => \App\Policies\CommunicationTemplatePolicy::class,
+        \App\Models\Communications\ErpNotification::class => \App\Policies\ErpNotificationPolicy::class,
+        \App\Models\Communications\SmsCampaign::class => \App\Policies\SmsCampaignPolicy::class,
+        \App\Models\Communications\CommunicationLog::class => \App\Policies\CommunicationLogPolicy::class,
+        \App\Models\Communications\WhatsappConversation::class => \App\Policies\WhatsappConversationPolicy::class,
+        \App\Models\Communications\EmailCampaign::class => \App\Policies\EmailCampaignPolicy::class,
+        \App\Models\Communications\Inbox\CommunicationConversation::class => \App\Policies\CommunicationConversationPolicy::class,
     ];
 
     public function register(): void
@@ -182,6 +189,38 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Route::bind('notification', function (string $value) {
+            return \App\Models\Communications\ErpNotification::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('campaign', function (string $value) {
+            return \App\Models\Communications\SmsCampaign::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('communicationLog', function (string $value) {
+            return \App\Models\Communications\CommunicationLog::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('conversation', function (string $value) {
+            return \App\Models\Communications\WhatsappConversation::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('message', function (string $value) {
+            return \App\Models\Communications\WhatsappMessage::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('emailCampaign', function (string $value) {
+            return \App\Models\Communications\EmailCampaign::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('emailMessage', function (string $value) {
+            return \App\Models\Communications\EmailMessage::query()->findOrFail($value);
+        });
+
+        \Illuminate\Support\Facades\Route::bind('inboxConversation', function (string $value) {
+            return \App\Models\Communications\Inbox\CommunicationConversation::query()->findOrFail($value);
+        });
+
         foreach ($this->policies as $model => $policy) {
             Gate::policy($model, $policy);
         }
@@ -242,8 +281,31 @@ class AppServiceProvider extends ServiceProvider
         View::composer('layouts.admin.partials.topbar', function ($view) {
             $currentRoute = request()->route()?->getName();
             $quickCreate = app(WorkspacePresenter::class)->quickCreateForRoute($currentRoute);
+            $user = auth()->user();
+            $canNotifications = $user?->can('communications.notifications.view') ?? false;
+            $unreadCount = 0;
 
-            $view->with('quickCreate', $quickCreate);
+            if ($canNotifications && $user) {
+                $unreadCount = app(\App\Support\Communications\NotificationService::class)
+                    ->unreadCount($user, tenant()->companyId() ?? $user->company_id);
+            }
+
+            $view->with([
+                'quickCreate' => $quickCreate,
+                'canNotifications' => $canNotifications,
+                'notificationBellBootstrap' => [
+                    'enabled' => $canNotifications,
+                    'unreadCount' => $unreadCount,
+                    'routes' => [
+                        'panel' => route('admin.communications.notifications.bell.panel'),
+                        'unread' => route('admin.communications.notifications.bell.unread'),
+                        'markRead' => route('admin.communications.notifications.bell.mark-read', ['notification' => '__ID__']),
+                        'markAllRead' => route('admin.communications.notifications.mark-all-read'),
+                        'open' => route('admin.communications.notifications.open', ['notification' => '__ID__']),
+                        'center' => route('admin.communications.notifications.index'),
+                    ],
+                ],
+            ]);
         });
 
         View::composer('admin.dashboard', function ($view) {

@@ -13,6 +13,8 @@ class AdminLayout extends Component
         /** @var list<array{label: string, url?: string}> Extra crumbs before the current page (e.g. edit steps). */
         public array $breadcrumbTail = [],
         public bool $useWorkspaceNavigation = true,
+        /** Full-height workspace pages (e.g. Shared Inbox) — minimal chrome, no breadcrumbs. */
+        public bool $compactPage = false,
     ) {}
 
     public function render(): View
