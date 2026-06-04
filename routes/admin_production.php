@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Production\JobCostingController;
 use App\Http\Controllers\Admin\Production\ProductionDashboardController;
 use App\Http\Controllers\Admin\Production\ProductionJobCardController;
 use App\Http\Controllers\Admin\Production\ProductionOperationController;
@@ -28,6 +29,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:production.view')->group(function () {
             Route::get('job-cards/{jobCard}', [ProductionJobCardController::class, 'show'])->name('job-cards.show');
+        });
+
+        Route::middleware('permission:production.costing.view')->group(function () {
+            Route::get('costing', [JobCostingController::class, 'dashboard'])->name('costing.dashboard');
+            Route::get('job-cards/{jobCard}/costing', [JobCostingController::class, 'show'])->name('job-cards.costing');
         });
 
         Route::middleware('permission:production.edit')->group(function () {

@@ -34,7 +34,13 @@ class ProductionMaterialConsumptionService
         InventoryStockService::assertSufficientStock($item->id, $warehouseId, $quantity);
 
         return DB::transaction(function () use ($jobCard, $item, $warehouseId, $quantity, $userId, $unitCost) {
-            $cost = $unitCost ?? (float) $item->standard_cost;
+            $cost = $unitCost ?? \App\Support\Inventory\InventoryCostingService::resolveIssueUnitCost(
+                $jobCard->company_id,
+                $jobCard->branch_id,
+                $item->id,
+                $warehouseId,
+                $quantity,
+            );
 
             $movement = InventoryMovementService::record([
                 'company_id' => $jobCard->company_id,
@@ -50,7 +56,7 @@ class ProductionMaterialConsumptionService
                 'created_by' => $userId,
             ]);
 
-            return ProductionMaterialConsumption::query()->create([
+            $consumption = ProductionMaterialConsumption::query()->create([
                 'company_id' => $jobCard->company_id,
                 'branch_id' => $jobCard->branch_id,
                 'production_job_card_id' => $jobCard->id,
@@ -62,6 +68,10 @@ class ProductionMaterialConsumptionService
                 'consumed_by' => $userId,
                 'consumed_at' => now(),
             ]);
+
+            \App\Support\Production\JobCostingService::syncFromConsumption($consumption);
+
+            return $consumption;
         });
     }
 }

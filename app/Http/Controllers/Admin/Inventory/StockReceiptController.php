@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\Warehouse;
+use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockReceiptService;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,10 @@ use Illuminate\View\View;
 class StockReceiptController extends Controller
 {
     use ResolvesInventoryTenant, ScopesToTenant;
+
+    public function __construct(
+        protected FormSettingsService $formSettings,
+    ) {}
 
     public function index(): View
     {
@@ -92,12 +97,12 @@ class StockReceiptController extends Controller
      */
     protected function validateHeader(Request $request, int $companyId, int $branchId): array
     {
-        return $request->validate([
-            'warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'source' => ['required', Rule::enum(StockReceiptSource::class)],
-            'receipt_date' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
-        ]);
+        return $request->validate($this->formSettings->mergeValidationRules('stock_receipt.create', [
+            'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
+            'source' => [Rule::enum(StockReceiptSource::class)],
+            'receipt_date' => ['date'],
+            'notes' => ['string'],
+        ], $companyId, $branchId));
     }
 
     /**
@@ -129,10 +134,13 @@ class StockReceiptController extends Controller
      */
     protected function formMeta(): array
     {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
+
         return [
             'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
             'sources' => StockReceiptSource::cases(),
+            'formFields' => $this->formSettings->resolvedFields('stock_receipt.create', $companyId, $branchId),
         ];
     }
 }

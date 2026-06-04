@@ -102,6 +102,8 @@
 
     .erp-table-scroll {
         @apply relative w-full max-w-full;
+        overflow-x: auto;
+        overflow-y: visible;
         -webkit-overflow-scrolling: touch;
     }
 
@@ -118,11 +120,21 @@
     }
 
     .erp-table-actions-col {
-        @apply w-16 text-center;
+        @apply relative w-16 max-w-none overflow-visible text-center;
     }
 
     .erp-table-actions-col .erp-row-actions-trigger {
         @apply mx-auto;
+    }
+
+    .erp-row-actions-menu:not(.erp-row-actions-menu--open) {
+        display: none !important;
+        pointer-events: none !important;
+    }
+
+    .erp-row-actions-menu.erp-row-actions-menu--open {
+        display: block !important;
+        pointer-events: auto !important;
     }
 
     .erp-table-footer {

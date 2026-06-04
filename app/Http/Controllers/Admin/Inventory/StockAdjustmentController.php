@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockAdjustment;
 use App\Models\Inventory\Warehouse;
+use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockAdjustmentService;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +23,10 @@ use Illuminate\View\View;
 class StockAdjustmentController extends Controller
 {
     use ResolvesInventoryTenant, ScopesToTenant;
+
+    public function __construct(
+        protected FormSettingsService $formSettings,
+    ) {}
 
     public function index(): View
     {
@@ -47,11 +52,11 @@ class StockAdjustmentController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
-        $header = $request->validate([
-            'warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'adjustment_date' => ['required', 'date'],
-            'reason' => ['required', 'string', 'max:2000'],
-        ]);
+        $header = $request->validate($this->formSettings->mergeValidationRules('stock_adjustment.create', [
+            'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
+            'adjustment_date' => ['date'],
+            'reason' => ['string', 'max:2000'],
+        ], $companyId, $branchId));
 
         $lines = $request->validate([
             'items' => ['required', 'array', 'min:1'],
@@ -108,10 +113,13 @@ class StockAdjustmentController extends Controller
      */
     protected function formMeta(): array
     {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
+
         return [
             'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
             'directions' => StockAdjustmentDirection::cases(),
+            'formFields' => $this->formSettings->resolvedFields('stock_adjustment.create', $companyId, $branchId),
         ];
     }
 }

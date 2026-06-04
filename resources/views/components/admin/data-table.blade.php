@@ -48,7 +48,7 @@
         </div>
     @endif
 
-    <x-admin.card :padding="false" class="overflow-hidden">
+    <x-admin.card :padding="false" class="min-w-0">
         @if ($searchable || $filterable || $exportable || $selectable || isset($toolbar) || isset($bulk) || isset($filters))
             <div class="erp-table-toolbar border-b border-erp-border bg-white px-4 py-3">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -78,6 +78,16 @@
                             </button>
                         @endif
 
+                        <label class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                            <span>{{ __('Rows') }}</span>
+                            <select class="erp-select py-1 text-xs" x-model.number="pageSize" @change="setPageSize(pageSize)">
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </label>
+
                         {{ $toolbar ?? '' }}
                     </div>
 
@@ -93,6 +103,12 @@
                             @else
                                 <button type="button" class="erp-btn-ghost py-1 text-xs" @click="exportSelected()">{{ __('Export selected') }}</button>
                             @endisset
+                        </div>
+
+                        <div class="flex items-center gap-1 rounded-lg border border-erp-border bg-white p-1">
+                            <button type="button" class="erp-btn-ghost py-1 text-xs" @click="previousPage()" :disabled="currentPage <= 1" :class="currentPage <= 1 ? 'opacity-40' : ''">{{ __('Prev') }}</button>
+                            <span class="px-2 text-xs font-medium text-slate-500" x-text="currentPage"></span>
+                            <button type="button" class="erp-btn-ghost py-1 text-xs" @click="nextPage()">{{ __('Next') }}</button>
                         </div>
 
                         @if ($exportable)
@@ -119,7 +135,12 @@
 
                 @if ($filterable && isset($filters))
                     <div x-show="filterOpen" x-cloak class="mt-3 rounded-lg border border-erp-border bg-erp-page/50 p-3">
-                        {{ $filters }}
+                        <div class="flex flex-col gap-3">
+                            {{ $filters }}
+                            <div class="flex justify-end">
+                                <button type="button" class="erp-btn-ghost py-1 text-xs" @click="resetFilters()">{{ __('Reset filters') }}</button>
+                            </div>
+                        </div>
                     </div>
                 @endif
             </div>
@@ -136,6 +157,9 @@
                     <tbody>{{ $slot }}</tbody>
                 @endisset
             </table>
+            <div x-show="showNoResults" x-cloak class="border-t border-erp-border bg-white px-4 py-8 text-center text-sm text-slate-500">
+                {{ __('No rows match your search or filters.') }}
+            </div>
         </div>
 
         @isset($footer)

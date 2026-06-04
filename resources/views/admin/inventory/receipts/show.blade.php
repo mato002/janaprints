@@ -1,4 +1,4 @@
-<x-admin-layout :title="$receipt->receipt_number">
+<x-admin-layout :title="$receipt->receipt_number" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Management'), 'url' => route('admin.inventory.store.dashboard')], ['label' => __('Goods Receiving'), 'url' => route('admin.inventory.receipts.index')], ['label' => $receipt->receipt_number]]">
     <x-admin.page-header :title="$receipt->receipt_number">
         <span class="erp-badge">{{ $receipt->status->value }}</span>
         @can('post', $receipt)

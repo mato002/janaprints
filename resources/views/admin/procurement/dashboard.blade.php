@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Procurement')" :breadcrumbs="[['label' => __('Procurement')]]">
+<x-admin-layout :title="__('Procurement')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement')]]">
     <x-admin.page-header :title="__('Procurement & Vendors')" />
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -8,6 +8,11 @@
             ['label' => __('Pending Purchase Orders'), 'value' => $stats['pending_orders'], 'icon' => 'shopping-bag'],
             ['label' => __('Goods Awaiting Receipt'), 'value' => $stats['awaiting_receipt'], 'icon' => 'archive'],
             ['label' => __('Recent Receipts'), 'value' => $stats['recent_receipts'], 'icon' => 'switch-horizontal'],
+            ['label' => __('Open RFQs'), 'value' => $stats['open_rfqs'], 'icon' => 'document-text'],
+            ['label' => __('RFQs Closing Soon'), 'value' => $stats['closing_soon'], 'icon' => 'clock'],
+            ['label' => __('Awaiting Comparison'), 'value' => $stats['awaiting_comparison'], 'icon' => 'scale'],
+            ['label' => __('Awarded RFQs'), 'value' => $stats['awarded_rfqs'], 'icon' => 'badge-check'],
+            ['label' => __('RFQs → PO'), 'value' => $stats['converted_rfqs'], 'icon' => 'shopping-cart'],
         ] as $card)
             <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
         @endforeach
@@ -22,6 +27,9 @@
         @endcan
         @can('create', App\Models\Procurement\PurchaseOrder::class)
             <a href="{{ route('admin.procurement.orders.create') }}" class="erp-btn-secondary">{{ __('Purchase order') }}</a>
+        @endcan
+        @can('viewAny', App\Models\Procurement\Rfq::class)
+            <a href="{{ route('admin.procurement.rfqs.index') }}" class="erp-btn-secondary">{{ __('RFQs') }}</a>
         @endcan
     </x-admin.card>
 </x-admin-layout>

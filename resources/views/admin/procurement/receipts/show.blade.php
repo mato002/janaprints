@@ -1,4 +1,4 @@
-<x-admin-layout :title="$receipt->receipt_number" :breadcrumbs="[['label' => __('Procurement')], ['label' => __('Goods Receipts'), 'url' => route('admin.procurement.receipts.index')], ['label' => $receipt->receipt_number]]">
+<x-admin-layout :title="$receipt->receipt_number" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Goods Receipts'), 'url' => route('admin.procurement.receipts.index')], ['label' => $receipt->receipt_number]]">
     <x-admin.page-header :title="$receipt->receipt_number">
         <x-slot name="actions">
             @can('post', $receipt)

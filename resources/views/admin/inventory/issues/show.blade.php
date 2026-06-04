@@ -1,4 +1,4 @@
-<x-admin-layout :title="$issue->issue_number">
+<x-admin-layout :title="$issue->issue_number" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Management'), 'url' => route('admin.inventory.store.dashboard')], ['label' => __('Stock Issues'), 'url' => route('admin.inventory.issues.index')], ['label' => $issue->issue_number]]">
     <x-admin.page-header :title="$issue->issue_number">
         <span class="erp-badge">{{ $issue->status->value }}</span>
         @can('post', $issue)

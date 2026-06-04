@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\Inventory\InventoryCategoryFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class InventoryCategory extends Model
@@ -15,7 +16,10 @@ class InventoryCategory extends Model
 
     protected bool $tenantScopedToBranch = true;
 
-    protected $fillable = ['company_id', 'branch_id', 'code', 'name', 'description', 'is_active'];
+    protected $fillable = [
+        'company_id', 'branch_id', 'code', 'name', 'description',
+        'default_uom_id', 'reorder_behavior', 'is_active',
+    ];
 
     protected function casts(): array
     {
@@ -25,5 +29,20 @@ class InventoryCategory extends Model
     public function items(): HasMany
     {
         return $this->hasMany(InventoryItem::class);
+    }
+
+    public function subcategories(): HasMany
+    {
+        return $this->hasMany(InventorySubcategory::class);
+    }
+
+    public function attributes(): HasMany
+    {
+        return $this->hasMany(ItemAttribute::class);
+    }
+
+    public function defaultUom(): BelongsTo
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'default_uom_id');
     }
 }

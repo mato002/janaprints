@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\Procurement\GoodsReceiptController;
 use App\Http\Controllers\Admin\Procurement\ProcurementDashboardController;
 use App\Http\Controllers\Admin\Procurement\PurchaseOrderController;
 use App\Http\Controllers\Admin\Procurement\PurchaseRequestController;
+use App\Http\Controllers\Admin\Procurement\RfqController;
 use App\Http\Controllers\Admin\Procurement\SupplierQuotationController;
 use App\Http\Controllers\Admin\Procurement\VendorContactController;
 use App\Http\Controllers\Admin\Procurement\VendorController;
@@ -23,6 +24,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('orders', [PurchaseOrderController::class, 'index'])->name('orders.index');
             Route::get('receipts', [GoodsReceiptController::class, 'index'])->name('receipts.index');
             Route::get('quotations', [SupplierQuotationController::class, 'index'])->name('quotations.index');
+            Route::get('rfqs', [RfqController::class, 'index'])->name('rfqs.index');
         });
 
         Route::middleware('permission:procurement.vendors.create')->group(function () {
@@ -64,6 +66,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('requests/{request}/approve', [PurchaseRequestController::class, 'approve'])->name('requests.approve');
         });
 
+        Route::middleware('permission:procurement.rfq.create')->group(function () {
+            Route::post('requests/{request}/rfq', [RfqController::class, 'storeFromRequest'])->name('requests.rfq.store');
+        });
+
         Route::middleware('permission:procurement.orders.create')->group(function () {
             Route::post('requests/{request}/convert', [PurchaseRequestController::class, 'convert'])->name('requests.convert');
             Route::get('orders/create', [PurchaseOrderController::class, 'create'])->name('orders.create');
@@ -76,10 +82,32 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::delete('requests/{request}', [PurchaseRequestController::class, 'destroy'])->name('requests.destroy');
         });
 
+        Route::middleware('permission:procurement.rfq.view')->group(function () {
+            Route::get('rfqs/{rfq}', [RfqController::class, 'show'])->name('rfqs.show');
+        });
+
         Route::middleware('permission:procurement.orders.view')->group(function () {
             Route::get('orders/{order}', [PurchaseOrderController::class, 'show'])->name('orders.show');
             Route::get('receipts/{receipt}', [GoodsReceiptController::class, 'show'])->name('receipts.show');
             Route::get('quotations/{quotation}', [SupplierQuotationController::class, 'show'])->name('quotations.show');
+        });
+
+        Route::middleware('permission:procurement.rfq.edit')->group(function () {
+            Route::post('rfqs/{rfq}/issue', [RfqController::class, 'issue'])->name('rfqs.issue');
+            Route::post('rfqs/{rfq}/close', [RfqController::class, 'close'])->name('rfqs.close');
+            Route::post('rfqs/{rfq}/vendors/{rfqVendor}/respond', [RfqController::class, 'recordResponse'])->name('rfqs.respond');
+        });
+
+        Route::middleware('permission:procurement.comparison.view')->group(function () {
+            Route::post('rfqs/{rfq}/compare', [RfqController::class, 'compare'])->name('rfqs.compare');
+        });
+
+        Route::middleware('permission:procurement.comparison.manage')->group(function () {
+            Route::post('rfqs/{rfq}/award', [RfqController::class, 'award'])->name('rfqs.award');
+        });
+
+        Route::middleware('permission:procurement.orders.create')->group(function () {
+            Route::post('rfqs/{rfq}/convert', [RfqController::class, 'convert'])->name('rfqs.convert');
         });
 
         Route::middleware('permission:procurement.orders.edit')->group(function () {

@@ -49,7 +49,7 @@ class GoodsReceiptController extends Controller
         $this->authorize('receive', $order);
 
         $validated = $request->validate([
-            'warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', $order->company_id)->where('branch_id', $order->branch_id)],
+            'warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', $order->company_id)->where('branch_id', $order->branch_id)->where('is_active', true)],
             'receipt_date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],

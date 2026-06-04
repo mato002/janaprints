@@ -1,0 +1,309 @@
+<?php
+
+namespace App\Http\Controllers\Admin\Inventory;
+
+use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
+use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
+use App\Http\Controllers\Controller;
+use App\Models\Branch;
+use App\Models\Inventory\InventoryCategory;
+use App\Models\Inventory\InventoryItem;
+use App\Models\Inventory\InventoryMovement;
+use App\Models\Inventory\StockAdjustment;
+use App\Models\Inventory\StockIssue;
+use App\Models\Inventory\StockReceipt;
+use App\Models\Inventory\Warehouse;
+use App\Support\Platform\FormSettingsService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
+
+class WarehouseController extends Controller
+{
+    use ResolvesInventoryTenant, ScopesToTenant;
+
+    public function __construct(
+        protected FormSettingsService $formSettings,
+    ) {}
+
+    public function index(): View
+    {
+        $this->authorize('viewAny', Warehouse::class);
+
+        $warehouses = $this->scopeToTenant(
+            Warehouse::query()->with(['branch', 'managers'])->withCount('managers')
+        )->orderBy('name')->paginate(config('platform.pagination.default', 15));
+
+        $branches = Branch::query()
+            ->where('company_id', tenant()->companyId() ?? auth()->user()->company_id)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.inventory.warehouses.index', compact('warehouses', 'branches'));
+    }
+
+    public function create(): View
+    {
+        $this->authorize('create', Warehouse::class);
+
+        return view('admin.inventory.warehouses.create', [
+            'warehouse' => null,
+            ...$this->warehouseFormMeta('warehouse.create'),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse
+    {
+        $this->authorize('create', Warehouse::class);
+
+        ['companyId' => $companyId, 'branchId' => $tenantBranchId] = $this->tenantIds();
+        $branchId = (int) ($request->input('branch_id') ?: $tenantBranchId);
+
+        $warehouse = Warehouse::query()->create([
+            ...$this->validateWarehouse($request, $companyId, $branchId),
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+        ]);
+
+        return redirect()->route('admin.inventory.warehouses.show', $warehouse)->with('status', __('Warehouse created.'));
+    }
+
+    public function show(Warehouse $warehouse): View
+    {
+        $this->authorize('view', $warehouse);
+
+        $warehouse->load('managers');
+        $balances = $this->warehouseBalances($warehouse);
+        $categories = InventoryCategory::query()
+            ->where('company_id', $warehouse->company_id)
+            ->where('branch_id', $warehouse->branch_id)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.inventory.warehouses.show', compact('warehouse', 'balances', 'categories'));
+    }
+
+    public function edit(Warehouse $warehouse): View
+    {
+        $this->authorize('update', $warehouse);
+
+        return view('admin.inventory.warehouses.edit', [
+            'warehouse' => $warehouse,
+            ...$this->warehouseFormMeta('warehouse.edit', $warehouse->company_id, $warehouse->branch_id),
+        ]);
+    }
+
+    public function update(Request $request, Warehouse $warehouse): RedirectResponse
+    {
+        $this->authorize('update', $warehouse);
+
+        $warehouse->update($this->validateWarehouse($request, $warehouse->company_id, $warehouse->branch_id, $warehouse));
+
+        return redirect()->route('admin.inventory.warehouses.show', $warehouse)->with('status', __('Warehouse updated.'));
+    }
+
+    public function deactivate(Warehouse $warehouse): RedirectResponse
+    {
+        $this->authorize('update', $warehouse);
+
+        $warehouse->update(['is_active' => false]);
+
+        return back()->with('status', __('Warehouse deactivated. Operational history has been preserved.'));
+    }
+
+    public function reactivate(Warehouse $warehouse): RedirectResponse
+    {
+        $this->authorize('update', $warehouse);
+
+        $warehouse->update(['is_active' => true]);
+
+        return back()->with('status', __('Warehouse reactivated.'));
+    }
+
+    public function destroy(Warehouse $warehouse): RedirectResponse
+    {
+        $this->authorize('delete', $warehouse);
+
+        if ($this->hasOperationalHistory($warehouse)) {
+            return back()->withErrors([
+                'warehouse' => __('This warehouse has operational history and cannot be deleted. You may deactivate it instead.'),
+            ]);
+        }
+
+        $warehouse->delete();
+
+        return redirect()->route('admin.inventory.warehouses.index')->with('status', __('Warehouse removed.'));
+    }
+
+    public function balances(Warehouse $warehouse): View
+    {
+        $this->authorize('view', $warehouse);
+
+        $balances = $this->warehouseBalances($warehouse);
+        $categories = InventoryCategory::query()
+            ->where('company_id', $warehouse->company_id)
+            ->where('branch_id', $warehouse->branch_id)
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.inventory.warehouses.balances', compact('warehouse', 'balances', 'categories'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function validateWarehouse(Request $request, int $companyId, int $branchId, ?Warehouse $warehouse = null): array
+    {
+        $formKey = $warehouse ? 'warehouse.edit' : 'warehouse.create';
+
+        $rules = $this->formSettings->mergeValidationRules($formKey, [
+            'code' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('warehouses', 'code')
+                    ->where('company_id', $companyId)
+                    ->where('branch_id', $branchId)
+                    ->ignore($warehouse),
+            ],
+            'name' => ['required', 'string', 'max:255'],
+            'branch_id' => [Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)],
+            'location' => ['string', 'max:255'],
+            'notes' => ['string'],
+            'description' => ['string'],
+            'is_active' => ['boolean'],
+        ], $companyId, $branchId);
+
+        $rules['code'] = [
+            'required',
+            'string',
+            'max:50',
+            Rule::unique('warehouses', 'code')
+                ->where('company_id', $companyId)
+                ->where('branch_id', $branchId)
+                ->ignore($warehouse),
+        ];
+        $rules['name'] = ['required', 'string', 'max:255'];
+        $rules['branch_id'] = ['required', Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)];
+
+        $validated = $request->validate($rules);
+        $descriptionParts = [];
+
+        if (filled($validated['location'] ?? null)) {
+            $descriptionParts[] = __('Location: :location', ['location' => $validated['location']]);
+        }
+
+        if (filled($validated['notes'] ?? null)) {
+            $descriptionParts[] = __('Notes: :notes', ['notes' => $validated['notes']]);
+        }
+
+        if (filled($validated['description'] ?? null)) {
+            $descriptionParts[] = $validated['description'];
+        }
+
+        $validated['description'] = implode("\n\n", $descriptionParts);
+
+        return collect($validated)->only(['code', 'name', 'description', 'is_active'])->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function warehouseFormMeta(string $formKey, ?int $companyId = null, ?int $branchId = null): array
+    {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $companyId !== null
+            ? ['companyId' => $companyId, 'branchId' => $branchId]
+            : $this->tenantIds();
+
+        return [
+            'formFields' => $this->requiredSafeFields($this->formSettings->resolvedFields($formKey, $companyId, $branchId)),
+            'branches' => Branch::query()
+                ->where('company_id', $companyId)
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(),
+            'selectedBranchId' => $branchId,
+        ];
+    }
+
+    protected function requiredSafeFields(array $fields): array
+    {
+        foreach (['code' => __('Warehouse Code'), 'name' => __('Warehouse Name'), 'branch_id' => __('Branch')] as $field => $label) {
+            $fields[$field] = [
+                ...($fields[$field] ?? []),
+                'label' => $fields[$field]['label'] ?? $label,
+                'required' => true,
+                'visible' => true,
+                'hidden' => false,
+                'read_only' => false,
+            ];
+        }
+
+        foreach (['location' => __('Location'), 'notes' => __('Notes'), 'is_active' => __('Status')] as $field => $label) {
+            $fields[$field] = [
+                ...($fields[$field] ?? []),
+                'label' => $fields[$field]['label'] ?? $label,
+                'required' => false,
+                'visible' => true,
+                'hidden' => false,
+                'read_only' => false,
+            ];
+        }
+
+        return $fields;
+    }
+
+    protected function warehouseBalances(Warehouse $warehouse)
+    {
+        return InventoryItem::query()
+            ->where('inventory_items.company_id', $warehouse->company_id)
+            ->where('inventory_items.branch_id', $warehouse->branch_id)
+            ->where('inventory_items.is_active', true)
+            ->leftJoin('inventory_movements', function ($join) use ($warehouse) {
+                $join->on('inventory_movements.inventory_item_id', '=', 'inventory_items.id')
+                    ->where('inventory_movements.warehouse_id', $warehouse->id);
+            })
+            ->leftJoin('inventory_categories', 'inventory_categories.id', '=', 'inventory_items.inventory_category_id')
+            ->select([
+                'inventory_items.id',
+                'inventory_items.sku',
+                'inventory_items.item_name',
+                'inventory_items.reorder_level',
+                'inventory_items.standard_cost',
+                'inventory_categories.name as category_name',
+                DB::raw('COALESCE(SUM(inventory_movements.quantity), 0) as balance'),
+                DB::raw('COALESCE(SUM(inventory_movements.quantity * inventory_movements.unit_cost), 0) as ledger_value'),
+            ])
+            ->groupBy([
+                'inventory_items.id',
+                'inventory_items.sku',
+                'inventory_items.item_name',
+                'inventory_items.reorder_level',
+                'inventory_items.standard_cost',
+                'inventory_categories.name',
+            ])
+            ->orderBy('inventory_items.item_name')
+            ->get();
+    }
+
+    protected function hasOperationalHistory(Warehouse $warehouse): bool
+    {
+        $hasDocuments = StockReceipt::query()->where('warehouse_id', $warehouse->id)->exists()
+            || StockIssue::query()
+                ->where(fn ($query) => $query->where('warehouse_id', $warehouse->id)->orWhere('to_warehouse_id', $warehouse->id))
+                ->exists()
+            || StockAdjustment::query()->where('warehouse_id', $warehouse->id)->exists()
+            || InventoryMovement::query()->where('warehouse_id', $warehouse->id)->exists()
+            || $warehouse->managers()->exists();
+
+        if ($hasDocuments) {
+            return true;
+        }
+
+        return (float) InventoryMovement::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->sum('quantity') !== 0.0;
+    }
+}

@@ -21,6 +21,8 @@ class SupplierQuotation extends Model
     protected $fillable = [
         'company_id',
         'branch_id',
+        'rfq_id',
+        'purchase_request_id',
         'vendor_id',
         'quotation_number',
         'quotation_date',
@@ -42,6 +44,16 @@ class SupplierQuotation extends Model
             'tax_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
         ];
+    }
+
+    public function rfq(): BelongsTo
+    {
+        return $this->belongsTo(Rfq::class);
+    }
+
+    public function purchaseRequest(): BelongsTo
+    {
+        return $this->belongsTo(PurchaseRequest::class);
     }
 
     public function vendor(): BelongsTo

@@ -1,4 +1,4 @@
-<x-admin-layout :title="$vendor->vendor_name" :breadcrumbs="[['label' => __('Procurement')], ['label' => __('Vendors'), 'url' => route('admin.procurement.vendors.index')], ['label' => $vendor->vendor_name]]">
+<x-admin-layout :title="$vendor->vendor_name" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Vendor Management')], ['label' => __('Vendors'), 'url' => route('admin.procurement.vendors.index')], ['label' => $vendor->vendor_name]]">
     <x-admin.page-header :title="$vendor->vendor_name" :description="$vendor->vendor_code">
         <x-slot name="actions">
             @can('update', $vendor)

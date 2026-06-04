@@ -31,6 +31,18 @@ class StockIssueService
             ]);
         }
 
+        if (! $issue->warehouse?->is_active) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => __('Deactivated warehouses cannot issue stock.'),
+            ]);
+        }
+
+        if ($issue->destination === StockIssueDestination::Transfer && ! $issue->toWarehouse?->is_active) {
+            throw ValidationException::withMessages([
+                'to_warehouse_id' => __('Deactivated warehouses cannot receive transfer stock.'),
+            ]);
+        }
+
         return DB::transaction(function () use ($issue, $userId) {
             $issue->load('items.inventoryItem');
 

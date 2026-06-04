@@ -1,4 +1,4 @@
-<x-admin-layout :title="$order->po_number" :breadcrumbs="[['label' => __('Procurement')], ['label' => __('Purchase Orders'), 'url' => route('admin.procurement.orders.index')], ['label' => $order->po_number]]">
+<x-admin-layout :title="$order->po_number" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Purchase Orders'), 'url' => route('admin.procurement.orders.index')], ['label' => $order->po_number]]">
     <x-admin.page-header :title="$order->po_number" :description="$order->vendor?->vendor_name">
         <x-slot name="actions">
             @can('update', $order)<a href="{{ route('admin.procurement.orders.edit', $order) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>@endcan

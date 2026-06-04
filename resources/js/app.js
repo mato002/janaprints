@@ -148,19 +148,38 @@ document.addEventListener('alpine:init', () => {
         debouncedQuery: '',
         debounceTimer: null,
         activeChip: config.chips?.[0]?.id ?? 'all',
+        filterValues: {},
         filterOpen: false,
+        pageSize: Number(localStorage.getItem(`erp.table.${config.tableId ?? 'default'}.pageSize`) || 25),
+        currentPage: 1,
         selectable: config.selectable ?? false,
         selected: new Set(),
         tableId: config.tableId ?? null,
         exportFilename: config.exportFilename ?? 'export',
 
+        _tableRevision: 0,
+
         init() {
+            const bumpTableRevision = () => {
+                this._tableRevision += 1;
+            };
+
             this.$watch('query', (value) => {
                 clearTimeout(this.debounceTimer);
                 this.debounceTimer = setTimeout(() => {
                     this.debouncedQuery = value;
+                    this.currentPage = 1;
+                    bumpTableRevision();
                 }, 250);
             });
+
+            this.$watch('filterValues', () => {
+                this.currentPage = 1;
+                bumpTableRevision();
+            });
+
+            this.$watch('currentPage', bumpTableRevision);
+            this.$watch('activeChip', bumpTableRevision);
         },
 
         get selectedCount() {
@@ -175,12 +194,123 @@ document.addEventListener('alpine:init', () => {
             return String(text).toLowerCase().includes(this.debouncedQuery.trim().toLowerCase());
         },
 
-        rowVisible(searchText, chipValue = null) {
+        hasActiveFilters() {
+            return Object.entries(this.filterValues).some(([, value]) => {
+                if (value === null || value === undefined || value === '' || value === 'all') {
+                    return false;
+                }
+
+                return true;
+            });
+        },
+
+        usesClientPagination(rowIndex = null) {
+            if (rowIndex === null) {
+                return false;
+            }
+
+            if (this.debouncedQuery.trim() !== '' || this.hasActiveFilters() || this.activeChip !== 'all') {
+                return false;
+            }
+
+            return true;
+        },
+
+        rowVisible(searchText, chipValue = null, filters = {}, rowIndex = null) {
+            if (this.usesClientPagination(rowIndex)) {
+                const index = Number(rowIndex);
+                const start = (this.currentPage - 1) * this.pageSize + 1;
+                const end = this.currentPage * this.pageSize;
+
+                if (index < start || index > end) {
+                    return false;
+                }
+            }
+
             if (this.activeChip !== 'all' && chipValue !== null && chipValue !== '' && String(chipValue) !== String(this.activeChip)) {
                 return false;
             }
 
-            return this.matches(searchText);
+            return this.matches(searchText) && this.matchesFilters(filters);
+        },
+
+        resetFilters() {
+            this.filterValues = {};
+            this.currentPage = 1;
+        },
+
+        countVisibleRows() {
+            if (! this.tableId) {
+                return 0;
+            }
+
+            const table = document.getElementById(this.tableId);
+
+            if (! table) {
+                return 0;
+            }
+
+            return [...table.querySelectorAll('tbody tr')].filter((row) => {
+                if (row.querySelector('[data-empty-state], .erp-empty-state')) {
+                    return false;
+                }
+
+                return row.offsetParent !== null;
+            }).length;
+        },
+
+        get showNoResults() {
+            void this._tableRevision;
+
+            const searching = this.debouncedQuery.trim() !== '' || this.hasActiveFilters() || this.activeChip !== 'all';
+
+            if (! searching) {
+                return false;
+            }
+
+            return this.countVisibleRows() === 0;
+        },
+
+        matchesFilters(filters = {}) {
+            return Object.entries(this.filterValues).every(([key, expected]) => {
+                if (expected === null || expected === undefined || expected === '' || expected === 'all') {
+                    return true;
+                }
+
+                if (key.endsWith('_from')) {
+                    const actual = filters[key.replace(/_from$/, '')];
+
+                    return !actual || String(actual) >= String(expected);
+                }
+
+                if (key.endsWith('_to')) {
+                    const actual = filters[key.replace(/_to$/, '')];
+
+                    return !actual || String(actual) <= String(expected);
+                }
+
+                const actual = filters[key];
+
+                if (Array.isArray(actual)) {
+                    return actual.map(String).includes(String(expected));
+                }
+
+                return String(actual ?? '') === String(expected);
+            });
+        },
+
+        setPageSize(size) {
+            this.pageSize = Number(size);
+            this.currentPage = 1;
+            localStorage.setItem(`erp.table.${this.tableId ?? 'default'}.pageSize`, String(this.pageSize));
+        },
+
+        nextPage() {
+            this.currentPage += 1;
+        },
+
+        previousPage() {
+            this.currentPage = Math.max(1, this.currentPage - 1);
         },
 
         setChip(id) {
@@ -243,6 +373,7 @@ document.addEventListener('alpine:init', () => {
             const rows = [];
             const headers = [...table.querySelectorAll('thead th')]
                 .filter((th) => !th.classList.contains('erp-table-checkbox-col'))
+                .filter((th) => !th.classList.contains('erp-table-actions-col'))
                 .map((th) => th.textContent.trim());
 
             if (headers.length) {
@@ -256,6 +387,7 @@ document.addEventListener('alpine:init', () => {
 
                 const cells = [...row.querySelectorAll('td')]
                     .filter((td) => !td.classList.contains('erp-table-checkbox-col'))
+                    .filter((td) => !td.classList.contains('erp-table-actions-col'))
                     .map((td) => td.textContent.trim().replace(/\s+/g, ' '));
 
                 if (cells.length) {
@@ -666,23 +798,25 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('erpFloatingMenu', (align = 'right') => ({
+    Alpine.data('erpRowActionsMenu', (align = 'right') => ({
         open: false,
+        align,
         menuTop: 0,
         menuLeft: 0,
         menuTransform: 'translateX(-100%)',
-        align,
+        _outsideLockedUntil: 0,
+        _menuHost: null,
+
+        init() {
+            this.close();
+        },
 
         toggle(event) {
+            event?.stopPropagation?.();
+
             if (this.open) {
                 this.close();
 
-                return;
-            }
-
-            const trigger = event?.currentTarget ?? this.$refs.trigger;
-
-            if (! trigger) {
                 return;
             }
 
@@ -692,44 +826,122 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            this._triggerEl = trigger;
+            if (window.__erpOpenRowMenu && window.__erpOpenRowMenu !== this) {
+                window.__erpOpenRowMenu.close();
+            }
+
+            window.__erpOpenRowMenu = this;
+            this._outsideLockedUntil = Date.now() + 250;
             this.open = true;
-            this.$nextTick(() => this.placeMenu());
+            this.mountMenu();
+
+            if (menu) {
+                menu.classList.add('erp-row-actions-menu--open');
+            }
+
+            this.$nextTick(() => {
+                this.placeMenu();
+                requestAnimationFrame(() => this.placeMenu());
+            });
         },
 
         close() {
             this.open = false;
-            this._triggerEl = null;
+
+            const menu = this.$refs.menu;
+
+            if (menu) {
+                menu.classList.remove('erp-row-actions-menu--open');
+            }
+
+            this.restoreMenu();
+
+            if (window.__erpOpenRowMenu === this) {
+                window.__erpOpenRowMenu = null;
+            }
+        },
+
+        closeFromOutside() {
+            if (Date.now() < this._outsideLockedUntil) {
+                return;
+            }
+
+            this.close();
+        },
+
+        mountMenu() {
+            const menu = this.$refs.menu;
+
+            if (! menu || menu.parentElement === document.body) {
+                return;
+            }
+
+            this._menuHost = this.$el;
+            menu.__erpMenuHost = this._menuHost;
+            document.body.appendChild(menu);
+        },
+
+        restoreMenu() {
+            const menu = this.$refs.menu;
+            const host = this._menuHost ?? menu?.__erpMenuHost;
+
+            if (! menu || ! host || menu.parentElement !== document.body) {
+                return;
+            }
+
+            host.appendChild(menu);
+            this._menuHost = null;
         },
 
         placeMenu() {
-            const trigger = this._triggerEl ?? this.$refs.trigger;
+            const trigger = this.$refs.trigger;
 
-            if (! trigger) {
+            if (! trigger || ! this.open) {
                 return;
+            }
+
+            const menu = this.$refs.menu;
+
+            if (menu) {
+                menu.classList.add('erp-row-actions-menu--open');
             }
 
             const rect = trigger.getBoundingClientRect();
             const gap = 4;
+            const menuWidth = menu?.offsetWidth ?? 192;
+            const menuHeight = menu?.offsetHeight ?? 0;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
 
-            this.menuTop = rect.bottom + gap;
+            this.menuTop = spaceBelow < menuHeight + gap && spaceAbove > menuHeight + gap
+                ? rect.top - menuHeight - gap
+                : rect.bottom + gap;
 
             if (this.align === 'left') {
-                this.menuLeft = rect.left;
+                this.menuLeft = Math.max(8, rect.left);
                 this.menuTransform = 'none';
             } else {
-                this.menuLeft = rect.right;
+                this.menuLeft = Math.min(window.innerWidth - 8, rect.right);
                 this.menuTransform = 'translateX(-100%)';
+            }
+
+            if (this.menuLeft - menuWidth < 8) {
+                this.menuLeft = Math.min(rect.left, window.innerWidth - menuWidth - 8);
+                this.menuTransform = 'none';
             }
         },
 
         get menuStyle() {
+            if (! this.open) {
+                return {};
+            }
+
             return {
                 position: 'fixed',
                 top: `${this.menuTop}px`,
                 left: `${this.menuLeft}px`,
                 transform: this.menuTransform,
-                zIndex: 60,
+                zIndex: 99999,
             };
         },
     }));
@@ -829,20 +1041,46 @@ function syncShellFromFrame() {
     document.dispatchEvent(new CustomEvent('erp:page-loaded'));
 }
 
+function cleanupRowActionMenus(root = document) {
+    root.querySelectorAll('[data-erp-row-actions-menu]').forEach((menu) => {
+        menu.classList.remove('erp-row-actions-menu--open');
+        menu.removeAttribute('hidden');
+        menu.style.removeProperty('top');
+        menu.style.removeProperty('left');
+        menu.style.removeProperty('transform');
+        menu.style.removeProperty('position');
+        menu.style.removeProperty('z-index');
+
+        const host = menu.__erpMenuHost ?? menu.closest('[data-erp-row-actions]');
+
+        if (host && menu.parentElement === document.body) {
+            host.appendChild(menu);
+        }
+    });
+
+    window.__erpOpenRowMenu = null;
+}
+
 function refreshFrameAlpine(frame) {
     if (! frame) {
         return;
     }
 
+    cleanupRowActionMenus(frame);
     Alpine.destroyTree(frame);
     Alpine.initTree(frame);
     syncShellFromFrame();
 }
 
 document.addEventListener('turbo:before-cache', () => {
+    if (window.__erpOpenRowMenu) {
+        window.__erpOpenRowMenu.close();
+    }
+
     const frame = document.getElementById('erp-main');
 
     if (frame) {
+        cleanupRowActionMenus(frame);
         Alpine.destroyTree(frame);
     }
 });

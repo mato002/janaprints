@@ -24,6 +24,8 @@ return [
         'purchase_order' => ['label' => 'Purchase Orders', 'type_code' => 'PO'],
         'goods_receipt' => ['label' => 'Goods Receipts', 'type_code' => 'GRN'],
         'supplier_quotation' => ['label' => 'Supplier Quotations', 'type_code' => 'SQ'],
+        'rfq' => ['label' => 'Request For Quotation', 'type_code' => 'RFQ'],
+        'fixed_asset' => ['label' => 'Fixed Assets', 'type_code' => 'AST'],
     ],
 
 ];

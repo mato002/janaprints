@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Create Purchase Order')" :breadcrumbs="[['label' => __('Procurement')], ['label' => __('Purchase Orders'), 'url' => route('admin.procurement.orders.index')], ['label' => __('Create')]]">
+<x-admin-layout :title="__('Create Purchase Order')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Purchase Orders'), 'url' => route('admin.procurement.orders.index')], ['label' => __('Create')]]">
     <x-admin.page-header :title="__('Create purchase order')" />
     <x-admin.card>
         <form method="POST" action="{{ route('admin.procurement.orders.store') }}" class="space-y-6">

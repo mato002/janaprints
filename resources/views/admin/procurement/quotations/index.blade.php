@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Supplier Quotations')" :breadcrumbs="[['label' => __('Procurement')], ['label' => __('Supplier Quotations')]]">
+<x-admin-layout :title="__('Supplier Quotations')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Supplier Quotations')]]">
     <x-admin.page-header :title="__('Supplier Quotations')">
         <x-slot name="actions">
             @can('create', App\Models\Procurement\SupplierQuotation::class)

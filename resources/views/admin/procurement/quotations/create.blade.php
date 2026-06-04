@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Create Supplier Quotation')" :breadcrumbs="[['label' => __('Procurement')], ['label' => __('Supplier Quotations'), 'url' => route('admin.procurement.quotations.index')], ['label' => __('Create')]]">
+<x-admin-layout :title="__('Create Supplier Quotation')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Supplier Quotations'), 'url' => route('admin.procurement.quotations.index')], ['label' => __('Create')]]">
     <x-admin.page-header :title="__('Create supplier quotation')" />
     <x-admin.card>
         <form method="POST" action="{{ route('admin.procurement.quotations.store') }}" class="space-y-6">

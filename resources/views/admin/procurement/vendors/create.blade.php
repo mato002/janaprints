@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Create Vendor')" :breadcrumbs="[['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Vendors'), 'url' => route('admin.procurement.vendors.index')], ['label' => __('Create')]]">
+<x-admin-layout :title="__('Create Vendor')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Vendor Management')], ['label' => __('Vendors'), 'url' => route('admin.procurement.vendors.index')], ['label' => __('Create')]]">
     <x-admin.page-header :title="__('Create vendor')" />
     <x-admin.card>
         <form method="POST" action="{{ route('admin.procurement.vendors.store') }}" class="erp-form-grid">

@@ -5,9 +5,14 @@ namespace App\Http\Controllers\Admin\Inventory;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
+use App\Models\Inventory\Brand;
 use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryItem;
+use App\Models\Inventory\InventorySubcategory;
+use App\Models\Inventory\ItemAttribute;
 use App\Models\Inventory\UnitOfMeasure;
+use App\Support\Catalogue\CatalogueService;
+use App\Support\Catalogue\ItemAttributeService;
 use App\Support\InventoryStockService;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
@@ -21,6 +26,8 @@ class InventoryItemController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected CatalogueService $catalogue,
+        protected ItemAttributeService $itemAttributes,
     ) {}
 
     public function index(): View
@@ -28,7 +35,7 @@ class InventoryItemController extends Controller
         $this->authorize('viewAny', InventoryItem::class);
 
         $items = $this->scopeToTenant(
-            InventoryItem::query()->with(['category', 'unitOfMeasure'])
+            InventoryItem::query()->with(['category', 'subcategory', 'brand', 'unitOfMeasure', 'images'])
         )->orderBy('item_name')->paginate(15);
 
         return view('admin.inventory.items.index', compact('items'));
@@ -47,11 +54,16 @@ class InventoryItemController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
+        $data = $this->validateItem($request, $companyId, $branchId);
+        $data['sku'] = $this->resolveSku($data, $request);
+
         $item = InventoryItem::query()->create([
-            ...$this->validateItem($request, $companyId, $branchId),
+            ...$data,
             'company_id' => $companyId,
             'branch_id' => $branchId,
         ]);
+
+        $this->itemAttributes->sync($item, $request->input('attributes', []));
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item created.'));
     }
@@ -60,7 +72,11 @@ class InventoryItemController extends Controller
     {
         $this->authorize('view', $item);
 
-        $item->load(['category', 'unitOfMeasure']);
+        $item->load([
+            'category', 'subcategory', 'brand', 'unitOfMeasure',
+            'attributeValues.attribute', 'attributeValues.option', 'images',
+            'priceListItems.priceList',
+        ]);
         $stockBalance = InventoryStockService::branchBalance($item->id, $item->company_id, $item->branch_id);
 
         return view('admin.inventory.items.show', compact('item', 'stockBalance'));
@@ -70,6 +86,8 @@ class InventoryItemController extends Controller
     {
         $this->authorize('update', $item);
 
+        $item->load('attributeValues');
+
         return view('admin.inventory.items.edit', ['item' => $item, ...$this->formMeta()]);
     }
 
@@ -77,7 +95,11 @@ class InventoryItemController extends Controller
     {
         $this->authorize('update', $item);
 
-        $item->update($this->validateItem($request, $item->company_id, $item->branch_id));
+        $data = $this->validateItem($request, $item->company_id, $item->branch_id, $item);
+        $data['sku'] = $this->resolveSku($data, $request);
+
+        $item->update($data);
+        $this->itemAttributes->sync($item, $request->input('attributes', []));
         InventoryStockService::syncReorderAlerts($item->fresh());
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item updated.'));
@@ -99,8 +121,11 @@ class InventoryItemController extends Controller
     {
         return $request->validate($this->formSettings->mergeValidationRules('inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'subcategory_id' => ['nullable', Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'brand_id' => ['nullable', Rule::exists('brands', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'unit_of_measure_id' => [Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'sku' => ['string', 'max:50'],
+            'item_code' => ['nullable', 'string', 'max:50'],
             'item_name' => ['string', 'max:255'],
             'description' => ['string'],
             'reorder_level' => ['numeric', 'min:0'],
@@ -120,7 +145,30 @@ class InventoryItemController extends Controller
         return [
             'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId),
             'categories' => InventoryCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
+            'subcategories' => InventorySubcategory::query()->forTenant()->with('category')->where('is_active', true)->orderBy('name')->get(),
+            'brands' => Brand::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
+            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->orderBy('name')->get(),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    protected function resolveSku(array $data, Request $request): string
+    {
+        if (filled($data['sku'] ?? null)) {
+            return (string) $data['sku'];
+        }
+
+        $category = InventoryCategory::query()->findOrFail($data['inventory_category_id']);
+        $subcategory = filled($data['subcategory_id'] ?? null)
+            ? InventorySubcategory::query()->find($data['subcategory_id'])
+            : null;
+        $brand = filled($data['brand_id'] ?? null)
+            ? Brand::query()->find($data['brand_id'])
+            : null;
+
+        return $this->catalogue->structuredSku($category, $subcategory, $brand, (string) $data['item_name'], $request->input('sku_parts', []));
     }
 }

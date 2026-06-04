@@ -1,27 +1,34 @@
-<x-admin-layout :title="__('Inventory items')" :breadcrumbs="[['label' => __('Inventory'), 'url' => route('admin.inventory.dashboard')], ['label' => __('Items')]]">
+<x-admin-layout :title="__('Inventory items')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Items')]]">
     <x-admin.page-header :title="__('Inventory items')">
-        @can('create', App\Models\Inventory\InventoryItem::class)
-            <a href="{{ route('admin.inventory.items.create') }}" class="erp-btn-primary">{{ __('New item') }}</a>
-        @endcan
+        <x-slot name="actions">
+            <a href="{{ route('admin.inventory.catalogue.dashboard') }}" class="erp-btn-secondary">{{ __('Catalogue') }}</a>
+            @can('create', App\Models\Inventory\InventoryItem::class)
+                <a href="{{ route('admin.inventory.items.create') }}" class="erp-btn-primary">{{ __('New item') }}</a>
+            @endcan
+        </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search inventory…')" export-filename="inventory-items">
+    <x-admin.data-table :search-placeholder="__('Search inventory...')" export-filename="inventory-items">
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Item') }}</th>
                 <th scope="col" class="hidden md:table-cell">{{ __('Category') }}</th>
+                <th scope="col" class="hidden lg:table-cell">{{ __('Brand') }}</th>
+                <th scope="col" class="hidden lg:table-cell">{{ __('Image') }}</th>
                 <th scope="col">{{ __('Reorder') }}</th>
                 <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
             </tr>
         </x-slot>
         <x-slot name="body">
             @forelse ($items as $item)
-                <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->category?->name ?? ''))))">
+                <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->category?->name ?? '').' '.($item->subcategory?->name ?? '').' '.($item->brand?->name ?? ''))))">
                     <td>
                         <div class="font-medium">{{ $item->item_name }}</div>
                         <div class="font-mono text-[11px] text-slate-500">{{ $item->sku }}</div>
                     </td>
-                    <td class="hidden md:table-cell">{{ $item->category?->name ?? '—' }}</td>
+                    <td class="hidden md:table-cell">{{ $item->category?->name ?? '-' }} @if($item->subcategory)<span class="block text-xs text-slate-500">{{ $item->subcategory->name }}</span>@endif</td>
+                    <td class="hidden lg:table-cell">{{ $item->brand?->name ?? '-' }}</td>
+                    <td class="hidden lg:table-cell">{{ $item->images->isNotEmpty() ? __('Yes') : __('Missing') }}</td>
                     <td class="tabular-nums">{{ $item->reorder_level }}</td>
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>
@@ -33,7 +40,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="4"><x-admin.empty-state icon="cube" :title="__('No items yet')" /></td></tr>
+                <tr><td colspan="6"><x-admin.empty-state icon="cube" :title="__('No items yet')" /></td></tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$items" /></x-slot>

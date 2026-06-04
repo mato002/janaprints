@@ -20,6 +20,8 @@ enum DocumentType: string
     case PurchaseOrder = 'purchase_order';
     case GoodsReceipt = 'goods_receipt';
     case SupplierQuotation = 'supplier_quotation';
+    case Rfq = 'rfq';
+    case FixedAsset = 'fixed_asset';
 
     public function typeCode(): string
     {
@@ -40,6 +42,8 @@ enum DocumentType: string
             self::PurchaseOrder => 'PO',
             self::GoodsReceipt => 'GRN',
             self::SupplierQuotation => 'SQ',
+            self::Rfq => 'RFQ',
+            self::FixedAsset => 'AST',
         };
     }
 }

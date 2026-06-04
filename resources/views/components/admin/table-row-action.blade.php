@@ -8,8 +8,8 @@
 
 @php
     $classes = match ($variant) {
-        'danger' => 'text-red-700 hover:bg-red-50',
-        default => 'text-slate-700 hover:bg-erp-page',
+        'danger' => 'border-t border-red-100 text-red-700 hover:bg-red-50',
+        default => 'text-erp-primary hover:bg-erp-page',
     };
 @endphp
 
@@ -19,13 +19,14 @@
         @if (in_array(strtoupper($method), ['PUT', 'PATCH', 'DELETE']))
             @method($method)
         @endif
-        <button type="submit" {{ $attributes->merge(['class' => "flex w-full items-center gap-2 px-3 py-2 text-left text-sm {$classes}"]) }}>
+        <button type="submit" @click="$dispatch('erp-row-menu-close')" {{ $attributes->merge(['class' => "flex w-full items-center gap-2 px-3 py-2 text-left text-sm {$classes}"]) }}>
             {{ $slot }}
         </button>
     </form>
 @elseif ($href)
     <a
         href="{{ $href }}"
+        @click="$dispatch('erp-row-menu-close')"
         {{ $attributes->merge(['class' => "flex w-full items-center gap-2 px-3 py-2 text-sm {$classes}"]) }}
         data-turbo-action="advance"
     >

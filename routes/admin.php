@@ -110,4 +110,5 @@ require __DIR__.'/admin_sales_orders.php';
 require __DIR__.'/admin_production.php';
 require __DIR__.'/admin_inventory.php';
 require __DIR__.'/admin_procurement.php';
+require __DIR__.'/admin_assets.php';
 require __DIR__.'/admin_settings.php';

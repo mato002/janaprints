@@ -91,6 +91,99 @@ return [
             ],
         ],
 
+        'warehouse.create' => [
+            'label' => 'Warehouse (create)',
+            'description' => 'Fields on the new warehouse form.',
+            'fields' => [
+                'name' => ['label' => 'Warehouse name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'branch' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
+                'is_active' => ['label' => 'Status', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
+                'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => false, 'sort_order' => 5],
+                'manager' => ['label' => 'Manager', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 6],
+                'description' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
+            ],
+        ],
+
+        'warehouse.edit' => [
+            'label' => 'Warehouse (edit)',
+            'description' => 'Fields on the warehouse edit form.',
+            'fields' => [
+                'name' => ['label' => 'Warehouse name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'branch' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
+                'is_active' => ['label' => 'Status', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
+                'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => false, 'sort_order' => 5],
+                'manager' => ['label' => 'Manager', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 6],
+                'description' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
+            ],
+        ],
+
+        'warehouse.manager_assignment' => [
+            'label' => 'Warehouse managers',
+            'description' => 'Store manager assignment for a warehouse.',
+            'fields' => [
+                'manager_ids' => ['label' => 'Managers', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 1],
+            ],
+        ],
+
+        'stock_issue.create' => [
+            'label' => 'Stock issue (create)',
+            'description' => 'Stock issue draft header and line fields.',
+            'fields' => [
+                'warehouse_id' => ['label' => 'Source warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'issue_date' => ['label' => 'Issue date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'destination' => ['label' => 'Reason / destination', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'to_warehouse_id' => ['label' => 'Destination warehouse', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 4],
+                'inventory_item_id' => ['label' => 'Item', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'quantity' => ['label' => 'Quantity', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 6],
+                'unit_cost' => ['label' => 'Unit cost', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 7],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 8],
+            ],
+        ],
+
+        'store_transfer.create' => [
+            'label' => 'Store transfer (create)',
+            'description' => 'Inter-store transfer draft fields.',
+            'fields' => [
+                'warehouse_id' => ['label' => 'Source warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'to_warehouse_id' => ['label' => 'Destination warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'issue_date' => ['label' => 'Transfer date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'inventory_item_id' => ['label' => 'Item', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'quantity' => ['label' => 'Quantity', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'unit_cost' => ['label' => 'Unit cost', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 6],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
+            ],
+        ],
+
+        'stock_receipt.create' => [
+            'label' => 'Stock receipt (create)',
+            'description' => 'Goods receiving draft fields.',
+            'fields' => [
+                'warehouse_id' => ['label' => 'Warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'source' => ['label' => 'Source', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'receipt_date' => ['label' => 'Receipt date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'inventory_item_id' => ['label' => 'Item', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'quantity' => ['label' => 'Quantity', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'unit_cost' => ['label' => 'Unit cost', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 6],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => false, 'sort_order' => 7],
+            ],
+        ],
+
+        'stock_adjustment.create' => [
+            'label' => 'Stock adjustment (create)',
+            'description' => 'Stock adjustment draft fields.',
+            'fields' => [
+                'warehouse_id' => ['label' => 'Warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'adjustment_date' => ['label' => 'Adjustment date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'reason' => ['label' => 'Reason', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'inventory_item_id' => ['label' => 'Item', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'quantity' => ['label' => 'Quantity', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'unit_cost' => ['label' => 'Unit cost', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 6],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => false, 'sort_order' => 7],
+            ],
+        ],
+
     ],
 
 ];

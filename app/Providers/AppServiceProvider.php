@@ -19,6 +19,7 @@ use App\Models\Sales\Quotation;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventoryMovement;
 use App\Models\Inventory\InventoryReorderAlert;
+use App\Models\Inventory\Warehouse;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\StockAdjustment;
@@ -28,6 +29,7 @@ use App\Models\Production\QualityCheck;
 use App\Models\Procurement\GoodsReceipt;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
+use App\Models\Procurement\Rfq;
 use App\Models\Procurement\SupplierQuotation;
 use App\Models\Platform\SettingsGovernance;
 use App\Models\Procurement\Vendor;
@@ -39,6 +41,7 @@ use App\Policies\ArtworkVersionPolicy;
 use App\Policies\QuotationPolicy;
 use App\Policies\InventoryItemPolicy;
 use App\Policies\InventoryMovementPolicy;
+use App\Policies\WarehousePolicy;
 use App\Policies\ProductionJobCardPolicy;
 use App\Policies\StockAdjustmentPolicy;
 use App\Policies\StockIssuePolicy;
@@ -48,6 +51,7 @@ use App\Policies\QualityCheckPolicy;
 use App\Policies\GoodsReceiptPolicy;
 use App\Policies\PurchaseOrderPolicy;
 use App\Policies\PurchaseRequestPolicy;
+use App\Policies\RfqPolicy;
 use App\Policies\SupplierQuotationPolicy;
 use App\Policies\VendorPolicy;
 use App\Policies\SalesOrderPolicy;
@@ -110,6 +114,7 @@ class AppServiceProvider extends ServiceProvider
         ProductionQueue::class => ProductionQueuePolicy::class,
         QualityCheck::class => QualityCheckPolicy::class,
         InventoryItem::class => InventoryItemPolicy::class,
+        Warehouse::class => WarehousePolicy::class,
         StockReceipt::class => StockReceiptPolicy::class,
         StockIssue::class => StockIssuePolicy::class,
         StockAdjustment::class => StockAdjustmentPolicy::class,
@@ -119,6 +124,7 @@ class AppServiceProvider extends ServiceProvider
         PurchaseOrder::class => PurchaseOrderPolicy::class,
         GoodsReceipt::class => GoodsReceiptPolicy::class,
         SupplierQuotation::class => SupplierQuotationPolicy::class,
+        Rfq::class => RfqPolicy::class,
         SettingsGovernance::class => SettingsPolicy::class,
     ];
 

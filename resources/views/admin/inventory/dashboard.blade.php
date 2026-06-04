@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Inventory')" :breadcrumbs="[['label' => __('Inventory')]]">
+<x-admin-layout :title="__('Inventory')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Inventory')]]">
     <x-admin.page-header :title="__('Inventory & Store')" />
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -14,9 +14,15 @@
     </div>
 
     <x-admin.card class="mt-6 flex flex-wrap gap-2">
+        <a href="{{ route('admin.inventory.store.dashboard') }}" class="erp-btn-secondary">{{ __('Store dashboard') }}</a>
+        <a href="{{ route('admin.inventory.store.balances') }}" class="erp-btn-secondary">{{ __('Store balances') }}</a>
+        <a href="{{ route('admin.inventory.warehouses.index') }}" class="erp-btn-secondary">{{ __('Warehouses') }}</a>
         @can('create', App\Models\Inventory\InventoryItem::class)
             <a href="{{ route('admin.inventory.items.create') }}" class="erp-btn-primary">{{ __('New item') }}</a>
         @endcan
+        @if (auth()->user()?->can('inventory.transfer'))
+            <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-secondary">{{ __('Transfer stock') }}</a>
+        @endif
         @can('create', App\Models\Inventory\StockReceipt::class)
             <a href="{{ route('admin.inventory.receipts.create') }}" class="erp-btn-secondary">{{ __('Stock receipt') }}</a>
         @endcan

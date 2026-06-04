@@ -24,6 +24,12 @@ class StockReceiptService
             ]);
         }
 
+        if (! $receipt->warehouse?->is_active) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => __('Deactivated warehouses cannot receive new stock.'),
+            ]);
+        }
+
         return DB::transaction(function () use ($receipt, $userId) {
             $receipt->load('items.inventoryItem');
 

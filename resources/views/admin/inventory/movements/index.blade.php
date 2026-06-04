@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Movements')">
+<x-admin-layout :title="__('Movements')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Inventory'), 'url' => route('admin.inventory.dashboard')], ['label' => __('Stock Movements')]]">
     <x-admin.page-header :title="__('Inventory movements')" :description="__('Audit trail — source of stock truth.')" />
 
     <x-admin.data-table :search-placeholder="__('Search movements…')" export-filename="inventory-movements">

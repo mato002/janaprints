@@ -195,6 +195,30 @@ return [
         'inventory' => [
             'label' => 'Inventory',
             'entities' => [
+                'catalogue' => [
+                    'label' => 'Catalogue',
+                    'permissions' => [
+                        'view' => 'catalogue.view',
+                        'create' => 'catalogue.create',
+                        'edit' => 'catalogue.edit',
+                        'delete' => 'catalogue.delete',
+                    ],
+                ],
+                'stores' => [
+                    'label' => 'Stores',
+                    'permissions' => [
+                        'view' => 'inventory.view',
+                        'create' => 'inventory.create',
+                        'edit' => 'inventory.edit',
+                        'delete' => 'inventory.delete',
+                    ],
+                    'extra' => [
+                        ['label' => 'Receive', 'permission' => 'inventory.receive'],
+                        ['label' => 'Issue', 'permission' => 'inventory.issue'],
+                        ['label' => 'Adjust', 'permission' => 'inventory.adjust'],
+                        ['label' => 'Transfer', 'permission' => 'inventory.transfer'],
+                    ],
+                ],
                 'stock' => [
                     'label' => 'Inventory',
                     'permissions' => [

@@ -25,6 +25,12 @@ class StockAdjustmentService
             ]);
         }
 
+        if (! $adjustment->warehouse?->is_active) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => __('Deactivated warehouses cannot be adjusted.'),
+            ]);
+        }
+
         return DB::transaction(function () use ($adjustment, $userId) {
             $adjustment->load('items.inventoryItem');
 

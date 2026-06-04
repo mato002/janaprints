@@ -18,9 +18,10 @@ class InventoryItem extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'inventory_category_id', 'unit_of_measure_id',
-        'sku', 'item_name', 'description', 'reorder_level', 'reorder_quantity',
-        'standard_cost', 'is_active',
+        'company_id', 'branch_id', 'inventory_category_id', 'subcategory_id',
+        'brand_id', 'unit_of_measure_id', 'sku', 'item_code', 'item_name',
+        'description', 'reorder_level', 'reorder_quantity', 'standard_cost',
+        'is_active',
     ];
 
     protected function casts(): array
@@ -43,8 +44,33 @@ class InventoryItem extends Model
         return $this->belongsTo(UnitOfMeasure::class);
     }
 
+    public function subcategory(): BelongsTo
+    {
+        return $this->belongsTo(InventorySubcategory::class, 'subcategory_id');
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
     public function movements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class);
+    }
+
+    public function attributeValues(): HasMany
+    {
+        return $this->hasMany(InventoryItemAttribute::class);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(InventoryItemImage::class)->orderByDesc('is_primary')->orderBy('sort_order');
+    }
+
+    public function priceListItems(): HasMany
+    {
+        return $this->hasMany(PriceListItem::class);
     }
 }
