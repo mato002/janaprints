@@ -7,21 +7,25 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table>
+    <x-admin.data-table :search-placeholder="__('Search segments…')" export-filename="segments">
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Name') }}</th>
                 <th scope="col">{{ __('Code') }}</th>
-                <th scope="col" class="text-right">{{ __('Actions') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
             </tr>
         </x-slot>
         <x-slot name="body">
             @forelse ($segments as $segment)
-                <tr x-show="matches(@js($segment->name.' '.$segment->code))">
+                <tr x-show="rowVisible(@js(strtolower($segment->name.' '.$segment->code)))">
                     <td class="font-medium text-erp-primary">{{ $segment->name }}</td>
                     <td class="font-mono text-xs text-slate-500">{{ $segment->code }}</td>
-                    <td class="text-right">
-                        <a href="{{ route('admin.crm.segments.edit', $segment) }}" class="font-medium text-erp-accent hover:underline">{{ __('Edit') }}</a>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            @can('update', $segment)
+                                <x-admin.table-row-action :href="route('admin.crm.segments.edit', $segment)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
                     </td>
                 </tr>
             @empty
@@ -38,6 +42,6 @@
                 </tr>
             @endforelse
         </x-slot>
-        <x-slot name="footer">{{ $segments->links() }}</x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$segments" /></x-slot>
     </x-admin.data-table>
 </x-admin-layout>

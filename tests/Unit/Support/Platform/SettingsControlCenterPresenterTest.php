@@ -38,7 +38,7 @@ class SettingsControlCenterPresenterTest extends TestCase
         $this->assertCount(7, $payload['domains']);
         $this->assertSame('Organization', $payload['domains'][0]['label']);
         $this->assertSame('Roles & Access', $payload['domains'][0]['cards'][4]['title']);
-        $this->assertSame('pending_setup', $payload['domains'][0]['cards'][5]['status']);
+        $this->assertSame('incomplete', $payload['domains'][0]['cards'][5]['status']);
     }
 
     public function test_registry_cards_expose_status_labels_without_completion_counts(): void

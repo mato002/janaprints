@@ -20,7 +20,7 @@
     z-index: 9999;
     height: 3px;
     width: 0;
-    background: linear-gradient(90deg, #2563eb, #3b82f6);
+    background: #D41484;
     opacity: 0;
     pointer-events: none;
     transition: width 120ms ease-out, opacity 80ms ease-out;
@@ -32,46 +32,132 @@
 
 @layer components {
     .erp-input {
-        @apply block w-full rounded-lg border-erp-border text-sm text-erp-primary shadow-sm transition-colors duration-150;
-        @apply focus:border-erp-accent focus:ring-erp-accent;
+        @apply block w-full rounded-lg border-erp-border bg-white text-sm text-slate-700 shadow-sm transition-colors duration-150;
+        @apply focus:border-erp-accent focus:ring-erp-accent/25;
     }
 
     .erp-select {
-        @apply erp-input py-2;
+        @apply erp-input py-2 text-erp-primary;
+    }
+
+    .erp-select:focus {
+        @apply border-erp-accent ring-erp-accent/25;
     }
 
     .erp-table {
-        @apply min-w-full divide-y divide-erp-border text-sm;
+        @apply w-full min-w-full border-collapse text-sm;
+        table-layout: auto;
+    }
+
+    .erp-table--grid {
+        @apply border border-erp-border;
+    }
+
+    .erp-table--grid th,
+    .erp-table--grid td {
+        @apply border border-erp-border;
     }
 
     .erp-table thead {
-        @apply bg-erp-page sticky top-0 z-10;
+        @apply sticky top-0 z-10;
+    }
+
+    .erp-table--grid thead {
+        background-color: #31339C;
     }
 
     .erp-table th {
-        @apply px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+        @apply h-12 px-3 text-left text-xs font-semibold uppercase tracking-wide text-white;
+        background-color: inherit;
+    }
+
+    .erp-table:not(.erp-table--grid) th {
+        @apply bg-erp-primary text-white;
     }
 
     .erp-table td {
-        @apply px-4 py-3 text-slate-700 whitespace-nowrap;
+        @apply h-12 max-w-[16rem] truncate px-3 text-slate-700;
     }
 
     .erp-table tbody tr {
-        @apply transition-colors duration-150 hover:bg-slate-50/80;
+        @apply bg-white transition-colors duration-150;
+    }
+
+    .erp-table tbody tr:nth-child(even) {
+        @apply bg-slate-50/40;
+    }
+
+    .erp-table tbody tr:hover {
+        background-color: rgb(212 20 132 / 0.04);
+    }
+
+    .erp-table tbody tr.selected,
+    .erp-table tbody tr[data-selected="true"] {
+        background-color: rgb(212 20 132 / 0.08) !important;
+    }
+
+    .erp-table a:not(.erp-row-actions-menu a) {
+        @apply font-medium text-erp-accent transition-colors hover:text-erp-accent-hover;
+    }
+
+    .erp-table-scroll {
+        @apply relative w-full max-w-full;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .erp-data-grid {
+        @apply min-w-0 max-w-full;
+    }
+
+    .erp-table-toolbar {
+        @apply shrink-0;
+    }
+
+    .erp-table-checkbox-col {
+        @apply w-10 text-center;
+    }
+
+    .erp-table-actions-col {
+        @apply w-16 text-center;
+    }
+
+    .erp-table-actions-col .erp-row-actions-trigger {
+        @apply mx-auto;
+    }
+
+    .erp-table-footer {
+        @apply border-t border-erp-border bg-white;
+    }
+
+    .erp-table-pagination nav {
+        @apply flex justify-end;
+    }
+
+    .erp-table-pagination nav > div {
+        @apply flex gap-1;
+    }
+
+    .erp-table-pagination a,
+    .erp-table-pagination span {
+        @apply inline-flex min-h-[2rem] min-w-[2rem] items-center justify-center rounded-md border border-erp-border px-2 text-sm;
+    }
+
+    .erp-table-pagination span[aria-current="page"] {
+        @apply border-erp-accent bg-erp-accent text-white;
     }
 
     .erp-btn-primary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-erp-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-150;
-        @apply hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-erp-accent focus:ring-offset-2;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-erp-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors duration-150;
+        @apply hover:bg-erp-accent-hover focus:outline-none focus:ring-2 focus:ring-erp-accent/25 focus:ring-offset-2;
     }
 
     .erp-btn-secondary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-erp-border bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition-all duration-150;
-        @apply hover:bg-erp-page focus:outline-none focus:ring-2 focus:ring-erp-accent focus:ring-offset-2;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-erp-primary bg-white px-4 py-2 text-sm font-medium text-erp-primary shadow-sm transition-colors duration-150;
+        @apply hover:bg-erp-primary/[0.06] focus:outline-none focus:ring-2 focus:ring-erp-accent/25 focus:ring-offset-2;
     }
 
     .erp-btn-ghost {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-slate-900;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-erp-primary;
     }
 
     .erp-skeleton {
@@ -79,16 +165,71 @@
     }
 
     .erp-form-grid {
-        @apply grid grid-cols-1 gap-5 md:grid-cols-2;
+        @apply grid grid-cols-1 gap-4 md:grid-cols-2;
     }
 
     .erp-form-field label {
-        @apply mb-1.5 block text-sm font-medium text-slate-700;
+        @apply mb-1 block text-sm font-medium text-erp-primary;
     }
 
     .erp-form-field .required::after {
         content: ' *';
-        @apply text-erp-danger;
+        @apply text-erp-accent;
+    }
+
+    .erp-form-field input[readonly],
+    .erp-form-field textarea[readonly],
+    .erp-form-field select[disabled] {
+        @apply bg-erp-readonly;
+    }
+
+    /* Sidebar navigation */
+    .erp-nav-link {
+        @apply flex items-center gap-2 rounded-lg py-2 text-sm font-medium text-white/80 transition-colors;
+    }
+
+    .erp-nav-link:hover {
+        background-color: rgb(212 20 132 / 0.08);
+        @apply text-white;
+    }
+
+    .erp-nav-link--active {
+        @apply border-l-3 border-erp-accent bg-erp-primary text-white;
+    }
+
+    .erp-nav-link--active .erp-nav-icon,
+    .erp-nav-link--active svg {
+        @apply text-white;
+    }
+
+    .erp-nav-group-btn:hover {
+        background-color: rgb(212 20 132 / 0.08);
+    }
+
+    .erp-nav-icon {
+        @apply shrink-0 text-white/80;
+    }
+
+    /* Filter pills — settings & filters */
+    .erp-filter-pill {
+        @apply shrink-0 rounded-full border border-erp-border bg-white px-3 py-1 text-xs font-medium text-slate-600 transition-colors;
+    }
+
+    .erp-filter-pill:hover {
+        @apply border-erp-accent text-erp-accent;
+    }
+
+    .erp-filter-pill--active {
+        @apply border-erp-primary bg-erp-primary text-white;
+    }
+
+    .erp-filter-pill--active:hover {
+        @apply border-erp-accent bg-erp-accent text-white;
+    }
+
+    /* Settings stats strip */
+    .erp-stats-strip {
+        @apply flex max-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-hidden text-[11px] text-slate-600;
     }
 
     .permission-matrix-chips {
@@ -110,7 +251,8 @@
     }
 
     .permission-matrix-bulk-btn {
-        @apply inline-flex items-center rounded-md border border-erp-border bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-white hover:text-erp-primary;
+        @apply inline-flex items-center rounded-md border border-erp-accent/30 bg-white px-2.5 py-1 text-[11px] font-medium text-erp-accent transition-colors;
+        @apply hover:border-erp-accent hover:bg-erp-accent/5 hover:text-erp-accent-hover;
     }
 
     .permission-matrix-grid {
@@ -126,11 +268,15 @@
     }
 
     .permission-matrix-head-cell {
-        @apply flex items-center justify-center px-2 py-1.5 text-center font-semibold uppercase tracking-wide text-slate-500;
+        @apply flex items-center justify-center px-2 py-1.5 text-center font-semibold uppercase tracking-wide text-erp-primary;
     }
 
     .permission-matrix-cell {
         @apply flex items-center justify-center px-2 py-1.5 text-center;
+    }
+
+    .permission-matrix-cell--selected {
+        background-color: rgb(212 20 132 / 0.08);
     }
 
     .permission-matrix-empty {
@@ -155,7 +301,7 @@
     }
 
     .permission-matrix-table th {
-        @apply bg-erp-page text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+        @apply bg-erp-page text-[10px] font-semibold uppercase tracking-wide text-erp-primary;
     }
 
     .permission-matrix-table tbody tr {
@@ -164,7 +310,7 @@
 
     .permission-matrix-sticky-col {
         @apply sticky left-0 z-10 bg-white text-left;
-        box-shadow: 2px 0 4px -2px rgb(15 23 42 / 0.08);
+        box-shadow: 2px 0 4px -2px rgb(49 51 156 / 0.08);
     }
 
     .permission-matrix-sticky-corner {
@@ -197,7 +343,7 @@
     }
 
     .role-dashboard-stat {
-        @apply rounded-lg border border-erp-border bg-erp-card px-4 py-3 shadow-card;
+        @apply rounded-lg border border-erp-border bg-erp-card px-3 py-2 shadow-card;
     }
 
     .role-dashboard-stat-label {
@@ -205,7 +351,7 @@
     }
 
     .role-dashboard-stat-value {
-        @apply mt-1 text-xl font-semibold tabular-nums text-erp-primary;
+        @apply mt-0.5 text-lg font-semibold tabular-nums text-erp-primary;
     }
 
     .role-category-badge {
@@ -242,5 +388,9 @@
 
     .role-governance-drawer {
         @apply fixed inset-y-0 right-0 z-50 flex w-full max-w-sm flex-col border-l border-erp-border bg-white shadow-xl;
+    }
+
+    .erp-modal-header {
+        @apply border-b border-erp-border bg-erp-page px-4 py-3 text-base font-semibold text-erp-primary;
     }
 }

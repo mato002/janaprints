@@ -55,7 +55,7 @@
     @endif
 
     <div class="overflow-x-auto">
-        <table class="erp-table">
+        <table class="erp-table erp-table--grid">
             <thead>
                 <tr>
                     @if ($row['metric'] === 'amount' || $row['metric'] === 'both')

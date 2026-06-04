@@ -1,28 +1,3 @@
-@php
-    $companies = auth()->user()->hasRole('Super Admin')
-        ? \App\Models\Company::query()->where('is_active', true)->orderBy('name')->get()
-        : \App\Models\Company::query()->where('id', auth()->user()->company_id)->get();
-    $branches = tenant()->company
-        ? tenant()->company->branches()->where('is_active', true)->orderBy('name')->get()
-        : collect();
-
-    $quickCreate = array_values(array_filter([
-        ['label' => __('Quote'), 'coming_soon' => true],
-        ['label' => __('Customer'), 'route' => 'admin.crm.customers.create', 'model' => App\Models\Crm\Customer::class],
-        ['label' => __('Job Card'), 'coming_soon' => true],
-        ['label' => __('Invoice'), 'coming_soon' => true],
-    ], function ($item) {
-        if (! empty($item['coming_soon'])) {
-            return true;
-        }
-        if (! empty($item['model'])) {
-            return auth()->user()?->can('create', $item['model']);
-        }
-
-        return true;
-    }));
-@endphp
-
 <header id="erp-topbar" class="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-erp-border bg-erp-card px-4 sm:gap-4 sm:px-6">
     <button
         type="button"
@@ -52,6 +27,15 @@
     </div>
 
     <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+        @php
+            $companies = auth()->user()->hasRole('Super Admin')
+                ? \App\Models\Company::query()->where('is_active', true)->orderBy('name')->get()
+                : \App\Models\Company::query()->where('id', auth()->user()->company_id)->get();
+            $branches = tenant()->company
+                ? tenant()->company->branches()->where('is_active', true)->orderBy('name')->get()
+                : collect();
+        @endphp
+
         @if ($companies->isNotEmpty())
             <form method="POST" action="{{ route('admin.context.update') }}" data-turbo-frame="_top" class="hidden items-center gap-2 sm:flex">
                 @csrf
@@ -71,23 +55,25 @@
             </form>
         @endif
 
-        <x-dropdown align="right" width="48">
-            <x-slot name="trigger">
-                <button type="button" class="erp-btn-primary py-2">
-                    <x-admin.icon name="plus" class="w-4 h-4" />
-                    <span class="hidden sm:inline">{{ __('Create') }}</span>
-                </button>
-            </x-slot>
-            <x-slot name="content">
-                @foreach ($quickCreate as $item)
-                    @if (! empty($item['coming_soon']))
-                        <span class="block w-full px-4 py-2 text-start text-sm leading-5 text-slate-400 cursor-not-allowed">{{ $item['label'] }} <span class="text-xs">({{ __('Soon') }})</span></span>
-                    @elseif (! empty($item['route']) && (! empty($item['model']) ? auth()->user()?->can('create', $item['model']) : true))
-                        <x-dropdown-link :href="route($item['route'])">{{ $item['label'] }}</x-dropdown-link>
-                    @endif
-                @endforeach
-            </x-slot>
-        </x-dropdown>
+        @if (! empty($quickCreate))
+            <x-dropdown align="right" width="48">
+                <x-slot name="trigger">
+                    <button type="button" class="erp-btn-primary py-2">
+                        <x-admin.icon name="plus" class="w-4 h-4" />
+                        <span class="hidden sm:inline">{{ __('Create') }}</span>
+                    </button>
+                </x-slot>
+                <x-slot name="content">
+                    @foreach ($quickCreate as $item)
+                        @if (! empty($item['coming_soon']))
+                            <span class="block w-full px-4 py-2 text-start text-sm leading-5 text-slate-400 cursor-not-allowed">{{ $item['label'] }} <span class="text-xs">({{ __('Soon') }})</span></span>
+                        @elseif (! empty($item['route']))
+                            <x-dropdown-link :href="route($item['route'])">{{ $item['label'] }}</x-dropdown-link>
+                        @endif
+                    @endforeach
+                </x-slot>
+            </x-dropdown>
+        @endif
 
         <button type="button" class="relative rounded-lg p-2 text-slate-500 transition-colors hover:bg-erp-page hover:text-slate-700" title="{{ __('Notifications') }}" aria-label="{{ __('Notifications') }}">
             <x-admin.icon name="bell" class="w-5 h-5" />
@@ -97,9 +83,13 @@
         <x-dropdown align="right" width="48">
             <x-slot name="trigger">
                 <button type="button" class="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-700 hover:bg-erp-page">
-                    <span class="hidden h-8 w-8 items-center justify-center rounded-full bg-erp-accent/10 text-xs font-semibold text-erp-accent sm:flex">
-                        {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
-                    </span>
+                    @if (! empty($userAvatarUrl))
+                        <img src="{{ $userAvatarUrl }}" alt="" class="hidden h-8 w-8 rounded-full border border-erp-border object-cover sm:block">
+                    @else
+                        <span class="hidden h-8 w-8 items-center justify-center rounded-full bg-erp-accent/10 text-xs font-semibold text-erp-accent sm:flex">
+                            {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+                        </span>
+                    @endif
                     <span class="hidden max-w-[8rem] truncate md:inline">{{ auth()->user()->name }}</span>
                     <x-admin.icon name="chevron-down" class="w-4 h-4 text-slate-400" />
                 </button>

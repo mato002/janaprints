@@ -13,30 +13,38 @@ export default {
         extend: {
             colors: {
                 erp: {
-                    primary: '#0F172A',
-                    sidebar: '#111827',
-                    accent: '#2563EB',
+                    /** Structure — navigation, headers, hierarchy */
+                    primary: '#31339C',
+                    secondary: '#5A5CC8',
+                    sidebar: '#1F237A',
+                    /** Action — buttons, active selections, links */
+                    accent: '#D41484',
+                    'accent-hover': '#B61070',
+                    'accent-light': '#E856A6',
+                    /** Semantic — unchanged */
                     success: '#16A34A',
                     warning: '#F59E0B',
                     danger: '#DC2626',
-                    info: '#0EA5E9',
-                    page: '#F8FAFC',
+                    info: '#5A5CC8',
+                    /** Surfaces */
+                    page: '#F8F9FC',
                     card: '#FFFFFF',
-                    border: '#E2E8F0',
+                    border: '#E5E7EB',
+                    readonly: '#F5F6FA',
                 },
             },
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },
             fontSize: {
-                'dashboard-title': ['2rem', { lineHeight: '2.5rem', fontWeight: '700' }],
-                'section-title': ['1.25rem', { lineHeight: '1.75rem', fontWeight: '700' }],
-                'card-title': ['0.875rem', { lineHeight: '1.25rem', fontWeight: '500' }],
-                'card-value': ['2rem', { lineHeight: '2.5rem', fontWeight: '700' }],
+                'dashboard-title': ['1.75rem', { lineHeight: '2.25rem', fontWeight: '700' }],
+                'section-title': ['1.125rem', { lineHeight: '1.5rem', fontWeight: '600' }],
+                'card-title': ['0.8125rem', { lineHeight: '1.125rem', fontWeight: '500' }],
+                'card-value': ['1.625rem', { lineHeight: '2rem', fontWeight: '700' }],
             },
             boxShadow: {
-                card: '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06)',
-                'card-hover': '0 4px 6px -1px rgb(15 23 42 / 0.08), 0 2px 4px -2px rgb(15 23 42 / 0.06)',
+                card: '0 1px 2px 0 rgb(49 51 156 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.04)',
+                'card-hover': '0 2px 8px 0 rgb(49 51 156 / 0.08), 0 1px 3px 0 rgb(15 23 42 / 0.04)',
             },
             spacing: {
                 sidebar: '260px',
@@ -48,6 +56,9 @@ export default {
             },
             transitionDuration: {
                 sidebar: '200ms',
+            },
+            borderWidth: {
+                3: '3px',
             },
         },
     },

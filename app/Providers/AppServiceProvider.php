@@ -25,7 +25,12 @@ use App\Models\Inventory\StockAdjustment;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\QualityCheck;
+use App\Models\Procurement\GoodsReceipt;
+use App\Models\Procurement\PurchaseOrder;
+use App\Models\Procurement\PurchaseRequest;
+use App\Models\Procurement\SupplierQuotation;
 use App\Models\Platform\SettingsGovernance;
+use App\Models\Procurement\Vendor;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Enums\QuotationStatus;
@@ -40,7 +45,11 @@ use App\Policies\StockIssuePolicy;
 use App\Policies\StockReceiptPolicy;
 use App\Policies\ProductionQueuePolicy;
 use App\Policies\QualityCheckPolicy;
-use App\Policies\SettingsPolicy;
+use App\Policies\GoodsReceiptPolicy;
+use App\Policies\PurchaseOrderPolicy;
+use App\Policies\PurchaseRequestPolicy;
+use App\Policies\SupplierQuotationPolicy;
+use App\Policies\VendorPolicy;
 use App\Policies\SalesOrderPolicy;
 use Illuminate\Support\Facades\Route;
 use App\Policies\ActivityLogPolicy;
@@ -53,7 +62,9 @@ use App\Policies\CompanyPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
 use App\Policies\RolePolicy;
+use App\Policies\SettingsPolicy;
 use App\Policies\UserPolicy;
+use App\Support\Navigation\WorkspacePresenter;
 use App\Support\AccessControl\PermissionCatalog;
 use App\Support\AccessControl\RoleDeactivationRegistry;
 use App\Support\AccessControl\RoleGovernancePresenter;
@@ -63,6 +74,7 @@ use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberGenerator;
 use App\Support\Platform\NumberingSequenceManager;
 use App\Support\Platform\NumberingService;
+use App\Support\Branding\BrandingAssets;
 use App\Support\Platform\PlatformCacheService;
 use App\Support\Platform\SettingsRegistry;
 use App\Support\Platform\SystemSettingsManager;
@@ -101,6 +113,11 @@ class AppServiceProvider extends ServiceProvider
         StockIssue::class => StockIssuePolicy::class,
         StockAdjustment::class => StockAdjustmentPolicy::class,
         InventoryMovement::class => InventoryMovementPolicy::class,
+        Vendor::class => VendorPolicy::class,
+        PurchaseRequest::class => PurchaseRequestPolicy::class,
+        PurchaseOrder::class => PurchaseOrderPolicy::class,
+        GoodsReceipt::class => GoodsReceiptPolicy::class,
+        SupplierQuotation::class => SupplierQuotationPolicy::class,
         SettingsGovernance::class => SettingsPolicy::class,
     ];
 
@@ -144,18 +161,45 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
 
-        View::composer('layouts.admin.partials.sidebar', function ($view) {
+        View::composer(['layouts.admin', 'layouts.admin.partials.sidebar', 'layouts.admin.partials.topbar'], function ($view) {
+            $assets = app(BrandingAssets::class);
+            $user = auth()->user();
+            $company = tenant()->company ?? $user?->company;
+
+            $view->with([
+                'brandingLogoUrl' => $assets->url($company?->logo),
+                'brandingFaviconUrl' => $assets->url($company?->favicon_path),
+                'userAvatarUrl' => $assets->url($user?->avatar_path),
+            ]);
+        });
+
+        View::composer(['layouts.admin', 'layouts.admin.partials.sidebar'], function ($view) {
             $user = auth()->user();
             $companyId = tenant()->companyId() ?? $user?->company_id ?? 'none';
             $branchId = tenant()->branchId() ?? $user?->default_branch_id ?? 'none';
             $roleKey = $user?->roles->pluck('name')->sort()->implode('|') ?? 'guest';
             $cacheKey = "{$user?->id}:{$companyId}:{$branchId}:{$roleKey}";
 
-            $view->with('navItems', app(PlatformCacheService::class)->remember(
+            $navItems = app(PlatformCacheService::class)->remember(
                 'navigation',
                 $cacheKey,
                 fn () => $this->filterNavigation(config('navigation')),
-            ));
+            );
+
+            $presenter = app(WorkspacePresenter::class);
+
+            $view->with([
+                'navItems' => $navItems,
+                'navSearchIndex' => $presenter->flattenForSearch(),
+                'navRouteUrls' => static::buildNavRouteUrls($navItems, $presenter),
+            ]);
+        });
+
+        View::composer('layouts.admin.partials.topbar', function ($view) {
+            $currentRoute = request()->route()?->getName();
+            $quickCreate = app(WorkspacePresenter::class)->quickCreateForRoute($currentRoute);
+
+            $view->with('quickCreate', $quickCreate);
         });
 
         View::composer('admin.dashboard', function ($view) {
@@ -240,7 +284,7 @@ class AppServiceProvider extends ServiceProvider
                     'action' => $log->action,
                     'model_type' => $log->model_type,
                     'model_id' => $log->model_id,
-                    'created_at' => $log->created_at,
+                    'created_at' => $log->created_at?->toIso8601String(),
                     'ip_address' => $log->ip_address,
                 ])
                 ->all(),
@@ -249,30 +293,36 @@ class AppServiceProvider extends ServiceProvider
 
     protected function filterNavigation(array $items): array
     {
+        $presenter = app(WorkspacePresenter::class);
         $filtered = [];
 
         foreach ($items as $item) {
-            if (isset($item['children'])) {
-                $children = array_values(array_filter($item['children'], function ($child) {
-                    if (! empty($child['coming_soon'])) {
-                        return true;
-                    }
-
-                    if (! empty($child['permission']) && ! $this->userCanNavPermission($child['permission'])) {
-                        return false;
-                    }
-
-                    if (! empty($child['route']) && ! Route::has($child['route'])) {
-                        return false;
-                    }
-
-                    return true;
-                }));
-
-                if ($children !== []) {
-                    $item['children'] = $children;
-                    $filtered[] = $item;
+            if (! empty($item['workspace'])) {
+                if (! $presenter->isVisible($item['workspace'])) {
+                    continue;
                 }
+
+                $item['active_routes'] = $presenter->collectActiveRoutes($item['workspace']);
+                $filtered[] = $item;
+
+                continue;
+            }
+
+            if (isset($item['children'])) {
+                $children = $this->filterNavigation($item['children']);
+
+                if ($children === []) {
+                    continue;
+                }
+
+                $item['children'] = $children;
+                $filtered[] = $item;
+
+                continue;
+            }
+
+            if (! empty($item['coming_soon'])) {
+                $filtered[] = $item;
 
                 continue;
             }
@@ -281,12 +331,95 @@ class AppServiceProvider extends ServiceProvider
                 continue;
             }
 
-            if (empty($item['permission']) || $this->userCanNavPermission($item['permission'])) {
-                $filtered[] = $item;
+            if (! empty($item['permission']) && ! $this->userCanNavPermission($item['permission'])) {
+                continue;
             }
+
+            $filtered[] = $item;
         }
 
         return $filtered;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function buildNavRouteUrls(array $items, ?WorkspacePresenter $presenter = null): array
+    {
+        $presenter ??= app(WorkspacePresenter::class);
+        $map = [];
+
+        foreach ($presenter->flattenForSearch() as $entry) {
+            $route = $entry['route'] ?? null;
+
+            if ($entry['coming_soon'] || ! $route || isset($map[$route]) || ! Route::has($route)) {
+                continue;
+            }
+
+            $map[$route] = route($route);
+        }
+
+        foreach ($items as $item) {
+            $route = $item['route'] ?? null;
+
+            if (! $route || isset($map[$route]) || ! Route::has($route)) {
+                continue;
+            }
+
+            $map[$route] = route($route);
+        }
+
+        return $map;
+    }
+
+    /**
+     * @return list<array{label: string, path: string, route: ?string, coming_soon: bool}>
+     */
+    public static function flattenNavForSearch(array $items, string $path = ''): array
+    {
+        $flat = [];
+
+        foreach ($items as $item) {
+            $label = $item['label'] ?? '';
+            $currentPath = $path === '' ? $label : "{$path} › {$label}";
+
+            if (isset($item['children'])) {
+                $flat = array_merge($flat, static::flattenNavForSearch($item['children'], $currentPath));
+
+                continue;
+            }
+
+            $flat[] = [
+                'label' => $label,
+                'path' => $currentPath,
+                'route' => $item['route'] ?? null,
+                'coming_soon' => (bool) ($item['coming_soon'] ?? false),
+            ];
+        }
+
+        return $flat;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function collectNavRoutes(array $item): array
+    {
+        $routes = [];
+
+        foreach ($item['children'] ?? [] as $child) {
+            if (isset($child['children'])) {
+                $routes = array_merge($routes, static::collectNavRoutes($child));
+            } elseif (! empty($child['route'])) {
+                $routes[] = $child['route'];
+            }
+
+            foreach ($child['active_routes'] ?? [] as $pattern) {
+                $routes[] = $pattern;
+            }
+        }
+
+        return array_values(array_unique($routes));
     }
 
     protected function userCanNavPermission(string $permission): bool
@@ -340,6 +473,10 @@ class AppServiceProvider extends ServiceProvider
         }
 
         foreach ($item['children'] as $child) {
+            if (isset($child['children']) && self::navGroupIsOpen($child)) {
+                return true;
+            }
+
             if (self::navItemIsActive($child)) {
                 return true;
             }

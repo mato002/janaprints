@@ -1,8 +1,8 @@
-<div class="overflow-x-auto">
-    <table class="min-w-full divide-y divide-erp-border text-sm">
+<div class="erp-table-scroll overflow-x-auto">
+    <table class="erp-table erp-table--grid min-w-full text-sm">
         <thead>
-            <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <th scope="col" class="py-3 pr-4">{{ __('Setting') }}</th>
+            <tr>
+                <th scope="col">{{ __('Setting') }}</th>
                 @if ($editable)
                     @if ($rows->contains(fn ($row) => in_array('company', $row['scopes'], true)))
                         <th scope="col" class="py-3 px-4">{{ __('Company override') }}</th>
@@ -16,10 +16,10 @@
                         <th scope="col" class="py-3 px-4">{{ __('Branch value') }}</th>
                     @endif
                 @endif
-                <th scope="col" class="py-3 pl-4">{{ __('Effective') }}</th>
+                <th scope="col">{{ __('Effective') }}</th>
             </tr>
         </thead>
-        <tbody class="divide-y divide-erp-border">
+        <tbody>
             @foreach ($rows as $row)
                 <tr>
                     <td class="py-4 pr-4 align-top">

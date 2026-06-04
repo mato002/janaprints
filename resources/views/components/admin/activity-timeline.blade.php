@@ -27,7 +27,14 @@
                 </p>
                 <p class="mt-0.5 text-xs text-slate-400">
                     @if ($createdAt)
-                        {{ \Illuminate\Support\Carbon::parse($createdAt)->diffForHumans() }}
+                        @php
+                            $timestamp = $createdAt instanceof \DateTimeInterface
+                                ? $createdAt
+                                : (is_string($createdAt) || is_numeric($createdAt) ? $createdAt : null);
+                        @endphp
+                        @if ($timestamp !== null)
+                            {{ \Illuminate\Support\Carbon::parse($timestamp)->diffForHumans() }}
+                        @endif
                     @endif
                     @if ($ipAddress)
                         · {{ $ipAddress }}

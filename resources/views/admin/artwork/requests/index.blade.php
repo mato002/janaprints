@@ -5,37 +5,53 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('Number') }}</th>
-                        <th>{{ __('Title') }}</th>
-                        <th>{{ __('Customer') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th>{{ __('Priority') }}</th>
-                        <th>{{ __('Due') }}</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($requests as $item)
-                        <tr>
-                            <td>{{ $item->request_number }}</td>
-                            <td>{{ $item->title }}</td>
-                            <td>{{ $item->customer?->company_name }}</td>
-                            <td><span class="erp-badge">{{ str_replace('_', ' ', $item->status->value) }}</span></td>
-                            <td>{{ $item->priority->value }}</td>
-                            <td>{{ $item->due_date?->format('Y-m-d') ?? '—' }}</td>
-                            <td><a href="{{ route('admin.artwork.show', $item) }}" class="text-indigo-600">{{ __('View') }}</a></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7" class="text-slate-500 py-4">{{ __('No artwork requests yet.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4">{{ $requests->links() }}</div>
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search artwork…')"
+        export-filename="artwork-requests"
+        :chips="[
+            ['id' => 'all', 'label' => __('All')],
+            ['id' => 'draft', 'label' => __('Draft')],
+            ['id' => 'in_design', 'label' => __('In Design')],
+            ['id' => 'pending_approval', 'label' => __('Pending')],
+            ['id' => 'approved', 'label' => __('Approved')],
+        ]"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Request') }}</th>
+                <th scope="col">{{ __('Customer') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Due') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($requests as $item)
+                @php
+                    $search = strtolower($item->request_number.' '.$item->title.' '.($item->customer?->company_name ?? '').' '.$item->status->value);
+                    $chip = strtolower($item->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search), @js($chip))">
+                    <td>
+                        <div class="font-medium">{{ $item->title }}</div>
+                        <div class="text-[11px] text-slate-500">{{ $item->request_number }}</div>
+                    </td>
+                    <td>{{ $item->customer?->company_name ?? '—' }}</td>
+                    <td><x-admin.enum-status-badge :status="$item->status->value" /></td>
+                    <td class="hidden md:table-cell">{{ $item->due_date?->format('Y-m-d') ?? '—' }}</td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.artwork.show', $item)">{{ __('View') }}</x-admin.table-row-action>
+                            @can('update', $item)
+                                <x-admin.table-row-action :href="route('admin.artwork.edit', $item)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="5"><x-admin.empty-state icon="color-swatch" :title="__('No artwork requests yet')" /></td></tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$requests" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

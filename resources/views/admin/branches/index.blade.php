@@ -7,31 +7,34 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table>
+    <x-admin.data-table :search-placeholder="__('Search branches…')" export-filename="branches">
         <x-slot name="head">
             <tr>
-                <th scope="col">{{ __('Company') }}</th>
-                <th scope="col">{{ __('Name') }}</th>
-                <th scope="col">{{ __('Code') }}</th>
-                <th scope="col" class="text-right">{{ __('Actions') }}</th>
+                <th scope="col">{{ __('Branch') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Company') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
             </tr>
         </x-slot>
         <x-slot name="body">
             @forelse ($branches as $branch)
-                <tr x-show="matches(@js($branch->company->name.' '.$branch->name.' '.$branch->code))">
-                    <td>{{ $branch->company->name }}</td>
-                    <td class="font-medium text-erp-primary">{{ $branch->name }}</td>
-                    <td class="font-mono text-xs text-slate-500">{{ $branch->code }}</td>
-                    <td class="text-right">
-                        @can('update', $branch)
-                            <a href="{{ route('admin.branches.edit', $branch) }}" class="font-medium text-erp-accent hover:underline">{{ __('Edit') }}</a>
-                        @endcan
+                <tr x-show="rowVisible(@js(strtolower($branch->company->name.' '.$branch->name.' '.$branch->code)))">
+                    <td>
+                        <div class="font-medium text-erp-primary">{{ $branch->name }}</div>
+                        <div class="font-mono text-[11px] text-slate-500">{{ $branch->code }}</div>
+                    </td>
+                    <td class="hidden md:table-cell">{{ $branch->company->name }}</td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            @can('update', $branch)
+                                <x-admin.table-row-action :href="route('admin.branches.edit', $branch)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="4"><x-admin.empty-state icon="location-marker" :title="__('No branches yet')" /></td></tr>
+                <tr><td colspan="3"><x-admin.empty-state icon="location-marker" :title="__('No branches yet')" /></td></tr>
             @endforelse
         </x-slot>
-        <x-slot name="footer">{{ $branches->links() }}</x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$branches" /></x-slot>
     </x-admin.data-table>
 </x-admin-layout>

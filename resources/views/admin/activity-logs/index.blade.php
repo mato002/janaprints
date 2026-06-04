@@ -1,7 +1,7 @@
 <x-admin-layout :title="__('Activity logs')" :breadcrumbs="[['label' => __('Administration')], ['label' => __('Activity logs')]]">
     <x-admin.page-header :title="__('Activity logs')" :description="__('Audit trail of user and system actions.')" />
 
-    <x-admin.data-table :exportable="true">
+    <x-admin.data-table :search-placeholder="__('Search activity logs…')" export-filename="activity-logs">
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('When') }}</th>
@@ -13,7 +13,7 @@
         </x-slot>
         <x-slot name="body">
             @forelse ($logs as $log)
-                <tr x-show="matches(@js(($log->user?->name ?? '').' '.$log->action.' '.($log->model_type ? class_basename($log->model_type) : '')))">
+                <tr x-show="rowVisible(@js(strtolower(($log->user?->name ?? '').' '.$log->action.' '.($log->model_type ? class_basename($log->model_type) : '').' '.($log->ip_address ?? ''))))">
                     <td class="text-slate-500">{{ $log->created_at }}</td>
                     <td class="font-medium">{{ $log->user?->name ?? '—' }}</td>
                     <td>{{ $log->action }}</td>
@@ -24,6 +24,6 @@
                 <tr><td colspan="5"><x-admin.empty-state icon="clock" :title="__('No activity recorded yet')" /></td></tr>
             @endforelse
         </x-slot>
-        <x-slot name="footer">{{ $logs->links() }}</x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$logs" /></x-slot>
     </x-admin.data-table>
 </x-admin-layout>

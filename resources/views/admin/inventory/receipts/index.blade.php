@@ -1,8 +1,33 @@
 <x-admin-layout :title="__('Receipts')">
     <x-admin.page-header :title="__('Stock receipts')">
-        @can('create', App\Models\Inventory\StockReceipt::class)<a href="{{ route('admin.inventory.receipts.create') }}" class="erp-btn-primary">{{ __('New') }}</a>@endcan
+        @can('create', App\Models\Inventory\StockReceipt::class)
+            <a href="{{ route('admin.inventory.receipts.create') }}" class="erp-btn-primary">{{ __('New receipt') }}</a>
+        @endcan
     </x-admin.page-header>
-    <x-admin.card><table class="erp-table w-full text-sm"><tbody>
-        @foreach ($receipts as $r)<tr><td>{{ $r->receipt_number }}</td><td>{{ $r->status->value }}</td><td><a href="{{ route('admin.inventory.receipts.show', $r) }}">{{ __('View') }}</a></td></tr>@endforeach
-    </tbody></table>{{ $receipts->links() }}</x-admin.card>
+
+    <x-admin.data-table :search-placeholder="__('Search receipts…')" export-filename="stock-receipts">
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Receipt') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($receipts as $r)
+                <tr x-show="rowVisible(@js(strtolower($r->receipt_number.' '.$r->status->value)))">
+                    <td class="font-medium">{{ $r->receipt_number }}</td>
+                    <td><x-admin.enum-status-badge :status="$r->status->value" /></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.inventory.receipts.show', $r)">{{ __('View') }}</x-admin.table-row-action>
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="3"><x-admin.empty-state icon="archive" :title="__('No receipts yet')" /></td></tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$receipts" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

@@ -11,7 +11,7 @@
             <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __($section['module_label']) }}</h3>
         </div>
         <div class="overflow-x-auto">
-            <table class="erp-table min-w-full">
+            <table class="erp-table erp-table--grid min-w-full">
                 <thead>
                     <tr>
                         <th class="w-[14rem] pl-5 sm:pl-6">{{ __('Capability') }}</th>

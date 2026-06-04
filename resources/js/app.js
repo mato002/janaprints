@@ -30,14 +30,77 @@ document.addEventListener('turbo:frame-render', () => {
 });
 
 document.addEventListener('alpine:init', () => {
-    Alpine.data('erpShell', () => ({
+    Alpine.data('erpShell', (searchIndex = []) => ({
         sidebarCollapsed: localStorage.getItem('erp.sidebarCollapsed') === '1',
         mobileNavOpen: false,
+        query: '',
+        searchOpen: false,
+        searchIndex: Array.isArray(searchIndex) ? searchIndex : [],
+        favorites: JSON.parse(localStorage.getItem('erp.nav.favorites') || '[]'),
 
         init() {
             this.$watch('sidebarCollapsed', (value) => {
                 localStorage.setItem('erp.sidebarCollapsed', value ? '1' : '0');
             });
+
+            this.$watch('favorites', (value) => {
+                localStorage.setItem('erp.nav.favorites', JSON.stringify(value));
+            });
+        },
+
+        get searchHits() {
+            const query = this.query.trim().toLowerCase();
+
+            if (! query) {
+                return [];
+            }
+
+            return this.searchIndex
+                .filter((entry) => {
+                    const haystack = `${entry.label} ${entry.path}`.toLowerCase();
+
+                    return haystack.includes(query) && ! entry.coming_soon && entry.route;
+                })
+                .slice(0, 12)
+                .map((entry) => ({
+                    ...entry,
+                    url: this.routeUrl(entry.route),
+                }));
+        },
+
+        get favoriteItems() {
+            return this.favorites
+                .map((route) => this.searchIndex.find((entry) => entry.route === route))
+                .filter((entry) => entry && ! entry.coming_soon && entry.route)
+                .map((entry) => ({
+                    ...entry,
+                    url: this.routeUrl(entry.route),
+                }));
+        },
+
+        routeUrl(routeName) {
+            if (window.__erpRoutes && window.__erpRoutes[routeName]) {
+                return window.__erpRoutes[routeName];
+            }
+
+            return `/admin?nav=${encodeURIComponent(routeName)}`;
+        },
+
+        isFavorite(route) {
+            return this.favorites.includes(route);
+        },
+
+        toggleFavorite(route) {
+            if (this.isFavorite(route)) {
+                this.favorites = this.favorites.filter((entry) => entry !== route);
+            } else {
+                this.favorites = [...this.favorites, route].slice(0, 8);
+            }
+        },
+
+        clearSearch() {
+            this.query = '';
+            this.searchOpen = false;
         },
 
         toggleSidebar() {
@@ -57,9 +120,14 @@ document.addEventListener('alpine:init', () => {
         open: initiallyOpen,
 
         init() {
-            const stored = localStorage.getItem(`erp.nav.${groupId}`);
-            if (stored !== null) {
-                this.open = stored === '1';
+            if (this.$el.dataset.navGroupOpen === '1') {
+                this.open = true;
+            } else {
+                const stored = localStorage.getItem(`erp.nav.${groupId}`);
+
+                if (stored !== null) {
+                    this.open = stored === '1';
+                }
             }
 
             document.addEventListener('erp:page-loaded', () => {
@@ -75,15 +143,169 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('tableSearch', () => ({
+    Alpine.data('erpDataTable', (config = {}) => ({
         query: '',
+        debouncedQuery: '',
+        debounceTimer: null,
+        activeChip: config.chips?.[0]?.id ?? 'all',
+        filterOpen: false,
+        selectable: config.selectable ?? false,
+        selected: new Set(),
+        tableId: config.tableId ?? null,
+        exportFilename: config.exportFilename ?? 'export',
+
+        init() {
+            this.$watch('query', (value) => {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.debouncedQuery = value;
+                }, 250);
+            });
+        },
+
+        get selectedCount() {
+            return this.selected.size;
+        },
 
         matches(text) {
-            if (!this.query.trim()) {
+            if (!this.debouncedQuery.trim()) {
                 return true;
             }
 
-            return String(text).toLowerCase().includes(this.query.trim().toLowerCase());
+            return String(text).toLowerCase().includes(this.debouncedQuery.trim().toLowerCase());
+        },
+
+        rowVisible(searchText, chipValue = null) {
+            if (this.activeChip !== 'all' && chipValue !== null && chipValue !== '' && String(chipValue) !== String(this.activeChip)) {
+                return false;
+            }
+
+            return this.matches(searchText);
+        },
+
+        setChip(id) {
+            this.activeChip = id;
+        },
+
+        isSelected(id) {
+            return this.selected.has(String(id));
+        },
+
+        toggleRow(id, event) {
+            const key = String(id);
+
+            if (event.target.checked) {
+                this.selected.add(key);
+            } else {
+                this.selected.delete(key);
+            }
+        },
+
+        toggleAll(event) {
+            const table = document.getElementById(this.tableId);
+
+            if (!table) {
+                return;
+            }
+
+            table.querySelectorAll('tbody tr[data-row-id]').forEach((row) => {
+                const id = row.dataset.rowId;
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                const visible = row.offsetParent !== null;
+
+                if (!visible || !checkbox) {
+                    return;
+                }
+
+                checkbox.checked = event.target.checked;
+
+                if (event.target.checked) {
+                    this.selected.add(id);
+                    row.dataset.selected = 'true';
+                } else {
+                    this.selected.delete(id);
+                    delete row.dataset.selected;
+                }
+            });
+        },
+
+        exportTable(format = 'csv') {
+            if (format !== 'csv') {
+                return;
+            }
+
+            const table = document.getElementById(this.tableId);
+
+            if (!table) {
+                return;
+            }
+
+            const rows = [];
+            const headers = [...table.querySelectorAll('thead th')]
+                .filter((th) => !th.classList.contains('erp-table-checkbox-col'))
+                .map((th) => th.textContent.trim());
+
+            if (headers.length) {
+                rows.push(headers);
+            }
+
+            table.querySelectorAll('tbody tr').forEach((row) => {
+                if (row.offsetParent === null) {
+                    return;
+                }
+
+                const cells = [...row.querySelectorAll('td')]
+                    .filter((td) => !td.classList.contains('erp-table-checkbox-col'))
+                    .map((td) => td.textContent.trim().replace(/\s+/g, ' '));
+
+                if (cells.length) {
+                    rows.push(cells);
+                }
+            });
+
+            const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${this.exportFilename}.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        },
+
+        exportSelected() {
+            this.exportTable('csv');
+        },
+    }));
+
+    Alpine.data('tableSearch', () => ({
+        query: '',
+        debouncedQuery: '',
+        debounceTimer: null,
+        activeChip: 'all',
+
+        init() {
+            this.$watch('query', (value) => {
+                clearTimeout(this.debounceTimer);
+                this.debounceTimer = setTimeout(() => {
+                    this.debouncedQuery = value;
+                }, 250);
+            });
+        },
+
+        matches(text) {
+            if (!this.debouncedQuery.trim()) {
+                return true;
+            }
+
+            return String(text).toLowerCase().includes(this.debouncedQuery.trim().toLowerCase());
+        },
+
+        rowVisible(searchText, chipValue = null) {
+            if (this.activeChip !== 'all' && chipValue !== null && chipValue !== '' && String(chipValue) !== String(this.activeChip)) {
+                return false;
+            }
+
+            return this.matches(searchText);
         },
     }));
 
@@ -265,6 +487,42 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('workspaceHub', (cards = []) => ({
+        query: '',
+        cards: cards.map((card) => ({
+            ...card,
+            search_text: [card.label, card.description, card.group_label].filter(Boolean).join(' '),
+        })),
+
+        get visibleCount() {
+            return this.cards.filter((card) => this.cardVisible(card.id)).length;
+        },
+
+        matches(searchText) {
+            if (! this.query.trim()) {
+                return true;
+            }
+
+            return String(searchText).toLowerCase().includes(this.query.trim().toLowerCase());
+        },
+
+        cardVisible(cardId) {
+            const card = this.cards.find((entry) => entry.id === cardId);
+
+            if (! card) {
+                return false;
+            }
+
+            return this.matches(card.search_text);
+        },
+
+        groupVisible(groupLabel) {
+            return this.cards.some(
+                (card) => card.group_label === groupLabel && this.cardVisible(card.id),
+            );
+        },
+    }));
+
     Alpine.data('settingsControlCenter', (cards = []) => ({
         query: '',
         activeFilter: localStorage.getItem('erp.settingsControlCenter.filter') || 'all',
@@ -369,12 +627,19 @@ document.addEventListener('alpine:init', () => {
 
 Alpine.start();
 
-const navActiveClasses = ['bg-erp-accent', 'text-white', 'bg-erp-accent/90'];
-const navInactiveClasses = ['text-slate-400', 'hover:bg-white/5', 'hover:text-white', 'text-slate-300'];
+const navActiveClasses = ['erp-nav-link--active', 'text-white', 'border-l-3', 'border-erp-accent', 'bg-erp-primary'];
+const navInactiveClasses = ['text-white/80', 'text-slate-400', 'hover:text-white'];
 
 function navRouteIsActive(linkRoute, currentRoute) {
     if (! linkRoute || ! currentRoute) {
         return false;
+    }
+
+    if (linkRoute.includes('*')) {
+        const pattern = linkRoute.replace(/\./g, '\\.').replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}$`);
+
+        return regex.test(currentRoute);
     }
 
     if (linkRoute.endsWith('.index')) {
@@ -384,6 +649,22 @@ function navRouteIsActive(linkRoute, currentRoute) {
     }
 
     return currentRoute === linkRoute;
+}
+
+function navTokenIsActive(token, currentRoute) {
+    if (! token || ! currentRoute) {
+        return false;
+    }
+
+    if (token.includes('*')) {
+        return navRouteIsActive(token, currentRoute);
+    }
+
+    if (token.includes('.')) {
+        return navRouteIsActive(token, currentRoute);
+    }
+
+    return currentRoute.startsWith(`${token}.`) || currentRoute === token;
 }
 
 function syncShellFromFrame() {
@@ -408,22 +689,31 @@ function syncShellFromFrame() {
     }
 
     document.querySelectorAll('#erp-sidebar [data-nav-route]').forEach((link) => {
-        const active = navRouteIsActive(link.dataset.navRoute, currentRoute);
+        const activePatterns = (link.dataset.navActiveRoutes ?? '').split(',').filter(Boolean);
+        const active = activePatterns.some((pattern) => navTokenIsActive(pattern, currentRoute))
+            || navRouteIsActive(link.dataset.navRoute, currentRoute);
         const isChild = link.classList.contains('pl-9') || link.dataset.navDepth === 'child';
 
-        link.classList.remove(...navActiveClasses, ...navInactiveClasses);
+        link.classList.remove(...navActiveClasses, ...navInactiveClasses, 'hover:bg-white/5', 'bg-erp-accent', 'bg-erp-accent/90', 'bg-erp-primary', 'border-l-3', 'border-erp-accent');
 
         if (active) {
-            link.classList.add(...(isChild ? ['bg-erp-accent/90', 'text-white'] : ['bg-erp-accent', 'text-white']));
+            link.classList.add('erp-nav-link--active', 'border-l-3', 'border-erp-accent', 'bg-erp-primary', 'text-white');
         } else {
-            link.classList.add(...(isChild ? navInactiveClasses : ['text-slate-300', 'hover:bg-white/5', 'hover:text-white']));
+            link.classList.add(...(isChild ? navInactiveClasses : ['text-white/80', 'hover:text-white']));
+            link.style.backgroundColor = '';
         }
     });
 
-    document.querySelectorAll('#erp-sidebar [data-nav-group]').forEach((group) => {
+    document.querySelectorAll('#erp-sidebar [data-nav-group], #erp-sidebar [data-nav-subgroup]').forEach((group) => {
         const routes = (group.dataset.navGroupRoutes ?? '').split(',').filter(Boolean);
-        const open = routes.some((route) => navRouteIsActive(route, currentRoute));
+        const open = routes.some((route) => navTokenIsActive(route, currentRoute));
         group.dataset.navGroupOpen = open ? '1' : '0';
+
+        const alpine = group.__x?.$data;
+
+        if (alpine && typeof alpine.open !== 'undefined') {
+            alpine.open = open;
+        }
     });
 
     document.dispatchEvent(new CustomEvent('erp:page-loaded'));

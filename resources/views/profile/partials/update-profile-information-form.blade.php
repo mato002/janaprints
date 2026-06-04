@@ -3,7 +3,7 @@
         @csrf
     </form>
 
-    <form method="post" action="{{ route('profile.update') }}" class="space-y-6">
+    <form method="post" action="{{ route('profile.update') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
         @method('patch')
 
@@ -11,6 +11,30 @@
             :title="__('Profile Information')"
             :description="__('Update your account\'s profile information and email address.')"
         >
+            <div class="erp-form-field md:col-span-2">
+                <x-input-label :value="__('Profile photo')" />
+                <div class="mt-2 flex flex-wrap items-center gap-4">
+                    @if ($avatarUrl ?? null)
+                        <img src="{{ $avatarUrl }}" alt="{{ __('Profile photo') }}" class="h-16 w-16 rounded-full border border-erp-border object-cover">
+                    @else
+                        <span class="flex h-16 w-16 items-center justify-center rounded-full bg-erp-accent/10 text-lg font-semibold text-erp-accent">
+                            {{ strtoupper(substr($user->name, 0, 2)) }}
+                        </span>
+                    @endif
+                    <div class="min-w-0 flex-1 space-y-2">
+                        <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" class="block w-full text-sm">
+                        <p class="text-xs text-slate-500">{{ __('JPEG, PNG, or WebP. Max 2 MB.') }}</p>
+                        @if ($user->avatar_path)
+                            <label class="flex items-center gap-2 text-xs text-slate-600">
+                                <input type="checkbox" name="remove_avatar" value="1">
+                                {{ __('Remove photo') }}
+                            </label>
+                        @endif
+                    </div>
+                </div>
+                <x-input-error class="mt-2" :messages="$errors->get('avatar')" />
+            </div>
+
             <div class="erp-form-field md:col-span-2">
                 <x-input-label for="name" :value="__('Name')" :required="true" />
                 <x-text-input id="name" name="name" type="text" class="mt-1 block w-full" :value="old('name', $user->name)" required autofocus autocomplete="name" />

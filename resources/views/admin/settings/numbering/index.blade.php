@@ -41,7 +41,7 @@
         @endif
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-erp-border text-sm">
+            <table class="erp-table erp-table--grid min-w-full text-sm">
                 <thead>
                     <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         <th class="py-3 pr-3">{{ __('Document') }}</th>

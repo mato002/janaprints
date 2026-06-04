@@ -11,7 +11,7 @@
             <a
                 href="{{ $backUrl }}"
                 data-turbo-action="advance"
-                class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-erp-accent"
+                class="mb-2 inline-flex items-center gap-1.5 text-sm font-medium text-erp-primary transition-colors hover:text-erp-accent"
             >
                 <x-admin.icon name="chevron-left" class="h-4 w-4" />
                 {{ $backLabel }}

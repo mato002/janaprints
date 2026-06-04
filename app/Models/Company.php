@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'phone',
     'address',
     'logo',
+    'favicon_path',
     'settings_json',
     'is_active',
 ])]

@@ -81,7 +81,7 @@
     @endif
 
     <div class="overflow-x-auto">
-        <table class="erp-table">
+        <table class="erp-table erp-table--grid">
             <thead>
                 <tr>
                     <th class="pl-5 sm:pl-6">{{ __('Field') }}</th>

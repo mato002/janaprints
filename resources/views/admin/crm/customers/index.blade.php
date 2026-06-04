@@ -7,35 +7,49 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table>
+    <x-admin.data-table
+        :search-placeholder="__('Search customers…')"
+        export-filename="customers"
+        :chips="[
+            ['id' => 'all', 'label' => __('All')],
+            ['id' => 'active', 'label' => __('Active')],
+            ['id' => 'inactive', 'label' => __('Inactive')],
+        ]"
+    >
         <x-slot name="head">
             <tr>
-                <th scope="col">{{ __('Code') }}</th>
-                <th scope="col">{{ __('Name') }}</th>
+                <th scope="col">{{ __('Customer') }}</th>
                 <th scope="col" class="hidden sm:table-cell">{{ __('Branch') }}</th>
                 <th scope="col">{{ __('Status') }}</th>
-                <th scope="col" class="text-right">{{ __('Actions') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
             </tr>
         </x-slot>
         <x-slot name="body">
             @forelse ($customers as $customer)
-                <tr x-show="matches(@js($customer->customer_code.' '.$customer->company_name.' '.($customer->branch?->name ?? '').' '.$customer->status->value))">
-                    <td class="font-mono text-xs text-slate-500">{{ $customer->customer_code }}</td>
-                    <td class="font-medium text-erp-primary">{{ $customer->company_name }}</td>
-                    <td class="hidden sm:table-cell">{{ $customer->branch?->name }}</td>
-                    <td><x-admin.status-badge variant="info">{{ $customer->status->value }}</x-admin.status-badge></td>
-                    <td class="text-right">
-                        <a href="{{ route('admin.crm.customers.show', $customer) }}" class="font-medium text-erp-accent hover:underline">{{ __('View') }}</a>
+                @php
+                    $search = strtolower($customer->customer_code.' '.$customer->company_name.' '.($customer->branch?->name ?? '').' '.$customer->status->value);
+                    $chip = strtolower($customer->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search), @js($chip))">
+                    <td>
+                        <div class="font-medium text-erp-primary">{{ $customer->company_name }}</div>
+                        <div class="font-mono text-[11px] text-slate-500">{{ $customer->customer_code }}</div>
+                    </td>
+                    <td class="hidden sm:table-cell">{{ $customer->branch?->name ?? '—' }}</td>
+                    <td><x-admin.enum-status-badge :status="$customer->status->value" /></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.crm.customers.show', $customer)">{{ __('View') }}</x-admin.table-row-action>
+                            @can('update', $customer)
+                                <x-admin.table-row-action :href="route('admin.crm.customers.edit', $customer)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
                     </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5">
-                        <x-admin.empty-state
-                            icon="user-circle"
-                            :title="__('No customers yet')"
-                            :description="__('No quotations created yet — start by adding your first customer.')"
-                        >
+                    <td colspan="4">
+                        <x-admin.empty-state icon="user-circle" :title="__('No customers yet')" :description="__('Start by adding your first customer account.')">
                             <x-slot name="action">
                                 @can('create', App\Models\Crm\Customer::class)
                                     <a href="{{ route('admin.crm.customers.create') }}" class="erp-btn-primary">{{ __('Create customer') }}</a>
@@ -46,6 +60,6 @@
                 </tr>
             @endforelse
         </x-slot>
-        <x-slot name="footer">{{ $customers->links() }}</x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$customers" /></x-slot>
     </x-admin.data-table>
 </x-admin-layout>

@@ -145,6 +145,35 @@ class PlatformArchitectureTest extends TestCase
         $response->assertSee('id="erp-route-meta"', false);
     }
 
+    public function test_enterprise_navigation_sidebar_structure(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('Company Admin');
+
+        $response = $this->actingAs($user)->get(route('admin.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('id="erp-sidebar"', false);
+        $response->assertSee('id="nav-search"', false);
+        foreach ([
+            'Dashboard',
+            'Commercial',
+            'Production',
+            'Supply Chain',
+            'Administration',
+            'Reports &amp; Intelligence',
+        ] as $section) {
+            $response->assertSee($section, false);
+        }
+        $response->assertDontSee('data-nav-group', false);
+    }
+
     public function test_navigation_menu_is_cached_per_user_context(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

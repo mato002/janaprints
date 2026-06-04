@@ -4,7 +4,7 @@
             <h2 class="text-xl font-semibold">{{ $customer->company_name }}</h2>
             <p class="text-sm text-gray-500">{{ $customer->customer_code }} · {{ $customer->branch?->name }}</p>
         </div>
-        @can('update', $customer)<a href="{{ route('admin.crm.customers.edit', $customer) }}" class="text-indigo-600 text-sm">{{ __('Edit') }}</a>@endcan
+        @can('update', $customer)<a href="{{ route('admin.crm.customers.edit', $customer) }}" class="text-erp-accent hover:text-erp-accent-hover text-sm">{{ __('Edit') }}</a>@endcan
     </x-slot>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -12,7 +12,7 @@
             <h3 class="font-medium mb-3">{{ __('Contacts') }}</h3>
             @foreach ($customer->contacts as $contact)
                 <div class="text-sm border-b py-2 flex justify-between">
-                    <span>{{ $contact->name }} @if($contact->is_primary)<span class="text-xs text-indigo-600">({{ __('Primary') }})</span>@endif</span>
+                    <span>{{ $contact->name }} @if($contact->is_primary)<span class="text-xs text-erp-accent hover:text-erp-accent-hover">({{ __('Primary') }})</span>@endif</span>
                     @can('update', $customer)
                         <form method="POST" action="{{ route('admin.crm.customers.contacts.destroy', [$customer, $contact]) }}">@csrf @method('DELETE')
                             <button class="text-red-600 text-xs">{{ __('Remove') }}</button></form>

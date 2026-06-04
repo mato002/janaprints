@@ -2,6 +2,7 @@
 
 namespace App\Support\Platform;
 
+use App\Models\Company;
 use App\Models\Department;
 use App\Models\Platform\SystemSetting;
 use App\Models\User;
@@ -163,8 +164,27 @@ class SettingsControlCenterPresenter
                 Role::query()->where('guard_name', 'web')->count() > 0 ? 1 : 0,
                 1,
             ),
+            'vendors' => $this->buildStatus(
+                \App\Models\Procurement\Vendor::query()->where('company_id', $companyId)->count() > 0 ? 1 : 0,
+                1,
+            ),
+            'branding' => $this->buildStatus(
+                $this->companyHasBrandingAssets($companyId) ? 1 : 0,
+                1,
+            ),
             default => $this->buildStatus(1, 1),
         };
+    }
+
+    protected function companyHasBrandingAssets(int $companyId): bool
+    {
+        $company = Company::query()->find($companyId);
+
+        if ($company === null) {
+            return false;
+        }
+
+        return filled($company->logo) || filled($company->favicon_path);
     }
 
     /**

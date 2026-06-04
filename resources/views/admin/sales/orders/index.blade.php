@@ -5,35 +5,52 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('Order') }}</th>
-                        <th>{{ __('Customer') }}</th>
-                        <th>{{ __('Quotation') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th>{{ __('Total') }}</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($orders as $order)
-                        <tr>
-                            <td>{{ $order->order_number }}</td>
-                            <td>{{ $order->customer?->company_name }}</td>
-                            <td>{{ $order->quotation?->quotation_number }}</td>
-                            <td><span class="erp-badge">{{ str_replace('_', ' ', $order->status->value) }}</span></td>
-                            <td>{{ number_format($order->total_amount, 2) }}</td>
-                            <td><a href="{{ route('admin.sales-orders.show', $order) }}" class="text-indigo-600">{{ __('View') }}</a></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="text-slate-500 py-4">{{ __('No sales orders yet.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4">{{ $orders->links() }}</div>
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search sales orders…')"
+        export-filename="sales-orders"
+        :chips="[
+            ['id' => 'all', 'label' => __('All')],
+            ['id' => 'draft', 'label' => __('Draft')],
+            ['id' => 'confirmed', 'label' => __('Confirmed')],
+            ['id' => 'in_production', 'label' => __('In Production')],
+            ['id' => 'completed', 'label' => __('Completed')],
+        ]"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Order') }}</th>
+                <th scope="col">{{ __('Customer') }}</th>
+                <th scope="col" class="hidden lg:table-cell">{{ __('Quotation') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col">{{ __('Total') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($orders as $order)
+                @php
+                    $search = strtolower($order->order_number.' '.($order->customer?->company_name ?? '').' '.($order->quotation?->quotation_number ?? '').' '.$order->status->value);
+                    $chip = strtolower($order->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search), @js($chip))">
+                    <td class="font-medium">{{ $order->order_number }}</td>
+                    <td>{{ $order->customer?->company_name ?? '—' }}</td>
+                    <td class="hidden lg:table-cell">{{ $order->quotation?->quotation_number ?? '—' }}</td>
+                    <td><x-admin.enum-status-badge :status="$order->status->value" /></td>
+                    <td class="tabular-nums">{{ number_format($order->total_amount, 2) }}</td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.sales-orders.show', $order)">{{ __('View') }}</x-admin.table-row-action>
+                            @can('update', $order)
+                                <x-admin.table-row-action :href="route('admin.sales-orders.edit', $order)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr><td colspan="6"><x-admin.empty-state icon="clipboard-list" :title="__('No sales orders yet')" /></td></tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$orders" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

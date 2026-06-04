@@ -18,9 +18,8 @@
                     @click="setModule(module.key)"
                     :aria-selected="activeModule === module.key"
                     :class="activeModule === module.key
-                        ? 'border-erp-accent bg-erp-accent text-white shadow-sm'
-                        : 'border-erp-border bg-white text-slate-600 hover:border-slate-300 hover:bg-erp-page'"
-                    class="shrink-0 rounded-full border px-3 py-0.5 text-[11px] font-medium transition-colors"
+                        ? 'erp-filter-pill erp-filter-pill--active'
+                        : 'erp-filter-pill'"
                     x-text="module.label"
                 ></button>
             </template>

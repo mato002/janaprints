@@ -59,7 +59,7 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="erp-table text-sm">
+                <table class="erp-table erp-table--grid text-sm">
                     <thead>
                         <tr>
                             <th>{{ __('Role') }}</th>

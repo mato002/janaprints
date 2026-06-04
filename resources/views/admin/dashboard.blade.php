@@ -5,7 +5,7 @@
     />
 
     {{-- Row 1: KPI widgets --}}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <x-admin.kpi-widget
             :label="$dashboard['kpis']['revenue_today']['label']"
             :value="$dashboard['kpis']['revenue_today']['value']"
@@ -39,7 +39,7 @@
     </div>
 
     {{-- Row 2: Production pipeline --}}
-    <x-admin.card class="mt-6" :padding="false">
+    <x-admin.card class="mt-4" :padding="false">
         <x-slot name="header">
             <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <h2 class="text-section-title text-erp-primary">{{ __('Production Pipeline') }}</h2>
@@ -56,7 +56,7 @@
                         </div>
                         <div class="h-2 overflow-hidden rounded-full bg-erp-page" role="progressbar" aria-valuenow="{{ $stage['percent'] }}" aria-valuemin="0" aria-valuemax="100">
                             <div
-                                class="h-full rounded-full bg-erp-accent transition-all duration-500"
+                                class="h-full rounded-full bg-erp-accent transition-all duration-300"
                                 style="width: {{ max($stage['percent'], $stage['count'] > 0 ? 8 : 0) }}%"
                             ></div>
                         </div>
@@ -66,7 +66,7 @@
         </x-slot>
     </x-admin.card>
 
-    <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {{-- Row 3: Financial snapshot --}}
         <x-admin.card class="lg:col-span-1">
             <h2 class="text-section-title text-erp-primary mb-4">{{ __('Financial Snapshot') }}</h2>
@@ -124,17 +124,17 @@
     </div>
 
     {{-- Row 4: Activity timeline --}}
-    <x-admin.card class="mt-6" :padding="false">
+    <x-admin.card class="mt-4" :padding="false">
         <x-slot name="header">
-            <div class="flex items-center justify-between px-6 py-4">
+            <div class="flex items-center justify-between px-4 py-3">
                 <h2 class="text-section-title text-erp-primary">{{ __('Recent Activity') }}</h2>
                 @can('viewAny', App\Models\ActivityLog::class)
-                    <a href="{{ route('admin.activity-logs.index') }}" class="text-sm font-medium text-erp-accent hover:underline">{{ __('View all') }}</a>
+                    <a href="{{ route('admin.activity-logs.index') }}" class="text-sm font-medium text-erp-accent hover:text-erp-accent-hover">{{ __('View all') }}</a>
                 @endcan
             </div>
         </x-slot>
         <x-slot name="body">
-            <div class="px-6 pb-6">
+            <div class="px-4 pb-4">
                 <x-admin.activity-timeline :items="$dashboard['recent_activity']" />
             </div>
         </x-slot>

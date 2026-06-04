@@ -18,6 +18,7 @@ use Spatie\Permission\Traits\HasRoles;
     'employee_id',
     'name',
     'email',
+    'avatar_path',
     'password',
     'is_active',
 ])]

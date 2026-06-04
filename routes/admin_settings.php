@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ApprovalSettingsController;
+use App\Http\Controllers\Admin\BrandingSettingsController;
 use App\Http\Controllers\Admin\FormSettingsController;
 use App\Http\Controllers\Admin\NumberingSettingsController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -12,6 +13,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->group(function () {
         Route::middleware('permission:settings.view')->group(function () {
             Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+            Route::get('settings/branding', [BrandingSettingsController::class, 'edit'])->name('settings.branding.edit');
             Route::get('settings/numbering', [NumberingSettingsController::class, 'index'])->name('settings.numbering.index');
             Route::get('settings/approvals', [ApprovalSettingsController::class, 'index'])->name('settings.approvals.index');
             Route::get('settings/forms', [FormSettingsController::class, 'index'])->name('settings.forms.index');
@@ -19,6 +21,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:settings.manage')->group(function () {
+            Route::put('settings/branding', [BrandingSettingsController::class, 'update'])->name('settings.branding.update');
             Route::put('settings/numbering', [NumberingSettingsController::class, 'update'])->name('settings.numbering.update');
             Route::put('settings/approvals', [ApprovalSettingsController::class, 'update'])->name('settings.approvals.update');
             Route::put('settings/forms', [FormSettingsController::class, 'update'])->name('settings.forms.update');

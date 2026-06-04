@@ -1,7 +1,7 @@
 <x-admin-layout :title="$lead->lead_name" :breadcrumbs="[['label' => __('Leads'), 'url' => route('admin.crm.leads.index')], ['label' => $lead->lead_name]]">
     <x-slot name="header">
         <h2 class="text-xl font-semibold">{{ $lead->lead_name }}</h2>
-        @can('update', $lead)<a href="{{ route('admin.crm.leads.edit', $lead) }}" class="text-indigo-600 text-sm">{{ __('Edit') }}</a>@endcan
+        @can('update', $lead)<a href="{{ route('admin.crm.leads.edit', $lead) }}" class="text-erp-accent hover:text-erp-accent-hover text-sm">{{ __('Edit') }}</a>@endcan
     </x-slot>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div class="bg-white shadow rounded-lg p-6 text-sm space-y-2">

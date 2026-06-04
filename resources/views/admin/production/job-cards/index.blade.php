@@ -5,33 +5,49 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.card>
-        <table class="erp-table w-full text-sm">
-            <thead>
-                <tr>
-                    <th>{{ __('Job card') }}</th>
-                    <th>{{ __('Customer') }}</th>
-                    <th>{{ __('Sales order') }}</th>
-                    <th>{{ __('Status') }}</th>
-                    <th>{{ __('Priority') }}</th>
-                    <th></th>
+    <x-admin.data-table
+        :search-placeholder="__('Search job cards…')"
+        export-filename="job-cards"
+        :chips="[
+            ['id' => 'all', 'label' => __('All')],
+            ['id' => 'scheduled', 'label' => __('Scheduled')],
+            ['id' => 'in_production', 'label' => __('In Production')],
+            ['id' => 'completed', 'label' => __('Completed')],
+        ]"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Job card') }}</th>
+                <th scope="col">{{ __('Customer') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Sales order') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($jobCards as $card)
+                @php
+                    $search = strtolower($card->job_card_number.' '.($card->customer?->company_name ?? '').' '.($card->salesOrder?->order_number ?? '').' '.$card->status->value);
+                    $chip = strtolower($card->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search), @js($chip))">
+                    <td class="font-medium">{{ $card->job_card_number }}</td>
+                    <td>{{ $card->customer?->company_name ?? '—' }}</td>
+                    <td class="hidden md:table-cell">{{ $card->salesOrder?->order_number ?? '—' }}</td>
+                    <td><x-admin.enum-status-badge :status="$card->status->value" /></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.production.job-cards.show', $card)">{{ __('View') }}</x-admin.table-row-action>
+                            @can('update', $card)
+                                <x-admin.table-row-action :href="route('admin.production.job-cards.edit', $card)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @forelse ($jobCards as $card)
-                    <tr>
-                        <td>{{ $card->job_card_number }}</td>
-                        <td>{{ $card->customer?->company_name }}</td>
-                        <td>{{ $card->salesOrder?->order_number }}</td>
-                        <td><span class="erp-badge">{{ str_replace('_', ' ', $card->status->value) }}</span></td>
-                        <td>{{ $card->priority->value }}</td>
-                        <td><a href="{{ route('admin.production.job-cards.show', $card) }}" class="text-indigo-600">{{ __('View') }}</a></td>
-                    </tr>
-                @empty
-                    <tr><td colspan="6" class="text-slate-500 py-4">{{ __('No job cards yet.') }}</td></tr>
-                @endforelse
-            </tbody>
-        </table>
-        <div class="mt-4">{{ $jobCards->links() }}</div>
-    </x-admin.card>
+            @empty
+                <tr><td colspan="5"><x-admin.empty-state icon="collection" :title="__('No job cards yet')" /></td></tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$jobCards" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

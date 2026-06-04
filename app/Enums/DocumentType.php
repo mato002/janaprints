@@ -15,6 +15,11 @@ enum DocumentType: string
     case StockAdjustment = 'stock_adjustment';
     case Invoice = 'invoice';
     case Payment = 'payment';
+    case Vendor = 'vendor';
+    case PurchaseRequest = 'purchase_request';
+    case PurchaseOrder = 'purchase_order';
+    case GoodsReceipt = 'goods_receipt';
+    case SupplierQuotation = 'supplier_quotation';
 
     public function typeCode(): string
     {
@@ -30,6 +35,11 @@ enum DocumentType: string
             self::StockAdjustment => 'ADJ',
             self::Invoice => 'INV',
             self::Payment => 'PAY',
+            self::Vendor => 'VEND',
+            self::PurchaseRequest => 'PR',
+            self::PurchaseOrder => 'PO',
+            self::GoodsReceipt => 'GRN',
+            self::SupplierQuotation => 'SQ',
         };
     }
 }

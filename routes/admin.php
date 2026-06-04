@@ -11,13 +11,20 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WorkspaceController;
 use Illuminate\Support\Facades\Route;
+use App\Support\Navigation\WorkspacePresenter;
 
 Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::get('/', DashboardController::class)->name('dashboard');
+
+        foreach (array_keys(config('workspaces', [])) as $workspace) {
+            Route::get("workspaces/{$workspace}", fn (WorkspacePresenter $presenter) => app(WorkspaceController::class)->show(request(), $workspace, $presenter))
+                ->name("workspaces.{$workspace}");
+        }
 
         Route::post('context', [TenantContextController::class, 'update'])->name('context.update');
 
@@ -99,4 +106,5 @@ require __DIR__.'/admin_artwork.php';
 require __DIR__.'/admin_sales_orders.php';
 require __DIR__.'/admin_production.php';
 require __DIR__.'/admin_inventory.php';
+require __DIR__.'/admin_procurement.php';
 require __DIR__.'/admin_settings.php';

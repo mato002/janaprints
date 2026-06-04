@@ -66,7 +66,7 @@
                 <div><dt class="text-slate-500">{{ __('Artwork') }}</dt><dd>{{ $salesOrder->artworkRequest?->request_number }}</dd></div>
                 @if ($salesOrder->jobCard)
                     <div><dt class="text-slate-500">{{ __('Job card') }}</dt>
-                        <dd><a href="{{ route('admin.production.job-cards.show', $salesOrder->jobCard) }}" class="text-indigo-600">{{ $salesOrder->jobCard->job_card_number }}</a></dd></div>
+                        <dd><a href="{{ route('admin.production.job-cards.show', $salesOrder->jobCard) }}" class="text-erp-accent hover:text-erp-accent-hover">{{ $salesOrder->jobCard->job_card_number }}</a></dd></div>
                 @endif
                 @if ($salesOrder->conversion)
                     <div><dt class="text-slate-500">{{ __('Converted') }}</dt>

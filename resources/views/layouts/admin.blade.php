@@ -6,13 +6,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="turbo-cache-control" content="no-preview">
     <title>{{ $title ? $title.' — ' : '' }}{{ config('app.name') }}</title>
+    @if (! empty($brandingFaviconUrl))
+        <link rel="icon" href="{{ $brandingFaviconUrl }}" type="image/png">
+    @endif
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script>window.__erpRoutes = @json($navRouteUrls ?? []);</script>
 </head>
 <body
     class="font-sans antialiased bg-erp-page text-erp-primary"
-    x-data="erpShell()"
+    x-data="erpShell(@js($navSearchIndex ?? []))"
     @keydown.escape.window="closeMobileNav()"
     @close-nav.window="closeMobileNav()"
 >

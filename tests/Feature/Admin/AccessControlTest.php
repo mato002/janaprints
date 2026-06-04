@@ -35,7 +35,8 @@ class AccessControlTest extends TestCase
             ->assertOk()
             ->assertSee(__('Access Control'))
             ->assertSee(__('Permission Matrix'))
-            ->assertDontSee(__('Permissions'));
+            ->assertSee(__('Users'))
+            ->assertSee(__('Roles'));
     }
 
     public function test_roles_sidebar_route_redirects_to_access_control_roles(): void
