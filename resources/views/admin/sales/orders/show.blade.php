@@ -58,6 +58,29 @@
         </div>
     </x-admin.card>
 
+    <x-admin.card class="mb-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <h3 class="font-medium">{{ __('Invoicing') }}</h3>
+            @can('create', App\Models\Sales\CustomerInvoice::class)
+                @if ($salesOrder->remainingInvoiceTotal() > 0 && !in_array($salesOrder->status, [App\Enums\SalesOrderStatus::Draft, App\Enums\SalesOrderStatus::Cancelled]))
+                    <a href="{{ route('admin.invoices.from-sales-order', $salesOrder) }}" class="erp-btn-primary">{{ __('Create invoice') }}</a>
+                @endif
+            @endcan
+        </div>
+        <dl class="text-sm grid sm:grid-cols-3 gap-3">
+            <div><dt class="text-slate-500">{{ __('Order total') }}</dt><dd class="font-mono">{{ number_format($salesOrder->total_amount, 2) }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Invoiced') }}</dt><dd class="font-mono">{{ number_format($salesOrder->invoiced_total, 2) }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Remaining') }}</dt><dd class="font-mono">{{ number_format($salesOrder->remainingInvoiceTotal(), 2) }}</dd></div>
+        </dl>
+        @if ($salesOrder->invoices->isNotEmpty())
+            <ul class="mt-3 text-sm space-y-1">
+                @foreach ($salesOrder->invoices as $inv)
+                    <li><a href="{{ route('admin.invoices.show', $inv) }}" class="text-erp-accent font-mono">{{ $inv->invoice_number }}</a> — {{ $inv->status->label() }} ({{ number_format($inv->total_amount, 2) }})</li>
+                @endforeach
+            </ul>
+        @endif
+    </x-admin.card>
+
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <x-admin.card>
             <h3 class="font-medium mb-3">{{ __('Traceability') }}</h3>

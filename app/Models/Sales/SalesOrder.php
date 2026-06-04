@@ -26,7 +26,9 @@ class SalesOrder extends Model
     protected $fillable = [
         'company_id', 'branch_id', 'customer_id', 'quotation_id', 'artwork_request_id',
         'order_number', 'order_date', 'required_date', 'status',
-        'subtotal', 'tax_amount', 'discount_amount', 'total_amount', 'notes', 'created_by',
+        'subtotal', 'tax_amount', 'discount_amount', 'total_amount',
+        'invoiced_subtotal', 'invoiced_tax_amount', 'invoiced_total',
+        'notes', 'created_by',
     ];
 
     protected function casts(): array
@@ -39,6 +41,9 @@ class SalesOrder extends Model
             'tax_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'invoiced_subtotal' => 'decimal:2',
+            'invoiced_tax_amount' => 'decimal:2',
+            'invoiced_total' => 'decimal:2',
         ];
     }
 
@@ -85,6 +90,16 @@ class SalesOrder extends Model
     public function jobCard(): HasOne
     {
         return $this->hasOne(ProductionJobCard::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(CustomerInvoice::class);
+    }
+
+    public function remainingInvoiceTotal(): float
+    {
+        return round(max(0, (float) $this->total_amount - (float) $this->invoiced_total), 2);
     }
 
     public function transitionTo(SalesOrderStatus $status): void

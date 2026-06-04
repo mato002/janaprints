@@ -70,7 +70,7 @@ class SalesOrderController extends Controller
 
         $salesOrder->load([
             'customer', 'quotation', 'artworkRequest', 'branch', 'creator', 'jobCard',
-            'items', 'orderNotes.user', 'attachments.uploader', 'conversion.converter',
+            'items', 'invoices', 'orderNotes.user', 'attachments.uploader', 'conversion.converter',
         ]);
 
         return view('admin.sales.orders.show', compact('salesOrder'));

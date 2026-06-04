@@ -7,6 +7,18 @@
         @endcan
     </x-admin.page-header>
 
+    @can('create', App\Models\Sales\CustomerInvoice::class)
+        @if ($jobCard->salesOrder)
+            <x-admin.card class="mb-6">
+                <form method="POST" action="{{ route('admin.invoices.store-from-job-card', $jobCard) }}" class="flex flex-wrap items-center gap-3">
+                    @csrf
+                    <span class="text-sm font-medium">{{ __('Billing') }}</span>
+                    <button type="submit" class="erp-btn-primary">{{ __('Create invoice from job card') }}</button>
+                </form>
+            </x-admin.card>
+        @endif
+    @endcan
+
     <x-admin.card class="mb-6">
         <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
         <div class="flex flex-wrap gap-2">

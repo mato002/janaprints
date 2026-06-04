@@ -1,3 +1,7 @@
+@if (! empty($workspaceNavigation))
+    @include('admin.partials.workspace-back')
+@endif
+
 @if (! empty($breadcrumbs))
     <nav class="mb-4 text-sm text-slate-500" aria-label="{{ __('Breadcrumb') }}">
         <ol class="flex flex-wrap items-center gap-1.5">

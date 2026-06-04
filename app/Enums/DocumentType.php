@@ -14,7 +14,11 @@ enum DocumentType: string
     case StockIssue = 'stock_issue';
     case StockAdjustment = 'stock_adjustment';
     case Invoice = 'invoice';
+    case CreditNote = 'credit_note';
     case Payment = 'payment';
+    case SupplierBill = 'supplier_bill';
+    case SupplierCreditNote = 'supplier_credit_note';
+    case SupplierPayment = 'supplier_payment';
     case Vendor = 'vendor';
     case PurchaseRequest = 'purchase_request';
     case PurchaseOrder = 'purchase_order';
@@ -22,6 +26,7 @@ enum DocumentType: string
     case SupplierQuotation = 'supplier_quotation';
     case Rfq = 'rfq';
     case FixedAsset = 'fixed_asset';
+    case Journal = 'journal';
 
     public function typeCode(): string
     {
@@ -36,7 +41,11 @@ enum DocumentType: string
             self::StockIssue => 'ISSUE',
             self::StockAdjustment => 'ADJ',
             self::Invoice => 'INV',
+            self::CreditNote => 'CN',
             self::Payment => 'PAY',
+            self::SupplierBill => 'SBILL',
+            self::SupplierCreditNote => 'SCN',
+            self::SupplierPayment => 'SPAY',
             self::Vendor => 'VEND',
             self::PurchaseRequest => 'PR',
             self::PurchaseOrder => 'PO',
@@ -44,6 +53,7 @@ enum DocumentType: string
             self::SupplierQuotation => 'SQ',
             self::Rfq => 'RFQ',
             self::FixedAsset => 'AST',
+            self::Journal => 'JE',
         };
     }
 }

@@ -11,17 +11,28 @@ use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
 use App\Http\Controllers\Admin\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 use App\Support\Navigation\WorkspacePresenter;
 
-Route::middleware(['auth', 'verified', 'tenant'])
+Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::get('/', DashboardController::class)->name('dashboard');
 
+        Route::get('workspaces/accounting', [AccountingWorkspaceController::class, 'hub'])
+            ->name('workspaces.accounting');
+        Route::get('workspaces/accounting/{section}', [AccountingWorkspaceController::class, 'section'])
+            ->where('section', 'general-ledger|receivables|payables|tax|setup')
+            ->name('workspaces.accounting.section');
+
         foreach (array_keys(config('workspaces', [])) as $workspace) {
+            if ($workspace === 'accounting') {
+                continue;
+            }
+
             Route::get("workspaces/{$workspace}", fn (WorkspacePresenter $presenter) => app(WorkspaceController::class)->show(request(), $workspace, $presenter))
                 ->name("workspaces.{$workspace}");
         }
@@ -107,8 +118,13 @@ require __DIR__.'/admin_crm.php';
 require __DIR__.'/admin_quotations.php';
 require __DIR__.'/admin_artwork.php';
 require __DIR__.'/admin_sales_orders.php';
+require __DIR__.'/admin_invoices.php';
+require __DIR__.'/admin_payments.php';
+require __DIR__.'/admin_payables.php';
 require __DIR__.'/admin_production.php';
 require __DIR__.'/admin_inventory.php';
 require __DIR__.'/admin_procurement.php';
 require __DIR__.'/admin_assets.php';
+require __DIR__.'/admin_accounting.php';
+require __DIR__.'/admin_tax.php';
 require __DIR__.'/admin_settings.php';

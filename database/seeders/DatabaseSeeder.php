@@ -17,6 +17,11 @@ class DatabaseSeeder extends Seeder
             BootstrapAdminSeeder::class,
             DemoUsersSeeder::class,
             PlatformConfigurationSeeder::class,
+            GlAccountTypeSeeder::class,
+            JanaPrintsChartOfAccountsSeeder::class,
+            JanaPrintsAccountingPeriodsSeeder::class,
+            JanaPrintsPostingEngineSeeder::class,
+            JanaPrintsTaxSeeder::class,
         ]);
     }
 }

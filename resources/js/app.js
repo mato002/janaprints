@@ -152,6 +152,7 @@ document.addEventListener('alpine:init', () => {
         filterOpen: false,
         pageSize: Number(localStorage.getItem(`erp.table.${config.tableId ?? 'default'}.pageSize`) || 25),
         currentPage: 1,
+        exportOpen: false,
         selectable: config.selectable ?? false,
         selected: new Set(),
         tableId: config.tableId ?? null,
@@ -364,7 +365,11 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const table = document.getElementById(this.tableId);
+            this.exportOpen = false;
+
+            const table = this.tableId
+                ? this.$el.querySelector(`#${CSS.escape(this.tableId)}`)
+                : this.$el.querySelector('table');
 
             if (!table) {
                 return;
@@ -380,8 +385,10 @@ document.addEventListener('alpine:init', () => {
                 rows.push(headers);
             }
 
+            let dataRowCount = 0;
+
             table.querySelectorAll('tbody tr').forEach((row) => {
-                if (row.offsetParent === null) {
+                if (!this.isExportableRow(row)) {
                     return;
                 }
 
@@ -392,16 +399,36 @@ document.addEventListener('alpine:init', () => {
 
                 if (cells.length) {
                     rows.push(cells);
+                    dataRowCount += 1;
                 }
             });
 
+            if (rows.length === 0) {
+                return;
+            }
+
             const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = `${this.exportFilename}.csv`;
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = `${this.exportFilename}${dataRowCount === 0 ? '-headers-only' : ''}.csv`;
+            document.body.appendChild(link);
             link.click();
-            URL.revokeObjectURL(link.href);
+            link.remove();
+            URL.revokeObjectURL(url);
+        },
+
+        isExportableRow(row) {
+            if (row.offsetParent === null || row.hidden) {
+                return false;
+            }
+
+            if (row.querySelector('[data-export-skip]')) {
+                return false;
+            }
+
+            return true;
         },
 
         exportSelected() {
@@ -619,38 +646,91 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    function workspaceHubSearchText(card) {
+        const label = String(card.label ?? '').toLowerCase();
+        const aliases = [];
+
+        if (label.includes('general ledger') || label === 'gl report') {
+            aliases.push('gl ledger');
+        }
+
+        if (label.includes('profit') || label.includes('p&l')) {
+            aliases.push('pnl income statement');
+        }
+
+        if (label.includes('trial balance')) {
+            aliases.push('tb');
+        }
+
+        if (label.includes('chart of accounts')) {
+            aliases.push('coa accounts');
+        }
+
+        return [
+            card.search_text,
+            card.label,
+            card.description,
+            card.group_label,
+            ...aliases,
+            ...(Array.isArray(card.keywords) ? card.keywords : []),
+        ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+    }
+
     Alpine.data('workspaceHub', (cards = []) => ({
         query: '',
+        normalizedQuery: '',
+        visibleCardIds: [],
         cards: cards.map((card) => ({
             ...card,
-            search_text: [card.label, card.description, card.group_label].filter(Boolean).join(' '),
+            search_text: workspaceHubSearchText(card),
         })),
 
-        get visibleCount() {
-            return this.cards.filter((card) => this.cardVisible(card.id)).length;
+        init() {
+            this.syncVisibleCards();
+
+            this.$watch('query', (value) => {
+                this.normalizedQuery = this.normalizeQuery(value);
+                this.syncVisibleCards();
+            });
         },
 
-        matches(searchText) {
-            if (! this.query.trim()) {
-                return true;
+        normalizeQuery(value) {
+            return String(value ?? '')
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ');
+        },
+
+        syncVisibleCards() {
+            this.normalizedQuery = this.normalizeQuery(this.query);
+
+            if (! this.normalizedQuery) {
+                this.visibleCardIds = this.cards.map((card) => card.id);
+
+                return;
             }
 
-            return String(searchText).toLowerCase().includes(this.query.trim().toLowerCase());
+            const tokens = this.normalizedQuery.split(' ').filter(Boolean);
+
+            this.visibleCardIds = this.cards
+                .filter((card) => tokens.every((token) => card.search_text.includes(token)))
+                .map((card) => card.id);
+        },
+
+        get visibleCount() {
+            return this.visibleCardIds.length;
         },
 
         cardVisible(cardId) {
-            const card = this.cards.find((entry) => entry.id === cardId);
-
-            if (! card) {
-                return false;
-            }
-
-            return this.matches(card.search_text);
+            return this.visibleCardIds.includes(cardId);
         },
 
         groupVisible(groupLabel) {
             return this.cards.some(
-                (card) => card.group_label === groupLabel && this.cardVisible(card.id),
+                (card) => card.group_label === groupLabel && this.visibleCardIds.includes(card.id),
             );
         },
     }));
@@ -945,6 +1025,331 @@ document.addEventListener('alpine:init', () => {
             };
         },
     }));
+
+    Alpine.data('chartOfAccountsExplorer', (bootstrap = {}) => ({
+        stats: bootstrap.stats ?? { total: 0, active: 0, locked: 0, groups: 0 },
+        types: bootstrap.types ?? [],
+        routes: bootstrap.routes ?? {},
+        permissions: bootstrap.permissions ?? {},
+        selectedTypeId: bootstrap.initialTypeId ?? null,
+        selectedGroupId: bootstrap.initialGroupId ?? null,
+        selectedAccountId: null,
+        groups: [],
+        accounts: [],
+        groupsLoading: false,
+        accountsLoading: false,
+        query: '',
+        searchResults: [],
+        searchOpen: false,
+        searchLoading: false,
+        drawerOpen: false,
+        panel: null,
+        panelLoading: false,
+        mobileStack: 'types',
+
+        init() {
+            if (this.selectedTypeId) {
+                this.loadGroups(this.selectedTypeId, this.selectedGroupId);
+            }
+
+            this.$watch('selectedTypeId', () => this.syncUrl());
+            this.$watch('selectedGroupId', () => this.syncUrl());
+        },
+
+        async loadGroups(typeId, selectGroupId = null) {
+            this.selectedTypeId = typeId;
+            this.groupsLoading = true;
+            this.groups = [];
+            this.accounts = [];
+            this.selectedGroupId = null;
+
+            try {
+                const response = await fetch(`${this.routes.groups}?type_id=${typeId}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (! response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                this.groups = data.groups ?? [];
+
+                const groupId = selectGroupId ?? this.groups[0]?.id ?? null;
+
+                if (groupId) {
+                    await this.loadAccounts(groupId);
+                }
+            } finally {
+                this.groupsLoading = false;
+            }
+
+            if (window.innerWidth < 1024) {
+                this.mobileStack = 'groups';
+            }
+        },
+
+        async loadAccounts(groupId) {
+            this.selectedGroupId = groupId;
+            this.accountsLoading = true;
+            this.accounts = [];
+
+            try {
+                const response = await fetch(`${this.routes.accounts}?group_id=${groupId}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (! response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                this.accounts = data.accounts ?? [];
+            } finally {
+                this.accountsLoading = false;
+            }
+
+            if (window.innerWidth < 1024) {
+                this.mobileStack = 'accounts';
+            }
+        },
+
+        selectType(typeId) {
+            this.loadGroups(typeId);
+        },
+
+        selectGroup(groupId) {
+            this.loadAccounts(groupId);
+        },
+
+        async runSearch() {
+            const term = this.query.trim();
+            this.searchOpen = term !== '';
+
+            if (! term) {
+                this.searchResults = [];
+
+                return;
+            }
+
+            this.searchLoading = true;
+
+            try {
+                const response = await fetch(`${this.routes.search}?q=${encodeURIComponent(term)}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.searchResults = data.results ?? [];
+                }
+            } finally {
+                this.searchLoading = false;
+            }
+        },
+
+        async goToSearchResult(hit) {
+            this.query = '';
+            this.searchOpen = false;
+            this.searchResults = [];
+
+            if (hit.type_id) {
+                await this.loadGroups(hit.type_id, hit.group_id ?? null);
+            }
+
+            if (hit.account_id) {
+                this.openDrawer(hit.account_id);
+            }
+        },
+
+        panelUrl(accountId) {
+            return (this.routes.panel ?? '').replace('__ID__', String(accountId));
+        },
+
+        deactivateUrl(accountId) {
+            return (this.routes.deactivate ?? '').replace('__ID__', String(accountId));
+        },
+
+        async openDrawer(accountId) {
+            this.selectedAccountId = accountId;
+            this.drawerOpen = true;
+            this.panelLoading = true;
+            this.panel = null;
+
+            try {
+                const response = await fetch(this.panelUrl(accountId), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.panel = data.panel ?? null;
+                }
+            } finally {
+                this.panelLoading = false;
+            }
+        },
+
+        closeDrawer() {
+            this.drawerOpen = false;
+            this.panel = null;
+            this.selectedAccountId = null;
+        },
+
+        async deactivateAccount(accountId = null) {
+            const id = accountId ?? this.panel?.id;
+
+            if (! id || ! this.permissions.edit) {
+                return;
+            }
+
+            const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+            const response = await fetch(this.deactivateUrl(id), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': token ?? '',
+                },
+            });
+
+            if (! response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+
+            if (this.panel?.id === id) {
+                this.panel.status = data.status;
+                this.panel.status_label = data.status_label;
+            }
+
+            const row = this.accounts.find((item) => item.id === id);
+
+            if (row) {
+                row.status = data.status;
+                row.status_label = data.status_label;
+            }
+
+            if (data.status === 'inactive') {
+                this.stats.active = Math.max(0, this.stats.active - 1);
+            }
+        },
+
+        mobileBack() {
+            if (this.mobileStack === 'accounts') {
+                this.mobileStack = 'groups';
+
+                return;
+            }
+
+            if (this.mobileStack === 'groups') {
+                this.mobileStack = 'types';
+            }
+        },
+
+        mobileTitle() {
+            if (this.mobileStack === 'groups') {
+                const type = this.types.find((item) => item.id === this.selectedTypeId);
+
+                return type?.name ?? '';
+            }
+
+            if (this.mobileStack === 'accounts') {
+                const group = this.groups.find((item) => item.id === this.selectedGroupId);
+
+                return group?.name ?? '';
+            }
+
+            return '';
+        },
+
+        syncUrl() {
+            if (! window.history?.replaceState) {
+                return;
+            }
+
+            const params = new URLSearchParams();
+
+            if (this.selectedTypeId) {
+                params.set('type_id', String(this.selectedTypeId));
+            }
+
+            if (this.selectedGroupId) {
+                params.set('group_id', String(this.selectedGroupId));
+            }
+
+            const query = params.toString();
+            const url = query ? `${window.location.pathname}?${query}` : window.location.pathname;
+
+            window.history.replaceState({}, '', url);
+        },
+    }));
+
+    Alpine.data('postingRulesWorkspace', (bootstrap = {}) => ({
+        routes: bootstrap.routes ?? {},
+        canAudit: bootstrap.canAudit ?? false,
+        drawerOpen: false,
+        drawerLoading: false,
+        rule: null,
+
+        showUrl(ruleId) {
+            return (this.routes.show ?? '').replace('__ID__', String(ruleId));
+        },
+
+        async openDrawer(ruleId) {
+            this.drawerOpen = true;
+            this.drawerLoading = true;
+            this.rule = null;
+
+            try {
+                const response = await fetch(this.showUrl(ruleId), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.rule = data.rule ?? null;
+                }
+            } finally {
+                this.drawerLoading = false;
+            }
+        },
+
+        closeDrawer() {
+            this.drawerOpen = false;
+            this.rule = null;
+        },
+
+        formatDate(iso) {
+            if (! iso) {
+                return '—';
+            }
+
+            try {
+                return new Date(iso).toLocaleString();
+            } catch {
+                return iso;
+            }
+        },
+
+        validationBadgeClass(status) {
+            if (status === 'valid') {
+                return 'bg-emerald-100 text-emerald-800';
+            }
+
+            if (status === 'warning') {
+                return 'bg-amber-100 text-amber-900';
+            }
+
+            if (status === 'broken') {
+                return 'bg-red-100 text-red-800';
+            }
+
+            return 'bg-slate-100 text-slate-700';
+        },
+    }));
 });
 
 Alpine.start();
@@ -1092,5 +1497,11 @@ document.addEventListener('turbo:frame-load', (event) => {
 });
 
 document.addEventListener('turbo:load', () => {
-    syncShellFromFrame();
+    const frame = document.getElementById('erp-main');
+
+    if (frame) {
+        refreshFrameAlpine(frame);
+    } else {
+        syncShellFromFrame();
+    }
 });

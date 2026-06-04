@@ -23,8 +23,11 @@ class WorkspaceController extends Controller
             'cards' => collect($payload['groups'])
                 ->flatMap(fn (array $group) => collect($group['items'])->map(fn (array $item) => array_merge($item, [
                     'group_label' => $group['label'],
-                    'label' => $item['label'],
-                    'description' => $item['description'],
+                    'search_text' => strtolower(implode(' ', array_filter([
+                        $group['label'],
+                        $item['label'],
+                        $item['description'],
+                    ]))),
                 ])))
                 ->values()
                 ->all(),

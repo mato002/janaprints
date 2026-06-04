@@ -39,12 +39,15 @@ class ExecutiveDashboardTest extends TestCase
             ->get(route('admin.dashboard'))
             ->assertOk()
             ->assertSee(__('Executive Command Center'))
+            ->assertSee(__('Today\'s Revenue'))
+            ->assertSee(__('Jobs In Production'))
             ->assertSee(__('Attention Center'))
-            ->assertSee(__('Production Pipeline'))
+            ->assertSee(__('Production Command Center'))
+            ->assertSee(__('Activity Feed'))
+            ->assertSee(__('Revenue Trend'))
+            ->assertSee(__("Today's Operations"))
             ->assertSee(__('Branch Performance'))
-            ->assertSee(__('Smart Insights'))
-            ->assertSee(__('Quick Actions'))
-            ->assertSee(__('Recent Activity'));
+            ->assertSee(__('Operations intelligence'));
     }
 
     public function test_presenter_returns_dashboard_360_structure(): void

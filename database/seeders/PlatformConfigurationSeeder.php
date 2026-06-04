@@ -41,6 +41,7 @@ class PlatformConfigurationSeeder extends Seeder
             'quotation_validity_days' => 30,
             'default_payment_terms' => 'Net 30',
             'default_tax_rate' => 16,
+            'fiscal_year_start_month' => 1,
             'inventory_allow_negative_stock' => false,
             'artwork_requires_customer_approval' => true,
         ];

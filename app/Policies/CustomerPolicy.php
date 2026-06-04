@@ -34,4 +34,19 @@ class CustomerPolicy
     {
         return $user->can('crm.customers.delete') && $this->sameTenant($user, $customer);
     }
+
+    public function viewReceivablesLedger(User $user): bool
+    {
+        return $user->can('receivables.ledger.view');
+    }
+
+    public function viewReceivablesStatement(User $user): bool
+    {
+        return $user->can('receivables.statement.view');
+    }
+
+    public function viewReceivablesAging(User $user): bool
+    {
+        return $user->can('receivables.aging.view');
+    }
 }

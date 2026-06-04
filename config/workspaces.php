@@ -133,31 +133,16 @@ return [
 
     'accounting' => [
         'title' => 'Accounting',
-        'description' => 'General ledger, invoicing, payables, receivables, and financial reporting.',
+        'description' => 'Finance command center organized into ledger, receivables, payables, tax, and setup workspaces.',
         'icon' => 'currency-dollar',
+        'managed_by' => 'accounting_workspaces',
         'quick_create' => [
-            ['label' => 'Invoice', 'coming_soon' => true],
-            ['label' => 'Payment', 'coming_soon' => true],
-            ['label' => 'Journal', 'coming_soon' => true],
+            ['label' => 'Journal', 'route' => 'admin.accounting.journals.create', 'permission' => 'accounting.journals.create'],
+            ['label' => 'Invoice', 'route' => 'admin.invoices.index', 'permission' => 'invoices.view'],
+            ['label' => 'Payment', 'route' => 'admin.payments.create', 'permission' => 'payments.create'],
+            ['label' => 'Supplier Bill', 'route' => 'admin.payables.bills.create', 'permission' => 'payables.bills.create'],
         ],
-        'groups' => [
-            [
-                'label' => 'Finance',
-                'items' => [
-                    ['label' => 'Accounting Dashboard', 'description' => 'Financial KPIs and period overview.', 'coming_soon' => true, 'icon' => 'chart-pie'],
-                    ['label' => 'Chart of Accounts', 'description' => 'Account structure and categories.', 'coming_soon' => true, 'icon' => 'book-open'],
-                    ['label' => 'Journals', 'description' => 'Manual and system journal entries.', 'coming_soon' => true, 'icon' => 'document-text'],
-                    ['label' => 'General Ledger', 'description' => 'Posted transactions by account.', 'coming_soon' => true, 'icon' => 'book-open'],
-                    ['label' => 'Invoices', 'description' => 'Customer billing and credit notes.', 'coming_soon' => true, 'icon' => 'receipt-tax'],
-                    ['label' => 'Payments', 'description' => 'Receipts and disbursements.', 'coming_soon' => true, 'icon' => 'credit-card'],
-                    ['label' => 'Receivables', 'description' => 'Outstanding customer balances.', 'coming_soon' => true, 'icon' => 'cash'],
-                    ['label' => 'Payables', 'description' => 'Supplier invoices and obligations.', 'coming_soon' => true, 'icon' => 'credit-card'],
-                    ['label' => 'Tax Management', 'description' => 'Tax codes, returns, and compliance.', 'coming_soon' => true, 'icon' => 'receipt-tax'],
-                    ['label' => 'Period Closing', 'description' => 'Month-end and year-end close.', 'coming_soon' => true, 'icon' => 'calendar'],
-                    ['label' => 'Financial Statements', 'description' => 'P&L, balance sheet, and cash flow.', 'coming_soon' => true, 'icon' => 'chart-pie'],
-                ],
-            ],
-        ],
+        'groups' => [],
     ],
 
     'hr' => [

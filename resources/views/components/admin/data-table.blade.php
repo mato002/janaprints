@@ -112,8 +112,8 @@
                         </div>
 
                         @if ($exportable)
-                            <div class="relative" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
-                                <button type="button" class="erp-btn-secondary py-2 text-sm" @click="exportOpen = !exportOpen">
+                            <div class="relative" @click.outside="exportOpen = false">
+                                <button type="button" class="erp-btn-secondary py-2 text-sm" @click.stop="exportOpen = !exportOpen">
                                     <x-admin.icon name="download" class="h-4 w-4" />
                                     {{ __('Export') }}
                                 </button>
@@ -122,7 +122,7 @@
                                     x-cloak
                                     class="absolute end-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
                                 >
-                                    <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click="exportTable('csv'); exportOpen = false">{{ __('Export CSV') }}</button>
+                                    <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click.stop="exportTable('csv')">{{ __('Export CSV') }}</button>
                                     <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export Excel') }}</button>
                                     <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export PDF') }}</button>
                                 </div>

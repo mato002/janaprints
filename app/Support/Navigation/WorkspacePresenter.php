@@ -6,6 +6,13 @@ use Illuminate\Support\Facades\Route;
 
 class WorkspacePresenter
 {
+    public function __construct(
+        protected ?AccountingWorkspacePresenter $accounting = null,
+        protected ?WorkspaceNavigationResolver $navigation = null,
+    ) {
+        $this->accounting ??= app(AccountingWorkspacePresenter::class);
+        $this->navigation ??= app(WorkspaceNavigationResolver::class);
+    }
     /**
      * @return array<string, array<string, mixed>>
      */
@@ -56,6 +63,10 @@ class WorkspacePresenter
 
     public function isVisible(string $key): bool
     {
+        if ($key === 'accounting') {
+            return $this->accounting->isVisible();
+        }
+
         $definition = $this->definitions()[$key] ?? null;
 
         if ($definition === null) {
@@ -91,6 +102,10 @@ class WorkspacePresenter
      */
     public function collectActiveRoutes(string $key): array
     {
+        if ($key === 'accounting') {
+            return $this->accounting->collectActiveRoutes();
+        }
+
         $routes = ["admin.workspaces.{$key}"];
 
         foreach ($this->definitions()[$key]['groups'] ?? [] as $group) {
@@ -124,6 +139,12 @@ class WorkspacePresenter
 
         foreach ($definitions as $key => $definition) {
             if ($definition === []) {
+                continue;
+            }
+
+            if ($key === 'accounting') {
+                $flat = array_merge($flat, $this->accounting->flattenForSearch());
+
                 continue;
             }
 
@@ -167,8 +188,14 @@ class WorkspacePresenter
             return null;
         }
 
+        if ($currentRoute === 'admin.workspaces.accounting.section') {
+            return 'accounting';
+        }
+
         if (str_starts_with($currentRoute, 'admin.workspaces.')) {
-            return str_replace('admin.workspaces.', '', $currentRoute);
+            $key = str_replace('admin.workspaces.', '', $currentRoute);
+
+            return $key === 'accounting' ? 'accounting' : $key;
         }
 
         foreach ($this->definitions() as $key => $definition) {
@@ -261,7 +288,7 @@ class WorkspacePresenter
         $href = null;
 
         if (! $comingSoon && $route && Route::has($route)) {
-            $href = route($route);
+            $href = $this->navigation->appendPreservedQuery(route($route));
         }
 
         return [
@@ -329,6 +356,16 @@ class WorkspacePresenter
     {
         if ($pattern === $currentRoute) {
             return true;
+        }
+
+        if (str_contains($pattern, ':')) {
+            [$routeName, $paramValue] = explode(':', $pattern, 2);
+
+            if ($currentRoute !== $routeName) {
+                return false;
+            }
+
+            return request()->route('section') === $paramValue;
         }
 
         if (str_ends_with($pattern, '.*')) {

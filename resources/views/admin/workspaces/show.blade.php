@@ -1,6 +1,5 @@
 <x-admin-layout
     :title="$workspace['title']"
-    :breadcrumbs="[['label' => $workspace['title']]]"
 >
     <x-admin.page-header
         :title="$workspace['title']"
@@ -16,11 +15,19 @@
             <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
                 type="search"
-                x-model="query"
+                x-model.debounce.150ms="query"
+                @input="syncVisibleCards()"
                 class="erp-input w-full py-2 pl-9 text-sm"
                 placeholder="{{ __('Search in :workspace…', ['workspace' => $workspace['title']]) }}"
                 aria-label="{{ __('Search workspace') }}"
+                autocomplete="off"
             >
+            <p
+                x-show="normalizedQuery"
+                x-cloak
+                class="mt-1 text-[11px] text-slate-500"
+                x-text="visibleCount === 1 ? '{{ __('1 feature matches') }}' : `{{ __(':count features match') }}`.replace(':count', visibleCount)`"
+            ></p>
         </div>
 
         @foreach ($workspace['groups'] as $group)

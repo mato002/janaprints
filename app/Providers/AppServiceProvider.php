@@ -32,6 +32,15 @@ use App\Models\Procurement\PurchaseRequest;
 use App\Models\Procurement\Rfq;
 use App\Models\Procurement\SupplierQuotation;
 use App\Models\Platform\SettingsGovernance;
+use App\Models\Accounting\AccountingPeriod;
+use App\Models\Accounting\FiscalYear;
+use App\Models\Accounting\GlAccount;
+use App\Models\Accounting\Journal;
+use App\Models\Accounting\PostingRule;
+use App\Models\Accounting\PostingTemplate;
+use App\Models\Tax\TaxCode;
+use App\Models\Sales\CustomerInvoice;
+use App\Models\Sales\CustomerPayment;
 use App\Models\Procurement\Vendor;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
@@ -53,6 +62,15 @@ use App\Policies\PurchaseOrderPolicy;
 use App\Policies\PurchaseRequestPolicy;
 use App\Policies\RfqPolicy;
 use App\Policies\SupplierQuotationPolicy;
+use App\Policies\AccountingPeriodPolicy;
+use App\Policies\FiscalYearPolicy;
+use App\Policies\GlAccountPolicy;
+use App\Policies\JournalPolicy;
+use App\Policies\CustomerInvoicePolicy;
+use App\Policies\CustomerPaymentPolicy;
+use App\Policies\PostingRulePolicy;
+use App\Policies\PostingTemplatePolicy;
+use App\Policies\TaxCodePolicy;
 use App\Policies\VendorPolicy;
 use App\Policies\SalesOrderPolicy;
 use Illuminate\Support\Facades\Route;
@@ -69,6 +87,7 @@ use App\Policies\RolePolicy;
 use App\Policies\SettingsPolicy;
 use App\Policies\UserPolicy;
 use App\Support\Navigation\WorkspacePresenter;
+use App\View\Composers\WorkspaceNavigationComposer;
 use App\Support\AccessControl\PermissionCatalog;
 use App\Support\AccessControl\RoleDeactivationRegistry;
 use App\Support\AccessControl\RoleGovernancePresenter;
@@ -120,6 +139,17 @@ class AppServiceProvider extends ServiceProvider
         StockAdjustment::class => StockAdjustmentPolicy::class,
         InventoryMovement::class => InventoryMovementPolicy::class,
         Vendor::class => VendorPolicy::class,
+        GlAccount::class => GlAccountPolicy::class,
+        FiscalYear::class => FiscalYearPolicy::class,
+        AccountingPeriod::class => AccountingPeriodPolicy::class,
+        Journal::class => JournalPolicy::class,
+        PostingRule::class => PostingRulePolicy::class,
+        PostingTemplate::class => PostingTemplatePolicy::class,
+        CustomerInvoice::class => CustomerInvoicePolicy::class,
+        CustomerPayment::class => CustomerPaymentPolicy::class,
+        \App\Models\Procurement\SupplierBill::class => \App\Policies\SupplierBillPolicy::class,
+        \App\Models\Procurement\SupplierPayment::class => \App\Policies\SupplierPaymentPolicy::class,
+        TaxCode::class => TaxCodePolicy::class,
         PurchaseRequest::class => PurchaseRequestPolicy::class,
         PurchaseOrder::class => PurchaseOrderPolicy::class,
         GoodsReceipt::class => GoodsReceiptPolicy::class,
@@ -137,6 +167,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SystemSettingsManager::class);
         $this->app->singleton(SystemSettingsService::class);
         $this->app->singleton(ExecutiveDashboardPresenter::class);
+        $this->app->singleton(\App\Support\Accounting\Dashboard\AccountingDashboardPresenter::class);
         $this->app->singleton(FormSettingsService::class);
         $this->app->singleton(ApprovalRulesManager::class);
         $this->app->singleton(ApprovalRulesService::class);
@@ -168,6 +199,8 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
+
+        View::composer('layouts.admin', WorkspaceNavigationComposer::class);
 
         View::composer(['layouts.admin', 'layouts.admin.partials.sidebar', 'layouts.admin.partials.topbar'], function ($view) {
             $assets = app(BrandingAssets::class);
@@ -288,7 +321,8 @@ class AppServiceProvider extends ServiceProvider
                 continue;
             }
 
-            $map[$route] = route($route);
+            $params = $entry['route_params'] ?? [];
+            $map[$route] = route($route, $params);
         }
 
         foreach ($items as $item) {
