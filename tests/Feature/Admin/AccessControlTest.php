@@ -77,6 +77,23 @@ class AccessControlTest extends TestCase
             ->assertSee(__('Finance'));
     }
 
+    public function test_roles_create_page_renders(): void
+    {
+        $admin = User::factory()->create([
+            'company_id' => 1,
+            'default_branch_id' => 1,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $admin->assignRole('Company Admin');
+
+        $this->actingAs($admin)
+            ->get(route('admin.roles.create'))
+            ->assertOk()
+            ->assertSee(__('New security group'))
+            ->assertSee(__('Create role'), false);
+    }
+
     public function test_create_role_can_clone_permissions_from_existing_role(): void
     {
         $admin = User::factory()->create([

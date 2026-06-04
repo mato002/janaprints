@@ -55,7 +55,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:roles.view')->group(function () {
             Route::get('access-control/roles', [RoleController::class, 'index'])->name('access-control.roles');
             Route::get('roles', fn () => redirect()->route('admin.access-control.roles'))->name('roles.index');
-            Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show');
             Route::get('access-control/matrix', [PermissionController::class, 'index'])->name('access-control.matrix');
             Route::get('permissions', fn () => redirect()->route('admin.access-control.matrix'))->name('permissions.index');
         });
@@ -64,6 +63,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('roles/create', [RoleController::class, 'create'])->name('roles.create');
             Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
             Route::post('roles/{role}/duplicate', [RoleController::class, 'duplicate'])->name('roles.duplicate');
+        });
+
+        Route::middleware('permission:roles.view')->group(function () {
+            Route::get('roles/{role}', [RoleController::class, 'show'])->name('roles.show');
         });
 
         Route::middleware('permission:roles.edit')->group(function () {

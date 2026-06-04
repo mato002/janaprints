@@ -587,6 +587,8 @@ document.addEventListener('alpine:init', () => {
         drawerOpen: false,
         drawerRole: null,
         previewRole: null,
+        previewTop: 0,
+        previewLeft: 0,
 
         matches(text) {
             if (! this.query.trim()) {
@@ -606,12 +608,53 @@ document.addEventListener('alpine:init', () => {
             this.drawerRole = null;
         },
 
-        setPreview(role) {
+        setPreview(role, event) {
             this.previewRole = role;
+            this._previewAnchor = event?.currentTarget?.querySelector('[data-role-preview-anchor]')
+                ?? event?.currentTarget
+                ?? null;
+            this.$nextTick(() => this.placePreview());
         },
 
         clearPreview() {
             this.previewRole = null;
+            this._previewAnchor = null;
+        },
+
+        placePreview() {
+            const anchor = this._previewAnchor;
+
+            if (! anchor || ! this.previewRole) {
+                return;
+            }
+
+            const rect = anchor.getBoundingClientRect();
+            const gap = 6;
+            const cardWidth = 256;
+            const card = this.$refs.rolePreview;
+            const cardHeight = card?.offsetHeight ?? 180;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            let top = rect.bottom + gap;
+
+            if (spaceBelow < cardHeight + gap && rect.top > cardHeight + gap) {
+                top = rect.top - cardHeight - gap;
+            }
+
+            let left = rect.left;
+
+            if (left + cardWidth > window.innerWidth - 8) {
+                left = window.innerWidth - cardWidth - 8;
+            }
+
+            this.previewTop = Math.max(8, top);
+            this.previewLeft = Math.max(8, left);
+        },
+
+        get previewStyle() {
+            return {
+                top: `${this.previewTop}px`,
+                left: `${this.previewLeft}px`,
+            };
         },
 
         openRole(url) {
@@ -623,6 +666,73 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('erpFloatingMenu', (align = 'right') => ({
+        open: false,
+        menuTop: 0,
+        menuLeft: 0,
+        menuTransform: 'translateX(-100%)',
+        align,
+
+        toggle(event) {
+            if (this.open) {
+                this.close();
+
+                return;
+            }
+
+            const trigger = event?.currentTarget ?? this.$refs.trigger;
+
+            if (! trigger) {
+                return;
+            }
+
+            const menu = this.$refs.menu;
+
+            if (menu && ! menu.querySelector('a, button, form')) {
+                return;
+            }
+
+            this._triggerEl = trigger;
+            this.open = true;
+            this.$nextTick(() => this.placeMenu());
+        },
+
+        close() {
+            this.open = false;
+            this._triggerEl = null;
+        },
+
+        placeMenu() {
+            const trigger = this._triggerEl ?? this.$refs.trigger;
+
+            if (! trigger) {
+                return;
+            }
+
+            const rect = trigger.getBoundingClientRect();
+            const gap = 4;
+
+            this.menuTop = rect.bottom + gap;
+
+            if (this.align === 'left') {
+                this.menuLeft = rect.left;
+                this.menuTransform = 'none';
+            } else {
+                this.menuLeft = rect.right;
+                this.menuTransform = 'translateX(-100%)';
+            }
+        },
+
+        get menuStyle() {
+            return {
+                position: 'fixed',
+                top: `${this.menuTop}px`,
+                left: `${this.menuLeft}px`,
+                transform: this.menuTransform,
+                zIndex: 60,
+            };
+        },
+    }));
 });
 
 Alpine.start();

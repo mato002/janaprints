@@ -393,4 +393,233 @@
     .erp-modal-header {
         @apply border-b border-erp-border bg-erp-page px-4 py-3 text-base font-semibold text-erp-primary;
     }
+
+    /* Executive command center (Dashboard-360) */
+    .exec-dashboard {
+        @apply min-w-0 max-w-full;
+    }
+
+    .exec-kpi-strip {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8;
+    }
+
+    .exec-kpi-cell {
+        @apply flex max-h-[5.625rem] min-h-[4.5rem] flex-col justify-center rounded-lg border border-erp-border bg-white px-2.5 py-2 shadow-card;
+    }
+
+    .exec-kpi-cell--link {
+        @apply transition-colors hover:border-erp-accent/40 hover:bg-erp-accent/5;
+    }
+
+    .exec-kpi-cell__label {
+        @apply truncate text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .exec-kpi-cell__value {
+        @apply mt-0.5 truncate text-sm font-bold tabular-nums text-erp-primary;
+    }
+
+    .exec-kpi-cell__hint {
+        @apply mt-0.5 truncate text-[9px] text-slate-400;
+    }
+
+    .exec-panel {
+        @apply rounded-lg border border-erp-border bg-white p-3 shadow-card;
+    }
+
+    .exec-panel--attention {
+        @apply border-red-200 bg-red-50/30;
+    }
+
+    .exec-panel--insights {
+        @apply border-sky-100 bg-sky-50/40;
+    }
+
+    .exec-panel__head {
+        @apply mb-2 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .exec-panel__title {
+        @apply text-xs font-semibold uppercase tracking-wide text-erp-primary;
+    }
+
+    .exec-pipeline--flow {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-end;
+    }
+
+    .exec-pipeline__arrow {
+        @apply hidden items-center justify-center text-slate-300 lg:flex lg:px-0.5;
+    }
+
+    .exec-pipeline__arrow-v {
+        @apply lg:hidden;
+    }
+
+    .exec-pipeline__arrow-h {
+        @apply hidden lg:inline;
+    }
+
+    .exec-pipeline__stage {
+        @apply min-w-0 flex-1 rounded-md border border-erp-border bg-erp-page/60 px-2 py-1.5;
+    }
+
+    .exec-pipeline__stage--link {
+        @apply transition-colors hover:border-erp-accent/30 hover:bg-white;
+    }
+
+    .exec-pipeline__label {
+        @apply block text-[10px] font-semibold text-slate-700;
+    }
+
+    .exec-pipeline__count {
+        @apply text-[10px] tabular-nums text-slate-500;
+    }
+
+    .exec-pipeline__bar {
+        @apply mt-1 block h-1 max-w-full rounded-full bg-erp-accent;
+    }
+
+    .exec-attention-grid {
+        @apply grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .exec-attention-item {
+        @apply flex items-center justify-between gap-2 rounded-md border border-erp-border bg-white px-2.5 py-2;
+    }
+
+    .exec-attention-item--link {
+        @apply transition-colors hover:border-red-300;
+    }
+
+    .exec-attention-item__label {
+        @apply text-[11px] font-medium text-erp-primary;
+    }
+
+    .exec-attention-item__hint {
+        @apply block w-full text-[9px] text-slate-400;
+    }
+
+    .exec-badge {
+        @apply inline-flex min-w-[1.75rem] items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums;
+    }
+
+    .exec-badge--danger {
+        @apply bg-red-600 text-white;
+    }
+
+    .exec-badge--warning {
+        @apply bg-amber-500 text-white;
+    }
+
+    .exec-badge--muted {
+        @apply bg-slate-200 text-slate-600;
+    }
+
+    .exec-metric-grid {
+        @apply grid gap-2;
+    }
+
+    .exec-metric-grid--2 {
+        @apply grid-cols-2;
+    }
+
+    .exec-metric-grid--3 {
+        @apply grid-cols-3;
+    }
+
+    .exec-metric-grid--5 {
+        @apply grid-cols-2 sm:grid-cols-3 lg:grid-cols-5;
+    }
+
+    .exec-metric {
+        @apply rounded-md border border-erp-border/80 bg-erp-page/50 px-2 py-1.5;
+    }
+
+    .exec-metric__label {
+        @apply block text-[10px] text-slate-500;
+    }
+
+    .exec-metric__value {
+        @apply mt-0.5 text-sm font-semibold tabular-nums text-erp-primary;
+    }
+
+    .exec-table-scroll {
+        @apply -mx-1 overflow-x-auto;
+    }
+
+    .exec-table {
+        @apply w-full min-w-[28rem] text-left text-[11px];
+    }
+
+    .exec-table thead th {
+        @apply border-b border-erp-border px-2 py-1.5 font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .exec-table tbody td {
+        @apply border-b border-erp-border/60 px-2 py-1.5;
+    }
+
+    .exec-table__top {
+        @apply bg-emerald-50/60;
+    }
+
+    .exec-tag {
+        @apply ml-1 inline-flex rounded bg-emerald-600 px-1 py-0.5 text-[9px] font-bold uppercase text-white;
+    }
+
+    .exec-bar-chart {
+        @apply flex h-24 items-end gap-px border-b border-erp-border pb-1;
+    }
+
+    .exec-bar-chart__col {
+        @apply relative flex min-w-0 flex-1 flex-col items-center justify-end;
+    }
+
+    .exec-bar-chart__bar {
+        @apply w-full min-h-[2px] rounded-t bg-erp-accent/80;
+    }
+
+    .exec-bar-chart__label {
+        @apply absolute -bottom-4 hidden text-[8px] text-slate-400 sm:block;
+    }
+
+    .exec-dl__row {
+        @apply flex items-center justify-between gap-2 border-b border-erp-border/60 py-1 text-[11px];
+    }
+
+    .exec-dl__row dt {
+        @apply text-slate-500;
+    }
+
+    .exec-dl__row dd {
+        @apply font-semibold tabular-nums text-erp-primary;
+    }
+
+    .exec-insight {
+        @apply rounded-md border border-erp-border/60 bg-white/80 px-2 py-1.5 text-[11px] leading-snug;
+    }
+
+    .exec-quick-actions {
+        @apply flex flex-wrap gap-1.5;
+    }
+
+    .exec-quick-btn {
+        @apply inline-flex rounded-md border border-erp-border bg-white px-2 py-1 text-[10px] font-medium text-erp-primary transition-colors hover:border-erp-accent hover:text-erp-accent;
+    }
+
+    .exec-quick-btn--disabled {
+        @apply cursor-not-allowed border-dashed text-slate-400;
+    }
+
+    .exec-activity-feed {
+        @apply max-h-64 overflow-y-auto pr-1;
+    }
+
+    .exec-activity-feed .space-y-4 > li {
+        @apply py-0;
+    }
+
+    .exec-activity-feed p {
+        @apply text-[11px];
+    }
 }

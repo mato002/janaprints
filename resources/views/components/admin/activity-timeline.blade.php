@@ -4,6 +4,7 @@
     @forelse ($items as $log)
         @php
             $userName = is_array($log) ? ($log['user_name'] ?? null) : ($log->user?->name ?? null);
+            $message = is_array($log) ? ($log['message'] ?? null) : null;
             $action = is_array($log) ? ($log['action'] ?? '') : ($log->action ?? '');
             $modelType = is_array($log) ? ($log['model_type'] ?? null) : ($log->model_type ?? null);
             $modelId = is_array($log) ? ($log['model_id'] ?? null) : ($log->model_id ?? null);
@@ -19,10 +20,14 @@
             @endif
             <div class="min-w-0 flex-1 pb-1">
                 <p class="text-sm text-erp-primary">
-                    <span class="font-medium">{{ $userName ?? __('System') }}</span>
-                    <span class="text-slate-500">{{ $action }}</span>
-                    @if ($modelType)
-                        <span class="text-slate-400">{{ class_basename($modelType) }} #{{ $modelId }}</span>
+                    @if ($message)
+                        {{ $message }}
+                    @else
+                        <span class="font-medium">{{ $userName ?? __('System') }}</span>
+                        <span class="text-slate-500">{{ $action }}</span>
+                        @if ($modelType)
+                            <span class="text-slate-400">{{ class_basename($modelType) }} #{{ $modelId }}</span>
+                        @endif
                     @endif
                 </p>
                 <p class="mt-0.5 text-xs text-slate-400">

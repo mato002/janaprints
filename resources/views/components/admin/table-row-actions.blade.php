@@ -4,13 +4,16 @@
 
 <div
     class="relative inline-block text-left"
-    x-data="{ open: false }"
-    @click.outside="open = false"
-    @keydown.escape.window="open = false"
+    x-data="erpFloatingMenu(@js($align))"
+    @click.outside="close()"
+    @keydown.escape.window="close()"
+    @scroll.window="close()"
+    @resize.window="close()"
 >
     <button
         type="button"
-        @click.stop="open = !open"
+        x-ref="trigger"
+        @click.stop="toggle($event)"
         class="erp-row-actions-trigger inline-flex h-8 w-8 items-center justify-center rounded-md border border-transparent text-slate-500 transition-colors hover:border-erp-border hover:bg-erp-page hover:text-erp-primary"
         :aria-expanded="open"
         aria-haspopup="true"
@@ -22,6 +25,7 @@
     </button>
 
     <div
+        x-ref="menu"
         x-show="open"
         x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="opacity-0 scale-95"
@@ -30,8 +34,10 @@
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
         x-cloak
-        @click="open = false"
-        class="erp-row-actions-menu absolute z-30 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg {{ $align === 'right' ? 'end-0' : 'start-0' }}"
+        :style="menuStyle"
+        @click="close()"
+        class="erp-row-actions-menu min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
+        role="menu"
     >
         {{ $slot }}
     </div>

@@ -75,6 +75,7 @@ use App\Support\Platform\NumberGenerator;
 use App\Support\Platform\NumberingSequenceManager;
 use App\Support\Platform\NumberingService;
 use App\Support\Branding\BrandingAssets;
+use App\Support\Dashboard\ExecutiveDashboardPresenter;
 use App\Support\Platform\PlatformCacheService;
 use App\Support\Platform\SettingsRegistry;
 use App\Support\Platform\SystemSettingsManager;
@@ -129,6 +130,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SettingsRegistry::class);
         $this->app->singleton(SystemSettingsManager::class);
         $this->app->singleton(SystemSettingsService::class);
+        $this->app->singleton(ExecutiveDashboardPresenter::class);
         $this->app->singleton(FormSettingsService::class);
         $this->app->singleton(ApprovalRulesManager::class);
         $this->app->singleton(ApprovalRulesService::class);
@@ -210,85 +212,9 @@ class AppServiceProvider extends ServiceProvider
             $view->with('dashboard', $cache->remember(
                 'dashboard',
                 "{$companyId}:{$branchId}",
-                fn () => $this->buildDashboardMetrics(),
+                fn () => app(ExecutiveDashboardPresenter::class)->build(),
             ));
         });
-    }
-
-    protected function buildDashboardMetrics(): array
-    {
-        $leadQuery = Lead::query()->forTenant();
-        $customerQuery = Customer::query()->forTenant();
-
-        $pipelineStages = [
-            ['key' => 'quotation', 'label' => __('Quotation'), 'count' => 0],
-            ['key' => 'approved', 'label' => __('Approved'), 'count' => 0],
-            ['key' => 'artwork', 'label' => __('Artwork'), 'count' => 0],
-            ['key' => 'printing', 'label' => __('Printing'), 'count' => 0],
-            ['key' => 'finishing', 'label' => __('Finishing'), 'count' => 0],
-            ['key' => 'dispatch', 'label' => __('Dispatch'), 'count' => 0],
-        ];
-
-        $pipelineTotal = max(1, array_sum(array_column($pipelineStages, 'count')));
-
-        foreach ($pipelineStages as &$stage) {
-            $stage['percent'] = (int) round(($stage['count'] / $pipelineTotal) * 100);
-        }
-        unset($stage);
-
-        return [
-            'kpis' => [
-                'revenue_today' => ['label' => __('Revenue Today'), 'value' => '—', 'hint' => __('Finance module')],
-                'open_quotes' => [
-                    'label' => __('Open Quotes'),
-                    'value' => (string) Quotation::query()->forTenant()->whereIn('status', [
-                        QuotationStatus::Draft,
-                        QuotationStatus::PendingApproval,
-                        QuotationStatus::Sent,
-                        QuotationStatus::Viewed,
-                    ])->count(),
-                    'hint' => __('Quotations'),
-                ],
-                'jobs_in_production' => [
-                    'label' => __('Jobs In Production'),
-                    'value' => (string) ProductionJobCard::query()->forTenant()
-                        ->where('status', \App\Enums\ProductionJobCardStatus::InProduction)
-                        ->count(),
-                    'hint' => __('Production'),
-                ],
-                'receivables' => ['label' => __('Receivables'), 'value' => '—', 'hint' => __('Finance module')],
-                'stock_alerts' => [
-                    'label' => __('Stock Alerts'),
-                    'value' => (string) InventoryReorderAlert::query()->forTenant()->where('is_resolved', false)->count(),
-                    'hint' => __('Inventory'),
-                ],
-            ],
-            'crm' => [
-                'open_leads' => (clone $leadQuery)->where('status', LeadStatus::Open)->count(),
-                'customers' => (clone $customerQuery)->count(),
-            ],
-            'pipeline' => $pipelineStages,
-            'financial' => [
-                'revenue_mtd' => '—',
-                'expenses_mtd' => '—',
-                'profit_mtd' => '—',
-            ],
-            'recent_activity' => ActivityLog::query()
-                ->forTenant()
-                ->with('user')
-                ->latest('created_at')
-                ->limit(8)
-                ->get()
-                ->map(fn (ActivityLog $log) => [
-                    'user_name' => $log->user?->name,
-                    'action' => $log->action,
-                    'model_type' => $log->model_type,
-                    'model_id' => $log->model_id,
-                    'created_at' => $log->created_at?->toIso8601String(),
-                    'ip_address' => $log->ip_address,
-                ])
-                ->all(),
-        ];
     }
 
     protected function filterNavigation(array $items): array

@@ -6,14 +6,18 @@
         ['label' => __('Roles')],
     ]"
 >
-    <div x-data="roleGovernanceDashboard()" x-cloak>
+    <div
+        x-data="roleGovernanceDashboard()"
+        @scroll.window="clearPreview()"
+        @resize.window="clearPreview()"
+    >
         <div class="mb-3 flex flex-wrap items-start justify-between gap-3">
             <div>
                 <h1 class="text-lg font-semibold text-erp-primary">{{ __('Security Groups') }}</h1>
                 <p class="mt-0.5 text-xs text-slate-500">{{ __('Enterprise access governance across departments and job functions.') }}</p>
             </div>
             @can('create', Spatie\Permission\Models\Role::class)
-                <a href="{{ route('admin.roles.create') }}" class="erp-btn-primary !px-3 !py-1.5 text-sm">{{ __('Create role') }}</a>
+                <a href="{{ route('admin.roles.create') }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="erp-btn-primary !px-3 !py-1.5 text-sm">{{ __('Create role') }}</a>
             @endcan
         </div>
 
@@ -77,31 +81,13 @@
                                 x-show="matches(@js($profile['search_text']))"
                                 class="cursor-pointer transition-colors hover:bg-slate-50/80 {{ $profile['is_deactivated'] ? 'bg-slate-50/80 opacity-75' : '' }}"
                                 @click="openRole(@js($profile['show_url']))"
-                                @mouseenter="setPreview(@js($profile))"
+                                @mouseenter="setPreview(@js($profile), $event)"
                                 @mouseleave="clearPreview()"
                             >
                                 <td class="py-2.5">
-                                    <div class="relative">
-                                        <span class="font-medium text-erp-primary">
-                                            {{ $profile['name'] }}
-                                        </span>
-                                        <div
-                                            x-show="previewRole && previewRole.id === {{ $profile['id'] }}"
-                                            x-transition
-                                            class="pointer-events-none absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-erp-border bg-white p-3 text-xs shadow-lg"
-                                        >
-                                            <p class="font-semibold text-erp-primary" x-text="previewRole?.name"></p>
-                                            <p class="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{{ __('Access coverage') }}</p>
-                                            <ul class="mt-1.5 space-y-0.5">
-                                                <template x-for="module in previewRole?.module_coverage ?? []" :key="module.key">
-                                                    <li class="flex items-center justify-between gap-2 text-slate-600">
-                                                        <span x-text="module.label"></span>
-                                                        <span class="font-semibold" :class="module.enabled ? 'text-emerald-600' : 'text-slate-300'" x-text="module.enabled ? '✓' : '✗'"></span>
-                                                    </li>
-                                                </template>
-                                            </ul>
-                                        </div>
-                                    </div>
+                                    <span data-role-preview-anchor class="font-medium text-erp-primary">
+                                        {{ $profile['name'] }}
+                                    </span>
                                 </td>
                                 <td class="py-2.5">
                                     <span class="role-category-badge role-category-badge--{{ $profile['category']['tone'] }}">
@@ -189,6 +175,26 @@
         </x-admin.card>
 
         <div class="mt-4">{{ $roles->links() }}</div>
+
+        <div
+            x-ref="rolePreview"
+            x-show="previewRole"
+            x-cloak
+            x-transition
+            :style="previewStyle"
+            class="role-governance-preview pointer-events-none fixed z-[55] w-64 rounded-lg border border-erp-border bg-white p-3 text-xs shadow-lg"
+        >
+            <p class="font-semibold text-erp-primary" x-text="previewRole?.name"></p>
+            <p class="mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{{ __('Access coverage') }}</p>
+            <ul class="mt-1.5 space-y-0.5">
+                <template x-for="module in previewRole?.module_coverage ?? []" :key="module.key">
+                    <li class="flex items-center justify-between gap-2 text-slate-600">
+                        <span x-text="module.label"></span>
+                        <span class="font-semibold" :class="module.enabled ? 'text-emerald-600' : 'text-slate-300'" x-text="module.enabled ? '✓' : '✗'"></span>
+                    </li>
+                </template>
+            </ul>
+        </div>
 
         <div
             x-show="drawerOpen"
