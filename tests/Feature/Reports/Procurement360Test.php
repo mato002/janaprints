@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Reports;
 
+use App\Enums\VendorStatus;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Procurement\Vendor;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -30,6 +32,24 @@ class Procurement360Test extends TestCase
             ->get(route('admin.reports.procurement360'))
             ->assertOk()
             ->assertSee(__('Procurement 360'), false);
+    }
+
+    public function test_procurement_360_with_vendors(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['reports.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        Vendor::factory()->create([
+            'company_id' => $company->id,
+            'status' => VendorStatus::Active,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.reports.procurement360'))
+            ->assertOk()
+            ->assertSee(__('Vendor Performance'), false)
+            ->assertSee(__('Active Vendors'), false);
     }
 
     public function test_rfq_placeholder_when_no_rfqs(): void

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Reports;
 
+use App\Enums\CustomerStatus;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Crm\Customer;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,6 +33,24 @@ class Commercial360Test extends TestCase
             ->assertOk()
             ->assertSee(__('Commercial 360'), false)
             ->assertSee(__('Commercial Summary'), false);
+    }
+
+    public function test_commercial_360_with_active_customers(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['reports.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => CustomerStatus::Active,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.reports.commercial360'))
+            ->assertOk()
+            ->assertSee(__('Active customers'), false);
     }
 
     public function test_branch_filter(): void

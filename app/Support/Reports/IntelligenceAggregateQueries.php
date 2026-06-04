@@ -3,6 +3,7 @@
 namespace App\Support\Reports;
 
 use App\Enums\CustomerInvoiceStatus;
+use App\Enums\CustomerStatus;
 use App\Enums\GoodsReceiptStatus;
 use App\Enums\InventoryMovementType;
 use App\Enums\LeadStatus;
@@ -137,7 +138,7 @@ class IntelligenceAggregateQueries
         $q = $this->scoped(Customer::class, $scope);
 
         if ($activeOnly) {
-            $q->where('is_active', true);
+            $q->where('status', CustomerStatus::Active);
         }
 
         return (int) $q->count();

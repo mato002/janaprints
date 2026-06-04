@@ -1,7 +1,7 @@
 <x-admin-layout :title="$title">
     <x-admin.page-header :title="$title" :description="$description">
         <x-slot name="actions">
-            @include('admin.reports.partials.export-button')
+            @include('admin.reports.partials.export-button', ['can_export' => $can_export])
         </x-slot>
     </x-admin.page-header>
 

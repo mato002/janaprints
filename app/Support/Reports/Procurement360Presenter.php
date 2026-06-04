@@ -6,6 +6,7 @@ use App\Enums\GoodsReceiptStatus;
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\PurchaseRequestStatus;
 use App\Enums\RfqStatus;
+use App\Enums\VendorStatus;
 use App\Models\Branch;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
@@ -33,7 +34,11 @@ class Procurement360Presenter
         $scope = $resolved['scope'];
 
         $vendors = $this->queries->hasTable('vendors')
-            ? Vendor::query()->where('company_id', $scope->companyId)->where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            ? Vendor::query()
+                ->where('company_id', $scope->companyId)
+                ->where('status', VendorStatus::Active)
+                ->orderBy('vendor_name')
+                ->get(['id', 'vendor_name'])
             : collect();
 
         return [
@@ -128,7 +133,7 @@ class Procurement360Presenter
                 ->get()
             : collect();
 
-        $vendorNames = Vendor::query()->whereIn('id', $top->pluck('vendor_id'))->pluck('name', 'id');
+        $vendorNames = Vendor::query()->whereIn('id', $top->pluck('vendor_id'))->pluck('vendor_name', 'id');
 
         return [
             'type' => 'split',

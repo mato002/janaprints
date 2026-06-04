@@ -36,7 +36,7 @@
                 <select id="vendor_id" name="vendor_id" class="erp-input mt-1 min-w-[10rem]">
                     <option value="">{{ __('All vendors') }}</option>
                     @foreach ($vendors as $vendor)
-                        <option value="{{ $vendor->id }}" @selected(($filters['vendor_id'] ?? null) == $vendor->id)>{{ $vendor->name }}</option>
+                        <option value="{{ $vendor->id }}" @selected(($filters['vendor_id'] ?? null) == $vendor->id)>{{ $vendor->vendor_name ?? $vendor->name }}</option>
                     @endforeach
                 </select>
             </div>
