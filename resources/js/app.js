@@ -798,6 +798,137 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('formsControlCenter', (config = {}) => ({
+        query: '',
+        activeCategory: localStorage.getItem('erp.formsControlCenter.category') || 'all',
+        auditMode: false,
+        importModalOpen: false,
+        importMessage: '',
+        cards: config.cards ?? [],
+        exportPayload: config.exportPayload ?? {},
+        auditUrl: config.auditUrl ?? null,
+
+        init() {
+            this.$watch('activeCategory', (value) => {
+                localStorage.setItem('erp.formsControlCenter.category', value);
+            });
+        },
+
+        get visibleCount() {
+            return this.cards.filter((card) => this.cardVisible(card.id)).length;
+        },
+
+        normalizeQuery(value) {
+            return String(value ?? '')
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, ' ');
+        },
+
+        matchesSearch(card) {
+            const normalized = this.normalizeQuery(this.query);
+
+            if (! normalized) {
+                return true;
+            }
+
+            const tokens = normalized.split(' ').filter(Boolean);
+            const haystack = String(card.search_text ?? '').toLowerCase();
+
+            return tokens.every((token) => haystack.includes(token));
+        },
+
+        cardVisible(cardId) {
+            const card = this.cards.find((entry) => entry.id === cardId);
+
+            if (! card) {
+                return false;
+            }
+
+            if (this.auditMode && ! card.has_governance_issues) {
+                return false;
+            }
+
+            if (! this.matchesSearch(card)) {
+                return false;
+            }
+
+            if (this.activeCategory === 'all') {
+                return true;
+            }
+
+            return card.category_slug === this.activeCategory;
+        },
+
+        sectionVisible(categorySlug) {
+            if (this.activeCategory !== 'all' && this.activeCategory !== categorySlug) {
+                return false;
+            }
+
+            return this.cards.some(
+                (card) => ! card.comingSoon
+                    && card.category_slug === categorySlug
+                    && this.cardVisible(card.id),
+            );
+        },
+
+        plannedSectionVisible() {
+            if (this.auditMode) {
+                return false;
+            }
+
+            return this.cards.some(
+                (card) => card.comingSoon && this.cardVisible(card.id),
+            );
+        },
+
+        setCategory(slug) {
+            this.activeCategory = slug;
+        },
+
+        exportConfiguration() {
+            const payload = JSON.stringify(this.exportPayload, null, 2);
+            const blob = new Blob([payload], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const stamp = new Date().toISOString().slice(0, 10);
+            const anchor = document.createElement('a');
+
+            anchor.href = url;
+            anchor.download = `jana-forms-configuration-${stamp}.json`;
+            anchor.click();
+
+            URL.revokeObjectURL(url);
+        },
+
+        handleImportSelect(event) {
+            const file = event.target.files?.[0];
+
+            if (! file) {
+                return;
+            }
+
+            this.importMessage = 'Import applies server-side configuration changes and is not yet enabled from this screen. Use Export to download a snapshot for review.';
+            event.target.value = '';
+        },
+
+        auditForms() {
+            this.auditMode = true;
+            this.activeCategory = 'all';
+            this.query = '';
+
+            this.$nextTick(() => {
+                document.getElementById('forms-health-widget')?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                });
+            });
+
+            if (this.auditUrl && this.visibleCount === 0) {
+                window.location.href = this.auditUrl;
+            }
+        },
+    }));
+
     Alpine.data('roleGovernanceDashboard', () => ({
         query: '',
         drawerOpen: false,

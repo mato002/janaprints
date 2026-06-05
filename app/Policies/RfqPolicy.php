@@ -39,12 +39,32 @@ class RfqPolicy
 
     public function compare(User $user, Rfq $rfq): bool
     {
-        return $user->can('procurement.comparison.view') && $this->sameTenant($user, $rfq);
+        return ($user->can('procurement.vendor_comparison.view') || $user->can('procurement.comparison.view'))
+            && $this->sameTenant($user, $rfq);
     }
 
     public function award(User $user, Rfq $rfq): bool
     {
-        return $user->can('procurement.comparison.manage') && $this->sameTenant($user, $rfq);
+        return ($user->can('procurement.vendor_comparison.award') || $user->can('procurement.comparison.manage'))
+            && $this->sameTenant($user, $rfq)
+            && $rfq->status->canAward();
+    }
+
+    public function manageComparison(User $user, Rfq $rfq): bool
+    {
+        return ($user->can('procurement.vendor_comparison.manage') || $user->can('procurement.comparison.manage'))
+            && $this->sameTenant($user, $rfq);
+    }
+
+    public function viewComparisonWorkspace(User $user, Rfq $rfq): bool
+    {
+        return ($user->can('procurement.vendor_comparison.view') || $user->can('procurement.comparison.view'))
+            && $this->sameTenant($user, $rfq);
+    }
+
+    public function viewComparisonIndex(User $user): bool
+    {
+        return $user->can('procurement.vendor_comparison.view') || $user->can('procurement.comparison.view');
     }
 
     public function convert(User $user, Rfq $rfq): bool

@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Admin\Procurement\GoodsReceiptController;
 use App\Http\Controllers\Admin\Procurement\ProcurementDashboardController;
+use App\Http\Controllers\Admin\Procurement\ProcurementReportController;
 use App\Http\Controllers\Admin\Procurement\PurchaseOrderController;
 use App\Http\Controllers\Admin\Procurement\PurchaseRequestController;
 use App\Http\Controllers\Admin\Procurement\RfqController;
+use App\Http\Controllers\Admin\Procurement\SupplierPerformanceController;
 use App\Http\Controllers\Admin\Procurement\SupplierQuotationController;
+use App\Http\Controllers\Admin\Procurement\VendorComparisonController;
 use App\Http\Controllers\Admin\Procurement\VendorContactController;
 use App\Http\Controllers\Admin\Procurement\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -132,5 +135,55 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('orders/{order}/receive', [GoodsReceiptController::class, 'create'])->name('orders.receive.create');
             Route::post('orders/{order}/receive', [GoodsReceiptController::class, 'store'])->name('orders.receive.store');
             Route::post('receipts/{receipt}/post', [GoodsReceiptController::class, 'post'])->name('receipts.post');
+        });
+
+        Route::middleware([\App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])->group(function () {
+            Route::get('vendor-comparison', [VendorComparisonController::class, 'index'])
+                ->middleware('permission:procurement.vendor_comparison.view|procurement.comparison.view')
+                ->name('vendor-comparison.index');
+
+            Route::get('vendor-comparison/{rfq}', [VendorComparisonController::class, 'show'])
+                ->middleware('permission:procurement.vendor_comparison.view|procurement.comparison.view')
+                ->name('vendor-comparison.show');
+
+            Route::post('vendor-comparison/{rfq}/compare', [VendorComparisonController::class, 'compare'])
+                ->middleware('permission:procurement.vendor_comparison.view|procurement.comparison.view')
+                ->name('vendor-comparison.compare');
+
+            Route::post('vendor-comparison/{rfq}/award', [VendorComparisonController::class, 'award'])
+                ->middleware('permission:procurement.vendor_comparison.award|procurement.comparison.manage')
+                ->name('vendor-comparison.award');
+
+            Route::post('vendor-comparison/{rfq}/award-partial', [VendorComparisonController::class, 'awardPartial'])
+                ->middleware('permission:procurement.vendor_comparison.award|procurement.comparison.manage')
+                ->name('vendor-comparison.award-partial');
+
+            Route::post('vendor-comparison/{rfq}/split-award', [VendorComparisonController::class, 'splitAward'])
+                ->middleware('permission:procurement.vendor_comparison.award|procurement.comparison.manage')
+                ->name('vendor-comparison.split-award');
+
+            Route::post('vendor-comparison/{rfq}/vendors/{rfqVendor}/reject', [VendorComparisonController::class, 'reject'])
+                ->middleware('permission:procurement.vendor_comparison.manage|procurement.comparison.manage')
+                ->name('vendor-comparison.reject');
+
+            Route::post('vendor-comparison/{rfq}/vendors/{rfqVendor}/requote', [VendorComparisonController::class, 'requote'])
+                ->middleware('permission:procurement.vendor_comparison.manage|procurement.comparison.manage')
+                ->name('vendor-comparison.requote');
+
+            Route::get('reports', [ProcurementReportController::class, 'index'])
+                ->middleware('permission:reports.procurement.view')
+                ->name('reports.index');
+
+            Route::post('reports/export', [ProcurementReportController::class, 'export'])
+                ->middleware('permission:reports.procurement.export')
+                ->name('reports.export');
+
+            Route::get('supplier-performance', [SupplierPerformanceController::class, 'index'])
+                ->middleware('permission:procurement.performance.view')
+                ->name('supplier-performance.index');
+
+            Route::post('supplier-performance/export', [SupplierPerformanceController::class, 'export'])
+                ->middleware('permission:procurement.performance.export')
+                ->name('supplier-performance.export');
         });
     });

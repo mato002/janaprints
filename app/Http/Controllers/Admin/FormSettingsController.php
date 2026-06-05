@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\Platform\SettingsGovernance;
 use App\Support\Platform\FormSettingsManager;
+use App\Support\Platform\FormsControlCenterPresenter;
 use App\Support\Platform\SettingsRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,6 +19,7 @@ class FormSettingsController extends Controller
     public function __construct(
         protected FormSettingsManager $manager,
         protected SettingsRegistry $registry,
+        protected FormsControlCenterPresenter $controlCenter,
     ) {}
 
     public function index(Request $request): View
@@ -26,9 +28,12 @@ class FormSettingsController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->resolveSettingsScope($request);
 
+        $forms = $this->manager->rows($companyId, $branchId);
+
         return view('admin.settings.forms.index', [
             'sections' => $this->registry->sections(),
-            'forms' => $this->manager->rows($companyId, $branchId),
+            'forms' => $forms,
+            'controlCenter' => $this->controlCenter->hub($companyId, $branchId, $forms),
             'companyId' => $companyId,
             'branchId' => $branchId,
             'companies' => $this->companiesForSettingsUser(),

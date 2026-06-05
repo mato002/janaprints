@@ -26,6 +26,7 @@ class Rfq extends Model
         'closing_date',
         'status',
         'awarded_vendor_id',
+        'award_type',
         'purchase_order_id',
         'notes',
         'created_by',
@@ -78,5 +79,10 @@ class Rfq extends Model
     public function comparison(): HasOne
     {
         return $this->hasOne(VendorComparison::class);
+    }
+
+    public function awardLines(): HasMany
+    {
+        return $this->hasMany(RfqAwardLine::class);
     }
 }

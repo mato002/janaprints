@@ -77,6 +77,7 @@ class CommercialReportExport extends Model
             'customers' => __('Customer Reports'),
             'artwork' => __('Artwork Reports'),
             'conversion' => __('Conversion Reports'),
+            'inventory' => __('Inventory Reports'),
             default => ucfirst(str_replace('_', ' ', $this->module)),
         };
     }

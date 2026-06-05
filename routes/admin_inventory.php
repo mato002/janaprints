@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Inventory\InventoryDashboardController;
 use App\Http\Controllers\Admin\Inventory\InventoryValuationController;
 use App\Http\Controllers\Admin\Inventory\InventoryCategoryController;
 use App\Http\Controllers\Admin\Inventory\InventoryItemImageController;
+use App\Http\Controllers\Admin\Inventory\InventoryReportController;
 use App\Http\Controllers\Admin\Inventory\InventoryItemController;
 use App\Http\Controllers\Admin\Inventory\InventoryMovementController;
 use App\Http\Controllers\Admin\Inventory\InventorySubcategoryController;
@@ -224,5 +225,15 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:inventory.reconcile.post')->group(function () {
             Route::post('reconciliations/{reconciliation}/post', [InventoryReconciliationController::class, 'post'])->whereNumber('reconciliation')->name('reconciliations.post');
+        });
+
+        Route::middleware([\App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])->group(function () {
+            Route::get('reports', [InventoryReportController::class, 'index'])
+                ->middleware('permission:reports.inventory.view|reports.view')
+                ->name('reports.index');
+
+            Route::post('reports/export', [InventoryReportController::class, 'export'])
+                ->middleware('permission:reports.inventory.export')
+                ->name('reports.export');
         });
     });

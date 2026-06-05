@@ -13,6 +13,7 @@ use App\Support\Reports\KpiCenterPresenter;
 use App\Support\Reports\Procurement360Presenter;
 use App\Support\Reports\Production360Presenter;
 use App\Support\Commercial\CommercialNavigationAlignmentService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -54,9 +55,11 @@ class IntelligenceReportController extends Controller
         return $this->legacy('production', $request);
     }
 
-    public function inventory(Request $request): View
+    public function inventory(Request $request): RedirectResponse
     {
-        return $this->legacy('inventory', $request);
+        abort_unless($request->user()?->can('reports.inventory.view') || $request->user()?->can('reports.view'), 403);
+
+        return redirect()->route('admin.inventory.reports.index', $request->query());
     }
 
     public function procurement(Request $request): View

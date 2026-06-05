@@ -10,6 +10,10 @@ use App\Support\Commercial\Reports\Exports\Exporters\QuotationReportExporter;
 use App\Support\Commercial\Reports\Exports\Exporters\SalesOrderReportExporter;
 use App\Support\Commercial\Reports\Exports\Exporters\PosReportExporter;
 use App\Support\Commercial\Reports\Exports\Exporters\SalesReportExporter;
+use App\Support\Inventory\Reports\Exports\InventoryReportExporter;
+use App\Support\Procurement\Performance\Exports\SupplierPerformanceExporter;
+use App\Support\Procurement\Reports\Exports\ProcurementReportExporter;
+use App\Support\Production\Reports\Exports\CostingReportExporter;
 use InvalidArgumentException;
 
 class CommercialReportExportRegistry
@@ -23,6 +27,10 @@ class CommercialReportExportRegistry
         'artwork' => ArtworkReportExporter::class,
         'conversion' => ConversionReportExporter::class,
         'pos' => PosReportExporter::class,
+        'inventory' => InventoryReportExporter::class,
+        'procurement' => ProcurementReportExporter::class,
+        'supplier_performance' => SupplierPerformanceExporter::class,
+        'costing' => CostingReportExporter::class,
     ];
 
     /**

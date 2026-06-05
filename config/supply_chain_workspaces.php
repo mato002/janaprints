@@ -129,10 +129,10 @@ return [
                     'items' => [
                         ['label' => 'Suppliers', 'description' => 'Supplier master data and contacts.', 'route' => 'admin.procurement.vendors.index', 'permission' => 'procurement.vendors.view', 'icon' => 'office-building', 'active_routes' => ['admin.procurement.vendors.*']],
                         ['label' => 'RFQs', 'description' => 'Request for quotation and vendor responses.', 'route' => 'admin.procurement.rfqs.index', 'permission' => 'procurement.rfq.view|procurement.vendors.view', 'icon' => 'document-text', 'active_routes' => ['admin.procurement.rfqs.*', 'admin.procurement.requests.rfq.*']],
-                        ['label' => 'Vendor Comparison', 'description' => 'Compare supplier quotes and award RFQs.', 'coming_soon' => true, 'icon' => 'scale'],
+                        ['label' => 'Vendor Comparison', 'description' => 'Compare supplier quotes and award RFQs.', 'route' => 'admin.procurement.vendor-comparison.index', 'permission' => 'procurement.vendor_comparison.view|procurement.comparison.view', 'icon' => 'scale', 'active_routes' => ['admin.procurement.vendor-comparison.*']],
                         ['label' => 'Purchase Orders', 'description' => 'Approved purchase orders and fulfilment.', 'route' => 'admin.procurement.orders.index', 'permission' => 'procurement.orders.view|procurement.vendors.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.procurement.orders.*']],
                         ['label' => 'Goods Receipts', 'description' => 'Procurement goods receipt notes and posting.', 'route' => 'admin.procurement.receipts.index', 'permission' => 'procurement.orders.view|procurement.vendors.view', 'icon' => 'archive', 'active_routes' => ['admin.procurement.receipts.*', 'admin.procurement.orders.receive.*']],
-                        ['label' => 'Supplier Performance', 'description' => 'On-time delivery, quality, and spend analytics.', 'coming_soon' => true, 'icon' => 'chart-bar'],
+                        ['label' => 'Supplier Performance', 'description' => 'On-time delivery, quality, and spend analytics.', 'route' => 'admin.procurement.supplier-performance.index', 'permission' => 'procurement.performance.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.procurement.supplier-performance.*']],
                     ],
                 ],
             ],
@@ -198,11 +198,11 @@ return [
                 [
                     'label' => 'Reports',
                     'items' => [
-                        ['label' => 'Inventory Reports', 'description' => 'Stock movement and on-hand analytics.', 'coming_soon' => true, 'icon' => 'cube'],
-                        ['label' => 'Procurement Reports', 'description' => 'Purchasing and supplier performance.', 'coming_soon' => true, 'icon' => 'truck'],
+                        ['label' => 'Inventory Reports', 'description' => 'Stock movement and on-hand analytics.', 'route' => 'admin.inventory.reports.index', 'permission' => 'reports.inventory.view', 'icon' => 'cube', 'active_routes' => ['admin.inventory.reports.*']],
+                        ['label' => 'Procurement Reports', 'description' => 'Purchasing and supplier performance.', 'route' => 'admin.procurement.reports.index', 'permission' => 'reports.procurement.view', 'icon' => 'truck', 'active_routes' => ['admin.procurement.reports.*']],
                         ['label' => 'Valuation Reports', 'description' => 'Inventory value by method and warehouse.', 'route' => 'admin.inventory.valuation.index', 'permission' => 'inventory.valuation.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.inventory.valuation.*']],
                         ['label' => 'Movement Reports', 'description' => 'Stock movement history and consumption.', 'route' => 'admin.inventory.movements.index', 'permission' => 'inventory.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.inventory.movements.*']],
-                        ['label' => 'Costing Reports', 'description' => 'Cost layers, margins, and job profitability.', 'coming_soon' => true, 'icon' => 'chart-bar'],
+                        ['label' => 'Costing Reports', 'description' => 'Cost layers, margins, and job profitability.', 'route' => 'admin.production.reports.index', 'permission' => 'reports.costing.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.production.reports.*']],
                     ],
                 ],
             ],

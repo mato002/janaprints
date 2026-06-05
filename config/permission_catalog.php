@@ -471,6 +471,25 @@ return [
                         ['label' => 'Award vendor', 'permission' => 'procurement.comparison.manage'],
                     ],
                 ],
+                'vendor_comparison_workspace' => [
+                    'label' => 'Vendor Comparison Workspace',
+                    'permissions' => [
+                        'view' => 'procurement.vendor_comparison.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Award supplier', 'permission' => 'procurement.vendor_comparison.award'],
+                        ['label' => 'Manage comparison', 'permission' => 'procurement.vendor_comparison.manage'],
+                    ],
+                ],
+                'performance' => [
+                    'label' => 'Supplier Performance Intelligence',
+                    'permissions' => [
+                        'view' => 'procurement.performance.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'procurement.performance.export'],
+                    ],
+                ],
             ],
         ],
 
@@ -899,6 +918,33 @@ return [
                 'inventory_360' => [
                     'label' => 'Inventory 360',
                     'permissions' => ['view' => 'intelligence.inventory.view'],
+                ],
+                'inventory_reports' => [
+                    'label' => 'Inventory Reports Center',
+                    'permissions' => [
+                        'view' => 'reports.inventory.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'reports.inventory.export'],
+                    ],
+                ],
+                'costing_reports' => [
+                    'label' => 'Costing Reports Center',
+                    'permissions' => [
+                        'view' => 'reports.costing.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'reports.costing.export'],
+                    ],
+                ],
+                'procurement_reports' => [
+                    'label' => 'Procurement Reports Center',
+                    'permissions' => [
+                        'view' => 'reports.procurement.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'reports.procurement.export'],
+                    ],
                 ],
                 'procurement_360' => [
                     'label' => 'Procurement 360',

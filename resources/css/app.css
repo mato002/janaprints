@@ -289,6 +289,48 @@
         @apply flex max-h-12 flex-wrap items-center gap-x-4 gap-y-1 overflow-hidden text-[11px] text-slate-600;
     }
 
+    .forms-kpi-strip {
+        @apply max-h-none gap-x-5 gap-y-2 py-3 text-xs sm:max-h-12 sm:py-2;
+    }
+
+    .forms-control-layout {
+        @apply grid min-w-0 gap-3 lg:grid-cols-[11rem_minmax(0,1fr)];
+    }
+
+    .forms-control-nav-list {
+        @apply flex gap-1.5 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] lg:flex-col lg:overflow-visible lg:pb-0 [&::-webkit-scrollbar]:hidden;
+    }
+
+    .forms-control-nav-item {
+        @apply inline-flex min-w-[9rem] shrink-0 items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-left text-xs font-medium text-slate-600 transition-colors lg:min-w-0 lg:w-full;
+        @apply hover:border-erp-border hover:bg-white hover:text-erp-accent;
+    }
+
+    .forms-control-nav-item--active {
+        @apply border-erp-primary bg-erp-primary text-white hover:border-erp-primary hover:bg-erp-primary hover:text-white;
+    }
+
+    .forms-control-body {
+        @apply grid min-w-0 gap-3 xl:grid-cols-[minmax(0,1fr)_14rem];
+    }
+
+    .forms-control-cards {
+        @apply min-w-0;
+    }
+
+    .forms-control-widgets {
+        @apply min-w-0 xl:sticky xl:top-3 xl:self-start;
+    }
+
+    .forms-quick-action {
+        @apply inline-flex items-center gap-1.5 rounded-lg border border-erp-border bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600 shadow-sm transition-colors;
+        @apply hover:border-erp-accent/40 hover:text-erp-accent;
+    }
+
+    .forms-control-card {
+        @apply min-w-0;
+    }
+
     .permission-matrix-chips {
         @apply flex gap-2 overflow-x-auto overscroll-x-contain pb-0.5;
         scrollbar-width: thin;

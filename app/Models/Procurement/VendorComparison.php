@@ -23,6 +23,7 @@ class VendorComparison extends Model
         'recommended_vendor_id',
         'recommendation_notes',
         'matrix',
+        'scoring_weights',
         'created_by',
     ];
 
@@ -31,6 +32,7 @@ class VendorComparison extends Model
         return [
             'comparison_date' => 'date',
             'matrix' => 'array',
+            'scoring_weights' => 'array',
         ];
     }
 

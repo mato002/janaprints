@@ -33,7 +33,13 @@ class FormGovernanceTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.settings.forms.index'))
             ->assertOk()
-            ->assertSee(__('Form Control'))
+            ->assertSee(__('Forms Control Center'))
+            ->assertSee(__('Total Forms'))
+            ->assertSee(__('Configuration Health'))
+            ->assertSee(__('Recently Modified'))
+            ->assertSee(__('Commercial'))
+            ->assertSee(__('Supply Chain'))
+            ->assertSee(__('Planned Forms'))
             ->assertSee(__('Customers'));
 
         $this->actingAs($user)

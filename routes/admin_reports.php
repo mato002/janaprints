@@ -11,7 +11,6 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             Route::get('executive', [IntelligenceReportController::class, 'executive'])->name('executive');
             Route::get('commercial', [IntelligenceReportController::class, 'commercial'])->name('commercial');
             Route::get('production', [IntelligenceReportController::class, 'production'])->name('production');
-            Route::get('inventory', [IntelligenceReportController::class, 'inventory'])->name('inventory');
             Route::get('procurement', [IntelligenceReportController::class, 'procurement'])->name('procurement');
             Route::get('accounting', [IntelligenceReportController::class, 'accounting'])->name('accounting');
             Route::get('hr', [IntelligenceReportController::class, 'hr'])->name('hr');
@@ -40,6 +39,10 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
                 ->get('commercial-360', [IntelligenceReportController::class, 'commercial360'])
                 ->name('commercial360');
         });
+
+        Route::middleware('permission:reports.view|reports.inventory.view')
+            ->get('reports/inventory', [IntelligenceReportController::class, 'inventory'])
+            ->name('reports.inventory');
 
         Route::middleware('permission:kpi.view|reports.view')
             ->get('reports/kpi', [IntelligenceReportController::class, 'kpi'])

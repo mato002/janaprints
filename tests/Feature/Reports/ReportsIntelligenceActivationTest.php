@@ -73,6 +73,16 @@ class ReportsIntelligenceActivationTest extends TestCase
             'branch_id' => $branch->id,
         ]));
 
+        if ($routeName === 'admin.reports.inventory') {
+            $response->assertRedirect(route('admin.inventory.reports.index', [
+                'from_date' => '2026-01-01',
+                'to_date' => '2026-06-05',
+                'branch_id' => $branch->id,
+            ]));
+
+            return;
+        }
+
         $response->assertOk();
         $response->assertSee($heading, false);
         $response->assertSee('Reports &amp; Intelligence', false);

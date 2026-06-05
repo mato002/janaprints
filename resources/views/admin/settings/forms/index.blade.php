@@ -36,8 +36,8 @@
         ])
     @else
         @include('admin.settings.partials.hub-toolbar', [
-            'title' => __('Form Control'),
-            'description' => __('Choose a module to configure field visibility, requirements, read-only state, and defaults.'),
+            'title' => __('Forms Control Center'),
+            'description' => __('Govern field visibility, requirements, read-only state, and defaults across every module form.'),
             'backUrl' => $hubBackUrl,
         ])
 
@@ -50,9 +50,8 @@
         ])
 
         @include('admin.settings.forms.partials.landing', [
-            'forms' => $forms,
-            'companyId' => $companyId,
-            'branchId' => $branchId,
+            'controlCenter' => $controlCenter,
+            'canManage' => $canManage,
         ])
     @endif
 </x-admin-layout>

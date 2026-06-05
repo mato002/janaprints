@@ -169,7 +169,12 @@ use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
-    protected array $policies = [
+    /**
+     * @return array<class-string, class-string>
+     */
+    protected function policies(): array
+    {
+        return [
         User::class => UserPolicy::class,
         UserSessionRecord::class => UserSessionPolicy::class,
         MasterDataValue::class => MasterDataPolicy::class,
@@ -254,7 +259,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Integrations\IntegrationApiKey::class => \App\Policies\IntegrationApiKeyPolicy::class,
         \App\Models\Integrations\IntegrationWebhook::class => \App\Policies\IntegrationWebhookPolicy::class,
         \App\Models\Integrations\IntegrationProvider::class => \App\Policies\IntegrationProviderPolicy::class,
-    ];
+        ];
+    }
 
     public function register(): void
     {
@@ -327,7 +333,7 @@ class AppServiceProvider extends ServiceProvider
             return \App\Models\Communications\Inbox\CommunicationConversation::query()->findOrFail($value);
         });
 
-        foreach ($this->policies as $model => $policy) {
+        foreach ($this->policies() as $model => $policy) {
             Gate::policy($model, $policy);
         }
 
