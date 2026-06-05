@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'tenant' => \App\Http\Middleware\SetTenantContext::class,
+            'admin.auth' => \App\Http\Middleware\EnsureAdminAuthContext::class,
+            'client.auth' => \App\Http\Middleware\EnsureClientAuthContext::class,
         ]);
 
         $middleware->prependToPriorityList(

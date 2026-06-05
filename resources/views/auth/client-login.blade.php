@@ -51,14 +51,11 @@
                         >
                     </div>
 
-                    <div class="flex items-center justify-between text-sm">
+                    <div class="text-sm">
                         <label class="flex items-center gap-2 text-white/80">
                             <input type="checkbox" name="remember" class="rounded border-white/20 bg-white/10 text-brand-cyan focus:ring-brand-cyan/30" @checked(old('remember'))>
                             Remember me
                         </label>
-                        @if (Route::has('password.request'))
-                            <a href="{{ route('password.request') }}" class="text-brand-cyan hover:text-white">Forgot password?</a>
-                        @endif
                     </div>
 
                     <button type="submit" class="public-btn--primary w-full justify-center">

@@ -29,7 +29,7 @@ Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
     Route::post('{token}', [RfqVendorPortalController::class, 'submit'])->name('submit');
 });
 
-Route::redirect('/dashboard', '/admin')->middleware(['auth', 'verified'])->name('dashboard');
+Route::redirect('/dashboard', '/admin')->middleware(['auth', 'admin.auth', 'verified'])->name('dashboard');
 
 require __DIR__.'/admin.php';
 

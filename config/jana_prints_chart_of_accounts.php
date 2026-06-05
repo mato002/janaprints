@@ -37,6 +37,10 @@ return [
         ['type' => 'liability', 'kind' => 'account', 'code' => '2200', 'name' => 'Tax Payable', 'parent_code' => '2000', 'postable' => false, 'sort' => 30],
         ['type' => 'liability', 'kind' => 'account', 'code' => '2210', 'name' => 'VAT Payable', 'parent_code' => '2200', 'postable' => true, 'sort' => 31],
         ['type' => 'liability', 'kind' => 'account', 'code' => '2220', 'name' => 'PAYE Payable', 'parent_code' => '2200', 'postable' => true, 'sort' => 32],
+        ['type' => 'liability', 'kind' => 'account', 'code' => '2221', 'name' => 'SHIF Payable', 'parent_code' => '2200', 'postable' => true, 'sort' => 33],
+        ['type' => 'liability', 'kind' => 'account', 'code' => '2222', 'name' => 'NSSF Payable', 'parent_code' => '2200', 'postable' => true, 'sort' => 34],
+        ['type' => 'liability', 'kind' => 'account', 'code' => '2223', 'name' => 'Housing Levy Payable', 'parent_code' => '2200', 'postable' => true, 'sort' => 35],
+        ['type' => 'liability', 'kind' => 'account', 'code' => '2215', 'name' => 'Net Salaries Payable', 'parent_code' => '2000', 'postable' => true, 'sort' => 36],
         ['type' => 'liability', 'kind' => 'account', 'code' => '2300', 'name' => 'Accrued Expenses', 'parent_code' => '2000', 'postable' => true, 'sort' => 40],
         ['type' => 'liability', 'kind' => 'account', 'code' => '2400', 'name' => 'Customer Deposits', 'parent_code' => '2000', 'postable' => true, 'sort' => 50],
 

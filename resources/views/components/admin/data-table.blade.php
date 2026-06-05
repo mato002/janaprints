@@ -5,6 +5,8 @@
     'selectable' => false,
     'filterable' => true,
     'exportFilename' => 'export',
+    'exportCsvUrl' => null,
+    'exportPdfUrl' => null,
     'chips' => [],
     'tableId' => null,
 ])
@@ -122,9 +124,27 @@
                                     x-cloak
                                     class="absolute end-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
                                 >
-                                    <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click.stop="exportTable('csv')">{{ __('Export CSV') }}</button>
+                                    @if ($exportCsvUrl)
+                                        <a
+                                            href="{{ $exportCsvUrl }}"
+                                            data-turbo="false"
+                                            class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
+                                            @click="exportOpen = false"
+                                        >{{ __('Export CSV') }}</a>
+                                    @else
+                                        <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click.stop="exportTable('csv')">{{ __('Export CSV') }}</button>
+                                    @endif
                                     <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export Excel') }}</button>
-                                    <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export PDF') }}</button>
+                                    @if ($exportPdfUrl)
+                                        <a
+                                            href="{{ $exportPdfUrl }}"
+                                            data-turbo="false"
+                                            class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
+                                            @click="exportOpen = false"
+                                        >{{ __('Export PDF') }}</a>
+                                    @else
+                                        <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export PDF') }}</button>
+                                    @endif
                                 </div>
                             </div>
                         @endif

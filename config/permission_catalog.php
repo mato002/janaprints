@@ -224,6 +224,81 @@ return [
             ],
         ],
 
+        'hr' => [
+            'label' => 'HR',
+            'entities' => [
+                'attendance' => [
+                    'label' => 'Attendance',
+                    'permissions' => [
+                        'view' => 'hr.attendance.view',
+                        'create' => 'hr.attendance.create',
+                        'edit' => 'hr.attendance.edit',
+                        'approve' => 'hr.attendance.approve',
+                        'export' => 'hr.attendance.export',
+                    ],
+                ],
+                'leave' => [
+                    'label' => 'Leave',
+                    'permissions' => [
+                        'view' => 'hr.leave.view',
+                        'create' => 'hr.leave.create',
+                        'approve' => 'hr.leave.approve',
+                        'reject' => 'hr.leave.reject',
+                        'export' => 'hr.leave.export',
+                    ],
+                ],
+                'payroll' => [
+                    'label' => 'Payroll',
+                    'permissions' => [
+                        'view' => 'hr.payroll.view',
+                        'create' => 'hr.payroll.process',
+                        'approve' => 'hr.payroll.approve',
+                        'export' => 'hr.payroll.export',
+                    ],
+                ],
+                'documents' => [
+                    'label' => 'Documents',
+                    'permissions' => [
+                        'view' => 'hr.documents.view',
+                        'create' => 'hr.documents.upload',
+                        'delete' => 'hr.documents.delete',
+                    ],
+                ],
+                'performance' => [
+                    'label' => 'Performance',
+                    'permissions' => [
+                        'view' => 'hr.performance.view',
+                        'create' => 'hr.performance.manage',
+                        'edit' => 'hr.performance.manage',
+                        'delete' => 'hr.performance.manage',
+                    ],
+                ],
+                'training' => [
+                    'label' => 'Training',
+                    'permissions' => [
+                        'view' => 'hr.training.view',
+                        'create' => 'hr.training.manage',
+                        'edit' => 'hr.training.manage',
+                        'delete' => 'hr.training.manage',
+                    ],
+                ],
+                'exit' => [
+                    'label' => 'Exit Management',
+                    'permissions' => [
+                        'view' => 'hr.exit.view',
+                        'create' => 'hr.exit.manage',
+                        'edit' => 'hr.exit.manage',
+                    ],
+                ],
+                'dashboard' => [
+                    'label' => 'HR Dashboard',
+                    'permissions' => [
+                        'view' => 'hr.dashboard.view',
+                    ],
+                ],
+            ],
+        ],
+
         'crm' => [
             'label' => 'CRM',
             'entities' => [

@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('guest')->group(function () {
-    Route::redirect('login', '/client/login')->name('login');
+    Route::redirect('login', '/admin/login')->name('login');
 
     Route::prefix('admin')->group(function () {
         Route::get('login', [AuthenticatedSessionController::class, 'create'])
@@ -43,6 +43,10 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
         ->name('password.store');
+});
+
+Route::middleware(['auth', 'client.auth', 'tenant'])->prefix('client')->name('client.')->group(function () {
+    Route::get('/', \App\Http\Controllers\Client\ClientDashboardController::class)->name('dashboard');
 });
 
 Route::middleware('auth')->group(function () {

@@ -38,6 +38,8 @@ enum PostingEventCode: string
     case PosReturn = 'pos.return';
     case PosVariance = 'pos.variance';
 
+    case PayrollPosted = 'payroll.posted';
+
     public function module(): PostingModule
     {
         return match ($this) {
@@ -74,6 +76,8 @@ enum PostingEventCode: string
             self::PosSaleCard,
             self::PosReturn,
             self::PosVariance => PostingModule::Pos,
+
+            self::PayrollPosted => PostingModule::Hr,
         };
     }
 
@@ -105,6 +109,7 @@ enum PostingEventCode: string
             self::PosSaleCard => __('POS card sale'),
             self::PosReturn => __('POS return'),
             self::PosVariance => __('POS cash variance'),
+            self::PayrollPosted => __('Payroll posted'),
         };
     }
 }

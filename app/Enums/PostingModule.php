@@ -12,6 +12,7 @@ enum PostingModule: string
     case Payment = 'payment';
     case Assets = 'assets';
     case Pos = 'pos';
+    case Hr = 'hr';
     case General = 'general';
 
     public function label(): string
@@ -25,6 +26,7 @@ enum PostingModule: string
             self::Payment => __('Payments'),
             self::Assets => __('Fixed Assets'),
             self::Pos => __('Point of Sale'),
+            self::Hr => __('HR & Payroll'),
             self::General => __('General'),
         };
     }

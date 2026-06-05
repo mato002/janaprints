@@ -407,7 +407,9 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
-            if (rows.length === 0) {
+            if (rows.length === 0 || (rows.length === 1 && headers.length > 0 && dataRowCount === 0)) {
+                window.alert(this.$el?.dataset?.exportEmptyMessage ?? 'No rows to export.');
+
                 return;
             }
 
@@ -428,7 +430,7 @@ document.addEventListener('alpine:init', () => {
                 return false;
             }
 
-            if (row.querySelector('[data-export-skip]')) {
+            if (row.querySelector('[data-export-skip], [data-empty-state], .erp-empty-state')) {
                 return false;
             }
 

@@ -46,5 +46,9 @@ class OrganizationFoundationSeeder extends Seeder
         );
 
         $this->call(JobTitlesSeeder::class);
+        $this->call(DefaultShiftsSeeder::class);
+        $this->call(DefaultLeaveTypesSeeder::class);
+        $this->call(PayrollPostingSeeder::class);
     }
 }
+

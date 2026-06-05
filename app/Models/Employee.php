@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'branch_id',
     'department_id',
     'job_title_id',
+    'shift_id',
     'employee_number',
     'first_name',
     'middle_name',
@@ -71,6 +72,66 @@ class Employee extends Model
     public function jobTitle(): BelongsTo
     {
         return $this->belongsTo(JobTitle::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Hr\Shift::class);
+    }
+
+    public function attendanceRecords(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\AttendanceRecord::class);
+    }
+
+    public function leaveRequests(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\LeaveRequest::class);
+    }
+
+    public function leaveBalances(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\LeaveBalance::class);
+    }
+
+    public function compensation(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(\App\Models\Hr\EmployeeCompensation::class)->where('is_active', true)->latest('effective_from');
+    }
+
+    public function compensations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\EmployeeCompensation::class);
+    }
+
+    public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\EmployeeDocument::class);
+    }
+
+    public function performanceReviews(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\PerformanceReview::class);
+    }
+
+    public function salesTargets(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\EmployeeSalesTarget::class);
+    }
+
+    public function trainingAssignments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\EmployeeTrainingAssignment::class);
+    }
+
+    public function skills(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\EmployeeSkill::class);
+    }
+
+    public function exits(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\EmployeeExit::class);
     }
 
     public function user(): HasOne

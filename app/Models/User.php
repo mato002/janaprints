@@ -13,12 +13,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Crm\Customer;
 use App\Models\Inventory\Warehouse;
 
 #[Fillable([
     'company_id',
     'default_branch_id',
     'employee_id',
+    'customer_id',
     'name',
     'email',
     'avatar_path',
@@ -53,6 +55,21 @@ class User extends Authenticatable implements MustVerifyEmail
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function isClientPortalAccount(): bool
+    {
+        return $this->customer_id !== null && $this->employee_id === null;
+    }
+
+    public function isStaffAccount(): bool
+    {
+        return ! $this->isClientPortalAccount();
     }
 
     public function managedWarehouses(): BelongsToMany

@@ -17,11 +17,11 @@ class AuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_legacy_login_url_redirects_to_client_login(): void
+    public function test_legacy_login_url_redirects_to_admin_login(): void
     {
         $response = $this->get('/login');
 
-        $response->assertRedirect(route('client.login', absolute: false));
+        $response->assertRedirect(route('admin.login', absolute: false));
     }
 
     public function test_users_can_authenticate_using_the_admin_login_screen(): void

@@ -6,12 +6,15 @@
     ];
 @endphp
 <x-admin-layout :title="__('Variance Report')" :breadcrumbs="$breadcrumbs">
-    <x-admin.page-header :title="__('Variance report')">
-        <a href="{{ route('admin.inventory.variances.export', request()->query()) }}" class="erp-btn-secondary">{{ __('Export CSV') }}</a>
-        <a href="{{ route('admin.inventory.variances.export-pdf') }}" class="erp-btn-secondary">{{ __('Export PDF') }}</a>
-    </x-admin.page-header>
+    <x-admin.page-header :title="__('Variance report')" />
 
-    <x-admin.data-table :search-placeholder="__('Search variances…')" :filterable="true" export-filename="inventory-variances">
+    <x-admin.data-table
+        :search-placeholder="__('Search variances…')"
+        :filterable="true"
+        export-filename="inventory-variances"
+        :export-csv-url="route('admin.inventory.variances.export', request()->query())"
+        :export-pdf-url="route('admin.inventory.variances.export-pdf', request()->query())"
+    >
         <x-slot name="filters">
             <form method="GET" class="flex flex-wrap gap-3 items-end mb-4">
                 <div>
@@ -78,7 +81,7 @@
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.inventory.stock-counts.show', $line->stockCount)">{{ __('View Count') }}</x-admin.table-row-action>
-                            <x-admin.table-row-action :href="route('admin.inventory.variances.export', ['warehouse_id' => $line->stockCount?->warehouse_id])">{{ __('Export') }}</x-admin.table-row-action>
+                            <x-admin.table-row-action :href="route('admin.inventory.variances.export', ['warehouse_id' => $line->stockCount?->warehouse_id])" data-turbo="false">{{ __('Export') }}</x-admin.table-row-action>
                         </x-admin.table-row-actions>
                     </td>
                 </tr>

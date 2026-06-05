@@ -27,7 +27,7 @@ use App\Http\Controllers\Admin\WorkspaceController;
 use Illuminate\Support\Facades\Route;
 use App\Support\Navigation\WorkspacePresenter;
 
-Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
+Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -306,5 +306,6 @@ require __DIR__.'/admin_communication_logs.php';
 require __DIR__.'/admin_communications_whatsapp.php';
 require __DIR__.'/admin_communications_email.php';
 require __DIR__.'/admin_communications_inbox.php';
+require __DIR__.'/admin_hr.php';
 require __DIR__.'/admin_reports.php';
 require __DIR__.'/admin_integrations.php';
