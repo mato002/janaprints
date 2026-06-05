@@ -46,7 +46,7 @@ return [
         'cta' => [
             'headline' => 'Ready to start your next print project?',
             'button' => 'Request A Free Quote',
-            'href' => '/request-quote',
+            'href' => '/request-quote#quote-form',
         ],
         'nav' => [
             ['label' => 'Services', 'href' => '/services'],

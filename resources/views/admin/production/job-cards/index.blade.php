@@ -6,51 +6,60 @@
     $filters = $filters ?? [];
     $filterOptions = $filter_options ?? [];
     $activeChips = $active_filter_chips ?? [];
-    $kpis = $kpis ?? [];
-    $pipeline = $pipeline ?? [];
-    $alerts = $alerts ?? [];
-    $workload = $workload ?? [];
-    $quickActions = $quick_actions ?? [];
+    $statusTabs = $status_tabs ?? [];
+    $savedViewPresets = $saved_view_presets ?? [];
+    $registerColumns = $register_columns ?? [];
     $bulkActions = $bulk_actions ?? [];
+    $hasActiveFilters = $has_active_filters ?? false;
+    $canCreate = $can_create ?? false;
+    $createUrl = $create_url ?? null;
+    $salesOrdersUrl = $sales_orders_url ?? null;
 @endphp
 
 <x-admin-layout
     :title="__('Job cards')"
     :breadcrumbs="[
-        ['label' => __('Production'), 'url' => route('admin.production.dashboard')],
+        ['label' => __('Production'), 'url' => route('admin.workspaces.production')],
         ['label' => __('Job cards')],
     ]"
 >
     <x-admin.page-header
-        :title="__('Production Operations Command Center')"
-        :description="__('Production intelligence from existing job, queue, QC, and dispatch data — no duplicate workflows.')"
-    />
+        :title="__('Job Cards')"
+        :description="__('Production order execution register.')"
+    >
+        @if ($canCreate && $createUrl)
+            <x-slot name="actions">
+                <a href="{{ $createUrl }}" class="erp-btn-primary" data-turbo-frame="erp-main">{{ __('Create Job Card') }}</a>
+            </x-slot>
+        @endif
+    </x-admin.page-header>
 
-    @include('admin.production.job-cards.command-center.kpi-strip', ['kpis' => $kpis])
+    <div
+        x-data="jobCardsRegister(@js([
+            'columns' => $registerColumns,
+            'presets' => $savedViewPresets,
+            'indexUrl' => route('admin.production.job-cards.index'),
+        ]))"
+    >
+        @include('admin.production.job-cards.register.filters', [
+            'filters' => $filters,
+            'filterOptions' => $filterOptions,
+            'activeChips' => $activeChips,
+            'statusTabs' => $statusTabs,
+            'savedViewPresets' => $savedViewPresets,
+            'registerColumns' => $registerColumns,
+        ])
 
-    @include('admin.production.job-cards.command-center.pipeline', ['pipeline' => $pipeline])
-
-    @include('admin.production.job-cards.command-center.quick-actions', ['quickActions' => $quickActions])
-
-    <div class="job-cards-cc">
-        <div class="job-cards-cc__main space-y-4">
-            @include('admin.production.job-cards.command-center.filters', [
-                'filters' => $filters,
-                'filterOptions' => $filterOptions,
-                'activeChips' => $activeChips,
-            ])
-
-            @include('admin.production.job-cards.command-center.table', [
-                'jobCards' => $jobCards,
-                'indexService' => $indexService,
-                'filters' => $filters,
-                'bulkActions' => $bulkActions,
-            ])
-        </div>
-
-        <aside class="job-cards-cc__rail space-y-4">
-            @include('admin.production.job-cards.command-center.alerts', ['alerts' => $alerts])
-            @include('admin.production.job-cards.command-center.workload', ['workload' => $workload])
-        </aside>
+        @include('admin.production.job-cards.register.table', [
+            'jobCards' => $jobCards,
+            'indexService' => $indexService,
+            'filters' => $filters,
+            'bulkActions' => $bulkActions,
+            'registerColumns' => $registerColumns,
+            'hasActiveFilters' => $hasActiveFilters,
+            'canCreate' => $canCreate,
+            'createUrl' => $createUrl,
+            'salesOrdersUrl' => $salesOrdersUrl,
+        ])
     </div>
 </x-admin-layout>

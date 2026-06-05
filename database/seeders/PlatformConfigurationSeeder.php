@@ -84,18 +84,43 @@ class PlatformConfigurationSeeder extends Seeder
         $template = config('platform.numbering.default_template');
 
         foreach (DocumentType::cases() as $documentType) {
+            $isCompanyLevel = in_array($documentType, [
+                DocumentType::FixedAsset,
+                DocumentType::MaintenanceWorkOrder,
+                DocumentType::AssetHandover,
+                DocumentType::AssetBranchTransfer,
+                DocumentType::DepreciationRun,
+                DocumentType::AssetWriteOff,
+                DocumentType::AssetReconciliation,
+                DocumentType::AssetCapitalizationCandidate,
+                DocumentType::AssetCapitalizationReconciliation,
+            ], true);
+
+            $format = match ($documentType) {
+                DocumentType::FixedAsset => 'AST-{year}-{number}',
+                DocumentType::MaintenanceWorkOrder => 'MWO-{year}-{number}',
+                DocumentType::AssetHandover => 'AHO-{year}-{number}',
+                DocumentType::AssetBranchTransfer => 'ABT-{year}-{number}',
+                DocumentType::DepreciationRun => 'DR-{year}-{number}',
+                DocumentType::AssetWriteOff => 'AWO-{year}-{number}',
+                DocumentType::AssetReconciliation => 'ARC-{year}-{number}',
+                DocumentType::AssetCapitalizationCandidate => 'CAP-{year}-{number}',
+                DocumentType::AssetCapitalizationReconciliation => 'ACR-{year}-{number}',
+                default => $template,
+            };
+
             NumberingSequence::query()->updateOrCreate(
                 [
                     'company_id' => $companyId,
-                    'branch_id' => $branchId,
+                    'branch_id' => $isCompanyLevel ? null : $branchId,
                     'document_type' => $documentType->value,
                 ],
                 [
-                    'format_template' => $template,
+                    'format_template' => $format,
                     'next_number' => 1,
                     'padding' => config('platform.numbering.default_padding', 5),
                     'include_year' => true,
-                    'include_branch_code' => true,
+                    'include_branch_code' => $isCompanyLevel ? false : true,
                 ],
             );
         }

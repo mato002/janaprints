@@ -21,9 +21,6 @@
         @endforeach
     </div>
 
-    @include('admin.production.scheduling.partials.work-center-load', ['workCenterLoad' => $workCenterLoad])
-    @include('admin.production.scheduling.partials.warnings', ['warnings' => $warnings])
-
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div class="inline-flex rounded-lg border border-erp-border bg-white p-0.5 text-sm">
             <a

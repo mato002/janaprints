@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Database\Factories\BranchFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Assets\FixedAsset;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
@@ -36,6 +37,11 @@ class Branch extends Model
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class);
+    }
+
+    public function fixedAssets(): HasMany
+    {
+        return $this->hasMany(FixedAsset::class);
     }
 
     public function usersWithDefaultBranch(): HasMany

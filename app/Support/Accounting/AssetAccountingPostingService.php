@@ -7,6 +7,7 @@ use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\Journal;
 use App\Models\Assets\AssetDepreciationEntry;
 use App\Models\Assets\AssetDisposal;
+use App\Models\Assets\AssetWriteOff;
 use App\Models\Assets\FixedAsset;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -20,6 +21,10 @@ class AssetAccountingPostingService
 
     public function postDepreciation(AssetDepreciationEntry $entry, FixedAsset $asset, int $userId): Journal
     {
+        if ($entry->posted_journal_id) {
+            return Journal::query()->findOrFail($entry->posted_journal_id);
+        }
+
         $amount = (float) $entry->depreciation_amount;
 
         if ($amount <= 0) {
@@ -31,8 +36,8 @@ class AssetAccountingPostingService
         $asset->load('category');
 
         $fixedAssetAccountId = $this->resolveFixedAssetAccount($asset);
-        $accumulatedId = $this->resolveAccountKey($asset->company_id, 'accumulated_depreciation');
-        $expenseId = $this->resolveAccountKey($asset->company_id, 'depreciation_expense');
+        $accumulatedId = $this->resolveCategoryAccount($asset, 'accumulated_depreciation_gl_code', 'accumulated_depreciation');
+        $expenseId = $this->resolveCategoryAccount($asset, 'depreciation_expense_gl_code', 'depreciation_expense');
 
         $journal = $this->posting->postEvent(
             PostingEventCode::AssetDepreciationPosted,
@@ -63,8 +68,12 @@ class AssetAccountingPostingService
 
     public function postDisposal(AssetDisposal $disposal, FixedAsset $asset, int $userId): Journal
     {
+        if ($disposal->posted_journal_id) {
+            return Journal::query()->findOrFail($disposal->posted_journal_id);
+        }
+
         return DB::transaction(function () use ($disposal, $asset, $userId) {
-            $nbv = $asset->netBookValue();
+            $nbv = (float) ($disposal->nbv_at_disposal ?? $asset->netBookValue());
             $proceeds = (float) $disposal->disposal_proceeds;
             $gainLoss = round($proceeds - $nbv, 2);
 
@@ -86,8 +95,10 @@ class AssetAccountingPostingService
                 description: __('Asset disposal :asset', ['asset' => $asset->asset_name]),
                 accounts: [
                     'fixed_asset' => $this->resolveFixedAssetAccount($asset),
-                    'accumulated_depreciation' => $this->resolveAccountKey($asset->company_id, 'accumulated_depreciation'),
+                    'accumulated_depreciation' => $this->resolveCategoryAccount($asset, 'accumulated_depreciation_gl_code', 'accumulated_depreciation'),
                     'bank' => $this->resolveAccountKey($asset->company_id, 'bank'),
+                    'asset_disposal_gain' => $this->resolveCategoryAccount($asset, 'asset_gain_loss_gl_code', 'asset_disposal_gain'),
+                    'asset_disposal_loss' => $this->resolveCategoryAccount($asset, 'asset_gain_loss_gl_code', 'asset_disposal_loss'),
                 ],
             );
 
@@ -98,6 +109,56 @@ class AssetAccountingPostingService
 
             return $journal;
         });
+    }
+
+    public function postWriteOff(AssetWriteOff $writeOff, FixedAsset $asset, int $userId): Journal
+    {
+        if ($writeOff->posted_journal_id) {
+            return Journal::query()->findOrFail($writeOff->posted_journal_id);
+        }
+
+        $amount = (float) $writeOff->nbv_at_writeoff;
+
+        if ($amount <= 0) {
+            throw ValidationException::withMessages([
+                'writeoff' => __('Write-off amount must be greater than zero.'),
+            ]);
+        }
+
+        $asset->load('category');
+
+        $journal = $this->posting->postEvent(
+            PostingEventCode::AssetWriteOffPosted,
+            $asset->company_id,
+            $userId,
+            'asset_write_off',
+            $writeOff->id,
+            $writeOff->write_off_date->toDateString(),
+            ['total_amount' => $amount],
+            $asset->branch_id,
+            reference: $writeOff->writeoff_no,
+            description: __('Asset write-off :asset', ['asset' => $asset->asset_name]),
+            accounts: [
+                'asset_disposal_loss' => $this->resolveCategoryAccount($asset, 'asset_gain_loss_gl_code', 'asset_disposal_loss'),
+                'fixed_asset' => $this->resolveFixedAssetAccount($asset),
+                'accumulated_depreciation' => $this->resolveCategoryAccount($asset, 'accumulated_depreciation_gl_code', 'accumulated_depreciation'),
+            ],
+            metadata: ['fixed_asset_id' => $asset->id],
+        );
+
+        $writeOff->update(['posted_journal_id' => $journal->id]);
+
+        return $journal;
+    }
+
+    public function resolveFixedAssetAccountPublic(FixedAsset $asset): int
+    {
+        return $this->resolveFixedAssetAccount($asset);
+    }
+
+    public function resolveAccountKeyPublic(int $companyId, string $key): int
+    {
+        return $this->resolveAccountKey($companyId, $key);
     }
 
     protected function resolveFixedAssetAccount(FixedAsset $asset): int
@@ -117,6 +178,25 @@ class AssetAccountingPostingService
         }
 
         return $account->id;
+    }
+
+    protected function resolveCategoryAccount(FixedAsset $asset, string $categoryField, string $fallbackKey): int
+    {
+        $code = $asset->category?->{$categoryField};
+
+        if ($code) {
+            $account = GlAccount::query()
+                ->where('company_id', $asset->company_id)
+                ->where('code', $code)
+                ->where('is_postable', true)
+                ->first();
+
+            if ($account) {
+                return (int) $account->id;
+            }
+        }
+
+        return $this->resolveAccountKey($asset->company_id, $fallbackKey);
     }
 
     protected function resolveAccountKey(int $companyId, string $key): int

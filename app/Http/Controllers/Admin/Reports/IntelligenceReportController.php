@@ -14,8 +14,10 @@ use App\Support\Reports\Procurement360Presenter;
 use App\Support\Reports\Production360Presenter;
 use App\Support\Commercial\CommercialNavigationAlignmentService;
 use Illuminate\Http\RedirectResponse;
+use App\Support\Reports\Asset360IntelligencePresenter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class IntelligenceReportController extends Controller
 {
@@ -29,6 +31,7 @@ class IntelligenceReportController extends Controller
         protected Production360Presenter $production360Presenter,
         protected Financial360Presenter $financial360Presenter,
         protected Commercial360Presenter $commercial360Presenter,
+        protected Asset360IntelligencePresenter $asset360Presenter,
         protected CommercialNavigationAlignmentService $commercialNavigation,
     ) {}
 
@@ -108,11 +111,58 @@ class IntelligenceReportController extends Controller
         return view('admin.reports.intelligence-360', $this->branch360Presenter->present($request));
     }
 
-    public function production360(Request $request): View
+    public function production360(Request $request): View|StreamedResponse
     {
         $this->authorizeReport($request, 'intelligence.production.view', 'reports.view');
 
-        return view('admin.reports.intelligence-360', $this->production360Presenter->present($request));
+        if ($request->query('export') === 'csv') {
+            abort_unless($request->user()?->can('reports.export'), 403);
+
+            return $this->exportProduction360Csv($request);
+        }
+
+        return view('admin.reports.production-360', $this->production360Presenter->present($request));
+    }
+
+    protected function exportProduction360Csv(Request $request): StreamedResponse
+    {
+        $payload = $this->production360Presenter->present($request);
+
+        return response()->streamDownload(function () use ($payload) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['Section', 'Metric', 'Value']);
+
+            foreach ($payload['sections'] as $section) {
+                $title = $section['title'] ?? 'Section';
+
+                if (($section['type'] ?? '') === 'kpis') {
+                    foreach ($section['items'] ?? [] as $item) {
+                        fputcsv($out, [$title, $item['label'] ?? '', $item['value'] ?? '']);
+                    }
+                }
+
+                if (($section['type'] ?? '') === 'drilldown') {
+                    foreach ($section['rows'] ?? [] as $row) {
+                        fputcsv($out, [$title, implode(' | ', $row['cells'] ?? []), '']);
+                    }
+                }
+
+                if (($section['type'] ?? '') === 'split') {
+                    foreach ($section['kpis'] ?? [] as $item) {
+                        fputcsv($out, [$title, $item['label'] ?? '', $item['value'] ?? '']);
+                    }
+                    foreach ($section['tables'] ?? [] as $table) {
+                        foreach ($table['rows'] ?? [] as $row) {
+                            fputcsv($out, [$table['title'] ?? $title, implode(' | ', $row['cells'] ?? []), '']);
+                        }
+                    }
+                }
+            }
+
+            fclose($out);
+        }, 'production-360-'.now()->format('Y-m-d').'.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
     public function financial360(Request $request): View
@@ -127,6 +177,13 @@ class IntelligenceReportController extends Controller
         $this->authorizeReport($request, 'intelligence.commercial.view', 'reports.view');
 
         return view('admin.reports.intelligence-360', $this->commercial360Presenter->present($request));
+    }
+
+    public function asset360(Request $request): View
+    {
+        $this->authorizeReport($request, 'intelligence.assets.view', 'assets.analytics.view', 'reports.view');
+
+        return view('admin.reports.intelligence-360', $this->asset360Presenter->present($request));
     }
 
     protected function legacy(string $key, Request $request): View

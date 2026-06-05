@@ -52,4 +52,9 @@ class Vendor extends Model
     {
         return $this->hasMany(SupplierQuotation::class);
     }
+
+    public function maintenanceWorkOrders(): HasMany
+    {
+        return $this->hasMany(\App\Models\Assets\MaintenanceWorkOrder::class);
+    }
 }

@@ -445,6 +445,32 @@ return [
                         ['label' => 'Manage costing', 'permission' => 'production.costing.manage'],
                     ],
                 ],
+                'workspaces' => [
+                    'label' => 'Production Workspaces',
+                    'permissions' => [],
+                    'extra' => [
+                        [
+                            'label' => 'View Production Queue',
+                            'permission' => 'production.queue.view',
+                            'description' => 'Access production queue register.',
+                        ],
+                        [
+                            'label' => 'View Production Scheduling',
+                            'permission' => 'production.scheduling.view',
+                            'description' => 'Access production planning and scheduling workspace.',
+                        ],
+                        [
+                            'label' => 'View Quality Control',
+                            'permission' => 'production.quality.view',
+                            'description' => 'Access QC inspection register.',
+                        ],
+                        [
+                            'label' => 'View Work Centers',
+                            'permission' => 'production.work-centers.view',
+                            'description' => 'Access work center and capacity master data.',
+                        ],
+                    ],
+                ],
             ],
         ],
 
@@ -580,6 +606,89 @@ return [
                     ],
                     'extra' => [
                         ['label' => 'Manage lifecycle', 'permission' => 'assets.manage'],
+                    ],
+                ],
+                'categories' => [
+                    'label' => 'Asset Categories',
+                    'permissions' => [
+                        'view' => 'assets.categories.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage categories', 'permission' => 'assets.categories.manage'],
+                    ],
+                ],
+                'machines' => [
+                    'label' => 'Production Machines',
+                    'permissions' => [
+                        'view' => 'machines.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage machines', 'permission' => 'machines.manage'],
+                        ['label' => 'Manage capacity', 'permission' => 'machines.capacity.manage'],
+                        ['label' => 'Assign machines', 'permission' => 'machines.assign'],
+                    ],
+                ],
+                'maintenance' => [
+                    'label' => 'Maintenance',
+                    'permissions' => [
+                        'view' => 'maintenance.view',
+                        'create' => 'maintenance.create',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage maintenance', 'permission' => 'maintenance.manage'],
+                        ['label' => 'Assign work orders', 'permission' => 'maintenance.assign'],
+                        ['label' => 'Complete work orders', 'permission' => 'maintenance.complete'],
+                        ['label' => 'Close work orders', 'permission' => 'maintenance.close'],
+                        ['label' => 'View calendar', 'permission' => 'maintenance.calendar.view'],
+                    ],
+                ],
+                'finance' => [
+                    'label' => 'Asset Finance',
+                    'permissions' => [
+                        'view' => 'assets.depreciation.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Run depreciation', 'permission' => 'assets.depreciation.run'],
+                        ['label' => 'Post depreciation', 'permission' => 'assets.depreciation.post'],
+                        ['label' => 'View reconciliation', 'permission' => 'assets.reconciliation.view'],
+                        ['label' => 'Post disposals', 'permission' => 'assets.disposal.post'],
+                        ['label' => 'Manage write-offs', 'permission' => 'assets.writeoff.manage'],
+                    ],
+                ],
+                'intelligence' => [
+                    'label' => 'Intelligence & Analytics',
+                    'permissions' => [
+                        'view' => 'assets.360.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'View analytics', 'permission' => 'assets.analytics.view'],
+                        ['label' => 'View health scores', 'permission' => 'assets.health.view'],
+                        ['label' => 'View replacement intelligence', 'permission' => 'assets.replacement.view'],
+                        ['label' => 'View lifecycle analytics', 'permission' => 'assets.lifecycle.view'],
+                    ],
+                ],
+                'acquisitions' => [
+                    'label' => 'Acquisitions & Capitalization',
+                    'permissions' => [
+                        'view' => 'assets.acquisition.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Capitalize assets', 'permission' => 'assets.capitalize'],
+                        ['label' => 'Post acquisition journals', 'permission' => 'assets.acquisition.post'],
+                        ['label' => 'Manage warranties', 'permission' => 'assets.warranty.manage'],
+                    ],
+                ],
+                'custody' => [
+                    'label' => 'Custody & Accountability',
+                    'permissions' => [
+                        'view' => 'assets.custody.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Assign assets', 'permission' => 'assets.assign'],
+                        ['label' => 'Transfer assets', 'permission' => 'assets.transfer'],
+                        ['label' => 'Record returns', 'permission' => 'assets.return'],
+                        ['label' => 'Manage handovers', 'permission' => 'assets.handover.manage'],
+                        ['label' => 'Manage custody', 'permission' => 'assets.custody.manage'],
                     ],
                 ],
             ],
@@ -1040,6 +1149,10 @@ return [
                 'commercial_360' => [
                     'label' => 'Commercial 360',
                     'permissions' => ['view' => 'intelligence.commercial.view'],
+                ],
+                'asset_360' => [
+                    'label' => 'Asset Intelligence',
+                    'permissions' => ['view' => 'intelligence.assets.view'],
                 ],
             ],
         ],

@@ -103,7 +103,7 @@
 
         {{-- CTA nudge --}}
         <div class="mt-16 text-center" data-animate="fade-up">
-            <x-public.button href="#contact" variant="gradient" size="lg">
+            <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">
                 Request Your Quote
             </x-public.button>
         </div>

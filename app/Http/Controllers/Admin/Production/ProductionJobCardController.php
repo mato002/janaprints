@@ -9,8 +9,10 @@ use App\Enums\QualityCheckResult;
 use App\Enums\SalesOrderStatus;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
+use App\Models\Assets\FixedAsset;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
+use App\Services\Assets\MachineJobAssignmentService;
 use App\Services\Production\Job360WorkspaceService;
 use App\Services\Production\JobProductionControlService;
 use App\Services\Production\ProductionJobCardIndexService;
@@ -233,5 +235,33 @@ class ProductionJobCardController extends Controller
         ]));
 
         return back()->with('status', __('Schedule updated.'));
+    }
+
+    public function assignMachine(
+        Request $request,
+        ProductionJobCard $jobCard,
+        MachineJobAssignmentService $assignments,
+    ): RedirectResponse {
+        $this->authorize('update', $jobCard);
+        abort_unless($request->user()?->can('machines.assign'), 403);
+
+        $validated = $request->validate([
+            'assigned_machine_asset_id' => ['required', 'exists:fixed_assets,id'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $machine = FixedAsset::query()
+            ->forTenant()
+            ->whereHas('machineProfile')
+            ->findOrFail($validated['assigned_machine_asset_id']);
+
+        $assignments->assignToJob(
+            $jobCard,
+            $machine,
+            (int) auth()->id(),
+            $validated['notes'] ?? null,
+        );
+
+        return back()->with('status', __('Machine assigned to job card.'));
     }
 }

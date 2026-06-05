@@ -81,6 +81,8 @@ class GoodsReceiptController extends Controller
             $goodsReceipt->items()->create([
                 'purchase_order_item_id' => $poItem->id,
                 'inventory_item_id' => $poItem->inventory_item_id,
+                'item_classification' => $poItem->item_classification,
+                'asset_category_id' => $poItem->asset_category_id,
                 'quantity_received' => $line['quantity_received'],
                 'unit_cost' => $poItem->unit_cost,
             ]);
@@ -108,6 +110,6 @@ class GoodsReceiptController extends Controller
             return back()->withErrors($e->errors());
         }
 
-        return back()->with('status', __('Goods receipt posted to inventory.'));
+        return back()->with('status', __('Goods receipt posted.'));
     }
 }

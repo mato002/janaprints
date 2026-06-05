@@ -73,7 +73,7 @@
                     @endforeach
                 </ul>
                 <div class="public-journey-panel__cta">
-                    <x-public.button href="#contact" variant="gradient" class="w-full justify-center">
+                    <x-public.button href="{{ $quoteFormHref }}" variant="gradient" class="w-full justify-center">
                         Start Your Project
                     </x-public.button>
                 </div>

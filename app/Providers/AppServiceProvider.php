@@ -224,6 +224,21 @@ class AppServiceProvider extends ServiceProvider
         ProductionQueue::class => ProductionQueuePolicy::class,
         QualityCheck::class => QualityCheckPolicy::class,
         WorkCenter::class => WorkCenterPolicy::class,
+        \App\Models\Assets\FixedAsset::class => \App\Policies\FixedAssetPolicy::class,
+        \App\Models\Assets\AssetCategory::class => \App\Policies\AssetCategoryPolicy::class,
+        \App\Models\Assets\MachineProfile::class => \App\Policies\MachinePolicy::class,
+        \App\Models\Assets\MaintenanceWorkOrder::class => \App\Policies\MaintenanceWorkOrderPolicy::class,
+        \App\Models\Assets\MaintenancePlan::class => \App\Policies\MaintenancePlanPolicy::class,
+        \App\Models\Assets\AssetDowntimeRecord::class => \App\Policies\DowntimePolicy::class,
+        \App\Models\Assets\MaintenanceTechnician::class => \App\Policies\MaintenanceTechnicianPolicy::class,
+        \App\Models\Assets\AssetHandover::class => \App\Policies\AssetHandoverPolicy::class,
+        \App\Models\Assets\AssetReturn::class => \App\Policies\AssetReturnPolicy::class,
+        \App\Models\Assets\AssetBranchTransfer::class => \App\Policies\AssetTransferPolicy::class,
+        \App\Models\Assets\DepreciationRun::class => \App\Policies\AssetDepreciationPolicy::class,
+        \App\Models\Assets\AssetRegisterReconciliation::class => \App\Policies\AssetReconciliationPolicy::class,
+        \App\Models\Assets\AssetWriteOff::class => \App\Policies\AssetWriteOffPolicy::class,
+        \App\Models\Assets\AssetCapitalizationCandidate::class => \App\Policies\AssetCapitalizationPolicy::class,
+        \App\Models\Assets\AssetWarranty::class => \App\Policies\AssetWarrantyPolicy::class,
         InventoryItem::class => InventoryItemPolicy::class,
         Warehouse::class => WarehousePolicy::class,
         StockReceipt::class => StockReceiptPolicy::class,
@@ -267,7 +282,9 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Integrations\IntegrationApiKey::class => \App\Policies\IntegrationApiKeyPolicy::class,
         \App\Models\Integrations\IntegrationWebhook::class => \App\Policies\IntegrationWebhookPolicy::class,
         \App\Models\Integrations\IntegrationProvider::class => \App\Policies\IntegrationProviderPolicy::class,
-        ];
+            \App\Models\PublicQuoteRequest::class => \App\Policies\PublicQuoteRequestPolicy::class,
+        \App\Models\PublicContactMessage::class => \App\Policies\PublicContactMessagePolicy::class,
+    ];
     }
 
     public function register(): void
@@ -359,6 +376,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->assertProductionEnvironmentIsSafe();
 
+        View::share('quoteFormHref', \App\Support\Storefront\StorefrontUrls::quoteForm());
+
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
         Event::listen(Failed::class, [LogAuthenticationActivity::class, 'handleFailed']);
@@ -385,18 +404,25 @@ class AppServiceProvider extends ServiceProvider
             $roleKey = $user?->roles->pluck('name')->sort()->implode('|') ?? 'guest';
             $cacheKey = "{$user?->id}:{$companyId}:{$branchId}:{$roleKey}";
 
-            $navItems = app(PlatformCacheService::class)->remember(
+            $presenter = app(WorkspacePresenter::class);
+            $navigation = app(PlatformCacheService::class)->remember(
                 'navigation',
                 $cacheKey,
-                fn () => $this->filterNavigation(config('navigation')),
+                function () use ($presenter) {
+                    $navItems = $this->filterNavigation(config('navigation'));
+
+                    return [
+                        'navItems' => $navItems,
+                        'navSearchIndex' => $presenter->flattenForSearch(),
+                        'navRouteUrls' => static::buildNavRouteUrls($navItems, $presenter),
+                    ];
+                },
             );
 
-            $presenter = app(WorkspacePresenter::class);
-
             $view->with([
-                'navItems' => $navItems,
-                'navSearchIndex' => $presenter->flattenForSearch(),
-                'navRouteUrls' => static::buildNavRouteUrls($navItems, $presenter),
+                'navItems' => $navigation['navItems'],
+                'navSearchIndex' => $navigation['navSearchIndex'],
+                'navRouteUrls' => $navigation['navRouteUrls'],
             ]);
         });
 

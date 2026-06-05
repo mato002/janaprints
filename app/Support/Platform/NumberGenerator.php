@@ -94,6 +94,10 @@ class NumberGenerator
         int $companyId,
         ?int $branchId,
     ): NumberingSequence {
+        if (in_array($documentType, [DocumentType::FixedAsset, DocumentType::MaintenanceWorkOrder], true)) {
+            $branchId = null;
+        }
+
         $sequence = NumberingSequence::query()
             ->where('company_id', $companyId)
             ->where('document_type', $documentType->value)
@@ -109,15 +113,22 @@ class NumberGenerator
             return $sequence;
         }
 
+        $isCompanyLevel = in_array($documentType, [DocumentType::FixedAsset, DocumentType::MaintenanceWorkOrder], true);
+        $format = match ($documentType) {
+            DocumentType::FixedAsset => 'AST-{year}-{number}',
+            DocumentType::MaintenanceWorkOrder => 'MWO-{year}-{number}',
+            default => $this->buildTemplate(null, true, true, false),
+        };
+
         $created = NumberingSequence::query()->create([
             'company_id' => $companyId,
-            'branch_id' => $branchId,
+            'branch_id' => $isCompanyLevel ? null : $branchId,
             'document_type' => $documentType->value,
-            'format_template' => $this->buildTemplate(null, true, true, false),
+            'format_template' => $format,
             'next_number' => 1,
             'padding' => config('platform.numbering.default_padding', 5),
             'include_year' => true,
-            'include_branch_code' => true,
+            'include_branch_code' => $isCompanyLevel ? false : true,
         ]);
 
         return NumberingSequence::query()->lockForUpdate()->findOrFail($created->id);

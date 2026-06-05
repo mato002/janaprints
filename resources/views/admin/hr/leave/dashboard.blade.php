@@ -2,10 +2,10 @@
     <x-admin.page-header :title="__('Leave Management')" :description="__('Leave requests, balances, and workforce absence planning.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\LeaveRequest::class)
-                <a href="{{ route('admin.hr.leave.create') }}" class="erp-btn-primary">{{ __('Apply for leave') }}</a>
+                <a href="{{ route('admin.hr.leave.create') }}" data-turbo-frame="erp-main" class="erp-btn-primary">{{ __('Apply for leave') }}</a>
             @endcan
-            <a href="{{ route('admin.hr.leave.index') }}" class="erp-btn-secondary">{{ __('All requests') }}</a>
-            <a href="{{ route('admin.hr.leave.calendar') }}" class="erp-btn-secondary">{{ __('Calendar') }}</a>
+            <a href="{{ route('admin.hr.leave.index') }}" data-turbo-frame="erp-main" class="erp-btn-secondary">{{ __('All requests') }}</a>
+            <a href="{{ route('admin.hr.leave.calendar') }}" data-turbo-frame="erp-main" class="erp-btn-secondary">{{ __('Calendar') }}</a>
         </x-slot>
     </x-admin.page-header>
 

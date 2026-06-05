@@ -69,7 +69,7 @@
             </div>
 
             <div class="mt-12 text-center">
-                <x-public.button href="{{ route('storefront.quote') }}" variant="gradient" size="lg">Request a Quote</x-public.button>
+                <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">Request a Quote</x-public.button>
             </div>
         </div>
     </section>

@@ -95,7 +95,7 @@
                 description="Try another filter or request a quote for a similar project."
                 class="mx-auto max-w-md"
             >
-                <x-public.button href="#contact" variant="primary" size="sm">Request A Quote</x-public.button>
+                <x-public.button href="{{ $quoteFormHref }}" variant="primary" size="sm">Request A Quote</x-public.button>
             </x-public.empty-state>
         </p>
 
@@ -148,7 +148,7 @@
                         </div>
                     </dl>
 
-                    <x-public.button href="#contact" variant="primary" class="mt-6" data-portfolio-close-on-click>
+                    <x-public.button href="{{ $quoteFormHref }}" variant="primary" class="mt-6" data-portfolio-close-on-click>
                         Request Similar Project
                     </x-public.button>
                 </div>

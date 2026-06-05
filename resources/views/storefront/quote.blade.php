@@ -6,7 +6,7 @@
         :breadcrumbs="$breadcrumbs"
     />
 
-    <x-public.conversion-section />
+    <x-public.quote-form />
 
     <section class="public-section public-section--muted">
         <div class="public-container">

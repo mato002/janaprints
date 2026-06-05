@@ -2,6 +2,8 @@
 
 namespace App\Models\Procurement;
 
+use App\Enums\ProcurementItemClassification;
+use App\Models\Assets\AssetCategory;
 use App\Models\Inventory\InventoryItem;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +14,8 @@ class PurchaseOrderItem extends Model
     protected $fillable = [
         'purchase_order_id',
         'inventory_item_id',
+        'item_classification',
+        'asset_category_id',
         'description',
         'quantity',
         'unit_cost',
@@ -26,7 +30,18 @@ class PurchaseOrderItem extends Model
             'unit_cost' => 'decimal:2',
             'line_total' => 'decimal:2',
             'quantity_received' => 'decimal:3',
+            'item_classification' => ProcurementItemClassification::class,
         ];
+    }
+
+    public function assetCategory(): BelongsTo
+    {
+        return $this->belongsTo(AssetCategory::class, 'asset_category_id');
+    }
+
+    public function isCapitalizable(): bool
+    {
+        return $this->item_classification?->isCapitalizable() ?? false;
     }
 
     public function purchaseOrder(): BelongsTo

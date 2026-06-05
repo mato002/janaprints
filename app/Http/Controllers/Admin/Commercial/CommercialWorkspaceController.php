@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Commercial;
 
 use App\Http\Controllers\Controller;
 use App\Support\Commercial\CommercialDashboardPresenter;
+use App\Support\Commercial\PublicLeadsDashboardPresenter;
 use App\Support\Navigation\CommercialWorkspacePresenter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,6 +14,7 @@ class CommercialWorkspaceController extends Controller
     public function __construct(
         protected CommercialWorkspacePresenter $presenter,
         protected CommercialDashboardPresenter $dashboard,
+        protected PublicLeadsDashboardPresenter $publicLeads,
     ) {}
 
     public function hub(Request $request): View
@@ -60,7 +62,11 @@ class CommercialWorkspaceController extends Controller
             'cards' => $cards,
             'quickActions' => $payload['quick_actions'] ?? [],
             'sectionNote' => $payload['section_note'] ?? null,
-            'widgets' => $section === 'crm' ? $this->dashboard->widgets() : [],
+            'widgets' => match ($section) {
+                'crm' => $this->dashboard->widgets(),
+                'customer-service' => $this->publicLeads->widgets(),
+                default => [],
+            },
         ]);
     }
 }

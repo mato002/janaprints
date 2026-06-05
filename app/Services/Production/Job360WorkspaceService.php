@@ -16,13 +16,16 @@ use App\Models\Production\ProductionOperation;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\ProductionStage;
 use App\Models\Production\QualityCheck;
+use App\Models\Assets\MachineProfile;
 use App\Models\Production\WorkCenter;
+use App\Services\Assets\MachineJobAssignmentService;
 use Illuminate\Support\Facades\Schema;
 
 class Job360WorkspaceService
 {
     public function __construct(
         protected JobProductionControlService $controls,
+        protected MachineJobAssignmentService $machineAssignments,
     ) {}
 
     public const TAB_OVERVIEW = 'overview';
@@ -302,7 +305,26 @@ class Job360WorkspaceService
             'next_action' => $this->nextExpectedAction($jobCard),
             'dispatch_eligibility' => $this->controls->dispatchEligibility($jobCard),
             'control_alerts' => $this->controls->controlAlerts($jobCard),
+            'machine' => $this->machineAssignments->jobMachineContext($jobCard),
+            'machine_options' => $this->assignableMachines(),
         ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, MachineProfile>
+     */
+    protected function assignableMachines(): \Illuminate\Support\Collection
+    {
+        if (! auth()->user()?->can('machines.assign')) {
+            return collect();
+        }
+
+        return MachineProfile::query()
+            ->forTenant()
+            ->productionMachines()
+            ->with('asset:id,asset_name,asset_number')
+            ->orderBy('machine_code')
+            ->get();
     }
 
     /**

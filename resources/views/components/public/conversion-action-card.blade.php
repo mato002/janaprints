@@ -1,7 +1,9 @@
 @props(['card', 'whatsappUrl' => null])
 
 @php
-    $href = $card['href'] === 'whatsapp' ? $whatsappUrl : $card['href'];
+    $href = $card['href'] === 'whatsapp'
+        ? $whatsappUrl
+        : ($card['href'] === '#quote-form' ? ($quoteFormHref ?? '#quote-form') : $card['href']);
     $isExternal = str_starts_with($href, 'http') || str_starts_with($href, 'tel:');
     $accentClass = match ($card['accent'] ?? 'magenta') {
         'purple' => 'public-conversion-action--purple',

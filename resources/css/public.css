@@ -1977,8 +1977,52 @@
         @apply mt-6 flex items-start gap-3 rounded-brand-lg border border-brand-cyan/30 bg-brand-cyan/10 p-4 text-sm text-white/90;
     }
 
+    .public-conversion-form__success[hidden] {
+        display: none !important;
+    }
+
     .public-conversion-form__success svg {
         @apply mt-0.5 h-5 w-5 shrink-0 text-brand-cyan;
+    }
+
+    /* Light-surface variant (contact page, light cards) */
+    .public-conversion-form--light {
+        @apply mt-0 max-w-none rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none;
+    }
+
+    .public-conversion-form--light .public-conversion-form__field label {
+        @apply text-brand-navy;
+    }
+
+    .public-conversion-form--light .public-conversion-form__field label span {
+        @apply text-brand-magenta;
+    }
+
+    .public-conversion-form--light .public-conversion-form__field input,
+    .public-conversion-form--light .public-conversion-form__field select,
+    .public-conversion-form--light .public-conversion-form__field textarea {
+        @apply border-brand-gray-muted/80 bg-white text-brand-navy placeholder:text-brand-text-muted;
+        @apply focus:border-brand-magenta/50 focus:bg-white focus:ring-brand-magenta/20;
+    }
+
+    .public-conversion-form--light .public-conversion-form__field select {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%231a2744'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    }
+
+    .public-conversion-form--light .public-conversion-form__field select option {
+        @apply bg-white text-brand-navy;
+    }
+
+    .public-conversion-form--light .public-conversion-form__success {
+        @apply border-emerald-200 bg-emerald-50 text-emerald-800;
+    }
+
+    .public-conversion-form--light .public-conversion-form__success svg {
+        @apply text-emerald-600;
+    }
+
+    .public-conversion-form--light .public-conversion-form__submit {
+        @apply justify-start;
     }
 
     .public-btn--glow {

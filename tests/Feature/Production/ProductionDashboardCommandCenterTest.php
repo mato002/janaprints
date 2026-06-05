@@ -5,6 +5,7 @@ namespace Tests\Feature\Production;
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\ProductionJobCardStatus;
+use App\Enums\ProductionPriority;
 use App\Enums\ProductionQueueStatus;
 use App\Enums\QuotationStatus;
 use App\Enums\SalesOrderStatus;
@@ -44,11 +45,12 @@ class ProductionDashboardCommandCenterTest extends TestCase
             ->get(route('admin.production.dashboard'))
             ->assertOk()
             ->assertSee(__('Production Command Center'), false)
+            ->assertSee(__('Production Snapshot'), false)
             ->assertSee(__('Production Pipeline'), false)
-            ->assertSee(__('Urgent Attention'), false)
-            ->assertSee('Production Schedule', false)
-            ->assertSee(__('Work Center Load'), false)
-            ->assertSee(__('Recent Production Activity'), false)
+            ->assertSee(__('Urgent Attention Center'), false)
+            ->assertSee(__('Department Capacity'), false)
+            ->assertSee(__('Machine Overview'), false)
+            ->assertSee('Production Feed', false)
             ->assertSee(__('Quick Actions'), false);
     }
 
@@ -66,43 +68,75 @@ class ProductionDashboardCommandCenterTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_kpi_strip_renders_eight_cards(): void
+    public function test_snapshot_renders_six_cards(): void
     {
         [, , , $user] = $this->productionContext();
 
         $payload = app(ProductionDashboardCommandCenterService::class)->build($user);
 
-        $this->assertCount(8, $payload['kpis']);
-        $this->assertArrayHasKey('open', collect($payload['kpis'])->keyBy('key')->all());
+        $this->assertCount(6, $payload['snapshot']);
+        $keys = collect($payload['snapshot'])->pluck('key')->all();
+        $this->assertEquals(
+            ['open', 'in_production', 'awaiting_qc', 'ready_for_dispatch', 'delayed', 'completed_today'],
+            $keys,
+        );
     }
 
-    public function test_pipeline_and_urgent_sections_render_with_data(): void
+    public function test_pipeline_includes_scheduled_stage(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext();
-        $this->createJobCard($salesOrder, $user, ['status' => ProductionJobCardStatus::Queued]);
+        $this->createJobCard($salesOrder, $user, [
+            'status' => ProductionJobCardStatus::Draft,
+            'planned_start_date' => now()->toDateString(),
+            'planned_end_date' => now()->addDays(3)->toDateString(),
+        ]);
+
+        $pipeline = collect(app(ProductionDashboardCommandCenterService::class)->build($user)['pipeline'])
+            ->keyBy('key');
+
+        $this->assertArrayHasKey('scheduled', $pipeline->all());
+        $this->assertGreaterThanOrEqual(1, $pipeline['scheduled']['count']);
+    }
+
+    public function test_urgent_center_includes_escalated_jobs(): void
+    {
+        [, , , $user, $salesOrder] = $this->productionContext();
+        $this->createJobCard($salesOrder, $user, [
+            'status' => ProductionJobCardStatus::InProduction,
+            'priority' => ProductionPriority::Urgent,
+            'planned_end_date' => now()->addDay(),
+        ]);
 
         $response = $this->actingAs($user)->get(route('admin.production.dashboard'));
 
-        $response->assertOk()->assertSee(__('Queued'), false);
+        $response->assertOk()->assertSee(__('Escalated Jobs'), false);
+    }
+
+    public function test_quick_actions_include_command_center_operations(): void
+    {
+        [, , , $user] = $this->productionContext();
+
+        $labels = collect(app(ProductionDashboardCommandCenterService::class)->build($user)['quick_actions'])
+            ->pluck('label')
+            ->all();
+
+        $this->assertContains(__('Create Job Card'), $labels);
+        $this->assertContains(__('Schedule Job'), $labels);
+        $this->assertContains(__('Record QC'), $labels);
+        $this->assertContains(__('Create Delivery Note'), $labels);
     }
 
     public function test_quick_actions_respect_permissions(): void
     {
         [, , , $user] = $this->productionContext(['production.view']);
 
-        $this->actingAs($user)
-            ->get(route('admin.production.dashboard'))
-            ->assertOk()
-            ->assertSee(__('Job Cards'), false)
-            ->assertDontSee(__('New Job Card'), false);
-
         $labels = collect(app(ProductionDashboardCommandCenterService::class)->build($user)['quick_actions'])
             ->pluck('label')
             ->all();
 
-        $this->assertContains(__('Job Cards'), $labels);
-        $this->assertNotContains(__('Queue'), $labels);
-        $this->assertNotContains(__('Scheduling'), $labels);
+        $this->assertNotContains(__('Create Job Card'), $labels);
+        $this->assertNotContains(__('Schedule Job'), $labels);
+        $this->assertNotContains(__('Record QC'), $labels);
     }
 
     public function test_empty_states_render_safely(): void
@@ -139,15 +173,15 @@ class ProductionDashboardCommandCenterTest extends TestCase
 
         $payload = app(ProductionDashboardCommandCenterService::class)->build($user);
 
-        $this->assertArrayHasKey('kpis', $payload);
+        $this->assertArrayHasKey('snapshot', $payload);
         $this->assertArrayHasKey('pipeline', $payload);
         $this->assertArrayHasKey('urgent', $payload);
-        $this->assertArrayHasKey('schedule', $payload);
-        $this->assertArrayHasKey('work_center_load', $payload);
+        $this->assertArrayHasKey('department_capacity', $payload);
+        $this->assertArrayHasKey('machine_capacity', $payload);
         $this->assertArrayHasKey('activity', $payload);
         $this->assertArrayHasKey('quick_actions', $payload);
-        $this->assertArrayHasKey('performance', $payload);
-        $this->assertNotEmpty($payload['schedule']);
+        $this->assertCount(7, $payload['department_capacity']);
+        $this->assertArrayHasKey('escalated_jobs', $payload['urgent']);
     }
 
     /**

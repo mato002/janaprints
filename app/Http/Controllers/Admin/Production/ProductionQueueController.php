@@ -23,12 +23,13 @@ class ProductionQueueController extends Controller
         return view('admin.production.queue.index', [
             'queues' => $workspace->paginatedIndex($request),
             'kpis' => $workspace->kpiCounts(),
-            'bottlenecks' => $workspace->bottlenecks(),
             'workCenters' => WorkCenter::query()->forTenant()->orderBy('name')->get(['id', 'name']),
             'stages' => ProductionStage::query()->forTenant()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
+            'operators' => $workspace->operatorOptions(),
             'filters' => [
                 'status' => $request->query('status'),
                 'work_center_id' => $request->query('work_center_id'),
+                'operator_id' => $request->query('operator_id'),
                 'stage_id' => $request->query('stage_id'),
                 'date' => $request->query('date'),
                 'search' => $request->query('search'),

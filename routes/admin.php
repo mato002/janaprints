@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\UserSessionController;
 use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
 use App\Http\Controllers\Admin\Administration\AdministrationWorkspaceController;
 use App\Http\Controllers\Admin\Commercial\CommercialWorkspaceController;
+use App\Http\Controllers\Admin\Assets\AssetsWorkspaceController;
+use App\Http\Controllers\Admin\Production\ProductionWorkspaceController;
 use App\Http\Controllers\Admin\SupplyChain\SupplyChainWorkspaceController;
 use App\Http\Controllers\Admin\WorkspaceController;
 use Illuminate\Support\Facades\Route;
@@ -51,6 +53,12 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             ->where('section', 'crm|sales|customer-service|point-of-sale|reports')
             ->name('workspaces.commercial.section');
 
+        Route::get('workspaces/production', [ProductionWorkspaceController::class, 'hub'])
+            ->name('workspaces.production');
+
+        Route::get('workspaces/assets', [AssetsWorkspaceController::class, 'hub'])
+            ->name('workspaces.assets');
+
         Route::get('workspaces/administration', [AdministrationWorkspaceController::class, 'hub'])
             ->name('workspaces.administration');
         Route::get('workspaces/administration/{section}', [AdministrationWorkspaceController::class, 'section'])
@@ -58,7 +66,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             ->name('workspaces.administration.section');
 
         foreach (array_keys(config('workspaces', [])) as $workspace) {
-            if (in_array($workspace, ['accounting', 'supply-chain', 'commercial', 'administration'], true)) {
+            if (in_array($workspace, ['accounting', 'supply-chain', 'commercial', 'administration', 'production', 'assets'], true)) {
                 continue;
             }
 
@@ -309,3 +317,4 @@ require __DIR__.'/admin_communications_inbox.php';
 require __DIR__.'/admin_hr.php';
 require __DIR__.'/admin_reports.php';
 require __DIR__.'/admin_integrations.php';
+require __DIR__.'/admin_public_leads.php';

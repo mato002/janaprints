@@ -63,7 +63,17 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="py-8 text-center text-slate-500">{{ __('No work centers match your filters.') }}</td>
+                        <td colspan="10">
+                            <x-admin.empty-state
+                                icon="chip"
+                                :title="__('No work centers match your filters')"
+                                :description="__('Try clearing filters or review your work center master data.')"
+                            >
+                                <x-slot:action>
+                                    <a href="{{ route('admin.production.work-centers.index') }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Clear filters') }}</a>
+                                </x-slot:action>
+                            </x-admin.empty-state>
+                        </td>
                     </tr>
                 @endforelse
             </tbody>

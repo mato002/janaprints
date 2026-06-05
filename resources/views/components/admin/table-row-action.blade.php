@@ -28,6 +28,7 @@
         href="{{ $href }}"
         @click="$dispatch('erp-row-menu-close')"
         {{ $attributes->merge(['class' => "flex w-full items-center gap-2 px-3 py-2 text-sm {$classes}"]) }}
+        data-turbo-frame="erp-main"
         data-turbo-action="advance"
     >
         {{ $slot }}

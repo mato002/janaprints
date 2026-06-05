@@ -11,7 +11,7 @@ class EnsureAdminAuthContext
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->user() && $request->session()->get('auth_context') !== 'admin') {
+        if ($request->user() && $request->session()->get('auth_context') === 'client') {
             Auth::guard('web')->logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

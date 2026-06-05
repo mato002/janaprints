@@ -51,7 +51,7 @@
                     </ul>
 
                     <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <x-public.button href="{{ route('storefront.quote') }}" variant="gradient" size="lg">
+                        <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">
                             Request Quote
                         </x-public.button>
                         <x-public.button href="{{ route('storefront.portfolio') }}" variant="outline-light" size="lg">

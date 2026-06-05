@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 class ProductionQualityWorkspaceService
@@ -47,8 +48,29 @@ class ProductionQualityWorkspaceService
             ->forTenant()
             ->with([
                 'checker:id,name',
-                'jobCard' => fn ($q) => $q->select(['id', 'job_card_number', 'customer_id', 'status'])
-                    ->with('customer:id,company_name'),
+                'jobCard' => fn ($q) => $q
+                    ->select(['id', 'job_card_number', 'customer_id', 'status', 'production_type', 'planned_end_date'])
+                    ->with([
+                        'customer:id,company_name',
+                        'salesOrder.items:id,sales_order_id,item_name,description,quantity',
+                    ])
+                    ->withCount([
+                        'qualityChecks as rework_count' => fn (Builder $q) => $q->where('result', QualityCheckResult::ReworkRequired),
+                    ])
+                    ->addSelect([
+                        'approval_checked_at' => QualityCheck::query()
+                            ->select('checked_at')
+                            ->whereColumn('production_job_card_id', 'production_job_cards.id')
+                            ->where('result', QualityCheckResult::Passed)
+                            ->orderByDesc('checked_at')
+                            ->limit(1),
+                        'hold_reason' => QualityCheck::query()
+                            ->select('comments')
+                            ->whereColumn('production_job_card_id', 'production_job_cards.id')
+                            ->whereIn('result', [QualityCheckResult::Failed, QualityCheckResult::ReworkRequired])
+                            ->orderByDesc('checked_at')
+                            ->limit(1),
+                    ]),
             ]);
 
         $this->applyRegisterFilters($query, $request);
@@ -61,47 +83,26 @@ class ProductionQualityWorkspaceService
     }
 
     /**
-     * @return array{
-     *     pass_rate: float,
-     *     fail_rate: float,
-     *     rework_count: int,
-     *     hold_count: int,
-     *     total_inspections: int
-     * }
+     * @return array<string, mixed>
      */
-    public function analytics(): array
+    public function presentRegisterRow(QualityCheck $check): array
     {
-        $checks = QualityCheck::query()->forTenant();
-        $passed = (clone $checks)->where('result', QualityCheckResult::Passed)->count();
-        $failed = (clone $checks)->where('result', QualityCheckResult::Failed)->count();
-        $rework = (clone $checks)->where('result', QualityCheckResult::ReworkRequired)->count();
-        $total = $passed + $failed + $rework;
+        $job = $check->jobCard;
+        $onHold = $job?->status === ProductionJobCardStatus::OnHold;
 
         return [
-            'pass_rate' => $total > 0 ? round(($passed / $total) * 100, 1) : 0.0,
-            'fail_rate' => $total > 0 ? round(($failed / $total) * 100, 1) : 0.0,
-            'rework_count' => $rework,
-            'hold_count' => ProductionJobCard::query()
-                ->forTenant()
-                ->where('status', ProductionJobCardStatus::OnHold)
-                ->count(),
-            'total_inspections' => $total,
-        ];
-    }
-
-    /**
-     * @return array{
-     *     recent_failures: list<array<string, mixed>>,
-     *     recent_holds: list<array<string, mixed>>,
-     *     jobs_requiring_rework: list<array<string, mixed>>
-     * }
-     */
-    public function intelligenceWidgets(): array
-    {
-        return [
-            'recent_failures' => $this->recentFailures(),
-            'recent_holds' => $this->recentHolds(),
-            'jobs_requiring_rework' => $this->jobsRequiringRework(),
+            'job_card_number' => $job?->job_card_number ?? '—',
+            'customer_name' => $job?->customer?->company_name ?? '—',
+            'product' => $job ? $this->productDescription($job) : '—',
+            'inspector_name' => $check->checker?->name ?? '—',
+            'result' => $check->result,
+            'inspection_date' => $check->checked_at?->format('M j, Y H:i') ?? '—',
+            'notes' => $check->comments,
+            'rework_count' => (int) ($job?->rework_count ?? 0),
+            'hold_reason' => $onHold ? ($job?->hold_reason ?: '—') : '—',
+            'status_label' => $this->jobStatusLabel($job),
+            'job_id' => $job?->id,
+            'is_failed_row' => in_array($check->result, [QualityCheckResult::Failed, QualityCheckResult::ReworkRequired], true),
         ];
     }
 
@@ -135,120 +136,15 @@ class ProductionQualityWorkspaceService
             ->get(['id', 'name']);
     }
 
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function recentFailures(int $limit = 8): array
-    {
-        return QualityCheck::query()
-            ->forTenant()
-            ->where('result', QualityCheckResult::Failed)
-            ->with([
-                'checker:id,name',
-                'jobCard' => fn ($q) => $q->select(['id', 'job_card_number', 'customer_id'])
-                    ->with('customer:id,company_name'),
-            ])
-            ->orderByDesc('checked_at')
-            ->limit($limit)
-            ->get()
-            ->map(fn (QualityCheck $check) => $this->mapCheckRow($check))
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function recentHolds(int $limit = 8): array
-    {
-        return ProductionJobCard::query()
-            ->forTenant()
-            ->where('status', ProductionJobCardStatus::OnHold)
-            ->with([
-                'customer:id,company_name',
-                'qualityChecks' => fn ($q) => $q
-                    ->select(['id', 'production_job_card_id', 'result', 'comments', 'checked_at', 'checked_by'])
-                    ->with('checker:id,name')
-                    ->orderByDesc('checked_at')
-                    ->limit(1),
-            ])
-            ->orderByDesc('updated_at')
-            ->limit($limit)
-            ->get()
-            ->map(function (ProductionJobCard $job) {
-                $lastCheck = $job->qualityChecks->first();
-
-                return [
-                    'job_id' => $job->id,
-                    'job_number' => $job->job_card_number,
-                    'customer' => $job->customer?->company_name ?? '—',
-                    'held_since' => $job->updated_at?->format('M j, Y') ?? '—',
-                    'last_result' => $lastCheck?->result?->value,
-                    'inspector' => $lastCheck?->checker?->name ?? '—',
-                    'comments' => $lastCheck?->comments,
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function jobsRequiringRework(int $limit = 8): array
-    {
-        return ProductionJobCard::query()
-            ->forTenant()
-            ->where('status', ProductionJobCardStatus::Rework)
-            ->with([
-                'customer:id,company_name',
-                'qualityChecks' => fn ($q) => $q
-                    ->where('result', QualityCheckResult::ReworkRequired)
-                    ->with('checker:id,name')
-                    ->orderByDesc('checked_at')
-                    ->limit(1),
-            ])
-            ->orderByDesc('updated_at')
-            ->limit($limit)
-            ->get()
-            ->map(function (ProductionJobCard $job) {
-                $reworkCheck = $job->qualityChecks->first();
-
-                return [
-                    'job_id' => $job->id,
-                    'job_number' => $job->job_card_number,
-                    'customer' => $job->customer?->company_name ?? '—',
-                    'flagged_at' => $reworkCheck?->checked_at?->format('M j, Y') ?? $job->updated_at?->format('M j, Y') ?? '—',
-                    'inspector' => $reworkCheck?->checker?->name ?? '—',
-                    'comments' => $reworkCheck?->comments,
-                ];
-            })
-            ->values()
-            ->all();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function mapCheckRow(QualityCheck $check): array
-    {
-        return [
-            'job_id' => $check->jobCard?->id,
-            'job_number' => $check->jobCard?->job_card_number ?? '—',
-            'customer' => $check->jobCard?->customer?->company_name ?? '—',
-            'inspector' => $check->checker?->name ?? '—',
-            'result' => $check->result->value,
-            'checked_at' => $check->checked_at?->format('M j, Y H:i') ?? '—',
-            'comments' => $check->comments,
-        ];
-    }
-
     protected function pendingInspectionsPaginator(Request $request): LengthAwarePaginator
     {
         $query = ProductionJobCard::query()
             ->forTenant()
             ->where('status', ProductionJobCardStatus::QualityCheck)
-            ->with('customer:id,company_name');
+            ->with([
+                'customer:id,company_name',
+                'salesOrder.items:id,sales_order_id,item_name,description,quantity',
+            ]);
 
         if ($search = trim((string) $request->query('search', ''))) {
             $like = '%'.addcslashes($search, '%_\\').'%';
@@ -263,6 +159,45 @@ class ProductionQualityWorkspaceService
             ->orderBy('job_card_number')
             ->paginate(15)
             ->withQueryString();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function presentPendingRow(ProductionJobCard $job): array
+    {
+        return [
+            'job_card_number' => $job->job_card_number,
+            'customer_name' => $job->customer?->company_name ?? '—',
+            'product' => $this->productDescription($job),
+            'due_date' => $job->planned_end_date?->format('Y-m-d') ?? '—',
+            'inspector_name' => '—',
+            'status_label' => __('Pending inspection'),
+            'job_id' => $job->id,
+        ];
+    }
+
+    protected function productDescription(ProductionJobCard $jobCard): string
+    {
+        $items = $jobCard->salesOrder?->items ?? collect();
+        if ($items->isEmpty()) {
+            return str_replace('_', ' ', $jobCard->production_type->value);
+        }
+
+        return $items->take(2)->map(fn ($item) => $item->item_name ?: $item->description)->filter()->implode(', ');
+    }
+
+    protected function jobStatusLabel(?ProductionJobCard $job): string
+    {
+        if (! $job) {
+            return '—';
+        }
+
+        if ($job->status === ProductionJobCardStatus::OnHold) {
+            return __('On hold');
+        }
+
+        return str_replace('_', ' ', ucfirst($job->status->value));
     }
 
     protected function applyRegisterFilters(Builder $query, Request $request): void

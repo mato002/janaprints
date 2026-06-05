@@ -9,13 +9,6 @@
         :title="__('Job Profitability Command Center')"
         :description="__('Decision-focused profitability intelligence from existing job costing data — revenue, margins, cost drivers, and alerts.')"
     >
-        @if ($dashboard['has_export_route'] ?? false)
-            <x-slot name="actions">
-                <a href="{{ route('admin.production.costing.export', request()->query()) }}" class="erp-btn-secondary">
-                    {{ __('Export') }}
-                </a>
-            </x-slot>
-        @endif
     </x-admin.page-header>
 
     <p class="mb-4 text-xs text-slate-500">

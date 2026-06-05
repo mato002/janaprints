@@ -2,13 +2,14 @@
 
 namespace App\Services\Production;
 
-use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionQueueStatus;
-use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\ProductionStage;
 use App\Models\Production\WorkCenter;
 use App\Models\User;
+use App\Services\Assets\MachineAvailabilityService;
+use App\Services\Assets\MachineCapacityService;
+use App\Services\Assets\MachineQueueReadinessService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -18,6 +19,11 @@ use Illuminate\Support\Facades\Route;
 
 class WorkCenterWorkspaceService
 {
+    public function __construct(
+        protected MachineCapacityService $machineCapacity,
+        protected MachineAvailabilityService $machineAvailability,
+        protected MachineQueueReadinessService $machineQueueReadiness,
+    ) {}
     /**
      * @return array<string, mixed>
      */
@@ -32,11 +38,7 @@ class WorkCenterWorkspaceService
             'filter_options' => $this->filterOptions(),
             'active_filter_chips' => $this->activeFilterChips($filters),
             'has_active_filters' => $this->hasActiveFilters($filters),
-            'kpis' => $this->executiveKpis(),
             'work_centers' => $this->paginatedIndex($request),
-            'stages' => $this->stageMap(),
-            'workload' => $this->workloadPanel(),
-            'bottlenecks' => $this->bottlenecks(),
             'default_capacity' => $this->defaultCapacity(),
             'can_view_queue' => $user?->can('production.queue.view') && Route::has('admin.production.queue.index'),
             'can_view_scheduling' => $user?->can('production.scheduling.view') && Route::has('admin.production.scheduling.index'),
@@ -50,15 +52,16 @@ class WorkCenterWorkspaceService
     public function buildShow(WorkCenter $workCenter, ?User $user = null): array
     {
         $user ??= auth()->user();
+        $workCenter->loadMissing([
+            'machineAsset.machineProfile',
+            'machineAsset:id,asset_name,asset_number',
+        ]);
         $metrics = $this->metricsForCenter($workCenter);
 
         return [
             'metrics' => $metrics,
+            'machine' => $this->machinePanel($workCenter),
             'active_queues' => $this->activeQueuesForCenter($workCenter),
-            'recent_completed' => $this->recentCompletedForCenter($workCenter),
-            'upcoming_scheduled' => $this->upcomingScheduledForCenter($workCenter),
-            'delayed_jobs' => $this->delayedJobsForCenter($workCenter),
-            'awaiting_qc' => $this->awaitingQcForCenter($workCenter),
             'default_capacity' => $this->defaultCapacity(),
             'can_view_queue' => $user?->can('production.queue.view') && Route::has('admin.production.queue.index'),
             'can_view_scheduling' => $user?->can('production.scheduling.view') && Route::has('admin.production.scheduling.index'),
@@ -188,93 +191,6 @@ class WorkCenterWorkspaceService
     }
 
     /**
-     * @return list<array<string, mixed>>
-     */
-    public function recentCompletedForCenter(WorkCenter $center, int $limit = 10): array
-    {
-        return ProductionQueue::query()
-            ->forTenant()
-            ->where('work_center_id', $center->id)
-            ->where('status', ProductionQueueStatus::Completed)
-            ->with(['jobCard:id,job_card_number,customer_id', 'jobCard.customer:id,company_name'])
-            ->orderByDesc('updated_at')
-            ->limit($limit)
-            ->get()
-            ->map(fn (ProductionQueue $queue) => $this->presentQueueJobRow($queue))
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function upcomingScheduledForCenter(WorkCenter $center, int $limit = 10): array
-    {
-        $today = now()->toDateString();
-
-        return ProductionJobCard::query()
-            ->forTenant()
-            ->whereHas('queues', fn (Builder $q) => $q->where('work_center_id', $center->id))
-            ->whereNotIn('status', [
-                ProductionJobCardStatus::Completed,
-                ProductionJobCardStatus::ReadyForDispatch,
-                ProductionJobCardStatus::Cancelled,
-            ])
-            ->where(function (Builder $q) use ($today) {
-                $q->whereDate('planned_start_date', '>=', $today)
-                    ->orWhereDate('planned_end_date', '>=', $today);
-            })
-            ->with(['customer:id,company_name'])
-            ->orderBy('planned_start_date')
-            ->limit($limit)
-            ->get()
-            ->map(fn (ProductionJobCard $job) => $this->presentJobRow($job))
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function delayedJobsForCenter(WorkCenter $center, int $limit = 10): array
-    {
-        $today = now()->toDateString();
-
-        return ProductionJobCard::query()
-            ->forTenant()
-            ->whereHas('queues', fn (Builder $q) => $q
-                ->where('work_center_id', $center->id)
-                ->whereIn('status', $this->activeQueueStatuses()))
-            ->whereNotIn('status', [
-                ProductionJobCardStatus::Completed,
-                ProductionJobCardStatus::ReadyForDispatch,
-                ProductionJobCardStatus::Cancelled,
-            ])
-            ->whereDate('planned_end_date', '<', $today)
-            ->with(['customer:id,company_name'])
-            ->orderBy('planned_end_date')
-            ->limit($limit)
-            ->get()
-            ->map(fn (ProductionJobCard $job) => $this->presentJobRow($job))
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function awaitingQcForCenter(WorkCenter $center, int $limit = 10): array
-    {
-        return ProductionJobCard::query()
-            ->forTenant()
-            ->where('status', ProductionJobCardStatus::QualityCheck)
-            ->whereHas('queues', fn (Builder $q) => $q->where('work_center_id', $center->id))
-            ->with(['customer:id,company_name'])
-            ->orderBy('planned_end_date')
-            ->limit($limit)
-            ->get()
-            ->map(fn (ProductionJobCard $job) => $this->presentJobRow($job))
-            ->all();
-    }
-
-    /**
      * @return array<string, string>
      */
     public function stageCodeMap(): array
@@ -303,229 +219,6 @@ class WorkCenterWorkspaceService
     public function defaultCapacity(): int
     {
         return max(1, (int) config('production.scheduling.default_work_center_capacity', 5));
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function executiveKpis(): array
-    {
-        $centers = WorkCenter::query()->forTenant()->get(['id', 'name', 'is_active']);
-        $centerIds = $centers->pluck('id');
-        $metrics = $this->metricsForCenters($centerIds);
-
-        $activeJobsTotal = collect($metrics)->sum('active_jobs');
-        $queuedTotal = collect($metrics)->sum('queue_count');
-
-        $mostLoaded = collect($metrics)
-            ->sortByDesc('active_jobs')
-            ->keys()
-            ->first();
-
-        $mostLoadedCenter = $mostLoaded
-            ? $centers->firstWhere('id', $mostLoaded)?->name ?? 'N/A'
-            : 'N/A';
-
-        $activeCount = $centers->where('is_active', true)->count();
-        $inactiveCount = $centers->where('is_active', false)->count();
-
-        return [
-            [
-                'label' => __('Total Work Centers'),
-                'value' => (string) $centers->count(),
-                'icon' => 'office-building',
-                'tone' => 'indigo',
-            ],
-            [
-                'label' => __('Active Work Centers'),
-                'value' => (string) $activeCount,
-                'icon' => 'check-circle',
-                'tone' => 'emerald',
-            ],
-            [
-                'label' => __('Inactive Work Centers'),
-                'value' => (string) $inactiveCount,
-                'icon' => 'ban',
-                'tone' => 'slate',
-            ],
-            [
-                'label' => __('Active Jobs Across Centers'),
-                'value' => (string) $activeJobsTotal,
-                'icon' => 'cog',
-                'tone' => 'indigo',
-            ],
-            [
-                'label' => __('Queued Jobs Across Centers'),
-                'value' => (string) $queuedTotal,
-                'icon' => 'switch-horizontal',
-                'tone' => 'amber',
-            ],
-            [
-                'label' => __('Most Loaded Work Center'),
-                'value' => $mostLoadedCenter,
-                'hint' => $mostLoaded ? __(':count active jobs', ['count' => $metrics[$mostLoaded]['active_jobs'] ?? 0]) : null,
-                'icon' => 'chart-bar',
-                'tone' => 'amber',
-            ],
-        ];
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function stageMap(): array
-    {
-        $stages = ProductionStage::query()
-            ->forTenant()
-            ->orderBy('sort_order')
-            ->get(['id', 'name', 'code', 'sort_order', 'is_active']);
-
-        $stageCodeMap = $this->stageCodeMap();
-        $centers = WorkCenter::query()->forTenant()->get(['id', 'name', 'code']);
-        $jobCounts = $this->jobCountsByStageCode();
-
-        return $stages->map(function (ProductionStage $stage) use ($stageCodeMap, $centers, $jobCounts) {
-            $linkedCenters = $centers
-                ->filter(fn (WorkCenter $center) => ($stageCodeMap[$center->code] ?? null) === $stage->code)
-                ->values()
-                ->map(fn (WorkCenter $center) => [
-                    'id' => $center->id,
-                    'name' => $center->name,
-                    'code' => $center->code,
-                ])
-                ->all();
-
-            return [
-                'id' => $stage->id,
-                'name' => $stage->name,
-                'code' => $stage->code,
-                'sort_order' => $stage->sort_order,
-                'is_active' => $stage->is_active,
-                'linked_work_centers' => $linkedCenters,
-                'job_count' => (int) ($jobCounts[$stage->code] ?? 0),
-            ];
-        })->all();
-    }
-
-    /**
-     * @return array<string, int>
-     */
-    protected function jobCountsByStageCode(): array
-    {
-        $counts = [];
-        $today = now()->toDateString();
-        $activeStatuses = collect($this->activeQueueStatuses())->map->value->all();
-        $stageCodeMap = $this->stageCodeMap();
-
-        $counts['PENDING'] = ProductionJobCard::query()
-            ->forTenant()
-            ->whereIn('status', [ProductionJobCardStatus::Draft, ProductionJobCardStatus::Queued])
-            ->count();
-
-        $counts['QC'] = ProductionJobCard::query()
-            ->forTenant()
-            ->where('status', ProductionJobCardStatus::QualityCheck)
-            ->count();
-
-        $counts['DISPATCH'] = ProductionJobCard::query()
-            ->forTenant()
-            ->whereIn('status', [ProductionJobCardStatus::ReadyForDispatch, ProductionJobCardStatus::Completed])
-            ->count();
-
-        foreach (['PREPRESS', 'PRINTING', 'FINISHING'] as $stageCode) {
-            $centerIds = WorkCenter::query()
-                ->forTenant()
-                ->whereIn('code', collect($stageCodeMap)
-                    ->filter(fn (string $code) => $code === $stageCode)
-                    ->keys()
-                    ->all())
-                ->pluck('id');
-
-            if ($centerIds->isEmpty()) {
-                $counts[$stageCode] = 0;
-
-                continue;
-            }
-
-            $counts[$stageCode] = ProductionQueue::query()
-                ->forTenant()
-                ->whereIn('work_center_id', $centerIds)
-                ->whereIn('status', $activeStatuses)
-                ->distinct('production_job_card_id')
-                ->count('production_job_card_id');
-        }
-
-        return $counts;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function workloadPanel(): array
-    {
-        $centers = WorkCenter::query()
-            ->forTenant()
-            ->orderBy('name')
-            ->get(['id', 'name', 'code', 'is_active']);
-
-        if ($centers->isEmpty()) {
-            return [];
-        }
-
-        $centerIds = $centers->pluck('id');
-        $metrics = $this->metricsForCenters($centerIds);
-        $delayedCounts = $this->delayedCountsByCenter($centerIds);
-        $awaitingQcCounts = $this->awaitingQcCountsByCenter($centerIds);
-
-        return $centers->map(function (WorkCenter $center) use ($metrics, $delayedCounts, $awaitingQcCounts) {
-            $metric = $metrics[$center->id] ?? $this->emptyMetrics();
-            $activeJobs = (int) ($metric['active_jobs'] ?? 0);
-            $queueCount = (int) ($metric['queue_count'] ?? 0);
-            $utilization = (int) ($metric['utilization_percent'] ?? 0);
-            $barPercent = $utilization > 0 ? min(100, $utilization) : ($queueCount > 0 ? min(100, $queueCount * 10) : 0);
-
-            return [
-                'id' => $center->id,
-                'name' => $center->name,
-                'code' => $center->code,
-                'is_active' => $center->is_active,
-                'active_jobs' => $activeJobs,
-                'queue_count' => $queueCount,
-                'awaiting_qc' => (int) ($awaitingQcCounts[$center->id] ?? 0),
-                'delayed_jobs' => (int) ($delayedCounts[$center->id] ?? 0),
-                'capacity' => (int) ($metric['capacity'] ?? $this->defaultCapacity()),
-                'utilization_percent' => $utilization,
-                'is_overbooked' => (bool) ($metric['is_overbooked'] ?? false),
-                'bar_percent' => $barPercent,
-                'show_utilization' => true,
-                'url' => Route::has('admin.production.work-centers.show')
-                    ? route('admin.production.work-centers.show', $center)
-                    : null,
-            ];
-        })->sortByDesc('active_jobs')->values()->all();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function bottlenecks(): array
-    {
-        $workload = $this->workloadPanel();
-
-        $mostCongested = collect($workload)
-            ->sortByDesc('queue_count')
-            ->first();
-
-        $withQueued = collect($workload)->filter(fn (array $row) => $row['queue_count'] > 0)->values()->all();
-        $withDelayed = collect($workload)->filter(fn (array $row) => $row['delayed_jobs'] > 0)->values()->all();
-        $idle = collect($workload)->filter(fn (array $row) => $row['active_jobs'] === 0 && $row['queue_count'] === 0)->values()->all();
-
-        return [
-            'most_congested' => $mostCongested && ($mostCongested['queue_count'] ?? 0) > 0 ? $mostCongested : null,
-            'with_queued_jobs' => $withQueued,
-            'with_delayed_jobs' => $withDelayed,
-            'idle_centers' => $idle,
-        ];
     }
 
     /**
@@ -663,7 +356,7 @@ class WorkCenterWorkspaceService
      *     stage_code: ?string
      * }>
      */
-    protected function metricsForCenters(Collection $centerIds): array
+    public function metricsForCenters(Collection $centerIds): array
     {
         if ($centerIds->isEmpty()) {
             return [];
@@ -746,91 +439,6 @@ class WorkCenterWorkspaceService
     }
 
     /**
-     * @param  Collection<int, int>  $centerIds
-     * @return array<int, int>
-     */
-    protected function delayedCountsByCenter(Collection $centerIds): array
-    {
-        $today = now()->toDateString();
-        $activeStatuses = collect($this->activeQueueStatuses())->map->value->all();
-
-        return ProductionQueue::query()
-            ->forTenant()
-            ->join('production_job_cards', 'production_job_cards.id', '=', 'production_queues.production_job_card_id')
-            ->select('production_queues.work_center_id', DB::raw('COUNT(DISTINCT production_queues.production_job_card_id) as delayed_count'))
-            ->whereIn('production_queues.work_center_id', $centerIds)
-            ->whereIn('production_queues.status', $activeStatuses)
-            ->whereNotIn('production_job_cards.status', [
-                ProductionJobCardStatus::Completed->value,
-                ProductionJobCardStatus::ReadyForDispatch->value,
-                ProductionJobCardStatus::Cancelled->value,
-            ])
-            ->whereDate('production_job_cards.planned_end_date', '<', $today)
-            ->groupBy('production_queues.work_center_id')
-            ->pluck('delayed_count', 'work_center_id')
-            ->map(fn ($count) => (int) $count)
-            ->all();
-    }
-
-    /**
-     * @param  Collection<int, int>  $centerIds
-     * @return array<int, int>
-     */
-    protected function awaitingQcCountsByCenter(Collection $centerIds): array
-    {
-        return ProductionQueue::query()
-            ->forTenant()
-            ->join('production_job_cards', 'production_job_cards.id', '=', 'production_queues.production_job_card_id')
-            ->select('production_queues.work_center_id', DB::raw('COUNT(DISTINCT production_queues.production_job_card_id) as qc_count'))
-            ->whereIn('production_queues.work_center_id', $centerIds)
-            ->where('production_job_cards.status', ProductionJobCardStatus::QualityCheck->value)
-            ->groupBy('production_queues.work_center_id')
-            ->pluck('qc_count', 'work_center_id')
-            ->map(fn ($count) => (int) $count)
-            ->all();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function presentQueueJobRow(ProductionQueue $queue): array
-    {
-        $job = $queue->jobCard;
-        $user = auth()->user();
-
-        return [
-            'job_number' => $job?->job_card_number ?? '—',
-            'customer' => $job?->customer?->company_name ?? '—',
-            'queue_position' => $queue->queue_position,
-            'status' => $queue->status->value,
-            'updated_at' => $queue->updated_at?->format('Y-m-d H:i') ?? '—',
-            'job_360_url' => ($job && $user?->can('production.view') && Route::has('admin.production.job-cards.show'))
-                ? route('admin.production.job-cards.show', $job)
-                : null,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function presentJobRow(ProductionJobCard $job): array
-    {
-        $user = auth()->user();
-
-        return [
-            'job_number' => $job->job_card_number,
-            'customer' => $job->customer?->company_name ?? '—',
-            'status' => str_replace('_', ' ', $job->status->value),
-            'planned_start' => $job->planned_start_date?->format('Y-m-d') ?? '—',
-            'planned_end' => $job->planned_end_date?->format('Y-m-d') ?? '—',
-            'is_delayed' => $job->isDelayed(),
-            'job_360_url' => ($user?->can('production.view') && Route::has('admin.production.job-cards.show'))
-                ? route('admin.production.job-cards.show', $job)
-                : null,
-        ];
-    }
-
-    /**
      * @return array{
      *     capacity: int,
      *     active_jobs: int,
@@ -875,6 +483,36 @@ class WorkCenterWorkspaceService
             ProductionQueueStatus::Pending,
             ProductionQueueStatus::Assigned,
             ProductionQueueStatus::InProgress,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function machinePanel(WorkCenter $workCenter): ?array
+    {
+        $profile = $workCenter->machineAsset?->machineProfile;
+
+        if (! $profile) {
+            return null;
+        }
+
+        $capacity = $this->machineCapacity->profileMetrics($profile);
+        $availability = $this->machineAvailability->evaluate($profile);
+        $queue = $this->machineQueueReadiness->readiness($profile);
+
+        return [
+            'asset_id' => $workCenter->fixed_asset_id,
+            'name' => $workCenter->machineAsset?->asset_name,
+            'code' => $profile->machine_code,
+            'status' => $profile->production_status->label(),
+            'status_variant' => $profile->production_status->badgeVariant(),
+            'capacity' => $capacity,
+            'availability' => $availability,
+            'queue_readiness' => $queue,
+            'url' => Route::has('admin.assets.machines.show')
+                ? route('admin.assets.machines.show', $workCenter->fixed_asset_id)
+                : null,
         ];
     }
 }

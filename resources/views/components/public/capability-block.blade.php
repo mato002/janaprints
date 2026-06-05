@@ -73,7 +73,7 @@
 
                 {{-- Actions --}}
                 <div class="public-capability__actions">
-                    <x-public.button href="#contact" variant="primary">
+                    <x-public.button href="{{ $quoteFormHref }}" variant="primary">
                         Request Quote
                     </x-public.button>
                     <x-public.button

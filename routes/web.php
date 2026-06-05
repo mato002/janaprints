@@ -4,6 +4,8 @@ use App\Http\Controllers\MySessionsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RfqVendorPortalController;
 use App\Http\Controllers\Storefront\PageController;
+use App\Http\Controllers\Storefront\PublicContactMessageController;
+use App\Http\Controllers\Storefront\PublicQuoteRequestController;
 use App\Http\Controllers\Storefront\RobotsController;
 use App\Http\Controllers\Storefront\SitemapController;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +25,14 @@ Route::controller(PageController::class)->group(function () {
     Route::get('/contact', 'contact')->name('storefront.contact');
     Route::get('/request-quote', 'quote')->name('storefront.quote');
 });
+
+Route::post('/quote-request', [PublicQuoteRequestController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('public.quote-requests.store');
+
+Route::post('/contact-message', [PublicContactMessageController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('public.contact-messages.store');
 
 Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
     Route::get('{token}', [RfqVendorPortalController::class, 'show'])->name('show');

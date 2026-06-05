@@ -96,55 +96,26 @@ class ProductionSchedulingWorkspaceTest extends TestCase
             ->assertDontSee($otherJob->job_card_number, false);
     }
 
-    public function test_scheduling_intelligence_panels_render(): void
+    public function test_scheduling_remains_planning_focused_without_intelligence_panels(): void
     {
-        [$company, $branch, $user, $job, $workCenter] = $this->schedulingContext(withQueue: true);
-
-        $job->update([
-            'planned_end_date' => now()->subDay()->toDateString(),
-        ]);
-
-        ProductionJobCard::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'planned_start_date' => null,
-            'planned_end_date' => null,
-        ]);
-
-        $extraJob = ProductionJobCard::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'planned_start_date' => now()->addDays(2),
-            'planned_end_date' => now()->addDays(4),
-        ]);
-
-        ProductionQueue::query()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'production_job_card_id' => $extraJob->id,
-            'work_center_id' => $workCenter->id,
-            'queue_position' => 2,
-            'status' => ProductionQueueStatus::Assigned,
-        ]);
+        [$company, $branch, $user, $job] = $this->schedulingContext(withQueue: true);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
-        config(['production.scheduling.default_work_center_capacity' => 1]);
 
         $this->actingAs($user)
             ->get(route('admin.production.scheduling.index'))
             ->assertOk()
-            ->assertSee(__('Work Center Load'), false)
-            ->assertSee(__('Assigned jobs'), false)
-            ->assertSee(__('Capacity utilization'), false)
-            ->assertSee(__('Warnings'), false)
-            ->assertSee(__('Late jobs'), false)
-            ->assertSee(__('Missing schedule dates'), false)
-            ->assertSee($workCenter->name, false)
-            ->assertSee(__('Overbooked'), false);
+            ->assertSee(__('Scheduled Jobs'), false)
+            ->assertSee(__('List view'), false)
+            ->assertSee(__('Calendar view'), false)
+            ->assertSee($job->job_card_number, false)
+            ->assertDontSee(__('Work Center Load'), false)
+            ->assertDontSee(__('Warnings'), false)
+            ->assertDontSee(__('Capacity conflicts'), false)
+            ->assertDontSee(__('Bottleneck'), false);
     }
 
-    public function test_capacity_conflict_warning_when_jobs_overlap_on_same_center(): void
+    public function test_overlapping_jobs_still_appear_in_planning_list_without_warning_panel(): void
     {
         [$company, $branch, $user, , $workCenter] = $this->schedulingContext(withQueue: true);
 
@@ -170,8 +141,9 @@ class ProductionSchedulingWorkspaceTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.scheduling.index'))
             ->assertOk()
-            ->assertSee(__('Capacity conflicts'), false)
-            ->assertSee($jobB->job_card_number, false);
+            ->assertSee($jobB->job_card_number, false)
+            ->assertDontSee(__('Capacity conflicts'), false)
+            ->assertDontSee(__('Scheduling warnings'), false);
     }
 
     public function test_scheduling_kpis_reflect_scheduled_and_unscheduled_jobs(): void

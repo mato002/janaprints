@@ -72,6 +72,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('job-cards/{jobCard}/cancel', [ProductionJobCardController::class, 'cancel'])->name('job-cards.cancel');
         });
 
+        Route::middleware('permission:machines.assign')->group(function () {
+            Route::post('job-cards/{jobCard}/assign-machine', [ProductionJobCardController::class, 'assignMachine'])
+                ->name('job-cards.assign-machine');
+        });
+
         Route::middleware('permission:production.delete')->group(function () {
             Route::delete('job-cards/{jobCard}', [ProductionJobCardController::class, 'destroy'])->name('job-cards.destroy');
         });

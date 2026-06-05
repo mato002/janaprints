@@ -6,6 +6,8 @@ use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionPriority;
 use App\Enums\ProductionType;
 use App\Models\Artwork\ArtworkRequest;
+use App\Models\Assets\FixedAsset;
+use App\Models\Assets\MachineJobAssignment;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
@@ -29,7 +31,7 @@ class ProductionJobCard extends Model
         'company_id', 'branch_id', 'sales_order_id', 'customer_id', 'quotation_id',
         'artwork_request_id', 'job_card_number', 'production_type', 'priority',
         'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date',
-        'status', 'created_by',
+        'status', 'created_by', 'assigned_machine_asset_id',
     ];
 
     protected function casts(): array
@@ -93,6 +95,16 @@ class ProductionJobCard extends Model
     public function deliveryNotes(): HasMany
     {
         return $this->hasMany(\App\Models\Dispatch\DeliveryNote::class, 'production_job_card_id');
+    }
+
+    public function assignedMachine(): BelongsTo
+    {
+        return $this->belongsTo(FixedAsset::class, 'assigned_machine_asset_id');
+    }
+
+    public function machineAssignmentHistory(): HasMany
+    {
+        return $this->hasMany(MachineJobAssignment::class, 'production_job_card_id')->latest('assigned_at');
     }
 
     public function transitionTo(ProductionJobCardStatus $status): void

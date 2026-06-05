@@ -22,7 +22,7 @@ use App\Http\Controllers\Admin\Hr\TrainingDashboardController;
 use App\Http\Controllers\Admin\Hr\TrainingProgramController;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware(['auth', 'verified', 'tenant'])
+Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
     ->prefix('admin/hr')
     ->name('admin.hr.')
     ->group(function () {
@@ -71,7 +71,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.leave.view')->group(function () {
             Route::get('leave/requests', [LeaveRequestController::class, 'index'])->name('leave.index');
-            Route::get('leave/requests/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('leave.show');
             Route::get('leave/calendar', [LeaveCalendarController::class, 'index'])->name('leave.calendar');
             Route::get('leave/balances', [LeaveBalanceController::class, 'index'])->name('leave.balances');
         });
@@ -80,6 +79,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('leave/requests/create', [LeaveRequestController::class, 'create'])->name('leave.create');
             Route::post('leave/requests', [LeaveRequestController::class, 'store'])->name('leave.store');
             Route::post('leave/requests/{leaveRequest}/cancel', [LeaveRequestController::class, 'cancel'])->name('leave.cancel');
+        });
+
+        Route::middleware('permission:hr.leave.view')->group(function () {
+            Route::get('leave/requests/{leaveRequest}', [LeaveRequestController::class, 'show'])->name('leave.show');
         });
 
         Route::middleware('permission:hr.leave.approve')->group(function () {
@@ -104,7 +107,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.payroll.view')->group(function () {
             Route::get('payroll/runs', [PayrollRunController::class, 'index'])->name('payroll.index');
-            Route::get('payroll/runs/{payrollRun}', [PayrollRunController::class, 'show'])->name('payroll.show');
             Route::get('payroll/payslips/{payslip}/download', [PayrollPayslipController::class, 'download'])->name('payroll.payslip.download');
         });
 
@@ -113,6 +115,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('payroll/runs', [PayrollRunController::class, 'store'])->name('payroll.store');
             Route::post('payroll/runs/{payrollRun}/calculate', [PayrollRunController::class, 'calculate'])->name('payroll.calculate');
             Route::post('payroll/payslips/{payslip}/email', [PayrollPayslipController::class, 'email'])->name('payroll.payslip.email');
+        });
+
+        Route::middleware('permission:hr.payroll.view')->group(function () {
+            Route::get('payroll/runs/{payrollRun}', [PayrollRunController::class, 'show'])->name('payroll.show');
         });
 
         Route::middleware('permission:hr.payroll.approve')->group(function () {
@@ -130,16 +136,19 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.documents.view')->group(function () {
             Route::get('documents/list', [EmployeeDocumentController::class, 'index'])->name('documents.index');
-            Route::get('documents/{employeeDocument}', [EmployeeDocumentController::class, 'show'])->name('documents.show');
-            Route::get('documents/{employeeDocument}/download', [EmployeeDocumentController::class, 'download'])->name('documents.download');
-            Route::get('documents/{employeeDocument}/versions/{employeeDocumentVersion}/download', [EmployeeDocumentController::class, 'downloadVersion'])
-                ->name('documents.version.download');
         });
 
         Route::middleware('permission:hr.documents.upload')->group(function () {
             Route::get('documents/upload/create', [EmployeeDocumentController::class, 'create'])->name('documents.create');
             Route::post('documents/upload', [EmployeeDocumentController::class, 'store'])->name('documents.store');
             Route::post('documents/{employeeDocument}/versions', [EmployeeDocumentController::class, 'uploadVersion'])->name('documents.upload');
+        });
+
+        Route::middleware('permission:hr.documents.view')->group(function () {
+            Route::get('documents/{employeeDocument}', [EmployeeDocumentController::class, 'show'])->name('documents.show');
+            Route::get('documents/{employeeDocument}/download', [EmployeeDocumentController::class, 'download'])->name('documents.download');
+            Route::get('documents/{employeeDocument}/versions/{employeeDocumentVersion}/download', [EmployeeDocumentController::class, 'downloadVersion'])
+                ->name('documents.version.download');
         });
 
         Route::delete('documents/{employeeDocument}', [EmployeeDocumentController::class, 'destroy'])
@@ -158,6 +167,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.performance.view')->group(function () {
             Route::get('performance/reviews', [PerformanceReviewController::class, 'index'])->name('performance.index');
+        });
+
+        Route::middleware('permission:hr.performance.view')->group(function () {
             Route::get('performance/reviews/{performanceReview}', [PerformanceReviewController::class, 'show'])->name('performance.show');
         });
 
@@ -199,6 +211,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.exit.view')->group(function () {
             Route::get('exit/processes', [EmployeeExitController::class, 'index'])->name('exit.index');
+        });
+
+        Route::middleware('permission:hr.exit.view')->group(function () {
             Route::get('exit/processes/{employeeExit}', [EmployeeExitController::class, 'show'])->name('exit.show');
         });
 

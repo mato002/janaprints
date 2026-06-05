@@ -80,6 +80,8 @@ class PurchaseRequestService
             foreach ($request->items as $item) {
                 $order->items()->create([
                     'inventory_item_id' => $item->inventory_item_id,
+                    'item_classification' => $item->item_classification,
+                    'asset_category_id' => $item->asset_category_id,
                     'description' => $item->description,
                     'quantity' => $item->quantity,
                     'unit_cost' => $item->estimated_unit_cost,

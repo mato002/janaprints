@@ -98,6 +98,13 @@ class ReportsIntelligenceActivationTest extends TestCase
         $response->assertSee(__('All branches'), false);
         $response->assertSee(__('Export'), false);
 
+        if ($routeName === 'admin.reports.production') {
+            $response->assertSee(__('Reporting Catalog'), false);
+            $response->assertDontSee(__('No report data yet'), false);
+
+            return;
+        }
+
         if ($routeName !== 'admin.reports.executive' && $routeName !== 'admin.reports.kpi') {
             $response->assertSee(__('No report data yet'), false);
         }

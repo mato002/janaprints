@@ -40,6 +40,22 @@ class LeaveManagementTest extends TestCase
             ->assertSee(__('Leave Management'));
     }
 
+    public function test_leave_requests_index_renders(): void
+    {
+        $this->actingAs($this->hrUser())
+            ->get(route('admin.hr.leave.index'))
+            ->assertOk()
+            ->assertSee(__('Leave Requests'));
+    }
+
+    public function test_apply_leave_form_renders(): void
+    {
+        $this->actingAs($this->hrUser())
+            ->get(route('admin.hr.leave.create'))
+            ->assertOk()
+            ->assertSee(__('Apply for Leave'));
+    }
+
     public function test_apply_leave_submits_request(): void
     {
         $hr = $this->hrUser();

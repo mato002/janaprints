@@ -46,9 +46,10 @@ class WorkCentersWorkspaceTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.production.work-centers.index'));
 
         $response->assertOk();
-        $response->assertSee(__('Work centers'), false);
-        $response->assertSee(__('Production stages'), false);
+        $response->assertSee(__('Work Center Register'), false);
         $response->assertSee('Prepress', false);
+        $response->assertDontSee(__('Bottleneck Detection'), false);
+        $response->assertDontSee(__('Work centers with queued jobs'), false);
 
         $response = $this->actingAs($user)->get(route('admin.production.work-centers.index', [
             'stage_id' => $prepressStage->id,

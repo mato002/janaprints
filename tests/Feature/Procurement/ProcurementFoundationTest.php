@@ -15,7 +15,11 @@ use App\Models\Procurement\Vendor;
 use App\Models\User;
 use App\Support\Procurement\GoodsReceiptService;
 use App\Support\Procurement\PurchaseRequestService;
+use Database\Seeders\GlAccountTypeSeeder;
 use Database\Seeders\InventoryFoundationSeeder;
+use Database\Seeders\JanaPrintsAccountingPeriodsSeeder;
+use Database\Seeders\JanaPrintsChartOfAccountsSeeder;
+use Database\Seeders\JanaPrintsPostingEngineSeeder;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\PlatformConfigurationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -122,6 +126,10 @@ class ProcurementFoundationTest extends TestCase
         [$company, $branch, $user, $item, $warehouse] = $this->procurementContext([
             'procurement.orders.view', 'procurement.orders.create', 'procurement.orders.receive', 'inventory.view',
         ]);
+        $this->seed(GlAccountTypeSeeder::class);
+        $this->seed(JanaPrintsChartOfAccountsSeeder::class);
+        $this->seed(JanaPrintsAccountingPeriodsSeeder::class);
+        $this->seed(JanaPrintsPostingEngineSeeder::class);
         $this->seed(InventoryFoundationSeeder::class);
         $vendor = Vendor::factory()->create(['company_id' => $company->id]);
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);

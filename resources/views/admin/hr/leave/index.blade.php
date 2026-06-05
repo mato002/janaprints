@@ -1,9 +1,9 @@
 <x-admin-layout :title="__('Leave Requests')" :breadcrumbs="[['label' => __('HR'), 'url' => route('admin.workspaces.hr')], ['label' => __('Leave'), 'url' => route('admin.hr.leave.dashboard')], ['label' => __('Requests')]]">
     <x-admin.page-header :title="__('Leave Requests')">
         <x-slot name="actions">
-            <a href="{{ route('admin.hr.leave.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
+            <a href="{{ route('admin.hr.leave.dashboard') }}" data-turbo-frame="erp-main" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
             @can('create', App\Models\Hr\LeaveRequest::class)
-                <a href="{{ route('admin.hr.leave.create') }}" class="erp-btn-primary">{{ __('Apply for leave') }}</a>
+                <a href="{{ route('admin.hr.leave.create') }}" data-turbo-frame="erp-main" class="erp-btn-primary">{{ __('Apply for leave') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

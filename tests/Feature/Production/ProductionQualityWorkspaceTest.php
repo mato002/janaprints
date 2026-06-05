@@ -57,6 +57,8 @@ class ProductionQualityWorkspaceTest extends TestCase
         $response->assertSee(__('Failed'), false);
         $response->assertSee(__('On Hold'), false);
         $response->assertSee(__('Inspection Register'), false);
+        $response->assertSee(__('Product'), false);
+        $response->assertSee(__('Status'), false);
         $response->assertSee($job->job_card_number, false);
     }
 
@@ -112,21 +114,9 @@ class ProductionQualityWorkspaceTest extends TestCase
             ->assertSee(__('Inspect'), false);
     }
 
-    public function test_quality_intelligence_analytics_and_widgets_render(): void
+    public function test_quality_workspace_excludes_intelligence_sections(): void
     {
         [$company, $branch, $user, $job] = $this->qualityContext();
-
-        $failedJob = ProductionJobCard::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'status' => ProductionJobCardStatus::OnHold,
-        ]);
-
-        $reworkJob = ProductionJobCard::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'status' => ProductionJobCardStatus::Rework,
-        ]);
 
         QualityCheck::query()->create([
             'company_id' => $company->id,
@@ -134,25 +124,6 @@ class ProductionQualityWorkspaceTest extends TestCase
             'production_job_card_id' => $job->id,
             'checked_by' => $user->id,
             'result' => QualityCheckResult::Passed,
-            'checked_at' => now()->subHour(),
-        ]);
-
-        QualityCheck::query()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'production_job_card_id' => $failedJob->id,
-            'checked_by' => $user->id,
-            'result' => QualityCheckResult::Failed,
-            'comments' => 'Surface defect',
-            'checked_at' => now(),
-        ]);
-
-        QualityCheck::query()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'production_job_card_id' => $reworkJob->id,
-            'checked_by' => $user->id,
-            'result' => QualityCheckResult::ReworkRequired,
             'checked_at' => now(),
         ]);
 
@@ -161,17 +132,64 @@ class ProductionQualityWorkspaceTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.quality.index'))
             ->assertOk()
-            ->assertSee(__('Analytics'), false)
-            ->assertSee(__('Pass Rate'), false)
-            ->assertSee(__('Fail Rate'), false)
+            ->assertDontSee(__('Analytics'), false)
+            ->assertDontSee(__('Pass Rate'), false)
+            ->assertDontSee(__('Recent Failures'), false)
+            ->assertDontSee(__('Recent Holds'), false)
+            ->assertDontSee(__('Jobs Requiring Rework'), false);
+    }
+
+    public function test_quality_register_shows_enhanced_columns(): void
+    {
+        [$company, $branch, $user, $job] = $this->qualityContext();
+
+        $holdJob = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => ProductionJobCardStatus::OnHold,
+        ]);
+
+        $approvedAt = now()->subHour();
+
+        QualityCheck::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $job->id,
+            'checked_by' => $user->id,
+            'result' => QualityCheckResult::ReworkRequired,
+            'checked_at' => now()->subDays(2),
+        ]);
+
+        QualityCheck::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $job->id,
+            'checked_by' => $user->id,
+            'result' => QualityCheckResult::Passed,
+            'checked_at' => $approvedAt,
+        ]);
+
+        QualityCheck::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $holdJob->id,
+            'checked_by' => $user->id,
+            'result' => QualityCheckResult::Failed,
+            'comments' => 'Surface defect',
+            'checked_at' => now(),
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.quality.index'))
+            ->assertOk()
+            ->assertSee(__('Product'), false)
+            ->assertSee(__('Status'), false)
             ->assertSee(__('Rework Count'), false)
-            ->assertSee(__('Hold Count'), false)
-            ->assertSee(__('Recent Failures'), false)
-            ->assertSee(__('Recent Holds'), false)
-            ->assertSee(__('Jobs Requiring Rework'), false)
-            ->assertSee($failedJob->job_card_number, false)
-            ->assertSee($reworkJob->job_card_number, false)
-            ->assertSee('Surface defect', false);
+            ->assertSee(__('Hold Reason'), false)
+            ->assertSee('Surface defect', false)
+            ->assertSee(__('On hold'), false);
     }
 
     public function test_quality_search_filters_register(): void
@@ -297,8 +315,7 @@ class ProductionQualityWorkspaceTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee($job->job_card_number, false)
-            ->assertDontSee($otherJob->job_card_number, false)
-            ->assertSee('Approved finish', false);
+            ->assertDontSee($otherJob->job_card_number, false);
     }
 
     public function test_register_links_to_job_360_when_route_exists(): void

@@ -6,8 +6,6 @@
     $artwork = $tabData['artwork'] ?? null;
 @endphp
 
-@include('admin.production.job-cards.workspace.partials.control-alerts', ['alerts' => $tabData['control_alerts'] ?? []])
-
 @include('admin.production.job-cards.workspace.partials.workflow', ['jobCard' => $jobCard])
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -63,6 +61,49 @@
         </x-admin.card>
     </div>
 </div>
+
+@php $machine = $tabData['machine'] ?? []; @endphp
+<x-admin.card class="mt-6">
+    <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Assigned Machine') }}</h3>
+    @if (! empty($machine['machine_name']))
+        <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+            <div><dt class="text-slate-500">{{ __('Machine') }}</dt><dd class="font-medium">{{ $machine['machine_name'] }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Status') }}</dt><dd>{{ $machine['machine_status'] }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Expected Throughput') }}</dt><dd>{{ number_format($machine['expected_throughput'] ?? 0, 2) }} / hr</dd></div>
+            <div><dt class="text-slate-500">{{ __('Availability') }}</dt><dd>{{ $machine['availability']['label'] ?? '—' }}</dd></div>
+        </dl>
+        @if (($machine['assignment_history'] ?? collect())->isNotEmpty())
+            <div class="mt-4">
+                <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Assignment History') }}</h4>
+                <ul class="space-y-1 text-sm text-slate-600">
+                    @foreach ($machine['assignment_history'] as $history)
+                        <li>{{ $history->assigned_at?->format('Y-m-d H:i') }} — {{ $history->assigner?->name }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+    @else
+        <p class="text-sm text-slate-500">{{ __('No machine assigned.') }}</p>
+    @endif
+
+    @can('machines.assign')
+        @if (($tabData['machine_options'] ?? collect())->isNotEmpty())
+            <form method="POST" action="{{ route('admin.production.job-cards.assign-machine', $jobCard) }}" class="mt-4 flex flex-wrap items-end gap-2">
+                @csrf
+                <div class="min-w-[14rem] flex-1">
+                    <label class="erp-label">{{ __('Assign Machine') }}</label>
+                    <select name="assigned_machine_asset_id" class="erp-select w-full" required>
+                        <option value="">{{ __('Select machine…') }}</option>
+                        @foreach ($tabData['machine_options'] as $option)
+                            <option value="{{ $option->fixed_asset_id }}">{{ $option->asset?->asset_name }} ({{ $option->machine_code }})</option>
+                        @endforeach
+                    </select>
+                </div>
+                <button type="submit" class="erp-btn-primary">{{ __('Assign') }}</button>
+            </form>
+        @endif
+    @endcan
+</x-admin.card>
 
 <x-admin.card class="mt-6">
     <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Current status') }}</h3>

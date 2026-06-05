@@ -3,9 +3,7 @@
 namespace App\Services\Production;
 
 use App\Enums\ProductionQueueStatus;
-use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
-use App\Models\Production\WorkCenter;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -17,10 +15,10 @@ class ProductionQueueWorkspaceService
 {
     /**
      * @return array{
-     *     pending: int,
+     *     queued: int,
      *     assigned: int,
      *     in_progress: int,
-     *     active: int
+     *     blocked: int
      * }
      */
     public function kpiCounts(): array
@@ -28,10 +26,13 @@ class ProductionQueueWorkspaceService
         $base = ProductionQueue::query()->forTenant();
 
         return [
-            'pending' => (clone $base)->where('status', ProductionQueueStatus::Pending)->count(),
+            'queued' => (clone $base)->where('status', ProductionQueueStatus::Pending)->count(),
             'assigned' => (clone $base)->where('status', ProductionQueueStatus::Assigned)->count(),
             'in_progress' => (clone $base)->where('status', ProductionQueueStatus::InProgress)->count(),
-            'active' => (clone $base)->whereIn('status', $this->activeQueueStatuses())->count(),
+            'blocked' => (clone $base)
+                ->where('status', ProductionQueueStatus::Pending)
+                ->whereNull('assigned_operator_id')
+                ->count(),
         ];
     }
 
@@ -49,56 +50,6 @@ class ProductionQueueWorkspaceService
             ->orderBy('id')
             ->paginate(20)
             ->withQueryString();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function bottlenecks(): array
-    {
-        $capacity = $this->defaultCapacity();
-        $centers = WorkCenter::query()
-            ->forTenant()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
-
-        $loads = $centers->map(function (WorkCenter $center) use ($capacity) {
-            $queueCount = ProductionQueue::query()
-                ->forTenant()
-                ->where('work_center_id', $center->id)
-                ->whereIn('status', $this->activeQueueStatuses())
-                ->count();
-
-            $delayedJobs = ProductionQueue::query()
-                ->forTenant()
-                ->where('work_center_id', $center->id)
-                ->whereIn('status', $this->activeQueueStatuses())
-                ->whereHas('jobCard', fn (Builder $q) => $q->whereDate('planned_end_date', '<', now()->toDateString()))
-                ->distinct()
-                ->count('production_job_card_id');
-
-            return [
-                'id' => $center->id,
-                'name' => $center->name,
-                'code' => $center->code,
-                'queue_count' => $queueCount,
-                'delayed_jobs' => $delayedJobs,
-                'capacity' => $capacity,
-                'is_overbooked' => $queueCount > $capacity,
-                'active_jobs' => $queueCount,
-            ];
-        });
-
-        $mostCongested = $loads->sortByDesc('queue_count')->first();
-
-        return [
-            'most_congested' => $mostCongested && $mostCongested['queue_count'] > 0 ? $mostCongested : null,
-            'with_queued_jobs' => $loads->filter(fn (array $row) => $row['queue_count'] > 0)->sortByDesc('queue_count')->values()->all(),
-            'with_delayed_jobs' => $loads->filter(fn (array $row) => $row['delayed_jobs'] > 0)->sortByDesc('delayed_jobs')->values()->all(),
-            'idle_centers' => $loads->filter(fn (array $row) => $row['queue_count'] === 0)->values()->all(),
-            'overbooked' => $loads->filter(fn (array $row) => $row['is_overbooked'])->values()->all(),
-        ];
     }
 
     /**
@@ -164,6 +115,12 @@ class ProductionQueueWorkspaceService
             $query->where('work_center_id', (int) $workCenterId);
         }
 
+        if ($request->query('operator_id') === 'unassigned') {
+            $query->whereNull('assigned_operator_id');
+        } elseif ($operatorId = $request->integer('operator_id')) {
+            $query->where('assigned_operator_id', $operatorId);
+        }
+
         if ($stageId = $request->query('stage_id')) {
             $query->whereHas('jobCard.operations', fn (Builder $q) => $q->where('production_stage_id', (int) $stageId));
         }
@@ -184,19 +141,23 @@ class ProductionQueueWorkspaceService
     }
 
     /**
-     * @return list<ProductionQueueStatus>
+     * @return Collection<int, User>
      */
-    protected function activeQueueStatuses(): array
+    public function operatorOptions(): Collection
     {
-        return [
-            ProductionQueueStatus::Pending,
-            ProductionQueueStatus::Assigned,
-            ProductionQueueStatus::InProgress,
-        ];
-    }
+        $operatorIds = ProductionQueue::query()
+            ->forTenant()
+            ->whereNotNull('assigned_operator_id')
+            ->distinct()
+            ->pluck('assigned_operator_id');
 
-    protected function defaultCapacity(): int
-    {
-        return max(1, (int) config('production.scheduling.default_work_center_capacity', 5));
+        if ($operatorIds->isEmpty()) {
+            return collect();
+        }
+
+        return User::query()
+            ->whereIn('id', $operatorIds)
+            ->orderBy('name')
+            ->get(['id', 'name']);
     }
 }

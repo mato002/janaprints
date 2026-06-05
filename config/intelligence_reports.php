@@ -32,18 +32,6 @@ return [
         ],
     ],
 
-    'production' => [
-        'title' => 'Production Reports',
-        'description' => 'Throughput, downtime, and job metrics.',
-        'permission' => 'reports.view',
-        'widgets' => [
-            ['label' => 'Active Jobs', 'icon' => 'cog'],
-            ['label' => 'Delayed Jobs', 'icon' => 'exclamation'],
-            ['label' => 'Jobs Completed', 'icon' => 'check-circle'],
-            ['label' => 'Production Pipeline', 'icon' => 'collection'],
-        ],
-    ],
-
     'inventory' => [
         'title' => 'Inventory Reports',
         'description' => 'Stock movement and valuation reports.',

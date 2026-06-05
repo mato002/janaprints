@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Reports\IntelligenceReportController;
+use App\Http\Controllers\Admin\Reports\ProductionReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
@@ -10,7 +11,9 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
         Route::middleware('permission:reports.view')->prefix('reports')->name('reports.')->group(function () {
             Route::get('executive', [IntelligenceReportController::class, 'executive'])->name('executive');
             Route::get('commercial', [IntelligenceReportController::class, 'commercial'])->name('commercial');
-            Route::get('production', [IntelligenceReportController::class, 'production'])->name('production');
+            Route::get('production', [ProductionReportController::class, 'index'])->name('production');
+            Route::get('production/print', [ProductionReportController::class, 'print'])->name('production.print');
+            Route::post('production/export', [ProductionReportController::class, 'export'])->name('production.export');
             Route::get('procurement', [IntelligenceReportController::class, 'procurement'])->name('procurement');
             Route::get('accounting', [IntelligenceReportController::class, 'accounting'])->name('accounting');
             Route::get('hr', [IntelligenceReportController::class, 'hr'])->name('hr');
@@ -38,6 +41,10 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             Route::middleware('permission:intelligence.commercial.view|reports.view')
                 ->get('commercial-360', [IntelligenceReportController::class, 'commercial360'])
                 ->name('commercial360');
+
+            Route::middleware('permission:intelligence.assets.view|assets.analytics.view|reports.view')
+                ->get('asset-360', [IntelligenceReportController::class, 'asset360'])
+                ->name('asset360');
         });
 
         Route::middleware('permission:reports.view|reports.inventory.view')

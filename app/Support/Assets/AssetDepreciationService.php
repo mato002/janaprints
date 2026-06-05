@@ -2,9 +2,12 @@
 
 namespace App\Support\Assets;
 
+use App\Enums\DepreciationPostingStatus;
 use App\Enums\FixedAssetStatus;
 use App\Models\Assets\AssetDepreciationEntry;
 use App\Models\Assets\FixedAsset;
+use App\Services\Assets\AssetFinanceTimelineService;
+use App\Services\Assets\DepreciationCalculationService;
 use App\Support\Accounting\AssetAccountingPostingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -19,33 +22,52 @@ class AssetDepreciationService
             ]);
         }
 
-        $asset->load('category');
+        $calculator = app(DepreciationCalculationService::class);
 
-        $months = max(1, (int) ($asset->category?->useful_life_months ?? 60));
-        $depreciable = max(0, (float) $asset->acquisition_cost - (float) $asset->residual_value);
-        $monthly = round($depreciable / $months, 2);
+        if ($calculator->hasEntryForPeriod($asset, $periodDate)) {
+            throw ValidationException::withMessages([
+                'period_date' => __('Depreciation already recorded for this period.'),
+            ]);
+        }
 
-        return DB::transaction(function () use ($asset, $periodDate, $monthly, $userId) {
-            $newAccumulated = min(
-                (float) $asset->acquisition_cost - (float) $asset->residual_value,
-                round((float) $asset->accumulated_depreciation + $monthly, 2),
-            );
+        $calc = $calculator->calculateForPeriod($asset, $periodDate);
 
-            $nbv = max(0, (float) $asset->acquisition_cost - $newAccumulated);
-
+        return DB::transaction(function () use ($asset, $periodDate, $calc, $userId, $calculator) {
             $entry = AssetDepreciationEntry::query()->create([
                 'fixed_asset_id' => $asset->id,
-                'period_date' => $periodDate,
-                'depreciation_amount' => $monthly,
-                'accumulated_after' => $newAccumulated,
-                'net_book_value_after' => $nbv,
+                'period_date' => $calculator->normalizePeriod($periodDate),
+                'depreciation_amount' => $calc['depreciation_amount'],
+                'accumulated_after' => $calc['accumulated_after'],
+                'net_book_value_after' => $calc['net_book_value_after'],
+                'posting_status' => DepreciationPostingStatus::Draft,
             ]);
 
-            $asset->update(['accumulated_depreciation' => $newAccumulated]);
+            $asset->update([
+                'accumulated_depreciation' => $calc['accumulated_after'],
+                'net_book_value' => $calc['net_book_value_after'],
+                'last_depreciation_date' => $calculator->normalizePeriod($periodDate),
+                'is_fully_depreciated' => $calc['is_fully_depreciated'],
+            ]);
 
             app(AssetAccountingPostingService::class)->postDepreciation($entry, $asset->fresh(), $userId);
 
-            return $entry;
+            $entry->update([
+                'posting_status' => DepreciationPostingStatus::Posted,
+                'posted_at' => now(),
+                'is_locked' => true,
+            ]);
+
+            app(AssetFinanceTimelineService::class)->record(
+                $asset,
+                'depreciated',
+                __('Depreciation posted'),
+                null,
+                $entry,
+                $userId,
+                ['amount' => $calc['depreciation_amount']],
+            );
+
+            return $entry->fresh();
         });
     }
 
@@ -56,9 +78,12 @@ class AssetDepreciationService
         FixedAsset::query()
             ->where('company_id', $companyId)
             ->where('status', FixedAssetStatus::Active)
+            ->where('is_fully_depreciated', false)
             ->each(function (FixedAsset $asset) use ($periodDate, $userId, &$count) {
-                self::runPeriod($asset, $periodDate, $userId);
-                $count++;
+                if (! app(DepreciationCalculationService::class)->hasEntryForPeriod($asset, $periodDate)) {
+                    self::runPeriod($asset, $periodDate, $userId);
+                    $count++;
+                }
             });
 
         return $count;

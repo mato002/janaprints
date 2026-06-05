@@ -48,7 +48,66 @@ class ProductionQueueWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee(__('Production Queue'), false)
             ->assertSee(__('Queue Register'), false)
+            ->assertSee(__('Queued'), false)
+            ->assertSee(__('Blocked'), false)
+            ->assertDontSee(__('Bottleneck Detection'), false)
+            ->assertDontSee(__('Work centers with queued jobs'), false)
             ->assertSee($jobCard->job_card_number, false);
+    }
+
+    public function test_queue_workspace_filters_by_operator(): void
+    {
+        [$company, $branch, $user, $workCenter, $jobCard] = $this->queueContext();
+        $operator = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'name' => 'Queue Operator',
+        ]);
+
+        ProductionQueue::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $jobCard->id,
+            'work_center_id' => $workCenter->id,
+            'queue_position' => 1,
+            'status' => ProductionQueueStatus::Assigned,
+            'assigned_operator_id' => $operator->id,
+        ]);
+
+        $otherJob = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sales_order_id' => SalesOrder::factory()->create([
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'created_by' => $user->id,
+            ])->id,
+            'created_by' => $user->id,
+        ]);
+
+        ProductionQueue::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $otherJob->id,
+            'work_center_id' => $workCenter->id,
+            'queue_position' => 2,
+            'status' => ProductionQueueStatus::Pending,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(TenantContext::class, new TenantContext($company, $branch, false));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.queue.index', ['operator_id' => $operator->id]))
+            ->assertOk()
+            ->assertSee($jobCard->job_card_number, false)
+            ->assertDontSee($otherJob->job_card_number, false);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.queue.index', ['operator_id' => 'unassigned']))
+            ->assertOk()
+            ->assertSee($otherJob->job_card_number, false)
+            ->assertDontSee($jobCard->job_card_number, false);
     }
 
     public function test_queue_workspace_filters_by_work_center(): void

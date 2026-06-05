@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\User;
 use App\Providers\AppServiceProvider;
+use App\Support\Navigation\ProductionWorkspacePresenter;
 use App\Support\Navigation\WorkspacePresenter;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -46,8 +47,10 @@ class ProductionHubActivationTest extends TestCase
         $user = $this->userWithProductionModules();
         $this->actingAs($user);
 
-        $presented = app(WorkspacePresenter::class)->present('production');
-        $items = collect($presented['groups'][0]['items'])->keyBy('label');
+        $presented = app(ProductionWorkspacePresenter::class)->presentHub();
+        $items = collect($presented['groups'])
+            ->flatMap(fn (array $group) => $group['items'])
+            ->keyBy('label');
 
         foreach ($this->activatedCards as $label => $routeName) {
             $item = $items->get($label);

@@ -15,7 +15,6 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Production\ProductionJobCard;
-use App\Models\Production\WorkCenter;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
@@ -37,33 +36,60 @@ class JobCardsCommandCenterTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_job_cards_command_center_loads(): void
+    public function test_job_cards_register_loads_without_intelligence_panels(): void
     {
         [$company, $branch, , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
         $this->createJobCard($salesOrder, $user);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.production.job-cards.index'))
-            ->assertOk()
-            ->assertSee(__('Production Operations Command Center'), false)
-            ->assertSee(__('Total Open Jobs'), false)
-            ->assertSee(__('Production Pipeline'), false)
-            ->assertSee(__('Production Alerts'), false)
-            ->assertSee(__('Open Job 360'), false);
+        $response = $this->actingAs($user)->get(route('admin.production.job-cards.index'));
+
+        $response->assertOk()
+            ->assertSee(__('Job Cards'), false)
+            ->assertSee(__('Production order execution register.'), false)
+            ->assertSee(__('Quick search'), false)
+            ->assertSee(__('Saved view'), false)
+            ->assertSee(__('Open Job 360'), false)
+            ->assertDontSee(__('Production Operations Command Center'), false)
+            ->assertDontSee(__('Total Open Jobs'), false)
+            ->assertDontSee(__('Production Pipeline'), false)
+            ->assertDontSee(__('Production Alerts'), false)
+            ->assertDontSee(__('Workload'), false)
+            ->assertDontSee(__('Bottleneck'), false);
     }
 
-    public function test_kpi_strip_and_pipeline_render_from_service(): void
+    public function test_register_payload_excludes_command_center_data(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
         $this->createJobCard($salesOrder, $user);
 
         $payload = app(ProductionJobCardIndexService::class)->build(request(), $user);
 
-        $this->assertCount(7, $payload['kpis']);
-        $this->assertCount(7, $payload['pipeline']);
-        $this->assertArrayHasKey('overdue', $payload['alerts']);
+        $this->assertArrayHasKey('status_tabs', $payload);
+        $this->assertArrayHasKey('register_columns', $payload);
+        $this->assertArrayHasKey('saved_view_presets', $payload);
+        $this->assertArrayNotHasKey('kpis', $payload);
+        $this->assertArrayNotHasKey('pipeline', $payload);
+        $this->assertArrayNotHasKey('alerts', $payload);
+        $this->assertArrayNotHasKey('workload', $payload);
+        $this->assertArrayNotHasKey('quick_actions', $payload);
+        $this->assertCount(8, $payload['status_tabs']);
+        $this->assertCount(11, $payload['register_columns']);
+    }
+
+    public function test_stage_tab_filter(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+        $jobCard->update(['status' => ProductionJobCardStatus::InProduction]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.index', ['stage' => 'production']))
+            ->assertOk()
+            ->assertSee($jobCard->job_card_number, false);
     }
 
     public function test_status_filter_preserves_pagination_query(): void
@@ -132,15 +158,26 @@ class JobCardsCommandCenterTest extends TestCase
         $this->assertContains('export', collect($payload['bulk_actions'])->pluck('key')->all());
     }
 
-    public function test_job_360_link_in_present_row(): void
+    public function test_present_row_includes_register_columns(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
         $jobCard = $this->createJobCard($salesOrder, $user);
 
-        $row = app(ProductionJobCardIndexService::class)->presentRow($jobCard->fresh(['customer', 'salesOrder.items', 'queues.workCenter', 'artworkRequest', 'qualityChecks', 'deliveryNotes']), $user);
+        $row = app(ProductionJobCardIndexService::class)->presentRow($jobCard->fresh([
+            'customer',
+            'salesOrder.items',
+            'queues.workCenter',
+            'queues.assignedOperator',
+            'artworkRequest',
+            'qualityChecks',
+            'deliveryNotes',
+        ]), $user);
 
+        $this->assertArrayHasKey('order', $row);
+        $this->assertArrayHasKey('product', $row);
+        $this->assertArrayHasKey('department', $row);
+        $this->assertArrayHasKey('assigned_team', $row);
         $this->assertNotNull($row['job_360_url']);
-        $this->assertStringContainsString((string) $jobCard->id, $row['job_360_url']);
     }
 
     public function test_unauthorized_user_has_no_workflow_actions(): void
@@ -182,7 +219,7 @@ class JobCardsCommandCenterTest extends TestCase
         $this->assertLessThan(80, $queryCount, "Expected bounded queries, got {$queryCount}");
     }
 
-    public function test_empty_state_when_no_matches(): void
+    public function test_filter_empty_state_when_no_matches(): void
     {
         [$company, $branch, , $user] = $this->productionContext(['production.view']);
 
@@ -194,14 +231,18 @@ class JobCardsCommandCenterTest extends TestCase
             ->assertSee(__('No job cards match your filters'), false);
     }
 
-    public function test_quick_actions_respect_permissions(): void
+    public function test_primary_empty_state_when_no_jobs_exist(): void
     {
-        [, , , $user] = $this->productionContext(['production.view']);
+        [$company, $branch, , $user] = $this->productionContext(['production.view', 'production.create']);
 
-        $actions = app(ProductionJobCardIndexService::class)->quickActions($user);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->assertFalse(collect($actions)->contains('label', __('New Job Card')));
-        $this->assertFalse(collect($actions)->contains('label', __('Open Queue')));
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.index'))
+            ->assertOk()
+            ->assertSee(__('No active production jobs found.'), false)
+            ->assertSee(__('Create Job Card'), false)
+            ->assertSee(__('View Sales Orders'), false);
     }
 
     /**

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin\Procurement;
 
 use App\Enums\DocumentType;
+use App\Enums\ProcurementItemClassification;
 use App\Enums\PurchaseOrderStatus;
+use App\Models\Assets\AssetCategory;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Procurement\Concerns\ResolvesProcurementTenant;
 use App\Http\Controllers\Controller;
@@ -187,9 +189,12 @@ class PurchaseOrderController extends Controller
             'items.*.description' => ['required', 'string', 'max:255'],
             'items.*.quantity' => ['required', 'numeric', 'min:0.001'],
             'items.*.unit_cost' => ['required', 'numeric', 'min:0'],
+            'items.*.item_classification' => ['nullable', 'string', Rule::in(array_column(ProcurementItemClassification::cases(), 'value'))],
+            'items.*.asset_category_id' => ['nullable', Rule::exists('asset_categories', 'id')->where('company_id', $companyId)],
         ]);
 
         return collect($validated['items'])->map(function (array $line) {
+            $line['item_classification'] = $line['item_classification'] ?? ProcurementItemClassification::InventoryItem->value;
             $line['line_total'] = round((float) $line['quantity'] * (float) $line['unit_cost'], 2);
 
             return $line;
@@ -223,6 +228,8 @@ class PurchaseOrderController extends Controller
         return [
             'vendors' => Vendor::query()->forTenant()->where('status', 'active')->orderBy('vendor_name')->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
+            'classifications' => ProcurementItemClassification::cases(),
+            'assetCategories' => AssetCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
         ];
     }
 }
