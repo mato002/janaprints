@@ -66,6 +66,10 @@ class CommercialWorkspacePresenter
             return null;
         }
 
+        if (! empty($definition['permission']) && ! $this->userCan($definition['permission'])) {
+            return null;
+        }
+
         $groups = [];
 
         foreach ($definition['groups'] ?? [] as $group) {

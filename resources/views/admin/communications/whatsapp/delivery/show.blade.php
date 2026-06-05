@@ -22,7 +22,9 @@
                 @endforeach
             </ul>
             @if ($message->communicationLog)
-                <a href="{{ route('admin.communications.logs.show', $message->communicationLog) }}" class="mt-3 inline-block text-sm text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('View COM-4 communication log') }}</a>
+                <div class="mt-3">
+                    <x-admin.crm-btn variant="outline" size="sm" :href="route('admin.communications.logs.show', $message->communicationLog)" data-turbo-frame="erp-main">{{ __('View COM-4 communication log') }}</x-admin.crm-btn>
+                </div>
             @endif
         </div>
     </div>

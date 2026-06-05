@@ -54,8 +54,8 @@
                 <p class="font-medium text-erp-primary">{{ $item['label'] }}</p>
                 <p class="text-slate-400">{{ $item['at']->format('d M Y, H:i') }}</p>
                 <div class="mt-1 flex flex-wrap gap-2">
-                    <button type="button" class="text-erp-accent hover:underline" @click="$dispatch('open-chat-item', '{{ $item['dom_id'] }}')">{{ __('View in chat') }}</button>
-                    <a href="{{ $item['download_url'] }}" class="text-erp-accent hover:underline">{{ __('Download') }}</a>
+                    <x-admin.crm-btn type="button" variant="ghost" size="xs" @click="$dispatch('open-chat-item', '{{ $item['dom_id'] }}')">{{ __('View in chat') }}</x-admin.crm-btn>
+                    <x-admin.crm-btn variant="outline" size="xs" :href="$item['download_url']">{{ __('Download') }}</x-admin.crm-btn>
                     @can('attachments', App\Models\Communications\Inbox\CommunicationConversation::class)
                         <form method="POST" action="{{ route('admin.communications.inbox.attachments.destroy', [$active, $item['id']]) }}" class="inline" data-turbo-frame="erp-main" onsubmit="return confirm(@js(__('Remove this file?')))">
                             @csrf @method('DELETE')

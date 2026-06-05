@@ -27,7 +27,7 @@ class SettingsGovernanceTest extends TestCase
 
     public function test_guest_cannot_access_settings(): void
     {
-        $this->get(route('admin.settings.index'))->assertRedirect(route('login'));
+        $this->get(route('admin.settings.index'))->assertRedirect(route('admin.login'));
     }
 
     public function test_user_without_permission_cannot_view_settings(): void

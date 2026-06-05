@@ -73,6 +73,10 @@ class ProfileController extends Controller
             'password' => ['required', 'current_password'],
         ]);
 
+        $loginRoute = $request->session()->get('auth_context') === 'client'
+            ? 'client.login'
+            : 'admin.login';
+
         $user = $request->user();
 
         Auth::logout();
@@ -82,6 +86,6 @@ class ProfileController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        return Redirect::route($loginRoute);
     }
 }

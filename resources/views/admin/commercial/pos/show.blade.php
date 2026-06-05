@@ -4,6 +4,11 @@
             @if ($sale->status === App\Enums\PosSaleStatus::Paid)
                 <a href="{{ route('admin.commercial.pos.receipt', $sale) }}" class="erp-btn-primary">{{ __('Receipt') }}</a>
             @endif
+            @if ($sale->status === App\Enums\PosSaleStatus::Held)
+                @can('update', $sale)
+                    <a href="{{ route('admin.commercial.pos.resume', $sale) }}" class="erp-btn-primary">{{ __('Resume & pay') }}</a>
+                @endcan
+            @endif
             @if ($sale->customer)
                 <x-admin.customer-360-action :customer="$sale->customer" />
             @endif
@@ -23,11 +28,24 @@
                     <form method="POST" action="{{ route('admin.commercial.pos.cancel', $sale) }}" class="mt-4">@csrf<button class="text-sm text-red-600">{{ __('Cancel sale') }}</button></form>
                 @endif
             @endcan
-            @can('refund', $sale)
-                @if ($sale->status === App\Enums\PosSaleStatus::Paid)
-                    <form method="POST" action="{{ route('admin.commercial.pos.refund', $sale) }}" class="mt-2">@csrf<button class="text-sm text-amber-700">{{ __('Mark refunded') }}</button></form>
+            @can('create', App\Models\Pos\PosReturn::class)
+                @if (in_array($sale->status, [App\Enums\PosSaleStatus::Paid, App\Enums\PosSaleStatus::PartiallyRefunded], true))
+                    <a href="{{ route('admin.commercial.pos.returns.create', ['sale' => $sale->sale_number]) }}" class="mt-2 inline-block text-sm font-medium text-erp-accent">{{ __('Create Return') }}</a>
                 @endif
             @endcan
+            @if ($sale->returns->isNotEmpty())
+                <div class="mt-4 border-t border-erp-border pt-3">
+                    <h3 class="mb-2 font-medium">{{ __('Return history') }}</h3>
+                    <ul class="space-y-2 text-sm">
+                        @foreach ($sale->returns as $return)
+                            <li class="flex justify-between border-b border-erp-border py-1">
+                                <a href="{{ route('admin.commercial.pos.returns.show', $return) }}" class="text-erp-accent">{{ $return->return_number }}</a>
+                                <span><x-admin.enum-status-badge :status="$return->status->value" /></span>
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
         </x-admin.card>
         <x-admin.card>
             <h3 class="mb-2 font-medium">{{ __('Line items') }}</h3>

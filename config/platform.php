@@ -34,6 +34,11 @@ return [
     |
     */
 
+    'commercial_reports' => [
+        /** Days before completed export files are expired and removed. */
+        'export_ttl_days' => (int) env('COMMERCIAL_REPORT_EXPORT_TTL_DAYS', 7),
+    ],
+
     'cache' => [
         'navigation' => (int) env('PLATFORM_CACHE_NAVIGATION_TTL', 300),
         'permissions' => (int) env('PLATFORM_CACHE_PERMISSIONS_TTL', 600),

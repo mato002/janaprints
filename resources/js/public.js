@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initJourney();
     initConversion();
     initStickyFab();
+    initScrollNav();
+    initRevealOnScroll();
 
     requestAnimationFrame(() => {
         document.documentElement.classList.add('public-anim-active');
@@ -97,6 +99,65 @@ function initScrollProgress() {
 
     update();
     window.addEventListener('scroll', update, { passive: true });
+}
+
+/**
+ * Keep revealed content visible once scrolled past (WEB-FIX-2).
+ */
+function revealPassedElements() {
+    const margin = 40;
+
+    document.querySelectorAll('[data-animate]:not(.is-visible), [data-image-reveal]:not(.is-revealed)').forEach((el) => {
+        const rect = el.getBoundingClientRect();
+
+        if (rect.top < window.innerHeight - margin) {
+            el.classList.add('is-visible');
+            el.classList.add('is-revealed');
+        }
+    });
+}
+
+function initRevealOnScroll() {
+    const onScroll = () => revealPassedElements();
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+}
+
+function initScrollNav() {
+    const scrollTopBtn = document.querySelector('[data-scroll-to-top]');
+    const scrollBottomBtn = document.querySelector('[data-scroll-to-bottom]');
+
+    if (!scrollTopBtn && !scrollBottomBtn) {
+        return;
+    }
+
+    const docBottom = () => document.documentElement.scrollHeight - window.innerHeight;
+    const edgeOffset = 120;
+
+    const scrollTo = (top) => {
+        window.scrollTo({ top, behavior: 'smooth' });
+    };
+
+    const update = () => {
+        const y = window.scrollY;
+        const maxY = docBottom();
+
+        if (scrollTopBtn) {
+            scrollTopBtn.hidden = y < edgeOffset;
+        }
+
+        if (scrollBottomBtn) {
+            scrollBottomBtn.hidden = y > maxY - edgeOffset;
+        }
+    };
+
+    scrollTopBtn?.addEventListener('click', () => scrollTo(0));
+    scrollBottomBtn?.addEventListener('click', () => scrollTo(docBottom()));
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update, { passive: true });
 }
 
 function initStaggerReveal() {

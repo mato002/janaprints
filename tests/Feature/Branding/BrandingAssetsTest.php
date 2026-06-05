@@ -30,7 +30,7 @@ class BrandingAssetsTest extends TestCase
 
     public function test_guest_cannot_access_branding_settings(): void
     {
-        $this->get(route('admin.settings.branding.edit'))->assertRedirect(route('login'));
+        $this->get(route('admin.settings.branding.edit'))->assertRedirect(route('admin.login'));
     }
 
     public function test_user_with_manage_permission_can_upload_company_branding(): void

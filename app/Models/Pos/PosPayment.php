@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class PosPayment extends Model
 {
     protected $fillable = [
-        'pos_sale_id', 'payment_method', 'amount', 'reference',
+        'pos_sale_id', 'payment_method', 'amount', 'reference', 'posted_journal_id',
     ];
 
     protected function casts(): array

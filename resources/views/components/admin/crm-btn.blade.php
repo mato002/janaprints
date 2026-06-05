@@ -6,12 +6,31 @@
 ])
 
 @php
+    $erpVariant = match ($variant) {
+        'primary' => 'primary',
+        'outline', 'secondary' => 'secondary',
+        'ghost' => 'ghost',
+        'danger' => 'danger',
+        default => 'secondary',
+    };
+    $crmVariant = match ($variant) {
+        'primary' => 'primary',
+        'outline', 'secondary' => 'outline',
+        'ghost' => 'ghost',
+        'danger' => 'danger',
+        default => 'outline',
+    };
     $classes = collect([
+        'erp-btn',
         'crm-360__btn',
-        'crm-360__btn--' . $variant,
+        'erp-btn--'.$erpVariant,
+        'crm-360__btn--'.$crmVariant,
     ]);
     if ($size === 'sm') {
-        $classes->push('crm-360__btn--sm');
+        $classes->push('erp-btn--sm', 'crm-360__btn--sm');
+    }
+    if ($size === 'xs') {
+        $classes->push('erp-btn--xs');
     }
 @endphp
 

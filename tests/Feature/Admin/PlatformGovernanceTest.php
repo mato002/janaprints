@@ -22,7 +22,7 @@ class PlatformGovernanceTest extends TestCase
 
     public function test_guest_cannot_access_admin_users(): void
     {
-        $this->get(route('admin.users.index'))->assertRedirect(route('login'));
+        $this->get(route('admin.users.index'))->assertRedirect(route('admin.login'));
     }
 
     public function test_user_without_permission_cannot_access_users(): void
@@ -92,7 +92,7 @@ class PlatformGovernanceTest extends TestCase
         ]);
         $user->assignRole('Viewer');
 
-        $this->post(route('login'), [
+        $this->post(route('admin.login'), [
             'email' => $user->email,
             'password' => 'password',
         ])->assertSessionHasErrors('email');

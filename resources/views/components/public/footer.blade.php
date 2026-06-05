@@ -113,7 +113,7 @@
 
                 @if (Route::has('login'))
                     <div class="mt-6 border-t border-white/10 pt-6">
-                        <a href="{{ route('login') }}" class="text-sm font-medium text-white transition-colors hover:text-brand-cyan">Client Login &rarr;</a>
+                        <a href="{{ route('client.login') }}" class="text-sm font-medium text-white transition-colors hover:text-brand-cyan">Client Login &rarr;</a>
                     </div>
                 @endif
             </div>

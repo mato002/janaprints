@@ -2135,6 +2135,22 @@
         @apply h-5 w-5;
     }
 
+    .public-scroll-nav {
+        @apply fixed bottom-24 left-4 z-40 flex flex-col gap-2 sm:bottom-6 sm:left-6;
+    }
+
+    .public-scroll-nav__btn {
+        @apply flex h-11 w-11 items-center justify-center rounded-full border border-brand-gray-muted/80 bg-white text-brand-navy shadow-brand-md transition-all duration-300 hover:-translate-y-0.5 hover:border-brand-magenta/30 hover:text-brand-magenta;
+    }
+
+    .public-scroll-nav__btn svg {
+        @apply h-5 w-5;
+    }
+
+    .public-scroll-nav__btn[hidden] {
+        display: none !important;
+    }
+
     /* Exit intent popup */
     .public-exit-intent {
         @apply fixed inset-0 z-[60] flex items-center justify-center p-4;
@@ -2185,7 +2201,11 @@
         margin-top: 0;
     }
 
-    .public-page > header,
+    .public-page > header {
+        /* Keep .public-header fixed — do not override position here */
+        z-index: 100;
+    }
+
     .public-page > footer {
         @apply relative z-[1];
     }

@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             JanaPrintsChartOfAccountsSeeder::class,
             JanaPrintsAccountingPeriodsSeeder::class,
             JanaPrintsPostingEngineSeeder::class,
+            JanaPrintsPosPostingSeeder::class,
             JanaPrintsTaxSeeder::class,
         ]);
     }

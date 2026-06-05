@@ -8,12 +8,16 @@ use App\Models\Pos\PosPayment;
 use App\Models\Pos\PosSale;
 use App\Models\Pos\PosSaleHold;
 use App\Models\Pos\PosSaleItem;
+use App\Support\Accounting\PosAccountingPostingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PosSaleService
 {
     public function __construct(
         protected PosSaleCalculator $calculator,
+        protected PosInventoryService $inventory,
+        protected PosAccountingPostingService $accounting,
     ) {}
 
     public function nextSaleNumber(int $companyId, int $branchId): string
@@ -37,9 +41,9 @@ class PosSaleService
     /**
      * @param  array<string, mixed>  $payload
      */
-    public function createSale(array $payload, int $companyId, int $branchId, int $cashierId): PosSale
+    public function createSale(array $payload, int $companyId, int $branchId, int $cashierId, int $posSessionId): PosSale
     {
-        return DB::transaction(function () use ($payload, $companyId, $branchId, $cashierId) {
+        return DB::transaction(function () use ($payload, $companyId, $branchId, $cashierId, $posSessionId) {
             $lines = $payload['lines'] ?? [];
             $totals = $this->calculator->totals(
                 $lines,
@@ -63,6 +67,7 @@ class PosSaleService
                 'company_id' => $companyId,
                 'branch_id' => $branchId,
                 'cashier_id' => $cashierId,
+                'pos_session_id' => $posSessionId,
                 'customer_id' => $payload['customer_id'] ?? null,
                 'sale_number' => $this->nextSaleNumber($companyId, $branchId),
                 'sale_date' => $payload['sale_date'] ?? now()->toDateString(),
@@ -93,6 +98,12 @@ class PosSaleService
                     'hold_label' => $payload['hold_label'] ?? null,
                     'held_at' => now(),
                 ]);
+            }
+
+            if ($status === PosSaleStatus::Paid) {
+                $sale = $sale->fresh(['items', 'payments']);
+                $this->inventory->postPaidSale($sale, $cashierId);
+                $this->accounting->postPaidSale($sale, $cashierId);
             }
 
             return $sale->fresh(['items', 'payments', 'customer', 'cashier']);
@@ -143,6 +154,65 @@ class PosSaleService
         });
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function payHeldSale(PosSale $sale, array $payload): PosSale
+    {
+        $this->assertHeld($sale);
+
+        return DB::transaction(function () use ($sale, $payload) {
+            $lines = $payload['lines'] ?? [];
+            $totals = $this->calculator->totals(
+                $lines,
+                $payload['discount_amount'] ?? 0,
+                $payload['tax_amount'] ?? 0,
+            );
+
+            $total = (float) $totals['total_amount'];
+
+            $sale->update([
+                'customer_id' => $payload['customer_id'] ?? $sale->customer_id,
+                'subtotal' => $totals['subtotal'],
+                'discount_amount' => $totals['discount_amount'],
+                'tax_amount' => $totals['tax_amount'],
+                'total_amount' => $totals['total_amount'],
+                'amount_paid' => number_format($total, 2, '.', ''),
+                'balance_due' => '0.00',
+                'status' => PosSaleStatus::Paid,
+                'is_walk_in' => (bool) ($payload['is_walk_in'] ?? $sale->is_walk_in),
+                'notes' => $payload['notes'] ?? $sale->notes,
+            ]);
+
+            $sale->items()->delete();
+            $this->syncItems($sale, $lines);
+
+            $sale->payments()->delete();
+            $this->syncPayments($sale, [[
+                'payment_method' => $payload['payment_method'],
+                'amount' => $total,
+                'reference' => $payload['payment_reference'] ?? null,
+            ]]);
+
+            $sale->hold?->delete();
+
+            $sale = $sale->fresh(['items', 'payments', 'customer', 'cashier']);
+            $this->inventory->postPaidSale($sale, (int) $sale->cashier_id);
+            $this->accounting->postPaidSale($sale, (int) $sale->cashier_id);
+
+            return $sale;
+        });
+    }
+
+    public function assertHeld(PosSale $sale): void
+    {
+        if ($sale->status !== PosSaleStatus::Held) {
+            throw ValidationException::withMessages([
+                'sale' => __('Only held sales can be resumed and paid.'),
+            ]);
+        }
+    }
+
     public function markPaid(PosSale $sale, PosPaymentMethod $method, float $amount, ?string $reference = null): PosSale
     {
         return DB::transaction(function () use ($sale, $method, $amount, $reference) {
@@ -156,15 +226,24 @@ class PosSaleService
             $paid = (float) $sale->payments()->sum('amount');
             $total = (float) $sale->total_amount;
 
+            $newStatus = $paid >= $total ? PosSaleStatus::Paid : $sale->status;
+
             $sale->update([
                 'amount_paid' => number_format($paid, 2, '.', ''),
                 'balance_due' => number_format(max(0, $total - $paid), 2, '.', ''),
-                'status' => $paid >= $total ? PosSaleStatus::Paid : $sale->status,
+                'status' => $newStatus,
             ]);
 
             $sale->hold?->delete();
 
-            return $sale->fresh(['items', 'payments']);
+            $sale = $sale->fresh(['items', 'payments']);
+
+            if ($newStatus === PosSaleStatus::Paid) {
+                $this->inventory->postPaidSale($sale, (int) $sale->cashier_id);
+                $this->accounting->postPaidSale($sale, (int) $sale->cashier_id);
+            }
+
+            return $sale;
         });
     }
 

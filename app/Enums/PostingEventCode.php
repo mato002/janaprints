@@ -32,6 +32,12 @@ enum PostingEventCode: string
     case AssetDepreciationPosted = 'asset.depreciation.posted';
     case AssetDisposalPosted = 'asset.disposal.posted';
 
+    case PosSaleCash = 'pos.sale.cash';
+    case PosSaleMpesa = 'pos.sale.mpesa';
+    case PosSaleCard = 'pos.sale.card';
+    case PosReturn = 'pos.return';
+    case PosVariance = 'pos.variance';
+
     public function module(): PostingModule
     {
         return match ($this) {
@@ -62,6 +68,12 @@ enum PostingEventCode: string
             self::AssetAcquisitionPosted,
             self::AssetDepreciationPosted,
             self::AssetDisposalPosted => PostingModule::Assets,
+
+            self::PosSaleCash,
+            self::PosSaleMpesa,
+            self::PosSaleCard,
+            self::PosReturn,
+            self::PosVariance => PostingModule::Pos,
         };
     }
 
@@ -88,6 +100,11 @@ enum PostingEventCode: string
             self::AssetAcquisitionPosted => __('Asset acquisition posted'),
             self::AssetDepreciationPosted => __('Asset depreciation posted'),
             self::AssetDisposalPosted => __('Asset disposal posted'),
+            self::PosSaleCash => __('POS cash sale'),
+            self::PosSaleMpesa => __('POS M-Pesa sale'),
+            self::PosSaleCard => __('POS card sale'),
+            self::PosReturn => __('POS return'),
+            self::PosVariance => __('POS cash variance'),
         };
     }
 }

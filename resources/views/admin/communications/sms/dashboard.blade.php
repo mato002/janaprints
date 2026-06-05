@@ -44,7 +44,7 @@
         <div class="flex items-center justify-between">
             <h2 class="erp-card-title">{{ __('Recent campaigns') }}</h2>
             @can('create', App\Models\Communications\SmsCampaign::class)
-                <a href="{{ route('admin.communications.sms.campaigns.create') }}" class="erp-btn erp-btn--primary erp-btn--sm" data-turbo-frame="erp-main">{{ __('New campaign') }}</a>
+                <x-admin.crm-btn variant="primary" size="sm" :href="route('admin.communications.sms.campaigns.create')" data-turbo-frame="erp-main">{{ __('New campaign') }}</x-admin.crm-btn>
             @endcan
         </div>
         <div class="mt-3 overflow-x-auto">

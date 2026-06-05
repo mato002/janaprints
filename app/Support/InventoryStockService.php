@@ -6,6 +6,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventoryMovement;
 use App\Models\Inventory\InventoryReorderAlert;
 use App\Support\Platform\PlatformCacheService;
+use App\Support\Platform\SystemSettingsService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -60,8 +61,27 @@ class InventoryStockService
             ->map(fn ($balance) => (float) $balance);
     }
 
-    public static function assertSufficientStock(int $inventoryItemId, int $warehouseId, float $quantity): void
+    public static function allowsNegativeStock(?int $companyId = null, ?int $branchId = null): bool
     {
+        return (bool) app(SystemSettingsService::class)->get(
+            'inventory_allow_negative_stock',
+            false,
+            $companyId,
+            $branchId,
+        );
+    }
+
+    public static function assertSufficientStock(
+        int $inventoryItemId,
+        int $warehouseId,
+        float $quantity,
+        ?int $companyId = null,
+        ?int $branchId = null,
+    ): void {
+        if (self::allowsNegativeStock($companyId, $branchId)) {
+            return;
+        }
+
         $available = self::balance($inventoryItemId, $warehouseId);
 
         if ($quantity > $available) {
@@ -71,8 +91,16 @@ class InventoryStockService
         }
     }
 
-    public static function assertPositiveResult(float $currentBalance, float $delta): void
-    {
+    public static function assertPositiveResult(
+        float $currentBalance,
+        float $delta,
+        ?int $companyId = null,
+        ?int $branchId = null,
+    ): void {
+        if (self::allowsNegativeStock($companyId, $branchId)) {
+            return;
+        }
+
         if ($currentBalance + $delta < 0) {
             throw ValidationException::withMessages([
                 'quantity' => __('This movement would result in negative stock.'),

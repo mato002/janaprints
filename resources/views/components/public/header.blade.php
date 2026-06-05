@@ -34,9 +34,9 @@
                         Dashboard
                     </a>
                 @else
-                    @if (Route::has('login'))
-                        <a href="{{ route('login') }}" class="public-header__link hidden text-sm font-medium sm:inline">
-                            Log in
+                    @if (Route::has('client.login'))
+                        <a href="{{ route('client.login') }}" class="public-header__link hidden text-sm font-medium sm:inline">
+                            Client Login
                         </a>
                     @endif
                 @endauth

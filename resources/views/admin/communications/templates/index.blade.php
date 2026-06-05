@@ -9,15 +9,18 @@
             :description="__('Template-driven messages for SMS, email, WhatsApp, and in-app notifications. Preview and version control only — no sending in this phase.')"
         >
             <x-slot:actions>
-                <button
+                <x-admin.crm-btn
                     type="button"
-                    class="erp-btn erp-btn--primary"
+                    variant="primary"
                     x-show="can.create"
                     x-cloak
                     @click="openEditor()"
                 >
+                    <x-slot:icon>
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    </x-slot:icon>
                     {{ __('New template') }}
-                </button>
+                </x-admin.crm-btn>
             </x-slot:actions>
         </x-admin.page-header>
 
@@ -31,19 +34,19 @@
 
         <div class="erp-card mb-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="inline-flex rounded-lg border border-erp-border bg-white p-0.5">
+                <div class="workspace-segment" role="group" aria-label="{{ __('View mode') }}">
                     <button
                         type="button"
-                        class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                        :class="viewMode === 'list' ? 'bg-erp-accent text-white' : 'text-erp-primary hover:bg-slate-50'"
+                        class="workspace-segment__btn"
+                        :class="viewMode === 'list' ? 'workspace-segment__btn--active' : 'workspace-segment__btn--inactive'"
                         @click="viewMode = 'list'"
                     >
                         {{ __('List view') }}
                     </button>
                     <button
                         type="button"
-                        class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
-                        :class="viewMode === 'category' ? 'bg-erp-accent text-white' : 'text-erp-primary hover:bg-slate-50'"
+                        class="workspace-segment__btn"
+                        :class="viewMode === 'category' ? 'workspace-segment__btn--active' : 'workspace-segment__btn--inactive'"
                         @click="viewMode = 'category'"
                     >
                         {{ __('Category view') }}
@@ -70,7 +73,7 @@
                         </select>
                     </div>
                     @if (request()->hasAny(['channel', 'status', 'category', 'group']))
-                        <a href="{{ route('admin.communications.templates.index') }}" class="erp-btn erp-btn--ghost erp-btn--sm" data-turbo-frame="erp-main">{{ __('Clear') }}</a>
+                        <x-admin.crm-btn variant="ghost" size="sm" :href="route('admin.communications.templates.index')" data-turbo-frame="erp-main">{{ __('Clear') }}</x-admin.crm-btn>
                     @endif
                 </form>
             </div>

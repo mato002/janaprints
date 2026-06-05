@@ -4,7 +4,7 @@
     <x-admin.page-header :title="__('SMS Campaigns')">
         <x-slot:actions>
             @can('create', App\Models\Communications\SmsCampaign::class)
-                <a href="{{ route('admin.communications.sms.campaigns.create') }}" class="erp-btn erp-btn--primary" data-turbo-frame="erp-main">{{ __('New campaign') }}</a>
+                <x-admin.crm-btn variant="primary" :href="route('admin.communications.sms.campaigns.create')" data-turbo-frame="erp-main">{{ __('New campaign') }}</x-admin.crm-btn>
             @endcan
         </x-slot:actions>
     </x-admin.page-header>

@@ -27,6 +27,17 @@
         </div>
     </div>
 
+    {{-- Page scroll navigation — always available when relevant --}}
+    <div class="public-scroll-nav" data-scroll-nav aria-label="Page scroll navigation">
+        <button type="button" class="public-scroll-nav__btn" data-scroll-to-top hidden aria-label="Scroll to top">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
+        </button>
+
+        <button type="button" class="public-scroll-nav__btn" data-scroll-to-bottom hidden aria-label="Scroll to bottom">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+        </button>
+    </div>
+
     {{-- Floating action buttons — appear after scroll --}}
     <div class="public-sticky-fab" data-sticky-fab hidden>
         <a href="#quote-form" class="public-sticky-fab__quote" data-sticky-quote aria-label="Request a quote">

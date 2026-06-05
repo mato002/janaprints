@@ -109,9 +109,9 @@
     <div class="exec-inbox-cc">
         <header class="exec-dashboard__header">
             <div>
-                <p class="mb-1">
-                    <a href="{{ route('admin.communications.inbox.index') }}" class="text-[11px] font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('Open inbox') }}</a>
-                </p>
+                <div class="comms-action-bar mb-2">
+                    <x-admin.crm-btn variant="primary" size="sm" :href="route('admin.communications.inbox.index')" data-turbo-frame="erp-main">{{ __('Open inbox') }}</x-admin.crm-btn>
+                </div>
                 <h1 class="exec-dashboard__title">{{ __('Executive Communication Command Center') }}</h1>
                 <p class="exec-dashboard__context">{{ __('Real-time intelligence across customer threads, SLA posture, and team capacity.') }}</p>
             </div>

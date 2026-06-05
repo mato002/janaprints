@@ -13,6 +13,7 @@ use App\Models\Pos\PosSale;
 use App\Models\Pos\PosSaleHold;
 use App\Support\Commercial\PosSaleCalculator;
 use App\Support\Commercial\PosSaleService;
+use App\Support\Commercial\PosSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -25,6 +26,7 @@ class PosSaleController extends Controller
     public function __construct(
         protected PosSaleService $posSales,
         protected PosSaleCalculator $calculator,
+        protected PosSessionService $posSessions,
     ) {}
 
     public function dashboard(): View
@@ -47,7 +49,16 @@ class PosSaleController extends Controller
             ->limit(10)
             ->get();
 
-        return view('admin.commercial.pos.dashboard', compact('stats', 'recent'));
+        $heldQueue = $this->scopeToTenant(
+            PosSaleHold::query()
+                ->with(['sale', 'customer:id,company_name', 'cashier:id,name'])
+        )
+            ->whereHas('sale', fn ($q) => $q->where('status', PosSaleStatus::Held))
+            ->latest('held_at')
+            ->limit(10)
+            ->get();
+
+        return view('admin.commercial.pos.dashboard', compact('stats', 'recent', 'heldQueue'));
     }
 
     public function index(Request $request): View
@@ -71,11 +82,11 @@ class PosSaleController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): RedirectResponse
     {
         $this->authorize('create', PosSale::class);
 
-        return view('admin.commercial.pos.create', $this->saleFormMeta());
+        return redirect()->route('admin.commercial.pos.counter-sales');
     }
 
     public function store(Request $request): RedirectResponse
@@ -83,18 +94,32 @@ class PosSaleController extends Controller
         $this->authorize('create', PosSale::class);
 
         $payload = $this->validateSalePayload($request);
+
+        if ($payload['action'] === 'hold') {
+            $this->authorize('hold', PosSale::class);
+        }
+
+        if ($payload['action'] === 'pay') {
+            $this->authorize('create', PosSale::class);
+            abort_unless(auth()->user()->can('pos.counter_sales.complete') || auth()->user()->can('pos.create'), 403);
+        }
+
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        $session = $this->posSessions->requireOpenSession($companyId, $branchId, (int) auth()->id());
+        $this->posSessions->assertSessionAcceptsSales($session);
 
         $sale = $this->posSales->createSale(
             $payload,
             $companyId,
             $branchId,
             (int) auth()->id(),
+            (int) $session->id,
         );
 
         if ($payload['action'] === 'hold') {
             return redirect()
-                ->route('admin.commercial.pos.create')
+                ->route('admin.commercial.pos.counter-sales')
                 ->with('status', __('Sale held (:number).', ['number' => $sale->sale_number]));
         }
 
@@ -107,7 +132,7 @@ class PosSaleController extends Controller
     {
         $this->authorize('view', $sale);
 
-        $sale->load(['items.inventoryItem', 'payments', 'customer', 'cashier', 'hold']);
+        $sale->load(['items.inventoryItem', 'payments', 'customer', 'cashier', 'hold', 'returns']);
 
         return view('admin.commercial.pos.show', compact('sale'));
     }
@@ -135,15 +160,59 @@ class PosSaleController extends Controller
         return view('admin.commercial.pos.holds', compact('holds'));
     }
 
-    public function resume(PosSale $sale): RedirectResponse
+    public function resume(Request $request, PosSale $sale): View
     {
-        $this->authorize('update', $sale);
+        abort_unless(
+            auth()->user()->can('complete', $sale) || auth()->user()->can('update', $sale),
+            403,
+        );
 
         abort_unless($sale->status === PosSaleStatus::Held, 404);
 
+        $sale->load(['items', 'customer', 'hold', 'cashier']);
+
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        $activeSession = $this->posSessions->activeSessionForCashier(
+            $companyId,
+            $branchId,
+            (int) $request->user()->id,
+        );
+
+        return view('admin.commercial.pos.counter-sales', [
+            'heldSale' => $sale,
+            'activeSession' => $activeSession,
+            'heldCart' => $this->heldCartPayload($sale),
+            'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
+            'searchUrl' => route('admin.commercial.pos.counter-sales.products.search'),
+            'storeUrl' => route('admin.commercial.pos.store'),
+            'dashboardUrl' => route('admin.commercial.pos.dashboard'),
+            'customerCreateUrl' => route('admin.crm.customers.create'),
+            'previewTotals' => $this->calculator->totals([]),
+            'canHold' => $request->user()->can('hold', PosSale::class),
+            'canComplete' => $request->user()->can('complete', $sale) || $request->user()->can('completeSale', PosSale::class),
+            'canCancel' => $request->user()->can('cancel', $sale),
+        ]);
+    }
+
+    public function pay(Request $request, PosSale $sale): RedirectResponse
+    {
+        $this->authorize('complete', $sale);
+
+        abort_unless($sale->status === PosSaleStatus::Held, 404);
+
+        $payload = $this->validateHeldPayPayload($request);
+
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        $session = $this->posSessions->requireOpenSession($companyId, $branchId, (int) auth()->id());
+        $this->posSessions->assertSessionAcceptsSales($session);
+
+        $paid = $this->posSales->payHeldSale($sale, $payload);
+
         return redirect()
-            ->route('admin.commercial.pos.show', $sale)
-            ->with('status', __('Resume held sale and complete checkout from the sale details.'));
+            ->route('admin.commercial.pos.receipt', $paid)
+            ->with('status', __('Held sale :number completed.', ['number' => $paid->sale_number]));
     }
 
     public function cancel(PosSale $sale): RedirectResponse
@@ -170,6 +239,27 @@ class PosSaleController extends Controller
     /**
      * @return array<string, mixed>
      */
+    /**
+     * @return array<string, mixed>
+     */
+    protected function heldCartPayload(PosSale $sale): array
+    {
+        return [
+            'lines' => $sale->items->map(fn ($item) => [
+                'item_id' => $item->inventory_item_id ?? '',
+                'description' => $item->description,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
+                'discount_amount' => (float) $item->discount_amount,
+                'tax_amount' => (float) $item->tax_amount,
+            ])->values()->all(),
+            'saleDiscount' => (float) $sale->discount_amount,
+            'saleTax' => (float) $sale->tax_amount,
+            'walkIn' => $sale->is_walk_in,
+            'customerId' => $sale->customer_id ?? '',
+        ];
+    }
+
     protected function saleFormMeta(): array
     {
         return [
@@ -240,6 +330,40 @@ class PosSaleController extends Controller
                 'amount' => $totals['total_amount'],
                 'reference' => $data['payment_reference'] ?? null,
             ]] : [],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function validateHeldPayPayload(Request $request): array
+    {
+        $data = $request->validate([
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
+            'is_walk_in' => ['sometimes', 'boolean'],
+            'discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'tax_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_method' => ['required', Rule::enum(PosPaymentMethod::class)],
+            'payment_reference' => ['nullable', 'string', 'max:100'],
+            'notes' => ['nullable', 'string'],
+            'lines' => ['required', 'array', 'min:1'],
+            'lines.*.inventory_item_id' => ['nullable', 'integer', 'exists:inventory_items,id'],
+            'lines.*.description' => ['required', 'string', 'max:255'],
+            'lines.*.quantity' => ['required', 'numeric', 'min:0.001'],
+            'lines.*.unit_price' => ['required', 'numeric', 'min:0'],
+            'lines.*.discount_amount' => ['nullable', 'numeric', 'min:0'],
+            'lines.*.tax_amount' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        return [
+            'customer_id' => $data['customer_id'] ?? null,
+            'is_walk_in' => $request->boolean('is_walk_in'),
+            'discount_amount' => $data['discount_amount'] ?? 0,
+            'tax_amount' => $data['tax_amount'] ?? 0,
+            'notes' => $data['notes'] ?? null,
+            'lines' => $data['lines'],
+            'payment_method' => $data['payment_method'],
+            'payment_reference' => $data['payment_reference'] ?? null,
         ];
     }
 }

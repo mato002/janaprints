@@ -20,7 +20,12 @@ class InventoryMovementService
         $warehouseId = (int) $attributes['warehouse_id'];
 
         $current = InventoryStockService::balanceUncached($itemId, $warehouseId);
-        InventoryStockService::assertPositiveResult($current, $quantity);
+        InventoryStockService::assertPositiveResult(
+            $current,
+            $quantity,
+            (int) ($attributes['company_id'] ?? 0) ?: null,
+            (int) ($attributes['branch_id'] ?? 0) ?: null,
+        );
 
         return DB::transaction(function () use ($attributes, $itemId, $warehouseId) {
             $attributes = self::applyCosting($attributes);

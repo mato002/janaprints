@@ -31,7 +31,7 @@ class ProductionSchedulingWorkspaceTest extends TestCase
     public function test_scheduling_workspace_requires_auth(): void
     {
         $this->get(route('admin.production.scheduling.index'))
-            ->assertRedirect(route('login'));
+            ->assertRedirect(route('admin.login'));
     }
 
     public function test_scheduling_workspace_requires_permission(): void

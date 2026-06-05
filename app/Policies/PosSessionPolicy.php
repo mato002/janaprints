@@ -1,0 +1,58 @@
+<?php
+
+namespace App\Policies;
+
+use App\Models\Pos\PosSession;
+use App\Models\User;
+use App\Policies\Concerns\ChecksCrmTenant;
+
+class PosSessionPolicy
+{
+    use ChecksCrmTenant;
+
+    public function viewAny(User $user): bool
+    {
+        return $user->can('commercial.pos.sessions.view');
+    }
+
+    public function view(User $user, PosSession $session): bool
+    {
+        if (! $user->can('commercial.pos.sessions.view')) {
+            return false;
+        }
+
+        if ($user->can('commercial.pos.sessions.admin')) {
+            return $this->sameCompany($user, $session);
+        }
+
+        return $this->sameTenant($user, $session);
+    }
+
+    public function open(User $user): bool
+    {
+        return $user->can('commercial.pos.sessions.open');
+    }
+
+    public function close(User $user, PosSession $session): bool
+    {
+        if (! $user->can('commercial.pos.sessions.close')) {
+            return false;
+        }
+
+        if ($user->can('commercial.pos.sessions.admin')) {
+            return $this->sameCompany($user, $session);
+        }
+
+        return $this->sameTenant($user, $session);
+    }
+
+    public function audit(User $user, PosSession $session): bool
+    {
+        return $user->can('commercial.pos.sessions.audit') && $this->view($user, $session);
+    }
+
+    protected function sameCompany(User $user, PosSession $session): bool
+    {
+        return (int) $user->company_id === (int) $session->company_id;
+    }
+}

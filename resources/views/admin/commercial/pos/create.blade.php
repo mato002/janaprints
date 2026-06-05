@@ -1,5 +1,18 @@
 <x-admin-layout :title="__('New POS sale')" :breadcrumbs="[['label' => __('POS'), 'url' => route('admin.commercial.pos.dashboard')], ['label' => __('New sale')]]">
-    <form method="POST" action="{{ route('admin.commercial.pos.store') }}" x-data="posCart(@js($items->map(fn ($i) => ['id' => $i->id, 'name' => $i->item_name, 'price' => (float) $i->standard_cost])->values()))">
+    @if (empty($activeSession))
+        <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            {{ __('Open a POS session before recording counter sales.') }}
+            @can('open', App\Models\Pos\PosSession::class)
+                <a href="{{ route('admin.commercial.pos.sessions.create') }}" class="font-semibold underline">{{ __('Open session') }}</a>
+            @endcan
+        </div>
+    @else
+        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {{ __('Active session: :number', ['number' => $activeSession->session_number]) }}
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('admin.commercial.pos.store') }}" x-data="posCart(@js($items->map(fn ($i) => ['id' => $i->id, 'name' => $i->item_name, 'price' => (float) $i->standard_cost])->values()))" @if (empty($activeSession)) class="pointer-events-none opacity-60" @endif>
         @csrf
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <div class="lg:col-span-2 space-y-4">

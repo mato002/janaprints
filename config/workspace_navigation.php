@@ -25,6 +25,16 @@ return [
         'full',
         'status',
         'page',
+        'tab',
+        'salesperson_id',
+        'quotation_source',
+        'lead_source_id',
+        'top_limit',
+        'top_by',
+        'format',
+        'expiry_status',
+        'customer_type',
+        'activity_status',
     ],
 
 ];

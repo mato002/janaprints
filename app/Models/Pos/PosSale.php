@@ -20,7 +20,7 @@ class PosSale extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'cashier_id', 'customer_id', 'sale_number', 'sale_date',
+        'company_id', 'branch_id', 'cashier_id', 'pos_session_id', 'customer_id', 'sale_number', 'sale_date',
         'subtotal', 'discount_amount', 'tax_amount', 'total_amount', 'amount_paid', 'balance_due',
         'status', 'is_walk_in', 'notes',
     ];
@@ -45,6 +45,11 @@ class PosSale extends Model
         return $this->belongsTo(User::class, 'cashier_id');
     }
 
+    public function session(): BelongsTo
+    {
+        return $this->belongsTo(PosSession::class, 'pos_session_id');
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -63,6 +68,11 @@ class PosSale extends Model
     public function hold(): HasOne
     {
         return $this->hasOne(PosSaleHold::class);
+    }
+
+    public function returns(): HasMany
+    {
+        return $this->hasMany(PosReturn::class, 'pos_sale_id');
     }
 
     public function resolveRouteBinding($value, $field = null): Model

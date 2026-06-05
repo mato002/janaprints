@@ -21,7 +21,7 @@
                             <td class="tabular-nums">{{ number_format($hold->sale?->total_amount ?? 0, 2) }}</td>
                             <td class="erp-table-actions-col">
                                 @can('update', $hold->sale)
-                                    <a href="{{ route('admin.commercial.pos.show', $hold->sale) }}" class="text-erp-accent text-sm">{{ __('Resume') }}</a>
+                                    <a href="{{ route('admin.commercial.pos.resume', $hold->sale) }}" class="text-erp-accent text-sm">{{ __('Resume') }}</a>
                                 @endcan
                             </td>
                         </tr>

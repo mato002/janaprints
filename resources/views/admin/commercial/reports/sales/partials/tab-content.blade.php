@@ -1,0 +1,116 @@
+@props(['tab_data', 'active_tab', 'tabs', 'filters'])
+
+@if (($tab_data['type'] ?? '') === 'placeholder')
+    <x-admin.card>
+        <x-admin.empty-state icon="chart-bar" :title="__('Sales Reports')" :description="$tab_data['message'] ?? __('No data available.')" />
+    </x-admin.card>
+@elseif (($tab_data['type'] ?? '') === 'summary')
+    <x-admin.card class="mb-6">
+        <h2 class="mb-4 text-sm font-semibold text-erp-primary">{{ __('Sales Summary') }}</h2>
+        <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <div>
+                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Orders') }}</p>
+                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($tab_data['metrics']['orders'] ?? 0) }}</p>
+            </div>
+            <div>
+                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Revenue') }}</p>
+                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ 'KES '.number_format($tab_data['metrics']['revenue'] ?? 0, 0) }}</p>
+            </div>
+            <div>
+                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Average Order Value') }}</p>
+                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ 'KES '.number_format($tab_data['metrics']['average_order_value'] ?? 0, 0) }}</p>
+            </div>
+            <div>
+                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Customer Count') }}</p>
+                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($tab_data['metrics']['customer_count'] ?? 0) }}</p>
+            </div>
+        </div>
+
+        <div class="grid gap-6 lg:grid-cols-2">
+            @include('admin.commercial.reports.sales.partials.simple-table', [
+                'title' => __('Branch Breakdown'),
+                'columns' => [__('Branch'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order')],
+                'rows' => $tab_data['branch_breakdown'] ?? [],
+            ])
+            @include('admin.commercial.reports.sales.partials.simple-table', [
+                'title' => __('Salesperson Breakdown'),
+                'columns' => [__('Salesperson'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order'), __('Conversion %')],
+                'rows' => $tab_data['salesperson_breakdown'] ?? [],
+            ])
+        </div>
+    </x-admin.card>
+@elseif (($tab_data['type'] ?? '') === 'top_customers')
+    <x-admin.card class="mb-6">
+        <form method="GET" action="{{ route('commercial.reports.sales.index') }}" class="mb-4 flex flex-wrap items-end gap-3" data-turbo-frame="erp-main">
+            @foreach (collect($filters)->except(['top_limit', 'top_by', 'page']) as $key => $value)
+                @if ($value !== null && $value !== '')
+                    <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+                @endif
+            @endforeach
+            <input type="hidden" name="tab" value="top_customers">
+            <div>
+                <label class="text-[11px] text-slate-500" for="top_limit">{{ __('Show top') }}</label>
+                <select id="top_limit" name="top_limit" class="erp-input mt-1">
+                    @foreach ([10, 25, 50] as $limit)
+                        <option value="{{ $limit }}" @selected(($filters['top_limit'] ?? 10) == $limit)>{{ $limit }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="text-[11px] text-slate-500" for="top_by">{{ __('Rank by') }}</label>
+                <select id="top_by" name="top_by" class="erp-input mt-1">
+                    <option value="revenue" @selected(($filters['top_by'] ?? 'revenue') === 'revenue')>{{ __('Revenue') }}</option>
+                    <option value="orders" @selected(($filters['top_by'] ?? '') === 'orders')>{{ __('Orders') }}</option>
+                    <option value="lifetime" @selected(($filters['top_by'] ?? '') === 'lifetime')>{{ __('Lifetime Value') }}</option>
+                </select>
+            </div>
+            <button type="submit" class="erp-btn-primary">{{ __('Apply') }}</button>
+        </form>
+
+        @include('admin.commercial.reports.sales.partials.simple-table', [
+            'title' => __('Top Customers'),
+            'columns' => $tab_data['columns'] ?? [],
+            'rows' => collect($tab_data['rows'] ?? [])->map(fn ($row) => array_values($row))->all(),
+        ])
+    </x-admin.card>
+@elseif (($tab_data['type'] ?? '') === 'lost_orders')
+    @php $lost = $tab_data['data'] ?? []; @endphp
+    <div class="grid gap-6 lg:grid-cols-2">
+        @include('admin.commercial.reports.sales.partials.simple-table', [
+            'title' => __('Cancelled Orders'),
+            'columns' => [__('Reference'), __('Customer'), __('Value'), __('Date'), __('Reason')],
+            'rows' => collect($lost['cancelled'] ?? [])->map(fn ($row) => array_values($row))->all(),
+        ])
+        @include('admin.commercial.reports.sales.partials.simple-table', [
+            'title' => __('Expired Quotations'),
+            'columns' => [__('Reference'), __('Customer'), __('Value'), __('Date'), __('Reason')],
+            'rows' => collect($lost['expired'] ?? [])->map(fn ($row) => array_values($row))->all(),
+        ])
+        @include('admin.commercial.reports.sales.partials.simple-table', [
+            'title' => __('Lost Opportunities'),
+            'columns' => [__('Reference'), __('Customer'), __('Value'), __('Date'), __('Reason')],
+            'rows' => collect($lost['lost'] ?? [])->map(fn ($row) => array_values($row))->all(),
+        ])
+        @include('admin.commercial.reports.sales.partials.simple-table', [
+            'title' => __('Reason Analysis'),
+            'columns' => [__('Reason'), __('Count')],
+            'rows' => collect($lost['reasons'] ?? [])->map(fn ($row) => array_values($row))->all(),
+        ])
+    </div>
+@elseif (($tab_data['type'] ?? '') === 'trends')
+    @include('admin.commercial.reports.sales.partials.trends-charts', ['series' => $tab_data['series'] ?? []])
+@elseif (($tab_data['type'] ?? '') === 'table')
+    <x-admin.card>
+        @include('admin.commercial.reports.sales.partials.simple-table', [
+            'title' => collect($tabs)->firstWhere('key', $active_tab)['label'] ?? __('Report'),
+            'columns' => $tab_data['columns'] ?? [],
+            'rows' => collect(($tab_data['rows'] ?? collect())->items() ?? [])->map(fn ($row) => array_values((array) $row))->all(),
+        ])
+
+        @if (($tab_data['rows'] ?? null) instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator)
+            <div class="mt-4 border-t border-erp-border pt-4">
+                {{ $tab_data['rows']->withQueryString()->links() }}
+            </div>
+        @endif
+    </x-admin.card>
+@endif

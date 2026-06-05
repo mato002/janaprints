@@ -157,6 +157,29 @@ return [
                         'cancel' => 'pos.cancel',
                         'refund' => 'pos.refund',
                     ],
+                    'extra' => [
+                        ['label' => 'View sessions', 'permission' => 'commercial.pos.sessions.view'],
+                        ['label' => 'Open sessions', 'permission' => 'commercial.pos.sessions.open'],
+                        ['label' => 'Close sessions', 'permission' => 'commercial.pos.sessions.close'],
+                        ['label' => 'Session audit', 'permission' => 'commercial.pos.sessions.audit'],
+                        ['label' => 'Session admin', 'permission' => 'commercial.pos.sessions.admin'],
+                        ['label' => 'View reconciliation', 'permission' => 'commercial.pos.reconciliation.view'],
+                        ['label' => 'Submit reconciliation', 'permission' => 'commercial.pos.reconciliation.create'],
+                        ['label' => 'Approve reconciliation', 'permission' => 'commercial.pos.reconciliation.approve'],
+                        ['label' => 'Reconciliation audit', 'permission' => 'commercial.pos.reconciliation.audit'],
+                        ['label' => 'View returns', 'permission' => 'commercial.pos.returns.view'],
+                        ['label' => 'Create returns', 'permission' => 'commercial.pos.returns.create'],
+                        ['label' => 'Approve returns', 'permission' => 'commercial.pos.returns.approve'],
+                        ['label' => 'Return audit', 'permission' => 'commercial.pos.returns.audit'],
+                        ['label' => 'View POS intelligence', 'permission' => 'commercial.pos.reports.view'],
+                        ['label' => 'Export POS intelligence', 'permission' => 'commercial.pos.reports.export'],
+                        ['label' => 'View POS certification', 'permission' => 'commercial.pos.certification.view'],
+                        ['label' => 'Counter sales workstation', 'permission' => 'pos.counter_sales.view'],
+                        ['label' => 'Counter sales create', 'permission' => 'pos.counter_sales.create'],
+                        ['label' => 'Counter sales hold', 'permission' => 'pos.counter_sales.hold'],
+                        ['label' => 'Counter sales complete', 'permission' => 'pos.counter_sales.complete'],
+                        ['label' => 'Counter sales cancel', 'permission' => 'pos.counter_sales.cancel'],
+                    ],
                 ],
             ],
         ],
@@ -589,6 +612,77 @@ return [
                         ['label' => 'Escalate conversations', 'permission' => 'communications.inbox.escalate'],
                         ['label' => 'Executive inbox view', 'permission' => 'communications.inbox.executive'],
                         ['label' => 'Inbox admin', 'permission' => 'communications.inbox.admin'],
+                    ],
+                ],
+            ],
+        ],
+
+        'commercial' => [
+            'label' => 'Commercial',
+            'entities' => [
+                'sales_reports' => [
+                    'label' => 'Sales Reports',
+                    'permissions' => [
+                        'view' => 'commercial.reports.sales.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'commercial.reports.sales.export'],
+                        ['label' => 'Manage', 'permission' => 'commercial.reports.sales.manage'],
+                    ],
+                ],
+                'quotation_reports' => [
+                    'label' => 'Quotation Reports',
+                    'permissions' => [
+                        'view' => 'commercial.reports.quotations.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'commercial.reports.quotations.export'],
+                    ],
+                ],
+                'sales_order_reports' => [
+                    'label' => 'Sales Order Reports',
+                    'permissions' => [
+                        'view' => 'commercial.reports.sales_orders.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'commercial.reports.sales_orders.export'],
+                    ],
+                ],
+                'customer_reports' => [
+                    'label' => 'Customer Reports',
+                    'permissions' => [
+                        'view' => 'commercial.reports.customers.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'commercial.reports.customers.export'],
+                    ],
+                ],
+                'artwork_reports' => [
+                    'label' => 'Artwork Reports',
+                    'permissions' => [
+                        'view' => 'commercial.reports.artwork.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'commercial.reports.artwork.export'],
+                    ],
+                ],
+                'conversion_reports' => [
+                    'label' => 'Conversion Reports',
+                    'permissions' => [
+                        'view' => 'commercial.reports.conversion.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'commercial.reports.conversion.export'],
+                    ],
+                ],
+                'report_exports' => [
+                    'label' => 'Report Export Framework',
+                    'permissions' => [
+                        'export' => 'commercial.reports.export',
+                        'view' => 'commercial.reports.exports.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Download', 'permission' => 'commercial.reports.exports.download'],
                     ],
                 ],
             ],

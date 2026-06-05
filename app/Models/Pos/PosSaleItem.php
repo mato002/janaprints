@@ -33,4 +33,9 @@ class PosSaleItem extends Model
     {
         return $this->belongsTo(InventoryItem::class);
     }
+
+    public function returnItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PosReturnItem::class, 'pos_sale_item_id');
+    }
 }

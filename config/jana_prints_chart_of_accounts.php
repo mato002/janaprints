@@ -17,6 +17,7 @@ return [
         ['type' => 'asset', 'kind' => 'account', 'code' => '1210', 'name' => 'Equity Bank', 'parent_code' => '1200', 'postable' => true, 'sort' => 21],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1220', 'name' => 'KCB Bank', 'parent_code' => '1200', 'postable' => true, 'sort' => 22],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1230', 'name' => 'NCBA Bank', 'parent_code' => '1200', 'postable' => true, 'sort' => 23],
+        ['type' => 'asset', 'kind' => 'account', 'code' => '1240', 'name' => 'Card Clearing', 'parent_code' => '1200', 'postable' => true, 'sort' => 24],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1300', 'name' => 'Accounts Receivable', 'parent_code' => '1000', 'postable' => true, 'sort' => 30],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1400', 'name' => 'Inventory', 'parent_code' => '1000', 'postable' => false, 'sort' => 40],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1410', 'name' => 'Raw Materials', 'parent_code' => '1400', 'postable' => true, 'sort' => 41],
@@ -53,6 +54,8 @@ return [
         ['type' => 'revenue', 'kind' => 'account', 'code' => '4130', 'name' => 'Flyers', 'parent_code' => '4100', 'postable' => true, 'sort' => 23],
         ['type' => 'revenue', 'kind' => 'account', 'code' => '4140', 'name' => 'Posters', 'parent_code' => '4100', 'postable' => true, 'sort' => 24],
         ['type' => 'revenue', 'kind' => 'account', 'code' => '4150', 'name' => 'Large Format', 'parent_code' => '4100', 'postable' => true, 'sort' => 25],
+        ['type' => 'revenue', 'kind' => 'account', 'code' => '4160', 'name' => 'Sales Returns', 'parent_code' => '4100', 'postable' => true, 'sort' => 26],
+        ['type' => 'revenue', 'kind' => 'account', 'code' => '4170', 'name' => 'Cash Overage', 'parent_code' => '4100', 'postable' => true, 'sort' => 27],
         ['type' => 'revenue', 'kind' => 'account', 'code' => '4200', 'name' => 'Design Revenue', 'parent_code' => '4000', 'postable' => true, 'sort' => 30],
         ['type' => 'revenue', 'kind' => 'account', 'code' => '4300', 'name' => 'Delivery Revenue', 'parent_code' => '4000', 'postable' => true, 'sort' => 40],
 
@@ -76,6 +79,7 @@ return [
         ['type' => 'expense', 'kind' => 'account', 'code' => '6710', 'name' => 'Depreciation Expense', 'parent_code' => '6000', 'postable' => true, 'sort' => 85],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6800', 'name' => 'Marketing', 'parent_code' => '6000', 'postable' => true, 'sort' => 90],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6900', 'name' => 'Office Expenses', 'parent_code' => '6000', 'postable' => true, 'sort' => 100],
+        ['type' => 'expense', 'kind' => 'account', 'code' => '6910', 'name' => 'Cash Shortage', 'parent_code' => '6000', 'postable' => true, 'sort' => 105],
     ],
 
     'expected' => [

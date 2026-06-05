@@ -110,9 +110,22 @@ class CommercialWorkspaceTest extends TestCase
     {
         [$company, $branch, $user] = $this->tenantUser([
             'pos.view', 'pos.create',
+            'commercial.pos.sessions.open',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        \App\Models\Pos\PosSession::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'cashier_id' => $user->id,
+            'session_number' => 'SES-TEST-WS-0001',
+            'opening_float' => 0,
+            'opening_cash' => 0,
+            'status' => \App\Enums\PosSessionStatus::Open,
+            'opened_at' => now(),
+            'opened_by' => $user->id,
+        ]);
 
         $this->actingAs($user)->post(route('admin.commercial.pos.store'), [
             'action' => 'save',
@@ -191,10 +204,16 @@ class CommercialWorkspaceTest extends TestCase
         $response->assertSee(route('admin.commercial.activities.index'), false);
     }
 
-    public function test_reports_section_renders_coming_soon_tiles(): void
+    public function test_reports_section_links_sales_reports_and_keeps_other_tiles_coming_soon(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
             'quotations.view',
+            'commercial.reports.sales.view',
+            'commercial.reports.quotations.view',
+            'commercial.reports.sales_orders.view',
+            'commercial.reports.customers.view',
+            'commercial.reports.artwork.view',
+            'commercial.reports.conversion.view',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -204,7 +223,18 @@ class CommercialWorkspaceTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(__('Sales Reports'), false);
-        $response->assertSee(__('Coming Soon'), false);
+        $response->assertSee(route('commercial.reports.sales.index'), false);
+        $response->assertSee(__('Quotation Reports'), false);
+        $response->assertSee(route('commercial.reports.quotations.index'), false);
+        $response->assertSee(__('Sales Order Reports'), false);
+        $response->assertSee(route('commercial.reports.sales_orders.index'), false);
+        $response->assertSee(__('Customer Reports'), false);
+        $response->assertSee(route('commercial.reports.customers.index'), false);
+        $response->assertSee(__('Artwork Reports'), false);
+        $response->assertSee(route('commercial.reports.artwork.index'), false);
+        $response->assertSee(__('Conversion Reports'), false);
+        $response->assertSee(route('commercial.reports.conversion.index'), false);
+        $response->assertDontSee(__('Coming Soon'), false);
     }
 
     public function test_user_without_pos_permission_cannot_see_pos_on_section(): void

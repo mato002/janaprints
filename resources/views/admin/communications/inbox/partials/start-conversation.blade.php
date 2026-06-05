@@ -30,9 +30,9 @@
         </form>
 
         @can('crm.customers.view')
-            <a href="{{ route('admin.crm.customers.index') }}" class="block text-center text-[10px] text-erp-accent hover:underline" data-turbo-frame="erp-main">
+            <x-admin.crm-btn variant="ghost" size="xs" :href="route('admin.crm.customers.index')" class="w-full justify-center" data-turbo-frame="erp-main">
                 {{ __('All customers') }}
-            </a>
+            </x-admin.crm-btn>
         @endcan
     </div>
 @endcan

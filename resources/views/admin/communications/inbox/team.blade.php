@@ -66,13 +66,12 @@
     <div class="exec-team-cc">
         <header class="exec-dashboard__header">
             <div>
-                <p class="mb-1">
-                    <a href="{{ route('admin.communications.inbox.index') }}" class="text-[11px] font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('Open shared inbox') }}</a>
+                <div class="comms-action-bar mb-2">
+                    <x-admin.crm-btn variant="primary" size="sm" :href="route('admin.communications.inbox.index')" data-turbo-frame="erp-main">{{ __('Open shared inbox') }}</x-admin.crm-btn>
                     @can('executive', App\Models\Communications\Inbox\CommunicationConversation::class)
-                        <span class="text-slate-300">·</span>
-                        <a href="{{ route('admin.communications.inbox.executive') }}" class="text-[11px] font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('CEO view') }}</a>
+                        <x-admin.crm-btn variant="outline" size="sm" :href="route('admin.communications.inbox.executive')" data-turbo-frame="erp-main">{{ __('CEO view') }}</x-admin.crm-btn>
                     @endcan
-                </p>
+                </div>
                 <h1 class="exec-dashboard__title">{{ __('Team Operations Command Center') }}</h1>
                 <p class="exec-dashboard__context">{{ __('Workload, capacity, and performance at a glance — built for inbox managers.') }}</p>
             </div>

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'tenant' => \App\Http\Middleware\SetTenantContext::class,
         ]);
+
+        $middleware->prependToPriorityList(
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\SetTenantContext::class,
+        );
+
+        $middleware->redirectGuestsTo(function (Request $request) {
+            return $request->is('admin') || $request->is('admin/*')
+                ? route('admin.login')
+                : route('client.login');
+        });
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        $schedule->command('commercial:expire-report-exports')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

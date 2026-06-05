@@ -2,7 +2,9 @@
     @include('admin.communications.email.partials.nav')
     <x-admin.page-header :title="__('Campaigns')">
         @can('create', App\Models\Communications\EmailCampaign::class)
-            <x-slot:actions><a href="{{ route('admin.communications.email.campaigns.create') }}" class="erp-btn erp-btn--primary erp-btn--sm" data-turbo-frame="erp-main">{{ __('New campaign') }}</a></x-slot:actions>
+            <x-slot:actions>
+                <x-admin.crm-btn variant="primary" size="sm" :href="route('admin.communications.email.campaigns.create')" data-turbo-frame="erp-main">{{ __('New campaign') }}</x-admin.crm-btn>
+            </x-slot:actions>
         @endcan
     </x-admin.page-header>
     <div class="erp-card overflow-x-auto">

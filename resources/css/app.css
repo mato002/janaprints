@@ -158,18 +158,63 @@
         @apply border-erp-accent bg-erp-accent text-white;
     }
 
+    /* Enterprise workspace buttons — CRM 360, Communications, etc. */
+    .erp-btn,
+    .crm-360__btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors;
+        @apply focus:outline-none focus:ring-2 focus:ring-erp-accent/25 focus:ring-offset-2;
+    }
+
+    .erp-btn--primary,
+    .crm-360__btn--primary,
     .erp-btn-primary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-erp-accent px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors duration-150;
-        @apply hover:bg-erp-accent-hover focus:outline-none focus:ring-2 focus:ring-erp-accent/25 focus:ring-offset-2;
+        @apply bg-erp-accent text-white shadow-sm hover:bg-erp-accent-hover;
     }
 
+    .erp-btn--secondary,
+    .crm-360__btn--outline,
     .erp-btn-secondary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-erp-primary bg-white px-4 py-2 text-sm font-medium text-erp-primary shadow-sm transition-colors duration-150;
-        @apply hover:bg-erp-primary/[0.06] focus:outline-none focus:ring-2 focus:ring-erp-accent/25 focus:ring-offset-2;
+        @apply border-2 border-erp-primary bg-white text-erp-primary hover:bg-erp-primary/[0.06];
     }
 
+    .erp-btn--ghost,
+    .crm-360__btn--ghost,
     .erp-btn-ghost {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-150 hover:bg-slate-100 hover:text-erp-primary;
+        @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50;
+    }
+
+    .erp-btn--danger,
+    .crm-360__btn--danger {
+        @apply border border-red-200 bg-white text-red-700 shadow-sm hover:border-red-300 hover:bg-red-50;
+    }
+
+    .erp-btn--sm,
+    .crm-360__btn--sm {
+        @apply px-3 py-2 text-xs;
+    }
+
+    .erp-btn--xs {
+        @apply px-2 py-1 text-[11px];
+    }
+
+    .workspace-segment {
+        @apply inline-flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm;
+    }
+
+    .workspace-segment__btn {
+        @apply rounded-md px-3 py-2 text-sm font-semibold transition-colors;
+    }
+
+    .workspace-segment__btn--active {
+        @apply bg-erp-accent text-white shadow-sm;
+    }
+
+    .workspace-segment__btn--inactive {
+        @apply text-slate-700 hover:bg-slate-50;
+    }
+
+    .comms-action-bar {
+        @apply flex flex-wrap items-center gap-2;
     }
 
     .erp-skeleton {
@@ -1888,30 +1933,6 @@
 
     .crm-360__action-bar {
         @apply flex flex-wrap items-center gap-2 lg:justify-end;
-    }
-
-    .crm-360__btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors;
-    }
-
-    .crm-360__btn--primary {
-        @apply bg-erp-accent text-white shadow-sm hover:bg-erp-accent-hover;
-    }
-
-    .crm-360__btn--outline {
-        @apply border-2 border-erp-primary bg-white text-erp-primary hover:bg-erp-primary/[0.06];
-    }
-
-    .crm-360__btn--ghost {
-        @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50;
-    }
-
-    .crm-360__btn--sm {
-        @apply px-3 py-2 text-xs;
-    }
-
-    .crm-360__btn--danger {
-        @apply border border-red-200 bg-white text-red-700 shadow-sm hover:border-red-300 hover:bg-red-50;
     }
 
     .crm-360__card-head {
