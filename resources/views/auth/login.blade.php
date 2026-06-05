@@ -1,73 +1,19 @@
 @extends('layouts.auth-login')
 
-@php
-    $backgrounds = [
-        ['src' => asset('images/login/printing-press.svg'), 'label' => __('Commercial printing press')],
-        ['src' => asset('images/login/packaging.svg'), 'label' => __('Packaging production')],
-        ['src' => asset('images/login/stationery.svg'), 'label' => __('Corporate stationery')],
-        ['src' => asset('images/login/vehicle-branding.svg'), 'label' => __('Vehicle branding')],
-        ['src' => asset('images/login/large-format.svg'), 'label' => __('Large format printing')],
-    ];
-
-    $products = [
-        __('Business Cards'),
-        __('Brochures'),
-        __('Packaging'),
-        __('Banners'),
-        __('Branding'),
-        __('Vehicle Wraps'),
-    ];
-
-    $metrics = [
-        ['value' => '10,000+', 'label' => __('Jobs Delivered')],
-        ['value' => '500+', 'label' => __('Businesses Served')],
-        ['value' => '99%', 'label' => __('On-Time Delivery')],
-    ];
-
-    $floats = [
-        ['src' => asset('images/login/stationery.svg'), 'class' => 'login-float--cards'],
-        ['src' => asset('images/login/packaging.svg'), 'class' => 'login-float--packaging'],
-        ['src' => asset('images/login/large-format.svg'), 'class' => 'login-float--banners'],
-        ['src' => asset('images/login/vehicle-branding.svg'), 'class' => 'login-float--branding'],
-        ['src' => asset('images/login/printing-press.svg'), 'class' => 'login-float--press'],
-    ];
-
-    $features = [
-        __('Fast Turnaround'),
-        __('Artwork Approval Workflow'),
-        __('Real-Time Production Tracking'),
-        __('Nationwide Delivery'),
-    ];
-@endphp
-
 @section('content')
     <div class="login-scene" aria-hidden="false">
-        <div class="login-scene__backgrounds" data-login-backgrounds aria-hidden="true">
-            @foreach ($backgrounds as $index => $bg)
-                <div
-                    class="login-scene__slide @if ($index === 0) login-scene__slide--active @endif"
-                    data-login-bg-slide
-                    style="background-image: url('{{ $bg['src'] }}')"
-                    @if ($index === 0) aria-hidden="false" @else aria-hidden="true" @endif
-                ></div>
-            @endforeach
-        </div>
+        <div
+            class="login-scene__background login-scene__background--active"
+            style="background-image: url('{{ asset('images/login/printing-press.svg') }}')"
+            aria-hidden="true"
+        ></div>
 
         <div class="login-scene__overlay" aria-hidden="true"></div>
-
-        <div class="login-scene__floats" aria-hidden="true">
-            @foreach ($floats as $float)
-                <div
-                    class="login-float {{ $float['class'] }}"
-                    style="background-image: url('{{ $float['src'] }}')"
-                ></div>
-            @endforeach
-        </div>
 
         <canvas class="login-scene__particles" data-login-particles aria-hidden="true"></canvas>
 
         <main class="login-scene__main" aria-label="{{ __('Sign in to Jana Prints') }}">
-            <div class="login-card login-card--centered" data-login-card>
+            <div class="login-card" data-login-card>
                 <header class="login-card__header">
                     <a href="{{ url('/') }}" class="login-card__brand">
                         <span class="login-card__mark-wrap" aria-hidden="true">
@@ -79,36 +25,7 @@
                             <span class="login-card__tagline">{{ __('Print') }} &bull; {{ __('Brand') }} &bull; {{ __('Deliver') }}</span>
                         </span>
                     </a>
-                    <p class="login-card__trust">{{ __('Trusted by businesses across Kenya') }}</p>
                 </header>
-
-                <div class="login-chips" aria-label="{{ __('Print services') }}">
-                    @foreach ($products as $product)
-                        <span class="login-chips__item">{{ $product }}</span>
-                    @endforeach
-                </div>
-
-                <div class="login-metrics" aria-label="{{ __('Trust metrics') }}">
-                    @foreach ($metrics as $metric)
-                        <div class="login-metrics__item">
-                            <span class="login-metrics__value">{{ $metric['value'] }}</span>
-                            <span class="login-metrics__label">{{ $metric['label'] }}</span>
-                        </div>
-                    @endforeach
-                </div>
-
-                <ul class="login-features" aria-label="{{ __('Platform features') }}">
-                    @foreach ($features as $feature)
-                        <li class="login-features__item">
-                            <span class="login-features__icon" aria-hidden="true">
-                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                                </svg>
-                            </span>
-                            {{ $feature }}
-                        </li>
-                    @endforeach
-                </ul>
 
                 @if (session('status'))
                     <div class="login-alert" role="status">{{ session('status') }}</div>
@@ -194,17 +111,9 @@
                         @endif
                     </div>
 
-                    <div class="login-actions">
-                        <button type="submit" class="login-btn login-btn--primary">Sign In</button>
-                        <a href="{{ route('client.login') }}" class="login-btn login-btn--secondary">Customer Portal</a>
-                    </div>
+                    <button type="submit" class="login-btn login-btn--primary">Sign In</button>
                 </form>
             </div>
         </main>
-
-        <footer class="login-footer" aria-label="{{ __('Company information') }}">
-            <p class="login-footer__copy">&copy; {{ date('Y') }} {{ config('site.name', 'Jana Prints') }}</p>
-            <p class="login-footer__tagline">{{ __('Commercial Printing') }} &bull; {{ __('Branding') }} &bull; {{ __('Packaging') }}</p>
-        </footer>
     </div>
 @endsection

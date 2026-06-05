@@ -13,9 +13,7 @@
 
     <noscript>
         <style>
-            .login-card--centered { opacity: 1 !important; transform: none !important; }
-            .login-scene__slide { opacity: 1 !important; }
-            .login-scene__slide:not(:first-child) { display: none; }
+            .login-card { opacity: 1 !important; transform: none !important; }
         </style>
     </noscript>
 

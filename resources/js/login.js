@@ -1,58 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
-    initBackgroundRotator();
     initParticles();
     initPasswordToggle();
-    initCardAnimation();
 });
 
 function prefersReducedMotion() {
     return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
-function initCardAnimation() {
-    const card = document.querySelector('[data-login-card]');
-
-    if (!card || prefersReducedMotion()) {
-        card?.classList.add('login-card--visible');
-        return;
-    }
-}
-
-function initBackgroundRotator() {
-    const root = document.querySelector('[data-login-backgrounds]');
-
-    if (!root) {
-        return;
-    }
-
-    const slides = [...root.querySelectorAll('[data-login-bg-slide]')];
-
-    if (slides.length <= 1) {
-        slides.forEach((slide) => slide.classList.add('login-scene__slide--active'));
-
-        return;
-    }
-
-    let index = 0;
-
-    const activate = (nextIndex) => {
-        slides.forEach((slide, i) => {
-            const isActive = i === nextIndex;
-            slide.classList.toggle('login-scene__slide--active', isActive);
-            slide.setAttribute('aria-hidden', String(!isActive));
-        });
-        index = nextIndex;
-    };
-
-    activate(0);
-
-    if (prefersReducedMotion()) {
-        return;
-    }
-
-    window.setInterval(() => {
-        activate((index + 1) % slides.length);
-    }, 6000);
 }
 
 function initPasswordToggle() {
@@ -114,21 +66,20 @@ function initParticles() {
         canvas.style.height = `${height}px`;
         ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
 
-        const count = Math.min(56, Math.max(20, Math.floor((width * height) / 18000)));
+        const count = Math.min(36, Math.max(14, Math.floor((width * height) / 24000)));
         particles = Array.from({ length: count }, () => createParticle());
     };
 
     const createParticle = () => ({
         x: Math.random() * width,
         y: Math.random() * height,
-        radius: Math.random() * 1.6 + 0.35,
-        speedX: (Math.random() - 0.5) * 0.12,
-        speedY: (Math.random() - 0.5) * 0.12 - 0.03,
-        opacity: Math.random() * 0.28 + 0.08,
-        opacityBase: Math.random() * 0.28 + 0.08,
+        radius: Math.random() * 1.2 + 0.3,
+        speedX: (Math.random() - 0.5) * 0.08,
+        speedY: (Math.random() - 0.5) * 0.08 - 0.02,
+        opacity: Math.random() * 0.2 + 0.06,
+        opacityBase: Math.random() * 0.2 + 0.06,
         opacityPhase: Math.random() * Math.PI * 2,
         colorIndex: Math.floor(Math.random() * palette.length),
-        colorDrift: (Math.random() - 0.5) * 0.008,
         driftPhase: Math.random() * Math.PI * 2,
     });
 
@@ -139,26 +90,20 @@ function initParticles() {
         frame += 1;
 
         particles.forEach((particle) => {
-            particle.x += particle.speedX + Math.sin(frame * 0.004 + particle.driftPhase) * 0.04;
-            particle.y += particle.speedY + Math.cos(frame * 0.003 + particle.driftPhase) * 0.03;
+            particle.x += particle.speedX + Math.sin(frame * 0.003 + particle.driftPhase) * 0.03;
+            particle.y += particle.speedY + Math.cos(frame * 0.002 + particle.driftPhase) * 0.02;
 
             if (particle.x < -10) particle.x = width + 10;
             if (particle.x > width + 10) particle.x = -10;
             if (particle.y < -10) particle.y = height + 10;
             if (particle.y > height + 10) particle.y = -10;
 
-            particle.colorIndex = (particle.colorIndex + particle.colorDrift + palette.length) % palette.length;
-            const colorMix = Math.sin(frame * 0.002 + particle.opacityPhase) * 0.5 + 0.5;
-            const nextIndex = (Math.floor(particle.colorIndex) + 1) % palette.length;
-            const currentColor = palette[Math.floor(particle.colorIndex) % palette.length];
-            const nextColor = palette[nextIndex];
-
-            particle.opacity = particle.opacityBase + Math.sin(frame * 0.015 + particle.opacityPhase) * 0.06;
+            particle.opacity = particle.opacityBase + Math.sin(frame * 0.012 + particle.opacityPhase) * 0.04;
 
             ctx.beginPath();
             ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-            ctx.fillStyle = colorMix > 0.5 ? nextColor : currentColor;
-            ctx.globalAlpha = Math.max(0.05, particle.opacity);
+            ctx.fillStyle = palette[particle.colorIndex % palette.length];
+            ctx.globalAlpha = Math.max(0.04, particle.opacity);
             ctx.fill();
         });
 
