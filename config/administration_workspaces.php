@@ -48,8 +48,9 @@ return [
             'description' => 'External system connectivity and communication channels.',
             'route' => 'admin.workspaces.administration.section',
             'route_params' => ['section' => 'integrations'],
+            'permission' => 'integrations.view|integrations.manage',
             'icon' => 'switch-horizontal',
-            'active_routes' => ['admin.workspaces.administration.section:integrations'],
+            'active_routes' => ['admin.workspaces.administration.section:integrations', 'admin.integrations.*'],
         ],
         [
             'label' => 'System Operations',
@@ -144,11 +145,11 @@ return [
                 [
                     'label' => 'Integrations',
                     'items' => [
-                        ['label' => 'Email Settings', 'description' => 'SMTP, delivery, and outbound email configuration.', 'coming_soon' => true, 'icon' => 'inbox'],
-                        ['label' => 'SMS Settings', 'description' => 'SMS provider credentials and routing.', 'coming_soon' => true, 'icon' => 'inbox'],
-                        ['label' => 'API Keys', 'description' => 'Developer keys and programmatic access.', 'coming_soon' => true, 'icon' => 'key'],
-                        ['label' => 'Webhooks', 'description' => 'Outbound event subscriptions and callbacks.', 'coming_soon' => true, 'icon' => 'switch-horizontal'],
-                        ['label' => 'Third Party Integrations', 'description' => 'Connectors for external business systems.', 'coming_soon' => true, 'icon' => 'switch-horizontal'],
+                        ['label' => 'Email Settings', 'description' => 'SMTP, delivery, and outbound email configuration.', 'route' => 'admin.integrations.email.index', 'permission' => 'integrations.view|integrations.email.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.email.*']],
+                        ['label' => 'SMS Settings', 'description' => 'SMS provider credentials and routing.', 'route' => 'admin.integrations.sms.index', 'permission' => 'integrations.view|integrations.sms.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.sms.*']],
+                        ['label' => 'API Keys', 'description' => 'Developer keys and programmatic access.', 'route' => 'admin.integrations.api-keys.index', 'permission' => 'integrations.view|integrations.api.manage', 'icon' => 'key', 'active_routes' => ['admin.integrations.api-keys.*']],
+                        ['label' => 'Webhooks', 'description' => 'Outbound event subscriptions and callbacks.', 'route' => 'admin.integrations.webhooks.index', 'permission' => 'integrations.view|integrations.webhooks.manage', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.integrations.webhooks.*']],
+                        ['label' => 'Third Party Integrations', 'description' => 'Connectors for external business systems.', 'route' => 'admin.integrations.providers.index', 'permission' => 'integrations.view|integrations.providers.manage', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.integrations.providers.*']],
                     ],
                 ],
             ],

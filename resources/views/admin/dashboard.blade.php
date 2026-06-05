@@ -15,6 +15,7 @@
 
         @include('admin.dashboard.partials.hero')
         @include('admin.dashboard.partials.health-strip')
+        @include('admin.dashboard.partials.integration-health')
         @include('admin.dashboard.partials.pipeline')
 
         <div class="exec-dashboard__main grid grid-cols-1 gap-3 xl:grid-cols-12">

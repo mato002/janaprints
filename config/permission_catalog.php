@@ -51,6 +51,49 @@ return [
                         'edit' => 'settings.manage',
                     ],
                 ],
+                'integrations' => [
+                    'label' => 'Integrations',
+                    'permissions' => [
+                        'view' => 'integrations.view',
+                        'edit' => 'integrations.manage',
+                    ],
+                ],
+                'integrations_email' => [
+                    'label' => 'Email Settings',
+                    'permissions' => [
+                        'edit' => 'integrations.email.manage',
+                    ],
+                ],
+                'integrations_sms' => [
+                    'label' => 'SMS Settings',
+                    'permissions' => [
+                        'edit' => 'integrations.sms.manage',
+                    ],
+                ],
+                'integrations_api' => [
+                    'label' => 'API Keys',
+                    'permissions' => [
+                        'edit' => 'integrations.api.manage',
+                    ],
+                ],
+                'integrations_webhooks' => [
+                    'label' => 'Webhooks',
+                    'permissions' => [
+                        'edit' => 'integrations.webhooks.manage',
+                    ],
+                ],
+                'integrations_providers' => [
+                    'label' => 'Third Party Integrations',
+                    'permissions' => [
+                        'edit' => 'integrations.providers.manage',
+                    ],
+                ],
+                'integrations_audit' => [
+                    'label' => 'Integration Audit',
+                    'permissions' => [
+                        'view' => 'integrations.audit.view',
+                    ],
+                ],
             ],
         ],
 

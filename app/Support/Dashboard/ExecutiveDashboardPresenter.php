@@ -24,6 +24,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
+use App\Support\Integrations\IntegrationHealthPresenter;
 use App\Support\InventoryStockService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -53,6 +54,7 @@ class ExecutiveDashboardPresenter
             'activity' => $this->recentActivity(),
             'quick_actions' => $this->quickActions(),
             'insights' => $this->smartInsights($monthStart, $today),
+            'integrations' => app(IntegrationHealthPresenter::class)->build(),
         ];
     }
 

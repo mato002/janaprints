@@ -158,3 +158,4 @@ require __DIR__.'/admin_communications_whatsapp.php';
 require __DIR__.'/admin_communications_email.php';
 require __DIR__.'/admin_communications_inbox.php';
 require __DIR__.'/admin_reports.php';
+require __DIR__.'/admin_integrations.php';

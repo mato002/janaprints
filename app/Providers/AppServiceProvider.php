@@ -178,6 +178,11 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Communications\WhatsappConversation::class => \App\Policies\WhatsappConversationPolicy::class,
         \App\Models\Communications\EmailCampaign::class => \App\Policies\EmailCampaignPolicy::class,
         \App\Models\Communications\Inbox\CommunicationConversation::class => \App\Policies\CommunicationConversationPolicy::class,
+        \App\Models\Integrations\IntegrationEmailSetting::class => \App\Policies\IntegrationEmailSettingPolicy::class,
+        \App\Models\Integrations\IntegrationSmsSetting::class => \App\Policies\IntegrationSmsSettingPolicy::class,
+        \App\Models\Integrations\IntegrationApiKey::class => \App\Policies\IntegrationApiKeyPolicy::class,
+        \App\Models\Integrations\IntegrationWebhook::class => \App\Policies\IntegrationWebhookPolicy::class,
+        \App\Models\Integrations\IntegrationProvider::class => \App\Policies\IntegrationProviderPolicy::class,
     ];
 
     public function register(): void
@@ -189,6 +194,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(SystemSettingsManager::class);
         $this->app->singleton(SystemSettingsService::class);
         $this->app->singleton(ExecutiveDashboardPresenter::class);
+        $this->app->singleton(\App\Support\Integrations\IntegrationHealthPresenter::class);
+        $this->app->singleton(\App\Support\Integrations\IntegrationProviderCatalog::class);
         $this->app->singleton(\App\Support\Accounting\Dashboard\AccountingDashboardPresenter::class);
         $this->app->singleton(FormSettingsService::class);
         $this->app->singleton(ApprovalRulesManager::class);
