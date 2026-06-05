@@ -7,6 +7,7 @@ use App\Enums\MaintenanceWorkOrderStatus;
 use App\Models\Assets\AssetDowntimeRecord;
 use App\Models\Assets\MaintenancePlan;
 use App\Models\Assets\MaintenanceWorkOrder;
+use App\Support\Assets\AssetSchema;
 use App\Support\Platform\PlatformCacheService;
 use Illuminate\Support\Collection;
 
@@ -26,6 +27,10 @@ class MaintenanceDashboardService
         $cacheKey = $branchId ? "{$companyId}:{$branchId}" : "{$companyId}:all";
 
         return $this->cache->remember('maintenance_dashboard', $cacheKey, function () use ($companyId, $branchId) {
+            if (! AssetSchema::hasTable('maintenance_work_orders')) {
+                return $this->emptyDashboard();
+            }
+
             $base = MaintenanceWorkOrder::query()
                 ->where('company_id', $companyId)
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
@@ -58,6 +63,26 @@ class MaintenanceDashboardService
                 'critical_orders' => $this->criticalOrders($companyId, $branchId),
             ];
         }, config('platform.cache.maintenance_dashboard', 60));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function emptyDashboard(): array
+    {
+        return [
+            'open_work_orders' => 0,
+            'completed_work_orders' => 0,
+            'overdue_maintenance' => 0,
+            'machines_under_maintenance' => 0,
+            'downtime_hours' => 0,
+            'critical_failures' => 0,
+            'upcoming_maintenance' => 0,
+            'by_branch' => collect(),
+            'by_asset_type' => collect(),
+            'recently_closed' => collect(),
+            'critical_orders' => collect(),
+        ];
     }
 
     protected function byBranch(int $companyId, ?int $branchId): Collection

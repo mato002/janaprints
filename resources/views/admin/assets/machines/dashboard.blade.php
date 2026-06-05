@@ -26,7 +26,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Machines By Type') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_type'] as $row)
-                    <li class="flex justify-between"><span>{{ $row->machine_type }}</span><span class="font-medium">{{ $row->count }}</span></li>
+                    <li class="flex justify-between"><span>{{ \Illuminate\Support\Str::headline(data_get($row, 'machine_type', __('Unknown'))) }}</span><span class="font-medium">{{ data_get($row, 'count', 0) }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No machines yet.') }}</li>
                 @endforelse
@@ -37,7 +37,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Machines By Branch') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_branch'] as $row)
-                    <li class="flex justify-between"><span>{{ __('Branch') }} #{{ $row->branch_id }}</span><span class="font-medium">{{ $row->count }}</span></li>
+                    <li class="flex justify-between"><span>{{ __('Branch') }} #{{ data_get($row, 'branch_id', '—') }}</span><span class="font-medium">{{ data_get($row, 'count', 0) }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No branch data.') }}</li>
                 @endforelse
@@ -49,10 +49,10 @@
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['recently_assigned'] as $profile)
                     <li>
-                        <a href="{{ route('admin.assets.machines.show', $profile->fixed_asset_id) }}" class="erp-link">
-                            {{ $profile->asset?->asset_name }}
+                        <a href="{{ route('admin.assets.machines.show', data_get($profile, 'fixed_asset_id')) }}" class="erp-link">
+                            {{ data_get($profile, 'asset_name') ?: __('Unnamed machine') }}
                         </a>
-                        <span class="text-slate-500"> — {{ $profile->machine_code }}</span>
+                        <span class="text-slate-500"> — {{ data_get($profile, 'machine_code') }}</span>
                     </li>
                 @empty
                     <li class="text-slate-500">{{ __('No recent machine assignments.') }}</li>

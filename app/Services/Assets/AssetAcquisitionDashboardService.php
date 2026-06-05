@@ -8,8 +8,8 @@ use App\Enums\CapitalizationCandidateStatus;
 use App\Models\Assets\AssetCapitalizationCandidate;
 use App\Models\Assets\AssetWarranty;
 use App\Models\Assets\FixedAsset;
+use App\Support\Assets\AssetSchema;
 use App\Support\Platform\PlatformCacheService;
-use Illuminate\Support\Carbon;
 
 class AssetAcquisitionDashboardService
 {
@@ -29,88 +29,97 @@ class AssetAcquisitionDashboardService
             $monthStart = $now->copy()->startOfMonth();
             $yearStart = $now->copy()->startOfYear();
 
-            $pendingCapitalization = AssetCapitalizationCandidate::query()
+            $pendingCapitalization = AssetSchema::count('asset_capitalization_candidates', fn () => AssetCapitalizationCandidate::query()
                 ->where('company_id', $companyId)
                 ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                 ->whereIn('status', [
                     CapitalizationCandidateStatus::Pending->value,
                     CapitalizationCandidateStatus::Ready->value,
                 ])
-                ->count();
+                ->count());
 
-            $procurementAssets = FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('acquisition_source', AssetAcquisitionSource::Procurement);
+            $capitalizedMonth = 0.0;
+            $capitalizedYear = 0.0;
+            $byCategory = [];
+            $byVendor = [];
+            $byBranch = [];
+            $recent = collect();
 
-            $capitalizedMonth = (clone $procurementAssets)
-                ->where('capitalization_date', '>=', $monthStart)
-                ->sum('acquisition_cost');
+            if (AssetSchema::supportsProcurementAssets()) {
+                $procurementAssets = FixedAsset::query()
+                    ->where('company_id', $companyId)
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                    ->where('acquisition_source', AssetAcquisitionSource::Procurement);
 
-            $capitalizedYear = (clone $procurementAssets)
-                ->where('capitalization_date', '>=', $yearStart)
-                ->sum('acquisition_cost');
+                $capitalizedMonth = (clone $procurementAssets)
+                    ->where('capitalization_date', '>=', $monthStart)
+                    ->sum('acquisition_cost');
 
-            $byCategory = FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('acquisition_source', AssetAcquisitionSource::Procurement)
-                ->with('category')
-                ->get()
-                ->groupBy(fn ($a) => $a->category?->name ?? __('Uncategorized'))
-                ->map(fn ($group, $name) => [
-                    'category' => $name,
-                    'total' => round($group->sum('acquisition_cost'), 2),
-                    'count' => $group->count(),
-                ])
-                ->values()
-                ->all();
+                $capitalizedYear = (clone $procurementAssets)
+                    ->where('capitalization_date', '>=', $yearStart)
+                    ->sum('acquisition_cost');
 
-            $byVendor = FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('acquisition_source', AssetAcquisitionSource::Procurement)
-                ->with('vendor')
-                ->get()
-                ->groupBy(fn ($a) => $a->vendor?->vendor_name ?? __('Unknown'))
-                ->map(fn ($group, $name) => [
-                    'vendor' => $name,
-                    'total' => round($group->sum('acquisition_cost'), 2),
-                    'count' => $group->count(),
-                ])
-                ->sortByDesc('total')
-                ->values()
-                ->take(10)
-                ->all();
+                $byCategory = FixedAsset::query()
+                    ->where('company_id', $companyId)
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                    ->where('acquisition_source', AssetAcquisitionSource::Procurement)
+                    ->with('category')
+                    ->get()
+                    ->groupBy(fn ($a) => $a->category?->name ?? __('Uncategorized'))
+                    ->map(fn ($group, $name) => [
+                        'category' => $name,
+                        'total' => round($group->sum('acquisition_cost'), 2),
+                        'count' => $group->count(),
+                    ])
+                    ->values()
+                    ->all();
 
-            $byBranch = FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->where('acquisition_source', AssetAcquisitionSource::Procurement)
-                ->with('branch')
-                ->get()
-                ->groupBy(fn ($a) => $a->branch?->name ?? __('Unassigned'))
-                ->map(fn ($group, $name) => [
-                    'branch' => $name,
-                    'total' => round($group->sum('acquisition_cost'), 2),
-                    'count' => $group->count(),
-                ])
-                ->values()
-                ->all();
+                $byVendor = FixedAsset::query()
+                    ->where('company_id', $companyId)
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                    ->where('acquisition_source', AssetAcquisitionSource::Procurement)
+                    ->with('vendor')
+                    ->get()
+                    ->groupBy(fn ($a) => $a->vendor?->vendor_name ?? __('Unknown'))
+                    ->map(fn ($group, $name) => [
+                        'vendor' => $name,
+                        'total' => round($group->sum('acquisition_cost'), 2),
+                        'count' => $group->count(),
+                    ])
+                    ->sortByDesc('total')
+                    ->values()
+                    ->take(10)
+                    ->all();
 
-            $warrantyExpiring = AssetWarranty::query()
+                $byBranch = FixedAsset::query()
+                    ->where('company_id', $companyId)
+                    ->where('acquisition_source', AssetAcquisitionSource::Procurement)
+                    ->with('branch')
+                    ->get()
+                    ->groupBy(fn ($a) => $a->branch?->name ?? __('Unassigned'))
+                    ->map(fn ($group, $name) => [
+                        'branch' => $name,
+                        'total' => round($group->sum('acquisition_cost'), 2),
+                        'count' => $group->count(),
+                    ])
+                    ->values()
+                    ->all();
+
+                $recent = FixedAsset::query()
+                    ->where('company_id', $companyId)
+                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+                    ->where('acquisition_source', AssetAcquisitionSource::Procurement)
+                    ->with(['vendor', 'category'])
+                    ->latest('capitalization_date')
+                    ->limit(8)
+                    ->get();
+            }
+
+            $warrantyExpiring = AssetSchema::count('asset_warranties', fn () => AssetWarranty::query()
                 ->where('company_id', $companyId)
                 ->where('status', AssetWarrantyStatus::Active)
                 ->whereBetween('warranty_end', [$now->toDateString(), $now->copy()->addDays(90)->toDateString()])
-                ->count();
-
-            $recent = FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->where('acquisition_source', AssetAcquisitionSource::Procurement)
-                ->with(['vendor', 'category'])
-                ->latest('capitalization_date')
-                ->limit(8)
-                ->get();
+                ->count());
 
             return [
                 'pending_capitalization' => $pendingCapitalization,

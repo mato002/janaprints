@@ -8,6 +8,7 @@ use App\Enums\FixedAssetStatus;
 use App\Enums\MaintenanceWorkOrderStatus;
 use App\Models\Assets\AssetWarranty;
 use App\Models\Assets\FixedAsset;
+use App\Support\Assets\AssetSchema;
 use App\Support\Platform\PlatformCacheService;
 
 class AssetExecutiveIntelligenceService
@@ -54,18 +55,18 @@ class AssetExecutiveIntelligenceService
                 'net_book_value' => round((float) $totals->cost - (float) $totals->accum, 2),
                 'depreciation_this_month' => round($monthlyDep, 2),
                 'assets_near_end_of_life' => $nearEol,
-                'assets_under_maintenance' => \App\Models\Assets\MaintenanceWorkOrder::query()
+                'assets_under_maintenance' => AssetSchema::count('maintenance_work_orders', fn () => \App\Models\Assets\MaintenanceWorkOrder::query()
                     ->where('company_id', $companyId)
                     ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
                     ->whereIn('status', [MaintenanceWorkOrderStatus::Open, MaintenanceWorkOrderStatus::InProgress, MaintenanceWorkOrderStatus::Assigned])
                     ->distinct('fixed_asset_id')
-                    ->count('fixed_asset_id'),
+                    ->count('fixed_asset_id')),
                 'critical_assets' => $criticalHealth,
-                'warranty_expiring' => AssetWarranty::query()
+                'warranty_expiring' => AssetSchema::count('asset_warranties', fn () => AssetWarranty::query()
                     ->where('company_id', $companyId)
                     ->where('status', AssetWarrantyStatus::Active)
                     ->whereBetween('warranty_end', [now()->toDateString(), now()->addDays(90)->toDateString()])
-                    ->count(),
+                    ->count()),
                 'replacement_candidates' => $this->replacement->candidates($companyId, $branchId)->count(),
                 'by_branch' => $this->groupByBranch($companyId),
                 'by_category' => $this->groupByCategory($companyId, $branchId),

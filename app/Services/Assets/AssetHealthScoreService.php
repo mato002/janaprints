@@ -7,6 +7,7 @@ use App\Enums\AssetPhysicalCondition;
 use App\Enums\AssetWarrantyStatus;
 use App\Enums\MaintenanceType;
 use App\Models\Assets\FixedAsset;
+use App\Support\Assets\AssetSchema;
 
 class AssetHealthScoreService
 {
@@ -91,21 +92,23 @@ class AssetHealthScoreService
             ];
         }
 
-        $activeWarranty = $asset->warranties()->where('status', AssetWarrantyStatus::Active)->exists();
-        if ($activeWarranty) {
-            $score = min(100, $score + 5);
-            $factors[] = [
-                'label' => __('Warranty'),
-                'impact' => 5,
-                'detail' => __('Active warranty coverage'),
-            ];
-        } elseif ($asset->warranties()->exists()) {
-            $score -= 5;
-            $factors[] = [
-                'label' => __('Warranty'),
-                'impact' => -5,
-                'detail' => __('No active warranty'),
-            ];
+        if (AssetSchema::hasTable('asset_warranties')) {
+            $activeWarranty = $asset->warranties()->where('status', AssetWarrantyStatus::Active)->exists();
+            if ($activeWarranty) {
+                $score = min(100, $score + 5);
+                $factors[] = [
+                    'label' => __('Warranty'),
+                    'impact' => 5,
+                    'detail' => __('Active warranty coverage'),
+                ];
+            } elseif ($asset->warranties()->exists()) {
+                $score -= 5;
+                $factors[] = [
+                    'label' => __('Warranty'),
+                    'impact' => -5,
+                    'detail' => __('No active warranty'),
+                ];
+            }
         }
 
         $score = max(0, min(100, $score));

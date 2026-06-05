@@ -13,6 +13,7 @@ use App\Models\Assets\FixedAsset;
 use App\Models\Assets\MaintenancePlan;
 use App\Models\Assets\MaintenanceWorkOrder;
 use App\Models\User;
+use App\Support\Assets\AssetSchema;
 use App\Support\Communications\NotificationService;
 use Illuminate\Support\Facades\Route;
 
@@ -39,6 +40,10 @@ class AssetIntelligenceNotificationService
 
     protected function notifyWarrantyExpiring(int $companyId, int $actorId): int
     {
+        if (! AssetSchema::hasTable('asset_warranties')) {
+            return 0;
+        }
+
         $warranties = AssetWarranty::query()
             ->where('company_id', $companyId)
             ->where('status', AssetWarrantyStatus::Active)

@@ -8,6 +8,7 @@ use App\Models\Assets\AssetDowntimeRecord;
 use App\Models\Assets\AssetWarranty;
 use App\Models\Assets\FixedAsset;
 use App\Models\Assets\MaintenanceWorkOrder;
+use App\Support\Assets\AssetSchema;
 use App\Support\Platform\PlatformCacheService;
 
 class AssetAnalyticsService
@@ -127,11 +128,11 @@ class AssetAnalyticsService
         for ($i = 0; $i < 6; $i++) {
             $start = now()->addMonths($i)->startOfMonth();
             $end = now()->addMonths($i)->endOfMonth();
-            $count = AssetWarranty::query()
+            $count = AssetSchema::count('asset_warranties', fn () => AssetWarranty::query()
                 ->where('company_id', $companyId)
                 ->where('status', AssetWarrantyStatus::Active)
                 ->whereBetween('warranty_end', [$start, $end])
-                ->count();
+                ->count());
             $rows[] = ['month' => $start->format('Y-m'), 'value' => $count];
         }
 

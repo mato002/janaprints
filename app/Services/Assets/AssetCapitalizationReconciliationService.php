@@ -9,12 +9,22 @@ use App\Enums\DocumentType;
 use App\Models\Assets\AssetCapitalizationCandidate;
 use App\Models\Assets\AssetCapitalizationReconciliation;
 use App\Models\Assets\FixedAsset;
+use App\Support\Assets\AssetSchema;
 use App\Support\Platform\NumberingService;
+use Illuminate\Validation\ValidationException;
 
 class AssetCapitalizationReconciliationService
 {
     public function run(int $companyId, int $userId): AssetCapitalizationReconciliation
     {
+        if (! AssetSchema::hasTable('asset_capitalization_candidates')
+            || ! AssetSchema::hasTable('asset_capitalization_reconciliations')
+            || ! AssetSchema::supportsProcurementAssets()) {
+            throw ValidationException::withMessages([
+                'schema' => __('Asset capitalization schema is not installed. Run database migrations first.'),
+            ]);
+        }
+
         $receivedValue = (float) AssetCapitalizationCandidate::query()
             ->where('company_id', $companyId)
             ->whereIn('status', [

@@ -53,7 +53,6 @@ class MachineDashboardService
                 'by_branch' => $this->byBranch($profiles),
                 'by_type' => $this->byType($profiles),
                 'recently_assigned' => $this->recentlyAssigned($companyId, $branchId),
-                'profiles' => $profiles,
                 'metrics' => $metrics,
             ];
         }, config('platform.cache.machines_dashboard', 60));
@@ -61,36 +60,41 @@ class MachineDashboardService
 
     /**
      * @param  Collection<int, MachineProfile>  $profiles
-     * @return Collection<int, object>
+     * @return list<array{branch_id: int|string|null, count: int}>
      */
-    protected function byBranch(Collection $profiles): Collection
+    protected function byBranch(Collection $profiles): array
     {
         return $profiles
             ->groupBy('branch_id')
-            ->map(fn ($group, $branchId) => (object) [
+            ->map(fn ($group, $branchId) => [
                 'branch_id' => $branchId,
                 'count' => $group->count(),
             ])
-            ->values();
+            ->values()
+            ->all();
     }
 
     /**
      * @param  Collection<int, MachineProfile>  $profiles
-     * @return Collection<int, object>
+     * @return list<array{machine_type: string, count: int}>
      */
-    protected function byType(Collection $profiles): Collection
+    protected function byType(Collection $profiles): array
     {
         return $profiles
-            ->groupBy('machine_type')
-            ->map(fn ($group, $type) => (object) [
-                'machine_type' => $type,
+            ->groupBy(fn (MachineProfile $profile) => (string) $profile->machine_type)
+            ->map(fn ($group, $type) => [
+                'machine_type' => (string) $type,
                 'count' => $group->count(),
             ])
             ->sortByDesc('count')
-            ->values();
+            ->values()
+            ->all();
     }
 
-    protected function recentlyAssigned(int $companyId, ?int $branchId): Collection
+    /**
+     * @return list<array{fixed_asset_id: int, machine_code: string, asset_name: ?string}>
+     */
+    protected function recentlyAssigned(int $companyId, ?int $branchId): array
     {
         return MachineProfile::query()
             ->where('company_id', $companyId)
@@ -98,6 +102,12 @@ class MachineDashboardService
             ->whereHas('jobAssignments', fn ($q) => $q->where('assigned_at', '>=', now()->subDays(30)))
             ->with(['asset:id,asset_name,asset_number', 'jobAssignments' => fn ($q) => $q->latest('assigned_at')->limit(1)])
             ->limit(8)
-            ->get();
+            ->get()
+            ->map(fn (MachineProfile $profile) => [
+                'fixed_asset_id' => $profile->fixed_asset_id,
+                'machine_code' => $profile->machine_code,
+                'asset_name' => $profile->asset?->asset_name,
+            ])
+            ->all();
     }
 }
