@@ -14,6 +14,8 @@ enum DocumentType: string
     case StockReceipt = 'stock_receipt';
     case StockIssue = 'stock_issue';
     case StockAdjustment = 'stock_adjustment';
+    case StockCount = 'stock_count';
+    case InventoryReconciliation = 'inventory_reconciliation';
     case Invoice = 'invoice';
     case CreditNote = 'credit_note';
     case Payment = 'payment';
@@ -42,6 +44,8 @@ enum DocumentType: string
             self::StockReceipt => 'RCPT',
             self::StockIssue => 'ISSUE',
             self::StockAdjustment => 'ADJ',
+            self::StockCount => 'SC',
+            self::InventoryReconciliation => 'IR',
             self::Invoice => 'INV',
             self::CreditNote => 'CN',
             self::Payment => 'PAY',

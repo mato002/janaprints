@@ -70,6 +70,14 @@ use App\Policies\InventoryMovementPolicy;
 use App\Policies\WarehousePolicy;
 use App\Policies\ProductionJobCardPolicy;
 use App\Policies\StockAdjustmentPolicy;
+use App\Policies\StockCountPolicy;
+use App\Policies\CycleCountSchedulePolicy;
+use App\Policies\InventoryReconciliationPolicy;
+use App\Policies\InventoryVariancePolicy;
+use App\Models\Inventory\StockCount;
+use App\Models\Inventory\CycleCountSchedule;
+use App\Models\Inventory\InventoryReconciliation;
+use App\Support\Inventory\InventoryVarianceReport;
 use App\Policies\StockIssuePolicy;
 use App\Policies\StockReceiptPolicy;
 use App\Policies\ProductionQueuePolicy;
@@ -208,6 +216,10 @@ class AppServiceProvider extends ServiceProvider
         StockReceipt::class => StockReceiptPolicy::class,
         StockIssue::class => StockIssuePolicy::class,
         StockAdjustment::class => StockAdjustmentPolicy::class,
+        StockCount::class => StockCountPolicy::class,
+        CycleCountSchedule::class => CycleCountSchedulePolicy::class,
+        InventoryReconciliation::class => InventoryReconciliationPolicy::class,
+        InventoryVarianceReport::class => InventoryVariancePolicy::class,
         InventoryMovement::class => InventoryMovementPolicy::class,
         Vendor::class => VendorPolicy::class,
         GlAccount::class => GlAccountPolicy::class,

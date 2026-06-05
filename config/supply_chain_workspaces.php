@@ -41,7 +41,13 @@ return [
             'route_params' => ['section' => 'inventory-control'],
             'permission' => 'inventory.view',
             'icon' => 'clipboard-list',
-            'active_routes' => ['admin.workspaces.supply-chain.section:inventory-control'],
+            'active_routes' => [
+                'admin.workspaces.supply-chain.section:inventory-control',
+                'admin.inventory.stock-counts.*',
+                'admin.inventory.cycle-counts.*',
+                'admin.inventory.variances.*',
+                'admin.inventory.reconciliations.*',
+            ],
         ],
         [
             'label' => 'Costing',
@@ -140,10 +146,10 @@ return [
                 [
                     'label' => 'Inventory Control',
                     'items' => [
-                        ['label' => 'Stock Count', 'description' => 'Full or partial physical stock counts.', 'coming_soon' => true, 'icon' => 'clipboard-list'],
-                        ['label' => 'Cycle Count', 'description' => 'Rolling cycle count schedules and execution.', 'coming_soon' => true, 'icon' => 'calendar'],
-                        ['label' => 'Variance Report', 'description' => 'Count variances by warehouse and item.', 'coming_soon' => true, 'icon' => 'chart-bar'],
-                        ['label' => 'Inventory Reconciliation', 'description' => 'Reconcile system stock with physical counts.', 'coming_soon' => true, 'icon' => 'scale'],
+                        ['label' => 'Stock Count', 'description' => 'Full or partial physical stock counts.', 'route' => 'admin.inventory.stock-counts.index', 'permission' => 'inventory.count.view', 'active_routes' => ['admin.inventory.stock-counts.*'], 'icon' => 'clipboard-list'],
+                        ['label' => 'Cycle Count', 'description' => 'Rolling cycle count schedules and execution.', 'route' => 'admin.inventory.cycle-counts.index', 'permission' => 'inventory.cycle.view', 'active_routes' => ['admin.inventory.cycle-counts.*'], 'icon' => 'calendar'],
+                        ['label' => 'Variance Report', 'description' => 'Count variances by warehouse and item.', 'route' => 'admin.inventory.variances.index', 'permission' => 'inventory.variance.view', 'active_routes' => ['admin.inventory.variances.*'], 'icon' => 'chart-bar'],
+                        ['label' => 'Inventory Reconciliation', 'description' => 'Reconcile system stock with physical counts.', 'route' => 'admin.inventory.reconciliations.index', 'permission' => 'inventory.reconcile.view', 'active_routes' => ['admin.inventory.reconciliations.*'], 'icon' => 'scale'],
                     ],
                 ],
             ],

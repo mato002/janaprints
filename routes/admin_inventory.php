@@ -21,6 +21,10 @@ use App\Http\Controllers\Admin\Inventory\StorePermissionController;
 use App\Http\Controllers\Admin\Inventory\StoreTransferController;
 use App\Http\Controllers\Admin\Inventory\WarehouseController;
 use App\Http\Controllers\Admin\Inventory\WarehouseManagerController;
+use App\Http\Controllers\Admin\Inventory\StockCountController;
+use App\Http\Controllers\Admin\Inventory\CycleCountController;
+use App\Http\Controllers\Admin\Inventory\InventoryVarianceController;
+use App\Http\Controllers\Admin\Inventory\InventoryReconciliationController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
@@ -158,5 +162,67 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:inventory.issue')->group(function () {
             Route::post('production/job-cards/{jobCard}/consume', [ProductionMaterialConsumptionController::class, 'store'])
                 ->name('production.consume');
+        });
+
+        Route::middleware('permission:inventory.count.create')->group(function () {
+            Route::get('stock-counts/create', [StockCountController::class, 'create'])->name('stock-counts.create');
+            Route::post('stock-counts', [StockCountController::class, 'store'])->name('stock-counts.store');
+        });
+
+        Route::middleware('permission:inventory.count.view')->group(function () {
+            Route::get('stock-counts', [StockCountController::class, 'index'])->name('stock-counts.index');
+            Route::get('stock-counts/{stockCount}', [StockCountController::class, 'show'])->whereNumber('stockCount')->name('stock-counts.show');
+            Route::get('stock-counts/{stockCount}/worksheet', [StockCountController::class, 'worksheet'])->whereNumber('stockCount')->name('stock-counts.worksheet');
+            Route::get('stock-counts/{stockCount}/export', [StockCountController::class, 'exportWorksheet'])->whereNumber('stockCount')->name('stock-counts.export');
+        });
+
+        Route::middleware('permission:inventory.count.edit')->group(function () {
+            Route::put('stock-counts/{stockCount}/worksheet', [StockCountController::class, 'updateWorksheet'])->whereNumber('stockCount')->name('stock-counts.worksheet.update');
+            Route::post('stock-counts/{stockCount}/cancel', [StockCountController::class, 'cancel'])->whereNumber('stockCount')->name('stock-counts.cancel');
+        });
+
+        Route::middleware('permission:inventory.count.submit')->group(function () {
+            Route::post('stock-counts/{stockCount}/submit', [StockCountController::class, 'submit'])->whereNumber('stockCount')->name('stock-counts.submit');
+        });
+
+        Route::middleware('permission:inventory.count.approve')->group(function () {
+            Route::post('stock-counts/{stockCount}/approve', [StockCountController::class, 'approve'])->whereNumber('stockCount')->name('stock-counts.approve');
+        });
+
+        Route::middleware('permission:inventory.count.post')->group(function () {
+            Route::post('stock-counts/{stockCount}/post', [StockCountController::class, 'post'])->whereNumber('stockCount')->name('stock-counts.post');
+        });
+
+        Route::middleware('permission:inventory.cycle.manage')->group(function () {
+            Route::get('cycle-counts/create', [CycleCountController::class, 'create'])->name('cycle-counts.create');
+            Route::post('cycle-counts', [CycleCountController::class, 'store'])->name('cycle-counts.store');
+            Route::get('cycle-counts/{cycleCount}/edit', [CycleCountController::class, 'edit'])->whereNumber('cycleCount')->name('cycle-counts.edit');
+            Route::put('cycle-counts/{cycleCount}', [CycleCountController::class, 'update'])->whereNumber('cycleCount')->name('cycle-counts.update');
+            Route::post('cycle-counts/{cycleCount}/generate', [CycleCountController::class, 'generate'])->whereNumber('cycleCount')->name('cycle-counts.generate');
+            Route::post('cycle-counts/{cycleCount}/deactivate', [CycleCountController::class, 'deactivate'])->whereNumber('cycleCount')->name('cycle-counts.deactivate');
+        });
+
+        Route::middleware('permission:inventory.cycle.view')->group(function () {
+            Route::get('cycle-counts', [CycleCountController::class, 'index'])->name('cycle-counts.index');
+            Route::get('cycle-counts/{cycleCount}', [CycleCountController::class, 'show'])->whereNumber('cycleCount')->name('cycle-counts.show');
+        });
+
+        Route::middleware('permission:inventory.variance.view')->group(function () {
+            Route::get('variances', [InventoryVarianceController::class, 'index'])->name('variances.index');
+            Route::get('variances/export', [InventoryVarianceController::class, 'export'])->name('variances.export');
+            Route::get('variances/export-pdf', [InventoryVarianceController::class, 'exportPdf'])->name('variances.export-pdf');
+        });
+
+        Route::middleware('permission:inventory.reconcile.view')->group(function () {
+            Route::get('reconciliations', [InventoryReconciliationController::class, 'index'])->name('reconciliations.index');
+            Route::get('reconciliations/{reconciliation}', [InventoryReconciliationController::class, 'show'])->whereNumber('reconciliation')->name('reconciliations.show');
+        });
+
+        Route::middleware('permission:inventory.reconcile.approve')->group(function () {
+            Route::post('reconciliations/{reconciliation}/approve', [InventoryReconciliationController::class, 'approve'])->whereNumber('reconciliation')->name('reconciliations.approve');
+        });
+
+        Route::middleware('permission:inventory.reconcile.post')->group(function () {
+            Route::post('reconciliations/{reconciliation}/post', [InventoryReconciliationController::class, 'post'])->whereNumber('reconciliation')->name('reconciliations.post');
         });
     });

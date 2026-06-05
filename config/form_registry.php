@@ -246,6 +246,30 @@ return [
             ],
         ],
 
+        'stock_count.create' => [
+            'label' => 'Stock count (create)',
+            'description' => 'Physical stock count header fields.',
+            'fields' => [
+                'warehouse_id' => ['label' => 'Warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'count_type' => ['label' => 'Count type', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'count_date' => ['label' => 'Count date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 4],
+            ],
+        ],
+
+        'cycle_count_schedule.create' => [
+            'label' => 'Cycle count schedule (create)',
+            'description' => 'Cycle count schedule fields.',
+            'fields' => [
+                'warehouse_id' => ['label' => 'Warehouse', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'frequency' => ['label' => 'Frequency', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'next_count_date' => ['label' => 'Next count date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'inventory_category_id' => ['label' => 'Category', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 4],
+                'responsible_user_id' => ['label' => 'Responsible user', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 6],
+            ],
+        ],
+
         'stock_adjustment.create' => [
             'label' => 'Stock adjustment (create)',
             'description' => 'Stock adjustment draft fields.',
