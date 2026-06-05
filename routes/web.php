@@ -1,12 +1,26 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RfqVendorPortalController;
+use App\Http\Controllers\Storefront\PageController;
+use App\Http\Controllers\Storefront\RobotsController;
+use App\Http\Controllers\Storefront\SitemapController;
 use Illuminate\Support\Facades\Route;
 
-use App\Http\Controllers\RfqVendorPortalController;
+Route::get('/robots.txt', RobotsController::class)->name('storefront.robots');
+Route::get('/sitemap.xml', SitemapController::class)->name('storefront.sitemap');
 
-Route::get('/', function () {
-    return view('welcome');
+Route::controller(PageController::class)->group(function () {
+    Route::get('/', 'home')->name('home');
+    Route::get('/about', 'about')->name('storefront.about');
+    Route::get('/services', 'services')->name('storefront.services');
+    Route::get('/services/{slug}', 'serviceShow')->name('storefront.services.show');
+    Route::get('/products', 'products')->name('storefront.products');
+    Route::get('/products/{slug}', 'productShow')->name('storefront.products.show');
+    Route::get('/portfolio', 'portfolio')->name('storefront.portfolio');
+    Route::get('/blog', 'blog')->name('storefront.blog');
+    Route::get('/contact', 'contact')->name('storefront.contact');
+    Route::get('/request-quote', 'quote')->name('storefront.quote');
 });
 
 Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {

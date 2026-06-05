@@ -1,4 +1,4 @@
-<x-layouts.public>
+<x-layouts.public :seo="$seo">
 
     {{-- Hero --}}
     <section class="public-hero" data-reveal-section aria-label="Hero">
@@ -24,11 +24,11 @@
                     </span>
 
                     <h1 class="font-display text-4xl font-extrabold leading-[1.06] tracking-tight text-white sm:text-5xl lg:text-[3.5rem] xl:text-display-lg">
-                        Print. Brand. Deliver.
+                        Jana Prints — Professional Printing Services in Kenya
                     </h1>
 
                     <p class="mt-4 font-display text-xl font-semibold leading-snug text-white/90 sm:text-2xl lg:text-[1.65rem]">
-                        Everything your business needs from business cards to nationwide branding campaigns.
+                        Print. Brand. Deliver. Everything your business needs from business cards to nationwide branding campaigns.
                     </p>
 
                     <p class="mt-5 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
@@ -51,10 +51,10 @@
                     </ul>
 
                     <div class="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-                        <x-public.button href="#contact" variant="gradient" size="lg">
+                        <x-public.button href="{{ route('storefront.quote') }}" variant="gradient" size="lg">
                             Request Quote
                         </x-public.button>
-                        <x-public.button href="#portfolio" variant="outline-light" size="lg">
+                        <x-public.button href="{{ route('storefront.portfolio') }}" variant="outline-light" size="lg">
                             View Our Work
                         </x-public.button>
                     </div>

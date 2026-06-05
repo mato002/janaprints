@@ -2769,4 +2769,33 @@
             justify-content: center;
         }
     }
+
+    .public-page-hero {
+        @apply pt-8;
+    }
+
+    .public-breadcrumbs {
+        @apply pb-2 text-left;
+    }
+
+    .public-breadcrumbs__list {
+        @apply flex flex-wrap items-center gap-2 text-sm text-brand-text-secondary;
+    }
+
+    .public-breadcrumbs__item:not(:last-child)::after {
+        content: '/';
+        @apply ml-2 text-brand-text-muted;
+    }
+
+    .public-breadcrumbs__item a {
+        @apply transition-colors hover:text-brand-magenta;
+    }
+
+    .public-card--soft {
+        @apply public-card public-card--static rounded-brand-xl border border-brand-border/60 bg-white p-6;
+    }
+
+    .public-link {
+        @apply text-sm font-semibold text-brand-magenta transition-colors hover:text-brand-purple;
+    }
 }
