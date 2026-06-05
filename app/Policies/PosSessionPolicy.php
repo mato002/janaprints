@@ -12,12 +12,12 @@ class PosSessionPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('commercial.pos.sessions.view');
+        return $user->can('commercial.pos.sessions.view') || $user->can('pos.sessions.view');
     }
 
     public function view(User $user, PosSession $session): bool
     {
-        if (! $user->can('commercial.pos.sessions.view')) {
+        if (! $this->viewAny($user)) {
             return false;
         }
 
@@ -30,12 +30,12 @@ class PosSessionPolicy
 
     public function open(User $user): bool
     {
-        return $user->can('commercial.pos.sessions.open');
+        return $user->can('commercial.pos.sessions.open') || $user->can('pos.sessions.open');
     }
 
     public function close(User $user, PosSession $session): bool
     {
-        if (! $user->can('commercial.pos.sessions.close')) {
+        if (! $user->can('commercial.pos.sessions.close') && ! $user->can('pos.sessions.close')) {
             return false;
         }
 
@@ -46,9 +46,30 @@ class PosSessionPolicy
         return $this->sameTenant($user, $session);
     }
 
+    public function approveVariance(User $user, PosSession $session): bool
+    {
+        if (! $user->can('commercial.pos.sessions.audit')
+            && ! $user->can('pos.sessions.approve_variance')) {
+            return false;
+        }
+
+        return $this->view($user, $session);
+    }
+
+    public function export(User $user, PosSession $session): bool
+    {
+        if (! $user->can('commercial.pos.sessions.audit')
+            && ! $user->can('pos.sessions.export')) {
+            return false;
+        }
+
+        return $this->view($user, $session);
+    }
+
     public function audit(User $user, PosSession $session): bool
     {
-        return $user->can('commercial.pos.sessions.audit') && $this->view($user, $session);
+        return ($user->can('commercial.pos.sessions.audit') || $user->can('pos.sessions.export'))
+            && $this->view($user, $session);
     }
 
     protected function sameCompany(User $user, PosSession $session): bool

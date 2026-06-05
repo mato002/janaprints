@@ -1051,6 +1051,21 @@
         @apply bg-red-500;
     }
 
+    .health-summary-strip {
+        @apply min-w-0;
+    }
+
+    .health-status-card,
+    .health-metric-card,
+    .health-alert-card,
+    .health-progress-card {
+        @apply min-w-0;
+    }
+
+    .system-health-command-center {
+        @apply pb-2;
+    }
+
     .exec-charts-grid {
         @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
     }

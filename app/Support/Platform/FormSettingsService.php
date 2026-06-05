@@ -4,6 +4,7 @@ namespace App\Support\Platform;
 
 use App\Models\Platform\FormFieldSetting;
 use App\Models\Platform\FormSetting;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class FormSettingsService
@@ -11,15 +12,57 @@ class FormSettingsService
     /**
      * @return array<string, array<string, mixed>>
      */
-    public function resolvedFields(string $formKey, ?int $companyId = null, ?int $branchId = null): array
-    {
-        $fields = config("form_registry.forms.{$formKey}.fields", []);
+    public function resolvedFields(
+        string $formKey,
+        ?int $companyId = null,
+        ?int $branchId = null,
+        ?Model $entity = null,
+    ): array {
+        $registryFields = config("form_registry.forms.{$formKey}.fields", []);
 
-        return collect($fields)
+        $fields = collect($registryFields)
             ->mapWithKeys(fn (array $meta, string $fieldKey) => [
                 $fieldKey => $this->fieldConfig($formKey, $fieldKey, $companyId, $branchId),
             ])
+            ->merge($this->customFieldConfigs($formKey, $companyId, $branchId))
+            ->sortBy('sort_order')
             ->all();
+
+        if ($entity === null) {
+            return $fields;
+        }
+
+        $values = app(FormCustomFieldService::class)->valuesFor($entity, $formKey);
+
+        foreach ($fields as $fieldKey => $config) {
+            if ($config['is_custom'] && array_key_exists($fieldKey, $values)) {
+                $fields[$fieldKey]['default'] = $values[$fieldKey];
+            }
+        }
+
+        return $fields;
+    }
+
+    /**
+     * @return Collection<string, array<string, mixed>>
+     */
+    protected function customFieldConfigs(string $formKey, ?int $companyId, ?int $branchId): Collection
+    {
+        $companyId ??= tenant()->companyId();
+        $branchId ??= tenant()->branchId();
+        $registryKeys = array_keys(config("form_registry.forms.{$formKey}.fields", []));
+
+        $formSetting = $this->resolveFormSetting($formKey, $companyId, $branchId);
+
+        if (! $formSetting) {
+            return collect();
+        }
+
+        return $formSetting->fields
+            ->whereNotIn('field_key', $registryKeys)
+            ->mapWithKeys(fn (FormFieldSetting $field) => [
+                $field->field_key => $this->fieldConfig($formKey, $field->field_key, $companyId, $branchId),
+            ]);
     }
 
     /**
@@ -151,6 +194,12 @@ class FormSettingsService
         $companyId ??= tenant()->companyId();
         $branchId ??= tenant()->branchId();
 
+        foreach ($this->resolvedFields($formKey, $companyId, $branchId) as $fieldKey => $config) {
+            if ($config['is_custom'] && ! array_key_exists($fieldKey, $baseRules)) {
+                $baseRules[$fieldKey] = $this->rulesForFieldType($config['type']);
+            }
+        }
+
         foreach ($baseRules as $fieldKey => $rules) {
             $config = $this->fieldConfig($formKey, $fieldKey, $companyId, $branchId);
 
@@ -253,5 +302,20 @@ class FormSettingsService
             ->when(! $forConfiguration, fn ($query) => $query->where('is_active', true))
             ->with('fields')
             ->first();
+    }
+
+    /**
+     * @return list<string|object>
+     */
+    protected function rulesForFieldType(string $type): array
+    {
+        return match ($type) {
+            'email' => ['string', 'email', 'max:255'],
+            'number' => ['numeric'],
+            'date' => ['date'],
+            'checkbox' => ['boolean'],
+            'textarea' => ['string'],
+            default => ['string', 'max:500'],
+        };
     }
 }

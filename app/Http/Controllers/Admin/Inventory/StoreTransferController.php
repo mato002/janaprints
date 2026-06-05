@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Inventory;
 use App\Enums\DocumentType;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\StockIssueDestination;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
 
 class StoreTransferController extends Controller
 {
-    use ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -68,6 +69,7 @@ class StoreTransferController extends Controller
             'issue_date' => ['date'],
             'notes' => ['string'],
         ], $companyId, $branchId));
+        [$header, $customData] = $this->partitionCustomFields('store_transfer.create', $header, $companyId, $branchId);
 
         $lines = $this->validateLines($request, $companyId, $branchId);
 
@@ -84,6 +86,8 @@ class StoreTransferController extends Controller
         foreach ($lines as $line) {
             $transfer->items()->create($line);
         }
+
+        $this->syncCustomFields($transfer, 'store_transfer.create', $customData, $companyId);
 
         return redirect()->route('admin.inventory.transfers.show', $transfer)->with('status', __('Store transfer created.'));
     }

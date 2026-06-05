@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Crm;
 
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -20,7 +21,7 @@ use Illuminate\View\View;
 
 class CustomerController extends Controller
 {
-    use ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -51,7 +52,7 @@ class CustomerController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
         $data = $this->validateCustomer($request, null, $companyId, $branchId);
         $data = $this->formSettings->applyDefaults('customer', $data, $companyId, $branchId);
-        $data = $this->normalizeFormNumerics($data, ['credit_limit' => 0]);
+        [$data, $customData] = $this->partitionCustomFields('customer', $data, $companyId, $branchId);
 
         $customer = Customer::query()->create([
             ...$data,
@@ -63,6 +64,8 @@ class CustomerController extends Controller
         if (! empty($data['segment_ids'])) {
             $customer->segments()->sync($data['segment_ids']);
         }
+
+        $this->syncCustomFields($customer, 'customer', $customData, $companyId);
 
         return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer created.'));
     }
@@ -117,9 +120,10 @@ class CustomerController extends Controller
         $this->authorize('update', $customer);
 
         $data = $this->validateCustomer($request, $customer, $customer->company_id, $customer->branch_id);
-        $data = $this->normalizeFormNumerics($data, ['credit_limit' => 0]);
+        [$data, $customData] = $this->partitionCustomFields('customer', $data, $customer->company_id, $customer->branch_id);
         $customer->update($data);
         $customer->segments()->sync($data['segment_ids'] ?? []);
+        $this->syncCustomFields($customer, 'customer', $customData, $customer->company_id);
 
         return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer updated.'));
     }
@@ -189,7 +193,7 @@ class CustomerController extends Controller
         $branchId = $customer?->branch_id ?? tenant()->branchId();
 
         return [
-            'formFields' => $this->formSettings->resolvedFields('customer', $companyId, $branchId),
+            'formFields' => $this->formSettings->resolvedFields('customer', $companyId, $branchId, $customer),
             'companies' => auth()->user()->hasRole('Super Admin')
                 ? Company::query()->where('is_active', true)->orderBy('name')->get()
                 : Company::query()->where('id', auth()->user()->company_id)->get(),

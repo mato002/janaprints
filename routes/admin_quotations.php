@@ -45,8 +45,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::delete('list/{quotation}', [QuotationController::class, 'destroy'])->name('destroy');
         });
 
-        Route::middleware('permission:quotations.approve')->group(function () {
-            Route::post('list/{quotation}/approve', [QuotationController::class, 'approve'])->name('approve');
+        Route::middleware('permission:quotations.view')->group(function () {
+            Route::post('list/{quotation}/approve', [QuotationController::class, 'approve'])
+                ->middleware('can:approve,quotation')
+                ->name('approve');
         });
 
         Route::middleware('permission:quotations.send')->group(function () {

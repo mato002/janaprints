@@ -2,15 +2,29 @@
 
 namespace Database\Seeders;
 
+use App\Enums\ApprovalChainMode;
+use App\Enums\ApprovalChainStatus;
 use App\Enums\ApprovalRuleType;
 use App\Enums\DocumentType;
+use App\Enums\EscalationMethod;
+use App\Enums\EscalationRuleStatus;
+use App\Enums\WorkflowRuleActionType;
+use App\Enums\WorkflowRuleStatus;
+use App\Enums\WorkflowRuleTrigger;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Governance\ApprovalChain;
+use App\Models\Governance\ApprovalChainStep;
+use App\Models\Governance\WorkflowEscalationRule;
+use App\Models\Governance\WorkflowRule;
+use App\Models\Governance\WorkflowRuleAction;
 use App\Models\Platform\ApprovalRule;
 use App\Models\Platform\NumberingSequence;
 use App\Models\Platform\SystemSetting;
+use App\Support\Platform\DocumentTypesManager;
 use App\Support\Platform\FormSettingsManager;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class PlatformConfigurationSeeder extends Seeder
 {
@@ -33,6 +47,10 @@ class PlatformConfigurationSeeder extends Seeder
         $this->seedNumberingSequences($company->id, $branch?->id);
         $this->seedFormSettings($company->id);
         $this->seedApprovalRules($company->id, null);
+        $this->seedApprovalChains($company->id, null);
+        $this->seedEscalationRules($company->id, null);
+        $this->seedWorkflowRules($company->id, null);
+        $this->seedDocumentTypes($company->id, $branch?->id);
     }
 
     protected function seedSystemSettings(int $companyId, ?int $branchId): void
@@ -121,6 +139,11 @@ class PlatformConfigurationSeeder extends Seeder
         ]);
     }
 
+    protected function seedDocumentTypes(int $companyId, ?int $branchId): void
+    {
+        app(DocumentTypesManager::class)->ensureDefinitions($companyId, $branchId);
+    }
+
     protected function seedApprovalRules(int $companyId, ?int $branchId): void
     {
         $definitions = [
@@ -183,6 +206,181 @@ class PlatformConfigurationSeeder extends Seeder
                     'settings_json' => ['tiers' => $definition['tiers']],
                 ],
             );
+        }
+    }
+
+    protected function seedApprovalChains(int $companyId, ?int $branchId): void
+    {
+        $definitions = [
+            [
+                'name' => 'Discount Approval Chain',
+                'module' => 'sales',
+                'document_type' => 'discount',
+                'approval_rule_type' => ApprovalRuleType::DiscountApproval,
+                'approval_mode' => ApprovalChainMode::Sequential,
+                'steps' => [
+                    ['step_number' => 1, 'approver_role' => 'Sales', 'is_required' => true],
+                    ['step_number' => 2, 'approver_role' => 'Branch Manager', 'is_required' => true],
+                    ['step_number' => 3, 'approver_role' => 'Company Admin', 'is_required' => true],
+                ],
+            ],
+            [
+                'name' => 'Inventory Adjustment Chain',
+                'module' => 'inventory',
+                'document_type' => 'stock_adjustment',
+                'approval_rule_type' => ApprovalRuleType::StockAdjustmentApproval,
+                'approval_mode' => ApprovalChainMode::Sequential,
+                'steps' => [
+                    ['step_number' => 1, 'approver_role' => 'Storekeeper', 'is_required' => true],
+                ],
+            ],
+            [
+                'name' => 'Purchase Order Chain',
+                'module' => 'procurement',
+                'document_type' => 'purchase_order',
+                'approval_rule_type' => ApprovalRuleType::ProcurementApproval,
+                'approval_mode' => ApprovalChainMode::Sequential,
+                'steps' => [
+                    ['step_number' => 1, 'approver_role' => 'Company Admin', 'is_required' => true],
+                    ['step_number' => 2, 'approver_role' => 'Company Admin', 'is_required' => true],
+                    ['step_number' => 3, 'approver_role' => 'Company Admin', 'is_required' => true],
+                ],
+            ],
+        ];
+
+        foreach ($definitions as $definition) {
+            $chain = ApprovalChain::query()->updateOrCreate(
+                [
+                    'company_id' => $companyId,
+                    'branch_id' => $branchId,
+                    'name' => $definition['name'],
+                ],
+                [
+                    'module' => $definition['module'],
+                    'document_type' => $definition['document_type'],
+                    'approval_rule_type' => $definition['approval_rule_type'],
+                    'approval_mode' => $definition['approval_mode'],
+                    'status' => ApprovalChainStatus::Active,
+                    'description' => __('Seeded default approval chain.'),
+                ],
+            );
+
+            $chain->steps()->delete();
+
+            foreach ($definition['steps'] as $step) {
+                ApprovalChainStep::query()->create([
+                    'approval_chain_id' => $chain->id,
+                    'step_number' => $step['step_number'],
+                    'approver_role' => $step['approver_role'],
+                    'is_required' => $step['is_required'],
+                ]);
+            }
+        }
+    }
+
+    protected function seedEscalationRules(int $companyId, ?int $branchId): void
+    {
+        Role::findOrCreate('Finance Director', 'web');
+        Role::findOrCreate('Operations Manager', 'web');
+
+        $definitions = [
+            [
+                'name' => 'Purchase Order SLA',
+                'workflow_key' => 'purchase_order',
+                'waiting_hours' => 48,
+                'escalation_target_role' => 'Finance Director',
+                'escalation_method' => EscalationMethod::AutoEscalate,
+            ],
+            [
+                'name' => 'Inventory Adjustment SLA',
+                'workflow_key' => 'inventory_adjustment',
+                'waiting_hours' => 24,
+                'escalation_target_role' => 'Operations Manager',
+                'escalation_method' => EscalationMethod::AutoEscalate,
+            ],
+        ];
+
+        foreach ($definitions as $definition) {
+            WorkflowEscalationRule::query()->updateOrCreate(
+                [
+                    'company_id' => $companyId,
+                    'branch_id' => $branchId,
+                    'name' => $definition['name'],
+                ],
+                [
+                    'workflow_key' => $definition['workflow_key'],
+                    'waiting_hours' => $definition['waiting_hours'],
+                    'escalation_target_role' => $definition['escalation_target_role'],
+                    'escalation_method' => $definition['escalation_method'],
+                    'status' => EscalationRuleStatus::Active,
+                    'description' => __('Seeded default escalation rule.'),
+                ],
+            );
+        }
+    }
+
+    protected function seedWorkflowRules(int $companyId, ?int $branchId): void
+    {
+        $definitions = [
+            [
+                'name' => 'Quotation Approved → Sales Order',
+                'module' => 'commercial',
+                'entity_type' => 'quotation',
+                'trigger' => WorkflowRuleTrigger::Approved,
+                'description' => __('Automatically create a sales order when a quotation is approved.'),
+                'actions' => [
+                    [
+                        'sort_order' => 1,
+                        'action_type' => WorkflowRuleActionType::CreateDocument,
+                        'config_json' => ['target_entity' => 'sales_order'],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Job Card Completed → Notify Sales',
+                'module' => 'production',
+                'entity_type' => 'production_job_card',
+                'trigger' => WorkflowRuleTrigger::Completed,
+                'description' => __('Notify sales when production job card is completed.'),
+                'actions' => [
+                    [
+                        'sort_order' => 1,
+                        'action_type' => WorkflowRuleActionType::SendNotification,
+                        'config_json' => [
+                            'recipient_role' => 'Sales',
+                            'notification_type' => 'production_completed',
+                            'title' => 'Production completed',
+                            'body' => 'A production job card has been completed.',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        foreach ($definitions as $definition) {
+            $actions = $definition['actions'];
+            unset($definition['actions']);
+
+            $rule = WorkflowRule::query()->updateOrCreate(
+                [
+                    'company_id' => $companyId,
+                    'branch_id' => $branchId,
+                    'name' => $definition['name'],
+                ],
+                [
+                    ...$definition,
+                    'status' => WorkflowRuleStatus::Active,
+                ],
+            );
+
+            $rule->actions()->delete();
+
+            foreach ($actions as $action) {
+                WorkflowRuleAction::query()->create([
+                    'workflow_rule_id' => $rule->id,
+                    ...$action,
+                ]);
+            }
         }
     }
 }

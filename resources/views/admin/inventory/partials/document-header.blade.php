@@ -72,3 +72,4 @@
         <textarea name="notes" class="erp-input w-full" rows="2" @required($fields['notes']['required'] ?? false)>{{ old('notes') }}</textarea>
     </div>
 @endif
+@include('admin.partials.form-custom-fields', ['fields' => $formFields ?? []])

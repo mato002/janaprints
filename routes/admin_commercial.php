@@ -129,6 +129,19 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('pos/sales/{sale}/receipt', [PosSaleController::class, 'receipt'])->name('pos.receipt');
             Route::get('pos/counter-sales', [PosCounterSalesController::class, 'index'])->name('pos.counter-sales');
             Route::get('pos/counter-sales/products/search', [PosCounterSalesController::class, 'searchProducts'])->name('pos.counter-sales.products.search');
+            Route::get('pos/counter-sales/session', [PosCounterSalesController::class, 'sessionState'])->name('pos.counter-sales.session');
+            Route::get('pos/counter-sales/session/close-preview', [PosCounterSalesController::class, 'closePreview'])->name('pos.counter-sales.session.close-preview');
+            Route::get('pos/counter-sales/held-sales', [PosCounterSalesController::class, 'heldSales'])->name('pos.counter-sales.held-sales');
+            Route::get('pos/counter-sales/held-sales/{sale}/resume', [PosCounterSalesController::class, 'resumeHeldSale'])->name('pos.counter-sales.held-sales.resume');
+            Route::get('pos/counter-sales/sales/{sale}/receipt', [PosCounterSalesController::class, 'receiptPayload'])->name('pos.counter-sales.receipt');
+        });
+
+        Route::middleware('permission:pos.sessions.open|commercial.pos.sessions.open')->group(function () {
+            Route::post('pos/counter-sales/session/open', [PosCounterSalesController::class, 'openSession'])->name('pos.counter-sales.session.open');
+        });
+
+        Route::middleware('permission:pos.sessions.close|commercial.pos.sessions.close')->group(function () {
+            Route::post('pos/counter-sales/session/close', [PosCounterSalesController::class, 'closeSession'])->name('pos.counter-sales.session.close');
         });
 
         Route::middleware('permission:pos.create|pos.counter_sales.create')->group(function () {
@@ -168,22 +181,28 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('pos/returns/{return}/reject', [PosReturnController::class, 'reject'])->name('pos.returns.reject');
         });
 
-        Route::middleware('permission:commercial.pos.sessions.open')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.open|pos.sessions.open')->group(function () {
             Route::get('pos/sessions/open', [PosSessionController::class, 'create'])->name('pos.sessions.create');
             Route::post('pos/sessions', [PosSessionController::class, 'store'])->name('pos.sessions.store');
         });
 
-        Route::middleware('permission:commercial.pos.sessions.view')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.view|pos.sessions.view')->group(function () {
             Route::get('pos/sessions', [PosSessionController::class, 'index'])->name('pos.sessions.index');
+            Route::get('pos/sessions/{session}/summary', [PosSessionController::class, 'summary'])->name('pos.sessions.summary');
+            Route::get('pos/sessions/{session}', [PosSessionController::class, 'show'])->name('pos.sessions.show');
         });
 
-        Route::middleware('permission:commercial.pos.sessions.close')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.close|pos.sessions.close')->group(function () {
             Route::get('pos/sessions/{session}/close', [PosSessionController::class, 'closeForm'])->name('pos.sessions.close');
             Route::post('pos/sessions/{session}/close', [PosSessionController::class, 'close'])->name('pos.sessions.close.store');
         });
 
-        Route::middleware('permission:commercial.pos.sessions.view')->group(function () {
-            Route::get('pos/sessions/{session}', [PosSessionController::class, 'show'])->name('pos.sessions.show');
+        Route::middleware('permission:commercial.pos.sessions.audit|pos.sessions.approve_variance')->group(function () {
+            Route::post('pos/sessions/{session}/approve-variance', [PosSessionController::class, 'approveVariance'])->name('pos.sessions.approve-variance');
+        });
+
+        Route::middleware('permission:commercial.pos.sessions.audit|pos.sessions.export')->group(function () {
+            Route::get('pos/sessions/{session}/export', [PosSessionController::class, 'export'])->name('pos.sessions.export');
         });
 
         Route::middleware('permission:commercial.pos.reconciliation.view')->group(function () {

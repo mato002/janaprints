@@ -71,6 +71,15 @@ class PeriodCloseService
                 ],
             );
 
+            app(\App\Services\Security\SecurityAuditService::class)->record(
+                action: 'period_closed',
+                subject: $closedPeriod,
+                userId: $userId,
+                description: __('Accounting period closed — :name', ['name' => $closedPeriod->name]),
+                module: 'accounting',
+                entity: 'accounting_period',
+            );
+
             return [
                 'period' => $closedPeriod,
                 'audit' => $audit,

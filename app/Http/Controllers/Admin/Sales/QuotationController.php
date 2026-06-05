@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Sales;
 
 use App\Enums\DocumentType;
 use App\Enums\QuotationStatus;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Admin\Sales\Concerns\ManagesQuotationItems;
@@ -13,8 +14,13 @@ use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Crm\Lead;
 use App\Models\Sales\Quotation;
+use App\Enums\ApprovalRuleType;
+use App\Enums\DocumentModule;
+use App\Support\Platform\ApprovalDelegationService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
+use App\Enums\WorkflowRuleTrigger;
+use App\Support\Governance\WorkflowRulesService;
 use App\Support\QuotationConversionService;
 use App\Support\QuotationRevisionService;
 use Illuminate\Validation\ValidationException;
@@ -25,7 +31,7 @@ use Illuminate\View\View;
 
 class QuotationController extends Controller
 {
-    use ManagesQuotationItems, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ManagesQuotationItems, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -66,6 +72,7 @@ class QuotationController extends Controller
 
         $header = $this->validateHeader($request);
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+        [$header, $customData] = $this->partitionCustomFields('quotation', $header, $companyId, $branchId);
         ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
 
         $quotation = Quotation::query()->create([
@@ -78,6 +85,8 @@ class QuotationController extends Controller
             'revision_number' => 1,
             ...$totals,
         ]);
+
+        $this->syncCustomFields($quotation, 'quotation', $customData, $companyId);
 
         $this->syncItems($quotation, $items, $totals);
         QuotationRevisionService::snapshot($quotation);
@@ -117,9 +126,11 @@ class QuotationController extends Controller
         QuotationRevisionService::snapshot($quotation);
 
         $header = $this->validateHeader($request, $quotation);
+        [$header, $customData] = $this->partitionCustomFields('quotation', $header, $quotation->company_id, $quotation->branch_id);
         ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
 
         $quotation->update($header);
+        $this->syncCustomFields($quotation, 'quotation', $customData, $quotation->company_id);
         $this->syncItems($quotation, $items, $totals);
 
         $quotation->update(['revision_number' => $quotation->revision_number + 1]);
@@ -152,12 +163,38 @@ class QuotationController extends Controller
     {
         $this->authorize('approve', $quotation);
 
+        $actor = auth()->user();
+        $delegationService = app(ApprovalDelegationService::class);
+
+        if (! $actor->can('quotations.approve')) {
+            $delegation = $delegationService->resolveActiveDelegation(
+                $actor,
+                ApprovalRuleType::QuotationApproval->value,
+                DocumentModule::Commercial->value,
+                $quotation->company_id,
+                $quotation->branch_id,
+                'quotations.approve',
+            );
+
+            if ($delegation) {
+                $delegationService->recordDelegatedApproval(
+                    $actor,
+                    $quotation,
+                    $delegation,
+                    'quotation.approved_via_delegation',
+                    'commercial',
+                );
+            }
+        }
+
         $quotation->transitionTo(QuotationStatus::Sent);
         $quotation->update([
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
         QuotationRevisionService::snapshot($quotation);
+        \App\Support\ActivityLogger::log('quote_approved', $quotation);
+        app(WorkflowRulesService::class)->dispatch(WorkflowRuleTrigger::Approved, $quotation, $actor);
 
         return back()->with('status', __('Quotation approved and sent.'));
     }
@@ -191,6 +228,7 @@ class QuotationController extends Controller
 
         $quotation->transitionTo(QuotationStatus::Accepted);
         QuotationRevisionService::snapshot($quotation);
+        app(WorkflowRulesService::class)->dispatch(WorkflowRuleTrigger::Approved, $quotation, auth()->user());
 
         return back()->with('status', __('Quotation accepted.'));
     }
@@ -201,6 +239,7 @@ class QuotationController extends Controller
 
         $quotation->transitionTo(QuotationStatus::Rejected);
         QuotationRevisionService::snapshot($quotation);
+        app(WorkflowRulesService::class)->dispatch(WorkflowRuleTrigger::Rejected, $quotation, auth()->user());
 
         return back()->with('status', __('Quotation rejected.'));
     }
@@ -267,7 +306,7 @@ class QuotationController extends Controller
         $branchId = $quotation?->branch_id ?? tenant()->branchId();
 
         return [
-            'formFields' => $this->formSettings->resolvedFields('quotation', $companyId, $branchId),
+            'formFields' => $this->formSettings->resolvedFields('quotation', $companyId, $branchId, $quotation),
             'companies' => auth()->user()->hasRole('Super Admin')
                 ? Company::query()->where('is_active', true)->orderBy('name')->get()
                 : Company::query()->where('id', auth()->user()->company_id)->get(),

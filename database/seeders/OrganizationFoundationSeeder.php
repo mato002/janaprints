@@ -44,5 +44,7 @@ class OrganizationFoundationSeeder extends Seeder
                 'is_active' => true,
             ],
         );
+
+        $this->call(JobTitlesSeeder::class);
     }
 }

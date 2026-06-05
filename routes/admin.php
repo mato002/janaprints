@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AccessAuditController;
 use App\Http\Controllers\Admin\AccessControlController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\BranchController;
@@ -7,10 +8,17 @@ use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\EmployeeController;
-use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\JobTitleController;
+use App\Http\Controllers\Admin\Governance\ApprovalChainsController;
+use App\Http\Controllers\Admin\Operations\DataRetentionController;
+use App\Http\Controllers\Admin\Operations\BackupManagementController;
+use App\Http\Controllers\Admin\Operations\AuditLogsController;
+use App\Http\Controllers\Admin\Operations\BackgroundJobsController;
+use App\Http\Controllers\Admin\Operations\SystemHealthController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserSessionController;
 use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
 use App\Http\Controllers\Admin\Administration\AdministrationWorkspaceController;
 use App\Http\Controllers\Admin\Commercial\CommercialWorkspaceController;
@@ -118,6 +126,124 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             Route::get('activity-logs', [ActivityLogController::class, 'index'])->name('activity-logs.index');
         });
 
+        Route::prefix('operations/health')->name('operations.health.')->group(function () {
+            Route::middleware('permission:operations.health.manage')->group(function () {
+                Route::post('refresh', [SystemHealthController::class, 'refresh'])->name('refresh');
+            });
+
+            Route::middleware('permission:operations.health.view')->group(function () {
+                Route::get('/', [SystemHealthController::class, 'index'])->name('index');
+                Route::get('snapshot', [SystemHealthController::class, 'snapshot'])->name('snapshot');
+            });
+        });
+
+        Route::prefix('operations/audit')->name('operations.audit.')->group(function () {
+            Route::middleware('permission:operations.audit.export')->group(function () {
+                Route::get('export', [AuditLogsController::class, 'export'])->name('export');
+            });
+
+            Route::middleware('permission:operations.audit.view')->group(function () {
+                Route::get('/', [AuditLogsController::class, 'index'])->name('index');
+                Route::get('{securityAuditEvent}', [AuditLogsController::class, 'show'])->name('show');
+            });
+        });
+
+        Route::prefix('operations/retention')->name('operations.retention.')->group(function () {
+            Route::middleware('permission:operations.retention.manage')->group(function () {
+                Route::put('{retentionPolicy}', [DataRetentionController::class, 'update'])->name('update');
+            });
+
+            Route::middleware('permission:operations.retention.view')->group(function () {
+                Route::get('/', [DataRetentionController::class, 'index'])->name('index');
+            });
+        });
+
+        Route::prefix('operations/backups')->name('operations.backups.')->group(function () {
+            Route::middleware('permission:operations.backups.download')->group(function () {
+                Route::get('{systemBackup}/download', [BackupManagementController::class, 'download'])->name('download');
+            });
+
+            Route::middleware('permission:operations.backups.manage')->group(function () {
+                Route::post('delete-expired', [BackupManagementController::class, 'deleteExpired'])->name('delete-expired');
+                Route::post('{systemBackup}/verify', [BackupManagementController::class, 'verify'])->name('verify');
+                Route::get('{systemBackup}/readiness', [BackupManagementController::class, 'restoreReadiness'])->name('readiness');
+            });
+
+            Route::middleware('permission:operations.backups.view')->group(function () {
+                Route::get('/', [BackupManagementController::class, 'index'])->name('index');
+            });
+        });
+
+        Route::prefix('operations/jobs')->name('operations.jobs.')->group(function () {
+            Route::middleware('permission:operations.jobs.retry')->group(function () {
+                Route::post('retry-failed', [BackgroundJobsController::class, 'retryFailed'])->name('retry-failed');
+                Route::post('{reference}/retry', [BackgroundJobsController::class, 'retry'])
+                    ->where('reference', '.+')
+                    ->name('retry');
+            });
+
+            Route::middleware('permission:operations.jobs.cancel')->group(function () {
+                Route::post('{reference}/cancel', [BackgroundJobsController::class, 'cancel'])
+                    ->where('reference', '.+')
+                    ->name('cancel');
+            });
+
+            Route::middleware('permission:operations.jobs.view')->group(function () {
+                Route::get('/', [BackgroundJobsController::class, 'index'])->name('index');
+                Route::get('{reference}', [BackgroundJobsController::class, 'show'])
+                    ->where('reference', '.+')
+                    ->name('show');
+            });
+        });
+
+        Route::prefix('governance/chains')->name('governance.chains.')->group(function () {
+            Route::middleware('permission:governance.chains.create')->group(function () {
+                Route::get('create', [ApprovalChainsController::class, 'create'])->name('create');
+                Route::post('/', [ApprovalChainsController::class, 'store'])->name('store');
+            });
+
+            Route::middleware('permission:governance.chains.edit')->group(function () {
+                Route::get('{chain}/edit', [ApprovalChainsController::class, 'edit'])->name('edit');
+                Route::put('{chain}', [ApprovalChainsController::class, 'update'])->name('update');
+            });
+
+            Route::middleware('permission:governance.chains.activate')->group(function () {
+                Route::patch('{chain}/activate', [ApprovalChainsController::class, 'activate'])->name('activate');
+                Route::patch('{chain}/deactivate', [ApprovalChainsController::class, 'deactivate'])->name('deactivate');
+            });
+
+            Route::middleware('permission:governance.chains.view')->group(function () {
+                Route::get('/', [ApprovalChainsController::class, 'index'])->name('index');
+            });
+        });
+
+        Route::prefix('security/audit')->name('security.audit.')->group(function () {
+            Route::middleware('permission:security.audit.export')->group(function () {
+                Route::get('export', [AccessAuditController::class, 'export'])->name('export');
+            });
+
+            Route::middleware('permission:security.audit.view')->group(function () {
+                Route::get('/', [AccessAuditController::class, 'index'])->name('index');
+                Route::get('{securityAuditEvent}', [AccessAuditController::class, 'show'])->name('show');
+            });
+        });
+
+        Route::prefix('security/sessions')->name('security.sessions.')->group(function () {
+            Route::middleware('permission:security.sessions.view')->group(function () {
+                Route::get('/', [UserSessionController::class, 'index'])->name('index');
+                Route::get('{userSession}', [UserSessionController::class, 'show'])->name('show');
+            });
+
+            Route::middleware('permission:security.sessions.terminate')->group(function () {
+                Route::post('{userSession}/terminate', [UserSessionController::class, 'terminate'])->name('terminate');
+                Route::post('users/{user}/terminate-all', [UserSessionController::class, 'terminateAll'])->name('terminate-all');
+            });
+
+            Route::middleware('permission:security.sessions.force_logout')->group(function () {
+                Route::post('users/{user}/force-logout', [UserSessionController::class, 'forceLogout'])->name('force-logout');
+            });
+        });
+
         Route::middleware('permission:companies.manage')->group(function () {
             Route::resource('companies', CompanyController::class)->except(['show']);
         });
@@ -132,6 +258,27 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
 
         Route::middleware('permission:employees.manage')->group(function () {
             Route::resource('employees', EmployeeController::class)->except(['show']);
+        });
+
+        Route::prefix('job-titles')->name('job-titles.')->group(function () {
+            Route::middleware('permission:organization.job_titles.view')->group(function () {
+                Route::get('/', [JobTitleController::class, 'index'])->name('index');
+                Route::get('hierarchy', [JobTitleController::class, 'hierarchy'])->name('hierarchy');
+            });
+
+            Route::middleware('permission:organization.job_titles.create')->group(function () {
+                Route::get('create', [JobTitleController::class, 'create'])->name('create');
+                Route::post('/', [JobTitleController::class, 'store'])->name('store');
+            });
+
+            Route::middleware('permission:organization.job_titles.edit')->group(function () {
+                Route::get('{jobTitle}/edit', [JobTitleController::class, 'edit'])->name('edit');
+                Route::put('{jobTitle}', [JobTitleController::class, 'update'])->name('update');
+            });
+
+            Route::middleware('permission:organization.job_titles.deactivate')->group(function () {
+                Route::patch('{jobTitle}/deactivate', [JobTitleController::class, 'deactivate'])->name('deactivate');
+            });
         });
     });
 
@@ -151,6 +298,8 @@ require __DIR__.'/admin_assets.php';
 require __DIR__.'/admin_accounting.php';
 require __DIR__.'/admin_tax.php';
 require __DIR__.'/admin_settings.php';
+require __DIR__.'/admin_governance.php';
+require __DIR__.'/admin_master_data.php';
 require __DIR__.'/admin_communications.php';
 require __DIR__.'/admin_communications_sms.php';
 require __DIR__.'/admin_communication_logs.php';

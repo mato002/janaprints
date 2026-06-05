@@ -19,9 +19,11 @@ class PosSession extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'cashier_id', 'session_number',
-        'opening_float', 'opening_cash', 'expected_cash', 'actual_cash', 'variance',
+        'company_id', 'branch_id', 'cashier_id', 'session_number', 'terminal',
+        'opening_float', 'opening_cash', 'expected_cash', 'expected_mpesa', 'expected_card',
+        'expected_bank', 'expected_total', 'actual_cash', 'variance', 'variance_requires_approval',
         'status', 'opened_at', 'closed_at', 'opened_by', 'closed_by',
+        'variance_approved_by', 'variance_approved_at',
         'opening_notes', 'closing_notes',
     ];
 
@@ -31,11 +33,17 @@ class PosSession extends Model
             'opening_float' => 'decimal:2',
             'opening_cash' => 'decimal:2',
             'expected_cash' => 'decimal:2',
+            'expected_mpesa' => 'decimal:2',
+            'expected_card' => 'decimal:2',
+            'expected_bank' => 'decimal:2',
+            'expected_total' => 'decimal:2',
             'actual_cash' => 'decimal:2',
             'variance' => 'decimal:2',
+            'variance_requires_approval' => 'boolean',
             'status' => PosSessionStatus::class,
             'opened_at' => 'datetime',
             'closed_at' => 'datetime',
+            'variance_approved_at' => 'datetime',
         ];
     }
 
@@ -57,6 +65,11 @@ class PosSession extends Model
     public function closer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'closed_by');
+    }
+
+    public function varianceApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'variance_approved_by');
     }
 
     public function sales(): HasMany

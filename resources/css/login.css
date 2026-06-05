@@ -45,8 +45,8 @@
     .login-scene__overlay {
         @apply pointer-events-none absolute inset-0;
         background:
-            radial-gradient(ellipse 70% 55% at 50% 45%, rgb(108 75 255 / 0.08), transparent 65%),
-            linear-gradient(180deg, rgb(6 14 32 / 0.88) 0%, rgb(4 10 24 / 0.92) 100%);
+            radial-gradient(ellipse 70% 55% at 50% 45%, rgb(108 75 255 / 0.12), transparent 65%),
+            linear-gradient(180deg, rgb(6 14 32 / 0.72) 0%, rgb(4 10 24 / 0.82) 100%);
     }
 
     .login-scene__particles {

@@ -78,4 +78,59 @@ return [
         'permissions' => 50,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Backup Governance
+    |--------------------------------------------------------------------------
+    */
+
+    'backups' => [
+        'root' => storage_path('app/backups'),
+        'retention_days' => [
+            'database' => (int) env('BACKUP_RETENTION_DATABASE_DAYS', 30),
+            'file' => (int) env('BACKUP_RETENTION_FILE_DAYS', 14),
+            'storage' => (int) env('BACKUP_RETENTION_STORAGE_DAYS', 14),
+        ],
+        'directories' => [
+            'database' => 'database',
+            'file' => 'files',
+            'storage' => 'storage',
+        ],
+    ],
+
+    'retention' => [
+        'defaults' => [
+            'audit_logs' => [
+                'archive_after_days' => 365,
+                'delete_after_days' => 2555,
+                'retention_period_days' => 2555,
+            ],
+            'activity_logs' => [
+                'archive_after_days' => 90,
+                'delete_after_days' => 365,
+                'retention_period_days' => 365,
+            ],
+            'documents' => [
+                'archive_after_days' => 180,
+                'delete_after_days' => 730,
+                'retention_period_days' => 730,
+            ],
+            'communications' => [
+                'archive_after_days' => 90,
+                'delete_after_days' => 365,
+                'retention_period_days' => 365,
+            ],
+            'files' => [
+                'archive_after_days' => 180,
+                'delete_after_days' => 730,
+                'retention_period_days' => 730,
+            ],
+            'backups' => [
+                'archive_after_days' => 14,
+                'delete_after_days' => 30,
+                'retention_period_days' => 30,
+            ],
+        ],
+    ],
+
 ];

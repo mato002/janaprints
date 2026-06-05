@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Inventory;
 use App\Enums\DocumentType;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\StockReceiptSource;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
 
 class StockReceiptController extends Controller
 {
-    use ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -52,6 +53,7 @@ class StockReceiptController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
         $header = $this->validateHeader($request, $companyId, $branchId);
+        [$header, $customData] = $this->partitionCustomFields('stock_receipt.create', $header, $companyId, $branchId);
         $lines = $this->validateLines($request, $companyId, $branchId);
 
         $receipt = StockReceipt::query()->create([
@@ -66,6 +68,8 @@ class StockReceiptController extends Controller
         foreach ($lines as $line) {
             $receipt->items()->create($line);
         }
+
+        $this->syncCustomFields($receipt, 'stock_receipt.create', $customData, $companyId);
 
         return redirect()->route('admin.inventory.receipts.show', $receipt)->with('status', __('Receipt created.'));
     }

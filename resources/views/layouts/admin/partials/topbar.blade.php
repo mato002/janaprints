@@ -59,6 +59,20 @@
             @include('layouts.admin.partials.quick-create', ['quickCreate' => $quickCreate ?? []])
         </div>
 
+        @if (Route::has('home'))
+            <a
+                href="{{ route('home') }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-turbo="false"
+                class="erp-btn erp-btn--secondary erp-btn--sm inline-flex items-center gap-1.5"
+                title="{{ __('View public website') }}"
+            >
+                <x-admin.icon name="external-link" class="h-4 w-4 shrink-0" />
+                <span class="hidden sm:inline">{{ __('Website') }}</span>
+            </a>
+        @endif
+
         @include('layouts.admin.partials.notification-bell')
 
         <x-dropdown align="right" width="48">

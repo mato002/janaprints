@@ -35,51 +35,6 @@
         </div>
     </div>
 
-    @if ($canManage)
-        <div class="border-b border-erp-border bg-erp-page/50 px-5 py-4 sm:px-6">
-            <h3 class="text-sm font-semibold text-erp-primary">{{ __('Add custom field') }}</h3>
-            <p class="mt-1 text-xs text-slate-500">{{ __('Use lowercase keys with underscores (e.g. tax_id). Custom fields are saved for this company/branch scope.') }}</p>
-            <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div>
-                    <x-input-label for="add_field_key" :value="__('Field key')" />
-                    <input
-                        type="text"
-                        id="add_field_key"
-                        name="forms[{{ $form['form_key'] }}][add_field][field_key]"
-                        class="erp-input mt-1 w-full font-mono text-sm"
-                        placeholder="custom_field"
-                        pattern="[a-z][a-z0-9_]*"
-                    >
-                </div>
-                <div>
-                    <x-input-label for="add_field_label" :value="__('Label')" />
-                    <input
-                        type="text"
-                        id="add_field_label"
-                        name="forms[{{ $form['form_key'] }}][add_field][label]"
-                        class="erp-input mt-1 w-full"
-                        placeholder="{{ __('Display label') }}"
-                    >
-                </div>
-                <div>
-                    <x-input-label for="add_field_type" :value="__('Type')" />
-                    <select id="add_field_type" name="forms[{{ $form['form_key'] }}][add_field][type]" class="erp-select mt-1 w-full">
-                        <option value="text">{{ __('Text') }}</option>
-                        <option value="email">{{ __('Email') }}</option>
-                        <option value="number">{{ __('Number') }}</option>
-                        <option value="date">{{ __('Date') }}</option>
-                        <option value="textarea">{{ __('Textarea') }}</option>
-                        <option value="select">{{ __('Select') }}</option>
-                        <option value="checkbox">{{ __('Checkbox') }}</option>
-                    </select>
-                </div>
-                <div class="flex items-end">
-                    <p class="text-xs text-slate-500">{{ __('Click Save below to create the field, then configure visibility and rules in the table.') }}</p>
-                </div>
-            </div>
-        </div>
-    @endif
-
     <div class="overflow-x-auto">
         <table class="erp-table erp-table--grid">
             <thead>
@@ -177,4 +132,10 @@
             </tbody>
         </table>
     </div>
+
+    @include('admin.settings.forms.partials.add-custom-field-panel', [
+        'form' => $form,
+        'canManage' => $canManage,
+        'position' => 'bottom',
+    ])
 </x-admin.card>

@@ -14,6 +14,8 @@ use App\Models\Sales\SalesOrder;
 use App\Services\Production\Job360WorkspaceService;
 use App\Services\Production\JobProductionControlService;
 use App\Services\Production\ProductionJobCardIndexService;
+use App\Enums\WorkflowRuleTrigger;
+use App\Support\Governance\WorkflowRulesService;
 use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -181,6 +183,7 @@ class ProductionJobCardController extends Controller
             'status' => ProductionJobCardStatus::Completed,
             'actual_end_date' => now(),
         ]);
+        app(WorkflowRulesService::class)->dispatch(WorkflowRuleTrigger::Completed, $jobCard->fresh(), auth()->user());
 
         return back()->with('status', __('Job card completed.'));
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MySessionsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RfqVendorPortalController;
 use App\Http\Controllers\Storefront\PageController;
@@ -37,6 +38,10 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile/avatar', [ProfileController::class, 'destroyAvatar'])->name('profile.avatar.destroy');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::get('/profile/sessions', [MySessionsController::class, 'index'])->name('profile.sessions.index');
+    Route::post('/profile/sessions/logout-others', [MySessionsController::class, 'destroyOthers'])->name('profile.sessions.destroy-others');
+    Route::delete('/profile/sessions/{userSession}', [MySessionsController::class, 'destroy'])->name('profile.sessions.destroy');
 });
 
 require __DIR__.'/auth.php';

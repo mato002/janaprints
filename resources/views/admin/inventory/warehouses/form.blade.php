@@ -38,3 +38,4 @@
         </label>
     </div>
 </div>
+@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $warehouse ?? null])

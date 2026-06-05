@@ -62,3 +62,5 @@
     <input type="date" name="due_date" class="erp-input w-full" value="{{ old('due_date', $model?->due_date?->format('Y-m-d') ?? ($fields['due_date']['default'] ?? '')) }}" @required($fields['due_date']['required'] ?? false) @readonly($fields['due_date']['read_only'] ?? false)>
 </div>
 @endif
+
+@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $model ?? null])

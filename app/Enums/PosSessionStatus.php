@@ -5,6 +5,8 @@ namespace App\Enums;
 enum PosSessionStatus: string
 {
     case Open = 'open';
+    case Closing = 'closing';
+    case PendingApproval = 'pending_approval';
     case Closed = 'closed';
     case Suspended = 'suspended';
     case Cancelled = 'cancelled';
@@ -17,5 +19,10 @@ enum PosSessionStatus: string
     public function isActive(): bool
     {
         return in_array($this, [self::Open, self::Suspended], true);
+    }
+
+    public function isSettled(): bool
+    {
+        return in_array($this, [self::Closed, self::Cancelled], true);
     }
 }

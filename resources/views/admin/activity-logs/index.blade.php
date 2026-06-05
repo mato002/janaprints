@@ -1,5 +1,15 @@
-<x-admin-layout :title="__('Activity logs')" :breadcrumbs="[['label' => __('Administration')], ['label' => __('Activity logs')]]">
-    <x-admin.page-header :title="__('Activity logs')" :description="__('Audit trail of user and system actions.')" />
+<x-admin-layout
+    :title="__('Activity logs')"
+    :breadcrumbs="[
+        ['label' => __('Administration')],
+        ['label' => __('System Operations'), 'url' => route('admin.workspaces.administration.section', ['section' => 'system-operations'])],
+        ['label' => __('Activity logs')],
+    ]"
+>
+    <x-admin.page-header
+        :title="__('Activity logs')"
+        :description="__('Audit trail of user and system actions across the ERP platform.')"
+    />
 
     <x-admin.data-table :search-placeholder="__('Search activity logs…')" export-filename="activity-logs">
         <x-slot name="head">
@@ -21,7 +31,7 @@
                     <td class="hidden md:table-cell font-mono text-xs">{{ $log->ip_address }}</td>
                 </tr>
             @empty
-                <tr><td colspan="5"><x-admin.empty-state icon="clock" :title="__('No activity recorded yet')" /></td></tr>
+                <tr><td colspan="5"><x-admin.empty-state icon="clock" :title="__('No activity recorded yet')" :description="__('User and system actions will appear here as they occur.')" /></td></tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$logs" /></x-slot>

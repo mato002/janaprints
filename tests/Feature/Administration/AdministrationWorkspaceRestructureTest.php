@@ -51,6 +51,8 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $response->assertSee(route('admin.users.index'), false);
         $response->assertSee(route('admin.access-control.roles'), false);
         $response->assertSee(route('admin.access-control.matrix'), false);
+        $response->assertSee(route('admin.security.sessions.index'), false);
+        $response->assertSee(route('admin.security.audit.index'), false);
     }
 
     public function test_configuration_section_lists_settings_features(): void
@@ -63,6 +65,19 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $response->assertSee(route('admin.settings.index'), false);
         $response->assertSee(route('admin.settings.numbering.index'), false);
         $response->assertSee(route('admin.settings.forms.index'), false);
+        $response->assertSee(route('admin.settings.document-types.index'), false);
+        $response->assertSee(route('admin.master-data.index'), false);
+    }
+
+    public function test_workflow_governance_section_lists_delegations(): void
+    {
+        $user = $this->companyAdmin();
+
+        $response = $this->actingAs($user)->get(route('admin.workspaces.administration.section', ['section' => 'workflow-governance']));
+
+        $response->assertOk();
+        $response->assertSee(route('admin.governance.delegations.index'), false);
+        $response->assertSee(route('admin.settings.approvals.index'), false);
     }
 
     public function test_existing_administration_feature_routes_remain_registered(): void
@@ -70,6 +85,9 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $this->assertTrue(Route::has('admin.users.index'));
         $this->assertTrue(Route::has('admin.settings.approvals.index'));
         $this->assertTrue(Route::has('admin.activity-logs.index'));
+        $this->assertTrue(Route::has('admin.security.sessions.index'));
+        $this->assertTrue(Route::has('admin.security.audit.index'));
+        $this->assertTrue(Route::has('admin.master-data.index'));
     }
 
     public function test_administration_active_routes_include_child_modules(): void

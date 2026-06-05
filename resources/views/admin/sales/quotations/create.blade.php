@@ -39,6 +39,7 @@
                 </div>
                 @endif
             </div>
+            @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => null])
             <div>
                 <h3 class="font-medium text-slate-800 mb-3">{{ __('Line items') }}</h3>
                 @include('admin.sales.quotations.partials.items-form')

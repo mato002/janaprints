@@ -129,6 +129,7 @@ class PurchaseOrderController extends Controller
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
+        \App\Support\ActivityLogger::log('purchase_approved', $order);
 
         return back()->with('status', __('Purchase order approved.'));
     }

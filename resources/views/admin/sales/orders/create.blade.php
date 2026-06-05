@@ -21,6 +21,7 @@
                 @endif
             </div>
             @endif
+            @include('admin.partials.form-custom-fields', ['fields' => $fields])
             <button type="submit" class="erp-btn-primary" @disabled($eligibleQuotations->isEmpty())>{{ __('Create sales order') }}</button>
         </form>
     </x-admin.card>

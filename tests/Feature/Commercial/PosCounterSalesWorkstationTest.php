@@ -147,7 +147,7 @@ class PosCounterSalesWorkstationTest extends TestCase
         $this->assertEquals(5, (float) $sale->items->first()->quantity);
     }
 
-    public function test_remove_item_via_single_line_checkout(): void
+    public function test_add_multiple_items_to_sale(): void
     {
         [$company, $branch, $user] = $this->tenantUser($this->cashierPermissions());
         $this->openSession($company, $branch, $user);
@@ -159,17 +159,28 @@ class PosCounterSalesWorkstationTest extends TestCase
                 'action' => 'pay',
                 'is_walk_in' => true,
                 'payment_method' => PosPaymentMethod::Card->value,
-                'lines' => [[
-                    'description' => 'Only item',
-                    'quantity' => 1,
-                    'unit_price' => 75,
-                    'discount_amount' => 0,
-                    'tax_amount' => 0,
-                ]],
+                'lines' => [
+                    [
+                        'description' => 'Business cards',
+                        'quantity' => 1,
+                        'unit_price' => 75,
+                        'discount_amount' => 0,
+                        'tax_amount' => 0,
+                    ],
+                    [
+                        'description' => 'Flyers',
+                        'quantity' => 2,
+                        'unit_price' => 50,
+                        'discount_amount' => 0,
+                        'tax_amount' => 0,
+                    ],
+                ],
             ])
             ->assertRedirect();
 
-        $this->assertCount(1, PosSale::query()->first()->items);
+        $sale = PosSale::query()->first();
+        $this->assertCount(2, $sale->items);
+        $this->assertSame('175.00', $sale->total_amount);
     }
 
     public function test_hold_sale(): void
@@ -208,10 +219,18 @@ class PosCounterSalesWorkstationTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.commercial.pos.resume', $sale))
+            ->assertRedirect(route('admin.commercial.pos.counter-sales', ['resume' => $sale->id]));
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.pos.counter-sales', ['resume' => $sale->id]))
             ->assertOk()
-            ->assertSee($sale->sale_number, false)
-            ->assertSee('Resuming held sale', false)
+            ->assertSee('posCounterWorkstation', false)
             ->assertSee('Complete sale', false);
+
+        $this->actingAs($user)
+            ->getJson(route('admin.commercial.pos.counter-sales.held-sales.resume', $sale))
+            ->assertOk()
+            ->assertJsonPath('cart.sale_number', $sale->sale_number);
     }
 
     public function test_complete_held_sale(): void
@@ -301,6 +320,32 @@ class PosCounterSalesWorkstationTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('admin.commercial.pos.counter-sales.products.search', ['q' => 'test']))
             ->assertForbidden();
+    }
+
+    public function test_checkout_without_session_blocked(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'pos.counter_sales.view',
+            'pos.counter_sales.create',
+            'pos.counter_sales.complete',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->post(route('admin.commercial.pos.store'), [
+                'action' => 'pay',
+                'is_walk_in' => true,
+                'payment_method' => PosPaymentMethod::Cash->value,
+                'lines' => [[
+                    'description' => 'Blocked item',
+                    'quantity' => 1,
+                    'unit_price' => 50,
+                    'discount_amount' => 0,
+                    'tax_amount' => 0,
+                ]],
+            ])
+            ->assertSessionHasErrors('session');
     }
 
     public function test_new_sale_route_redirects_to_counter_sales(): void

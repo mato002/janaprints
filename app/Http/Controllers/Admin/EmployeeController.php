@@ -10,6 +10,8 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\JobTitle;
+use App\Support\Organization\JobTitleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,7 +26,7 @@ class EmployeeController extends Controller
         $this->authorize('viewAny', Employee::class);
 
         $employees = $this->scopeToTenant(
-            Employee::query()->with(['company', 'branch', 'department'])
+            Employee::query()->with(['company', 'branch', 'department', 'jobTitle'])
         )->latest()->paginate(15);
 
         return view('admin.employees.index', compact('employees'));
@@ -41,7 +43,8 @@ class EmployeeController extends Controller
     {
         $this->authorize('create', Employee::class);
 
-        Employee::query()->create($this->validateEmployee($request));
+        $employee = Employee::query()->create($this->validateEmployee($request));
+        app(JobTitleService::class)->syncEmployeeDesignation($employee);
 
         return redirect()->route('admin.employees.index')->with('status', __('Employee created.'));
     }
@@ -69,6 +72,7 @@ class EmployeeController extends Controller
         $this->authorize('update', $employee);
 
         $employee->update($this->validateEmployee($request, $employee));
+        app(JobTitleService::class)->syncEmployeeDesignation($employee->fresh());
 
         return redirect()->route('admin.employees.index')->with('status', __('Employee updated.'));
     }
@@ -116,6 +120,10 @@ class EmployeeController extends Controller
             'kra_pin' => ['nullable', 'string', 'max:50'],
             'nhif_number' => ['nullable', 'string', 'max:50'],
             'nssf_number' => ['nullable', 'string', 'max:50'],
+            'job_title_id' => [
+                'nullable',
+                Rule::exists('job_titles', 'id')->where('company_id', $companyId),
+            ],
             'designation' => ['nullable', 'string', 'max:255'],
             'hire_date' => ['nullable', 'date'],
             'employment_status' => ['required', Rule::enum(EmploymentStatus::class)],
@@ -136,6 +144,7 @@ class EmployeeController extends Controller
             'companies' => $companies,
             'branches' => Branch::query()->where('company_id', $companyId)->get(),
             'departments' => Department::query()->where('company_id', $companyId)->get(),
+            'jobTitles' => JobTitle::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('title')->get(),
             'genders' => Gender::cases(),
             'statuses' => EmploymentStatus::cases(),
         ];

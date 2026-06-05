@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\ActivityLog;
+use App\Services\Security\SecurityAuditService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Request;
 
@@ -13,8 +14,9 @@ class ActivityLogger
         ?Model $model = null,
         ?int $userId = null,
         array $properties = [],
+        ?array $before = null,
     ): ActivityLog {
-        return ActivityLog::query()->create([
+        $log = ActivityLog::query()->create([
             'company_id' => auth()->user()?->company_id,
             'user_id' => $userId ?? auth()->id(),
             'action' => $action,
@@ -24,5 +26,16 @@ class ActivityLogger
             'properties' => $properties ?: null,
             'created_at' => now(),
         ]);
+
+        app(SecurityAuditService::class)->record(
+            action: $action,
+            subject: $model,
+            userId: $userId,
+            before: $before,
+            after: $properties ?: null,
+            metadata: $properties,
+        );
+
+        return $log;
     }
 }

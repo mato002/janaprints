@@ -7,6 +7,8 @@
         </x-slot>
     </x-admin.page-header>
 
+    @include('admin.commercial.pos.partials.session-widget', ['sessionWidget' => $sessionWidget])
+
     <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <x-admin.kpi-widget :label="__('Paid sales today')" :value="$stats['sales_today']" icon="cash" />
         <x-admin.kpi-widget :label="__('Revenue today')" :value="number_format($stats['revenue_today'], 2)" icon="currency-dollar" />

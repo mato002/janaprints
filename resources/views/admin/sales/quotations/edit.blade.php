@@ -24,6 +24,7 @@
                     <input type="text" name="currency" class="erp-input" value="{{ old('currency', $quotation->currency) }}" maxlength="3" required>
                 </div>
             </div>
+            @include('admin.partials.form-custom-fields', ['fields' => $formFields ?? [], 'model' => $quotation])
             @include('admin.sales.quotations.partials.items-form', ['quotation' => $quotation])
             <x-primary-button>{{ __('Save & new revision') }}</x-primary-button>
         </form>

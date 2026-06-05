@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ApprovalSettingsController;
 use App\Http\Controllers\Admin\BrandingSettingsController;
+use App\Http\Controllers\Admin\DocumentTypesSettingsController;
 use App\Http\Controllers\Admin\FormSettingsController;
 use App\Http\Controllers\Admin\NumberingSettingsController;
 use App\Http\Controllers\Admin\SettingsController;
@@ -11,6 +12,12 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
+        Route::middleware('permission:configuration.document_types.view')->group(function () {
+            Route::get('settings/document-types', [DocumentTypesSettingsController::class, 'index'])->name('settings.document-types.index');
+            Route::get('settings/document-types/create', [DocumentTypesSettingsController::class, 'create'])->name('settings.document-types.create');
+            Route::get('settings/document-types/{documentTypeDefinition}/edit', [DocumentTypesSettingsController::class, 'edit'])->name('settings.document-types.edit');
+        });
+
         Route::middleware('permission:settings.view')->group(function () {
             Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
             Route::get('settings/branding', [BrandingSettingsController::class, 'edit'])->name('settings.branding.edit');
@@ -18,6 +25,22 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('settings/approvals', [ApprovalSettingsController::class, 'index'])->name('settings.approvals.index');
             Route::get('settings/forms', [FormSettingsController::class, 'index'])->name('settings.forms.index');
             Route::get('settings/{section}', [SettingsController::class, 'show'])->name('settings.show');
+        });
+
+        Route::middleware('permission:configuration.document_types.create')->group(function () {
+            Route::post('settings/document-types', [DocumentTypesSettingsController::class, 'store'])->name('settings.document-types.store');
+        });
+
+        Route::middleware('permission:configuration.document_types.edit')->group(function () {
+            Route::put('settings/document-types/{documentTypeDefinition}', [DocumentTypesSettingsController::class, 'update'])->name('settings.document-types.update');
+        });
+
+        Route::middleware('permission:configuration.document_types.activate')->group(function () {
+            Route::patch('settings/document-types/{documentTypeDefinition}/activate', [DocumentTypesSettingsController::class, 'activate'])->name('settings.document-types.activate');
+        });
+
+        Route::middleware('permission:configuration.document_types.deactivate')->group(function () {
+            Route::patch('settings/document-types/{documentTypeDefinition}/deactivate', [DocumentTypesSettingsController::class, 'deactivate'])->name('settings.document-types.deactivate');
         });
 
         Route::middleware('permission:settings.manage')->group(function () {

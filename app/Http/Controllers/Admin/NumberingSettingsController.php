@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Platform\SettingsGovernance;
 use App\Support\Platform\NumberingSequenceManager;
 use App\Support\Platform\SettingsRegistry;
+use App\Services\Security\SecurityAuditService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,6 +19,7 @@ class NumberingSettingsController extends Controller
     public function __construct(
         protected NumberingSequenceManager $manager,
         protected SettingsRegistry $registry,
+        protected SecurityAuditService $auditService,
     ) {}
 
     public function index(Request $request): View
@@ -54,7 +56,28 @@ class NumberingSettingsController extends Controller
             'sequences.*.active' => ['nullable', 'boolean'],
         ]);
 
+        $before = $this->manager->rows($companyId, $branchId)
+            ->mapWithKeys(fn (array $row) => [$row['document_type'] => collect($row)->only([
+                'prefix', 'include_branch', 'include_year', 'include_month', 'padding', 'next_number', 'active',
+            ])->all()])
+            ->all();
+
         $this->manager->save($companyId, $branchId, $validated['sequences']);
+
+        $after = $this->manager->rows($companyId, $branchId)
+            ->mapWithKeys(fn (array $row) => [$row['document_type'] => collect($row)->only([
+                'prefix', 'include_branch', 'include_year', 'include_month', 'padding', 'next_number', 'active',
+            ])->all()])
+            ->all();
+
+        $this->auditService->record(
+            action: 'number_series_changed',
+            before: $before,
+            after: $after,
+            module: 'configuration',
+            entity: 'number_series',
+            description: __('Number series changed'),
+        );
 
         return redirect()
             ->route('admin.settings.numbering.index', [

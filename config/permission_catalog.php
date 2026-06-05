@@ -44,6 +44,84 @@ return [
                         'view' => 'activity_logs.view',
                     ],
                 ],
+                'system_health' => [
+                    'label' => 'System Health',
+                    'permissions' => [
+                        'view' => 'operations.health.view',
+                        'edit' => 'operations.health.manage',
+                    ],
+                ],
+                'background_jobs' => [
+                    'label' => 'Background Jobs',
+                    'permissions' => [
+                        'view' => 'operations.jobs.view',
+                        'edit' => 'operations.jobs.retry',
+                        'delete' => 'operations.jobs.cancel',
+                    ],
+                ],
+                'audit_logs' => [
+                    'label' => 'Audit Logs',
+                    'permissions' => [
+                        'view' => 'operations.audit.view',
+                        'create' => 'operations.audit.export',
+                    ],
+                ],
+                'backups' => [
+                    'label' => 'Backups',
+                    'permissions' => [
+                        'view' => 'operations.backups.view',
+                        'create' => 'operations.backups.download',
+                        'edit' => 'operations.backups.manage',
+                    ],
+                ],
+                'data_retention' => [
+                    'label' => 'Data Retention',
+                    'permissions' => [
+                        'view' => 'operations.retention.view',
+                        'edit' => 'operations.retention.manage',
+                    ],
+                ],
+                'approval_chains' => [
+                    'label' => 'Approval Chains',
+                    'permissions' => [
+                        'view' => 'governance.chains.view',
+                        'create' => 'governance.chains.create',
+                        'edit' => 'governance.chains.edit',
+                        'approve' => 'governance.chains.activate',
+                    ],
+                ],
+                'workflow_rules' => [
+                    'label' => 'Workflow Rules',
+                    'permissions' => [
+                        'view' => 'governance.workflow.view',
+                        'create' => 'governance.workflow.create',
+                        'edit' => 'governance.workflow.manage',
+                    ],
+                ],
+                'escalations' => [
+                    'label' => 'Workflow Escalations',
+                    'permissions' => [
+                        'view' => 'governance.escalations.view',
+                        'edit' => 'governance.escalations.manage',
+                    ],
+                ],
+                'security_sessions' => [
+                    'label' => 'User Sessions',
+                    'permissions' => [
+                        'view' => 'security.sessions.view',
+                        'edit' => 'security.sessions.terminate',
+                        'delete' => 'security.sessions.force_logout',
+                        'approve' => 'security.sessions.audit',
+                    ],
+                ],
+                'security_audit' => [
+                    'label' => 'Access Audit',
+                    'permissions' => [
+                        'view' => 'security.audit.view',
+                        'create' => 'security.audit.export',
+                        'edit' => 'security.audit.manage',
+                    ],
+                ],
                 'settings' => [
                     'label' => 'Settings',
                     'permissions' => [
@@ -94,6 +172,16 @@ return [
                         'view' => 'integrations.audit.view',
                     ],
                 ],
+                'master_data' => [
+                    'label' => 'Master Data',
+                    'permissions' => [
+                        'view' => 'configuration.master_data.view',
+                        'create' => 'configuration.master_data.create',
+                        'edit' => 'configuration.master_data.edit',
+                        'delete' => 'configuration.master_data.deactivate',
+                        'approve' => 'configuration.master_data.import',
+                    ],
+                ],
             ],
         ],
 
@@ -122,6 +210,15 @@ return [
                     'label' => 'Employees',
                     'permissions' => [
                         'edit' => 'employees.manage',
+                    ],
+                ],
+                'job_titles' => [
+                    'label' => 'Job Titles',
+                    'permissions' => [
+                        'view' => 'organization.job_titles.view',
+                        'create' => 'organization.job_titles.create',
+                        'edit' => 'organization.job_titles.edit',
+                        'delete' => 'organization.job_titles.deactivate',
                     ],
                 ],
             ],
@@ -201,9 +298,14 @@ return [
                         'refund' => 'pos.refund',
                     ],
                     'extra' => [
-                        ['label' => 'View sessions', 'permission' => 'commercial.pos.sessions.view'],
-                        ['label' => 'Open sessions', 'permission' => 'commercial.pos.sessions.open'],
-                        ['label' => 'Close sessions', 'permission' => 'commercial.pos.sessions.close'],
+                        ['label' => 'View sessions', 'permission' => 'pos.sessions.view'],
+                        ['label' => 'Open sessions', 'permission' => 'pos.sessions.open'],
+                        ['label' => 'Close sessions', 'permission' => 'pos.sessions.close'],
+                        ['label' => 'Approve session variance', 'permission' => 'pos.sessions.approve_variance'],
+                        ['label' => 'Export session summary', 'permission' => 'pos.sessions.export'],
+                        ['label' => 'View sessions (legacy)', 'permission' => 'commercial.pos.sessions.view'],
+                        ['label' => 'Open sessions (legacy)', 'permission' => 'commercial.pos.sessions.open'],
+                        ['label' => 'Close sessions (legacy)', 'permission' => 'commercial.pos.sessions.close'],
                         ['label' => 'Session audit', 'permission' => 'commercial.pos.sessions.audit'],
                         ['label' => 'Session admin', 'permission' => 'commercial.pos.sessions.admin'],
                         ['label' => 'View reconciliation', 'permission' => 'commercial.pos.reconciliation.view'],
@@ -222,6 +324,7 @@ return [
                         ['label' => 'Counter sales hold', 'permission' => 'pos.counter_sales.hold'],
                         ['label' => 'Counter sales complete', 'permission' => 'pos.counter_sales.complete'],
                         ['label' => 'Counter sales cancel', 'permission' => 'pos.counter_sales.cancel'],
+                        ['label' => 'Reprint POS receipts', 'permission' => 'pos.receipts.reprint'],
                     ],
                 ],
             ],

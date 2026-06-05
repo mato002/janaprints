@@ -79,3 +79,5 @@
     @endif
 </div>
 @endif
+
+@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $m ?? null])

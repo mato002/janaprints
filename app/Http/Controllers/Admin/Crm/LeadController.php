@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Crm;
 
 use App\Enums\LeadStatus;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
 
 class LeadController extends Controller
 {
-    use ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -54,13 +55,15 @@ class LeadController extends Controller
         $data = $this->validateLead($request);
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
         $data = $this->formSettings->applyDefaults('lead', $data, $companyId, $branchId);
-        $data = $this->normalizeFormNumerics($data, ['estimated_value' => 0, 'probability' => 0]);
+        [$data, $customData] = $this->partitionCustomFields('lead', $data, $companyId, $branchId);
 
         $lead = Lead::query()->create([
             ...collect($data)->except(['company_id', 'branch_id'])->toArray(),
             'company_id' => $companyId,
             'branch_id' => $branchId,
         ]);
+
+        $this->syncCustomFields($lead, 'lead', $customData, $companyId);
 
         return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead created.'));
     }
@@ -86,8 +89,9 @@ class LeadController extends Controller
         $this->authorize('update', $lead);
 
         $data = $this->validateLead($request, $lead);
-        $data = $this->normalizeFormNumerics($data, ['estimated_value' => 0, 'probability' => 0]);
+        [$data, $customData] = $this->partitionCustomFields('lead', $data, $lead->company_id, $lead->branch_id);
         $lead->update($data);
+        $this->syncCustomFields($lead, 'lead', $customData, $lead->company_id);
 
         return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead updated.'));
     }
@@ -166,7 +170,7 @@ class LeadController extends Controller
         $branchId = $lead?->branch_id ?? tenant()->branchId();
 
         return [
-            'formFields' => $this->formSettings->resolvedFields('lead', $companyId, $branchId),
+            'formFields' => $this->formSettings->resolvedFields('lead', $companyId, $branchId, $lead),
             'companies' => auth()->user()->hasRole('Super Admin')
                 ? Company::query()->where('is_active', true)->orderBy('name')->get()
                 : Company::query()->where('id', auth()->user()->company_id)->get(),

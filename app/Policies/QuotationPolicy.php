@@ -2,14 +2,17 @@
 
 namespace App\Policies;
 
+use App\Enums\ApprovalRuleType;
+use App\Enums\DocumentModule;
 use App\Enums\QuotationStatus;
 use App\Models\Sales\Quotation;
 use App\Models\User;
+use App\Policies\Concerns\ChecksApprovalDelegation;
 use App\Policies\Concerns\ChecksCrmTenant;
 
 class QuotationPolicy
 {
-    use ChecksCrmTenant;
+    use ChecksApprovalDelegation, ChecksCrmTenant;
 
     public function viewAny(User $user): bool
     {
@@ -43,9 +46,22 @@ class QuotationPolicy
 
     public function approve(User $user, Quotation $quotation): bool
     {
-        return $user->can('quotations.approve')
-            && $this->sameTenant($user, $quotation)
-            && $quotation->status === QuotationStatus::PendingApproval;
+        if (! $this->sameTenant($user, $quotation) || $quotation->status !== QuotationStatus::PendingApproval) {
+            return false;
+        }
+
+        if ($user->can('quotations.approve')) {
+            return true;
+        }
+
+        return $this->canApproveViaDelegation(
+            $user,
+            ApprovalRuleType::QuotationApproval,
+            DocumentModule::Commercial,
+            $quotation->company_id,
+            $quotation->branch_id,
+            'quotations.approve',
+        );
     }
 
     public function send(User $user, Quotation $quotation): bool

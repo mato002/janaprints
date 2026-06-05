@@ -1877,6 +1877,140 @@ document.addEventListener('alpine:init', () => {
             return 'bg-slate-100 text-slate-700';
         },
     }));
+
+    Alpine.data('accessAuditWorkspace', (bootstrap = {}) => ({
+        showRoute: bootstrap.showRoute ?? '',
+        exportRoute: bootstrap.exportRoute ?? '',
+        activeFilters: bootstrap.activeFilters ?? {},
+        drawerOpen: false,
+        loading: false,
+        detail: null,
+
+        async openDrawer(id) {
+            this.drawerOpen = true;
+            this.loading = true;
+            this.detail = null;
+
+            try {
+                const response = await fetch(this.showRoute.replace('__ID__', String(id)), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    this.detail = await response.json();
+                }
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        closeDrawer() {
+            this.drawerOpen = false;
+            this.detail = null;
+        },
+
+        exportUrl(format) {
+            const params = new URLSearchParams({ ...this.activeFilters, format });
+            return `${this.exportRoute}?${params.toString()}`;
+        },
+    }));
+
+    Alpine.data('backgroundJobsWorkspace', (bootstrap = {}) => ({
+        showRoute: bootstrap.showRoute ?? '',
+        drawerOpen: false,
+        loading: false,
+        detail: null,
+
+        async openDrawer(reference) {
+            this.drawerOpen = true;
+            this.loading = true;
+            this.detail = null;
+
+            try {
+                const response = await fetch(this.showRoute.replace('__REF__', encodeURIComponent(String(reference))), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    this.detail = await response.json();
+                }
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        closeDrawer() {
+            this.drawerOpen = false;
+            this.detail = null;
+        },
+    }));
+
+    Alpine.data('auditLogsWorkspace', (bootstrap = {}) => ({
+        showRoute: bootstrap.showRoute ?? '',
+        exportRoute: bootstrap.exportRoute ?? '',
+        activeFilters: bootstrap.activeFilters ?? {},
+        drawerOpen: false,
+        loading: false,
+        detail: null,
+
+        async openDrawer(id) {
+            this.drawerOpen = true;
+            this.loading = true;
+            this.detail = null;
+
+            try {
+                const response = await fetch(this.showRoute.replace('__ID__', String(id)), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    this.detail = await response.json();
+                }
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        closeDrawer() {
+            this.drawerOpen = false;
+            this.detail = null;
+        },
+
+        exportUrl(format) {
+            const params = new URLSearchParams({ ...this.activeFilters, format });
+            return `${this.exportRoute}?${params.toString()}`;
+        },
+    }));
+
+    Alpine.data('backupManagementWorkspace', (bootstrap = {}) => ({
+        readinessRoute: bootstrap.readinessRoute ?? '',
+        drawerOpen: false,
+        loading: false,
+        report: null,
+
+        async openReadiness(id) {
+            this.drawerOpen = true;
+            this.loading = true;
+            this.report = null;
+
+            try {
+                const response = await fetch(this.readinessRoute.replace('__ID__', String(id)), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+
+                if (response.ok) {
+                    this.report = await response.json();
+                }
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        closeDrawer() {
+            this.drawerOpen = false;
+            this.report = null;
+        },
+    }));
 });
 
 Alpine.start();

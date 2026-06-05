@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Inventory;
 
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
 
 class WarehouseController extends Controller
 {
-    use ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -61,11 +62,16 @@ class WarehouseController extends Controller
         ['companyId' => $companyId, 'branchId' => $tenantBranchId] = $this->tenantIds();
         $branchId = (int) ($request->input('branch_id') ?: $tenantBranchId);
 
+        $data = $this->validateWarehouse($request, $companyId, $branchId);
+        [$data, $customData] = $this->partitionCustomFields('warehouse.create', $data, $companyId, $branchId);
+
         $warehouse = Warehouse::query()->create([
-            ...$this->validateWarehouse($request, $companyId, $branchId),
+            ...$data,
             'company_id' => $companyId,
             'branch_id' => $branchId,
         ]);
+
+        $this->syncCustomFields($warehouse, 'warehouse.create', $customData, $companyId);
 
         return redirect()->route('admin.inventory.warehouses.show', $warehouse)->with('status', __('Warehouse created.'));
     }
@@ -91,7 +97,7 @@ class WarehouseController extends Controller
 
         return view('admin.inventory.warehouses.edit', [
             'warehouse' => $warehouse,
-            ...$this->warehouseFormMeta('warehouse.edit', $warehouse->company_id, $warehouse->branch_id),
+            ...$this->warehouseFormMeta('warehouse.edit', $warehouse->company_id, $warehouse->branch_id, $warehouse),
         ]);
     }
 
@@ -99,7 +105,10 @@ class WarehouseController extends Controller
     {
         $this->authorize('update', $warehouse);
 
-        $warehouse->update($this->validateWarehouse($request, $warehouse->company_id, $warehouse->branch_id, $warehouse));
+        $data = $this->validateWarehouse($request, $warehouse->company_id, $warehouse->branch_id, $warehouse);
+        [$data, $customData] = $this->partitionCustomFields('warehouse.edit', $data, $warehouse->company_id, $warehouse->branch_id);
+        $warehouse->update($data);
+        $this->syncCustomFields($warehouse, 'warehouse.edit', $customData, $warehouse->company_id);
 
         return redirect()->route('admin.inventory.warehouses.show', $warehouse)->with('status', __('Warehouse updated.'));
     }
@@ -211,14 +220,14 @@ class WarehouseController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function warehouseFormMeta(string $formKey, ?int $companyId = null, ?int $branchId = null): array
+    protected function warehouseFormMeta(string $formKey, ?int $companyId = null, ?int $branchId = null, ?Warehouse $warehouse = null): array
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $companyId !== null
             ? ['companyId' => $companyId, 'branchId' => $branchId]
             : $this->tenantIds();
 
         return [
-            'formFields' => $this->requiredSafeFields($this->formSettings->resolvedFields($formKey, $companyId, $branchId)),
+            'formFields' => $this->requiredSafeFields($this->formSettings->resolvedFields($formKey, $companyId, $branchId, $warehouse)),
             'branches' => Branch::query()
                 ->where('company_id', $companyId)
                 ->where('is_active', true)

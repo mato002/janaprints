@@ -6,6 +6,7 @@ use App\Enums\ArtworkApprovalDecision;
 use App\Enums\ArtworkPriority;
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\DocumentType;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -14,6 +15,8 @@ use App\Models\Artwork\ArtworkRequest;
 use App\Models\Crm\Customer;
 use App\Models\Sales\Quotation;
 use App\Models\User;
+use App\Enums\WorkflowRuleTrigger;
+use App\Support\Governance\WorkflowRulesService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +26,7 @@ use Illuminate\View\View;
 
 class ArtworkRequestController extends Controller
 {
-    use ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -55,6 +58,7 @@ class ArtworkRequestController extends Controller
 
         $validated = $this->validateRequest($request);
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+        [$validated, $customData] = $this->partitionCustomFields('artwork', $validated, $companyId, $branchId);
 
         $artworkRequest = ArtworkRequest::query()->create([
             ...$validated,
@@ -65,6 +69,8 @@ class ArtworkRequestController extends Controller
             'status' => ArtworkRequestStatus::Requested,
             'current_version' => 0,
         ]);
+
+        $this->syncCustomFields($artworkRequest, 'artwork', $customData, $companyId);
 
         return redirect()
             ->route('admin.artwork.show', $artworkRequest)
@@ -89,7 +95,7 @@ class ArtworkRequestController extends Controller
 
         return view('admin.artwork.requests.edit', [
             'request' => $artworkRequest,
-            ...$this->formMeta(),
+            ...$this->formMeta($artworkRequest),
         ]);
     }
 
@@ -97,7 +103,10 @@ class ArtworkRequestController extends Controller
     {
         $this->authorize('update', $artworkRequest);
 
-        $artworkRequest->update($this->validateRequest($httpRequest, $artworkRequest));
+        $validated = $this->validateRequest($httpRequest, $artworkRequest);
+        [$validated, $customData] = $this->partitionCustomFields('artwork', $validated, $artworkRequest->company_id, $artworkRequest->branch_id);
+        $artworkRequest->update($validated);
+        $this->syncCustomFields($artworkRequest, 'artwork', $customData, $artworkRequest->company_id);
 
         return redirect()
             ->route('admin.artwork.show', $artworkRequest)
@@ -186,6 +195,13 @@ class ArtworkRequestController extends Controller
 
         $artworkRequest->transitionTo($newStatus);
 
+        $trigger = match ($decision) {
+            ArtworkApprovalDecision::Approved => WorkflowRuleTrigger::Approved,
+            ArtworkApprovalDecision::Rejected => WorkflowRuleTrigger::Rejected,
+            ArtworkApprovalDecision::RevisionRequested => WorkflowRuleTrigger::Rejected,
+        };
+        app(WorkflowRulesService::class)->dispatch($trigger, $artworkRequest->fresh(), auth()->user());
+
         return back()->with('status', __('Approval recorded.'));
     }
 
@@ -218,12 +234,12 @@ class ArtworkRequestController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function formMeta(): array
+    protected function formMeta(?ArtworkRequest $artworkRequest = null): array
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds(request());
 
         return [
-            'formFields' => $this->formSettings->resolvedFields('artwork', $companyId, $branchId),
+            'formFields' => $this->formSettings->resolvedFields('artwork', $companyId, $branchId, $artworkRequest),
             'customers' => Customer::query()
                 ->where('company_id', $companyId)
                 ->where('branch_id', $branchId)

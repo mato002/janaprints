@@ -70,6 +70,12 @@ class FormGovernanceTest extends TestCase
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
 
         $this->actingAs($user)
+            ->get(route('admin.settings.forms.index', ['form' => 'customer', 'company_id' => $company->id]))
+            ->assertOk()
+            ->assertSee(__('Add custom field'))
+            ->assertSee('id="add-custom-field"', false);
+
+        $this->actingAs($user)
             ->put(route('admin.settings.forms.update'), [
                 'company_id' => $company->id,
                 'return_form' => 'customer',
@@ -94,6 +100,10 @@ class FormGovernanceTest extends TestCase
 
         $this->assertTrue($config['is_custom']);
         $this->assertSame('Tax ID', $config['label']);
+
+        $resolved = app(FormSettingsService::class)->resolvedFields('customer', $company->id);
+        $this->assertArrayHasKey('tax_id', $resolved);
+        $this->assertTrue($resolved['tax_id']['is_custom']);
     }
 
     public function test_company_admin_can_save_form_field_settings(): void

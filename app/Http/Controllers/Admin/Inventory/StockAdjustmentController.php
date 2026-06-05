@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Inventory;
 use App\Enums\DocumentType;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\StockAdjustmentDirection;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
 
 class StockAdjustmentController extends Controller
 {
-    use ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -57,6 +58,7 @@ class StockAdjustmentController extends Controller
             'adjustment_date' => ['date'],
             'reason' => ['string', 'max:2000'],
         ], $companyId, $branchId));
+        [$header, $customData] = $this->partitionCustomFields('stock_adjustment.create', $header, $companyId, $branchId);
 
         $lines = $request->validate([
             'items' => ['required', 'array', 'min:1'],
@@ -82,6 +84,10 @@ class StockAdjustmentController extends Controller
         foreach ($lines as $line) {
             $adjustment->items()->create($line);
         }
+
+        $this->syncCustomFields($adjustment, 'stock_adjustment.create', $customData, $companyId);
+
+        \App\Support\ActivityLogger::log('inventory_adjusted', $adjustment);
 
         return redirect()->route('admin.inventory.adjustments.show', $adjustment)->with('status', __('Adjustment created.'));
     }

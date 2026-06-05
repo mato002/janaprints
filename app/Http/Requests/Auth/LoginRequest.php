@@ -2,6 +2,9 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Enums\LoginAttemptFailureReason;
+use App\Models\User;
+use App\Services\Security\LoginAttemptService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -46,15 +49,24 @@ class LoginRequest extends FormRequest
             array_merge($this->only('email', 'password'), ['is_active' => true]),
             $this->boolean('remember'),
         )) {
-            $inactive = \App\Models\User::query()
+            $inactiveUser = User::query()
                 ->where('email', $this->string('email'))
                 ->where('is_active', false)
-                ->exists();
+                ->first();
+
+            if ($inactiveUser) {
+                app(LoginAttemptService::class)->record(
+                    $this->string('email'),
+                    LoginAttemptFailureReason::InactiveAccount,
+                    $inactiveUser,
+                    $this,
+                );
+            }
 
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => $inactive
+                'email' => $inactiveUser
                     ? __('This account has been deactivated.')
                     : trans('auth.failed'),
             ]);

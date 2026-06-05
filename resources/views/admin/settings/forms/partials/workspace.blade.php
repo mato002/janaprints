@@ -44,6 +44,7 @@
         <div class="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-erp-border bg-erp-card px-5 py-4 shadow-lg">
             <p class="text-xs text-slate-500">
                 {{ __('Save applies to this form. Built-in fields are defined by the system; custom fields are stored for your tenant.') }}
+                <a href="#add-custom-field" class="ml-1 font-medium text-erp-accent hover:underline">{{ __('Add custom field') }}</a>
             </p>
             <x-primary-button>{{ __('Save form settings') }}</x-primary-button>
         </div>

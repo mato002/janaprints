@@ -77,6 +77,9 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $data = $this->validateUser($request, $user);
+        $beforeRole = $user->getRoleNames()->first();
+        $beforeBranch = $user->default_branch_id;
+        $beforeActive = $user->is_active;
         $payload = collect($data)->except(['role', 'password'])->toArray();
         $payload['is_active'] = $request->boolean('is_active');
         $user->update($payload);
@@ -85,7 +88,26 @@ class UserController extends Controller
             $user->syncRoles([$data['role']]);
         }
 
-        ActivityLogger::log('updated', $user);
+        $afterRole = $user->getRoleNames()->first();
+        $afterBranch = $user->default_branch_id;
+
+        ActivityLogger::log('updated', $user, null, [
+            'role' => $afterRole,
+            'default_branch_id' => $afterBranch,
+            'is_active' => $user->is_active,
+        ], [
+            'role' => $beforeRole,
+            'default_branch_id' => $beforeBranch,
+            'is_active' => $beforeActive,
+        ]);
+
+        if ($beforeRole !== $afterRole) {
+            ActivityLogger::log('role_assignment', $user, null, ['role' => $afterRole], ['role' => $beforeRole]);
+        }
+
+        if ((int) $beforeBranch !== (int) $afterBranch) {
+            ActivityLogger::log('branch_assignment', $user, null, ['default_branch_id' => $afterBranch], ['default_branch_id' => $beforeBranch]);
+        }
 
         return redirect()->route('admin.users.index')->with('status', __('User updated.'));
     }

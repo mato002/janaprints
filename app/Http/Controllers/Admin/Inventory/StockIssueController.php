@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Inventory;
 use App\Enums\DocumentType;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\StockIssueDestination;
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
 
 class StockIssueController extends Controller
 {
-    use ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -64,6 +65,7 @@ class StockIssueController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
         $header = $this->validateHeader($request, $companyId, $branchId);
+        [$header, $customData] = $this->partitionCustomFields('stock_issue.create', $header, $companyId, $branchId);
         $this->assertCanUseDestination(StockIssueDestination::from($header['destination']));
         if (($header['destination'] ?? null) === StockIssueDestination::Transfer->value && (int) $header['warehouse_id'] === (int) ($header['to_warehouse_id'] ?? 0)) {
             throw ValidationException::withMessages([
@@ -84,6 +86,8 @@ class StockIssueController extends Controller
         foreach ($lines as $line) {
             $issue->items()->create($line);
         }
+
+        $this->syncCustomFields($issue, 'stock_issue.create', $customData, $companyId);
 
         return redirect()->route('admin.inventory.issues.show', $issue)->with('status', __('Issue created.'));
     }

@@ -21,7 +21,17 @@
                 <div><x-input-label for="first_name" :value="__('First name')" /><x-text-input id="first_name" name="first_name" class="block mt-1 w-full" :value="old('first_name', $employee?->first_name)" required /></div>
                 <div><x-input-label for="middle_name" :value="__('Middle name')" /><x-text-input id="middle_name" name="middle_name" class="block mt-1 w-full" :value="old('middle_name', $employee?->middle_name)" /></div>
                 <div><x-input-label for="last_name" :value="__('Last name')" /><x-text-input id="last_name" name="last_name" class="block mt-1 w-full" :value="old('last_name', $employee?->last_name)" required /></div>
-                <div><x-input-label for="designation" :value="__('Designation')" /><x-text-input id="designation" name="designation" class="block mt-1 w-full" :value="old('designation', $employee?->designation)" /></div>
+                <div><x-input-label for="job_title_id" :value="__('Job Title')" />
+                    <select name="job_title_id" class="erp-select mt-1 w-full">
+                        <option value="">{{ __('Select job title') }}</option>
+                        @foreach ($jobTitles as $jobTitle)
+                            <option value="{{ $jobTitle->id }}" @selected(old('job_title_id', $employee?->job_title_id) == $jobTitle->id)>{{ $jobTitle->title }}</option>
+                        @endforeach
+                    </select>
+                    @if ($employee?->designation && ! $employee?->job_title_id)
+                        <p class="mt-1 text-xs text-amber-700">{{ __('Legacy designation') }}: {{ $employee->designation }}</p>
+                    @endif
+                </div>
                 <div><x-input-label for="employment_status" :value="__('Employment status')" />
                     <select name="employment_status" class="block mt-1 w-full rounded-md border-gray-300" required>
                         @foreach ($statuses as $status)<option value="{{ $status->value }}" @selected(old('employment_status', $employee?->employment_status?->value) === $status->value)>{{ $status->name }}</option>@endforeach

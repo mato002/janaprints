@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'company_id',
     'branch_id',
     'department_id',
+    'job_title_id',
     'employee_number',
     'first_name',
     'middle_name',
@@ -65,6 +66,11 @@ class Employee extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
+    }
+
+    public function jobTitle(): BelongsTo
+    {
+        return $this->belongsTo(JobTitle::class);
     }
 
     public function user(): HasOne

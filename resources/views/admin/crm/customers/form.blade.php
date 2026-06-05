@@ -66,4 +66,5 @@
     @if(($fields['notes']['visible'] ?? true))
     <div class="md:col-span-2"><x-input-label for="notes" :value="__('Notes')" /><textarea id="notes" name="notes" class="erp-input mt-1 w-full" rows="3" @required($fields['notes']['required'] ?? false) @readonly($fields['notes']['read_only'] ?? false)>{{ old('notes', $customer?->notes ?? ($fields['notes']['default'] ?? '')) }}</textarea></div>
     @endif
+    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $customer ?? null])
 </div>

@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\JobTitle;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -76,11 +77,17 @@ class DemoUsersSeeder extends Seeder
         foreach ($this->users as $seedUser) {
             $name = trim("{$seedUser['first_name']} {$seedUser['last_name']}");
 
+            $jobTitle = JobTitle::query()
+                ->where('company_id', $company->id)
+                ->where('title', $seedUser['designation'])
+                ->first();
+
             $employee = Employee::query()->firstOrCreate(
                 ['company_id' => $company->id, 'employee_number' => $seedUser['employee_number']],
                 [
                     'branch_id' => $branch->id,
                     'department_id' => $department->id,
+                    'job_title_id' => $jobTitle?->id,
                     'first_name' => $seedUser['first_name'],
                     'middle_name' => null,
                     'last_name' => $seedUser['last_name'],
@@ -92,6 +99,10 @@ class DemoUsersSeeder extends Seeder
                     'is_active' => true,
                 ],
             );
+
+            if ($jobTitle && $employee->job_title_id !== $jobTitle->id) {
+                $employee->update(['job_title_id' => $jobTitle->id]);
+            }
 
             $user = User::query()->updateOrCreate(
                 ['email' => $seedUser['email']],

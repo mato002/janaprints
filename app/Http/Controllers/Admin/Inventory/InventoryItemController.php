@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Inventory;
 
+use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
@@ -22,7 +23,7 @@ use Illuminate\View\View;
 
 class InventoryItemController extends Controller
 {
-    use ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -55,6 +56,7 @@ class InventoryItemController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
         $data = $this->validateItem($request, $companyId, $branchId);
+        [$data, $customData] = $this->partitionCustomFields('inventory_item', $data, $companyId, $branchId);
         $data['sku'] = $this->resolveSku($data, $request);
 
         $item = InventoryItem::query()->create([
@@ -64,6 +66,7 @@ class InventoryItemController extends Controller
         ]);
 
         $this->itemAttributes->sync($item, $request->input('attributes', []));
+        $this->syncCustomFields($item, 'inventory_item', $customData, $companyId);
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item created.'));
     }
@@ -88,7 +91,7 @@ class InventoryItemController extends Controller
 
         $item->load('attributeValues');
 
-        return view('admin.inventory.items.edit', ['item' => $item, ...$this->formMeta()]);
+        return view('admin.inventory.items.edit', ['item' => $item, ...$this->formMeta($item)]);
     }
 
     public function update(Request $request, InventoryItem $item): RedirectResponse
@@ -96,10 +99,12 @@ class InventoryItemController extends Controller
         $this->authorize('update', $item);
 
         $data = $this->validateItem($request, $item->company_id, $item->branch_id, $item);
+        [$data, $customData] = $this->partitionCustomFields('inventory_item', $data, $item->company_id, $item->branch_id);
         $data['sku'] = $this->resolveSku($data, $request);
 
         $item->update($data);
         $this->itemAttributes->sync($item, $request->input('attributes', []));
+        $this->syncCustomFields($item, 'inventory_item', $customData, $item->company_id);
         InventoryStockService::syncReorderAlerts($item->fresh());
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item updated.'));
@@ -138,12 +143,12 @@ class InventoryItemController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function formMeta(): array
+    protected function formMeta(?InventoryItem $item = null): array
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
         return [
-            'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId),
+            'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId, $item),
             'categories' => InventoryCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'subcategories' => InventorySubcategory::query()->forTenant()->with('category')->where('is_active', true)->orderBy('name')->get(),
             'brands' => Brand::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),

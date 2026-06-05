@@ -144,13 +144,13 @@ class PosSessionTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('admin.commercial.pos.sessions.close.store', $session), [
-                'actual_cash' => 1250,
+                'actual_cash' => 1000,
             ])
             ->assertRedirect();
 
         $session->refresh();
         $this->assertSame(PosSessionStatus::Closed, $session->status);
-        $this->assertSame('1250.00', $session->actual_cash);
+        $this->assertSame('1000.00', $session->actual_cash);
         $this->assertDatabaseHas('pos_cash_reconciliations', [
             'pos_session_id' => $session->id,
             'status' => 'pending',

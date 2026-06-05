@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\JobTitle;
 use App\Enums\LeadStatus;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerSegment;
@@ -34,6 +35,8 @@ use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
 use App\Models\Procurement\Rfq;
 use App\Models\Procurement\SupplierQuotation;
+use App\Models\Platform\ApprovalDelegation;
+use App\Models\Platform\DocumentTypeDefinition;
 use App\Models\Platform\SettingsGovernance;
 use App\Models\Accounting\AccountingPeriod;
 use App\Models\Accounting\FiscalYear;
@@ -47,6 +50,17 @@ use App\Models\Sales\CustomerPayment;
 use App\Models\Procurement\Vendor;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
+use App\Governance\ApprovalChainsCenter;
+use App\Governance\WorkflowRulesCenter;
+use App\Models\Governance\ApprovalChain;
+use App\Models\Governance\WorkflowRule;
+use App\Operations\AuditLogsCenter;
+use App\Operations\DataRetentionCenter;
+use App\Operations\BackupsCenter;
+use App\Operations\BackgroundJobsCenter;
+use App\Operations\SystemHealthCenter;
+use App\Models\MasterDataValue;
+use App\Models\UserSessionRecord;
 use App\Enums\QuotationStatus;
 use App\Policies\ArtworkRequestPolicy;
 use App\Policies\ArtworkVersionPolicy;
@@ -89,16 +103,42 @@ use App\Policies\BranchPolicy;
 use App\Policies\CompanyPolicy;
 use App\Policies\DepartmentPolicy;
 use App\Policies\EmployeePolicy;
+use App\Policies\JobTitlePolicy;
 use App\Policies\RolePolicy;
+use App\Policies\ApprovalChainsPolicy;
+use App\Policies\WorkflowRulesPolicy;
+use App\Policies\ApprovalDelegationPolicy;
+use App\Policies\DocumentTypePolicy;
 use App\Policies\SettingsPolicy;
 use App\Policies\UserPolicy;
+use App\Policies\SecurityAuditEventPolicy;
+use App\Policies\MasterDataPolicy;
+use App\Policies\DataRetentionPolicy;
+use App\Policies\BackupManagementPolicy;
+use App\Policies\AuditLogsPolicy;
+use App\Policies\BackgroundJobsPolicy;
+use App\Policies\SystemHealthPolicy;
+use App\Policies\UserSessionPolicy;
+use App\Models\SecurityAuditEvent;
 use App\Support\Navigation\WorkspacePresenter;
 use App\View\Composers\WorkspaceNavigationComposer;
 use App\Support\AccessControl\PermissionCatalog;
 use App\Support\AccessControl\RoleDeactivationRegistry;
 use App\Support\AccessControl\RoleGovernancePresenter;
+use App\Support\Governance\ApprovalChainEngine;
+use App\Support\Governance\ApprovalChainsManager;
+use App\Support\Governance\ApprovalChainsService;
+use App\Support\Governance\WorkflowRuleActionExecutor;
+use App\Support\Governance\WorkflowRuleEngine;
+use App\Support\Governance\WorkflowRulesManager;
+use App\Support\Governance\WorkflowRulesService;
+use App\Support\Organization\JobTitleService;
+use App\Support\Governance\EscalationEngine;
+use App\Support\Governance\EscalationsManager;
+use App\Support\Governance\EscalationsService;
 use App\Support\Platform\ApprovalRulesManager;
 use App\Support\Platform\ApprovalRulesService;
+use App\Support\Platform\FormCustomFieldService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberGenerator;
 use App\Support\Platform\NumberingSequenceManager;
@@ -109,6 +149,8 @@ use App\Support\Platform\PlatformCacheService;
 use App\Support\Platform\SettingsRegistry;
 use App\Support\Platform\SystemSettingsManager;
 use App\Support\Platform\SystemSettingsService;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
@@ -121,12 +163,27 @@ class AppServiceProvider extends ServiceProvider
 {
     protected array $policies = [
         User::class => UserPolicy::class,
+        UserSessionRecord::class => UserSessionPolicy::class,
+        MasterDataValue::class => MasterDataPolicy::class,
+        SecurityAuditEvent::class => SecurityAuditEventPolicy::class,
         Company::class => CompanyPolicy::class,
         Branch::class => BranchPolicy::class,
         Department::class => DepartmentPolicy::class,
         Employee::class => EmployeePolicy::class,
+        JobTitle::class => JobTitlePolicy::class,
         Role::class => RolePolicy::class,
         ActivityLog::class => ActivityLogPolicy::class,
+        SystemHealthCenter::class => SystemHealthPolicy::class,
+        BackgroundJobsCenter::class => BackgroundJobsPolicy::class,
+        AuditLogsCenter::class => AuditLogsPolicy::class,
+        BackupsCenter::class => BackupManagementPolicy::class,
+        DataRetentionCenter::class => DataRetentionPolicy::class,
+        ApprovalChainsCenter::class => ApprovalChainsPolicy::class,
+        ApprovalChain::class => ApprovalChainsPolicy::class,
+        WorkflowRulesCenter::class => WorkflowRulesPolicy::class,
+        WorkflowRule::class => WorkflowRulesPolicy::class,
+        \App\Governance\EscalationsCenter::class => \App\Policies\WorkflowEscalationPolicy::class,
+        \App\Models\Governance\WorkflowEscalationRule::class => \App\Policies\WorkflowEscalationPolicy::class,
         Customer::class => CustomerPolicy::class,
         CustomerSegment::class => CustomerSegmentPolicy::class,
         Lead::class => LeadPolicy::class,
@@ -171,6 +228,8 @@ class AppServiceProvider extends ServiceProvider
         Rfq::class => RfqPolicy::class,
         DeliveryNote::class => DeliveryNotePolicy::class,
         SettingsGovernance::class => SettingsPolicy::class,
+        DocumentTypeDefinition::class => DocumentTypePolicy::class,
+        \App\Models\Platform\ApprovalDelegation::class => \App\Policies\ApprovalDelegationPolicy::class,
         \App\Models\Communications\CommunicationTemplate::class => \App\Policies\CommunicationTemplatePolicy::class,
         \App\Models\Communications\ErpNotification::class => \App\Policies\ErpNotificationPolicy::class,
         \App\Models\Communications\SmsCampaign::class => \App\Policies\SmsCampaignPolicy::class,
@@ -198,8 +257,24 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Support\Integrations\IntegrationProviderCatalog::class);
         $this->app->singleton(\App\Support\Accounting\Dashboard\AccountingDashboardPresenter::class);
         $this->app->singleton(FormSettingsService::class);
+        $this->app->singleton(FormCustomFieldService::class);
         $this->app->singleton(ApprovalRulesManager::class);
         $this->app->singleton(ApprovalRulesService::class);
+        $this->app->singleton(ApprovalChainsManager::class);
+        $this->app->singleton(ApprovalChainsService::class);
+        $this->app->singleton(ApprovalChainEngine::class);
+        $this->app->singleton(WorkflowRulesManager::class);
+        $this->app->singleton(WorkflowRulesService::class);
+        $this->app->singleton(WorkflowRuleEngine::class);
+        $this->app->singleton(WorkflowRuleActionExecutor::class);
+        $this->app->singleton(JobTitleService::class);
+        $this->app->singleton(EscalationsManager::class);
+        $this->app->singleton(EscalationsService::class);
+        $this->app->singleton(EscalationEngine::class);
+        $this->app->singleton(\App\Support\Platform\DocumentTypesManager::class);
+        $this->app->singleton(\App\Support\Platform\DocumentTypesService::class);
+        $this->app->singleton(\App\Support\Platform\ApprovalDelegationManager::class);
+        $this->app->singleton(\App\Support\Platform\ApprovalDelegationService::class);
         $this->app->singleton(PermissionCatalog::class);
         $this->app->singleton(RoleDeactivationRegistry::class);
         $this->app->singleton(RoleGovernancePresenter::class);
@@ -260,6 +335,8 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
+        Event::listen(Failed::class, [LogAuthenticationActivity::class, 'handleFailed']);
+        Event::listen(Lockout::class, [LogAuthenticationActivity::class, 'handleLockout']);
 
         View::composer('layouts.admin', WorkspaceNavigationComposer::class);
 

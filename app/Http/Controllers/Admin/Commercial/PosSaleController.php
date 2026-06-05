@@ -11,9 +11,11 @@ use App\Models\Crm\Customer;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Pos\PosSale;
 use App\Models\Pos\PosSaleHold;
+use App\Support\Commercial\PosCounterSalesPresenter;
 use App\Support\Commercial\PosSaleCalculator;
 use App\Support\Commercial\PosSaleService;
 use App\Support\Commercial\PosSessionService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -27,6 +29,7 @@ class PosSaleController extends Controller
         protected PosSaleService $posSales,
         protected PosSaleCalculator $calculator,
         protected PosSessionService $posSessions,
+        protected PosCounterSalesPresenter $presenter,
     ) {}
 
     public function dashboard(): View
@@ -58,7 +61,18 @@ class PosSaleController extends Controller
             ->limit(10)
             ->get();
 
-        return view('admin.commercial.pos.dashboard', compact('stats', 'recent', 'heldQueue'));
+        $sessionWidget = ['session' => null, 'metrics' => null];
+
+        if (auth()->check()) {
+            ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds(request());
+            $sessionWidget = $this->posSessions->currentCashierSessionWidget(
+                $companyId,
+                $branchId,
+                (int) auth()->id(),
+            );
+        }
+
+        return view('admin.commercial.pos.dashboard', compact('stats', 'recent', 'heldQueue', 'sessionWidget'));
     }
 
     public function index(Request $request): View
@@ -89,7 +103,7 @@ class PosSaleController extends Controller
         return redirect()->route('admin.commercial.pos.counter-sales');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|JsonResponse
     {
         $this->authorize('create', PosSale::class);
 
@@ -116,6 +130,20 @@ class PosSaleController extends Controller
             (int) auth()->id(),
             (int) $session->id,
         );
+
+        if ($request->wantsJson()) {
+            if ($payload['action'] === 'hold') {
+                return response()->json([
+                    'message' => __('Sale held (:number).', ['number' => $sale->sale_number]),
+                    'sale_id' => $sale->id,
+                ]);
+            }
+
+            return response()->json([
+                'message' => __('Sale saved.'),
+                'receipt' => $this->presenter->receiptPayload($sale->fresh(['items', 'payments', 'customer', 'cashier', 'branch'])),
+            ]);
+        }
 
         if ($payload['action'] === 'hold') {
             return redirect()
@@ -160,7 +188,7 @@ class PosSaleController extends Controller
         return view('admin.commercial.pos.holds', compact('holds'));
     }
 
-    public function resume(Request $request, PosSale $sale): View
+    public function resume(Request $request, PosSale $sale): RedirectResponse
     {
         abort_unless(
             auth()->user()->can('complete', $sale) || auth()->user()->can('update', $sale),
@@ -169,33 +197,10 @@ class PosSaleController extends Controller
 
         abort_unless($sale->status === PosSaleStatus::Held, 404);
 
-        $sale->load(['items', 'customer', 'hold', 'cashier']);
-
-        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
-
-        $activeSession = $this->posSessions->activeSessionForCashier(
-            $companyId,
-            $branchId,
-            (int) $request->user()->id,
-        );
-
-        return view('admin.commercial.pos.counter-sales', [
-            'heldSale' => $sale,
-            'activeSession' => $activeSession,
-            'heldCart' => $this->heldCartPayload($sale),
-            'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
-            'searchUrl' => route('admin.commercial.pos.counter-sales.products.search'),
-            'storeUrl' => route('admin.commercial.pos.store'),
-            'dashboardUrl' => route('admin.commercial.pos.dashboard'),
-            'customerCreateUrl' => route('admin.crm.customers.create'),
-            'previewTotals' => $this->calculator->totals([]),
-            'canHold' => $request->user()->can('hold', PosSale::class),
-            'canComplete' => $request->user()->can('complete', $sale) || $request->user()->can('completeSale', PosSale::class),
-            'canCancel' => $request->user()->can('cancel', $sale),
-        ]);
+        return redirect()->route('admin.commercial.pos.counter-sales', ['resume' => $sale->id]);
     }
 
-    public function pay(Request $request, PosSale $sale): RedirectResponse
+    public function pay(Request $request, PosSale $sale): RedirectResponse|JsonResponse
     {
         $this->authorize('complete', $sale);
 
@@ -210,17 +215,28 @@ class PosSaleController extends Controller
 
         $paid = $this->posSales->payHeldSale($sale, $payload);
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'message' => __('Held sale :number completed.', ['number' => $paid->sale_number]),
+                'receipt' => $this->presenter->receiptPayload($paid->fresh(['items', 'payments', 'customer', 'cashier', 'branch'])),
+            ]);
+        }
+
         return redirect()
             ->route('admin.commercial.pos.receipt', $paid)
             ->with('status', __('Held sale :number completed.', ['number' => $paid->sale_number]));
     }
 
-    public function cancel(PosSale $sale): RedirectResponse
+    public function cancel(Request $request, PosSale $sale): RedirectResponse|JsonResponse
     {
         $this->authorize('cancel', $sale);
 
         $sale->update(['status' => PosSaleStatus::Cancelled]);
         $sale->hold?->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['message' => __('Sale cancelled.')]);
+        }
 
         return back()->with('status', __('Sale cancelled.'));
     }

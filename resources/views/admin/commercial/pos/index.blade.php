@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Daily sales')" :description="__('Sales for the selected day.')">
         <x-slot name="actions">
             @can('create', App\Models\Pos\PosSale::class)
-                <a href="{{ route('admin.commercial.pos.create') }}" class="erp-btn-primary">{{ __('New sale') }}</a>
+                <a href="{{ route('admin.commercial.pos.counter-sales') }}" class="erp-btn-primary">{{ __('New sale') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

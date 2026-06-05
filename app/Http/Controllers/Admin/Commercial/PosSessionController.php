@@ -13,8 +13,10 @@ use App\Models\User;
 use App\Support\Commercial\PosCashReconciliationService;
 use App\Support\Commercial\PosSessionReadiness;
 use App\Support\Commercial\PosSessionService;
+use App\Support\Commercial\PosSessionVarianceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -26,6 +28,7 @@ class PosSessionController extends Controller
         protected PosSessionService $sessions,
         protected PosSessionReadiness $readiness,
         protected PosCashReconciliationService $reconciliations,
+        protected PosSessionVarianceService $variance,
     ) {}
 
     public function index(Request $request): View
@@ -108,6 +111,7 @@ class PosSessionController extends Controller
             'cashiers' => $cashiers,
             'defaultCashierId' => (int) $request->user()->id,
             'activeSession' => $activeSession,
+            'defaultTerminal' => config('pos.default_terminal'),
         ]);
     }
 
@@ -119,6 +123,7 @@ class PosSessionController extends Controller
             'cashier_id' => ['required', 'integer', 'exists:users,id'],
             'opening_float' => ['required', 'numeric', 'min:0'],
             'opening_cash' => ['required', 'numeric', 'min:0'],
+            'terminal' => ['nullable', 'string', 'max:40'],
             'opening_notes' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -132,6 +137,7 @@ class PosSessionController extends Controller
             openingCash: (float) $data['opening_cash'],
             openedBy: (int) $request->user()->id,
             notes: $data['opening_notes'] ?? null,
+            terminal: $data['terminal'] ?? null,
         );
 
         return redirect()
@@ -143,7 +149,7 @@ class PosSessionController extends Controller
     {
         $this->authorize('view', $session);
 
-        $session->load(['cashier', 'branch', 'opener', 'closer']);
+        $session->load(['cashier', 'branch', 'opener', 'closer', 'varianceApprover']);
         $metrics = $this->sessions->sessionMetrics($session);
 
         $sales = $session->sales()
@@ -173,10 +179,49 @@ class PosSessionController extends Controller
             'sales' => $sales,
             'auditTrail' => $auditTrail,
             'governance' => $governance,
+            'varianceTolerance' => $this->variance->tolerance(),
             'can_close' => $request->user()?->can('close', $session)
                 && $session->status === PosSessionStatus::Open
                 && $governance['can_close'],
+            'can_approve_variance' => $request->user()?->can('approveVariance', $session)
+                && $session->status === PosSessionStatus::PendingApproval,
             'can_audit' => $canAudit,
+        ]);
+    }
+
+    public function summary(Request $request, PosSession $session): View
+    {
+        $this->authorize('view', $session);
+
+        $session->load(['cashier', 'branch', 'opener', 'closer', 'varianceApprover']);
+        $metrics = $this->sessions->sessionMetrics($session);
+
+        return view('admin.commercial.pos.sessions.summary', [
+            'session' => $session,
+            'metrics' => $metrics,
+            'varianceTolerance' => $this->variance->tolerance(),
+            'can_export' => $request->user()?->can('export', $session) ?? false,
+        ]);
+    }
+
+    public function export(PosSession $session): Response
+    {
+        $this->authorize('export', $session);
+
+        $session->load(['cashier', 'branch', 'opener', 'closer', 'varianceApprover']);
+        $metrics = $this->sessions->sessionMetrics($session);
+
+        $html = view('admin.commercial.pos.sessions.exports.summary-pdf', [
+            'session' => $session,
+            'metrics' => $metrics,
+            'varianceTolerance' => $this->variance->tolerance(),
+        ])->render();
+
+        $filename = "pos-session-{$session->session_number}.html";
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ]);
     }
 
@@ -194,6 +239,7 @@ class PosSessionController extends Controller
             'expectedCash' => $metrics['expected_closing_cash'],
             'metrics' => $metrics,
             'governance' => $governance,
+            'varianceTolerance' => $this->variance->tolerance(),
         ]);
     }
 
@@ -213,12 +259,31 @@ class PosSessionController extends Controller
             notes: $data['closing_notes'] ?? null,
         );
 
-        if (Schema::hasTable('pos_cash_reconciliations')) {
+        if ($closed->status === PosSessionStatus::Closed && Schema::hasTable('pos_cash_reconciliations')) {
             $this->reconciliations->createFromSession($closed, (int) $request->user()->id);
         }
 
+        $message = $closed->status === PosSessionStatus::PendingApproval
+            ? __('Session :number closed with variance pending manager approval.', ['number' => $closed->session_number])
+            : __('POS session :number closed.', ['number' => $closed->session_number]);
+
         return redirect()
             ->route('admin.commercial.pos.sessions.show', $closed)
-            ->with('status', __('POS session :number closed.', ['number' => $closed->session_number]));
+            ->with('status', $message);
+    }
+
+    public function approveVariance(Request $request, PosSession $session): RedirectResponse
+    {
+        $this->authorize('approveVariance', $session);
+
+        $approved = $this->sessions->approveVariance($session, (int) $request->user()->id);
+
+        if (Schema::hasTable('pos_cash_reconciliations') && ! $approved->cashReconciliation) {
+            $this->reconciliations->createFromSession($approved, (int) $request->user()->id);
+        }
+
+        return redirect()
+            ->route('admin.commercial.pos.sessions.summary', $approved)
+            ->with('status', __('Variance approved for session :number.', ['number' => $approved->session_number]));
     }
 }

@@ -1,11 +1,18 @@
 <x-admin-layout :title="$session->session_number">
     <x-admin.page-header :title="$session->session_number" :description="__('POS session detail and sales activity.')">
         <x-slot name="actions">
+            <a href="{{ route('admin.commercial.pos.sessions.summary', $session) }}" class="erp-btn-secondary">{{ __('Session summary') }}</a>
             @can('close', $session)
                 @if ($session->status === App\Enums\PosSessionStatus::Open)
                     <a href="{{ route('admin.commercial.pos.sessions.close', $session) }}" class="{{ $can_close ? 'erp-btn-primary' : 'erp-btn-secondary opacity-75' }}">{{ __('Close session') }}</a>
                 @endif
             @endcan
+            @if ($can_approve_variance ?? false)
+                <form method="POST" action="{{ route('admin.commercial.pos.sessions.approve-variance', $session) }}" class="inline" onsubmit="return confirm(@js(__('Approve this session variance?')))">
+                    @csrf
+                    <button type="submit" class="erp-btn-primary">{{ __('Approve variance') }}</button>
+                </form>
+            @endif
         </x-slot>
     </x-admin.page-header>
 
@@ -13,12 +20,19 @@
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-5">
-        <x-admin.kpi-widget :label="__('Sales Count')" :value="$metrics['sales_count']" icon="clipboard-list" />
-        <x-admin.kpi-widget :label="__('Cash Sales')" :value="number_format($metrics['cash_sales'], 2)" icon="cash" />
-        <x-admin.kpi-widget :label="__('M-Pesa Sales')" :value="number_format($metrics['mpesa_sales'], 2)" icon="device-mobile" />
-        <x-admin.kpi-widget :label="__('Card Sales')" :value="number_format($metrics['card_sales'], 2)" icon="credit-card" />
-        <x-admin.kpi-widget :label="__('Refunds')" :value="$metrics['refunds']" icon="switch-horizontal" />
+    @if ($session->status === App\Enums\PosSessionStatus::PendingApproval)
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {{ __('Cash variance exceeds tolerance of :amount. Manager approval is required before the session is fully closed.', ['amount' => number_format($varianceTolerance, 2)]) }}
+        </div>
+    @endif
+
+    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">
+        <x-admin.kpi-widget :label="__('Sales count')" :value="$metrics['sales_count']" icon="clipboard-list" />
+        <x-admin.kpi-widget :label="__('Transactions')" :value="$metrics['transactions_count']" icon="collection" />
+        <x-admin.kpi-widget :label="__('Cash sales')" :value="number_format($metrics['cash_sales'], 2)" icon="cash" />
+        <x-admin.kpi-widget :label="__('M-Pesa sales')" :value="number_format($metrics['mpesa_sales'], 2)" icon="device-mobile" />
+        <x-admin.kpi-widget :label="__('Held sales')" :value="$metrics['held_sales']" icon="clock" />
+        <x-admin.kpi-widget :label="__('Cancelled')" :value="$metrics['cancelled_sales']" icon="x-circle" />
     </div>
 
     @if ($session->status === App\Enums\PosSessionStatus::Open)

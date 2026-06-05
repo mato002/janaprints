@@ -69,13 +69,15 @@ class PosHeldSaleWorkflowTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $response = $this->actingAs($user)
-            ->get(route('admin.commercial.pos.resume', $sale));
+        $this->actingAs($user)
+            ->get(route('admin.commercial.pos.resume', $sale))
+            ->assertRedirect(route('admin.commercial.pos.counter-sales', ['resume' => $sale->id]));
 
-        $response->assertOk()
-            ->assertSee($sale->sale_number, false)
-            ->assertSee('Complete sale', false);
-        $response->assertSee('Banner print', false);
+        $this->actingAs($user)
+            ->getJson(route('admin.commercial.pos.counter-sales.held-sales.resume', $sale))
+            ->assertOk()
+            ->assertJsonPath('cart.sale_number', $sale->sale_number)
+            ->assertJsonPath('cart.lines.0.description', 'Banner print');
     }
 
     public function test_pay_hold_converts_to_paid_without_new_sale(): void

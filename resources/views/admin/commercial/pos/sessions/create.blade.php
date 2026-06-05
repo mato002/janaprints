@@ -20,7 +20,11 @@
                 </select>
             </div>
             <div>
-                <label class="text-[11px] text-slate-500" for="opening_float">{{ __('Session Float') }}</label>
+                <label class="text-[11px] text-slate-500" for="terminal">{{ __('Terminal') }}</label>
+                <input type="text" id="terminal" name="terminal" value="{{ old('terminal', $defaultTerminal) }}" class="erp-input mt-1 w-full" maxlength="40">
+            </div>
+            <div>
+                <label class="text-[11px] text-slate-500" for="opening_float">{{ __('Opening float') }}</label>
                 <input type="number" step="0.01" min="0" id="opening_float" name="opening_float" value="{{ old('opening_float', 0) }}" class="erp-input mt-1 w-full" required>
             </div>
             <div>

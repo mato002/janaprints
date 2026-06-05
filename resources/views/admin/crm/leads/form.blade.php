@@ -38,4 +38,5 @@
             @foreach ($users as $u)<option value="{{ $u->id }}" @selected(old('assigned_to', $lead?->assigned_to) == $u->id)>{{ $u->name }}</option>@endforeach
         </select></div>
     @endif
+    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $lead ?? null])
 </div>

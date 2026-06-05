@@ -4,7 +4,7 @@
     <div class="login-scene" aria-hidden="false">
         <div
             class="login-scene__background login-scene__background--active"
-            style="background-image: url('{{ asset('images/login/printing-press.svg') }}')"
+            style="background-image: url('{{ asset('images/login/background.jpg') }}')"
             aria-hidden="true"
         ></div>
 

@@ -4,6 +4,7 @@ namespace App\Support\Platform;
 
 use App\Enums\ApprovalRuleType;
 use App\Models\Platform\ApprovalRule;
+use App\Support\Governance\ApprovalChainsService;
 
 class ApprovalRulesService
 {
@@ -76,6 +77,8 @@ class ApprovalRulesService
      *     approver_permission: string|null,
      *     min_approvers: int,
      *     scope: 'branch'|'company'|null,
+     *     approval_chain: \App\Models\Governance\ApprovalChain|null,
+     *     chain_steps: list<array<string, mixed>>,
      * }
      */
     public function evaluate(
@@ -108,8 +111,28 @@ class ApprovalRulesService
                 'approver_permission' => null,
                 'min_approvers' => (int) $rule->min_approvers,
                 'scope' => $scope,
+                'approval_chain' => null,
+                'chain_steps' => [],
             ];
         }
+
+        $chainContext = [
+            'amount' => $amount,
+            'percent' => $percent,
+        ];
+        $chain = app(ApprovalChainsService::class)->resolveChain($ruleType, $companyId, $branchId, $chainContext);
+        $chainSteps = $chain
+            ? app(ApprovalChainsService::class)->applicableSteps($chain, $chainContext)
+                ->map(fn ($step) => [
+                    'step_number' => $step->step_number,
+                    'approver_role' => $step->approver_role,
+                    'approver_user_id' => $step->approver_user_id,
+                    'approval_limit' => $step->approval_limit !== null ? (float) $step->approval_limit : null,
+                    'is_required' => (bool) $step->is_required,
+                ])
+                ->values()
+                ->all()
+            : [];
 
         return [
             'requires_approval' => true,
@@ -120,13 +143,15 @@ class ApprovalRulesService
                 ?? config("approval_registry.rule_types.{$ruleType->value}.default_permission"),
             'min_approvers' => (int) ($tier['min_approvers'] ?? $rule->min_approvers),
             'scope' => $scope,
+            'approval_chain' => $chain,
+            'chain_steps' => $chainSteps,
         ];
     }
 
     /**
-     * @return array{requires_approval: bool, rule: ApprovalRule|null, tier: null, approver_role: null, approver_permission: null, min_approvers: int, scope: string|null}
+     * @return array{requires_approval: bool, rule: ApprovalRule|null, tier: null, approver_role: null, approver_permission: null, min_approvers: int, scope: string|null, approval_chain: null, chain_steps: array}
      */
-    protected function emptyEvaluation(?ApprovalRule $rule = null, ?string $scope = null): array
+    protected function emptyEvaluation(?\App\Models\Platform\ApprovalRule $rule = null, ?string $scope = null): array
     {
         return [
             'requires_approval' => false,
@@ -136,6 +161,8 @@ class ApprovalRulesService
             'approver_permission' => null,
             'min_approvers' => (int) ($rule?->min_approvers ?? 1),
             'scope' => $scope,
+            'approval_chain' => null,
+            'chain_steps' => [],
         ];
     }
 
@@ -143,14 +170,14 @@ class ApprovalRulesService
         ApprovalRuleType $ruleType,
         ?int $companyId = null,
         ?int $branchId = null,
-    ): ?ApprovalRule {
+    ): ?\App\Models\Platform\ApprovalRule {
         return $this->resolveWithScope($ruleType, $companyId, $branchId)['rule'] ?? null;
     }
 
     /**
      * @return list<array<string, mixed>>
      */
-    public function tiersForRule(ApprovalRule $rule): array
+    public function tiersForRule(\App\Models\Platform\ApprovalRule $rule): array
     {
         $stored = $rule->settings_json['tiers'] ?? [];
 
@@ -175,7 +202,7 @@ class ApprovalRulesService
      * @return array<string, mixed>|null
      */
     public function matchingTier(
-        ApprovalRule $rule,
+        \App\Models\Platform\ApprovalRule $rule,
         ApprovalRuleType $ruleType,
         ?float $amount,
         ?float $percent,
@@ -209,14 +236,14 @@ class ApprovalRulesService
         })->first();
     }
 
-    protected function hasConfiguredTiers(ApprovalRule $rule): bool
+    protected function hasConfiguredTiers(\App\Models\Platform\ApprovalRule $rule): bool
     {
         return $this->tiersForRule($rule) !== []
             || $rule->threshold_amount !== null
             || $rule->threshold_percent !== null;
     }
 
-    protected function findRule(ApprovalRuleType $ruleType, ?int $companyId, ?int $branchId): ?ApprovalRule
+    protected function findRule(ApprovalRuleType $ruleType, ?int $companyId, ?int $branchId): ?\App\Models\Platform\ApprovalRule
     {
         return ApprovalRule::query()
             ->where('rule_type', $ruleType->value)

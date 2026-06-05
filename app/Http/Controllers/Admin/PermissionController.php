@@ -65,11 +65,17 @@ class PermissionController extends Controller
             'permissions.*' => ['string', 'exists:permissions,name'],
         ]);
 
+        $beforePermissions = $role->permissions->pluck('name')->sort()->values()->all();
+
         $role->syncPermissions($validated['permissions'] ?? []);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        ActivityLogger::log('permissions_updated', $role, null, [
-            'permissions' => $validated['permissions'] ?? [],
+        $afterPermissions = collect($validated['permissions'] ?? [])->sort()->values()->all();
+
+        ActivityLogger::log('permission_assignment', $role, null, [
+            'permissions' => $afterPermissions,
+        ], [
+            'permissions' => $beforePermissions,
         ]);
 
         return redirect()
