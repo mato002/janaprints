@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\Admin\Commercial\CommercialActivityController;
+use App\Http\Controllers\Admin\Commercial\CommercialApprovalQueueController;
+use App\Http\Controllers\Admin\Commercial\CommercialComplaintController;
+use App\Http\Controllers\Admin\Commercial\CommercialPriceBookController;
+use App\Http\Controllers\Admin\Commercial\CommercialSupportTicketController;
 use App\Http\Controllers\Admin\Commercial\CommercialArtworkReportController;
 use App\Http\Controllers\Admin\Commercial\CommercialConversionReportController;
 use App\Http\Controllers\Admin\Commercial\CommercialCustomerReportController;
@@ -23,12 +27,15 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->group(function () {
         Route::middleware('permission:crm.activities.view')->group(function () {
             Route::get('activities', [CommercialActivityController::class, 'index'])->name('activities.index');
-            Route::get('activities/{activity}', [CommercialActivityController::class, 'show'])->name('activities.show');
         });
 
         Route::middleware('permission:crm.activities.create')->group(function () {
             Route::get('activities/create', [CommercialActivityController::class, 'create'])->name('activities.create');
             Route::post('activities', [CommercialActivityController::class, 'store'])->name('activities.store');
+        });
+
+        Route::middleware('permission:crm.activities.view')->group(function () {
+            Route::get('activities/{activity}', [CommercialActivityController::class, 'show'])->name('activities.show');
         });
 
         Route::middleware('permission:crm.activities.edit')->group(function () {
@@ -38,6 +45,80 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:crm.activities.delete')->group(function () {
             Route::delete('activities/{activity}', [CommercialActivityController::class, 'destroy'])->name('activities.destroy');
+        });
+
+        Route::middleware('permission:commercial.price_books.create')->group(function () {
+            Route::get('price-books/create', [CommercialPriceBookController::class, 'create'])->name('price-books.create');
+            Route::post('price-books', [CommercialPriceBookController::class, 'store'])->name('price-books.store');
+        });
+
+        Route::middleware('permission:commercial.price_books.view')->group(function () {
+            Route::get('price-books', [CommercialPriceBookController::class, 'index'])->name('price-books.index');
+            Route::get('price-books/{priceBook}', [CommercialPriceBookController::class, 'show'])->name('price-books.show');
+        });
+
+        Route::middleware('permission:commercial.price_books.edit')->group(function () {
+            Route::get('price-books/{priceBook}/edit', [CommercialPriceBookController::class, 'edit'])->name('price-books.edit');
+            Route::put('price-books/{priceBook}', [CommercialPriceBookController::class, 'update'])->name('price-books.update');
+            Route::post('price-books/{priceBook}/items', [CommercialPriceBookController::class, 'storeItem'])->name('price-books.items.store');
+            Route::delete('price-books/{priceBook}/items/{item}', [CommercialPriceBookController::class, 'destroyItem'])->name('price-books.items.destroy');
+            Route::post('price-books/{priceBook}/assign-customer', [CommercialPriceBookController::class, 'assignCustomer'])->name('price-books.assign-customer');
+        });
+
+        Route::middleware('permission:commercial.price_books.delete')->group(function () {
+            Route::delete('price-books/{priceBook}', [CommercialPriceBookController::class, 'destroy'])->name('price-books.destroy');
+        });
+
+        Route::middleware('permission:commercial.approvals.view')->group(function () {
+            Route::get('approvals', [CommercialApprovalQueueController::class, 'index'])->name('approvals.index');
+        });
+
+        Route::middleware('permission:commercial.complaints.create')->group(function () {
+            Route::get('complaints/create', [CommercialComplaintController::class, 'create'])->name('complaints.create');
+            Route::post('complaints', [CommercialComplaintController::class, 'store'])->name('complaints.store');
+        });
+
+        Route::middleware('permission:commercial.complaints.view')->group(function () {
+            Route::get('complaints', [CommercialComplaintController::class, 'index'])->name('complaints.index');
+            Route::get('complaints/{complaint}', [CommercialComplaintController::class, 'show'])->name('complaints.show');
+        });
+
+        Route::middleware('permission:commercial.complaints.edit')->group(function () {
+            Route::get('complaints/{complaint}/edit', [CommercialComplaintController::class, 'edit'])->name('complaints.edit');
+            Route::put('complaints/{complaint}', [CommercialComplaintController::class, 'update'])->name('complaints.update');
+            Route::post('complaints/{complaint}/assign', [CommercialComplaintController::class, 'assign'])->name('complaints.assign');
+        });
+
+        Route::middleware('permission:commercial.complaints.resolve')->group(function () {
+            Route::post('complaints/{complaint}/resolve', [CommercialComplaintController::class, 'resolve'])->name('complaints.resolve');
+            Route::post('complaints/{complaint}/close', [CommercialComplaintController::class, 'close'])->name('complaints.close');
+            Route::post('complaints/{complaint}/reopen', [CommercialComplaintController::class, 'reopen'])->name('complaints.reopen');
+        });
+
+        Route::middleware('permission:commercial.tickets.create')->group(function () {
+            Route::get('support-tickets/create', [CommercialSupportTicketController::class, 'create'])->name('support-tickets.create');
+            Route::post('support-tickets', [CommercialSupportTicketController::class, 'store'])->name('support-tickets.store');
+        });
+
+        Route::middleware('permission:commercial.tickets.view')->group(function () {
+            Route::get('support-tickets', [CommercialSupportTicketController::class, 'index'])->name('support-tickets.index');
+            Route::get('support-tickets/{supportTicket}', [CommercialSupportTicketController::class, 'show'])->name('support-tickets.show');
+        });
+
+        Route::middleware('permission:commercial.tickets.edit')->group(function () {
+            Route::get('support-tickets/{supportTicket}/edit', [CommercialSupportTicketController::class, 'edit'])->name('support-tickets.edit');
+            Route::put('support-tickets/{supportTicket}', [CommercialSupportTicketController::class, 'update'])->name('support-tickets.update');
+            Route::post('support-tickets/{supportTicket}/comment', [CommercialSupportTicketController::class, 'comment'])->name('support-tickets.comment');
+        });
+
+        Route::middleware('permission:commercial.tickets.assign')->group(function () {
+            Route::post('support-tickets/{supportTicket}/assign', [CommercialSupportTicketController::class, 'assign'])->name('support-tickets.assign');
+        });
+
+        Route::middleware('permission:commercial.tickets.resolve')->group(function () {
+            Route::post('support-tickets/{supportTicket}/resolve', [CommercialSupportTicketController::class, 'resolve'])->name('support-tickets.resolve');
+            Route::post('support-tickets/{supportTicket}/close', [CommercialSupportTicketController::class, 'close'])->name('support-tickets.close');
+            Route::post('support-tickets/{supportTicket}/reopen', [CommercialSupportTicketController::class, 'reopen'])->name('support-tickets.reopen');
         });
 
         Route::middleware('permission:pos.view|pos.counter_sales.view')->group(function () {

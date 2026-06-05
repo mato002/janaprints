@@ -69,6 +69,7 @@ class CrmFoundationTest extends TestCase
             'customer_type' => 'corporate',
             'company_name' => 'Acme Ltd',
             'status' => 'active',
+            'credit_limit' => '',
         ]);
 
         $response->assertRedirect();
@@ -76,7 +77,14 @@ class CrmFoundationTest extends TestCase
             'company_name' => 'Acme Ltd',
             'company_id' => $company->id,
             'branch_id' => $branch->id,
+            'credit_limit' => 0,
         ]);
+
+        $customer = Customer::query()->where('company_name', 'Acme Ltd')->first();
+        $this->actingAs($user)
+            ->get(route('admin.crm.customers.show', $customer))
+            ->assertOk()
+            ->assertSee('Acme Ltd', false);
     }
 
     public function test_lead_creation_requires_permission(): void
@@ -167,16 +175,25 @@ class CrmFoundationTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)->post(route('admin.crm.leads.store'), [
+        $response = $this->actingAs($user)->post(route('admin.crm.leads.store'), [
             'lead_name' => 'Big Deal',
             'stage_id' => $stage->id,
             'status' => 'open',
-        ])->assertRedirect();
+            'estimated_value' => '',
+        ]);
 
+        $response->assertRedirect();
         $this->assertDatabaseHas('leads', [
             'lead_name' => 'Big Deal',
             'company_id' => $company->id,
+            'estimated_value' => 0,
         ]);
+
+        $lead = Lead::query()->where('lead_name', 'Big Deal')->first();
+        $this->actingAs($user)
+            ->get(route('admin.crm.leads.show', $lead))
+            ->assertOk()
+            ->assertSee('Big Deal', false);
     }
 
     protected function seedCompanyCrm(Company $company): void

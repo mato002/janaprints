@@ -42,11 +42,22 @@ class QuotationController extends Controller
         return view('admin.sales.quotations.index', compact('quotations'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', Quotation::class);
 
-        return view('admin.sales.quotations.create', $this->formMeta());
+        $presetCustomerId = null;
+
+        if ($request->filled('customer_id')) {
+            $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
+            abort_unless($customer, 404);
+            $this->authorize('view', $customer);
+            $presetCustomerId = $customer->id;
+        }
+
+        return view('admin.sales.quotations.create', array_merge($this->formMeta(), [
+            'presetCustomerId' => $presetCustomerId,
+        ]));
     }
 
     public function store(Request $request): RedirectResponse

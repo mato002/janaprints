@@ -168,19 +168,19 @@
     .erp-btn--primary,
     .crm-360__btn--primary,
     .erp-btn-primary {
-        @apply bg-erp-accent text-white shadow-sm hover:bg-erp-accent-hover;
+        @apply erp-btn bg-erp-accent text-white shadow-sm hover:bg-erp-accent-hover;
     }
 
     .erp-btn--secondary,
     .crm-360__btn--outline,
     .erp-btn-secondary {
-        @apply border-2 border-erp-primary bg-white text-erp-primary hover:bg-erp-primary/[0.06];
+        @apply erp-btn border-2 border-erp-primary bg-white text-erp-primary hover:bg-erp-primary/[0.06];
     }
 
     .erp-btn--ghost,
     .crm-360__btn--ghost,
     .erp-btn-ghost {
-        @apply border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50;
+        @apply erp-btn border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50;
     }
 
     .erp-btn--danger,

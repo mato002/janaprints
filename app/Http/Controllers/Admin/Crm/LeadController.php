@@ -13,6 +13,8 @@ use App\Models\Crm\Lead;
 use App\Models\Crm\LeadSource;
 use App\Models\Crm\LeadStage;
 use App\Models\User;
+use App\Support\Crm\LeadConversionService;
+use App\Support\Crm\LeadOperationalGuard;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,6 +54,7 @@ class LeadController extends Controller
         $data = $this->validateLead($request);
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
         $data = $this->formSettings->applyDefaults('lead', $data, $companyId, $branchId);
+        $data = $this->normalizeFormNumerics($data, ['estimated_value' => 0, 'probability' => 0]);
 
         $lead = Lead::query()->create([
             ...collect($data)->except(['company_id', 'branch_id'])->toArray(),
@@ -82,7 +85,9 @@ class LeadController extends Controller
     {
         $this->authorize('update', $lead);
 
-        $lead->update($this->validateLead($request, $lead));
+        $data = $this->validateLead($request, $lead);
+        $data = $this->normalizeFormNumerics($data, ['estimated_value' => 0, 'probability' => 0]);
+        $lead->update($data);
 
         return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead updated.'));
     }
@@ -91,9 +96,41 @@ class LeadController extends Controller
     {
         $this->authorize('delete', $lead);
 
+        if (app(LeadOperationalGuard::class)->hasDownstreamLinks($lead)) {
+            return back()->withErrors([
+                'lead' => __('Lead has downstream links and cannot be deleted.'),
+            ]);
+        }
+
         $lead->delete();
 
         return redirect()->route('admin.crm.leads.index')->with('status', __('Lead deleted.'));
+    }
+
+    public function convert(Lead $lead, LeadConversionService $conversion): RedirectResponse
+    {
+        $this->authorize('convert', $lead);
+
+        if ($lead->customer_id && ($customer = Customer::query()->forTenant()->find($lead->customer_id))) {
+            return redirect()
+                ->route('admin.crm.customers.show', $customer)
+                ->with('status', __('Lead is already linked to a customer.'));
+        }
+
+        $customer = $conversion->convert($lead);
+
+        return redirect()
+            ->route('admin.crm.customers.show', $customer)
+            ->with('status', __('Lead converted to customer.'));
+    }
+
+    public function markLost(Lead $lead): RedirectResponse
+    {
+        $this->authorize('update', $lead);
+
+        $lead->update(['status' => LeadStatus::Lost]);
+
+        return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead marked as lost.'));
     }
 
     protected function validateLead(Request $request, ?Lead $lead = null): array

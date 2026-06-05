@@ -41,7 +41,7 @@
         </nav>
 
         <div class="crm-360__panels">
-            <div x-show="tab === 'overview'" x-cloak class="crm-360__panel">
+            <div x-show="tab === 'overview'" class="crm-360__panel">
                 @include('admin.crm.customers.360.tab-overview')
             </div>
             <div x-show="tab === 'conversations'" x-cloak class="crm-360__panel">

@@ -12,11 +12,14 @@
     use App\Models\Sales\Quotation;
     use App\Models\Sales\SalesOrder;
     use App\Support\Communications\CommunicationLogService;
+    use App\Support\Commercial\ComplaintService;
+    use App\Support\EnumLabel;
 
     $logService = app(CommunicationLogService::class);
     $user = auth()->user();
 
     $canQuotes = $user->can('quotations.view');
+    $canComplaints = $user->can('commercial.complaints.view');
     $canOrders = $user->can('sales_orders.view');
     $canInvoices = $user->can('invoices.view');
     $canPayments = $user->can('payments.view');
@@ -46,6 +49,10 @@
         : null;
 
     $openConversations = ($inboxConversations->count() ?? 0) + ($whatsappConversations->count() ?? 0);
+
+    $openComplaints = $canComplaints
+        ? app(ComplaintService::class)->openComplaintCountForCustomer($customer->company_id, $customer->id)
+        : null;
 
     $lastActivityAt = collect([
         $customer->updated_at,
@@ -89,6 +96,18 @@
             'format' => null,
             'trend' => $openConversations > 0 ? 'up' : null,
         ],
+        ...($canComplaints ? [[
+            'key' => 'complaints',
+            'priority' => 'high',
+            'icon' => 'activity',
+            'label' => __('Open complaints'),
+            'value' => $openComplaints > 0 ? $openComplaints : null,
+            'hint' => Route::has('admin.commercial.complaints.index')
+                ? __('View complaints workspace')
+                : __('Complaints module'),
+            'format' => null,
+            'trend' => $openComplaints > 0 ? 'alert' : null,
+        ]] : []),
         [
             'key' => 'quotes',
             'priority' => 'medium',
@@ -124,7 +143,7 @@
     $mapRecord = fn ($items, string $routeName, string $numberKey) => $items->map(fn ($row) => [
         'id' => $row->id,
         'number' => $row->{$numberKey},
-        'status' => is_object($row->status) ? $row->status->label() : (string) $row->status,
+        'status' => EnumLabel::of($row->status),
         'date' => $row->created_at,
         'url' => Route::has($routeName) ? route($routeName, $row) : null,
     ]);
@@ -146,7 +165,7 @@
             ? CustomerPayment::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get()->map(fn ($row) => [
                 'id' => $row->id,
                 'number' => $row->payment_number,
-                'status' => $row->status->label(),
+                'status' => EnumLabel::of($row->status),
                 'date' => $row->payment_date ?? $row->created_at,
                 'url' => route('admin.payments.show', $row),
             ])

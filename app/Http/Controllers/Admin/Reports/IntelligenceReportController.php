@@ -12,6 +12,7 @@ use App\Support\Reports\Inventory360Presenter;
 use App\Support\Reports\KpiCenterPresenter;
 use App\Support\Reports\Procurement360Presenter;
 use App\Support\Reports\Production360Presenter;
+use App\Support\Commercial\CommercialNavigationAlignmentService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -27,6 +28,7 @@ class IntelligenceReportController extends Controller
         protected Production360Presenter $production360Presenter,
         protected Financial360Presenter $financial360Presenter,
         protected Commercial360Presenter $commercial360Presenter,
+        protected CommercialNavigationAlignmentService $commercialNavigation,
     ) {}
 
     public function executive(Request $request): View
@@ -38,7 +40,13 @@ class IntelligenceReportController extends Controller
 
     public function commercial(Request $request): View
     {
-        return $this->legacy('commercial', $request);
+        $this->authorizeReport($request, 'reports.view');
+
+        return view('admin.reports.commercial-hub', [
+            'title' => __('Commercial Reports'),
+            'description' => __('Departmental commercial analytics and Commercial 360 intelligence.'),
+            'links' => $this->commercialNavigation->visibleHubLinksForUser($request->user()),
+        ]);
     }
 
     public function production(Request $request): View

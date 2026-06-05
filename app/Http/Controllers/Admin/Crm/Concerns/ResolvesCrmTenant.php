@@ -31,4 +31,18 @@ trait ResolvesCrmTenant
             $branchId ? (int) $branchId : null,
         );
     }
+
+    /**
+     * @param  array<string, int|float>  $defaults
+     */
+    protected function normalizeFormNumerics(array $data, array $defaults): array
+    {
+        foreach ($defaults as $key => $default) {
+            if (! array_key_exists($key, $data) || $data[$key] === null || $data[$key] === '') {
+                $data[$key] = $default;
+            }
+        }
+
+        return $data;
+    }
 }

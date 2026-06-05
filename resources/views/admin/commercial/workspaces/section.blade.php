@@ -4,6 +4,23 @@
         :description="$workspace['description']"
     />
 
+    @if (! empty($quickActions))
+        <x-admin.card class="mb-6">
+            <div class="flex flex-wrap items-center gap-2 p-4">
+                @foreach ($quickActions as $action)
+                    @if (! empty($action['disabled']) || empty($action['href']))
+                        <span class="erp-btn-secondary cursor-not-allowed opacity-60" title="{{ $action['hint'] ?? __('Coming soon') }}">{{ $action['label'] }}</span>
+                    @else
+                        <a href="{{ $action['href'] }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ $action['label'] }}</a>
+                    @endif
+                @endforeach
+            </div>
+            @if (! empty($sectionNote))
+                <p class="border-t border-erp-border px-4 py-2 text-xs text-slate-500">{{ __($sectionNote) }}</p>
+            @endif
+        </x-admin.card>
+    @endif
+
     @if (! empty($widgets))
         <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             <x-admin.kpi-widget :label="__('New leads today')" :value="$widgets['new_leads_today']" icon="sparkles" />

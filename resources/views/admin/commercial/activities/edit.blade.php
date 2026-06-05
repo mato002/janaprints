@@ -1,6 +1,6 @@
 <x-admin-layout :title="__('Edit activity')" :breadcrumbs="[['label' => __('Activities'), 'url' => route('admin.commercial.activities.index')], ['label' => __('Edit')]]">
     <x-admin.card class="max-w-4xl">
-        <form method="POST" action="{{ route('admin.commercial.activities.update', $activity) }}">
+        <form method="POST" action="{{ route('admin.commercial.activities.update', $activity) }}" data-turbo-frame="_top">
             @csrf
             @method('PUT')
             @include('admin.commercial.activities.partials.form', ['activity' => $activity])

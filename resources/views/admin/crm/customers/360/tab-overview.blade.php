@@ -107,7 +107,7 @@
                     @else
                         <span class="font-medium">{{ $job->job_card_number }}</span>
                     @endif
-                    <span class="block text-[11px] text-slate-500">{{ $job->status->label() }}</span>
+                    <span class="block text-[11px] text-slate-500">{{ \App\Support\EnumLabel::of($job->status) }}</span>
                 </li>
             @empty
                 <li class="crm-360__empty-inline">{{ __('No open production jobs') }}</li>

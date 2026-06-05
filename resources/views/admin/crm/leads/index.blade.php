@@ -43,6 +43,13 @@
                             @can('update', $lead)
                                 <x-admin.table-row-action :href="route('admin.crm.leads.edit', $lead)">{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan
+                            @can('delete', $lead)
+                                <x-admin.table-row-action
+                                    :action="route('admin.crm.leads.destroy', $lead)"
+                                    method="DELETE"
+                                    :confirm="__('Delete this lead?')"
+                                >{{ __('Remove') }}</x-admin.table-row-action>
+                            @endcan
                         </x-admin.table-row-actions>
                     </td>
                 </tr>

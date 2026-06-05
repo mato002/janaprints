@@ -58,6 +58,8 @@ class CommercialWorkspaceController extends Controller
             'workspace' => $payload,
             'section' => $section,
             'cards' => $cards,
+            'quickActions' => $payload['quick_actions'] ?? [],
+            'sectionNote' => $payload['section_note'] ?? null,
             'widgets' => $section === 'crm' ? $this->dashboard->widgets() : [],
         ]);
     }

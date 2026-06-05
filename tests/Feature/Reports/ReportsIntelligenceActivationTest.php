@@ -75,10 +75,18 @@ class ReportsIntelligenceActivationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee($heading, false);
+        $response->assertSee('Reports &amp; Intelligence', false);
+
+        if ($routeName === 'admin.reports.commercial') {
+            $response->assertSee(__('Commercial 360'), false);
+            $response->assertDontSee(__('Placeholder — module not connected yet'), false);
+
+            return;
+        }
+
         $response->assertSee(__('Apply filters'), false);
         $response->assertSee(__('All branches'), false);
         $response->assertSee(__('Export'), false);
-        $response->assertSee('Reports &amp; Intelligence', false);
 
         if ($routeName !== 'admin.reports.executive' && $routeName !== 'admin.reports.kpi') {
             $response->assertSee(__('No report data yet'), false);

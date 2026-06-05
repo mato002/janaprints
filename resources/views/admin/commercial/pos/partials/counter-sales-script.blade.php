@@ -46,6 +46,15 @@
                 await this.searchProducts();
             },
 
+            searchParams(extra = {}) {
+                const params = new URLSearchParams(extra);
+                if (!this.walkIn && this.customerId) {
+                    params.set('customer_id', String(this.customerId));
+                }
+
+                return params;
+            },
+
             async searchProducts() {
                 const q = this.searchQuery.trim();
                 if (q.length < 2) {
@@ -55,7 +64,8 @@
 
                 this.searchLoading = true;
                 try {
-                    const response = await fetch(`${this.searchUrl}?q=${encodeURIComponent(q)}`, {
+                    const params = this.searchParams({ q });
+                    const response = await fetch(`${this.searchUrl}?${params.toString()}`, {
                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                     });
                     const data = await response.json();
@@ -66,7 +76,7 @@
             },
 
             async fetchProducts(params) {
-                const query = new URLSearchParams(params).toString();
+                const query = this.searchParams(params).toString();
                 const response = await fetch(`${this.searchUrl}?${query}`, {
                     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
                 });

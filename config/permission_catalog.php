@@ -620,6 +620,47 @@ return [
         'commercial' => [
             'label' => 'Commercial',
             'entities' => [
+                'price_books' => [
+                    'label' => 'Price Books',
+                    'permissions' => [
+                        'view' => 'commercial.price_books.view',
+                        'create' => 'commercial.price_books.create',
+                        'edit' => 'commercial.price_books.edit',
+                        'delete' => 'commercial.price_books.delete',
+                    ],
+                ],
+                'approvals' => [
+                    'label' => 'Approvals Queue',
+                    'permissions' => [
+                        'view' => 'commercial.approvals.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Take action', 'permission' => 'commercial.approvals.action'],
+                    ],
+                ],
+                'complaints' => [
+                    'label' => 'Complaints',
+                    'permissions' => [
+                        'view' => 'commercial.complaints.view',
+                        'create' => 'commercial.complaints.create',
+                        'edit' => 'commercial.complaints.edit',
+                    ],
+                    'extra' => [
+                        ['label' => 'Resolve', 'permission' => 'commercial.complaints.resolve'],
+                    ],
+                ],
+                'support_tickets' => [
+                    'label' => 'Support Tickets',
+                    'permissions' => [
+                        'view' => 'commercial.tickets.view',
+                        'create' => 'commercial.tickets.create',
+                        'edit' => 'commercial.tickets.edit',
+                    ],
+                    'extra' => [
+                        ['label' => 'Assign', 'permission' => 'commercial.tickets.assign'],
+                        ['label' => 'Resolve', 'permission' => 'commercial.tickets.resolve'],
+                    ],
+                ],
                 'sales_reports' => [
                     'label' => 'Sales Reports',
                     'permissions' => [

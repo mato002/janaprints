@@ -60,6 +60,13 @@ return [
             'title' => 'CRM',
             'description' => 'Customer relationships, pipeline leads, segments, and touchpoint activities.',
             'icon' => 'user-circle',
+            'quick_actions' => [
+                ['label' => 'Create Customer', 'route' => 'admin.crm.customers.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'crm.customers.create'],
+                ['label' => 'Create Lead', 'route' => 'admin.crm.leads.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'crm.leads.create'],
+                ['label' => 'Create Segment', 'route' => 'admin.crm.segments.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'crm.customers.create'],
+                ['label' => 'Log Activity', 'route' => 'admin.commercial.activities.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'crm.activities.create'],
+                ['label' => 'Open CRM Dashboard', 'route' => 'admin.crm.dashboard', 'permission' => 'crm.customers.view'],
+            ],
             'groups' => [
                 [
                     'label' => 'CRM',
@@ -77,6 +84,14 @@ return [
             'title' => 'Sales',
             'description' => 'Quotations, artwork, orders, pricing, and approval workflows.',
             'icon' => 'document-text',
+            'quick_actions' => [
+                ['label' => 'Create Quotation', 'route' => 'admin.quotations.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'quotations.create'],
+                ['label' => 'Create Artwork Request', 'route' => 'admin.artwork.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'artwork.create'],
+                ['label' => 'Open Sales Orders', 'route' => 'admin.sales-orders.dashboard', 'permission' => 'sales_orders.view'],
+                ['label' => 'Open Approvals', 'route' => 'admin.commercial.approvals.index', 'permission' => 'commercial.approvals.view'],
+                ['label' => 'Open Price Books', 'route' => 'admin.commercial.price-books.index', 'permission' => 'commercial.price_books.view'],
+            ],
+            'sales_note' => 'Sales orders are created from accepted quotations.',
             'groups' => [
                 [
                     'label' => 'Sales',
@@ -84,8 +99,8 @@ return [
                         ['label' => 'Quotations', 'description' => 'Quotes, pricing, and customer proposals.', 'route' => 'admin.quotations.dashboard', 'permission' => 'quotations.view', 'icon' => 'document-text', 'active_routes' => ['admin.quotations.*']],
                         ['label' => 'Artwork', 'description' => 'Design requests, proofs, and approvals.', 'route' => 'admin.artwork.dashboard', 'permission' => 'artwork.view', 'icon' => 'color-swatch', 'active_routes' => ['admin.artwork.*']],
                         ['label' => 'Sales Orders', 'description' => 'Confirmed orders ready for production.', 'route' => 'admin.sales-orders.dashboard', 'permission' => 'sales_orders.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.sales-orders.*']],
-                        ['label' => 'Price Books', 'description' => 'Commercial price lists and customer pricing tiers.', 'coming_soon' => true, 'icon' => 'tag'],
-                        ['label' => 'Approvals', 'description' => 'Quote and order approval queues.', 'coming_soon' => true, 'icon' => 'badge-check'],
+                        ['label' => 'Price Books', 'description' => 'Commercial price lists and customer pricing tiers.', 'route' => 'admin.commercial.price-books.index', 'permission' => 'commercial.price_books.view', 'icon' => 'tag', 'active_routes' => ['admin.commercial.price-books.*']],
+                        ['label' => 'Approvals', 'description' => 'Quote and order approval queues.', 'route' => 'admin.commercial.approvals.index', 'permission' => 'commercial.approvals.view', 'icon' => 'badge-check', 'active_routes' => ['admin.commercial.approvals.*']],
                     ],
                 ],
             ],
@@ -95,14 +110,19 @@ return [
             'title' => 'Customer Service',
             'description' => 'Complaints, support cases, statements, and service history.',
             'icon' => 'inbox',
+            'quick_actions' => [
+                ['label' => 'Create Complaint', 'route' => 'admin.commercial.complaints.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'commercial.complaints.create'],
+                ['label' => 'Create Support Ticket', 'route' => 'admin.commercial.support-tickets.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'commercial.tickets.create'],
+                ['label' => 'Open Customer 360', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view'],
+            ],
             'groups' => [
                 [
                     'label' => 'Customer Service',
                     'items' => [
-                        ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'coming_soon' => true, 'icon' => 'exclamation'],
-                        ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'coming_soon' => true, 'icon' => 'inbox'],
+                        ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'route' => 'admin.commercial.complaints.index', 'permission' => 'commercial.complaints.view', 'icon' => 'exclamation', 'active_routes' => ['admin.commercial.complaints.*']],
+                        ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'route' => 'admin.commercial.support-tickets.index', 'permission' => 'commercial.tickets.view', 'icon' => 'inbox', 'active_routes' => ['admin.commercial.support-tickets.*']],
                         ['label' => 'Customer Statements', 'description' => 'Period statements of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],
-                        ['label' => 'Customer 360', 'description' => 'Enterprise customer workspace — commercial, conversations, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'active_routes' => ['admin.crm.customers.*']],
+                        ['label' => 'Customer 360', 'description' => 'Select a customer to view profile, quotations, jobs, invoices, payments, communications, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'active_routes' => ['admin.crm.customers.*']],
                     ],
                 ],
             ],
@@ -113,6 +133,12 @@ return [
             'description' => 'Retail counter sales, returns, sessions, and cash control.',
             'icon' => 'cash',
             'permission' => 'pos.view|commercial.pos.sessions.view',
+            'quick_actions' => [
+                ['label' => 'New Counter Sale', 'route' => 'admin.commercial.pos.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'pos.create|pos.counter_sales.create'],
+                ['label' => 'New POS Return', 'route' => 'admin.commercial.pos.returns.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'commercial.pos.returns.create'],
+                ['label' => 'Open POS Sessions', 'route' => 'admin.commercial.pos.sessions.index', 'permission' => 'commercial.pos.sessions.view'],
+                ['label' => 'Open Cash Reconciliation', 'route' => 'admin.commercial.pos.reconciliation.index', 'permission' => 'commercial.pos.reconciliation.view'],
+            ],
             'groups' => [
                 [
                     'label' => 'Point Of Sale',

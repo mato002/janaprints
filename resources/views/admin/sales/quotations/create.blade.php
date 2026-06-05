@@ -7,7 +7,7 @@
                 <div>
                     <label class="erp-label">{{ __('Customer') }}</label>
                     <select name="customer_id" class="erp-input" @required($fields['customer_id']['required'] ?? true) @disabled($fields['customer_id']['read_only'] ?? false)>
-                        @foreach ($customers as $c)<option value="{{ $c->id }}">{{ $c->company_name }}</option>@endforeach
+                        @foreach ($customers as $c)<option value="{{ $c->id }}" @selected(old('customer_id', $presetCustomerId ?? null) == $c->id)>{{ $c->company_name }}</option>@endforeach
                     </select>
                 </div>
                 @endif

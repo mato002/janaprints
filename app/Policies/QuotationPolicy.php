@@ -37,7 +37,8 @@ class QuotationPolicy
     {
         return $user->can('quotations.delete')
             && $this->sameTenant($user, $quotation)
-            && $quotation->status === QuotationStatus::Draft;
+            && $quotation->status === QuotationStatus::Draft
+            && ! $quotation->salesOrder()->exists();
     }
 
     public function approve(User $user, Quotation $quotation): bool

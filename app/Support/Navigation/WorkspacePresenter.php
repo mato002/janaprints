@@ -436,6 +436,7 @@ class WorkspacePresenter
         return [
             'label' => $item['label'] ?? '',
             'route' => $route,
+            'route_params' => $item['route_params'] ?? [],
             'coming_soon' => $comingSoon,
             'model' => $item['model'] ?? null,
             'visible' => $visible,

@@ -11,6 +11,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerSegment;
+use App\Support\Crm\CustomerOperationalGuard;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -50,6 +51,7 @@ class CustomerController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
         $data = $this->validateCustomer($request, null, $companyId, $branchId);
         $data = $this->formSettings->applyDefaults('customer', $data, $companyId, $branchId);
+        $data = $this->normalizeFormNumerics($data, ['credit_limit' => 0]);
 
         $customer = Customer::query()->create([
             ...$data,
@@ -115,6 +117,7 @@ class CustomerController extends Controller
         $this->authorize('update', $customer);
 
         $data = $this->validateCustomer($request, $customer, $customer->company_id, $customer->branch_id);
+        $data = $this->normalizeFormNumerics($data, ['credit_limit' => 0]);
         $customer->update($data);
         $customer->segments()->sync($data['segment_ids'] ?? []);
 
@@ -125,9 +128,24 @@ class CustomerController extends Controller
     {
         $this->authorize('delete', $customer);
 
+        if (app(CustomerOperationalGuard::class)->hasOperationalHistory($customer)) {
+            return back()->withErrors([
+                'customer' => __('Customer has operational history and cannot be deleted. Deactivate the account instead.'),
+            ]);
+        }
+
         $customer->delete();
 
         return redirect()->route('admin.crm.customers.index')->with('status', __('Customer deleted.'));
+    }
+
+    public function deactivate(Customer $customer): RedirectResponse
+    {
+        $this->authorize('deactivate', $customer);
+
+        $customer->update(['status' => CustomerStatus::Inactive]);
+
+        return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer deactivated.'));
     }
 
     protected function validateCustomer(

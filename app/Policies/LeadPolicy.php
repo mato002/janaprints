@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Crm\Lead;
 use App\Models\User;
 use App\Policies\Concerns\ChecksCrmTenant;
+use App\Support\Crm\LeadOperationalGuard;
 
 class LeadPolicy
 {
@@ -32,6 +33,15 @@ class LeadPolicy
 
     public function delete(User $user, Lead $lead): bool
     {
-        return $user->can('crm.leads.delete') && $this->sameTenant($user, $lead);
+        return $user->can('crm.leads.delete')
+            && $this->sameTenant($user, $lead)
+            && ! app(LeadOperationalGuard::class)->hasDownstreamLinks($lead);
+    }
+
+    public function convert(User $user, Lead $lead): bool
+    {
+        return $user->can('crm.customers.create')
+            && $user->can('crm.leads.edit')
+            && $this->sameTenant($user, $lead);
     }
 }

@@ -4,7 +4,7 @@
 @endphp
 
 <x-admin-layout :title="__('Customers')" :breadcrumbs="[['label' => __('CRM')], ['label' => __('Customers')]]">
-    <div class="crm-customers mx-auto max-w-[1400px] space-y-4">
+    <div class="crm-customers w-full min-w-0 space-y-4">
         <header class="crm-customers__header">
             <div class="crm-customers__header-main">
                 <div>
@@ -126,6 +126,19 @@
                                 @endcan
                                 @can('update', $customer)
                                     <x-admin.table-row-action :href="route('admin.crm.customers.edit', $customer)" data-turbo-frame="erp-main">{{ __('Edit') }}</x-admin.table-row-action>
+                                @endcan
+                                @can('deactivate', $customer)
+                                    <x-admin.table-row-action
+                                        :action="route('admin.crm.customers.deactivate', $customer)"
+                                        method="POST"
+                                    >{{ __('Deactivate') }}</x-admin.table-row-action>
+                                @endcan
+                                @can('delete', $customer)
+                                    <x-admin.table-row-action
+                                        :action="route('admin.crm.customers.destroy', $customer)"
+                                        method="DELETE"
+                                        :confirm="__('Delete this customer permanently?')"
+                                    >{{ __('Remove') }}</x-admin.table-row-action>
                                 @endcan
                             </x-admin.table-row-actions>
                         </td>

@@ -13,7 +13,7 @@
         </style>
     </noscript>
 
-    @vite(['resources/css/app.css', 'resources/css/public.css', 'resources/js/public.js'])
+    @vite(['resources/css/public.css', 'resources/js/public.js'])
 </head>
 <body class="font-sans antialiased text-brand-text-primary bg-white public-page">
 

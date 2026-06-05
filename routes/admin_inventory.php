@@ -125,22 +125,16 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->whereNumber('warehouse')->name('warehouses.destroy');
         });
 
-        Route::middleware('permission:inventory.view')->group(function () {
-            Route::get('receipts/{receipt}', [StockReceiptController::class, 'show'])->name('receipts.show');
-            Route::get('issues/{issue}', [StockIssueController::class, 'show'])->name('issues.show');
-            Route::get('adjustments/{adjustment}', [StockAdjustmentController::class, 'show'])->name('adjustments.show');
-        });
-
         Route::middleware('permission:inventory.receive')->group(function () {
             Route::get('receipts/create', [StockReceiptController::class, 'create'])->name('receipts.create');
             Route::post('receipts', [StockReceiptController::class, 'store'])->name('receipts.store');
-            Route::post('receipts/{receipt}/post', [StockReceiptController::class, 'post'])->name('receipts.post');
+            Route::post('receipts/{receipt}/post', [StockReceiptController::class, 'post'])->whereNumber('receipt')->name('receipts.post');
         });
 
         Route::middleware('permission:inventory.issue')->group(function () {
             Route::get('issues/create', [StockIssueController::class, 'create'])->name('issues.create');
             Route::post('issues', [StockIssueController::class, 'store'])->name('issues.store');
-            Route::post('issues/{issue}/post', [StockIssueController::class, 'post'])->name('issues.post');
+            Route::post('issues/{issue}/post', [StockIssueController::class, 'post'])->whereNumber('issue')->name('issues.post');
         });
 
         Route::middleware('permission:inventory.transfer')->group(function () {
@@ -152,7 +146,13 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:inventory.adjust')->group(function () {
             Route::get('adjustments/create', [StockAdjustmentController::class, 'create'])->name('adjustments.create');
             Route::post('adjustments', [StockAdjustmentController::class, 'store'])->name('adjustments.store');
-            Route::post('adjustments/{adjustment}/post', [StockAdjustmentController::class, 'post'])->name('adjustments.post');
+            Route::post('adjustments/{adjustment}/post', [StockAdjustmentController::class, 'post'])->whereNumber('adjustment')->name('adjustments.post');
+        });
+
+        Route::middleware('permission:inventory.view')->group(function () {
+            Route::get('receipts/{receipt}', [StockReceiptController::class, 'show'])->whereNumber('receipt')->name('receipts.show');
+            Route::get('issues/{issue}', [StockIssueController::class, 'show'])->whereNumber('issue')->name('issues.show');
+            Route::get('adjustments/{adjustment}', [StockAdjustmentController::class, 'show'])->whereNumber('adjustment')->name('adjustments.show');
         });
 
         Route::middleware('permission:inventory.issue')->group(function () {

@@ -9,7 +9,7 @@
     $classes = match ($variant) {
         'primary' => 'public-btn--primary public-btn--motion',
         'gradient' => 'public-btn--gradient public-btn--motion',
-        'secondary' => 'public-btn--secondary public-btn--motion-secondary',
+        'outline', 'secondary' => 'public-btn--secondary public-btn--motion-secondary',
         'accent' => 'public-btn--accent public-btn--motion',
         'ghost' => 'public-btn--ghost',
         'ghost-dark' => 'public-btn--ghost-dark public-btn--motion-secondary',

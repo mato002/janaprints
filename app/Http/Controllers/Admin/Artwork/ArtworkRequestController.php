@@ -40,11 +40,13 @@ class ArtworkRequestController extends Controller
         return view('admin.artwork.requests.index', compact('requests'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', ArtworkRequest::class);
 
-        return view('admin.artwork.requests.create', $this->formMeta());
+        return view('admin.artwork.requests.create', array_merge($this->formMeta(), [
+            'presetCustomerId' => $request->integer('customer_id') ?: null,
+        ]));
     }
 
     public function store(Request $request): RedirectResponse

@@ -38,6 +38,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:crm.customers.edit')->group(function () {
             Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
             Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
+            Route::post('customers/{customer}/deactivate', [CustomerController::class, 'deactivate'])->name('customers.deactivate');
             Route::post('customers/{customer}/contacts', [CustomerContactController::class, 'store'])->name('customers.contacts.store');
             Route::delete('customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy'])->name('customers.contacts.destroy');
             Route::post('customers/{customer}/notes', [CustomerNoteController::class, 'store'])->name('customers.notes.store');
@@ -69,6 +70,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:crm.leads.edit')->group(function () {
             Route::get('leads/{lead}/edit', [LeadController::class, 'edit'])->name('leads.edit');
             Route::put('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');
+            Route::post('leads/{lead}/convert', [LeadController::class, 'convert'])->name('leads.convert');
+            Route::post('leads/{lead}/mark-lost', [LeadController::class, 'markLost'])->name('leads.mark-lost');
             Route::post('leads/{lead}/follow-ups', [LeadFollowUpController::class, 'store'])->name('leads.follow-ups.store');
             Route::patch('leads/{lead}/follow-ups/{followUp}', [LeadFollowUpController::class, 'update'])->name('leads.follow-ups.update');
             Route::delete('leads/{lead}/follow-ups/{followUp}', [LeadFollowUpController::class, 'destroy'])->name('leads.follow-ups.destroy');

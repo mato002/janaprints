@@ -25,6 +25,10 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
+/**
+ * @deprecated Superseded by customers/360/ views and Communications-integrated Customer 360.
+ *             Retained for timeline tab constant references only. Pending safe removal.
+ */
 class Customer360WorkspaceService
 {
     public const TAB_OVERVIEW = 'overview';

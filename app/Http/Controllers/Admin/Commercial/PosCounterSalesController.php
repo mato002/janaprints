@@ -57,10 +57,13 @@ class PosCounterSalesController extends Controller
         $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
             'barcode' => ['nullable', 'string', 'max:100'],
+            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
         ]);
 
+        $customerId = $request->filled('customer_id') ? $request->integer('customer_id') : null;
+
         if ($request->filled('barcode')) {
-            $match = $this->productSearch->findByBarcode($request->string('barcode')->toString());
+            $match = $this->productSearch->findByBarcode($request->string('barcode')->toString(), $customerId);
 
             return response()->json([
                 'products' => $match ? [$match] : [],
@@ -68,7 +71,7 @@ class PosCounterSalesController extends Controller
             ]);
         }
 
-        $products = $this->productSearch->search($request->string('q')->toString());
+        $products = $this->productSearch->search($request->string('q')->toString(), $customerId);
 
         return response()->json([
             'products' => $products->values()->all(),

@@ -61,6 +61,8 @@ class SupplyChainWorkspaceRestructureTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(route('admin.inventory.warehouses.index'), false);
+        $response->assertSee(route('admin.inventory.receipts.index'), false);
+        $response->assertSee(route('admin.inventory.issues.index'), false);
         $response->assertSee(route('admin.inventory.transfers.index'), false);
         $response->assertSee(route('admin.inventory.movements.index'), false);
     }

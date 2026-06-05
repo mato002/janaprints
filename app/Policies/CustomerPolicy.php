@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\Crm\Customer;
 use App\Models\User;
 use App\Policies\Concerns\ChecksCrmTenant;
+use App\Support\Crm\CustomerOperationalGuard;
 
 class CustomerPolicy
 {
@@ -32,7 +33,16 @@ class CustomerPolicy
 
     public function delete(User $user, Customer $customer): bool
     {
-        return $user->can('crm.customers.delete') && $this->sameTenant($user, $customer);
+        return $user->can('crm.customers.delete')
+            && $this->sameTenant($user, $customer)
+            && ! app(CustomerOperationalGuard::class)->hasOperationalHistory($customer);
+    }
+
+    public function deactivate(User $user, Customer $customer): bool
+    {
+        return $user->can('crm.customers.edit')
+            && $this->sameTenant($user, $customer)
+            && $customer->status->value !== 'inactive';
     }
 
     public function viewReceivablesLedger(User $user): bool

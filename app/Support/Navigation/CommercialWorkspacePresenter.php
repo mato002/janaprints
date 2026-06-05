@@ -96,7 +96,52 @@ class CommercialWorkspacePresenter
             'description' => $definition['description'],
             'icon' => $definition['icon'] ?? 'home',
             'groups' => $groups,
+            'quick_actions' => $this->presentQuickActions($definition['quick_actions'] ?? []),
+            'section_note' => $definition['sales_note'] ?? null,
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $actions
+     * @return list<array<string, mixed>>
+     */
+    public function presentQuickActions(array $actions): array
+    {
+        $presented = [];
+
+        foreach ($actions as $action) {
+            if (! empty($action['coming_soon'])) {
+                $presented[] = [
+                    'label' => $action['label'] ?? '',
+                    'href' => null,
+                    'hint' => $action['hint'] ?? __('Coming soon'),
+                    'disabled' => true,
+                ];
+
+                continue;
+            }
+
+            $route = $action['route'] ?? null;
+
+            if (! $route || ! Route::has($route)) {
+                continue;
+            }
+
+            if (! empty($action['permission']) && ! $this->userCan($action['permission'])) {
+                continue;
+            }
+
+            $params = $action['route_params'] ?? [];
+
+            $presented[] = [
+                'label' => $action['label'] ?? '',
+                'href' => $this->navigation->appendPreservedQuery(route($route, $params)),
+                'hint' => $action['hint'] ?? null,
+                'disabled' => false,
+            ];
+        }
+
+        return $presented;
     }
 
     public function isVisible(): bool

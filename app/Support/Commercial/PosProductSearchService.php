@@ -8,16 +8,23 @@ use Illuminate\Support\Collection;
 
 class PosProductSearchService
 {
+    public function __construct(
+        protected CommercialPriceBookService $priceBooks,
+    ) {}
+
     /**
      * @return Collection<int, array{id: int, name: string, sku: string|null, item_code: string|null, unit_price: float}>
      */
-    public function search(string $query, int $limit = 15): Collection
+    public function search(string $query, ?int $customerId = null, int $limit = 15): Collection
     {
         $term = trim($query);
 
         if ($term === '') {
             return collect();
         }
+
+        $companyId = (int) tenant()->companyId();
+        $branchId = tenant()->branchId();
 
         return InventoryItem::query()
             ->forTenant()
@@ -31,8 +38,8 @@ class PosProductSearchService
             })
             ->orderBy('item_name')
             ->limit($limit)
-            ->get(['id', 'item_name', 'sku', 'item_code', 'standard_cost'])
-            ->map(fn (InventoryItem $item) => $this->toSearchResult($item));
+            ->get(['id', 'item_name', 'sku', 'item_code', 'standard_cost', 'company_id'])
+            ->map(fn (InventoryItem $item) => $this->toSearchResult($item, $customerId, $companyId, $branchId));
     }
 
     /**
@@ -40,13 +47,16 @@ class PosProductSearchService
      *
      * @return array{id: int, name: string, sku: string|null, item_code: string|null, unit_price: float}|null
      */
-    public function findByBarcode(string $barcode): ?array
+    public function findByBarcode(string $barcode, ?int $customerId = null): ?array
     {
         $code = trim($barcode);
 
         if ($code === '') {
             return null;
         }
+
+        $companyId = (int) tenant()->companyId();
+        $branchId = tenant()->branchId();
 
         $item = InventoryItem::query()
             ->forTenant()
@@ -56,22 +66,24 @@ class PosProductSearchService
                     ->where('sku', $code)
                     ->orWhere('item_code', $code);
             })
-            ->first(['id', 'item_name', 'sku', 'item_code', 'standard_cost']);
+            ->first(['id', 'item_name', 'sku', 'item_code', 'standard_cost', 'company_id']);
 
-        return $item ? $this->toSearchResult($item) : null;
+        return $item ? $this->toSearchResult($item, $customerId, $companyId, $branchId) : null;
     }
 
     /**
      * @return array{id: int, name: string, sku: string|null, item_code: string|null, unit_price: float}
      */
-    protected function toSearchResult(InventoryItem $item): array
+    protected function toSearchResult(InventoryItem $item, ?int $customerId, int $companyId, ?int $branchId): array
     {
+        $unitPrice = $this->priceBooks->resolveInventoryFallbackPrice($item, $customerId, $companyId, $branchId);
+
         return [
             'id' => (int) $item->id,
             'name' => (string) $item->item_name,
             'sku' => $item->sku,
             'item_code' => $item->item_code,
-            'unit_price' => (float) $item->standard_cost,
+            'unit_price' => $unitPrice,
         ];
     }
 }

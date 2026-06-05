@@ -170,6 +170,82 @@ return [
             ],
         ],
 
+        'commercial_price_book.create' => [
+            'label' => 'Commercial Price Books',
+            'description' => 'Create commercial price book header fields.',
+            'fields' => [
+                'name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 3],
+                'currency' => ['label' => 'Currency', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 4, 'default' => 'KES'],
+                'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 5],
+                'status' => ['label' => 'Status', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 6],
+                'starts_at' => ['label' => 'Starts at', 'type' => 'date', 'required' => false, 'visible' => true, 'sort_order' => 7],
+                'ends_at' => ['label' => 'Ends at', 'type' => 'date', 'required' => false, 'visible' => true, 'sort_order' => 8],
+                'is_default' => ['label' => 'Default price book', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 9],
+            ],
+        ],
+
+        'activity.create' => [
+            'label' => 'Commercial Activities',
+            'description' => 'Customer and lead activity logging fields.',
+            'fields' => [
+                'customer_id' => ['label' => 'Customer', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 1],
+                'lead_id' => ['label' => 'Lead', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 2],
+                'activity_type' => ['label' => 'Activity type', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'status' => ['label' => 'Status', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'subject' => ['label' => 'Subject', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'activity_at' => ['label' => 'Activity date', 'type' => 'datetime', 'required' => true, 'visible' => true, 'sort_order' => 6],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
+            ],
+        ],
+
+        'segment.create' => [
+            'label' => 'Customer Segments',
+            'description' => 'Customer segment definition fields.',
+            'fields' => [
+                'name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 2],
+                'is_active' => ['label' => 'Active', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 3],
+            ],
+        ],
+
+        'commercial_complaint.create' => [
+            'label' => 'Commercial Complaints',
+            'description' => 'Customer complaint capture fields.',
+            'fields' => [
+                'customer_id' => ['label' => 'Customer', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 1],
+                'subject' => ['label' => 'Subject', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'source' => ['label' => 'Source', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'priority' => ['label' => 'Priority', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 5],
+            ],
+        ],
+
+        'commercial_support_ticket.create' => [
+            'label' => 'Support Tickets',
+            'description' => 'Help desk ticket capture fields.',
+            'fields' => [
+                'customer_id' => ['label' => 'Customer', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 1],
+                'subject' => ['label' => 'Subject', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'channel' => ['label' => 'Channel', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'priority' => ['label' => 'Priority', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 5],
+            ],
+        ],
+
+        'pos_sale.create' => [
+            'label' => 'POS Counter Sales',
+            'description' => 'Point-of-sale checkout header fields.',
+            'fields' => [
+                'customer_id' => ['label' => 'Customer', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 1],
+                'is_walk_in' => ['label' => 'Walk-in sale', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 2],
+                'discount_amount' => ['label' => 'Discount', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 3],
+                'tax_amount' => ['label' => 'Tax', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 4],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 5],
+            ],
+        ],
+
         'stock_adjustment.create' => [
             'label' => 'Stock adjustment (create)',
             'description' => 'Stock adjustment draft fields.',
