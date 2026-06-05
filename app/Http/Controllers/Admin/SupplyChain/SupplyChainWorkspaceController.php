@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SupplyChain;
 
 use App\Http\Controllers\Controller;
 use App\Support\Navigation\SupplyChainWorkspacePresenter;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -32,8 +33,12 @@ class SupplyChainWorkspaceController extends Controller
         ]);
     }
 
-    public function section(Request $request, string $section): View
+    public function section(Request $request, string $section): View|RedirectResponse
     {
+        if ($section === 'assets') {
+            return redirect()->route('admin.workspaces.assets');
+        }
+
         abort_unless($this->presenter->sectionExists($section), 404);
 
         $payload = $this->presenter->presentSection($section);

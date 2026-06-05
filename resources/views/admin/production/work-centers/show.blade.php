@@ -77,6 +77,39 @@
         </x-admin.card>
 
         <x-admin.card>
+            <h3 class="mb-2 text-sm font-semibold text-erp-primary">{{ __('Machine') }}</h3>
+            @php $machine = $detail['machine'] ?? null; @endphp
+            @if ($machine)
+                <dl class="space-y-2 text-sm">
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">{{ __('Machine') }}</dt>
+                        <dd class="text-right">
+                            @if ($machine['url'] ?? null)
+                                <a href="{{ $machine['url'] }}" class="erp-link font-medium">{{ $machine['name'] }}</a>
+                            @else
+                                {{ $machine['name'] }}
+                            @endif
+                        </dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">{{ __('Status') }}</dt>
+                        <dd><x-admin.status-badge :variant="$machine['status_variant']">{{ $machine['status'] }}</x-admin.status-badge></dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">{{ __('Jobs Assigned') }}</dt>
+                        <dd class="tabular-nums">{{ $machine['queue_readiness']['jobs_assigned'] ?? 0 }}</dd>
+                    </div>
+                    <div class="flex justify-between gap-3">
+                        <dt class="text-slate-500">{{ __('Capacity Remaining') }}</dt>
+                        <dd class="tabular-nums">{{ $machine['queue_readiness']['capacity_remaining'] ?? 0 }}</dd>
+                    </div>
+                </dl>
+            @else
+                <p class="text-sm text-slate-500">{{ __('No machine assigned to this work center.') }}</p>
+            @endif
+        </x-admin.card>
+
+        <x-admin.card>
             <h3 class="mb-2 text-sm font-semibold text-erp-primary">{{ __('Description') }}</h3>
             <p class="text-sm text-slate-600">{{ $workCenter->description ?: __('No description provided.') }}</p>
         </x-admin.card>

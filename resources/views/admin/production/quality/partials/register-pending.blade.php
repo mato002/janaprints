@@ -4,26 +4,27 @@
         <tr>
             <th scope="col">{{ __('Job') }}</th>
             <th scope="col">{{ __('Customer') }}</th>
-            <th scope="col">{{ __('Inspector') }}</th>
-            <th scope="col">{{ __('Result') }}</th>
-            <th scope="col">{{ __('Inspection Date') }}</th>
-            <th scope="col">{{ __('Notes') }}</th>
+            <th scope="col" class="hidden md:table-cell">{{ __('Product') }}</th>
+            <th scope="col" class="hidden lg:table-cell">{{ __('Due Date') }}</th>
+            <th scope="col" class="hidden sm:table-cell">{{ __('Inspector') }}</th>
+            <th scope="col">{{ __('Status') }}</th>
             <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
         </tr>
     </x-slot:head>
     <x-slot:body>
         @forelse ($register as $job)
+            @php $row = $workspace->presentPendingRow($job); @endphp
             <tr>
-                <td class="font-mono text-sm font-medium">{{ $job->job_card_number }}</td>
-                <td>{{ $job->customer?->company_name ?? '—' }}</td>
-                <td class="text-slate-400">—</td>
-                <td><span class="erp-badge bg-amber-100 text-amber-900">{{ __('Pending') }}</span></td>
-                <td class="text-slate-400">—</td>
-                <td class="text-slate-400">—</td>
+                <td class="font-mono text-sm font-medium">{{ $row['job_card_number'] }}</td>
+                <td>{{ $row['customer_name'] }}</td>
+                <td class="hidden max-w-xs truncate md:table-cell" title="{{ $row['product'] }}">{{ $row['product'] }}</td>
+                <td class="hidden tabular-nums lg:table-cell">{{ $row['due_date'] }}</td>
+                <td class="hidden text-slate-400 sm:table-cell">{{ $row['inspector_name'] }}</td>
+                <td><span class="erp-badge bg-amber-100 text-amber-900">{{ $row['status_label'] }}</span></td>
                 <td class="erp-table-actions-col">
-                    @if (Route::has('admin.production.job-cards.show'))
+                    @if ($row['job_id'] && Route::has('admin.production.job-cards.show'))
                         <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.production.job-cards.show', $job)">
+                            <x-admin.table-row-action :href="route('admin.production.job-cards.show', $row['job_id'])">
                                 {{ __('Inspect') }}
                             </x-admin.table-row-action>
                         </x-admin.table-row-actions>
@@ -43,6 +44,6 @@
         @endforelse
     </x-slot:body>
     @if ($register->hasPages())
-        <x-slot:footer><x-admin.table-pagination :paginator="$register" /></x-slot:footer>
+        <x-slot:footer>{{ $register->links() }}</x-slot:footer>
     @endif
 </x-admin.data-table>

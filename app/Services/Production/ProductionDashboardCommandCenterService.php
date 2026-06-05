@@ -5,12 +5,14 @@ namespace App\Services\Production;
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Enums\ProductionJobCardStatus;
-use App\Enums\QualityCheckResult;
+use App\Enums\ProductionPriority;
+use App\Models\Assets\MachineProfile;
 use App\Models\Production\ProductionJobCard;
-use App\Models\Production\ProductionQueue;
-use App\Models\Production\QualityCheck;
 use App\Models\Production\WorkCenter;
 use App\Models\User;
+use App\Services\Assets\MachineDashboardService;
+use App\Services\Assets\MaintenanceDashboardService;
+use App\Support\Platform\PlatformCacheService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
@@ -18,10 +20,25 @@ use Illuminate\Support\Facades\Schema;
 
 class ProductionDashboardCommandCenterService
 {
+    /**
+     * @var list<array{code: string, label: string}>
+     */
+    private const DEPARTMENTS = [
+        ['code' => 'DESIGN', 'label' => 'Design'],
+        ['code' => 'PREPRESS', 'label' => 'Prepress'],
+        ['code' => 'DIGITAL', 'label' => 'Digital'],
+        ['code' => 'OFFSET', 'label' => 'Offset'],
+        ['code' => 'LARGE_FORMAT', 'label' => 'Large Format'],
+        ['code' => 'PACKAGING', 'label' => 'Packaging'],
+        ['code' => 'FINISHING', 'label' => 'Finishing'],
+    ];
+
     public function __construct(
         protected JobTimelineService $timeline,
         protected WorkCenterWorkspaceService $workCenters,
-        protected JobProductionControlService $controls,
+        protected MachineDashboardService $machines,
+        protected MaintenanceDashboardService $maintenance,
+        protected PlatformCacheService $cache,
     ) {}
 
     /**
@@ -30,40 +47,30 @@ class ProductionDashboardCommandCenterService
     public function build(?User $user = null): array
     {
         $user ??= auth()->user();
-        $today = now()->toDateString();
-        $weekStart = now()->startOfWeek()->toDateString();
 
         return [
             'as_of' => now()->format('Y-m-d H:i'),
-            'kpis' => $this->kpis($user),
+            'snapshot' => $this->snapshot($user),
             'pipeline' => $this->pipeline($user),
             'urgent' => $this->urgentAttention($user),
-            'schedule' => $this->todaysSchedule(),
-            'work_center_load' => $this->workCenterLoad(),
+            'department_capacity' => $this->departmentCapacity(),
+            'machine_capacity' => $this->machineCapacity(),
+            'maintenance_alerts' => $this->maintenanceAlerts(),
             'activity' => $this->timeline->recentForTenant(20),
             'quick_actions' => $this->quickActions($user),
-            'performance' => $this->performanceSnapshot($today, $weekStart),
         ];
     }
 
     /**
      * @return list<array<string, mixed>>
      */
-    protected function kpis(?User $user): array
+    protected function snapshot(?User $user): array
     {
         $today = now()->toDateString();
         $terminal = [
             ProductionJobCardStatus::Completed->value,
             ProductionJobCardStatus::ReadyForDispatch->value,
             ProductionJobCardStatus::Cancelled->value,
-        ];
-        $activeOverdueStatuses = [
-            ProductionJobCardStatus::Draft->value,
-            ProductionJobCardStatus::Queued->value,
-            ProductionJobCardStatus::InProduction->value,
-            ProductionJobCardStatus::QualityCheck->value,
-            ProductionJobCardStatus::OnHold->value,
-            ProductionJobCardStatus::Rework->value,
         ];
 
         $row = ProductionJobCard::query()
@@ -72,27 +79,20 @@ class ProductionDashboardCommandCenterService
             ->selectRaw("SUM(CASE WHEN status = 'in_production' OR status = 'rework' THEN 1 ELSE 0 END) as in_production")
             ->selectRaw("SUM(CASE WHEN status = 'quality_check' THEN 1 ELSE 0 END) as awaiting_qc")
             ->selectRaw("SUM(CASE WHEN status = 'ready_for_dispatch' THEN 1 ELSE 0 END) as ready_for_dispatch")
-            ->selectRaw("SUM(CASE WHEN status = 'completed' AND DATE(updated_at) = ? THEN 1 ELSE 0 END) as completed_today", [$today])
             ->selectRaw('SUM(CASE WHEN status NOT IN (?,?,?) AND planned_end_date IS NOT NULL AND planned_end_date < ? THEN 1 ELSE 0 END) as delayed_jobs', [
                 ...$terminal,
                 $today,
             ])
-            ->selectRaw('SUM(CASE WHEN status IN (?,?,?,?,?,?) AND planned_end_date IS NOT NULL AND planned_end_date < ? THEN 1 ELSE 0 END) as overdue_jobs', [
-                ...$activeOverdueStatuses,
-                $today,
-            ])
-            ->selectRaw("SUM(CASE WHEN status = 'on_hold' THEN 1 ELSE 0 END) as on_hold")
+            ->selectRaw("SUM(CASE WHEN status = 'completed' AND DATE(updated_at) = ? THEN 1 ELSE 0 END) as completed_today", [$today])
             ->first();
 
         $definitions = [
-            ['key' => 'open', 'label' => __('Open Jobs'), 'value' => (int) ($row->open_jobs ?? 0), 'icon' => 'inbox', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => []],
-            ['key' => 'in_production', 'label' => __('Jobs In Production'), 'value' => (int) ($row->in_production ?? 0), 'icon' => 'cog', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'in_production']],
+            ['key' => 'open', 'label' => __('Open Jobs'), 'value' => (int) ($row->open_jobs ?? 0), 'icon' => 'inbox', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view'],
+            ['key' => 'in_production', 'label' => __('In Production'), 'value' => (int) ($row->in_production ?? 0), 'icon' => 'cog', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'in_production']],
             ['key' => 'awaiting_qc', 'label' => __('Awaiting QC'), 'value' => (int) ($row->awaiting_qc ?? 0), 'icon' => 'clipboard-check', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'query' => ['status' => 'pending']],
-            ['key' => 'ready_for_dispatch', 'label' => __('Ready For Dispatch'), 'value' => (int) ($row->ready_for_dispatch ?? 0), 'icon' => 'truck', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'ready_for_dispatch']],
-            ['key' => 'completed_today', 'label' => __('Completed Today'), 'value' => (int) ($row->completed_today ?? 0), 'icon' => 'check-circle', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => []],
-            ['key' => 'delayed', 'label' => __('Delayed Jobs'), 'value' => (int) ($row->delayed_jobs ?? 0), 'icon' => 'exclamation', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view', 'query' => []],
-            ['key' => 'overdue', 'label' => __('Overdue Jobs'), 'value' => (int) ($row->overdue_jobs ?? 0), 'icon' => 'clock', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view', 'query' => []],
-            ['key' => 'on_hold', 'label' => __('On Hold Jobs'), 'value' => (int) ($row->on_hold ?? 0), 'icon' => 'pause', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'on_hold']],
+            ['key' => 'ready_for_dispatch', 'label' => __('Ready Dispatch'), 'value' => (int) ($row->ready_for_dispatch ?? 0), 'icon' => 'truck', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'ready_for_dispatch']],
+            ['key' => 'delayed', 'label' => __('Delayed'), 'value' => (int) ($row->delayed_jobs ?? 0), 'icon' => 'exclamation', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view'],
+            ['key' => 'completed_today', 'label' => __('Completed Today'), 'value' => (int) ($row->completed_today ?? 0), 'icon' => 'check-circle', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'completed']],
         ];
 
         return collect($definitions)
@@ -107,10 +107,7 @@ class ProductionDashboardCommandCenterService
     protected function presentKpiCard(array $card, ?User $user): array
     {
         $url = null;
-        if (
-            $user?->can($card['permission'])
-            && Route::has($card['route'])
-        ) {
+        if ($user?->can($card['permission']) && Route::has($card['route'])) {
             $url = route($card['route'], $card['query'] ?? []);
         }
 
@@ -128,15 +125,12 @@ class ProductionDashboardCommandCenterService
     protected function pipeline(?User $user): array
     {
         $base = ProductionJobCard::query()->forTenant();
-        $active = fn () => (clone $base)->whereNotIn('status', [
-            ProductionJobCardStatus::Cancelled,
-        ]);
 
         $stages = [
             [
                 'key' => 'artwork',
                 'label' => __('Artwork'),
-                'count' => (clone $active)()
+                'count' => (clone $base)
                     ->whereNotNull('artwork_request_id')
                     ->whereHas('artworkRequest', fn (Builder $q) => $q->where('status', '!=', ArtworkRequestStatus::Approved))
                     ->whereNotIn('status', [
@@ -147,6 +141,20 @@ class ProductionDashboardCommandCenterService
                     ->count(),
                 'route' => 'admin.production.job-cards.index',
                 'permission' => 'production.view',
+            ],
+            [
+                'key' => 'scheduled',
+                'label' => __('Scheduled'),
+                'count' => (clone $base)
+                    ->whereNotNull('planned_start_date')
+                    ->whereNotNull('planned_end_date')
+                    ->whereIn('status', [
+                        ProductionJobCardStatus::Draft,
+                        ProductionJobCardStatus::Queued,
+                    ])
+                    ->count(),
+                'route' => 'admin.production.scheduling.index',
+                'permission' => 'production.scheduling.view',
             ],
             [
                 'key' => 'queued',
@@ -167,19 +175,17 @@ class ProductionDashboardCommandCenterService
                 'query' => ['status' => 'in_production'],
             ],
             [
-                'key' => 'quality',
-                'label' => __('Quality Control'),
+                'key' => 'qc',
+                'label' => __('QC'),
                 'count' => (clone $base)->where('status', ProductionJobCardStatus::QualityCheck)->count(),
                 'route' => 'admin.production.quality.index',
                 'permission' => 'production.quality.view',
+                'query' => ['status' => 'pending'],
             ],
             [
                 'key' => 'dispatch',
                 'label' => __('Dispatch'),
-                'count' => (clone $base)->whereIn('status', [
-                    ProductionJobCardStatus::ReadyForDispatch,
-                    ProductionJobCardStatus::Completed,
-                ])->count(),
+                'count' => (clone $base)->where('status', ProductionJobCardStatus::ReadyForDispatch)->count(),
                 'route' => 'admin.workspaces.dispatch',
                 'permission' => 'dispatch.view',
             ],
@@ -216,16 +222,20 @@ class ProductionDashboardCommandCenterService
     protected function urgentAttention(?User $user): array
     {
         $today = now()->toDateString();
+        $activeOverdueStatuses = [
+            ProductionJobCardStatus::Draft,
+            ProductionJobCardStatus::Queued,
+            ProductionJobCardStatus::InProduction,
+            ProductionJobCardStatus::QualityCheck,
+            ProductionJobCardStatus::OnHold,
+            ProductionJobCardStatus::Rework,
+        ];
 
         return [
-            'delayed' => $this->urgentSection(
-                title: __('Delayed Jobs'),
+            'overdue_jobs' => $this->urgentSection(
+                title: __('Overdue Jobs'),
                 jobs: $this->urgentJobQuery()
-                    ->whereNotIn('status', [
-                        ProductionJobCardStatus::Completed,
-                        ProductionJobCardStatus::ReadyForDispatch,
-                        ProductionJobCardStatus::Cancelled,
-                    ])
+                    ->whereIn('status', $activeOverdueStatuses)
                     ->whereDate('planned_end_date', '<', $today)
                     ->orderBy('planned_end_date')
                     ->limit(5)
@@ -235,7 +245,7 @@ class ProductionDashboardCommandCenterService
                 user: $user,
             ),
             'awaiting_artwork' => $this->urgentSection(
-                title: __('Awaiting Artwork'),
+                title: __('Jobs Awaiting Artwork'),
                 jobs: $this->urgentJobQuery()
                     ->whereNotNull('artwork_request_id')
                     ->whereHas('artworkRequest', fn (Builder $q) => $q->where('status', '!=', ArtworkRequestStatus::Approved))
@@ -252,7 +262,7 @@ class ProductionDashboardCommandCenterService
                 user: $user,
             ),
             'awaiting_qc' => $this->urgentSection(
-                title: __('Awaiting QC'),
+                title: __('Jobs Awaiting QC'),
                 jobs: $this->urgentJobQuery()
                     ->where('status', ProductionJobCardStatus::QualityCheck)
                     ->orderBy('planned_end_date')
@@ -261,6 +271,7 @@ class ProductionDashboardCommandCenterService
                 viewAllRoute: 'admin.production.quality.index',
                 viewAllPermission: 'production.quality.view',
                 user: $user,
+                viewAllQuery: ['status' => 'pending'],
             ),
             'dispatch_due_today' => $this->urgentSection(
                 title: __('Dispatch Due Today'),
@@ -284,6 +295,225 @@ class ProductionDashboardCommandCenterService
                 viewAllPermission: 'dispatch.view',
                 user: $user,
             ),
+            'escalated_jobs' => $this->urgentSection(
+                title: __('Escalated Jobs'),
+                jobs: $this->urgentJobQuery()
+                    ->whereIn('priority', [ProductionPriority::Urgent, ProductionPriority::High])
+                    ->whereNotIn('status', [
+                        ProductionJobCardStatus::Completed,
+                        ProductionJobCardStatus::ReadyForDispatch,
+                        ProductionJobCardStatus::Cancelled,
+                    ])
+                    ->orderByRaw("CASE priority WHEN 'urgent' THEN 1 WHEN 'high' THEN 2 ELSE 3 END")
+                    ->orderBy('planned_end_date')
+                    ->limit(5)
+                    ->get(),
+                viewAllRoute: 'admin.production.job-cards.index',
+                viewAllPermission: 'production.view',
+                user: $user,
+            ),
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function departmentCapacity(): array
+    {
+        $centers = WorkCenter::query()
+            ->forTenant()
+            ->where('is_active', true)
+            ->get(['id', 'name', 'code']);
+
+        if ($centers->isEmpty()) {
+            return collect(self::DEPARTMENTS)
+                ->map(fn (array $dept) => $this->presentDepartmentRow($dept, 0, 0, 0, 0))
+                ->all();
+        }
+
+        $metrics = $this->workCenters->metricsForCenters($centers->pluck('id'));
+        $capacity = $this->workCenters->defaultCapacity();
+
+        return collect(self::DEPARTMENTS)->map(function (array $dept) use ($centers, $metrics, $capacity) {
+            $deptCenters = $centers->where('code', $dept['code']);
+            $activeJobs = 0;
+            $queueCount = 0;
+            $utilization = 0;
+
+            foreach ($deptCenters as $center) {
+                $metric = $metrics[$center->id] ?? [];
+                $activeJobs += (int) ($metric['active_jobs'] ?? 0);
+                $queueCount += (int) ($metric['queue_count'] ?? 0);
+                $utilization = max($utilization, (int) ($metric['utilization_percent'] ?? 0));
+            }
+
+            $slotCapacity = max(1, $deptCenters->count()) * $capacity;
+
+            return $this->presentDepartmentRow($dept, $activeJobs, $queueCount, $utilization, $slotCapacity);
+        })->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function presentDepartmentRow(array $dept, int $activeJobs, int $queueCount, int $utilization, int $slotCapacity): array
+    {
+        return [
+            'key' => strtolower($dept['code']),
+            'label' => __($dept['label']),
+            'active_jobs' => $activeJobs,
+            'queue_count' => $queueCount,
+            'utilization_percent' => $utilization,
+            'capacity' => $slotCapacity,
+            'is_overbooked' => $utilization > 100,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function machineCapacity(): array
+    {
+        $companyId = (int) tenant()->companyId();
+        $branchId = tenant()->branchId();
+        $cacheKey = $branchId ? "{$companyId}:{$branchId}" : "{$companyId}:all";
+
+        return $this->cache->remember('production_machine_overview', $cacheKey, function () use ($companyId, $branchId) {
+            $profileQuery = MachineProfile::query()
+                ->where('company_id', $companyId)
+                ->with(['asset:id,asset_name,asset_number', 'workCenter:id,name,code']);
+
+            if ($branchId) {
+                $profileQuery->where('branch_id', $branchId);
+            }
+
+            $profiles = $profileQuery->orderBy('machine_code')->get();
+
+            if ($profiles->isNotEmpty()) {
+                $dashboard = $this->machines->build($companyId, $branchId);
+                $metrics = $dashboard['metrics'] ?? [];
+
+                $machines = $profiles->take(8)->map(function (MachineProfile $profile) use ($metrics) {
+                    $metric = $metrics[$profile->id] ?? [];
+                    $utilization = (int) round($metric['current_utilization'] ?? $profile->current_utilization);
+                    $status = $profile->production_status;
+
+                    return [
+                        'id' => $profile->fixed_asset_id,
+                        'name' => $profile->asset?->asset_name ?? $profile->machine_code,
+                        'code' => $profile->machine_code,
+                        'status' => $status->label(),
+                        'status_variant' => $status->badgeVariant(),
+                        'utilization_percent' => $utilization,
+                        'downtime_percent' => max(0, 100 - min(100, $utilization)),
+                        'is_available' => $status->acceptsJobs() && $utilization < 100,
+                        'capacity_alert' => $utilization >= 90,
+                        'url' => Route::has('admin.assets.machines.show')
+                            ? route('admin.assets.machines.show', $profile->fixed_asset_id)
+                            : null,
+                    ];
+                })->values()->all();
+
+                return [
+                    'utilization_percent' => (int) round($dashboard['utilization_percent'] ?? 0),
+                    'downtime_percent' => max(0, 100 - min(100, (int) round($dashboard['utilization_percent'] ?? 0))),
+                    'availability_percent' => (int) round(100 - ($dashboard['offline_machines'] + $dashboard['maintenance_holds']) / max(1, $dashboard['total_machines']) * 100),
+                    'available_count' => $dashboard['available_machines'] ?? 0,
+                    'running_count' => $dashboard['running_machines'] ?? 0,
+                    'offline_count' => $dashboard['offline_machines'] ?? 0,
+                    'maintenance_count' => $dashboard['maintenance_holds'] ?? 0,
+                    'capacity_alerts' => collect($machines)->where('capacity_alert', true)->count(),
+                    'machines' => $machines,
+                ];
+            }
+
+            return $this->legacyWorkCenterMachineCapacity();
+        }, config('platform.cache.machines_dashboard', 60));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function legacyWorkCenterMachineCapacity(): array
+    {
+        $centers = WorkCenter::query()
+            ->forTenant()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        if ($centers->isEmpty()) {
+            return [
+                'utilization_percent' => 0,
+                'downtime_percent' => 0,
+                'availability_percent' => 100,
+                'available_count' => 0,
+                'running_count' => 0,
+                'offline_count' => 0,
+                'maintenance_count' => 0,
+                'capacity_alerts' => 0,
+                'machines' => [],
+            ];
+        }
+
+        $metrics = $this->workCenters->metricsForCenters($centers->pluck('id'));
+        $utilizations = $centers->map(fn (WorkCenter $center) => (int) ($metrics[$center->id]['utilization_percent'] ?? 0));
+        $avgUtilization = (int) round($utilizations->avg() ?: 0);
+        $overbookedCount = $centers->filter(fn (WorkCenter $center) => (bool) ($metrics[$center->id]['is_overbooked'] ?? false))->count();
+        $availabilityPercent = (int) round((($centers->count() - $overbookedCount) / max(1, $centers->count())) * 100);
+
+        $machines = $centers->take(8)->map(function (WorkCenter $center) use ($metrics) {
+            $metric = $metrics[$center->id] ?? [];
+            $utilization = (int) ($metric['utilization_percent'] ?? 0);
+
+            return [
+                'id' => $center->id,
+                'name' => $center->name,
+                'code' => $center->code,
+                'status' => null,
+                'status_variant' => 'neutral',
+                'utilization_percent' => $utilization,
+                'downtime_percent' => max(0, 100 - min(100, $utilization)),
+                'is_available' => ! ($metric['is_overbooked'] ?? false),
+                'capacity_alert' => $utilization >= 90,
+                'url' => Route::has('admin.production.work-centers.show')
+                    ? route('admin.production.work-centers.show', $center)
+                    : null,
+            ];
+        })->values()->all();
+
+        return [
+            'utilization_percent' => $avgUtilization,
+            'downtime_percent' => max(0, 100 - min(100, $avgUtilization)),
+            'availability_percent' => $availabilityPercent,
+            'available_count' => $centers->count() - $overbookedCount,
+            'running_count' => 0,
+            'offline_count' => 0,
+            'maintenance_count' => 0,
+            'capacity_alerts' => collect($machines)->where('capacity_alert', true)->count(),
+            'machines' => $machines,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function maintenanceAlerts(): array
+    {
+        $companyId = (int) tenant()->companyId();
+        $stats = $this->maintenance->build($companyId, tenant()->branchId());
+
+        return [
+            'critical_failures' => $stats['critical_failures'] ?? 0,
+            'open_work_orders' => $stats['open_work_orders'] ?? 0,
+            'downtime_hours' => $stats['downtime_hours'] ?? 0,
+            'orders' => collect($stats['critical_orders'] ?? [])->take(5)->map(fn ($order) => [
+                'work_order_no' => $order->work_order_no,
+                'asset_name' => $order->asset?->asset_name,
+                'url' => Route::has('admin.assets.maintenance.work-orders.show')
+                    ? route('admin.assets.maintenance.work-orders.show', $order)
+                    : null,
+            ])->values()->all(),
         ];
     }
 
@@ -300,6 +530,7 @@ class ProductionDashboardCommandCenterService
                 'job_card_number',
                 'customer_id',
                 'status',
+                'priority',
                 'planned_end_date',
             ]);
     }
@@ -314,9 +545,10 @@ class ProductionDashboardCommandCenterService
         string $viewAllRoute,
         string $viewAllPermission,
         ?User $user,
+        array $viewAllQuery = [],
     ): array {
         $viewAllUrl = ($user?->can($viewAllPermission) && Route::has($viewAllRoute))
-            ? route($viewAllRoute)
+            ? route($viewAllRoute, $viewAllQuery)
             : null;
 
         return [
@@ -326,6 +558,7 @@ class ProductionDashboardCommandCenterService
                 'job_number' => $job->job_card_number,
                 'customer' => $job->customer?->company_name ?? '—',
                 'status' => str_replace('_', ' ', $job->status->value),
+                'priority' => $job->priority?->value,
                 'due_date' => $job->planned_end_date?->format('Y-m-d') ?? '—',
                 'url' => ($user?->can('view', $job) && Route::has('admin.production.job-cards.show'))
                     ? route('admin.production.job-cards.show', $job)
@@ -339,87 +572,32 @@ class ProductionDashboardCommandCenterService
     /**
      * @return list<array<string, mixed>>
      */
-    protected function todaysSchedule(): array
-    {
-        $today = now()->toDateString();
-
-        return ProductionJobCard::query()
-            ->forTenant()
-            ->with([
-                'customer:id,company_name',
-                'queues' => fn ($q) => $q->with('workCenter:id,name')->orderBy('queue_position')->limit(1),
-            ])
-            ->where(function (Builder $q) use ($today) {
-                $q->whereDate('planned_start_date', $today)
-                    ->orWhereDate('planned_end_date', $today);
-            })
-            ->whereNot('status', ProductionJobCardStatus::Cancelled)
-            ->orderBy('planned_start_date')
-            ->orderBy('job_card_number')
-            ->limit(20)
-            ->get()
-            ->map(fn (ProductionJobCard $job) => [
-                'id' => $job->id,
-                'job_number' => $job->job_card_number,
-                'customer' => $job->customer?->company_name ?? '—',
-                'work_center' => $job->queues->first()?->workCenter?->name ?? '—',
-                'planned_start' => $job->planned_start_date?->format('Y-m-d') ?? '—',
-                'planned_end' => $job->planned_end_date?->format('Y-m-d') ?? '—',
-                'status' => str_replace('_', ' ', $job->status->value),
-                'url' => Route::has('admin.production.job-cards.show')
-                    ? route('admin.production.job-cards.show', $job)
-                    : null,
-            ])
-            ->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    protected function workCenterLoad(): array
-    {
-        $centers = WorkCenter::query()
-            ->forTenant()
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->limit(12)
-            ->get(['id', 'name', 'code']);
-
-        if ($centers->isEmpty()) {
-            return [];
-        }
-
-        return $centers->map(function (WorkCenter $center) {
-            $metric = $this->workCenters->metricsForCenter($center);
-            $utilization = (int) ($metric['utilization_percent'] ?? 0);
-
-            return [
-                'id' => $center->id,
-                'name' => $center->name,
-                'active_jobs' => (int) ($metric['active_jobs'] ?? 0),
-                'queue_count' => (int) ($metric['queue_count'] ?? 0),
-                'utilization_percent' => $utilization,
-                'show_utilization' => true,
-                'url' => Route::has('admin.production.work-centers.show')
-                    ? route('admin.production.work-centers.show', $center)
-                    : null,
-            ];
-        })->all();
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
     protected function quickActions(?User $user): array
     {
         $definitions = [
-            ['label' => __('New Job Card'), 'route' => 'admin.production.job-cards.create', 'permission' => 'create', 'model' => ProductionJobCard::class, 'primary' => true],
-            ['label' => __('Job Cards'), 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view'],
-            ['label' => __('Queue'), 'route' => 'admin.production.queue.index', 'permission' => 'production.queue.view'],
-            ['label' => __('Scheduling'), 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view'],
-            ['label' => __('Quality Control'), 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view'],
-            ['label' => __('Work Centers'), 'route' => 'admin.production.work-centers.index', 'permission' => 'production.work-centers.view'],
-            ['label' => __('Dispatch'), 'route' => 'admin.workspaces.dispatch', 'permission' => 'dispatch.view'],
+            [
+                'label' => __('Create Job Card'),
+                'route' => 'admin.production.job-cards.create',
+                'permission' => 'create',
+                'model' => ProductionJobCard::class,
+                'primary' => true,
+            ],
+            [
+                'label' => __('Schedule Job'),
+                'route' => 'admin.production.scheduling.index',
+                'permission' => 'production.scheduling.view',
+            ],
+            [
+                'label' => __('Record QC'),
+                'route' => 'admin.production.quality.index',
+                'permission' => 'production.quality.view',
+                'query' => ['status' => 'pending'],
+            ],
+            [
+                'label' => __('Create Delivery Note'),
+                'route' => 'admin.dispatch.delivery-notes.index',
+                'permission' => 'dispatch.view',
+            ],
         ];
 
         return collect($definitions)
@@ -434,48 +612,15 @@ class ProductionDashboardCommandCenterService
 
                 return $user?->can($item['permission']) ?? false;
             })
+            ->map(function (array $item) {
+                return [
+                    'label' => $item['label'],
+                    'url' => route($item['route'], $item['query'] ?? []),
+                    'primary' => (bool) ($item['primary'] ?? false),
+                ];
+            })
             ->values()
             ->all();
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function performanceSnapshot(string $today, string $weekStart): array
-    {
-        $qc = QualityCheck::query()
-            ->forTenant()
-            ->selectRaw('COUNT(*) as total')
-            ->selectRaw("SUM(CASE WHEN result = ? THEN 1 ELSE 0 END) as passed", [QualityCheckResult::Passed->value])
-            ->first();
-
-        $totalChecks = (int) ($qc->total ?? 0);
-        $passedChecks = (int) ($qc->passed ?? 0);
-
-        $deliveredToday = $this->dispatchTrackingAvailable()
-            ? ProductionJobCard::query()
-                ->forTenant()
-                ->whereHas('deliveryNotes', fn (Builder $q) => $q
-                    ->where('status', DeliveryNoteStatus::Delivered)
-                    ->whereDate('delivered_at', $today))
-                ->count()
-            : 0;
-
-        return [
-            'completed_today' => (int) ProductionJobCard::query()
-                ->forTenant()
-                ->where('status', ProductionJobCardStatus::Completed)
-                ->whereDate('updated_at', $today)
-                ->count(),
-            'completed_week' => (int) ProductionJobCard::query()
-                ->forTenant()
-                ->where('status', ProductionJobCardStatus::Completed)
-                ->whereDate('updated_at', '>=', $weekStart)
-                ->count(),
-            'qc_pass_rate' => $totalChecks > 0 ? (int) round(($passedChecks / $totalChecks) * 100) : null,
-            'qc_pass_label' => $totalChecks > 0 ? "{$passedChecks}/{$totalChecks}" : '—',
-            'delivered_today' => $deliveredToday,
-        ];
     }
 
     protected function dispatchTrackingAvailable(): bool

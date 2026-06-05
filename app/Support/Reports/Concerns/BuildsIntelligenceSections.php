@@ -54,4 +54,49 @@ trait BuildsIntelligenceSections
             'empty' => $empty || $rows === [],
         ];
     }
+
+    /**
+     * @param  list<array{cells: list<string>, url?: ?string}>  $rows
+     * @return array<string, mixed>
+     */
+    protected function drilldownTable(string $title, array $columns, array $rows): array
+    {
+        return [
+            'type' => 'drilldown',
+            'title' => $title,
+            'columns' => $columns,
+            'rows' => $rows,
+            'empty' => $rows === [],
+        ];
+    }
+
+    /**
+     * @param  list<array{label: string, value: int, max: int}>  $points
+     * @return array<string, mixed>
+     */
+    protected function chartSection(string $title, array $points, ?string $hint = null): array
+    {
+        return [
+            'type' => 'chart',
+            'title' => $title,
+            'hint' => $hint,
+            'points' => $points,
+            'empty' => $points === [],
+        ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $top
+     * @param  list<array<string, mixed>>  $bottom
+     * @return array<string, mixed>
+     */
+    protected function performersSection(string $title, array $top, array $bottom): array
+    {
+        return [
+            'type' => 'performers',
+            'title' => $title,
+            'top' => $top,
+            'bottom' => $bottom,
+        ];
+    }
 }

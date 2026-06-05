@@ -24,7 +24,7 @@
                         Need pricing, artwork support or bulk quantities? Share your requirements and our Nairobi team will respond with a tailored quote.
                     </p>
                     <div class="flex flex-wrap gap-4">
-                        <x-public.button href="{{ route('storefront.quote') }}" variant="gradient" size="lg">Request a Quote</x-public.button>
+                        <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">Request a Quote</x-public.button>
                         <x-public.button href="{{ route('storefront.products') }}" variant="outline" size="lg">Back to Catalogue</x-public.button>
                     </div>
                 </div>

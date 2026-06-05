@@ -211,6 +211,24 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                 ],
                 'events' => [PostingEventCode::AssetDepreciationPosted],
             ],
+            'asset_writeoff' => [
+                'module' => PostingModule::Assets,
+                'name' => 'Asset write-off',
+                'lines' => [
+                    ['debit', 'asset_disposal_loss', PostingAmountSource::TotalAmount],
+                    ['credit', 'fixed_asset', PostingAmountSource::TotalAmount],
+                ],
+                'events' => [PostingEventCode::AssetWriteOffPosted],
+            ],
+            'asset_acquisition' => [
+                'module' => PostingModule::Assets,
+                'name' => 'Asset acquisition',
+                'lines' => [
+                    ['debit', 'fixed_asset', PostingAmountSource::TotalAmount],
+                    ['credit', 'trade_payables', PostingAmountSource::TotalAmount],
+                ],
+                'events' => [PostingEventCode::AssetAcquisitionPosted],
+            ],
         ];
 
         foreach ($definitions as $code => $def) {

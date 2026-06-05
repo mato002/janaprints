@@ -50,9 +50,20 @@ class ProductionHubFoundationTest extends TestCase
         }
     }
 
+    public function test_permission_catalog_exposes_production_workspace_permissions(): void
+    {
+        $catalog = config('permission_catalog.modules.production.entities.workspaces.extra', []);
+        $permissions = collect($catalog)->pluck('permission')->all();
+
+        $this->assertContains('production.queue.view', $permissions);
+        $this->assertContains('production.scheduling.view', $permissions);
+        $this->assertContains('production.quality.view', $permissions);
+        $this->assertContains('production.work-centers.view', $permissions);
+    }
+
     public function test_production_hub_permissions_exist_after_seeder(): void
     {
-        foreach ($this->modulePermissions as $permission) {
+        foreach ([...$this->modulePermissions, 'production.work-centers.view'] as $permission) {
             $this->assertNotNull(
                 Permission::findByName($permission, 'web'),
                 "Missing permission: {$permission}",
@@ -62,7 +73,8 @@ class ProductionHubFoundationTest extends TestCase
 
     public function test_workspace_config_wires_production_module_features(): void
     {
-        $items = collect(config('workspaces.production.groups.0.items', []))
+        $items = collect(config('production_workspaces.groups', []))
+            ->flatMap(fn (array $group) => $group['items'] ?? [])
             ->keyBy('label');
 
         foreach ([

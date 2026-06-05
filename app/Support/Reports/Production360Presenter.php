@@ -2,14 +2,9 @@
 
 namespace App\Support\Reports;
 
-use App\Enums\ArtworkRequestStatus;
 use App\Enums\ProductionJobCardStatus;
-use App\Models\Artwork\ArtworkRequest;
-use App\Models\Branch;
-use App\Models\Production\ProductionJobCard;
 use App\Support\Reports\Concerns\BuildsIntelligenceSections;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class Production360Presenter
 {
@@ -18,6 +13,7 @@ class Production360Presenter
     public function __construct(
         protected IntelligenceScopeResolver $scopeResolver,
         protected IntelligenceAggregateQueries $queries,
+        protected Production360Queries $production,
     ) {}
 
     /**
@@ -25,24 +21,32 @@ class Production360Presenter
      */
     public function present(Request $request): array
     {
-        $resolved = $this->scopeResolver->resolve($request);
+        $resolved = $this->scopeResolver->resolve($request, defaultBranchFromTenant: false);
         $scope = $resolved['scope'];
 
         return [
             'title' => __('Production 360'),
-            'description' => __('Job pipeline, delays, and production intelligence.'),
+            'description' => __('Executive production intelligence for operations leadership — read-only analytics across branches, capacity, quality, and dispatch.'),
             'filters' => $resolved['filters'],
             'branches' => $resolved['branches'],
             'can_export' => $resolved['can_export'],
+            'read_only' => true,
+            'export_url' => $resolved['can_export']
+                ? route('admin.reports.production360', array_merge($request->query(), ['export' => 'csv']))
+                : null,
             'sections' => [
                 $this->summary($scope),
-                $this->pipeline($scope),
-                $this->delayIntelligence($scope),
-                $this->branchProduction($scope),
+                $this->branchComparison($scope),
                 $this->productMix($scope),
-                $this->consumption($scope),
-                $this->qualityPlaceholder(),
-                $this->attention($scope),
+                $this->jobTypeMix($scope),
+                $this->materialConsumption($scope),
+                $this->materialCostConsumption($scope),
+                $this->delayIntelligence($scope),
+                $this->qualityIntelligence($scope),
+                $this->capacityIntelligence($scope),
+                $this->dispatchIntelligence($scope),
+                $this->trends($scope),
+                $this->performers($scope),
             ],
         ];
     }
@@ -56,34 +60,120 @@ class Production360Presenter
             return $this->pendingSection(__('Production Summary'));
         }
 
-        $base = $this->queries->scoped(ProductionJobCard::class, $scope);
-        $awaitingArtwork = $this->queries->hasTable('artwork_requests')
-            ? (int) $this->queries->scoped(ArtworkRequest::class, $scope)->whereIn('status', [
-                ArtworkRequestStatus::Submitted,
-                ArtworkRequestStatus::InDesign,
-            ])->count()
-            : 0;
+        $material = $this->production->materialConsumption($scope);
+        $dispatch = $this->production->dispatchMetrics($scope);
 
         return $this->kpiSection(__('Production Summary'), [
             $this->kpi(__('Active jobs'), (string) $this->queries->countActiveJobs($scope), 'cog'),
             $this->kpi(__('Completed (period)'), (string) $this->queries->countCompletedJobsInPeriod($scope), 'check-circle'),
             $this->kpi(__('Delayed jobs'), (string) $this->queries->countDelayedJobs($scope), 'exclamation'),
-            $this->kpi(__('Cancelled'), (string) (clone $base)->where('status', ProductionJobCardStatus::Cancelled)->count(), 'x-circle'),
-            $this->kpi(__('Awaiting artwork'), (string) $awaitingArtwork, 'color-swatch'),
-            $this->kpi(__('Ready for dispatch'), (string) (clone $base)->where('status', ProductionJobCardStatus::ReadyForDispatch)->count(), 'truck'),
+            $this->kpi(__('Ready for dispatch'), (string) $this->queries->scoped(\App\Models\Production\ProductionJobCard::class, $scope)
+                ->where('status', ProductionJobCardStatus::ReadyForDispatch)->count(), 'truck'),
+            $this->kpi(__('Material lines'), (string) $material['lines'], 'cube'),
+            $this->kpi(__('Material cost'), $this->queries->money($material['total_cost']), 'currency-dollar'),
+            $this->kpi(__('Deliveries (period)'), (string) $dispatch['throughput'], 'truck'),
+            $this->kpi(__('On-time delivery'), $dispatch['on_time_rate'].'%', 'check-circle'),
         ]);
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function pipeline(IntelligenceScope $scope): array
+    protected function branchComparison(IntelligenceScope $scope): array
     {
         if (! $this->queries->hasTable('production_job_cards')) {
-            return $this->pendingSection(__('Production Pipeline'));
+            return $this->pendingSection(__('Branch Comparison'));
         }
 
-        return ['type' => 'pipeline', 'title' => __('Production Pipeline'), 'stages' => $this->queries->productionPipelineCounts($scope)];
+        return $this->drilldownTable(
+            __('Branch Comparison'),
+            [__('Branch'), __('Completed'), __('Delayed'), __('Completion %')],
+            $this->production->branchComparisonRows($scope),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function productMix(IntelligenceScope $scope): array
+    {
+        if (! $this->queries->hasTable('production_job_cards')) {
+            return $this->pendingSection(__('Product Mix'));
+        }
+
+        if (! $this->queries->hasTable('production_material_consumptions')) {
+            return $this->pendingSection(__('Product Mix'));
+        }
+
+        return $this->drilldownTable(
+            __('Product Mix'),
+            [__('Material'), __('Quantity'), __('Cost')],
+            $this->production->productMix($scope),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function jobTypeMix(IntelligenceScope $scope): array
+    {
+        if (! $this->queries->hasTable('production_job_cards')) {
+            return $this->pendingSection(__('Job Type Mix'));
+        }
+
+        return $this->drilldownTable(
+            __('Job Type Mix'),
+            [__('Job type'), __('Count')],
+            $this->production->jobTypeMix($scope),
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function materialConsumption(IntelligenceScope $scope): array
+    {
+        $material = $this->production->materialConsumption($scope);
+
+        if (! $this->queries->hasTable('production_material_consumptions')) {
+            return $this->pendingSection(__('Material Consumption'));
+        }
+
+        return [
+            'type' => 'split',
+            'title' => __('Material Consumption'),
+            'kpis' => [
+                $this->kpi(__('Consumption lines'), (string) $material['lines'], 'cube'),
+                $this->kpi(__('Unique materials'), (string) count($material['top_materials']), 'collection'),
+            ],
+            'tables' => [
+                $this->drilldownTable(
+                    __('Top materials by consumption'),
+                    [__('Material'), __('Quantity'), __('Cost')],
+                    $material['top_materials'],
+                ),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function materialCostConsumption(IntelligenceScope $scope): array
+    {
+        $material = $this->production->materialConsumption($scope);
+
+        if (! $this->queries->hasTable('production_material_consumptions')) {
+            return $this->pendingSection(__('Material Cost Consumption'));
+        }
+
+        return $this->kpiSection(__('Material Cost Consumption'), [
+            $this->kpi(__('Total material cost'), $this->queries->money($material['total_cost']), 'currency-dollar'),
+            $this->kpi(__('Avg cost per line'), $material['lines'] > 0
+                ? $this->queries->money($material['total_cost'] / $material['lines'])
+                : $this->queries->money(0), 'chart-bar'),
+            $this->kpi(__('Consumption lines'), (string) $material['lines'], 'cube'),
+        ]);
     }
 
     /**
@@ -95,30 +185,25 @@ class Production360Presenter
             return $this->pendingSection(__('Delay Intelligence'));
         }
 
-        $byBranch = ProductionJobCard::query()
-            ->where('company_id', $scope->companyId)
-            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
-            ->whereNotIn('status', [ProductionJobCardStatus::Completed, ProductionJobCardStatus::Cancelled, ProductionJobCardStatus::ReadyForDispatch])
-            ->whereNotNull('planned_end_date')
-            ->whereDate('planned_end_date', '<', $scope->toDate)
-            ->select('branch_id', DB::raw('COUNT(*) as cnt'))
-            ->groupBy('branch_id')
-            ->get();
-
-        $branchNames = Branch::query()->whereIn('id', $byBranch->pluck('branch_id'))->pluck('name', 'id');
+        $avgDelay = $this->production->averageDelayDays($scope);
 
         return [
             'type' => 'split',
             'title' => __('Delay Intelligence'),
             'kpis' => [
                 $this->kpi(__('Jobs past planned end'), (string) $this->queries->countDelayedJobs($scope), 'exclamation'),
-                $this->kpi(__('Average delay days'), '—', 'clock', __('Pending source')),
+                $this->kpi(__('Average delay'), $avgDelay !== null ? $avgDelay.' '.__('days') : '—', 'clock'),
             ],
             'tables' => [
-                $this->tableSection(
-                    __('Delays by Branch'),
-                    [__('Branch'), __('Count')],
-                    $byBranch->map(fn ($r) => ['branch' => $branchNames[$r->branch_id] ?? '—', 'count' => (string) $r->cnt])->all(),
+                $this->drilldownTable(
+                    __('Most Delayed Jobs'),
+                    [__('Job'), __('Customer'), __('Branch'), __('Days late'), __('Due')],
+                    $this->production->mostDelayedJobs($scope),
+                ),
+                $this->drilldownTable(
+                    __('Most Delayed Departments'),
+                    [__('Department'), __('Delayed jobs')],
+                    $this->production->mostDelayedDepartments($scope),
                 ),
             ],
         ];
@@ -127,98 +212,152 @@ class Production360Presenter
     /**
      * @return array<string, mixed>
      */
-    protected function branchProduction(IntelligenceScope $scope): array
+    protected function qualityIntelligence(IntelligenceScope $scope): array
+    {
+        if (! $this->queries->hasTable('quality_checks')) {
+            return $this->pendingSection(__('Quality Intelligence'));
+        }
+
+        $rates = $this->production->qualityRates($scope);
+
+        return $this->kpiSection(__('Quality Intelligence'), [
+            $this->kpi(__('Pass rate'), $rates['pass_rate'].'%', 'check-circle', __(':count inspections', ['count' => $rates['total_checks']])),
+            $this->kpi(__('Failure rate'), $rates['fail_rate'].'%', 'x-circle'),
+            $this->kpi(__('Rework rate'), $rates['rework_rate'].'%', 'switch-horizontal'),
+            $this->kpi(__('Hold rate'), $rates['hold_rate'].'%', 'pause'),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function capacityIntelligence(IntelligenceScope $scope): array
+    {
+        $capacity = $this->production->capacityMetrics($scope);
+
+        if (! $this->queries->hasTable('work_centers')) {
+            return $this->pendingSection(__('Capacity Intelligence'));
+        }
+
+        return [
+            'type' => 'split',
+            'title' => __('Capacity Intelligence'),
+            'kpis' => [
+                $this->kpi(__('Work center utilization'), $capacity['work_center'].'%', 'cog'),
+                $this->kpi(__('Machine utilization'), $capacity['machine'].'%', 'chip'),
+                $this->kpi(__('Department utilization'), $capacity['department'].'%', 'office-building'),
+            ],
+            'tables' => [
+                $this->drilldownTable(
+                    __('Department utilization'),
+                    [__('Department'), __('Utilization')],
+                    $capacity['departments'],
+                ),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function dispatchIntelligence(IntelligenceScope $scope): array
+    {
+        if (! $this->queries->hasTable('delivery_notes')) {
+            return $this->pendingSection(__('Dispatch Intelligence'));
+        }
+
+        $dispatch = $this->production->dispatchMetrics($scope);
+
+        return $this->kpiSection(__('Dispatch Intelligence'), [
+            $this->kpi(__('On-time delivery'), (string) $dispatch['on_time'], 'check-circle'),
+            $this->kpi(__('Late delivery'), (string) $dispatch['late'], 'exclamation'),
+            $this->kpi(__('Delivery throughput'), (string) $dispatch['throughput'], 'truck'),
+            $this->kpi(__('On-time rate'), $dispatch['on_time_rate'].'%', 'chart-pie'),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function trends(IntelligenceScope $scope): array
     {
         if (! $this->queries->hasTable('production_job_cards')) {
-            return $this->pendingSection(__('Branch Production'));
+            return $this->pendingSection(__('Trend Charts'));
         }
 
-        $rows = Branch::query()
-            ->where('company_id', $scope->companyId)
-            ->where('is_active', true)
-            ->when($scope->branchId, fn ($q) => $q->where('id', $scope->branchId))
-            ->orderBy('name')
-            ->get(['id', 'name'])
-            ->map(function (Branch $branch) use ($scope) {
-                $scoped = new IntelligenceScope($scope->companyId, $branch->id, $scope->fromDate, $scope->toDate);
-                $active = $this->queries->countActiveJobs($scoped);
-                $completed = $this->queries->countCompletedJobsInPeriod($scoped);
-                $total = $active + $completed;
+        return [
+            'type' => 'trends',
+            'title' => __('Trend Charts'),
+            'charts' => [
+                $this->chartSection(
+                    __('Completed jobs'),
+                    $this->production->completedJobsTrend($scope),
+                    __('Daily completions in selected period'),
+                ),
+                $this->chartSection(
+                    __('Delayed jobs'),
+                    $this->production->delayTrend($scope),
+                    __('Open jobs past planned end by day'),
+                ),
+                $this->chartSection(
+                    __('Deliveries'),
+                    $this->production->deliveryTrend($scope),
+                    __('Delivered notes per day'),
+                ),
+            ],
+        ];
+    }
 
-                return [
-                    'branch' => $branch->name,
-                    'active' => (string) $active,
-                    'completed' => (string) $completed,
-                    'delayed' => (string) $this->queries->countDelayedJobs($scoped),
-                    'rate' => $total > 0 ? round(($completed / $total) * 100).'%' : '0%',
-                    'dispatch' => (string) $this->queries->scoped(ProductionJobCard::class, $scoped)
-                        ->where('status', ProductionJobCardStatus::ReadyForDispatch)->count(),
-                ];
-            })
+    /**
+     * @return array<string, mixed>
+     */
+    protected function performers(IntelligenceScope $scope): array
+    {
+        $branches = $this->production->branchPerformance($scope);
+
+        if ($branches === []) {
+            return $this->pendingSection(__('Top & Bottom Performers'));
+        }
+
+        $top = collect($branches)->take(3)->map(fn (array $row) => [
+            'label' => $row['branch'],
+            'value' => $row['score'].'%',
+            'hint' => __(':completed completed · :delayed delayed', [
+                'completed' => $row['completed'],
+                'delayed' => $row['delayed'],
+            ]),
+        ])->all();
+
+        $bottom = collect($branches)->sortBy('score')->take(3)->map(fn (array $row) => [
+            'label' => $row['branch'],
+            'value' => $row['score'].'%',
+            'hint' => __(':completed completed · :delayed delayed', [
+                'completed' => $row['completed'],
+                'delayed' => $row['delayed'],
+            ]),
+        ])->values()->all();
+
+        $capacity = $this->production->capacityMetrics($scope);
+        $deptTop = collect($capacity['departments'])
+            ->sortByDesc(fn (array $row) => (int) rtrim($row['cells'][1], '%'))
+            ->take(3)
+            ->map(fn (array $row) => ['label' => $row['cells'][0], 'value' => $row['cells'][1]])
+            ->all();
+        $deptBottom = collect($capacity['departments'])
+            ->sortBy(fn (array $row) => (int) rtrim($row['cells'][1], '%'))
+            ->take(3)
+            ->map(fn (array $row) => ['label' => $row['cells'][0], 'value' => $row['cells'][1]])
+            ->values()
             ->all();
 
-        return $this->tableSection(
-            __('Branch Production'),
-            [__('Branch'), __('Active'), __('Completed'), __('Delayed'), __('Completion %'), __('Ready Dispatch')],
-            $rows,
-        );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function productMix(IntelligenceScope $scope): array
-    {
-        return $this->pendingSection(__('Job Type / Product Mix'));
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function consumption(IntelligenceScope $scope): array
-    {
-        if (! $this->queries->hasTable('production_material_consumptions')) {
-            return $this->pendingSection(__('Material Consumption'));
-        }
-
-        $count = (int) DB::table('production_material_consumptions')
-            ->where('company_id', $scope->companyId)
-            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
-            ->whereDate('consumed_at', '>=', $scope->fromDate)
-            ->whereDate('consumed_at', '<=', $scope->toDate)
-            ->count();
-
-        return $this->kpiSection(__('Material Consumption'), [
-            $this->kpi(__('Consumption lines'), (string) $count, 'cog'),
-            $this->kpi(__('Total consumed value'), '—', 'currency-dollar', __('Pending source')),
-        ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function qualityPlaceholder(): array
-    {
-        return $this->kpiSection(__('Quality / Rework'), [
-            $this->kpi(__('QC pass rate'), '—', 'clipboard-check', __('Pending source'), true),
-            $this->kpi(__('Rework jobs'), '—', 'cog', __('Pending source'), true),
-            $this->kpi(__('Rejection rate'), '—', 'exclamation', __('Pending source'), true),
-        ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function attention(IntelligenceScope $scope): array
-    {
         return [
-            'type' => 'attention',
-            'title' => __('Attention Center'),
-            'items' => [
-                ['label' => __('Delayed jobs'), 'count' => $this->queries->countDelayedJobs($scope), 'severity' => 'danger'],
-                ['label' => __('Ready for dispatch'), 'count' => $this->queries->hasTable('production_job_cards')
-                    ? (int) $this->queries->scoped(ProductionJobCard::class, $scope)->where('status', ProductionJobCardStatus::ReadyForDispatch)->count()
-                    : 0, 'severity' => 'warning'],
+            'type' => 'performers',
+            'title' => __('Top & Bottom Performers'),
+            'groups' => [
+                ['heading' => __('Top branches (completion %)'), 'items' => $top],
+                ['heading' => __('Bottom branches (completion %)'), 'items' => $bottom],
+                ['heading' => __('Highest utilization departments'), 'items' => $deptTop],
+                ['heading' => __('Lowest utilization departments'), 'items' => $deptBottom],
             ],
         ];
     }

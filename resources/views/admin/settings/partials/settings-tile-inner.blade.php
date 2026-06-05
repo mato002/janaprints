@@ -22,5 +22,11 @@
         <p class="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-500">
             {{ $description }}
         </p>
+
+        @if (isset($count) && $count !== null)
+            <p class="mt-1.5 text-xs font-semibold tabular-nums text-erp-primary">
+                {{ number_format($count) }}
+            </p>
+        @endif
     </div>
 </div>

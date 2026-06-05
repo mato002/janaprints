@@ -23,15 +23,22 @@
 
     @if (! empty($widgets))
         <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
-            <x-admin.kpi-widget :label="__('New leads today')" :value="$widgets['new_leads_today']" icon="sparkles" />
-            <x-admin.kpi-widget :label="__('Open leads')" :value="$widgets['open_leads']" icon="collection" />
-            <x-admin.kpi-widget :label="__('Active customers')" :value="$widgets['active_customers']" icon="user-circle" />
-            <x-admin.kpi-widget :label="__('Quotes pending approval')" :value="$widgets['quotes_pending_approval']" icon="document-text" />
-            <x-admin.kpi-widget :label="__('Artwork awaiting approval')" :value="$widgets['artwork_awaiting_approval']" icon="color-swatch" />
-            <x-admin.kpi-widget :label="__('Orders ready for production')" :value="$widgets['sales_orders_ready']" icon="clipboard-list" />
-            @isset($widgets['pos_sales_today'])
-                <x-admin.kpi-widget :label="__('POS sales today')" :value="$widgets['pos_sales_today']" icon="cash" />
-            @endisset
+            @if (($section ?? '') === 'customer-service')
+                <x-admin.kpi-widget :label="__('New quote requests')" :value="$widgets['new_quote_requests']" icon="document-text" />
+                <x-admin.kpi-widget :label="__('Pending quote requests')" :value="$widgets['pending_quote_requests']" icon="clock" />
+                <x-admin.kpi-widget :label="__('Unread contact messages')" :value="$widgets['unread_contact_messages']" icon="inbox" />
+                <x-admin.kpi-widget :label="__('New contact messages')" :value="$widgets['new_contact_messages']" icon="mail" />
+            @else
+                <x-admin.kpi-widget :label="__('New leads today')" :value="$widgets['new_leads_today']" icon="sparkles" />
+                <x-admin.kpi-widget :label="__('Open leads')" :value="$widgets['open_leads']" icon="collection" />
+                <x-admin.kpi-widget :label="__('Active customers')" :value="$widgets['active_customers']" icon="user-circle" />
+                <x-admin.kpi-widget :label="__('Quotes pending approval')" :value="$widgets['quotes_pending_approval']" icon="document-text" />
+                <x-admin.kpi-widget :label="__('Artwork awaiting approval')" :value="$widgets['artwork_awaiting_approval']" icon="color-swatch" />
+                <x-admin.kpi-widget :label="__('Orders ready for production')" :value="$widgets['sales_orders_ready']" icon="clipboard-list" />
+                @isset($widgets['pos_sales_today'])
+                    <x-admin.kpi-widget :label="__('POS sales today')" :value="$widgets['pos_sales_today']" icon="cash" />
+                @endisset
+            @endif
         </div>
     @endif
 
@@ -70,6 +77,7 @@
                                 'description' => $item['description'],
                                 'icon' => $item['icon'],
                                 'href' => $item['href'],
+                                'count' => $item['count'] ?? null,
                                 'comingSoon' => $item['comingSoon'],
                                 'statusLabel' => $item['statusLabel'],
                                 'statusVariant' => $item['statusVariant'],

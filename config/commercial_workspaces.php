@@ -32,7 +32,7 @@ return [
             'route_params' => ['section' => 'customer-service'],
             'permission' => 'crm.customers.view|receivables.statement.view',
             'icon' => 'inbox',
-            'active_routes' => ['admin.workspaces.commercial.section:customer-service', 'admin.receivables.statement'],
+            'active_routes' => ['admin.workspaces.commercial.section:customer-service', 'admin.receivables.statement', 'admin.public-quote-requests.*', 'admin.public-contact-messages.*'],
         ],
         [
             'label' => 'Point Of Sale',
@@ -119,6 +119,8 @@ return [
                 [
                     'label' => 'Customer Service',
                     'items' => [
+                        ['label' => 'Quote Requests', 'description' => 'Public storefront quote requests from guest visitors.', 'route' => 'admin.public-quote-requests.index', 'permission' => 'public_leads.quote_requests.view', 'icon' => 'document-text', 'active_routes' => ['admin.public-quote-requests.*'], 'count_key' => 'pending_quote_requests'],
+                        ['label' => 'Contact Messages', 'description' => 'Public contact form messages from the storefront.', 'route' => 'admin.public-contact-messages.index', 'permission' => 'public_leads.contact_messages.view', 'icon' => 'inbox', 'active_routes' => ['admin.public-contact-messages.*'], 'count_key' => 'unread_contact_messages'],
                         ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'route' => 'admin.commercial.complaints.index', 'permission' => 'commercial.complaints.view', 'icon' => 'exclamation', 'active_routes' => ['admin.commercial.complaints.*']],
                         ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'route' => 'admin.commercial.support-tickets.index', 'permission' => 'commercial.tickets.view', 'icon' => 'inbox', 'active_routes' => ['admin.commercial.support-tickets.*']],
                         ['label' => 'Customer Statements', 'description' => 'Period statements of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],

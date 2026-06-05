@@ -9,4 +9,8 @@ enum ApprovalRuleType: string
     case StockAdjustmentApproval = 'stock_adjustment_approval';
     case ProcurementApproval = 'procurement_approval';
     case PaymentApproval = 'payment_approval';
+    case AssetTransferApproval = 'asset_transfer_approval';
+    case AssetWriteOffApproval = 'asset_write_off_approval';
+    case AssetDisposalApproval = 'asset_disposal_approval';
+    case AssetCapitalizationApproval = 'asset_capitalization_approval';
 }

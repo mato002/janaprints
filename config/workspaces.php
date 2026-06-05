@@ -26,26 +26,13 @@ return [
 
     'production' => [
         'title' => 'Production',
-        'description' => 'Job cards, scheduling, work centers, quality, and dispatch.',
+        'description' => 'Job cards, scheduling, work centers, quality, dispatch, and production intelligence.',
         'icon' => 'cog',
+        'managed_by' => 'production_workspaces',
         'quick_create' => [
             ['label' => 'Job Card', 'route' => 'admin.production.job-cards.create', 'permission' => 'production.create'],
         ],
-        'groups' => [
-            [
-                'label' => 'Operations',
-                'items' => [
-                    ['label' => 'Production Dashboard', 'description' => 'Live production KPIs and workload overview.', 'route' => 'admin.production.dashboard', 'permission' => 'production.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.production.dashboard']],
-                    ['label' => 'Job Cards', 'description' => 'Production jobs from order to completion.', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'icon' => 'collection', 'active_routes' => ['admin.production.job-cards.*']],
-                    ['label' => 'Job Costing & Profitability', 'description' => 'Job cost sheets and margin analysis.', 'route' => 'admin.production.costing.dashboard', 'permission' => 'production.costing.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.production.costing.*', 'admin.production.job-cards.costing']],
-                    ['label' => 'Scheduling', 'description' => 'Plan jobs across work centers and shifts.', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view', 'icon' => 'calendar', 'active_routes' => ['admin.production.scheduling.*']],
-                    ['label' => 'Production Queue', 'description' => 'Queued operations awaiting execution.', 'route' => 'admin.production.queue.index', 'permission' => 'production.queue.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.production.queue.*']],
-                    ['label' => 'Work Centers', 'description' => 'Machines, cells, and capacity definitions.', 'route' => 'admin.production.work-centers.index', 'permission' => 'production.work-centers.view', 'icon' => 'chip', 'active_routes' => ['admin.production.work-centers.*']],
-                    ['label' => 'Quality Control', 'description' => 'Inspections, holds, and QC sign-off.', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'icon' => 'badge-check', 'active_routes' => ['admin.production.quality.*']],
-                    ['label' => 'Dispatch (legacy)', 'description' => 'Use Dispatch workspace for delivery notes.', 'route' => 'admin.workspaces.dispatch', 'permission' => 'dispatch.view', 'icon' => 'truck', 'active_routes' => ['admin.workspaces.dispatch']],
-                ],
-            ],
-        ],
+        'groups' => [],
     ],
 
     'dispatch' => [
@@ -125,19 +112,11 @@ return [
         'title' => 'Assets',
         'description' => 'Fixed assets, maintenance schedules, and depreciation.',
         'icon' => 'chip',
-        'quick_create' => [],
-        'groups' => [
-            [
-                'label' => 'Asset Register',
-                'items' => [
-                    ['label' => 'Machines', 'description' => 'Production and plant equipment.', 'coming_soon' => true, 'icon' => 'cog'],
-                    ['label' => 'Vehicles', 'description' => 'Fleet and delivery vehicles.', 'coming_soon' => true, 'icon' => 'truck'],
-                    ['label' => 'Computers', 'description' => 'IT hardware and peripherals.', 'coming_soon' => true, 'icon' => 'template'],
-                    ['label' => 'Maintenance', 'description' => 'Preventive and corrective maintenance.', 'coming_soon' => true, 'icon' => 'cog'],
-                    ['label' => 'Depreciation', 'description' => 'Asset depreciation schedules.', 'coming_soon' => true, 'icon' => 'chart-pie'],
-                ],
-            ],
+        'managed_by' => 'assets_workspaces',
+        'quick_create' => [
+            ['label' => 'Asset', 'route' => 'admin.assets.create', 'permission' => 'assets.create'],
         ],
+        'groups' => [],
     ],
 
     'communications' => [
@@ -193,6 +172,7 @@ return [
                     ['label' => 'Procurement 360', 'description' => 'Purchasing and vendor performance intelligence.', 'route' => 'admin.reports.procurement360', 'permission' => 'intelligence.vendor.view|reports.view', 'icon' => 'truck', 'active_routes' => ['admin.reports.procurement360']],
                     ['label' => 'Financial 360', 'description' => 'Revenue, receivables, and payables intelligence.', 'route' => 'admin.reports.financial360', 'permission' => 'intelligence.financial.view|reports.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.reports.financial360']],
                     ['label' => 'Branch 360', 'description' => 'Branch comparison and performance profiles.', 'route' => 'admin.reports.branch360', 'permission' => 'intelligence.branch.view|reports.view', 'icon' => 'office-building', 'active_routes' => ['admin.reports.branch360']],
+                    ['label' => 'Asset Intelligence', 'description' => 'Asset valuation, health, utilization, and lifecycle analytics.', 'route' => 'admin.reports.asset360', 'permission' => 'intelligence.assets.view|assets.analytics.view|reports.view', 'icon' => 'chip', 'active_routes' => ['admin.reports.asset360']],
                 ],
             ],
         ],

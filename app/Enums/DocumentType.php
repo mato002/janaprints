@@ -29,6 +29,14 @@ enum DocumentType: string
     case SupplierQuotation = 'supplier_quotation';
     case Rfq = 'rfq';
     case FixedAsset = 'fixed_asset';
+    case MaintenanceWorkOrder = 'maintenance_work_order';
+    case AssetHandover = 'asset_handover';
+    case AssetBranchTransfer = 'asset_branch_transfer';
+    case DepreciationRun = 'depreciation_run';
+    case AssetWriteOff = 'asset_write_off';
+    case AssetReconciliation = 'asset_reconciliation';
+    case AssetCapitalizationCandidate = 'asset_capitalization_candidate';
+    case AssetCapitalizationReconciliation = 'asset_capitalization_reconciliation';
     case Journal = 'journal';
 
     public function typeCode(): string
@@ -59,6 +67,14 @@ enum DocumentType: string
             self::SupplierQuotation => 'SQ',
             self::Rfq => 'RFQ',
             self::FixedAsset => 'AST',
+            self::MaintenanceWorkOrder => 'MWO',
+            self::AssetHandover => 'AHO',
+            self::AssetBranchTransfer => 'ABT',
+            self::DepreciationRun => 'DR',
+            self::AssetWriteOff => 'AWO',
+            self::AssetReconciliation => 'ARC',
+            self::AssetCapitalizationCandidate => 'CAP',
+            self::AssetCapitalizationReconciliation => 'ACR',
             self::Journal => 'JE',
         };
     }

@@ -1,4 +1,8 @@
-<x-admin-layout :title="__('Edit job card')" :breadcrumbs="[['label' => __('Job cards'), 'url' => route('admin.production.job-cards.index')], ['label' => $jobCard->job_card_number]]">
+<x-admin-layout :title="__('Edit job card')" :breadcrumbs="[
+    ['label' => __('Production'), 'url' => route('admin.workspaces.production')],
+    ['label' => __('Job Cards'), 'url' => route('admin.production.job-cards.index')],
+    ['label' => $jobCard->job_card_number],
+]">
     <x-admin.page-header :title="$jobCard->job_card_number" />
 
     <x-admin.card>

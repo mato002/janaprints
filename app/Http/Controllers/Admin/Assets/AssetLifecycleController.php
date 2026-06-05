@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers\Admin\Assets;
 
+use App\Enums\AssetDisposalStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\FixedAsset;
 use App\Models\Branch;
+use App\Support\ActivityLogger;
+use App\Services\Assets\AssetDisposalAccountingService;
 use App\Support\Assets\AssetDepreciationService;
 use App\Support\Assets\AssetLifecycleService;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +18,7 @@ class AssetLifecycleController extends Controller
 {
     public function transferForm(FixedAsset $asset): View
     {
-        abort_unless(auth()->user()?->can('assets.manage'), 403);
+        $this->authorize('manage', $asset);
 
         return view('admin.assets.transfer', [
             'asset' => $asset,
@@ -25,7 +28,7 @@ class AssetLifecycleController extends Controller
 
     public function transfer(Request $request, FixedAsset $asset): RedirectResponse
     {
-        abort_unless(auth()->user()?->can('assets.manage'), 403);
+        $this->authorize('manage', $asset);
 
         $validated = $request->validate([
             'to_branch_id' => ['nullable', 'exists:branches,id'],
@@ -35,6 +38,7 @@ class AssetLifecycleController extends Controller
         ]);
 
         AssetLifecycleService::transfer($asset, $validated, (int) auth()->id());
+        ActivityLogger::log('transferred', $asset->fresh(), (int) auth()->id(), $validated);
 
         return redirect()->route('admin.assets.show', $asset)->with('status', __('Asset transferred.'));
     }
@@ -72,14 +76,14 @@ class AssetLifecycleController extends Controller
 
     public function disposeForm(FixedAsset $asset): View
     {
-        abort_unless(auth()->user()?->can('assets.manage'), 403);
+        $this->authorize('dispose', $asset);
 
         return view('admin.assets.dispose', compact('asset'));
     }
 
     public function dispose(Request $request, FixedAsset $asset): RedirectResponse
     {
-        abort_unless(auth()->user()?->can('assets.manage'), 403);
+        $this->authorize('dispose', $asset);
 
         $validated = $request->validate([
             'disposal_date' => ['required', 'date'],
@@ -88,7 +92,15 @@ class AssetLifecycleController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        AssetLifecycleService::dispose($asset, $validated, (int) auth()->id());
+        $disposal = app(AssetDisposalAccountingService::class)->dispose(
+            $asset,
+            $validated,
+            (int) auth()->id(),
+        );
+
+        if (auth()->user()?->can('assets.disposal.post') && $disposal->status === AssetDisposalStatus::Approved) {
+            app(AssetDisposalAccountingService::class)->post($disposal, (int) auth()->id());
+        }
 
         return redirect()->route('admin.assets.index')->with('status', __('Asset disposed.'));
     }
@@ -108,7 +120,9 @@ class AssetLifecycleController extends Controller
 
     public function barcode(FixedAsset $asset): View
     {
-        abort_unless(auth()->user()?->can('assets.view'), 403);
+        $this->authorize('view', $asset);
+
+        ActivityLogger::log('barcode_printed', $asset, (int) auth()->id());
 
         return view('admin.assets.barcode', compact('asset'));
     }

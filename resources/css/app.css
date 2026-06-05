@@ -2349,6 +2349,51 @@
         @apply bg-slate-100 text-slate-600;
     }
 
+    /* Quote intake workspace */
+    .qr-intake__artwork {
+        @apply space-y-3;
+    }
+
+    .qr-intake__artwork-main {
+        @apply overflow-hidden rounded-xl border border-slate-200 bg-slate-950/5;
+    }
+
+    .qr-intake__artwork-image {
+        @apply max-h-[28rem] w-full object-contain bg-slate-900/5;
+    }
+
+    .qr-intake__artwork-pdf {
+        @apply h-[28rem] w-full bg-white;
+    }
+
+    .qr-intake__artwork-file {
+        @apply flex min-h-[12rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center;
+    }
+
+    .qr-intake__artwork-meta {
+        @apply rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm;
+    }
+
+    .qr-intake__artwork-empty {
+        @apply flex min-h-[12rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center;
+    }
+
+    .qr-intake__artwork-modal {
+        @apply fixed inset-0 z-50 flex items-center justify-center p-4;
+    }
+
+    .qr-intake__artwork-modal-backdrop {
+        @apply absolute inset-0 bg-slate-950/80;
+    }
+
+    .qr-intake__artwork-modal-panel {
+        @apply relative z-10 max-h-[90vh] w-full max-w-5xl overflow-auto rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-2xl;
+    }
+
+    .qr-intake__sidebar {
+        @apply min-w-0;
+    }
+
     /* Communication Log — 360 intelligence workspace */
     .comm-log-360 {
         @apply min-w-0 space-y-4 pb-6;

@@ -10,13 +10,17 @@ class WorkspacePresenter
         protected ?AccountingWorkspacePresenter $accounting = null,
         protected ?SupplyChainWorkspacePresenter $supplyChain = null,
         protected ?CommercialWorkspacePresenter $commercial = null,
+        protected ?ProductionWorkspacePresenter $production = null,
         protected ?AdministrationWorkspacePresenter $administration = null,
+        protected ?AssetsWorkspacePresenter $assets = null,
         protected ?WorkspaceNavigationResolver $navigation = null,
     ) {
         $this->accounting ??= app(AccountingWorkspacePresenter::class);
         $this->supplyChain ??= app(SupplyChainWorkspacePresenter::class);
         $this->commercial ??= app(CommercialWorkspacePresenter::class);
+        $this->production ??= app(ProductionWorkspacePresenter::class);
         $this->administration ??= app(AdministrationWorkspacePresenter::class);
+        $this->assets ??= app(AssetsWorkspacePresenter::class);
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
     }
     /**
@@ -81,8 +85,16 @@ class WorkspacePresenter
             return $this->commercial->isVisible();
         }
 
+        if ($key === 'production') {
+            return $this->production->isVisible();
+        }
+
         if ($key === 'administration') {
             return $this->administration->isVisible();
+        }
+
+        if ($key === 'assets') {
+            return $this->assets->isVisible();
         }
 
         $definition = $this->definitions()[$key] ?? null;
@@ -132,8 +144,16 @@ class WorkspacePresenter
             return $this->commercial->collectActiveRoutes();
         }
 
+        if ($key === 'production') {
+            return $this->production->collectActiveRoutes();
+        }
+
         if ($key === 'administration') {
             return $this->administration->collectActiveRoutes();
+        }
+
+        if ($key === 'assets') {
+            return $this->assets->collectActiveRoutes();
         }
 
         $routes = ["admin.workspaces.{$key}"];
@@ -190,8 +210,20 @@ class WorkspacePresenter
                 continue;
             }
 
+            if ($key === 'production') {
+                $flat = array_merge($flat, $this->production->flattenForSearch());
+
+                continue;
+            }
+
             if ($key === 'administration') {
                 $flat = array_merge($flat, $this->administration->flattenForSearch());
+
+                continue;
+            }
+
+            if ($key === 'assets') {
+                $flat = array_merge($flat, $this->assets->flattenForSearch());
 
                 continue;
             }

@@ -22,8 +22,6 @@ class ProductionSchedulingController extends Controller
 
         return view('admin.production.scheduling.index', [
             'kpis' => $workspace->kpiCounts(),
-            'workCenterLoad' => $workspace->workCenterLoadPanel(),
-            'warnings' => $workspace->schedulingWarnings(),
             'jobs' => $viewMode === 'list' ? $workspace->paginatedIndex($request) : null,
             'calendar' => $viewMode === 'calendar' ? $workspace->calendarMonth($request) : null,
             'workCenters' => WorkCenter::query()->forTenant()->orderBy('name')->get(['id', 'name']),

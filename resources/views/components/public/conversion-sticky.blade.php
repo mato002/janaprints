@@ -14,7 +14,7 @@
                 <strong>Ready to print?</strong> Get a free quote in minutes.
             </p>
             <div class="public-sticky-cta__actions">
-                <a href="#quote-form" class="public-sticky-cta__btn public-sticky-cta__btn--primary">
+                <a href="{{ $quoteFormHref }}" class="public-sticky-cta__btn public-sticky-cta__btn--primary">
                     Request Quote
                 </a>
                 <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="public-sticky-cta__btn public-sticky-cta__btn--wa">
@@ -40,7 +40,7 @@
 
     {{-- Floating action buttons — appear after scroll --}}
     <div class="public-sticky-fab" data-sticky-fab hidden>
-        <a href="#quote-form" class="public-sticky-fab__quote" data-sticky-quote aria-label="Request a quote">
+        <a href="{{ $quoteFormHref }}" class="public-sticky-fab__quote" data-sticky-quote aria-label="Request a quote">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span>Quote</span>
         </a>

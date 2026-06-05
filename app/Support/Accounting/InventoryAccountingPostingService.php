@@ -49,10 +49,14 @@ class InventoryAccountingPostingService
         return $journal;
     }
 
-    public function postGoodsReceipt(GoodsReceipt $goodsReceipt, int $userId): ?Journal
+    /**
+     * @param  Collection<int, mixed>|null  $lines
+     */
+    public function postGoodsReceipt(GoodsReceipt $goodsReceipt, int $userId, ?Collection $lines = null): ?Journal
     {
         $goodsReceipt->load('items');
-        $total = $this->lineTotal($goodsReceipt->items, 'quantity_received', 'unit_cost');
+        $lines ??= $goodsReceipt->items;
+        $total = $this->lineTotal($lines, 'quantity_received', 'unit_cost');
 
         if ($total <= 0) {
             return null;

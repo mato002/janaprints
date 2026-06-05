@@ -2,14 +2,17 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Commercial\PublicLeadsDashboardPresenter;
 use Illuminate\Support\Facades\Route;
 
 class CommercialWorkspacePresenter
 {
     public function __construct(
         protected ?WorkspaceNavigationResolver $navigation = null,
+        protected ?PublicLeadsDashboardPresenter $publicLeads = null,
     ) {
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
+        $this->publicLeads ??= app(PublicLeadsDashboardPresenter::class);
     }
 
     /**
@@ -322,12 +325,15 @@ class CommercialWorkspacePresenter
         $comingSoon = (bool) ($item['coming_soon'] ?? false);
         $href = $comingSoon ? null : $this->resolveHref($item);
 
+        $counts = $this->publicLeads->widgets();
+
         return [
             'id' => md5(($item['label'] ?? '').($item['route'] ?? 'soon')),
             'label' => $item['label'] ?? '',
             'description' => $item['description'] ?? '',
             'icon' => $item['icon'] ?? 'home',
             'href' => $href,
+            'count' => isset($item['count_key']) ? ($counts[$item['count_key']] ?? null) : null,
             'comingSoon' => $comingSoon || $href === null,
             'statusLabel' => $comingSoon || $href === null ? __('Coming Soon') : __('Active'),
             'statusVariant' => $comingSoon || $href === null ? 'neutral' : 'success',

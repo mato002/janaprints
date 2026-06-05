@@ -7,7 +7,8 @@
 <x-admin-layout
     :title="$header['job_number']"
     :breadcrumbs="[
-        ['label' => __('Production'), 'url' => route('admin.production.dashboard')],
+        ['label' => __('Production'), 'url' => route('admin.workspaces.production')],
+        ['label' => __('Job Cards'), 'url' => route('admin.production.job-cards.index')],
         ['label' => $header['job_number']],
     ]"
 >

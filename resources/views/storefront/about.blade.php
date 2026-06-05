@@ -32,7 +32,7 @@
             </div>
 
             <div class="mt-12 flex flex-wrap justify-center gap-4">
-                <x-public.button href="{{ route('storefront.quote') }}" variant="gradient" size="lg">Request a Quote</x-public.button>
+                <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">Request a Quote</x-public.button>
                 <x-public.button href="{{ route('storefront.contact') }}" variant="outline" size="lg">Contact Us</x-public.button>
             </div>
         </div>

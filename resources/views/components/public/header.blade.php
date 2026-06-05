@@ -39,7 +39,7 @@
                     @endif
                 @endauth
 
-                <a href="{{ route('storefront.quote') }}" class="public-btn--primary public-btn--sm shadow-brand-glow">
+                <a href="{{ $quoteFormHref }}" class="public-btn--primary public-btn--sm shadow-brand-glow">
                     Request Quote
                 </a>
             </div>

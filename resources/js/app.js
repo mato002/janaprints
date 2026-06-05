@@ -440,6 +440,90 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('jobCardsRegister', (config = {}) => ({
+        columns: config.columns ?? [],
+        presets: config.presets ?? [],
+        indexUrl: config.indexUrl ?? '',
+        columnsOpen: false,
+        visibleColumns: {},
+        customViews: [],
+        storageKeyColumns: 'erp.job-cards.register.columns',
+        storageKeyViews: 'erp.job-cards.register.savedViews',
+
+        init() {
+            const storedColumns = JSON.parse(localStorage.getItem(this.storageKeyColumns) || 'null');
+
+            this.columns.forEach((column) => {
+                this.visibleColumns[column.key] = storedColumns?.[column.key] ?? column.default ?? true;
+            });
+
+            this.customViews = JSON.parse(localStorage.getItem(this.storageKeyViews) || '[]');
+        },
+
+        isColumnVisible(key) {
+            return this.visibleColumns[key] !== false;
+        },
+
+        toggleColumn(key) {
+            this.visibleColumns[key] = !this.isColumnVisible(key);
+            localStorage.setItem(this.storageKeyColumns, JSON.stringify(this.visibleColumns));
+        },
+
+        buildUrl(query = {}) {
+            const params = new URLSearchParams();
+
+            Object.entries(query).forEach(([name, value]) => {
+                if (value !== null && value !== undefined && value !== '' && value !== false) {
+                    params.set(name, String(value));
+                }
+            });
+
+            const qs = params.toString();
+
+            return qs ? `${this.indexUrl}?${qs}` : this.indexUrl;
+        },
+
+        applyPreset(key) {
+            if (!key) {
+                return;
+            }
+
+            const preset = this.presets.find((item) => item.key === key);
+
+            if (preset) {
+                window.location.href = this.buildUrl(preset.query ?? {});
+
+                return;
+            }
+
+            const custom = this.customViews.find((view) => view.id === key);
+
+            if (custom) {
+                window.location.href = this.buildUrl(custom.query ?? {});
+            }
+        },
+
+        saveCurrentView() {
+            const label = window.prompt('Name this view');
+
+            if (!label || !label.trim()) {
+                return;
+            }
+
+            const query = Object.fromEntries(new URLSearchParams(window.location.search));
+            delete query.page;
+
+            const view = {
+                id: `custom-${Date.now()}`,
+                label: label.trim(),
+                query,
+            };
+
+            this.customViews = [...this.customViews, view];
+            localStorage.setItem(this.storageKeyViews, JSON.stringify(this.customViews));
+        },
+    }));
+
     Alpine.data('tableSearch', () => ({
         query: '',
         debouncedQuery: '',

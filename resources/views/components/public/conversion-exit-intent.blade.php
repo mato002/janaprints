@@ -27,7 +27,7 @@
                 Share your project details and receive professional pricing within minutes.
             </p>
             <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                <x-public.button href="#quote-form" variant="gradient" size="lg" class="public-btn--glow" data-exit-intent-close>
+                <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg" class="public-btn--glow" data-exit-intent-close>
                     Request My Quote
                 </x-public.button>
                 <button type="button" class="public-btn--ghost-dark public-btn--motion-secondary public-btn--lg public-btn" data-exit-intent-close>

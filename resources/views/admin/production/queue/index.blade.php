@@ -12,53 +12,13 @@
 
     <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         @foreach ([
-            ['label' => __('Pending'), 'value' => $kpis['pending'], 'icon' => 'clock'],
+            ['label' => __('Queued'), 'value' => $kpis['queued'], 'icon' => 'clock'],
             ['label' => __('Assigned'), 'value' => $kpis['assigned'], 'icon' => 'user'],
             ['label' => __('In Progress'), 'value' => $kpis['in_progress'], 'icon' => 'cog'],
-            ['label' => __('Active in Queue'), 'value' => $kpis['active'], 'icon' => 'switch-horizontal'],
+            ['label' => __('Blocked'), 'value' => $kpis['blocked'], 'icon' => 'exclamation'],
         ] as $kpi)
             <x-admin.kpi-widget :label="$kpi['label']" :value="(string) $kpi['value']" :icon="$kpi['icon']" />
         @endforeach
-    </div>
-
-    <div class="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <x-admin.card>
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Bottleneck Detection') }}</h2>
-            <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
-                <p class="text-xs font-medium uppercase tracking-wide text-amber-800">{{ __('Most congested work center') }}</p>
-                @if ($bottlenecks['most_congested'] ?? null)
-                    <p class="mt-1 text-lg font-semibold text-erp-primary">{{ $bottlenecks['most_congested']['name'] }}</p>
-                    <p class="text-sm text-slate-600">{{ __(':count queue entries', ['count' => $bottlenecks['most_congested']['queue_count']]) }}</p>
-                @else
-                    <p class="mt-1 text-sm text-slate-500">{{ __('No congestion detected.') }}</p>
-                @endif
-            </div>
-            @if (count($bottlenecks['overbooked'] ?? []) > 0)
-                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-red-700">{{ __('Overbooked work centers') }}</p>
-                <ul class="divide-y divide-erp-border text-sm">
-                    @foreach ($bottlenecks['overbooked'] as $center)
-                        <li class="flex items-center justify-between py-2">
-                            <span>{{ $center['name'] }}</span>
-                            <span class="tabular-nums text-red-700">{{ $center['queue_count'] }} / {{ $center['capacity'] }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </x-admin.card>
-
-        <x-admin.card>
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-600">{{ __('Work centers with queued jobs') }}</h2>
-            <ul class="divide-y divide-erp-border text-sm">
-                @forelse ($bottlenecks['with_queued_jobs'] ?? [] as $center)
-                    <li class="flex items-center justify-between py-2">
-                        <span>{{ $center['name'] }}</span>
-                        <span class="tabular-nums text-amber-700">{{ $center['queue_count'] }}</span>
-                    </li>
-                @empty
-                    <li class="py-4 text-center text-slate-500">{{ __('No queued backlog.') }}</li>
-                @endforelse
-            </ul>
-        </x-admin.card>
     </div>
 
     <form method="GET" action="{{ route('admin.production.queue.index') }}" class="mb-4 flex flex-wrap items-end gap-3">
@@ -94,6 +54,16 @@
                 @endforeach
             </select>
         </div>
+        <div>
+            <label class="text-xs text-slate-600" for="operator_id">{{ __('Operator') }}</label>
+            <select id="operator_id" name="operator_id" class="erp-select mt-1">
+                <option value="">{{ __('All Operators') }}</option>
+                <option value="unassigned" @selected($filters['operator_id'] === 'unassigned')>{{ __('Unassigned') }}</option>
+                @foreach ($operators as $operator)
+                    <option value="{{ $operator->id }}" @selected((string) $filters['operator_id'] === (string) $operator->id)>{{ $operator->name }}</option>
+                @endforeach
+            </select>
+        </div>
         @if ($stages->isNotEmpty())
             <div>
                 <label class="text-xs text-slate-600" for="stage_id">{{ __('Stage') }}</label>
@@ -110,7 +80,7 @@
             <input id="date" type="date" name="date" value="{{ $filters['date'] }}" class="erp-input mt-1 text-sm">
         </div>
         <x-secondary-button type="submit">{{ __('Filter') }}</x-secondary-button>
-        @if ($filters['status'] || $filters['work_center_id'] || $filters['stage_id'] || $filters['date'] || $filters['search'])
+        @if ($filters['status'] || $filters['work_center_id'] || $filters['operator_id'] || $filters['stage_id'] || $filters['date'] || $filters['search'])
             <a href="{{ route('admin.production.queue.index') }}" class="text-sm text-slate-600 hover:text-erp-primary" data-turbo-frame="erp-main">{{ __('Clear') }}</a>
         @endif
     </form>
@@ -159,7 +129,24 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="py-10 text-center text-slate-500">{{ __('No queue entries found.') }}</td>
+                            <td colspan="7">
+                                <x-admin.empty-state
+                                    icon="switch-horizontal"
+                                    :title="__('No queued jobs found')"
+                                    :description="__('Adjust filters or schedule jobs into production.')"
+                                >
+                                    @if (auth()->user()?->can('production.view'))
+                                        <x-slot:action>
+                                            <div class="flex flex-wrap items-center justify-center gap-2">
+                                                <a href="{{ route('admin.production.job-cards.index') }}" class="erp-btn-primary text-sm" data-turbo-frame="erp-main">{{ __('View Job Cards') }}</a>
+                                                @if (auth()->user()?->can('production.scheduling.view'))
+                                                    <a href="{{ route('admin.production.scheduling.index') }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Open Scheduling') }}</a>
+                                                @endif
+                                            </div>
+                                        </x-slot:action>
+                                    @endif
+                                </x-admin.empty-state>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -2,42 +2,26 @@
 
 namespace App\Http\Controllers\Admin\Assets;
 
-use App\Enums\FixedAssetStatus;
 use App\Http\Controllers\Controller;
-use App\Models\Assets\AssetCategory;
-use App\Models\Assets\AssetMaintenance;
 use App\Models\Assets\FixedAsset;
-use App\Support\Assets\AssetDepreciationService;
+use App\Services\Assets\AssetDashboardService;
 use Illuminate\View\View;
 
 class AssetDashboardController extends Controller
 {
+    public function __construct(
+        protected AssetDashboardService $dashboard,
+    ) {}
+
     public function __invoke(): View
     {
-        abort_unless(auth()->user()?->can('assets.view'), 403);
+        $this->authorize('viewAny', FixedAsset::class);
 
         $companyId = (int) tenant()->companyId();
+        $branchId = tenant()->branchId();
 
-        $stats = [
-            'totals' => AssetDepreciationService::companyTotals($companyId),
-            'by_category' => AssetCategory::query()
-                ->where('company_id', $companyId)
-                ->withCount('assets')
-                ->get(),
-            'due_service' => AssetMaintenance::query()
-                ->where('status', 'scheduled')
-                ->whereDate('scheduled_date', '<=', now()->addDays(30))
-                ->count(),
-            'under_repair' => FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->where('status', FixedAssetStatus::UnderRepair)
-                ->count(),
-            'disposed' => FixedAsset::query()
-                ->where('company_id', $companyId)
-                ->where('status', FixedAssetStatus::Disposed)
-                ->count(),
-        ];
-
-        return view('admin.assets.dashboard', compact('stats'));
+        return view('admin.assets.dashboard', [
+            'stats' => $this->dashboard->build($companyId, $branchId),
+        ]);
     }
 }

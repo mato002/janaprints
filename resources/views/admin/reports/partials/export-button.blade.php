@@ -1,6 +1,8 @@
-@props(['can_export' => false])
+@props(['can_export' => false, 'export_url' => null])
 
-@if ($can_export)
+@if ($can_export && $export_url)
+    <a href="{{ $export_url }}" class="erp-btn-secondary" data-turbo="false">{{ __('Export CSV') }}</a>
+@elseif ($can_export)
     <button type="button" class="erp-btn-secondary" disabled title="{{ __('Export will be available in a future release') }}">
         {{ __('Export') }}
     </button>

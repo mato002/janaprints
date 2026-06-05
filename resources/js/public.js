@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPortfolio();
     initJourney();
     initConversion();
+    initQuoteFormAnchor();
     initStickyFab();
     initScrollNav();
     initRevealOnScroll();
@@ -782,9 +783,29 @@ function initJourney() {
     });
 }
 
+function initQuoteFormAnchor() {
+    if (window.location.hash !== '#quote-form') {
+        return;
+    }
+
+    const target = document.getElementById('quote-form');
+
+    if (!target) {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        window.setTimeout(() => {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+    });
+}
+
 function initConversion() {
     initConversionFaq();
+    initArtworkUpload();
     initQuoteForm();
+    initContactForm();
     initScrollCta();
     initExitIntentStructure();
 }
@@ -831,25 +852,116 @@ function initConversionFaq() {
     });
 }
 
+function initArtworkUpload() {
+    document.querySelectorAll('[data-upload-placeholder]').forEach((placeholder) => {
+        const input = placeholder.querySelector('[data-artwork-input]');
+
+        if (!input) {
+            return;
+        }
+
+        placeholder.addEventListener('click', () => input.click());
+
+        input.addEventListener('change', () => {
+            const label = placeholder.querySelector('p');
+
+            if (label && input.files?.length) {
+                label.textContent = input.files[0].name;
+            }
+        });
+    });
+}
+
+async function submitPublicForm(form, successSelector) {
+    const success = document.querySelector(successSelector);
+    const submitButton = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
+    const csrf = form.querySelector('input[name="_token"]')?.value;
+
+    if (submitButton) {
+        submitButton.disabled = true;
+    }
+
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                Accept: 'application/json',
+                ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+            },
+        });
+
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(payload.message || 'Submission failed');
+        }
+
+        form.reset();
+        form.querySelectorAll('input, select, textarea, button').forEach((el) => {
+            if (el.type !== 'hidden' && el.name !== '_token') {
+                el.disabled = true;
+            }
+        });
+
+        if (success) {
+            const textTarget = success.querySelector('[data-quote-success-text] span, [data-contact-success-text] span')
+                || success.querySelector('p span')
+                || success.querySelector('p');
+
+            if (textTarget && payload.message) {
+                if (textTarget.tagName === 'SPAN') {
+                    textTarget.textContent = payload.message;
+                } else {
+                    textTarget.innerHTML = `<strong>Thank you!</strong> ${payload.message}`;
+                }
+            }
+
+            success.hidden = false;
+            success.removeAttribute('hidden');
+            success.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    } catch (error) {
+        if (submitButton) {
+            submitButton.disabled = false;
+        }
+
+        form.submit();
+    }
+}
+
 function initQuoteForm() {
     const form = document.querySelector('[data-quote-form]');
-    const success = document.querySelector('[data-quote-success]');
 
     if (!form) {
         return;
     }
 
     form.addEventListener('submit', (event) => {
-        event.preventDefault();
-
-        form.querySelectorAll('input, select, textarea, button').forEach((el) => {
-            el.disabled = true;
-        });
-
-        if (success) {
-            success.hidden = false;
-            success.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (!window.fetch) {
+            return;
         }
+
+        event.preventDefault();
+        submitPublicForm(form, '[data-quote-success]');
+    });
+}
+
+function initContactForm() {
+    const form = document.querySelector('[data-contact-form]');
+
+    if (!form) {
+        return;
+    }
+
+    form.addEventListener('submit', (event) => {
+        if (!window.fetch) {
+            return;
+        }
+
+        event.preventDefault();
+        submitPublicForm(form, '[data-contact-success]');
     });
 }
 

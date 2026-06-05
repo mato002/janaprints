@@ -2,8 +2,10 @@
 
 namespace App\Models\Production;
 
+use App\Models\Assets\FixedAsset;
 use App\Models\Concerns\BelongsToTenant;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkCenter extends Model
 {
@@ -12,7 +14,7 @@ class WorkCenter extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'name', 'code', 'description', 'is_active',
+        'company_id', 'branch_id', 'fixed_asset_id', 'name', 'code', 'description', 'is_active',
     ];
 
     protected function casts(): array
@@ -20,5 +22,10 @@ class WorkCenter extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    public function machineAsset(): BelongsTo
+    {
+        return $this->belongsTo(FixedAsset::class, 'fixed_asset_id');
     }
 }

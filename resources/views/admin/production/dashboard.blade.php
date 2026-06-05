@@ -1,12 +1,12 @@
 @php
-    $kpis = $dashboard['kpis'] ?? [];
+    $snapshot = $dashboard['snapshot'] ?? [];
     $pipeline = $dashboard['pipeline'] ?? [];
     $urgent = $dashboard['urgent'] ?? [];
-    $schedule = $dashboard['schedule'] ?? [];
-    $workCenterLoad = $dashboard['work_center_load'] ?? [];
+    $departmentCapacity = $dashboard['department_capacity'] ?? [];
+    $machineCapacity = $dashboard['machine_capacity'] ?? [];
+    $maintenanceAlerts = $dashboard['maintenance_alerts'] ?? [];
     $activity = $dashboard['activity'] ?? [];
     $quickActions = $dashboard['quick_actions'] ?? [];
-    $performance = $dashboard['performance'] ?? [];
 @endphp
 
 <x-admin-layout
@@ -18,201 +18,207 @@
 >
     <x-admin.page-header
         :title="__('Production Command Center')"
-        :description="__('Operations visibility — pipeline, workload, urgency, and live activity.')"
+        :description="__('Authoritative production intelligence — snapshot, pipeline, urgency, capacity, and live floor activity.')"
     />
 
     <p class="mb-4 text-xs text-slate-500">{{ __('As of') }} {{ $dashboard['as_of'] ?? now()->format('Y-m-d H:i') }}</p>
 
-    {{-- Section 1: Executive KPI strip --}}
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
-        @foreach ($kpis as $card)
-            @if ($card['clickable'] ?? false)
-                <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+    {{-- Section 1: Production Snapshot --}}
+    <section class="mb-6" aria-label="{{ __('Production Snapshot') }}">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Production Snapshot') }}</h2>
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            @foreach ($snapshot as $card)
+                @if ($card['clickable'] ?? false)
+                    <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                        <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
+                    </a>
+                @else
                     <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
-                </a>
-            @else
-                <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
-            @endif
-        @endforeach
-    </div>
-
-    {{-- Section 8: Performance snapshot --}}
-    <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <x-admin.kpi-widget :label="__('Completed Today')" :value="(string) ($performance['completed_today'] ?? 0)" icon="check-circle" />
-        <x-admin.kpi-widget :label="__('Completed This Week')" :value="(string) ($performance['completed_week'] ?? 0)" icon="calendar" />
-        <x-admin.kpi-widget
-            :label="__('QC Pass Rate')"
-            :value="$performance['qc_pass_rate'] !== null ? $performance['qc_pass_rate'].'%' : '—'"
-            :hint="$performance['qc_pass_label'] ?? null"
-            icon="badge-check"
-        />
-        <x-admin.kpi-widget :label="__('Jobs Delivered Today')" :value="(string) ($performance['delivered_today'] ?? 0)" icon="truck" />
-    </div>
-
-    {{-- Section 7: Quick actions --}}
-    <x-admin.card class="mt-4">
-        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Quick Actions') }}</h2>
-        <div class="flex flex-wrap gap-2">
-            @forelse ($quickActions as $action)
-                <a
-                    href="{{ route($action['route']) }}"
-                    class="{{ ! empty($action['primary']) ? 'erp-btn-primary' : 'erp-btn-secondary' }}"
-                    data-turbo-frame="erp-main"
-                >{{ $action['label'] }}</a>
-            @empty
-                <p class="text-sm text-slate-500">{{ __('No quick actions available for your role.') }}</p>
-            @endforelse
+                @endif
+            @endforeach
         </div>
-    </x-admin.card>
+    </section>
 
-    <div class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-12">
-        {{-- Section 2: Pipeline --}}
-        <x-admin.card class="xl:col-span-12">
+    {{-- Section 2: Production Pipeline --}}
+    <section class="mb-6" aria-label="{{ __('Production Pipeline') }}">
+        <x-admin.card>
             <h2 class="mb-4 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Production Pipeline') }}</h2>
-            <div class="flex flex-col gap-3 lg:flex-row lg:items-stretch lg:justify-between">
-                @foreach ($pipeline as $index => $stage)
-                    <div class="flex min-w-0 flex-1 flex-col items-center text-center">
-                        @if ($stage['url'] ?? null)
-                            <a href="{{ $stage['url'] }}" class="w-full rounded-lg border border-erp-border bg-slate-50 px-3 py-4 transition-colors hover:border-erp-accent hover:bg-white" data-turbo-frame="erp-main">
-                                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $stage['label'] }}</p>
-                                <p class="mt-1 text-2xl font-bold tabular-nums text-erp-primary">{{ $stage['count'] }}</p>
-                            </a>
-                        @else
-                            <div class="w-full rounded-lg border border-erp-border bg-slate-50 px-3 py-4">
-                                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $stage['label'] }}</p>
-                                <p class="mt-1 text-2xl font-bold tabular-nums text-erp-primary">{{ $stage['count'] }}</p>
-                            </div>
-                        @endif
-                        @if ($index < count($pipeline) - 1)
-                            <span class="my-1 hidden text-slate-300 lg:inline" aria-hidden="true">↓</span>
-                            <span class="my-1 text-slate-300 lg:hidden" aria-hidden="true">↓</span>
-                        @endif
-                    </div>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+                @foreach ($pipeline as $stage)
+                    @if ($stage['url'] ?? null)
+                        <a href="{{ $stage['url'] }}" class="rounded-lg border border-erp-border bg-slate-50 px-3 py-4 text-center transition-colors hover:border-erp-accent hover:bg-white" data-turbo-frame="erp-main">
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $stage['label'] }}</p>
+                            <p class="mt-1 text-2xl font-bold tabular-nums text-erp-primary">{{ $stage['count'] }}</p>
+                        </a>
+                    @else
+                        <div class="rounded-lg border border-erp-border bg-slate-50 px-3 py-4 text-center">
+                            <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $stage['label'] }}</p>
+                            <p class="mt-1 text-2xl font-bold tabular-nums text-erp-primary">{{ $stage['count'] }}</p>
+                        </div>
+                    @endif
                 @endforeach
             </div>
         </x-admin.card>
+    </section>
 
-        {{-- Section 3: Urgent attention --}}
-        <div class="xl:col-span-12">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Urgent Attention') }}</h2>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                @foreach (['delayed', 'awaiting_artwork', 'awaiting_qc', 'dispatch_due_today'] as $sectionKey)
-                    @php $section = $urgent[$sectionKey] ?? []; @endphp
-                    <x-admin.card>
-                        <div class="mb-3 flex items-center justify-between gap-2">
-                            <h3 class="text-sm font-semibold text-erp-primary">{{ $section['title'] ?? '' }}</h3>
-                            @if (! empty($section['view_all_url']))
-                                <a href="{{ $section['view_all_url'] }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('View All') }}</a>
-                            @endif
-                        </div>
-                        @if (! empty($section['empty']))
-                            <x-admin.empty-state :title="__('All clear')" :description="__('No jobs require attention in this category.')" />
-                        @else
-                            <ul class="divide-y divide-erp-border text-sm">
-                                @foreach ($section['records'] ?? [] as $record)
-                                    <li class="py-2.5">
-                                        @if ($record['url'] ?? null)
-                                            <a href="{{ $record['url'] }}" class="font-mono font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $record['job_number'] }}</a>
-                                        @else
-                                            <span class="font-mono font-medium text-erp-primary">{{ $record['job_number'] }}</span>
-                                        @endif
-                                        <p class="mt-0.5 truncate text-slate-600">{{ $record['customer'] }}</p>
-                                        <p class="mt-1 flex justify-between gap-2 text-xs text-slate-500">
-                                            <span>{{ $record['status'] }}</span>
-                                            <span>{{ $record['due_date'] }}</span>
-                                        </p>
-                                    </li>
-                                @endforeach
-                            </ul>
+    {{-- Section 3: Urgent Attention Center --}}
+    <section class="mb-6" aria-label="{{ __('Urgent Attention Center') }}">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Urgent Attention Center') }}</h2>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+            @foreach (['overdue_jobs', 'awaiting_artwork', 'awaiting_qc', 'dispatch_due_today', 'escalated_jobs'] as $sectionKey)
+                @php $section = $urgent[$sectionKey] ?? []; @endphp
+                <x-admin.card>
+                    <div class="mb-3 flex items-center justify-between gap-2">
+                        <h3 class="text-sm font-semibold text-erp-primary">{{ $section['title'] ?? '' }}</h3>
+                        @if (! empty($section['view_all_url']))
+                            <a href="{{ $section['view_all_url'] }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('View All') }}</a>
                         @endif
-                    </x-admin.card>
-                @endforeach
-            </div>
+                    </div>
+                    @if (! empty($section['empty']))
+                        <x-admin.empty-state :title="__('All clear')" :description="__('No jobs require attention in this category.')" />
+                    @else
+                        <ul class="divide-y divide-erp-border text-sm">
+                            @foreach ($section['records'] ?? [] as $record)
+                                <li class="py-2.5">
+                                    @if ($record['url'] ?? null)
+                                        <a href="{{ $record['url'] }}" class="font-mono font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $record['job_number'] }}</a>
+                                    @else
+                                        <span class="font-mono font-medium text-erp-primary">{{ $record['job_number'] }}</span>
+                                    @endif
+                                    <p class="mt-0.5 truncate text-slate-600">{{ $record['customer'] }}</p>
+                                    <p class="mt-1 flex justify-between gap-2 text-xs text-slate-500">
+                                        <span>{{ $record['status'] }}</span>
+                                        <span>{{ $record['due_date'] }}</span>
+                                    </p>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </x-admin.card>
+            @endforeach
         </div>
+    </section>
 
-        {{-- Section 4: Today's schedule --}}
-        <x-admin.card class="xl:col-span-7">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __("Today's Production Schedule") }}</h2>
-            @if ($schedule === [])
-                <x-admin.empty-state :title="__('No jobs scheduled today')" :description="__('Planned start or end dates fall outside today.')" />
-            @else
+    @if (($maintenanceAlerts['critical_failures'] ?? 0) > 0)
+        <section class="mb-6" aria-label="{{ __('Critical Maintenance Alerts') }}">
+            <x-admin.card>
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-red-700">{{ __('Critical Maintenance Alerts') }}</h2>
+                <p class="mb-3 text-sm text-slate-600">{{ __(':count critical maintenance work orders may block production.', ['count' => $maintenanceAlerts['critical_failures']]) }}</p>
+                <ul class="divide-y divide-erp-border text-sm">
+                    @foreach ($maintenanceAlerts['orders'] ?? [] as $order)
+                        <li class="py-2">
+                            @if ($order['url'] ?? null)
+                                <a href="{{ $order['url'] }}" class="erp-link font-mono">{{ $order['work_order_no'] }}</a>
+                            @else
+                                <span class="font-mono">{{ $order['work_order_no'] }}</span>
+                            @endif
+                            — {{ $order['asset_name'] }}
+                        </li>
+                    @endforeach
+                </ul>
+            </x-admin.card>
+        </section>
+    @endif
+
+    <div class="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-12">
+        {{-- Section 4: Department Capacity --}}
+        <section class="xl:col-span-7" aria-label="{{ __('Department Capacity') }}">
+            <x-admin.card>
+                <div class="mb-3 flex items-center justify-between gap-2">
+                    <h2 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Department Capacity') }}</h2>
+                    @can('production.work-centers.view')
+                        @if (Route::has('admin.production.work-centers.index'))
+                            <a href="{{ route('admin.production.work-centers.index') }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('Work Centers') }}</a>
+                        @endif
+                    @endcan
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead>
                             <tr class="border-b border-erp-border text-left text-[11px] uppercase tracking-wide text-slate-500">
-                                <th class="py-2 pr-3">{{ __('Job') }}</th>
-                                <th class="py-2 pr-3">{{ __('Customer') }}</th>
-                                <th class="py-2 pr-3">{{ __('Work Center') }}</th>
-                                <th class="py-2 pr-3">{{ __('Planned Start') }}</th>
-                                <th class="py-2 pr-3">{{ __('Planned End') }}</th>
-                                <th class="py-2">{{ __('Status') }}</th>
+                                <th class="py-2 pr-3">{{ __('Department') }}</th>
+                                <th class="py-2 pr-3 text-right">{{ __('Active Jobs') }}</th>
+                                <th class="py-2 pr-3 text-right">{{ __('Queue') }}</th>
+                                <th class="py-2 pr-3 text-right">{{ __('Capacity') }}</th>
+                                <th class="py-2">{{ __('Utilization') }}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($schedule as $row)
-                                <tr class="border-t border-erp-border">
-                                    <td class="py-2 pr-3">
-                                        @if ($row['url'] ?? null)
-                                            <a href="{{ $row['url'] }}" class="font-mono text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $row['job_number'] }}</a>
-                                        @else
-                                            <span class="font-mono">{{ $row['job_number'] }}</span>
-                                        @endif
+                            @foreach ($departmentCapacity as $dept)
+                                <tr class="border-t border-erp-border {{ $dept['is_overbooked'] ? 'bg-red-50/40' : '' }}">
+                                    <td class="py-2 pr-3 font-medium">{{ $dept['label'] }}</td>
+                                    <td class="py-2 pr-3 text-right tabular-nums">{{ $dept['active_jobs'] }}</td>
+                                    <td class="py-2 pr-3 text-right tabular-nums">{{ $dept['queue_count'] }}</td>
+                                    <td class="py-2 pr-3 text-right tabular-nums">{{ $dept['capacity'] }}</td>
+                                    <td class="py-2">
+                                        <div class="flex items-center gap-2">
+                                            <div class="h-2 min-w-[5rem] flex-1 overflow-hidden rounded-full bg-slate-100">
+                                                <div
+                                                    class="h-full rounded-full {{ $dept['is_overbooked'] ? 'bg-red-500' : 'bg-erp-accent' }}"
+                                                    style="width: {{ min(100, $dept['utilization_percent']) }}%"
+                                                ></div>
+                                            </div>
+                                            <span class="text-xs tabular-nums text-slate-600">{{ $dept['utilization_percent'] }}%</span>
+                                        </div>
                                     </td>
-                                    <td class="py-2 pr-3">{{ $row['customer'] }}</td>
-                                    <td class="py-2 pr-3">{{ $row['work_center'] }}</td>
-                                    <td class="py-2 pr-3 tabular-nums">{{ $row['planned_start'] }}</td>
-                                    <td class="py-2 pr-3 tabular-nums">{{ $row['planned_end'] }}</td>
-                                    <td class="py-2">{{ $row['status'] }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-            @endif
-        </x-admin.card>
+            </x-admin.card>
+        </section>
 
-        {{-- Section 5: Work center load --}}
-        <x-admin.card class="xl:col-span-5">
-            <div class="mb-3 flex items-center justify-between gap-2">
-                <h2 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Work Center Load') }}</h2>
-                @can('production.work-centers.view')
-                    @if (Route::has('admin.production.work-centers.index'))
-                        <a href="{{ route('admin.production.work-centers.index') }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('View All') }}</a>
-                    @endif
-                @endcan
-            </div>
-            @if ($workCenterLoad === [])
-                <x-admin.empty-state :title="__('No work centers')" :description="__('Configure work centers to see utilization.')" />
-            @else
-                <ul class="space-y-4">
-                    @foreach ($workCenterLoad as $center)
-                        <li>
-                            <div class="mb-1 flex items-center justify-between gap-2 text-sm">
-                                @if ($center['url'] ?? null)
-                                    <a href="{{ $center['url'] }}" class="font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $center['name'] }}</a>
-                                @else
-                                    <span class="font-medium text-erp-primary">{{ $center['name'] }}</span>
-                                @endif
-                                <span class="text-xs text-slate-500 tabular-nums">
-                                    {{ $center['active_jobs'] }} {{ __('jobs') }} · {{ $center['queue_count'] }} {{ __('queue') }}
-                                </span>
-                            </div>
-                            <div class="h-2 overflow-hidden rounded-full bg-slate-100">
-                                <div
-                                    class="h-full rounded-full {{ ($center['utilization_percent'] ?? 0) > 100 ? 'bg-red-500' : 'bg-erp-accent' }}"
-                                    style="width: {{ min(100, $center['utilization_percent'] ?? 0) }}%"
-                                ></div>
-                            </div>
-                            <p class="mt-0.5 text-[11px] text-slate-500">{{ __('Utilization') }}: {{ $center['utilization_percent'] }}%</p>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
-        </x-admin.card>
+        {{-- Section 5: Machine Overview --}}
+        <section class="xl:col-span-5" aria-label="{{ __('Machine Overview') }}">
+            <x-admin.card>
+                <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Machine Overview') }}</h2>
+                <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    <x-admin.kpi-widget :label="__('Available')" :value="$machineCapacity['available_count'] ?? 0" icon="check-circle" />
+                    <x-admin.kpi-widget :label="__('Running')" :value="$machineCapacity['running_count'] ?? 0" icon="play" />
+                    <x-admin.kpi-widget :label="__('Offline')" :value="$machineCapacity['offline_count'] ?? 0" icon="pause" />
+                    <x-admin.kpi-widget :label="__('Utilization')" :value="($machineCapacity['utilization_percent'] ?? 0).'%'" icon="cog" />
+                    <x-admin.kpi-widget :label="__('Availability')" :value="($machineCapacity['availability_percent'] ?? 0).'%'" icon="chart-pie" />
+                    <x-admin.kpi-widget :label="__('Capacity Alerts')" :value="$machineCapacity['capacity_alerts'] ?? 0" icon="exclamation" />
+                </div>
+                @if (($machineCapacity['machines'] ?? []) === [])
+                    <x-admin.empty-state :title="__('No machines tracked')" :description="__('Configure work centers to see machine capacity.')" />
+                @else
+                    <ul class="divide-y divide-erp-border text-sm">
+                        @foreach ($machineCapacity['machines'] as $machine)
+                            <li class="flex items-center justify-between gap-2 py-2">
+                                <div class="min-w-0">
+                                    @if ($machine['url'] ?? null)
+                                        <a href="{{ $machine['url'] }}" class="font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $machine['name'] }}</a>
+                                    @else
+                                        <span class="font-medium text-erp-primary">{{ $machine['name'] }}</span>
+                                    @endif
+                                    <p class="text-xs text-slate-500">{{ $machine['code'] }}</p>
+                                    @if (! empty($machine['status']))
+                                        <p class="text-xs text-slate-500">{{ $machine['status'] }}</p>
+                                    @endif
+                                </div>
+                                <div class="shrink-0 text-right text-xs tabular-nums text-slate-600">
+                                    <p>{{ $machine['utilization_percent'] }}% {{ __('util') }}</p>
+                                    <p class="{{ $machine['is_available'] ? 'text-emerald-700' : 'text-red-700' }}">
+                                        {{ $machine['is_available'] ? __('Available') : __('Constrained') }}
+                                    </p>
+                                    @if (! empty($machine['capacity_alert']))
+                                        <p class="text-amber-700">{{ __('Capacity alert') }}</p>
+                                    @endif
+                                </div>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </x-admin.card>
+        </section>
+    </div>
 
-        {{-- Section 6: Recent activity --}}
-        <x-admin.card class="xl:col-span-12">
-            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Recent Production Activity') }}</h2>
+    {{-- Section 6: Today's Production Feed --}}
+    <section class="mb-6" aria-label="{{ __('Today\'s Production Feed') }}">
+        <x-admin.card>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __("Today's Production Feed") }}</h2>
             @if ($activity === [])
                 <x-admin.empty-state :title="__('No recent activity')" :description="__('Production events will appear here as jobs move through the floor.')" />
             @else
@@ -240,5 +246,23 @@
                 </ul>
             @endif
         </x-admin.card>
-    </div>
+    </section>
+
+    {{-- Section 7: Quick Actions --}}
+    <section aria-label="{{ __('Quick Actions') }}">
+        <x-admin.card>
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Quick Actions') }}</h2>
+            <div class="flex flex-wrap gap-2">
+                @forelse ($quickActions as $action)
+                    <a
+                        href="{{ $action['url'] }}"
+                        class="{{ ! empty($action['primary']) ? 'erp-btn-primary' : 'erp-btn-secondary' }}"
+                        data-turbo-frame="erp-main"
+                    >{{ $action['label'] }}</a>
+                @empty
+                    <p class="text-sm text-slate-500">{{ __('No quick actions available for your role.') }}</p>
+                @endforelse
+            </div>
+        </x-admin.card>
+    </section>
 </x-admin-layout>

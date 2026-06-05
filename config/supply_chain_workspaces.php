@@ -61,11 +61,10 @@ return [
         [
             'label' => 'Assets',
             'description' => 'Asset register, categories, maintenance, depreciation, and disposals.',
-            'route' => 'admin.workspaces.supply-chain.section',
-            'route_params' => ['section' => 'assets'],
+            'route' => 'admin.workspaces.assets',
             'permission' => 'assets.view',
             'icon' => 'chip',
-            'active_routes' => ['admin.workspaces.supply-chain.section:assets', 'admin.assets.*'],
+            'active_routes' => ['admin.workspaces.assets', 'admin.assets.*'],
         ],
         [
             'label' => 'Reports',
@@ -132,6 +131,7 @@ return [
                         ['label' => 'Vendor Comparison', 'description' => 'Compare supplier quotes and award RFQs.', 'route' => 'admin.procurement.vendor-comparison.index', 'permission' => 'procurement.vendor_comparison.view|procurement.comparison.view', 'icon' => 'scale', 'active_routes' => ['admin.procurement.vendor-comparison.*']],
                         ['label' => 'Purchase Orders', 'description' => 'Approved purchase orders and fulfilment.', 'route' => 'admin.procurement.orders.index', 'permission' => 'procurement.orders.view|procurement.vendors.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.procurement.orders.*']],
                         ['label' => 'Goods Receipts', 'description' => 'Procurement goods receipt notes and posting.', 'route' => 'admin.procurement.receipts.index', 'permission' => 'procurement.orders.view|procurement.vendors.view', 'icon' => 'archive', 'active_routes' => ['admin.procurement.receipts.*', 'admin.procurement.orders.receive.*']],
+                        ['label' => 'Asset Capitalization', 'description' => 'Pending fixed-asset capitalization from receipts.', 'route' => 'admin.assets.acquisitions.queue', 'permission' => 'assets.acquisition.view', 'icon' => 'chip', 'count_key' => 'capitalization_pending', 'active_routes' => ['admin.assets.acquisitions.queue', 'admin.assets.acquisitions.workbench']],
                         ['label' => 'Supplier Performance', 'description' => 'On-time delivery, quality, and spend analytics.', 'route' => 'admin.procurement.supplier-performance.index', 'permission' => 'procurement.performance.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.procurement.supplier-performance.*']],
                     ],
                 ],

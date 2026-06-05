@@ -42,7 +42,7 @@
                 <h3 class="public-conversion-banner__headline">{{ $primaryCta['headline'] }}</h3>
                 <p class="public-conversion-banner__text">{{ $primaryCta['description'] }}</p>
                 <div class="public-conversion-banner__actions">
-                    <x-public.button href="#quote-form" variant="gradient" size="lg" class="public-btn--glow">
+                    <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg" class="public-btn--glow">
                         Request Quote
                     </x-public.button>
                     <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="public-conversion-whatsapp-btn public-conversion-whatsapp-btn--light">
@@ -194,87 +194,7 @@
         </div>
     </div>
 
-    {{-- Quote request form --}}
-    <div id="quote-form" class="public-section bg-brand-navy relative overflow-hidden">
-        <div class="absolute inset-0 opacity-20 public-dot-pattern"></div>
-        <div class="absolute -left-32 top-0 h-96 w-96 rounded-full bg-brand-magenta blur-[120px] opacity-30"></div>
-        <div class="absolute -right-32 bottom-0 h-96 w-96 rounded-full bg-brand-purple blur-[120px] opacity-25"></div>
-
-        <div class="public-container relative">
-            <div class="mx-auto max-w-3xl text-center" data-animate="fade-up">
-                <x-public.badge variant="light" class="mb-5">Request A Quote</x-public.badge>
-                <h3 class="public-heading public-heading--light text-display-sm sm:text-display-md">
-                    Get Your Free Quotation
-                </h3>
-                <p class="mt-4 text-lg text-white/70">
-                    Tell us about your project and our team will respond with pricing and guidance.
-                </p>
-            </div>
-
-            <form class="public-conversion-form" data-quote-form data-animate="fade-up" data-animate-delay="2">
-                <div class="public-conversion-form__grid">
-                    <div class="public-conversion-form__field">
-                        <label for="quote-name">Name <span aria-hidden="true">*</span></label>
-                        <input type="text" id="quote-name" name="name" required autocomplete="name" placeholder="Your full name">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-company">Company</label>
-                        <input type="text" id="quote-company" name="company" autocomplete="organization" placeholder="Company name (optional)">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-phone">Phone <span aria-hidden="true">*</span></label>
-                        <input type="tel" id="quote-phone" name="phone" required autocomplete="tel" placeholder="+254 700 000 000">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-email">Email <span aria-hidden="true">*</span></label>
-                        <input type="email" id="quote-email" name="email" required autocomplete="email" placeholder="you@company.com">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-service">Service Needed</label>
-                        <select id="quote-service" name="service">
-                            <option value="">Select a service</option>
-                            @foreach ($services as $service)
-                                <option value="{{ $service }}">{{ $service }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-quantity">Quantity</label>
-                        <input type="text" id="quote-quantity" name="quantity" placeholder="e.g. 500 business cards">
-                    </div>
-                    <div class="public-conversion-form__field public-conversion-form__field--full">
-                        <label for="quote-deadline">Deadline</label>
-                        <input type="text" id="quote-deadline" name="deadline" placeholder="When do you need this delivered?">
-                    </div>
-                    <div class="public-conversion-form__field public-conversion-form__field--full">
-                        <label for="quote-message">Message</label>
-                        <textarea id="quote-message" name="message" rows="4" placeholder="Share project details, dimensions, materials, or special requirements"></textarea>
-                    </div>
-                    <div class="public-conversion-form__field public-conversion-form__field--full">
-                        <label>Artwork Upload</label>
-                        <div class="public-conversion-form__upload" data-upload-placeholder>
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            <p>Drag &amp; drop artwork files here, or click to browse</p>
-                            <span>PDF, AI, EPS, PSD — max 25 MB per file</span>
-                            <input type="file" name="artwork[]" multiple accept=".pdf,.ai,.eps,.psd,.jpg,.jpeg,.png" class="sr-only" tabindex="-1" aria-hidden="true" disabled>
-                        </div>
-                        <p class="public-conversion-form__upload-note">Artwork upload will be enabled when the quote system is connected.</p>
-                    </div>
-                </div>
-
-                <div class="public-conversion-form__submit">
-                    <x-public.button type="submit" variant="gradient" size="lg" class="public-btn--glow w-full sm:w-auto">
-                        Request My Quote
-                    </x-public.button>
-                </div>
-
-                <div class="public-conversion-form__success" data-quote-success hidden>
-                    <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <p><strong>Thank you!</strong> Your quote request has been received. Our team will contact you shortly.</p>
-                </div>
-            </form>
-        </div>
-    </div>
+    <x-public.quote-form />
 
     {{-- FAQ --}}
     <div class="public-section bg-brand-off-white">

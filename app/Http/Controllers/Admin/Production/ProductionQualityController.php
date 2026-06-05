@@ -19,8 +19,6 @@ class ProductionQualityController extends Controller
 
         return view('admin.production.quality.index', [
             'kpis' => $workspace->kpiCounts(),
-            'analytics' => $workspace->analytics(),
-            'widgets' => $workspace->intelligenceWidgets(),
             'register' => $register,
             'showingPending' => $showingPending,
             'workspace' => $workspace,

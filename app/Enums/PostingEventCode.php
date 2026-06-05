@@ -31,6 +31,7 @@ enum PostingEventCode: string
     case AssetAcquisitionPosted = 'asset.acquisition.posted';
     case AssetDepreciationPosted = 'asset.depreciation.posted';
     case AssetDisposalPosted = 'asset.disposal.posted';
+    case AssetWriteOffPosted = 'asset.writeoff.posted';
 
     case PosSaleCash = 'pos.sale.cash';
     case PosSaleMpesa = 'pos.sale.mpesa';
@@ -67,7 +68,8 @@ enum PostingEventCode: string
 
             self::AssetAcquisitionPosted,
             self::AssetDepreciationPosted,
-            self::AssetDisposalPosted => PostingModule::Assets,
+            self::AssetDisposalPosted,
+            self::AssetWriteOffPosted => PostingModule::Assets,
 
             self::PosSaleCash,
             self::PosSaleMpesa,
@@ -100,6 +102,7 @@ enum PostingEventCode: string
             self::AssetAcquisitionPosted => __('Asset acquisition posted'),
             self::AssetDepreciationPosted => __('Asset depreciation posted'),
             self::AssetDisposalPosted => __('Asset disposal posted'),
+            self::AssetWriteOffPosted => __('Asset write-off posted'),
             self::PosSaleCash => __('POS cash sale'),
             self::PosSaleMpesa => __('POS M-Pesa sale'),
             self::PosSaleCard => __('POS card sale'),

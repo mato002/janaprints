@@ -20,8 +20,15 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventoryReorderAlert;
 use App\Models\Inventory\InventoryMovement;
 use App\Models\Procurement\PurchaseRequest;
+use App\Enums\MaintenancePriority;
+use App\Enums\MaintenanceWorkOrderStatus;
+use App\Models\Assets\MaintenanceWorkOrder;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
+use App\Enums\PublicContactMessageStatus;
+use App\Enums\PublicQuoteRequestStatus;
+use App\Models\PublicContactMessage;
+use App\Models\PublicQuoteRequest;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Support\Integrations\IntegrationHealthPresenter;
@@ -236,12 +243,39 @@ class ExecutiveDashboardPresenter
                 'severity' => 'danger',
             ],
             [
-                'key' => 'complaints',
-                'label' => __('Customer Complaints'),
-                'count' => 0,
-                'route' => null,
-                'severity' => 'muted',
-                'hint' => __('CRM module'),
+                'key' => 'critical_maintenance',
+                'label' => __('Critical Maintenance'),
+                'count' => MaintenanceWorkOrder::query()
+                    ->forTenant()
+                    ->where('priority', MaintenancePriority::Critical->value)
+                    ->whereIn('status', [
+                        MaintenanceWorkOrderStatus::Open->value,
+                        MaintenanceWorkOrderStatus::Assigned->value,
+                        MaintenanceWorkOrderStatus::InProgress->value,
+                        MaintenanceWorkOrderStatus::WaitingParts->value,
+                        MaintenanceWorkOrderStatus::WaitingVendor->value,
+                    ])
+                    ->count(),
+                'route' => 'admin.assets.maintenance.dashboard',
+                'severity' => 'danger',
+            ],
+            [
+                'key' => 'public_quote_requests',
+                'label' => __('Public Quote Requests'),
+                'count' => PublicQuoteRequest::query()
+                    ->where('status', PublicQuoteRequestStatus::Pending)
+                    ->count(),
+                'route' => 'admin.public-quote-requests.index',
+                'severity' => 'warning',
+            ],
+            [
+                'key' => 'public_contact_messages',
+                'label' => __('Unread Contact Messages'),
+                'count' => PublicContactMessage::query()
+                    ->where('status', PublicContactMessageStatus::Unread)
+                    ->count(),
+                'route' => 'admin.public-contact-messages.index',
+                'severity' => 'danger',
             ],
             [
                 'key' => 'invoices',

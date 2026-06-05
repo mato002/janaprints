@@ -68,7 +68,7 @@ class AssetLifecycleService
 
     public static function startRepair(FixedAsset $asset): FixedAsset
     {
-        $asset->update(['status' => FixedAssetStatus::UnderRepair]);
+        $asset->update(['status' => FixedAssetStatus::UnderMaintenance]);
 
         return $asset->fresh();
     }

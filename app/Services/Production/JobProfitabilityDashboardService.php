@@ -63,7 +63,6 @@ class JobProfitabilityDashboardService
             'totals' => $aggregates,
             'can_view_job_360' => $user?->can('production.view') && Route::has('admin.production.job-cards.show'),
             'can_view_customer_360' => $user?->can('crm.customers.view') && Route::has('admin.crm.customers.show'),
-            'has_export_route' => Route::has('admin.production.costing.export'),
             'target_margin_percent' => self::HEALTHY_MARGIN_PERCENT,
         ];
     }

@@ -3,6 +3,7 @@
     'description',
     'icon' => 'cog',
     'href' => null,
+    'count' => null,
     'statusLabel' => null,
     'statusVariant' => 'neutral',
     'comingSoon' => false,
