@@ -26,18 +26,24 @@ use App\Models\Assets\MaintenanceWorkOrder;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Enums\PublicContactMessageStatus;
-use App\Enums\PublicQuoteRequestStatus;
 use App\Models\PublicContactMessage;
-use App\Models\PublicQuoteRequest;
 use App\Models\Sales\Quotation;
+use App\Services\Commercial\PublicQuoteRequestCountService;
 use App\Models\Sales\SalesOrder;
 use App\Support\Integrations\IntegrationHealthPresenter;
 use App\Support\InventoryStockService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 class ExecutiveDashboardPresenter
 {
+    public function __construct(
+        protected ?PublicQuoteRequestCountService $quoteCounts = null,
+    ) {
+        $this->quoteCounts ??= app(PublicQuoteRequestCountService::class);
+    }
+
     public function build(): array
     {
         $today = now()->toDateString();
@@ -48,6 +54,8 @@ class ExecutiveDashboardPresenter
             'context' => $this->context(),
             'kpi_strip' => $this->kpiStrip($today, $monthStart),
             'pipeline' => $this->pipeline(),
+            'quote_requests_alert' => $this->quoteRequestsAlert(),
+            'sales_opportunities' => $this->salesOpportunities(),
             'attention' => $this->attentionCenter($today),
             'today_ops' => $this->todayOperations($today),
             'branches' => $this->branchPerformance($monthStart),
@@ -200,6 +208,70 @@ class ExecutiveDashboardPresenter
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function quoteRequestsAlert(): array
+    {
+        if (! $this->quoteCounts->canView()) {
+            return [
+                'visible' => false,
+                'count' => 0,
+                'today_count' => 0,
+                'has_action' => false,
+                'route' => null,
+                'label' => __('New Quote Requests'),
+                'subtext' => __('No new quote requests'),
+                'cta' => __('Review Requests'),
+            ];
+        }
+
+        return array_merge(
+            ['visible' => true],
+            $this->quoteCounts->alertPayload(),
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function salesOpportunities(): array
+    {
+        if (! $this->quoteCounts->canView()) {
+            return [];
+        }
+
+        $openLeads = Lead::query()->forTenant()
+            ->where('status', LeadStatus::Open)
+            ->count();
+
+        return [
+            [
+                'key' => 'new_quote_requests',
+                'label' => __('New Quote Requests'),
+                'count' => $this->quoteCounts->pendingCount(),
+                'route' => 'admin.public-quote-requests.index',
+                'severity' => 'opportunity',
+                'hint' => __('Storefront inquiries awaiting commercial review'),
+            ],
+            [
+                'key' => 'pending_quotes',
+                'label' => __('Pending Quotations'),
+                'count' => Quotation::query()->forTenant()
+                    ->where('status', QuotationStatus::PendingApproval)->count(),
+                'route' => 'admin.quotations.index',
+                'severity' => 'opportunity',
+            ],
+            [
+                'key' => 'unconverted_leads',
+                'label' => __('Unconverted Leads'),
+                'count' => $openLeads,
+                'route' => Route::has('admin.crm.leads.index') ? 'admin.crm.leads.index' : null,
+                'severity' => 'opportunity',
+            ],
+        ];
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     protected function attentionCenter(string $today): array
@@ -228,14 +300,6 @@ class ExecutiveDashboardPresenter
                 'severity' => 'danger',
             ],
             [
-                'key' => 'pending_quotes',
-                'label' => __('Pending Quotations'),
-                'count' => Quotation::query()->forTenant()
-                    ->where('status', QuotationStatus::PendingApproval)->count(),
-                'route' => 'admin.quotations.index',
-                'severity' => 'warning',
-            ],
-            [
                 'key' => 'stock_alerts',
                 'label' => __('Stock Alerts'),
                 'count' => InventoryReorderAlert::query()->forTenant()->where('is_resolved', false)->count(),
@@ -258,15 +322,6 @@ class ExecutiveDashboardPresenter
                     ->count(),
                 'route' => 'admin.assets.maintenance.dashboard',
                 'severity' => 'danger',
-            ],
-            [
-                'key' => 'public_quote_requests',
-                'label' => __('Public Quote Requests'),
-                'count' => PublicQuoteRequest::query()
-                    ->where('status', PublicQuoteRequestStatus::Pending)
-                    ->count(),
-                'route' => 'admin.public-quote-requests.index',
-                'severity' => 'warning',
             ],
             [
                 'key' => 'public_contact_messages',

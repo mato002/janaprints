@@ -21,6 +21,7 @@ use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Enums\WorkflowRuleTrigger;
 use App\Support\Governance\WorkflowRulesService;
+use App\Services\Crm\LeadQuotationService;
 use App\Support\QuotationConversionService;
 use App\Support\QuotationRevisionService;
 use Illuminate\Validation\ValidationException;
@@ -53,8 +54,30 @@ class QuotationController extends Controller
         $this->authorize('create', Quotation::class);
 
         $presetCustomerId = null;
+        $presetLeadId = null;
 
-        if ($request->filled('customer_id')) {
+        if ($request->filled('lead_id')) {
+            $lead = Lead::query()->forTenant()->find($request->integer('lead_id'));
+            abort_unless($lead, 404);
+            $this->authorize('view', $lead);
+            $presetLeadId = $lead->id;
+
+            if ($request->filled('customer_id')) {
+                $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
+                abort_unless($customer, 404);
+                $this->authorize('view', $customer);
+                $presetCustomerId = $customer->id;
+            } elseif ($user = auth()->user()) {
+                try {
+                    $customer = app(LeadQuotationService::class)->resolveCustomer($lead, $user);
+                    $presetCustomerId = $customer->id;
+                } catch (ValidationException $exception) {
+                    return redirect()
+                        ->route('admin.crm.leads.show', $lead)
+                        ->withErrors($exception->errors());
+                }
+            }
+        } elseif ($request->filled('customer_id')) {
             $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
             abort_unless($customer, 404);
             $this->authorize('view', $customer);
@@ -63,6 +86,7 @@ class QuotationController extends Controller
 
         return view('admin.sales.quotations.create', array_merge($this->formMeta(), [
             'presetCustomerId' => $presetCustomerId,
+            'presetLeadId' => $presetLeadId,
         ]));
     }
 

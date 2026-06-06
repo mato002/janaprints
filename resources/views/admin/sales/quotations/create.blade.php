@@ -16,7 +16,7 @@
                     <label class="erp-label">{{ __('Lead (optional)') }}</label>
                     <select name="lead_id" class="erp-input" @required($fields['lead_id']['required'] ?? false) @disabled($fields['lead_id']['read_only'] ?? false)>
                         <option value="">{{ __('None') }}</option>
-                        @foreach ($leads as $l)<option value="{{ $l->id }}">{{ $l->lead_name }}</option>@endforeach
+                        @foreach ($leads as $l)<option value="{{ $l->id }}" @selected(old('lead_id', $presetLeadId ?? null) == $l->id)>{{ $l->lead_name }}</option>@endforeach
                     </select>
                 </div>
                 @endif

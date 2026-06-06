@@ -73,13 +73,12 @@
 
                 {{-- Actions --}}
                 <div class="public-capability__actions">
-                    <x-public.button href="{{ $quoteFormHref }}" variant="primary">
+                    <x-public.button href="{{ $quoteFormHref }}" variant="primary" class="max-md:hidden">
                         Request Quote
                     </x-public.button>
                     <x-public.button
-                        href="#portfolio"
+                        href="#recent-work"
                         variant="ghost-dark"
-                        data-portfolio-filter="{{ $capability['portfolio_filter'] }}"
                     >
                         View Related Work
                     </x-public.button>

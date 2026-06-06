@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Assets;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\DepreciationRun;
 use App\Services\Assets\AssetFinanceReportService;
+use App\Services\Assets\AssetReplacementService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -12,6 +13,7 @@ class AssetFinanceReportController extends Controller
 {
     public function __construct(
         protected AssetFinanceReportService $reports,
+        protected AssetReplacementService $replacement,
     ) {}
 
     public function index(Request $request): View
@@ -32,6 +34,10 @@ class AssetFinanceReportController extends Controller
             'depreciation_schedule' => $this->reports->depreciationSchedule($companyId, $filters),
             'fully_depreciated' => $this->reports->fullyDepreciated($companyId, tenant()->branchId()),
             'near_end_of_life' => $this->reports->nearEndOfLife($companyId, tenant()->branchId()),
+            'maintenance' => $this->reports->maintenanceReport($companyId, $filters),
+            'custody' => $this->reports->custodyReport($companyId, $filters),
+            'warranty_expiry' => $this->reports->warrantyExpiryReport($companyId, $filters),
+            'replacement' => $this->replacement->candidates($companyId, tenant()->branchId(), 100),
             default => $this->reports->registerReport($companyId, $filters),
         };
 

@@ -2,6 +2,7 @@
 
 namespace App\Support\Navigation;
 
+use App\Services\Commercial\PublicQuoteRequestCountService;
 use App\Support\Commercial\PublicLeadsDashboardPresenter;
 use Illuminate\Support\Facades\Route;
 
@@ -10,9 +11,11 @@ class CommercialWorkspacePresenter
     public function __construct(
         protected ?WorkspaceNavigationResolver $navigation = null,
         protected ?PublicLeadsDashboardPresenter $publicLeads = null,
+        protected ?PublicQuoteRequestCountService $quoteCounts = null,
     ) {
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
         $this->publicLeads ??= app(PublicLeadsDashboardPresenter::class);
+        $this->quoteCounts ??= app(PublicQuoteRequestCountService::class);
     }
 
     /**
@@ -55,6 +58,9 @@ class CommercialWorkspacePresenter
             'description' => __('CRM, sales, customer service, point of sale, and commercial reporting.'),
             'icon' => 'shopping-cart',
             'items' => $items,
+            'quote_requests_badge' => $this->quoteCounts->canView()
+                ? $this->quoteCounts->pendingCount()
+                : null,
         ];
     }
 
@@ -326,6 +332,11 @@ class CommercialWorkspacePresenter
         $href = $comingSoon ? null : $this->resolveHref($item);
 
         $counts = $this->publicLeads->widgets();
+        $count = isset($item['count_key']) ? ($counts[$item['count_key']] ?? null) : null;
+
+        if (($item['route_params']['section'] ?? null) === 'customer-service' && $this->quoteCounts->canView()) {
+            $count = $this->quoteCounts->pendingCount();
+        }
 
         return [
             'id' => md5(($item['label'] ?? '').($item['route'] ?? 'soon')),
@@ -333,7 +344,7 @@ class CommercialWorkspacePresenter
             'description' => $item['description'] ?? '',
             'icon' => $item['icon'] ?? 'home',
             'href' => $href,
-            'count' => isset($item['count_key']) ? ($counts[$item['count_key']] ?? null) : null,
+            'count' => $count,
             'comingSoon' => $comingSoon || $href === null,
             'statusLabel' => $comingSoon || $href === null ? __('Coming Soon') : __('Active'),
             'statusVariant' => $comingSoon || $href === null ? 'neutral' : 'success',

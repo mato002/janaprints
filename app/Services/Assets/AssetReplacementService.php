@@ -24,7 +24,19 @@ class AssetReplacementService
             ->whereNull('archived_at')
             ->where('status', '!=', FixedAssetStatus::Disposed->value)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where(function ($q) {
+                $q->where('is_fully_depreciated', true)
+                    ->orWhereHas('maintenanceWorkOrders', function ($wq) {
+                        $wq->whereIn('maintenance_type', [MaintenanceType::Corrective->value, MaintenanceType::Emergency->value])
+                            ->where('opened_at', '>=', now()->subYear());
+                    }, '>=', 3);
+            })
             ->with(['category', 'branch'])
+            ->withCount(['maintenanceWorkOrders as failure_count' => function ($wq) {
+                $wq->whereIn('maintenance_type', [MaintenanceType::Corrective->value, MaintenanceType::Emergency->value])
+                    ->where('opened_at', '>=', now()->subYear());
+            }])
+            ->limit(max($limit * 4, 50))
             ->get()
             ->map(function (FixedAsset $asset) {
                 $reasons = [];
@@ -52,11 +64,7 @@ class AssetReplacementService
                     }
                 }
 
-                $failureCount = $asset->maintenanceWorkOrders()
-                    ->whereIn('maintenance_type', [MaintenanceType::Corrective->value, MaintenanceType::Emergency->value])
-                    ->where('opened_at', '>=', now()->subYear())
-                    ->count();
-                if ($failureCount >= 3) {
+                if (($asset->failure_count ?? 0) >= 3) {
                     $reasons[] = __('High maintenance burden');
                     $priority = 'high';
                 }

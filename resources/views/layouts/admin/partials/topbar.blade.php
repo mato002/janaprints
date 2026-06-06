@@ -59,6 +59,8 @@
             @include('layouts.admin.partials.quick-create', ['quickCreate' => $quickCreate ?? []])
         </div>
 
+        @include('layouts.admin.partials.quote-requests-topbar')
+
         @if (Route::has('home'))
             <a
                 href="{{ route('home') }}"

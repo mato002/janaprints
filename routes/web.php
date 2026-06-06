@@ -21,6 +21,8 @@ Route::controller(PageController::class)->group(function () {
     Route::get('/products', 'products')->name('storefront.products');
     Route::get('/products/{slug}', 'productShow')->name('storefront.products.show');
     Route::get('/portfolio', 'portfolio')->name('storefront.portfolio');
+    Route::get('/gallery', 'gallery')->name('storefront.gallery');
+    Route::get('/our-work', 'gallery')->name('storefront.our-work');
     Route::get('/blog', 'blog')->name('storefront.blog');
     Route::get('/contact', 'contact')->name('storefront.contact');
     Route::get('/request-quote', 'quote')->name('storefront.quote');

@@ -1,9 +1,5 @@
 @php
     $pipeline = config('facility.pipeline');
-    $areas = config('facility.facility_areas');
-    $team = config('facility.team');
-    $qualitySteps = config('facility.quality_steps');
-    $capabilities = config('facility.capabilities');
     $trustPoints = config('facility.trust_points');
     $gallery = config('facility.gallery');
 @endphp
@@ -43,65 +39,14 @@
         </div>
     </div>
 
-    {{-- Our facility --}}
-    <div class="public-facility__areas bg-brand-off-white">
-        <div class="public-container public-section--compact">
-            <h3 class="public-facility__subtitle text-center" data-animate="fade-up">
-                Built For Professional Production
-            </h3>
-        </div>
-        @foreach ($areas as $index => $area)
-            <x-public.facility-area :area="$area" :reversed="$index % 2 === 1" />
-        @endforeach
-    </div>
+    {{-- Production facility showcase (redesigned) --}}
+    <x-public.production-showcase />
 
-    {{-- Meet the team --}}
-    <div class="public-section bg-white">
-        <div class="public-container">
-            <h3 class="public-facility__subtitle text-center" data-animate="fade-up">
-                The People Behind Every Project
-            </h3>
-            <div class="public-facility-team-grid mt-12">
-                @foreach ($team as $member)
-                    <x-public.facility-team-card :member="$member" />
-                @endforeach
-            </div>
-        </div>
-    </div>
+    {{-- Team showcase (redesigned) --}}
+    <x-public.team-showcase />
 
-    {{-- Quality control --}}
-    <div class="public-section public-section--muted public-dot-pattern">
-        <div class="public-container">
-            <h3 class="public-facility__subtitle text-center" data-animate="fade-up">
-                Quality Is Built Into Every Stage
-            </h3>
-            <div class="public-facility-qc mt-12" data-facility-qc>
-                @foreach ($qualitySteps as $step)
-                    <article class="public-facility-qc__step" data-animate="fade-up" data-animate-delay="{{ min($step['number'], 5) }}">
-                        <span class="public-facility-qc__number">{{ $step['number'] }}</span>
-                        <div class="public-facility-qc__body">
-                            <h4 class="public-facility-qc__title">{{ $step['title'] }}</h4>
-                            <p class="public-facility-qc__desc">{{ $step['description'] }}</p>
-                        </div>
-                    </article>
-                @endforeach
-            </div>
-        </div>
-    </div>
-
-    {{-- Equipment & capabilities --}}
-    <div class="public-section bg-white">
-        <div class="public-container">
-            <h3 class="public-facility__subtitle text-center" data-animate="fade-up">
-                Production Capabilities
-            </h3>
-            <div class="public-facility-capabilities mt-12">
-                @foreach ($capabilities as $cap)
-                    <x-public.facility-capability-card :capability="$cap" />
-                @endforeach
-            </div>
-        </div>
-    </div>
+    {{-- Quality promise (redesigned) --}}
+    <x-public.quality-promise />
 
     {{-- Why this matters --}}
     <div class="public-facility-trust public-section--compact bg-brand-navy">
@@ -122,12 +67,13 @@
         </div>
     </div>
 
-    {{-- Live production gallery --}}
+    {{-- Live production gallery preview --}}
     <div class="public-section bg-brand-off-white">
         <div class="public-container">
-            <h3 class="public-facility__subtitle text-center" data-animate="fade-up">
-                Live Production Gallery
-            </h3>
+            <div class="text-center" data-animate="fade-up">
+                <h3 class="public-facility__subtitle">Live Production Gallery</h3>
+                <p class="mt-3 text-brand-text-secondary">A glimpse of recent print, branding and packaging work from our production floor.</p>
+            </div>
             <div class="public-facility-gallery mt-12" data-reveal-stagger>
                 @foreach ($gallery as $item)
                     @php
@@ -152,6 +98,11 @@
                         <figcaption class="public-facility-gallery__caption">{{ $item['alt'] }}</figcaption>
                     </figure>
                 @endforeach
+            </div>
+            <div class="mt-10 text-center" data-animate="fade-up">
+                <x-public.button href="{{ route('storefront.gallery') }}" variant="secondary">
+                    View Full Gallery
+                </x-public.button>
             </div>
         </div>
     </div>

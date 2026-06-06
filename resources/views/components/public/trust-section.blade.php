@@ -14,40 +14,37 @@
             </p>
         </div>
 
-        {{-- Subtle trust imagery strip --}}
+        {{-- Trust imagery strip --}}
         <div class="public-trust-visuals mt-14" data-animate="fade-up" data-animate-delay="1">
-            @foreach (['brochures', 'stationery', 'packaging', 'promotional', 'business-cards'] as $type)
+            @foreach ([
+                ['src' => 'brochure', 'alt' => 'Brochure and catalogue printing'],
+                ['src' => 'stationery', 'alt' => 'Corporate stationery printing'],
+                ['src' => 'packaging', 'alt' => 'Product packaging printing'],
+                ['src' => 'merchandise', 'alt' => 'Promotional merchandise printing'],
+                ['src' => 'cards', 'alt' => 'Business card printing'],
+            ] as $visual)
                 <div class="public-trust-visuals__item">
-                    <x-public.image-placeholder :type="$type" :show-label="false" aspect="1/1" class="!rounded-brand-md" />
+                    <x-public.media-image
+                        :src="$visual['src']"
+                        :alt="$visual['alt']"
+                        class="h-full w-full object-cover rounded-brand-md"
+                        width="200"
+                        height="200"
+                    />
                 </div>
             @endforeach
         </div>
 
-        {{-- Statistics strip --}}
-        <div class="public-trust-stats mt-14">
-            @php
-                $stats = [
-                    ['value' => 5000, 'suffix' => '+', 'label' => 'Projects Delivered'],
-                    ['value' => 1200, 'suffix' => '+', 'label' => 'Customers Served'],
-                    ['value' => 98, 'suffix' => '%', 'label' => 'On-Time Delivery'],
-                    ['value' => 10, 'suffix' => '+', 'label' => 'Years Combined Experience'],
-                    ['value' => 50, 'suffix' => '+', 'label' => 'Corporate Clients'],
-                    ['value' => 100, 'suffix' => '%', 'label' => 'Artwork Approval Workflow'],
-                ];
-            @endphp
-
-            @foreach ($stats as $index => $stat)
+        {{-- Statistics strip (desktop only — mobile uses single stats block after hero) --}}
+        <div class="public-trust-stats mt-14 max-lg:hidden">
+            @foreach (config('storefront_stats.trust') as $index => $stat)
                 <article
                     class="public-trust-stat-card"
                     data-animate="fade-up"
                     data-animate-delay="{{ ($index % 3) + 1 }}"
                 >
                     <p class="public-trust-stat-card__value">
-                        <span
-                            data-counter="{{ $stat['value'] }}"
-                            data-counter-suffix="{{ $stat['suffix'] }}"
-                            data-counter-duration="1750"
-                        >0</span>
+                        <x-public.counter :value="$stat['value']" :suffix="$stat['suffix']" />
                     </p>
                     <p class="public-trust-stat-card__label">{{ $stat['label'] }}</p>
                 </article>

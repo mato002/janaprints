@@ -5,6 +5,7 @@ namespace App\Services\Storefront;
 use App\Mail\PublicQuoteRequestConfirmationMail;
 use App\Mail\PublicQuoteRequestInternalNotificationMail;
 use App\Models\PublicQuoteRequest;
+use App\Services\Commercial\PublicQuoteRequestNotificationService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -13,6 +14,12 @@ use Illuminate\Support\Str;
 
 class PublicQuoteRequestService
 {
+    public function __construct(
+        protected ?PublicQuoteRequestNotificationService $notifications = null,
+    ) {
+        $this->notifications ??= app(PublicQuoteRequestNotificationService::class);
+    }
+
     public function store(array $data, ?UploadedFile $artwork = null): PublicQuoteRequest
     {
         $artworkPath = null;
@@ -37,6 +44,7 @@ class PublicQuoteRequestService
         ]);
 
         $this->dispatchEmails($quoteRequest);
+        $this->notifications->notifyNewRequest($quoteRequest);
 
         return $quoteRequest;
     }

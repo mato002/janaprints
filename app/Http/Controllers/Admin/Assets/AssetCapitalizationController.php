@@ -53,11 +53,14 @@ class AssetCapitalizationController extends Controller
             'fixedAssets',
         ]);
 
+        $remainingQuantity = (int) $candidate->remainingQuantity();
+
         return view('admin.assets.acquisitions.workbench', [
             'candidate' => $candidate,
             'categories' => AssetCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'branches' => Branch::query()->where('company_id', $candidate->company_id)->orderBy('name')->get(),
             'users' => User::query()->where('company_id', $candidate->company_id)->where('is_active', true)->orderBy('name')->get(),
+            'requiresApproval' => $this->capitalization->requiresApprovalFor($candidate, max(1, $remainingQuantity)),
         ]);
     }
 
@@ -83,7 +86,6 @@ class AssetCapitalizationController extends Controller
             'warranty_coverage' => ['nullable', 'string', 'max:255'],
             'warranty_support_contact' => ['nullable', 'string', 'max:120'],
             'warranty_reference' => ['nullable', 'string', 'max:120'],
-            'approved' => ['nullable', 'boolean'],
         ]);
 
         $post = auth()->user()?->can('assets.acquisition.post') ?? false;
@@ -98,6 +100,15 @@ class AssetCapitalizationController extends Controller
         return redirect()
             ->route('admin.assets.acquisitions.queue')
             ->with('status', __(':count asset(s) capitalized.', ['count' => count($assets)]));
+    }
+
+    public function approve(AssetCapitalizationCandidate $candidate): RedirectResponse
+    {
+        $this->authorize('approve', $candidate);
+
+        $this->capitalization->approve($candidate, (int) auth()->id());
+
+        return back()->with('status', __('Capitalization approved.'));
     }
 
     public function reject(Request $request, AssetCapitalizationCandidate $candidate): RedirectResponse

@@ -26,6 +26,11 @@ class AssetAcquisitionPolicy
         return $user->can('assets.reconciliation.view');
     }
 
+    public function view(User $user, AssetCapitalizationReconciliation $record): bool
+    {
+        return $this->viewReconciliation($user, $record);
+    }
+
     public function viewReconciliation(User $user, AssetCapitalizationReconciliation $record): bool
     {
         return $user->can('assets.reconciliation.view') && $this->sameTenant($user, $record);

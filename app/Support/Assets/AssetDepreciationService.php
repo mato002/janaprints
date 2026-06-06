@@ -7,8 +7,10 @@ use App\Enums\FixedAssetStatus;
 use App\Models\Assets\AssetDepreciationEntry;
 use App\Models\Assets\FixedAsset;
 use App\Services\Assets\AssetFinanceTimelineService;
+use App\Services\Assets\AssetPeriodControlService;
 use App\Services\Assets\DepreciationCalculationService;
 use App\Support\Accounting\AssetAccountingPostingService;
+use App\Support\ActivityLogger;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -21,6 +23,11 @@ class AssetDepreciationService
                 'asset' => __('Disposed assets cannot be depreciated.'),
             ]);
         }
+
+        app(AssetPeriodControlService::class)->assertPeriodOpenForPosting(
+            (int) $asset->company_id,
+            app(DepreciationCalculationService::class)->normalizePeriod($periodDate),
+        );
 
         $calculator = app(DepreciationCalculationService::class);
 
@@ -66,6 +73,12 @@ class AssetDepreciationService
                 $userId,
                 ['amount' => $calc['depreciation_amount']],
             );
+
+            ActivityLogger::log('depreciation_posted', $asset, $userId, [
+                'entry_id' => $entry->id,
+                'period_date' => $entry->period_date?->toDateString(),
+                'amount' => $calc['depreciation_amount'],
+            ]);
 
             return $entry->fresh();
         });

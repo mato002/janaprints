@@ -68,8 +68,9 @@ class AssetHealthScoreService
             AssetPhysicalCondition::Excellent => 0,
             AssetPhysicalCondition::Good => -5,
             AssetPhysicalCondition::Fair => -12,
-            AssetPhysicalCondition::Poor => -20,
+            AssetPhysicalCondition::NeedsRepair => -20,
             AssetPhysicalCondition::Damaged => -35,
+            AssetPhysicalCondition::WrittenOff => -40,
             default => -8,
         };
         if ($conditionImpact < 0) {

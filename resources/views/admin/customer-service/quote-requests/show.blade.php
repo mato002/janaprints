@@ -7,17 +7,26 @@
         ['label' => $workspace['reference']],
     ]"
 >
-    <div class="crm-360 qr-intake" x-data="{ artworkOpen: false }">
+    <div
+        class="qr-360"
+        x-data="{
+            artworkOpen: false,
+            activeArtwork: @js($workspace['artwork_files'][0]['id'] ?? 'primary'),
+            timelineOpen: true,
+        }"
+    >
         @include('admin.customer-service.quote-requests.workspace.header')
-        @include('admin.customer-service.quote-requests.workspace.customer-card')
 
         <div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
             <div class="space-y-4 xl:col-span-8">
+                @include('admin.customer-service.quote-requests.workspace.next-action')
+                @include('admin.customer-service.quote-requests.workspace.snapshot')
                 @include('admin.customer-service.quote-requests.workspace.artwork')
-                @include('admin.customer-service.quote-requests.workspace.summary')
+                @include('admin.customer-service.quote-requests.workspace.action-bar')
+                @include('admin.customer-service.quote-requests.workspace.sales-review')
                 @include('admin.customer-service.quote-requests.workspace.timeline')
-                @include('admin.customer-service.quote-requests.workspace.commercial-review')
-                @include('admin.customer-service.quote-requests.workspace.notes')
+                @include('admin.customer-service.quote-requests.workspace.collaboration')
+                @include('admin.customer-service.quote-requests.workspace.conversion-tracker')
             </div>
 
             <div class="xl:col-span-4">

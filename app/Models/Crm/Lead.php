@@ -5,6 +5,7 @@ namespace App\Models\Crm;
 use App\Enums\LeadStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Sales\Quotation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -59,5 +60,10 @@ class Lead extends Model
     public function activities(): HasMany
     {
         return $this->hasMany(CustomerActivity::class);
+    }
+
+    public function quotations(): HasMany
+    {
+        return $this->hasMany(Quotation::class);
     }
 }

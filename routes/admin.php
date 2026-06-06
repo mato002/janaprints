@@ -62,7 +62,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         Route::get('workspaces/administration', [AdministrationWorkspaceController::class, 'hub'])
             ->name('workspaces.administration');
         Route::get('workspaces/administration/{section}', [AdministrationWorkspaceController::class, 'section'])
-            ->where('section', 'security-access|organization|configuration|workflow-governance|integrations|system-operations')
+            ->where('section', implode('|', array_keys(config('administration_workspaces.sections', []))))
             ->name('workspaces.administration.section');
 
         foreach (array_keys(config('workspaces', [])) as $workspace) {
@@ -318,3 +318,4 @@ require __DIR__.'/admin_hr.php';
 require __DIR__.'/admin_reports.php';
 require __DIR__.'/admin_integrations.php';
 require __DIR__.'/admin_public_leads.php';
+require __DIR__.'/admin_website.php';

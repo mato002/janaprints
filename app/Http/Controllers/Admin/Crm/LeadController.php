@@ -14,10 +14,12 @@ use App\Models\Crm\Lead;
 use App\Models\Crm\LeadSource;
 use App\Models\Crm\LeadStage;
 use App\Models\User;
+use App\Services\Crm\LeadQuotationService;
 use App\Support\Crm\LeadConversionService;
 use App\Support\Crm\LeadOperationalGuard;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -72,7 +74,15 @@ class LeadController extends Controller
     {
         $this->authorize('view', $lead);
 
-        $lead->load(['stage', 'leadSource', 'assignee', 'customer', 'followUps.assignee', 'activities.user']);
+        $lead->load([
+            'stage',
+            'leadSource',
+            'assignee',
+            'customer',
+            'followUps.assignee',
+            'activities.user',
+            'quotations' => fn ($query) => $query->latest('quotation_date')->limit(10),
+        ]);
 
         return view('admin.crm.leads.show', compact('lead'));
     }
@@ -135,6 +145,37 @@ class LeadController extends Controller
         $lead->update(['status' => LeadStatus::Lost]);
 
         return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead marked as lost.'));
+    }
+
+    public function createQuotation(Lead $lead, LeadQuotationService $leadQuotations): RedirectResponse
+    {
+        $this->authorize('quote', $lead);
+
+        try {
+            $customer = $leadQuotations->resolveCustomer($lead, auth()->user());
+        } catch (ValidationException $exception) {
+            return back()->withErrors($exception->errors());
+        }
+
+        return redirect()->route('admin.quotations.create', [
+            'customer_id' => $customer->id,
+            'lead_id' => $lead->id,
+        ]);
+    }
+
+    public function quickQuotation(Lead $lead, LeadQuotationService $leadQuotations): RedirectResponse
+    {
+        $this->authorize('quote', $lead);
+
+        try {
+            $quotation = $leadQuotations->createDraftQuotation($lead, auth()->user());
+        } catch (ValidationException $exception) {
+            return back()->withErrors($exception->errors());
+        }
+
+        return redirect()
+            ->route('admin.quotations.show', $quotation)
+            ->with('status', __('Draft quotation created from lead.'));
     }
 
     protected function validateLead(Request $request, ?Lead $lead = null): array

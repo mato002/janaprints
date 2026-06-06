@@ -7,7 +7,10 @@
 @else
     <x-admin.card>
         <h3 class="mb-2 text-sm font-semibold">{{ __('Assignment Utilization') }}</h3>
-        <p class="text-2xl font-semibold">{{ $tabData['assignment_utilization'] }}%</p>
-        <p class="mt-1 text-sm text-slate-500">{{ $tabData['custody_status'] ?? '' }}</p>
+        <p class="text-2xl font-semibold text-slate-500">{{ $tabData['assignment_utilization_label'] ?? __('Not yet available') }}</p>
+        <p class="mt-1 text-sm text-slate-500">
+            {{ ($tabData['is_assigned'] ?? false) ? __('Currently assigned') : __('Not assigned') }}
+            @if (! empty($tabData['custody_status'])) — {{ $tabData['custody_status'] }} @endif
+        </p>
     </x-admin.card>
 @endif

@@ -111,7 +111,10 @@ class MaintenanceDashboardService
             ->get();
     }
 
-    protected function recentlyClosed(int $companyId, ?int $branchId): Collection
+    /**
+     * @return list<array{id: int, work_order_no: string, asset_name: string|null}>
+     */
+    protected function recentlyClosed(int $companyId, ?int $branchId): array
     {
         return MaintenanceWorkOrder::query()
             ->where('company_id', $companyId)
@@ -120,10 +123,15 @@ class MaintenanceDashboardService
             ->with(['asset:id,asset_name,asset_number'])
             ->latest('completed_at')
             ->limit(8)
-            ->get();
+            ->get()
+            ->map(fn (MaintenanceWorkOrder $order) => $this->orderSummary($order))
+            ->all();
     }
 
-    protected function criticalOrders(int $companyId, ?int $branchId): Collection
+    /**
+     * @return list<array{id: int, work_order_no: string, asset_name: string|null}>
+     */
+    protected function criticalOrders(int $companyId, ?int $branchId): array
     {
         return MaintenanceWorkOrder::query()
             ->where('company_id', $companyId)
@@ -137,6 +145,20 @@ class MaintenanceDashboardService
             ->with(['asset:id,asset_name,asset_number'])
             ->latest('opened_at')
             ->limit(10)
-            ->get();
+            ->get()
+            ->map(fn (MaintenanceWorkOrder $order) => $this->orderSummary($order))
+            ->all();
+    }
+
+    /**
+     * @return array{id: int, work_order_no: string, asset_name: string|null}
+     */
+    protected function orderSummary(MaintenanceWorkOrder $order): array
+    {
+        return [
+            'id' => $order->id,
+            'work_order_no' => $order->work_order_no,
+            'asset_name' => $order->asset?->asset_name,
+        ];
     }
 }

@@ -1,33 +1,41 @@
-<header class="crm-360__header mb-4">
-    <div class="crm-360__header-main">
-        <div class="crm-360__identity">
-            <a href="{{ route('admin.public-quote-requests.index') }}" class="crm-360__back" data-turbo-frame="erp-main">
-                ← {{ __('Back to Quote Requests') }}
-            </a>
-            <h1 class="crm-360__title">{{ __('Quote Request') }} #{{ $workspace['reference'] }}</h1>
-            <p class="crm-360__subtitle">{{ $quoteRequest->service_needed }} · {{ $quoteRequest->name }}</p>
-            <span class="crm-360__status crm-360__status--{{ $quoteRequest->status->value === 'pending' ? 'prospect' : ($quoteRequest->status->value === 'quoted' ? 'active' : 'inactive') }}">
-                {{ $quoteRequest->status->workspaceLabel() }}
-            </span>
-        </div>
+@php
+    $header = $workspace['header'];
+@endphp
 
-        <div class="crm-360__action-bar flex-wrap">
-            @foreach ($workspace['workflow_actions'] as $action)
-                @if (! empty($action['onclick']))
-                    <button type="button" class="crm-360__btn crm-360__btn--ghost" onclick="{{ $action['onclick'] }}">{{ $action['label'] }}</button>
-                @else
-                    <a
-                        href="{{ $action['url'] }}"
-                        class="crm-360__btn {{ match ($action['variant'] ?? 'outline') {
-                            'primary' => 'crm-360__btn--primary',
-                            'ghost' => 'crm-360__btn--ghost',
-                            default => 'crm-360__btn--outline',
-                        } }}"
-                        @if (str_starts_with($action['url'], 'mailto:')) target="_blank" rel="noopener" @endif
-                        data-turbo-frame="erp-main"
-                    >{{ $action['label'] }}</a>
-                @endif
-            @endforeach
+<header class="qr-360__header">
+    <div class="qr-360__header-top">
+        <a href="{{ route('admin.public-quote-requests.index') }}" class="qr-360__back" data-turbo-frame="erp-main">
+            ← {{ __('Quote Requests') }}
+        </a>
+        <div class="qr-360__header-pills">
+            <x-admin.status-badge :variant="$header['status_variant']">{{ $header['status_label'] }}</x-admin.status-badge>
+            <span class="qr-360__pill qr-360__pill--neutral">{{ $header['priority_label'] }}</span>
+            <span class="qr-360__score qr-360__score--{{ $workspace['lead_score']['variant'] }}">{{ $workspace['lead_score']['label'] }}</span>
         </div>
+    </div>
+
+    <div class="qr-360__header-body">
+        <div class="qr-360__header-id">
+            <h1 class="qr-360__ref">{{ $header['reference'] }}</h1>
+            <p class="qr-360__header-line">
+                <span>{{ $header['customer_name'] }}</span>
+                <span class="qr-360__sep">·</span>
+                <span>{{ $header['service'] }}</span>
+                <span class="qr-360__sep">·</span>
+                <span>{{ $header['quantity'] }} {{ __('units') }}</span>
+                <span class="qr-360__sep">·</span>
+                <span>{{ $header['submitted_at'] }}</span>
+            </p>
+        </div>
+        <dl class="qr-360__header-meta">
+            <div>
+                <dt>{{ __('Assigned') }}</dt>
+                <dd>{{ $header['assigned_to'] }}</dd>
+            </div>
+            <div>
+                <dt>{{ __('Expected Value') }}</dt>
+                <dd>{{ $header['expected_value'] }}</dd>
+            </div>
+        </dl>
     </div>
 </header>

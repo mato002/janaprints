@@ -15,7 +15,9 @@ use App\Models\Assets\AssetWarranty;
 use App\Models\Assets\FixedAsset;
 use App\Models\Procurement\GoodsReceipt;
 use App\Models\Procurement\GoodsReceiptItem;
+use App\Models\User;
 use App\Support\Accounting\AssetAcquisitionPostingService;
+use App\Support\ActivityLogger;
 use App\Support\Platform\ApprovalRulesService;
 use App\Support\Platform\NumberingService;
 use Illuminate\Support\Collection;
@@ -101,18 +103,21 @@ class AssetCapitalizationService
             ]);
         }
 
-        $requiresApproval = $this->approvals->requiresApproval(
-            ApprovalRuleType::AssetCapitalizationApproval,
-            (float) $candidate->line_amount,
-            null,
-            $candidate->company_id,
-            $candidate->branch_id,
-        );
+        $requiresApproval = $this->requiresApprovalFor($candidate, $quantity);
 
-        if ($requiresApproval && empty($workbench['approved'])) {
-            throw ValidationException::withMessages([
-                'approval' => __('Capitalization requires approval for this value.'),
-            ]);
+        if ($requiresApproval) {
+            if (! $candidate->approved_at) {
+                throw ValidationException::withMessages([
+                    'approval' => __('Capitalization requires authorized approval before execution.'),
+                ]);
+            }
+
+            $actor = User::query()->find($userId);
+            if ($candidate->approved_by === $userId && ! $actor?->hasRole('Super Admin')) {
+                throw ValidationException::withMessages([
+                    'approval' => __('You cannot capitalize an item you approved. Another authorized user must execute capitalization.'),
+                ]);
+            }
         }
 
         $candidate->load([
@@ -133,7 +138,7 @@ class AssetCapitalizationService
                 ]);
             }
 
-            $baseName = $workbench['asset_name'] ?? $candidate->goodsReceiptItem->purchaseOrderItem?->description ?? __('Capital Asset');
+            $baseName = $workbench['asset_name'] ?? $candidate->goodsReceiptItem?->purchaseOrderItem?->description ?? __('Capital Asset');
             $serials = $workbench['serial_numbers'] ?? [];
             $branchId = (int) ($workbench['branch_id'] ?? $candidate->branch_id);
             $custodianId = $workbench['assigned_custodian_user_id'] ?? $workbench['assigned_to_user_id'] ?? null;
@@ -157,7 +162,7 @@ class AssetCapitalizationService
                     'assigned_to_user_id' => $custodianId,
                     'status' => FixedAssetStatus::Active,
                     'vendor_id' => $candidate->vendor_id,
-                    'purchase_request_id' => $candidate->goodsReceipt->purchaseOrder?->purchase_request_id,
+                    'purchase_request_id' => $candidate->goodsReceipt?->purchaseOrder?->purchase_request_id,
                     'purchase_order_id' => $candidate->purchase_order_id,
                     'goods_receipt_id' => $candidate->goods_receipt_id,
                     'goods_receipt_item_id' => $candidate->goods_receipt_item_id,
@@ -194,12 +199,66 @@ class AssetCapitalizationService
                     : CapitalizationCandidateStatus::Ready,
                 'capitalized_at' => now(),
                 'capitalized_by' => $userId,
-                'approved_by' => $requiresApproval ? $userId : $candidate->approved_by,
-                'approved_at' => $requiresApproval ? now() : $candidate->approved_at,
+            ]);
+
+            ActivityLogger::log('capitalized', $candidate, $userId, [
+                'quantity' => $quantity,
+                'asset_ids' => collect($assets)->pluck('id')->all(),
             ]);
 
             return $assets;
         });
+    }
+
+    public function approve(AssetCapitalizationCandidate $candidate, int $approverId): AssetCapitalizationCandidate
+    {
+        if ($candidate->approved_at) {
+            throw ValidationException::withMessages([
+                'approval' => __('This capitalization candidate is already approved.'),
+            ]);
+        }
+
+        if (! in_array($candidate->status, [CapitalizationCandidateStatus::Pending, CapitalizationCandidateStatus::Ready], true)) {
+            throw ValidationException::withMessages([
+                'candidate' => __('Candidate is not open for approval.'),
+            ]);
+        }
+
+        $approver = User::query()->findOrFail($approverId);
+
+        if ($candidate->capitalized_by === $approverId && ! $approver->hasRole('Super Admin')) {
+            throw ValidationException::withMessages([
+                'approval' => __('You cannot approve your own capitalization request.'),
+            ]);
+        }
+
+        $candidate->update([
+            'status' => CapitalizationCandidateStatus::Pending,
+            'approved_by' => $approverId,
+            'approved_at' => now(),
+        ]);
+
+        ActivityLogger::log('approved', $candidate, $approverId, [
+            'candidate_number' => $candidate->candidate_number,
+            'line_amount' => $candidate->line_amount,
+        ]);
+
+        return $candidate->fresh();
+    }
+
+    public function requiresApprovalFor(AssetCapitalizationCandidate $candidate, int $quantity = 1): bool
+    {
+        if ($quantity > 1) {
+            return true;
+        }
+
+        return $this->approvals->requiresApproval(
+            ApprovalRuleType::AssetCapitalizationApproval,
+            (float) $candidate->line_amount,
+            null,
+            $candidate->company_id,
+            $candidate->branch_id,
+        );
     }
 
     public function reject(AssetCapitalizationCandidate $candidate, string $reason, int $userId): AssetCapitalizationCandidate
@@ -209,6 +268,10 @@ class AssetCapitalizationService
             'rejected_by' => $userId,
             'rejected_at' => now(),
             'rejection_reason' => $reason,
+        ]);
+
+        ActivityLogger::log('rejected', $candidate, $userId, [
+            'reason' => $reason,
         ]);
 
         return $candidate->fresh();

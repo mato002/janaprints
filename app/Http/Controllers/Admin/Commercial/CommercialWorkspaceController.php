@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Commercial;
 
 use App\Http\Controllers\Controller;
+use App\Services\Commercial\PublicQuoteRequestCountService;
 use App\Support\Commercial\CommercialDashboardPresenter;
 use App\Support\Commercial\PublicLeadsDashboardPresenter;
 use App\Support\Navigation\CommercialWorkspacePresenter;
@@ -23,8 +24,12 @@ class CommercialWorkspaceController extends Controller
 
         abort_if($payload === null, 403);
 
+        $quoteCounts = app(PublicQuoteRequestCountService::class);
+        $quoteAlert = $quoteCounts->canView() ? $quoteCounts->alertPayload() : ['has_action' => false];
+
         return view('admin.commercial.workspaces.hub', [
             'workspace' => $payload,
+            'quoteRequestsAlert' => $quoteAlert,
             'cards' => collect($payload['items'])->map(fn (array $item) => array_merge($item, [
                 'group_label' => __('Workspaces'),
                 'search_text' => strtolower(implode(' ', array_filter([

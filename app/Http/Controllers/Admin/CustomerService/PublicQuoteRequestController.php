@@ -7,6 +7,7 @@ use App\Enums\PublicQuoteRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Models\PublicQuoteRequest;
 use App\Models\PublicQuoteRequestNote;
+use App\Services\Commercial\PublicQuoteRequestNotificationService;
 use App\Services\Storefront\PublicQuoteRequestService;
 use App\Support\Commercial\PublicLeadsDashboardPresenter;
 use App\Support\Commercial\PublicQuoteRequestWorkspacePresenter;
@@ -23,6 +24,7 @@ class PublicQuoteRequestController extends Controller
         protected PublicQuoteRequestService $service,
         protected PublicLeadsDashboardPresenter $dashboard,
         protected PublicQuoteRequestWorkspacePresenter $workspace,
+        protected PublicQuoteRequestNotificationService $quoteNotifications,
     ) {}
 
     public function index(Request $request): View
@@ -67,6 +69,10 @@ class PublicQuoteRequestController extends Controller
     public function show(PublicQuoteRequest $publicQuoteRequest): View
     {
         $this->authorize('view', $publicQuoteRequest);
+
+        if ($user = auth()->user()) {
+            $this->quoteNotifications->markRelatedRead($user, $publicQuoteRequest);
+        }
 
         return view('admin.customer-service.quote-requests.show', [
             'quoteRequest' => $publicQuoteRequest,

@@ -49,6 +49,7 @@ class AssetExecutiveIntelligenceService
             })->count();
 
             $criticalHealth = (clone $base)->get()->filter(fn (FixedAsset $a) => $this->health->score($a)['band'] === AssetHealthBand::Critical)->count();
+            $replacementList = $this->replacement->candidates($companyId, $branchId, 8);
 
             return [
                 'total_asset_value' => round((float) $totals->cost, 2),
@@ -70,7 +71,7 @@ class AssetExecutiveIntelligenceService
                 'replacement_candidates' => $this->replacement->candidates($companyId, $branchId)->count(),
                 'by_branch' => $this->groupByBranch($companyId),
                 'by_category' => $this->groupByCategory($companyId, $branchId),
-                'replacement_list' => $this->replacement->candidates($companyId, $branchId, 8),
+                'replacement_list' => $replacementList,
             ];
         }, config('platform.cache.asset_executive_dashboard', 120));
     }

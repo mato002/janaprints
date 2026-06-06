@@ -184,7 +184,8 @@ class Asset360Service
 
         return [
             'profile' => $profile,
-            'roi_placeholder' => null,
+            'roi' => null,
+            'roi_label' => __('Not yet available'),
             'disposal_value' => $disposal?->disposal_proceeds,
             'replacement_estimate' => $profile['net_book_value'],
             'timeline' => $timeline,
@@ -209,7 +210,8 @@ class Asset360Service
         return [
             'work_orders' => $workOrders,
             'downtime_hours' => round($downtimeMinutes / 60, 1),
-            'downtime_cost_placeholder' => null,
+            'downtime_cost' => null,
+            'downtime_cost_label' => __('Not yet available'),
             'preventive_count' => $workOrders->filter(fn ($wo) => $wo->maintenance_type === MaintenanceType::Preventive)->count(),
             'corrective_count' => $workOrders->filter(fn ($wo) => in_array($wo->maintenance_type, [MaintenanceType::Corrective, MaintenanceType::Emergency], true))->count(),
             'upcoming' => $asset->maintenancePlans()->where('next_due_date', '>=', now())->orderBy('next_due_date')->limit(5)->get(),
@@ -234,12 +236,11 @@ class Asset360Service
             ];
         }
 
-        $daysAssigned = $asset->assignmentHistories()->count();
-        $utilizationPct = $asset->assigned_to_user_id || $asset->assigned_to_employee_id ? 98 : ($daysAssigned > 0 ? 75 : 0);
-
         return [
             'type' => 'general',
-            'assignment_utilization' => $utilizationPct,
+            'assignment_utilization' => null,
+            'assignment_utilization_label' => __('Not yet available'),
+            'is_assigned' => (bool) ($asset->assigned_to_user_id || $asset->assigned_to_employee_id),
             'assignment_histories' => $asset->assignmentHistories()->with(['assignedUser', 'assignedEmployee'])->limit(10)->get(),
             'custody_status' => $asset->custody_status?->label(),
         ];
@@ -290,14 +291,11 @@ class Asset360Service
     /** @return array<string, mixed> */
     protected function documentsTab(FixedAsset $asset): array
     {
-        $docs = $asset->procurementDocuments()->get();
-        $handovers = $asset->handovers()->limit(5)->get(['id', 'handover_no', 'handover_date']);
-        $transfers = $asset->branchTransfers()->limit(5)->get(['id', 'transfer_no', 'requested_at']);
-
         return [
-            'procurement_documents' => $docs,
-            'handovers' => $handovers,
-            'transfers' => $transfers,
+            'uploaded_documents' => $asset->documents()->with('uploader:id,name')->whereNull('archived_at')->latest()->get(),
+            'procurement_documents' => $asset->procurementDocuments()->get(),
+            'handovers' => $asset->handovers()->limit(5)->get(['id', 'handover_no', 'handover_date']),
+            'transfers' => $asset->branchTransfers()->limit(5)->get(['id', 'transfer_no', 'requested_at']),
             'warranties' => $asset->warranties,
         ];
     }
@@ -305,13 +303,14 @@ class Asset360Service
     /** @return array<string, mixed> */
     protected function lifecycleTab(FixedAsset $asset): array
     {
+        $perDomain = 15;
         $events = collect()
-            ->merge($asset->financeTimelineEntries()->get()->map(fn ($e) => $this->mapTimeline($e, 'finance')))
-            ->merge($asset->custodyTimelineEntries()->get()->map(fn ($e) => $this->mapTimeline($e, 'custody')))
-            ->merge($asset->maintenanceTimelineEntries()->get()->map(fn ($e) => $this->mapTimeline($e, 'maintenance')))
-            ->merge($asset->machineTimelineEntries()->get()->map(fn ($e) => $this->mapTimeline($e, 'machine')))
+            ->merge($asset->financeTimelineEntries()->with('user:id,name')->orderByDesc('occurred_at')->limit($perDomain)->get()->map(fn ($e) => $this->mapTimeline($e, 'finance')))
+            ->merge($asset->custodyTimelineEntries()->with('user:id,name')->orderByDesc('occurred_at')->limit($perDomain)->get()->map(fn ($e) => $this->mapTimeline($e, 'custody')))
+            ->merge($asset->maintenanceTimelineEntries()->with('user:id,name')->orderByDesc('occurred_at')->limit($perDomain)->get()->map(fn ($e) => $this->mapTimeline($e, 'maintenance')))
+            ->merge($asset->machineTimelineEntries()->with('user:id,name')->orderByDesc('occurred_at')->limit($perDomain)->get()->map(fn ($e) => $this->mapTimeline($e, 'machine')))
             ->sortByDesc('occurred_at')
-            ->take(40)
+            ->take(50)
             ->values();
 
         $lifePercent = $this->health->agePercentOfLife($asset);

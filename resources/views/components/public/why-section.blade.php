@@ -1,11 +1,10 @@
 @php
     $features = config('why-us.features');
-    $stats = config('why-us.stats');
+    $stats = config('storefront_stats.why_us');
     $comparison = config('why-us.comparison');
-    $confidence = config('why-us.confidence');
 @endphp
 
-<section id="why-us" class="public-why" data-reveal-section aria-label="Why choose Jana Prints">
+<section id="about" class="public-why" data-reveal-section aria-label="Why choose Jana Prints">
     {{-- Header --}}
     <div class="public-why__header public-section public-section--dark relative overflow-hidden">
         <div class="absolute inset-0 opacity-30" data-parallax="0.2">
@@ -38,18 +37,14 @@
         @endforeach
     </div>
 
-    {{-- Statistics --}}
-    <div class="public-why__stats-wrap public-section--compact bg-brand-off-white">
+    {{-- Statistics (desktop only) --}}
+    <div class="public-why__stats-wrap public-section--compact bg-brand-off-white max-lg:hidden">
         <div class="public-container">
             <div class="public-why-stats" data-animate="fade-up">
                 @foreach ($stats as $stat)
                     <div class="public-why-stats__item">
                         <p class="public-why-stats__value">
-                            <span
-                                data-counter="{{ $stat['value'] }}"
-                                data-counter-suffix="{{ $stat['suffix'] }}"
-                                data-counter-duration="1750"
-                            >0</span>
+                            <x-public.counter :value="$stat['value']" :suffix="$stat['suffix']" />
                         </p>
                         <p class="public-why-stats__label">{{ $stat['label'] }}</p>
                     </div>
@@ -95,22 +90,6 @@
                         @endforeach
                     </ul>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Confidence panel --}}
-    <div class="public-why__confidence public-section--compact bg-white border-t border-brand-gray-muted">
-        <div class="public-container">
-            <div class="public-why-confidence" data-animate="fade-up">
-                @foreach ($confidence as $item)
-                    <span class="public-why-confidence__item">
-                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        {{ $item }}
-                    </span>
-                @endforeach
             </div>
         </div>
     </div>

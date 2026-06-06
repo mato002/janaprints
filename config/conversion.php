@@ -2,6 +2,11 @@
 
 $i = require __DIR__ . '/public-images.php';
 
+// Placeholder coordinates — update when the production facility pin is confirmed.
+$mapLatitude = -1.303206;
+$mapLongitude = 36.817223;
+$mapZoom = 15;
+
 return [
 
     'contact' => [
@@ -13,8 +18,30 @@ return [
         'address_detail' => 'Visit our production facility by appointment.',
         'hours' => 'Mon – Fri: 8:00 AM – 6:00 PM',
         'hours_weekend' => 'Sat: 9:00 AM – 1:00 PM',
-        'map_embed' => null, // Google Maps embed URL — replace when ready
-        'map_placeholder' => 'Google Maps embed placeholder',
+        'map_latitude' => $mapLatitude,
+        'map_longitude' => $mapLongitude,
+        'map_zoom' => $mapZoom,
+        'map_embed' => sprintf(
+            'https://maps.google.com/maps?q=%F,%F&z=%d&hl=en&ie=UTF8&iwloc=&output=embed',
+            $mapLatitude,
+            $mapLongitude,
+            $mapZoom,
+        ),
+        'map_url' => 'https://www.google.com/maps/search/?api=1&query=Industrial+Area+Nairobi+Kenya',
+        'map_placeholder' => 'Industrial Area, Nairobi, Kenya',
+    ],
+
+    'inquiry_types' => [
+        ['value' => 'Request a Quote', 'slug' => 'quote'],
+        ['value' => 'Send Artwork', 'slug' => 'artwork'],
+        ['value' => 'General Inquiry', 'slug' => 'general'],
+        ['value' => 'Book Consultation', 'slug' => 'consultation'],
+        ['value' => 'Follow Up Existing Order', 'slug' => 'follow-up'],
+    ],
+
+    'final_cta' => [
+        'title' => 'Ready To Start Your Next Print Project?',
+        'subtitle' => 'Get pricing, artwork guidance, and production support from our team.',
     ],
 
     'whatsapp' => [
@@ -62,7 +89,7 @@ return [
             'title' => 'Book Consultation',
             'description' => 'Discuss your project with our team.',
             'icon' => 'calendar',
-            'href' => '#quote-form',
+            'href' => '#contact',
             'accent' => 'cyan',
         ],
     ],

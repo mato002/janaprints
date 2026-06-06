@@ -1,11 +1,10 @@
 @php
+    $salesOpportunities = collect($dashboard['sales_opportunities'] ?? []);
     $groups = [
         'critical' => ['label' => __('Critical'), 'class' => 'exec-attention-group--critical', 'severities' => ['danger']],
         'warning' => ['label' => __('Warning'), 'class' => 'exec-attention-group--warning', 'severities' => ['warning']],
         'normal' => ['label' => __('Normal'), 'class' => 'exec-attention-group--normal', 'severities' => ['muted']],
     ];
-
-    $itemsBySeverity = collect($dashboard['attention'])->groupBy('severity');
 @endphp
 
 <section class="exec-panel exec-panel--attention" aria-label="{{ __('Attention center') }}">
@@ -15,6 +14,37 @@
     </div>
 
     <div class="exec-attention-groups">
+        @if ($salesOpportunities->isNotEmpty())
+            <div class="exec-attention-group exec-attention-group--opportunity">
+                <h3 class="exec-attention-group__title">{{ __('Sales Opportunities') }}</h3>
+                <ul class="exec-attention-list" role="list">
+                    @foreach ($salesOpportunities as $item)
+                        @php
+                            $count = (string) ($item['count'] ?? 0);
+                            $href = ! empty($item['route']) && Route::has($item['route']) ? route($item['route']) : null;
+                        @endphp
+                        <li>
+                            @if ($href)
+                                <a href="{{ $href }}" data-turbo-frame="erp-main" class="exec-alert-row exec-alert-row--link exec-alert-row--opportunity">
+                            @else
+                                <div class="exec-alert-row exec-alert-row--opportunity">
+                            @endif
+                                <span class="exec-alert-row__label">{{ $item['label'] }}</span>
+                                <span class="exec-alert-badge exec-alert-badge--opportunity">{{ $count }}</span>
+                                @if (! empty($item['hint']))
+                                    <span class="exec-alert-row__hint">{{ $item['hint'] }}</span>
+                                @endif
+                            @if ($href)
+                                </a>
+                            @else
+                                </div>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @foreach ($groups as $groupKey => $group)
             @php
                 $items = collect($dashboard['attention'])

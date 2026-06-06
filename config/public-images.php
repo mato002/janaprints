@@ -1,37 +1,41 @@
 <?php
 
 /**
- * Reliable public-site imagery (picsum.photos seeds).
- * Replace with real Jana Prints photography when available.
+ * Local storefront imagery — printing, branding, packaging and production.
+ * Paths are relative to /public (no hotlinking).
  */
 return [
 
-    'default' => 'https://picsum.photos/seed/jp-default/1200/800',
+    'default' => '/images/storefront/facility/production-floor.jpg',
 
-    'cards' => 'https://picsum.photos/seed/jp-cards/1200/800',
-    'stationery' => 'https://picsum.photos/seed/jp-stationery/1200/800',
-    'brochure' => 'https://picsum.photos/seed/jp-brochure/1200/800',
-    'school' => 'https://picsum.photos/seed/jp-school/1200/800',
-    'packaging' => 'https://picsum.photos/seed/jp-packaging/1200/800',
-    'banner' => 'https://picsum.photos/seed/jp-banner/1200/800',
-    'vehicle' => 'https://picsum.photos/seed/jp-vehicle/1200/800',
-    'print_press' => 'https://picsum.photos/seed/jp-press/1200/800',
-    'prepress' => 'https://picsum.photos/seed/jp-prepress/1200/800',
-    'artwork' => 'https://picsum.photos/seed/jp-artwork/1200/800',
-    'finishing' => 'https://picsum.photos/seed/jp-finishing/1200/800',
-    'delivery' => 'https://picsum.photos/seed/jp-delivery/1200/800',
-    'team' => 'https://picsum.photos/seed/jp-team/1200/800',
-    'office' => 'https://picsum.photos/seed/jp-office/1200/800',
-    'quality' => 'https://picsum.photos/seed/jp-quality/1200/800',
-    'merchandise' => 'https://picsum.photos/seed/jp-merch/1200/800',
-    'event' => 'https://picsum.photos/seed/jp-event/1200/800',
-    'proof' => 'https://picsum.photos/seed/jp-proof/1200/800',
-    'corporate' => 'https://picsum.photos/seed/jp-corporate/1200/800',
-    'ngo' => 'https://picsum.photos/seed/jp-ngo/1200/800',
-    'retail' => 'https://picsum.photos/seed/jp-retail/1200/800',
-    'signage' => 'https://picsum.photos/seed/jp-signage/1200/800',
-    'branding' => 'https://picsum.photos/seed/jp-branding/1200/800',
-    'production_floor' => 'https://picsum.photos/seed/jp-floor/1200/800',
-    'portrait' => 'https://picsum.photos/seed/jp-portrait/600/700',
+    'cards' => '/images/storefront/services/business-cards.jpg',
+    'stationery' => '/images/storefront/services/stationery.jpg',
+    'brochure' => '/images/storefront/services/brochures.jpg',
+    'school' => '/images/storefront/services/brochures.jpg',
+    'packaging' => '/images/storefront/services/packaging.jpg',
+    'banner' => '/images/storefront/services/large-format.jpg',
+    'vehicle' => '/images/storefront/services/vehicle-branding.jpg',
+    'print_press' => '/images/storefront/facility/printing-equipment.jpg',
+    'prepress' => '/images/storefront/facility/prepress.jpg',
+    'artwork' => '/images/storefront/quality/artwork.jpg',
+    'finishing' => '/images/storefront/facility/finishing.jpg',
+    'delivery' => '/images/storefront/facility/dispatch.jpg',
+    'team' => '/images/storefront/team/management.jpg',
+    'office' => '/images/storefront/team/support.jpg',
+    'quality' => '/images/storefront/team/quality.jpg',
+    'merchandise' => '/images/storefront/services/merchandise.jpg',
+    'event' => '/images/storefront/gallery/events.jpg',
+    'proof' => '/images/storefront/quality/prepress.jpg',
+    'corporate' => '/images/storefront/testimonials/corporate.jpg',
+    'ngo' => '/images/storefront/services/brochures.jpg',
+    'retail' => '/images/storefront/services/packaging.jpg',
+    'signage' => '/images/storefront/services/signage.jpg',
+    'branding' => '/images/storefront/gallery/branding.jpg',
+    'production_floor' => '/images/storefront/facility/production-floor.jpg',
+    'portrait' => '/images/storefront/team/production.jpg',
+    'hero' => '/images/storefront/hero/production-floor.jpg',
+    'hero_showcase' => '/images/storefront/hero/print-showcase.jpg',
+    'flyers' => '/images/storefront/services/flyers.jpg',
+    'labels' => '/images/storefront/services/labels.jpg',
 
 ];

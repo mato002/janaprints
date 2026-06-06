@@ -156,23 +156,7 @@
                     </article>
                 </div>
 
-                <div class="public-conversion-contact__map" data-animate="fade-up" data-animate-delay="2">
-                    @if ($contact['map_embed'])
-                        <iframe
-                            src="{{ $contact['map_embed'] }}"
-                            title="Jana Prints location map"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            allowfullscreen
-                        ></iframe>
-                    @else
-                        <div class="public-conversion-map-placeholder">
-                            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                            <p>{{ $contact['map_placeholder'] }}</p>
-                            <span>{{ $contact['address'] }}</span>
-                        </div>
-                    @endif
-                </div>
+                <x-public.contact-map />
 
                 @if (count($branches))
                     <div class="public-conversion-branches" data-animate="fade-up">
@@ -217,10 +201,13 @@
         <div class="public-container">
             <div class="public-conversion-trust__strip" data-animate="fade-up">
                 @foreach ($trustStrip as $item)
-                    <div class="public-conversion-trust__item">
+                    <div @class([
+                        'public-conversion-trust__item',
+                        'max-lg:hidden' => ($item['type'] ?? '') === 'counter',
+                    ])>
                         @if (($item['type'] ?? '') === 'counter')
                             <span class="public-conversion-trust__value">
-                                <span data-counter="{{ $item['value'] }}" data-counter-suffix="{{ $item['suffix'] ?? '' }}">0</span>
+                                <x-public.counter :value="$item['value']" :suffix="$item['suffix'] ?? ''" />
                             </span>
                         @else
                             <span class="public-conversion-trust__check" aria-hidden="true">

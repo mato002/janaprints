@@ -3,8 +3,12 @@
 namespace App\Services\Assets;
 
 use App\Enums\FixedAssetStatus;
+use App\Enums\AssetWarrantyStatus;
+use App\Enums\MaintenanceWorkOrderStatus;
 use App\Models\Assets\AssetDepreciationEntry;
+use App\Models\Assets\AssetWarranty;
 use App\Models\Assets\FixedAsset;
+use App\Models\Assets\MaintenanceWorkOrder;
 use Illuminate\Support\Collection;
 
 class AssetFinanceReportService
@@ -77,6 +81,44 @@ class AssetFinanceReportService
                 return $this->calculator->financialProfile($asset)['remaining_months'] <= $monthsThreshold;
             })
             ->values();
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function maintenanceReport(int $companyId, array $filters = []): Collection
+    {
+        return MaintenanceWorkOrder::query()
+            ->where('company_id', $companyId)
+            ->when($filters['branch_id'] ?? null, fn ($q, $id) => $q->where('branch_id', $id))
+            ->when($filters['from'] ?? null, fn ($q, $from) => $q->whereDate('opened_at', '>=', $from))
+            ->when($filters['to'] ?? null, fn ($q, $to) => $q->whereDate('opened_at', '<=', $to))
+            ->with(['asset:id,asset_number,asset_name', 'branch:id,name'])
+            ->latest('opened_at')
+            ->limit(500)
+            ->get();
+    }
+
+    public function custodyReport(int $companyId, array $filters = []): Collection
+    {
+        return $this->baseQuery($companyId, $filters)
+            ->with(['category:id,name', 'branch:id,name', 'assignedUser:id,name', 'assignedEmployee:id,first_name,last_name'])
+            ->orderBy('asset_number')
+            ->limit(500)
+            ->get();
+    }
+
+    public function warrantyExpiryReport(int $companyId, array $filters = [], int $days = 90): Collection
+    {
+        return AssetWarranty::query()
+            ->where('company_id', $companyId)
+            ->where('status', AssetWarrantyStatus::Active)
+            ->whereBetween('warranty_end', [now()->toDateString(), now()->addDays($days)->toDateString()])
+            ->when($filters['branch_id'] ?? null, fn ($q, $id) => $q->whereHas('asset', fn ($a) => $a->where('branch_id', $id)))
+            ->with(['asset:id,asset_number,asset_name,branch_id', 'vendor:id,vendor_name'])
+            ->orderBy('warranty_end')
+            ->limit(500)
+            ->get();
     }
 
     /**

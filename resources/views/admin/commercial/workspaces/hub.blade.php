@@ -6,6 +6,23 @@
         :description="$workspace['description']"
     />
 
+    @if (! empty($quoteRequestsAlert) && ($quoteRequestsAlert['has_action'] ?? false))
+        <a
+            href="{{ $quoteRequestsAlert['route'] }}"
+            data-turbo-frame="erp-main"
+            class="exec-quote-alert exec-quote-alert--compact exec-quote-alert--active mb-4"
+        >
+            <div class="exec-quote-alert__main">
+                <span class="exec-quote-alert__pulse" aria-hidden="true"></span>
+                <div>
+                    <p class="exec-quote-alert__title">{{ __('Public Quote Requests') }}</p>
+                    <p class="exec-quote-alert__subtext">{{ __(':count pending', ['count' => $quoteRequestsAlert['count']]) }}</p>
+                </div>
+            </div>
+            <span class="exec-quote-alert__cta exec-quote-alert__cta--inline">{{ __('Review') }}</span>
+        </a>
+    @endif
+
     <div
         x-data="workspaceHub(@js($cards))"
         x-cloak
@@ -40,6 +57,7 @@
                             'description' => $item['description'],
                             'icon' => $item['icon'],
                             'href' => $item['href'],
+                            'count' => $item['count'] ?? null,
                             'comingSoon' => $item['comingSoon'],
                             'statusLabel' => $item['statusLabel'],
                             'statusVariant' => $item['statusVariant'],

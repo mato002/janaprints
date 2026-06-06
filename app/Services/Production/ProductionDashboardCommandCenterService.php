@@ -507,13 +507,18 @@ class ProductionDashboardCommandCenterService
             'critical_failures' => $stats['critical_failures'] ?? 0,
             'open_work_orders' => $stats['open_work_orders'] ?? 0,
             'downtime_hours' => $stats['downtime_hours'] ?? 0,
-            'orders' => collect($stats['critical_orders'] ?? [])->take(5)->map(fn ($order) => [
-                'work_order_no' => $order->work_order_no,
-                'asset_name' => $order->asset?->asset_name,
-                'url' => Route::has('admin.assets.maintenance.work-orders.show')
-                    ? route('admin.assets.maintenance.work-orders.show', $order)
-                    : null,
-            ])->values()->all(),
+            'orders' => collect($stats['critical_orders'] ?? [])
+                ->filter(fn ($order) => is_array($order))
+                ->take(5)
+                ->map(fn (array $order) => [
+                    'work_order_no' => $order['work_order_no'] ?? '—',
+                    'asset_name' => $order['asset_name'] ?? null,
+                    'url' => ! empty($order['id']) && Route::has('admin.assets.maintenance.work-orders.show')
+                        ? route('admin.assets.maintenance.work-orders.show', $order['id'])
+                        : null,
+                ])
+                ->values()
+                ->all(),
         ];
     }
 

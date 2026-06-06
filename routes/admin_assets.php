@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\Assets\Asset360Controller;
 use App\Http\Controllers\Admin\Assets\AssetExecutiveDashboardController;
 use App\Http\Controllers\Admin\Assets\AssetBranchIntelligenceController;
 use App\Http\Controllers\Admin\Assets\AssetAnalyticsController;
+use App\Http\Controllers\Admin\Assets\AssetDocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
@@ -54,6 +55,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 ->middleware('permission:assets.360.view')
                 ->name('360.show');
             Route::get('register/{asset}/barcode', [AssetLifecycleController::class, 'barcode'])->name('barcode');
+            Route::get('register/{asset}/documents', [AssetDocumentController::class, 'index'])->name('documents.index');
+            Route::post('register/{asset}/documents', [AssetDocumentController::class, 'store'])->name('documents.store');
+            Route::get('documents/{document}/download', [AssetDocumentController::class, 'download'])->name('documents.download');
+            Route::post('documents/{document}/archive', [AssetDocumentController::class, 'archive'])->name('documents.archive');
 
             Route::get('categories', [AssetCategoryController::class, 'index'])->name('categories.index');
         });
@@ -193,6 +198,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 Route::get('reconciliation/{reconciliation}', [AssetCapitalizationReconciliationController::class, 'show'])->name('reconciliation.show');
             });
 
+            Route::middleware('permission:assets.capitalize.approve')->group(function () {
+                Route::post('queue/{candidate}/approve', [AssetCapitalizationController::class, 'approve'])->name('approve');
+            });
+
             Route::middleware('permission:assets.capitalize')->group(function () {
                 Route::get('queue/{candidate}/workbench', [AssetCapitalizationController::class, 'workbench'])->name('workbench');
                 Route::post('queue/{candidate}/capitalize', [AssetCapitalizationController::class, 'capitalize'])->name('capitalize');
@@ -256,6 +265,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('register/{asset}/repair-complete', [AssetLifecycleController::class, 'repairComplete'])->name('repair-complete');
             Route::get('register/{asset}/dispose', [AssetLifecycleController::class, 'disposeForm'])->name('dispose');
             Route::post('register/{asset}/dispose', [AssetLifecycleController::class, 'dispose'])->name('dispose.store');
+        });
+
+        Route::middleware('permission:assets.depreciation.post')->group(function () {
             Route::post('register/{asset}/depreciate', [AssetLifecycleController::class, 'depreciate'])->name('depreciate');
         });
     });

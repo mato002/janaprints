@@ -93,6 +93,10 @@ class AssetCapitalizationTest extends TestCase
         GoodsReceiptService::post($grn, $user->id);
         $candidate = AssetCapitalizationCandidate::query()->where('goods_receipt_id', $grn->id)->firstOrFail();
 
+        $approver = User::factory()->create(['company_id' => $user->company_id, 'is_active' => true]);
+        $approver->assignRole('Company Admin');
+        app(AssetCapitalizationService::class)->approve($candidate, $approver->id);
+
         $assets = app(AssetCapitalizationService::class)->capitalize($candidate, [
             'quantity' => 3,
             'asset_category_id' => $candidate->asset_category_id,

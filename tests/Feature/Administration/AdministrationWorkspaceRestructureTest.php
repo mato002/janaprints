@@ -23,7 +23,7 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_administration_hub_shows_six_workspace_cards_only(): void
+    public function test_administration_hub_shows_workspace_cards(): void
     {
         $user = $this->companyAdmin();
 
@@ -36,6 +36,7 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $response->assertSeeText(__('Workflow & Governance'));
         $response->assertSeeText(__('Integrations'));
         $response->assertSeeText(__('System Operations'));
+        $response->assertSeeText(__('Website Content'));
         $response->assertDontSee('User accounts, branches, and role assignment', false);
         $response->assertDontSee(__('Access Control'), false);
         $response->assertDontSee(__('Settings Hub'), false);
@@ -78,6 +79,17 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $response->assertOk();
         $response->assertSee(route('admin.governance.delegations.index'), false);
         $response->assertSee(route('admin.settings.approvals.index'), false);
+    }
+
+    public function test_website_content_section_lists_gallery(): void
+    {
+        $user = $this->companyAdmin();
+
+        $response = $this->actingAs($user)->get(route('admin.workspaces.administration.section', ['section' => 'website-content']));
+
+        $response->assertOk();
+        $response->assertSeeText(__('Website Content'));
+        $response->assertSee(route('admin.website.gallery.index'), false);
     }
 
     public function test_existing_administration_feature_routes_remain_registered(): void

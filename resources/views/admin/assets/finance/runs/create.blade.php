@@ -1,5 +1,10 @@
 <x-admin-layout :title="__('New Depreciation Run')" :breadcrumbs="[['label' => __('Depreciation Runs'), 'url' => route('admin.assets.finance.runs.index')], ['label' => __('New')]]">
     <x-admin.page-header :title="__('Create Depreciation Run')" />
+
+    <x-admin.alert variant="warning" class="mb-4">
+        {{ __('Only straight-line depreciation is fully supported for posting. Reducing balance and units-of-production methods are blocked at preview and execution.') }}
+    </x-admin.alert>
+
     <x-admin.card>
         <form method="POST" action="{{ route('admin.assets.finance.runs.store') }}" class="max-w-md space-y-4">
             @csrf

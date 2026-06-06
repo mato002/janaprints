@@ -3,25 +3,23 @@
 namespace App\Support\Commercial;
 
 use App\Enums\PublicContactMessageStatus;
-use App\Enums\PublicQuoteRequestStatus;
 use App\Models\PublicContactMessage;
-use App\Models\PublicQuoteRequest;
+use App\Services\Commercial\PublicQuoteRequestCountService;
 
 class PublicLeadsDashboardPresenter
 {
+    public function __construct(
+        protected PublicQuoteRequestCountService $quoteCounts,
+    ) {}
+
     /**
      * @return array<string, int>
      */
     public function widgets(): array
     {
         return [
-            'new_quote_requests' => PublicQuoteRequest::query()
-                ->where('status', PublicQuoteRequestStatus::Pending)
-                ->whereDate('created_at', today())
-                ->count(),
-            'pending_quote_requests' => PublicQuoteRequest::query()
-                ->where('status', PublicQuoteRequestStatus::Pending)
-                ->count(),
+            'new_quote_requests' => $this->quoteCounts->todayCount(),
+            'pending_quote_requests' => $this->quoteCounts->pendingCount(),
             'unread_contact_messages' => PublicContactMessage::query()
                 ->where('status', PublicContactMessageStatus::Unread)
                 ->count(),
@@ -38,9 +36,7 @@ class PublicLeadsDashboardPresenter
     public function attentionCounts(): array
     {
         return [
-            'pending_quote_requests' => PublicQuoteRequest::query()
-                ->where('status', PublicQuoteRequestStatus::Pending)
-                ->count(),
+            'pending_quote_requests' => $this->quoteCounts->pendingCount(),
             'unread_contact_messages' => PublicContactMessage::query()
                 ->where('status', PublicContactMessageStatus::Unread)
                 ->count(),

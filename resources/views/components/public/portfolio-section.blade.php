@@ -1,107 +1,74 @@
 {{-- Portfolio & Recent Work Showcase --}}
 @php
-    $filters = config('portfolio.filters');
-    $stats = config('portfolio.stats');
-    $featured = config('portfolio.featured');
-    $projects = config('portfolio.projects');
+    $galleryService = app(\App\Services\Storefront\PublicGalleryService::class);
+    $projects = ($fullPage ?? false)
+        ? $galleryService->allItems()
+        : $galleryService->homepageItems(12);
+    $filters = $galleryService->categoriesWithItems();
+    $showGalleryCta = $showGalleryCta ?? true;
 @endphp
 
 <section id="portfolio" class="public-portfolio public-section bg-white" data-reveal-section aria-label="Portfolio">
-    <div class="public-container">
+    <div @class(['public-container', 'public-container--wide' => true])>
 
-        {{-- Section intro --}}
-        <div class="mx-auto max-w-3xl text-center" data-animate="fade-up">
-            <x-public.badge variant="magenta" class="mb-5">Portfolio</x-public.badge>
-            <h2 class="public-heading text-display-sm sm:text-display-md">
-                Recent Work Delivered
-            </h2>
-            <p class="public-lead mt-4">
-                Explore a selection of projects completed for businesses, schools, NGOs, corporates,
-                events, hospitality brands, and institutions across Kenya.
-            </p>
+        {{-- Section header with integrated CTA --}}
+        <div class="public-portfolio-header" data-animate="fade-up">
+            <div class="public-portfolio-header__content">
+                <x-public.badge variant="magenta" class="mb-4">Portfolio</x-public.badge>
+                <h2 class="public-heading text-display-sm sm:text-display-md">
+                    {{ $heading ?? 'Featured Work' }}
+                </h2>
+                <p class="public-lead mt-3 max-w-2xl">
+                    {{ $intro ?? 'A quick look at recent print, branding and packaging work.' }}
+                </p>
+
+                @if ($showGalleryCta && ! ($fullPage ?? false))
+                    <div class="public-portfolio-header__cta-mobile mt-5 lg:hidden">
+                        <x-public.button href="{{ route('storefront.gallery') }}" variant="secondary" size="sm">
+                            View Full Gallery
+                        </x-public.button>
+                    </div>
+                @endif
+            </div>
+
+            @if ($showGalleryCta && ! ($fullPage ?? false))
+                <div class="public-portfolio-header__cta-desktop hidden shrink-0 lg:block" data-animate="fade-up" data-animate-delay="1">
+                    <x-public.button href="{{ route('storefront.gallery') }}" variant="secondary">
+                        View Full Gallery
+                    </x-public.button>
+                </div>
+            @endif
         </div>
 
-        {{-- Featured projects --}}
-        <div class="mt-16" data-animate="fade-up">
-            <h3 class="mb-8 text-center font-display text-xl font-bold text-brand-navy sm:text-2xl">
-                Featured Projects
-            </h3>
-            <div class="grid gap-6 lg:grid-cols-3">
-                @foreach ($featured as $index => $item)
-                    <article class="public-portfolio-featured" data-animate="fade-up" data-animate-delay="{{ $index + 1 }}">
-                        <div class="public-portfolio-featured__image">
-                            <x-public.media-image
-                                :src="$item['image']"
-                                :alt="$item['alt']"
-                                fallback="brochure"
-                                class="h-full w-full object-cover"
-                            />
-                        </div>
-                        <div class="public-portfolio-featured__body">
-                            <h4 class="public-portfolio-featured__title">{{ $item['title'] }}</h4>
-                            <ul class="public-portfolio-featured__list">
-                                @foreach ($item['highlights'] as $highlight)
-                                    <li>{{ $highlight }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </article>
+        {{-- Category filters — only categories with available items --}}
+        @if (count($filters) > 1)
+            <div class="public-portfolio-filters mt-8 lg:mt-10" data-portfolio-filters role="tablist" aria-label="Filter portfolio">
+                @foreach ($filters as $filter)
+                    <button
+                        type="button"
+                        role="tab"
+                        class="public-portfolio-filters__btn {{ $filter['slug'] === 'all' ? 'is-active' : '' }}"
+                        data-filter="{{ $filter['slug'] }}"
+                        aria-selected="{{ $filter['slug'] === 'all' ? 'true' : 'false' }}"
+                    >
+                        {{ $filter['label'] }}
+                    </button>
                 @endforeach
             </div>
-        </div>
+        @endif
 
-        {{-- Portfolio stats --}}
-        <div class="public-portfolio-stats mt-16" data-animate="fade-up">
-            @foreach ($stats as $stat)
-                <div class="public-portfolio-stats__item">
-                    <p class="public-portfolio-stats__value">
-                        <span
-                            data-counter="{{ $stat['value'] }}"
-                            data-counter-suffix="{{ $stat['suffix'] }}"
-                            data-counter-duration="1750"
-                        >0</span>
-                    </p>
-                    <p class="public-portfolio-stats__label">{{ $stat['label'] }}</p>
-                </div>
-            @endforeach
-        </div>
+        <p class="public-h-scroll-hint mt-6 lg:hidden">Swipe to view more</p>
 
-        {{-- Filter tabs --}}
-        <div class="public-portfolio-filters mt-16" data-portfolio-filters role="tablist" aria-label="Filter portfolio">
-            @foreach ($filters as $filter)
-                <button
-                    type="button"
-                    role="tab"
-                    class="public-portfolio-filters__btn {{ $filter['slug'] === 'all' ? 'is-active' : '' }}"
-                    data-filter="{{ $filter['slug'] }}"
-                    aria-selected="{{ $filter['slug'] === 'all' ? 'true' : 'false' }}"
-                >
-                    {{ $filter['label'] }}
-                </button>
-            @endforeach
-        </div>
-
-        {{-- Masonry grid --}}
-        <div class="public-portfolio-grid mt-10" data-portfolio-grid>
+        {{-- Visual portfolio cards — horizontal carousel on mobile, clean grid on desktop --}}
+        <div class="public-portfolio-grid public-h-scroll public-h-scroll--portfolio mt-4 lg:mt-8" data-portfolio-grid>
             @foreach ($projects as $project)
                 <x-public.portfolio-card :project="$project" />
             @endforeach
         </div>
 
-        <p class="public-portfolio-empty mt-10 hidden" data-portfolio-empty>
-            <x-public.empty-state
-                icon="grid"
-                title="No projects in this category"
-                description="Try another filter or request a quote for a similar project."
-                class="mx-auto max-w-md"
-            >
-                <x-public.button href="{{ $quoteFormHref }}" variant="primary" size="sm">Request A Quote</x-public.button>
-            </x-public.empty-state>
-        </p>
-
     </div>
 
-    {{-- Project detail modal --}}
+    {{-- Project detail modal — public fields only --}}
     <div class="public-portfolio-modal" data-portfolio-modal hidden aria-hidden="true">
         <div class="public-portfolio-modal__backdrop" data-portfolio-close></div>
         <div
@@ -118,35 +85,12 @@
 
             <div class="public-portfolio-modal__layout">
                 <div class="public-portfolio-modal__media">
-                    <img src="" alt="" data-portfolio-modal-image>
+                    <img src="" alt="" data-portfolio-modal-image loading="lazy">
                 </div>
                 <div class="public-portfolio-modal__content">
                     <span class="public-portfolio-modal__category" data-portfolio-modal-category></span>
                     <h3 id="portfolio-modal-title" class="public-portfolio-modal__title" data-portfolio-modal-title></h3>
-                    <p class="public-portfolio-modal__location" data-portfolio-modal-location></p>
-
-                    <dl class="public-portfolio-modal__details">
-                        <div>
-                            <dt>Description</dt>
-                            <dd data-portfolio-modal-description></dd>
-                        </div>
-                        <div>
-                            <dt>Materials Used</dt>
-                            <dd data-portfolio-modal-materials></dd>
-                        </div>
-                        <div>
-                            <dt>Quantity Produced</dt>
-                            <dd data-portfolio-modal-quantity></dd>
-                        </div>
-                        <div>
-                            <dt>Completion Timeline</dt>
-                            <dd data-portfolio-modal-timeline></dd>
-                        </div>
-                        <div>
-                            <dt>Outcome</dt>
-                            <dd data-portfolio-modal-outcome></dd>
-                        </div>
-                    </dl>
+                    <p class="public-portfolio-modal__description" data-portfolio-modal-description></p>
 
                     <x-public.button href="{{ $quoteFormHref }}" variant="primary" class="mt-6" data-portfolio-close-on-click>
                         Request Similar Project

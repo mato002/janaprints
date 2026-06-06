@@ -124,6 +124,9 @@
             >
                 <x-admin.icon :name="$item['icon'] ?? 'home'" class="h-5 w-5 shrink-0" />
                 <span class="truncate" x-show="!sidebarCollapsed" x-cloak>{{ $item['label'] }}</span>
+                @if (! empty($item['badge_count']) && (int) $item['badge_count'] > 0)
+                    <span class="erp-nav-badge erp-nav-badge--quote" x-show="!sidebarCollapsed" x-cloak>{{ $item['badge_count'] }}</span>
+                @endif
             </a>
         @endforeach
     </nav>

@@ -174,17 +174,13 @@ return [
 
         'assets' => [
             'title' => 'Assets',
-            'description' => 'Fixed asset register, categories, maintenance, depreciation, and disposals.',
+            'description' => 'Fixed assets are managed in the Assets workspace.',
             'icon' => 'chip',
             'groups' => [
                 [
                     'label' => 'Assets',
                     'items' => [
-                        ['label' => 'Asset Register', 'description' => 'Fixed assets, locations, and custodians.', 'route' => 'admin.assets.index', 'permission' => 'assets.view', 'icon' => 'chip', 'active_routes' => ['admin.assets.index', 'admin.assets.show', 'admin.assets.create', 'admin.assets.store']],
-                        ['label' => 'Asset Categories', 'description' => 'Asset classes and depreciation policies.', 'coming_soon' => true, 'icon' => 'folder'],
-                        ['label' => 'Maintenance', 'description' => 'Preventive and corrective maintenance.', 'coming_soon' => true, 'icon' => 'cog'],
-                        ['label' => 'Depreciation', 'description' => 'Asset depreciation schedules.', 'coming_soon' => true, 'icon' => 'chart-pie'],
-                        ['label' => 'Disposals', 'description' => 'Asset retirement and disposal workflows.', 'coming_soon' => true, 'icon' => 'switch-horizontal'],
+                        ['label' => 'Assets Workspace', 'description' => 'Canonical fixed asset register, maintenance, finance, and intelligence.', 'route' => 'admin.workspaces.assets', 'permission' => 'assets.view', 'icon' => 'chip', 'active_routes' => ['admin.workspaces.assets', 'admin.assets.*']],
                     ],
                 ],
             ],

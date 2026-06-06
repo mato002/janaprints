@@ -9,7 +9,11 @@
 
 @php
     $images = config('public-images');
-    $resolved = $images[$src] ?? (str_starts_with((string) $src, 'http') ? $src : ($images['default'] ?? ''));
+    $resolved = $images[$src] ?? match (true) {
+        str_starts_with((string) $src, 'http'),
+        str_starts_with((string) $src, '/') => (string) $src,
+        default => $images['default'] ?? '',
+    };
     $fallbackUrl = $images[$fallback] ?? $images['default'] ?? '';
 @endphp
 

@@ -8,6 +8,9 @@ use App\Mail\PublicQuoteRequestConfirmationMail;
 use App\Mail\PublicQuoteRequestInternalNotificationMail;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Enums\NotificationType;
+use App\Enums\PublicQuoteRequestStatus;
+use App\Models\Communications\ErpNotification;
 use App\Models\PublicContactMessage;
 use App\Models\PublicQuoteRequest;
 use App\Models\User;
@@ -243,8 +246,10 @@ class PublicLeadsFoundationTest extends TestCase
             ->get(route('admin.public-quote-requests.show', $quoteRequest))
             ->assertOk()
             ->assertSee('QR-0001')
-            ->assertSee('Artwork Preview')
-            ->assertSee('Commercial Review')
+            ->assertSee('Artwork Review')
+            ->assertSee('Sales Review')
+            ->assertSee('Customer & Request Snapshot')
+            ->assertSee('Next Recommended Action')
             ->assertSee('James Ngotho');
     }
 
@@ -314,6 +319,138 @@ class PublicLeadsFoundationTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.public-quote-requests.artwork', $quoteRequest))
             ->assertOk();
+    }
+
+    public function test_dashboard_shows_new_quote_requests_alert_with_pending_count(): void
+    {
+        $user = $this->adminUser();
+
+        PublicQuoteRequest::query()->create([
+            'name' => 'Jane Doe',
+            'phone' => '+254700000001',
+            'email' => 'jane@example.com',
+            'service_needed' => 'Brochures',
+            'message' => 'Need brochures',
+            'status' => PublicQuoteRequestStatus::Pending,
+        ]);
+
+        PublicQuoteRequest::query()->create([
+            'name' => 'John Smith',
+            'phone' => '+254700000002',
+            'email' => 'john@example.com',
+            'service_needed' => 'Banners',
+            'message' => 'Need banners',
+            'status' => PublicQuoteRequestStatus::Quoted,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('New Quote Requests')
+            ->assertSee('Review Requests')
+            ->assertSee('Sales Opportunities');
+    }
+
+    public function test_topbar_shows_quote_requests_badge_for_authorized_users(): void
+    {
+        $user = $this->adminUser();
+
+        PublicQuoteRequest::query()->create([
+            'name' => 'Jane Doe',
+            'phone' => '+254700000001',
+            'email' => 'jane@example.com',
+            'service_needed' => 'Brochures',
+            'message' => 'Need brochures',
+            'status' => PublicQuoteRequestStatus::Pending,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.public-quote-requests.index'))
+            ->assertOk()
+            ->assertSee('erp-quote-topbar-btn', false)
+            ->assertSee('Quote Requests');
+    }
+
+    public function test_topbar_quote_requests_link_hidden_without_permission(): void
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::factory()->create(['company_id' => $company->id]);
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $user->assignRole(Role::findByName('Production', 'web'));
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        PublicQuoteRequest::query()->create([
+            'name' => 'Jane Doe',
+            'phone' => '+254700000001',
+            'email' => 'jane@example.com',
+            'service_needed' => 'Brochures',
+            'message' => 'Need brochures',
+            'status' => PublicQuoteRequestStatus::Pending,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertDontSee('erp-quote-topbar-btn', false);
+    }
+
+    public function test_quoted_and_rejected_requests_do_not_count_as_pending(): void
+    {
+        $user = $this->adminUser();
+
+        PublicQuoteRequest::query()->create([
+            'name' => 'Quoted Lead',
+            'phone' => '+254700000001',
+            'email' => 'quoted@example.com',
+            'service_needed' => 'Cards',
+            'message' => 'Quoted',
+            'status' => PublicQuoteRequestStatus::Quoted,
+        ]);
+
+        PublicQuoteRequest::query()->create([
+            'name' => 'Rejected Lead',
+            'phone' => '+254700000002',
+            'email' => 'rejected@example.com',
+            'service_needed' => 'Cards',
+            'message' => 'Spam',
+            'status' => PublicQuoteRequestStatus::Spam,
+        ]);
+
+        $count = app(\App\Services\Commercial\PublicQuoteRequestCountService::class)->pendingCount();
+
+        $this->assertSame(0, $count);
+    }
+
+    public function test_submitting_quote_request_creates_internal_notification_without_duplicates(): void
+    {
+        Mail::fake();
+
+        $admin = $this->adminUser();
+
+        $this->post(route('public.quote-requests.store'), $this->validQuotePayload());
+
+        $quoteRequest = PublicQuoteRequest::query()->first();
+        $this->assertNotNull($quoteRequest);
+
+        $this->assertDatabaseHas('notifications', [
+            'recipient_user_id' => $admin->id,
+            'type' => NotificationType::PublicQuoteRequestReceived->value,
+            'subject_type' => PublicQuoteRequest::class,
+            'subject_id' => $quoteRequest->id,
+        ]);
+
+        $before = ErpNotification::query()->count();
+
+        app(\App\Services\Commercial\PublicQuoteRequestNotificationService::class)
+            ->notifyNewRequest($quoteRequest);
+
+        $this->assertSame($before, ErpNotification::query()->count());
     }
 
     public function test_unauthorized_users_cannot_access_admin_inboxes(): void

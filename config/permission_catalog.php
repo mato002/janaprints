@@ -44,6 +44,16 @@ return [
                         'view' => 'activity_logs.view',
                     ],
                 ],
+                'website_gallery' => [
+                    'label' => 'Website Gallery',
+                    'permissions' => [
+                        'view' => 'website.gallery.view',
+                        'create' => 'website.gallery.create',
+                        'edit' => 'website.gallery.edit',
+                        'delete' => 'website.gallery.delete',
+                        'approve' => 'website.gallery.publish',
+                    ],
+                ],
                 'system_health' => [
                     'label' => 'System Health',
                     'permissions' => [
@@ -674,6 +684,7 @@ return [
                     ],
                     'extra' => [
                         ['label' => 'Capitalize assets', 'permission' => 'assets.capitalize'],
+                        ['label' => 'Approve capitalization', 'permission' => 'assets.capitalize.approve'],
                         ['label' => 'Post acquisition journals', 'permission' => 'assets.acquisition.post'],
                         ['label' => 'Manage warranties', 'permission' => 'assets.warranty.manage'],
                     ],

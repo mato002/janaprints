@@ -52,7 +52,7 @@ return [
         'nav' => [
             ['label' => 'Services', 'href' => '/services'],
             ['label' => 'Products', 'href' => '/products'],
-            ['label' => 'Our Work', 'href' => '/portfolio'],
+            ['label' => 'Gallery', 'href' => '/gallery'],
             ['label' => 'About', 'href' => '/about'],
             ['label' => 'Guides', 'href' => '/blog'],
             ['label' => 'Contact', 'href' => '/contact'],

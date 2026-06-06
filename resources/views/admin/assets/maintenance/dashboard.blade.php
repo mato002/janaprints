@@ -29,8 +29,8 @@
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['critical_orders'] as $order)
                     <li>
-                        <a href="{{ route('admin.assets.maintenance.work-orders.show', $order) }}" class="erp-link font-mono">{{ $order->work_order_no }}</a>
-                        — {{ $order->asset?->asset_name }}
+                        <a href="{{ route('admin.assets.maintenance.work-orders.show', $order['id']) }}" class="erp-link font-mono">{{ $order['work_order_no'] }}</a>
+                        — {{ $order['asset_name'] }}
                     </li>
                 @empty
                     <li class="text-slate-500">{{ __('No critical work orders.') }}</li>
@@ -43,8 +43,8 @@
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['recently_closed'] as $order)
                     <li>
-                        <a href="{{ route('admin.assets.maintenance.work-orders.show', $order) }}" class="erp-link">{{ $order->work_order_no }}</a>
-                        — {{ $order->asset?->asset_name }}
+                        <a href="{{ route('admin.assets.maintenance.work-orders.show', $order['id']) }}" class="erp-link">{{ $order['work_order_no'] }}</a>
+                        — {{ $order['asset_name'] }}
                     </li>
                 @empty
                     <li class="text-slate-500">{{ __('No recently closed work orders.') }}</li>

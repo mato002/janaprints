@@ -1,7 +1,15 @@
-<section class="crm-360__card">
-    <h2 class="crm-360__card-title">{{ __('Request Timeline') }}</h2>
+<section class="qr-360__card">
+    <button
+        type="button"
+        class="qr-360__collapse-head"
+        @click="timelineOpen = ! timelineOpen"
+        :aria-expanded="timelineOpen"
+    >
+        <h2 class="qr-360__card-title">{{ __('Activity Timeline') }}</h2>
+        <x-admin.icon name="chevron-down" class="h-4 w-4 transition-transform" ::class="timelineOpen && 'rotate-180'" />
+    </button>
 
-    <ul class="crm-360__timeline" role="list">
+    <ul class="crm-360__timeline" role="list" x-show="timelineOpen" x-cloak>
         @foreach ($workspace['timeline'] as $event)
             <li class="crm-360__timeline-item">
                 <span class="crm-360__timeline-dot" aria-hidden="true"></span>

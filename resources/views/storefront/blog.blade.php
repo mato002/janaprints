@@ -12,7 +12,7 @@
                 This section will host practical printing guides for artwork preparation, product selection, turnaround planning and bulk order tips.
             </p>
             <div class="mt-8">
-                <x-public.button href="{{ route('storefront.contact') }}" variant="gradient" size="lg">Talk to Our Team</x-public.button>
+                <x-public.button href="{{ $contactSectionHref }}" variant="gradient" size="lg">Talk to Our Team</x-public.button>
             </div>
         </div>
     </section>

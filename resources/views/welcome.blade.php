@@ -14,10 +14,10 @@
         <div class="public-hero__cmyk-grid absolute inset-0"></div>
         <div class="public-hero-pattern absolute inset-0 opacity-60"></div>
 
-        <div class="public-container public-section--hero public-hero__content relative">
-            <div class="grid items-center gap-12 lg:grid-cols-2 lg:gap-16 xl:gap-20">
+        <div class="public-container public-container--hero public-section--hero public-hero__content relative">
+            <div class="public-hero__grid">
                 {{-- Left: messaging --}}
-                <div class="order-1 lg:order-none" data-animate="fade-up">
+                <div class="public-hero__copy order-1 lg:order-none" data-animate="fade-up">
                     <span class="public-hero-badge">
                         <span class="h-2 w-2 rounded-full bg-brand-cyan animate-pulse"></span>
                         Kenya's Trusted Print &amp; Branding Partner
@@ -27,18 +27,14 @@
                         Jana Prints — Professional Printing Services in Kenya
                     </h1>
 
-                    <p class="mt-4 font-display text-xl font-semibold leading-snug text-white/90 sm:text-2xl lg:text-[1.65rem]">
-                        Print. Brand. Deliver. Everything your business needs from business cards to nationwide branding campaigns.
-                    </p>
-
-                    <p class="mt-5 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
+                    <p class="mt-5 text-base leading-relaxed text-white/80 sm:text-lg">
                         From business cards and brochures to packaging, large-format printing,
                         corporate branding and nationwide delivery — we help businesses create
                         professional print experiences that leave lasting impressions.
                     </p>
 
-                    <ul class="public-hero-trust">
-                        @foreach (['Fast Turnaround', 'Artwork Approval', 'Quality Guaranteed', 'Nationwide Delivery'] as $item)
+                    <ul class="public-hero-trust public-hero-trust--mobile-compact">
+                        @foreach (['Fast Turnaround', 'Artwork Approval', 'Nationwide Delivery'] as $item)
                             <li class="public-hero-trust__item">
                                 <span class="public-hero-trust__icon">
                                     <svg class="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -54,41 +50,20 @@
                         <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">
                             Request Quote
                         </x-public.button>
-                        <x-public.button href="{{ route('storefront.portfolio') }}" variant="outline-light" size="lg">
+                        <x-public.button href="#recent-work" variant="outline-light" size="lg">
                             View Our Work
                         </x-public.button>
-                    </div>
-
-                    <div class="public-hero-proof" data-animate="fade-up" data-animate-delay="2">
-                        <div class="public-hero-proof__item">
-                            <p class="public-hero-proof__value">
-                                <span data-counter="5000" data-counter-suffix="+">0</span>
-                            </p>
-                            <p class="public-hero-proof__label">Projects Delivered</p>
-                        </div>
-                        <div class="public-hero-proof__item">
-                            <p class="public-hero-proof__value">
-                                <span data-counter="1200" data-counter-suffix="+">0</span>
-                            </p>
-                            <p class="public-hero-proof__label">Customers Served</p>
-                        </div>
-                        <div class="public-hero-proof__item">
-                            <p class="public-hero-proof__value">
-                                <span data-counter="98" data-counter-suffix="%">0</span>
-                            </p>
-                            <p class="public-hero-proof__label">On-Time Delivery</p>
-                        </div>
                     </div>
                 </div>
 
                 {{-- Right: product showcase --}}
-                <div class="order-2 lg:order-none" data-animate="fade-right" data-animate-delay="1">
+                <div class="public-hero__visual order-2 lg:order-none" data-animate="fade-right" data-animate-delay="1">
                     <x-public.hero-showcase />
                 </div>
             </div>
         </div>
 
-        <a href="#services" class="public-hero-scroll" aria-label="Scroll to explore">
+        <a href="#services" class="public-hero-scroll max-md:hidden" aria-label="Scroll to explore">
             <div class="public-hero-scroll__mouse">
                 <div class="public-hero-scroll__wheel"></div>
             </div>
@@ -96,28 +71,33 @@
         </a>
     </section>
 
-    {{-- Trust & Social Proof --}}
-    <x-public.trust-section />
+    {{-- Compact trust strip (shown once) --}}
+    <x-public.trust-strip />
 
-    {{-- Portfolio --}}
-    <x-public.portfolio-section />
-
-    {{-- Services & Capabilities --}}
+    {{-- Capabilities --}}
     <x-public.services-section />
 
-    {{-- Production Journey --}}
-    <x-public.journey-section />
+    {{-- Homepage gallery preview --}}
+    <x-public.gallery-preview-section />
 
-    {{-- Production Facility Showcase --}}
-    <x-public.facility-section />
+    {{-- Production workflow --}}
+    <x-public.workflow-section />
 
-    {{-- Why Choose Jana Prints --}}
-    <x-public.why-section />
+    {{-- Inside Jana Prints (behind-the-scenes) --}}
+    <x-public.inside-jana-section />
 
-    {{-- Testimonials & Client Success --}}
+    {{-- Team behind every project --}}
+    <x-public.team-showcase />
+
+    {{-- Quality promise --}}
+    <x-public.quality-promise />
+
+    {{-- Testimonials --}}
     <x-public.testimonials-section />
 
-    {{-- Conversion Engine & Lead Capture --}}
-    <x-public.conversion-section />
+    {{-- Final CTA + unified contact + dedicated quote form --}}
+    <x-public.final-cta-section />
+    <x-public.contact-section />
+    <x-public.quote-form />
 
 </x-layouts.public>

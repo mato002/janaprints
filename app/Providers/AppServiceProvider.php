@@ -238,6 +238,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Assets\AssetRegisterReconciliation::class => \App\Policies\AssetReconciliationPolicy::class,
         \App\Models\Assets\AssetWriteOff::class => \App\Policies\AssetWriteOffPolicy::class,
         \App\Models\Assets\AssetCapitalizationCandidate::class => \App\Policies\AssetCapitalizationPolicy::class,
+        \App\Models\Assets\AssetCapitalizationReconciliation::class => \App\Policies\AssetAcquisitionPolicy::class,
+        \App\Models\Assets\AssetDocument::class => \App\Policies\AssetDocumentPolicy::class,
         \App\Models\Assets\AssetWarranty::class => \App\Policies\AssetWarrantyPolicy::class,
         InventoryItem::class => InventoryItemPolicy::class,
         Warehouse::class => WarehousePolicy::class,
@@ -284,6 +286,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Integrations\IntegrationProvider::class => \App\Policies\IntegrationProviderPolicy::class,
             \App\Models\PublicQuoteRequest::class => \App\Policies\PublicQuoteRequestPolicy::class,
         \App\Models\PublicContactMessage::class => \App\Policies\PublicContactMessagePolicy::class,
+        \App\Models\WebsiteGalleryItem::class => \App\Policies\WebsiteGalleryItemPolicy::class,
     ];
     }
 
@@ -362,6 +365,8 @@ class AppServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
 
+        $this->registerAssetIntelligenceGates();
+
         Gate::before(function (User $user, string $ability) {
             if (! $user->is_active || $user->email_verified_at === null) {
                 return false;
@@ -377,6 +382,9 @@ class AppServiceProvider extends ServiceProvider
         $this->assertProductionEnvironmentIsSafe();
 
         View::share('quoteFormHref', \App\Support\Storefront\StorefrontUrls::quoteForm());
+        View::share('contactSectionHref', \App\Support\Storefront\StorefrontUrls::contactSection());
+        View::share('aboutSectionHref', \App\Support\Storefront\StorefrontUrls::aboutSection());
+        View::share('consultationHref', \App\Support\Storefront\StorefrontUrls::contactSection('consultation'));
 
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
@@ -423,8 +431,17 @@ class AppServiceProvider extends ServiceProvider
                 },
             );
 
+            $quoteCounts = app(\App\Services\Commercial\PublicQuoteRequestCountService::class);
+            $navItems = collect($navigation['navItems'])->map(function (array $item) use ($quoteCounts) {
+                if (($item['workspace'] ?? null) === 'commercial' && $quoteCounts->canView()) {
+                    $item['badge_count'] = $quoteCounts->pendingCount();
+                }
+
+                return $item;
+            })->all();
+
             $view->with([
-                'navItems' => $navigation['navItems'],
+                'navItems' => $navItems,
                 'navSearchIndex' => $navigation['navSearchIndex'],
                 'navRouteUrls' => $navigation['navRouteUrls'],
             ]);
@@ -436,6 +453,7 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             $canNotifications = $user?->can('communications.notifications.view') ?? false;
             $unreadCount = 0;
+            $quoteRequestsTopbar = app(\App\Services\Commercial\PublicQuoteRequestCountService::class)->topbarPayload();
 
             if ($canNotifications && $user) {
                 $unreadCount = app(\App\Support\Communications\NotificationService::class)
@@ -444,6 +462,7 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with([
                 'quickCreate' => $quickCreate,
+                'quoteRequestsTopbar' => $quoteRequestsTopbar,
                 'canNotifications' => $canNotifications,
                 'notificationBellBootstrap' => [
                     'enabled' => $canNotifications,
@@ -464,12 +483,18 @@ class AppServiceProvider extends ServiceProvider
             $cache = app(PlatformCacheService::class);
             $companyId = tenant()->companyId() ?? auth()->user()?->company_id ?? 'all';
             $branchId = tenant()->branchId() ?? auth()->user()?->default_branch_id ?? 'all';
+            $presenter = app(ExecutiveDashboardPresenter::class);
 
-            $view->with('dashboard', $cache->remember(
+            $dashboard = $cache->remember(
                 'dashboard',
                 "{$companyId}:{$branchId}",
-                fn () => app(ExecutiveDashboardPresenter::class)->build(),
-            ));
+                fn () => $presenter->build(),
+            );
+
+            $dashboard['quote_requests_alert'] = $presenter->quoteRequestsAlert();
+            $dashboard['sales_opportunities'] = $presenter->salesOpportunities();
+
+            $view->with('dashboard', $dashboard);
         });
     }
 
@@ -666,6 +691,24 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return false;
+    }
+
+    protected function registerAssetIntelligenceGates(): void
+    {
+        $analytics = \App\Policies\AssetAnalyticsPolicy::class;
+        $health = \App\Policies\AssetHealthPolicy::class;
+        $assignment = \App\Policies\AssetAssignmentPolicy::class;
+        $disposal = \App\Policies\AssetDisposalPolicy::class;
+        $procurement = \App\Policies\AssetProcurementPolicy::class;
+
+        Gate::define('asset-analytics.view', fn (User $user) => app($analytics)->viewAny($user));
+        Gate::define('asset-analytics.executive', fn (User $user) => app($analytics)->viewExecutive($user));
+        Gate::define('asset-analytics.branch', fn (User $user) => app($analytics)->viewBranch($user));
+        Gate::define('asset-health.view', fn (User $user, \App\Models\Assets\FixedAsset $asset) => app($health)->view($user, $asset));
+        Gate::define('asset-assignment.view', fn (User $user, \App\Models\Assets\FixedAsset $asset) => app($assignment)->viewCustody($user, $asset));
+        Gate::define('asset-assignment.manage', fn (User $user, \App\Models\Assets\FixedAsset $asset) => app($assignment)->manageCustody($user, $asset));
+        Gate::define('asset-disposal.post', fn (User $user, \App\Models\Assets\FixedAsset $asset) => app($disposal)->dispose($user, $asset));
+        Gate::define('asset-procurement.view', fn (User $user) => app($procurement)->viewCapitalizationAlerts($user));
     }
 
     protected function assertProductionEnvironmentIsSafe(): void

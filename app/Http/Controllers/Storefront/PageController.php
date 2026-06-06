@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Storefront;
 use App\Http\Controllers\Controller;
 use App\Support\Storefront\SeoMeta;
 use App\Support\Storefront\StorefrontCatalog;
+use App\Support\Storefront\StorefrontUrls;
 use App\Support\Storefront\StructuredDataBuilder;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PageController extends Controller
@@ -125,17 +127,24 @@ class PageController extends Controller
 
     public function portfolio(): View
     {
+        return $this->gallery();
+    }
+
+    public function gallery(): View
+    {
         $breadcrumbs = [
             ['label' => 'Home', 'url' => route('home')],
-            ['label' => 'Portfolio', 'url' => route('storefront.portfolio')],
+            ['label' => 'Gallery', 'url' => route('storefront.gallery')],
         ];
 
-        $seo = SeoMeta::forPage('portfolio', [], [
+        $seo = SeoMeta::forPage('gallery', [
+            'og_image' => asset('images/storefront/gallery/print-production.jpg'),
+        ], [
             StructuredDataBuilder::localBusiness(),
             StructuredDataBuilder::breadcrumbs($breadcrumbs),
         ]);
 
-        return view('storefront.portfolio', compact('seo', 'breadcrumbs'));
+        return view('storefront.gallery', compact('seo', 'breadcrumbs'));
     }
 
     public function blog(): View
@@ -154,21 +163,9 @@ class PageController extends Controller
         return view('storefront.blog', compact('seo', 'blog', 'breadcrumbs'));
     }
 
-    public function contact(): View
+    public function contact(): RedirectResponse
     {
-        $contact = config('conversion.contact');
-        $whatsapp = config('conversion.whatsapp');
-        $breadcrumbs = [
-            ['label' => 'Home', 'url' => route('home')],
-            ['label' => 'Contact', 'url' => route('storefront.contact')],
-        ];
-
-        $seo = SeoMeta::forPage('contact', [], [
-            StructuredDataBuilder::localBusiness(),
-            StructuredDataBuilder::breadcrumbs($breadcrumbs),
-        ]);
-
-        return view('storefront.contact', compact('seo', 'contact', 'whatsapp', 'breadcrumbs'));
+        return redirect()->to(StorefrontUrls::contactSection());
     }
 
     public function quote(): View

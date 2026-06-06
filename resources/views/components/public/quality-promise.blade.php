@@ -1,0 +1,59 @@
+@php
+    $promise = config('facility.quality_promise');
+@endphp
+
+<div class="public-quality-promise public-section public-section--muted public-dot-pattern" data-quality-promise>
+    <div class="public-container">
+        <div class="mx-auto max-w-3xl text-center" data-animate="fade-up">
+            <x-public.badge variant="magenta" class="mb-5">Quality Promise</x-public.badge>
+            <h3 class="public-facility__subtitle">The Jana Prints Quality Promise</h3>
+            <p class="mt-4 text-base leading-relaxed text-brand-text-secondary sm:text-lg">
+                A vertical assurance system — every stage verified before your project moves forward.
+            </p>
+        </div>
+
+        <div class="public-quality-promise__banner mt-10" data-animate="fade-up">
+            <div class="public-quality-promise__seal" aria-hidden="true">
+                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="24" cy="24" r="20"/>
+                    <path d="M16 24l5 5 11-12" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <p class="public-quality-promise__banner-text">{{ $promise['banner'] }}</p>
+        </div>
+
+        <div class="public-quality-spine mt-14" data-quality-spine>
+            <div class="public-quality-spine__line" aria-hidden="true" data-quality-spine-line></div>
+
+            @foreach ($promise['steps'] as $index => $step)
+                <article
+                    class="public-quality-spine__step {{ $index % 2 === 0 ? 'public-quality-spine__step--left' : 'public-quality-spine__step--right' }}"
+                    data-animate="fade-up"
+                    data-animate-delay="{{ min($index + 1, 5) }}"
+                    data-quality-step="{{ $index }}"
+                >
+                    <div class="public-quality-spine__node">
+                        <span class="public-quality-spine__number">{{ $step['number'] }}</span>
+                    </div>
+
+                    <div class="public-quality-spine__card">
+                        <div class="public-quality-spine__thumb">
+                            <x-public.media-image
+                                :src="$step['image']"
+                                :alt="$step['alt']"
+                                fallback="quality"
+                                class="h-full w-full object-cover"
+                                width="120"
+                                height="120"
+                            />
+                        </div>
+                        <div class="public-quality-spine__content">
+                            <h4 class="public-quality-spine__title">{{ $step['title'] }}</h4>
+                            <p class="public-quality-spine__value">{{ $step['value'] }}</p>
+                        </div>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    </div>
+</div>

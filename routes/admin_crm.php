@@ -67,6 +67,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('leads/{lead}', [LeadController::class, 'show'])->name('leads.show');
         });
 
+        Route::middleware('permission:quotations.create')->group(function () {
+            Route::get('leads/{lead}/quotation/create', [LeadController::class, 'createQuotation'])->name('leads.quotation.create');
+            Route::post('leads/{lead}/quotation/quick', [LeadController::class, 'quickQuotation'])->name('leads.quotation.quick');
+        });
+
         Route::middleware('permission:crm.leads.edit')->group(function () {
             Route::get('leads/{lead}/edit', [LeadController::class, 'edit'])->name('leads.edit');
             Route::put('leads/{lead}', [LeadController::class, 'update'])->name('leads.update');

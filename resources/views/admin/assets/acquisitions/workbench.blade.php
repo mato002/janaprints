@@ -1,6 +1,22 @@
 <x-admin-layout :title="__('Capitalization Workbench')" :breadcrumbs="[['label' => __('Capitalization Queue'), 'url' => route('admin.assets.acquisitions.queue')], ['label' => $candidate->candidate_number]]">
     <x-admin.page-header :title="__('Capitalization Workbench')" :description="__('Review and create fixed assets from procurement receipt.')" />
 
+    @if ($requiresApproval && ! $candidate->approved_at)
+        <x-admin.alert variant="warning" class="mb-4">
+            {{ __('This capitalization requires authorized approval before assets can be created.') }}
+            @can('approve', $candidate)
+                <form method="POST" action="{{ route('admin.assets.acquisitions.approve', $candidate) }}" class="mt-3 inline">
+                    @csrf
+                    <button type="submit" class="erp-btn-primary">{{ __('Approve Capitalization') }}</button>
+                </form>
+            @endcan
+        </x-admin.alert>
+    @elseif ($candidate->approved_at)
+        <x-admin.alert variant="success" class="mb-4">
+            {{ __('Approved by :user on :date.', ['user' => $candidate->approver?->name ?? __('Authorized user'), 'date' => $candidate->approved_at->format('M j, Y')]) }}
+        </x-admin.alert>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <x-admin.card class="lg:col-span-1">
             <h3 class="mb-3 text-sm font-semibold">{{ __('Receipt Details') }}</h3>

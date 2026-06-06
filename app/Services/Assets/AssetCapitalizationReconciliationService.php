@@ -10,6 +10,7 @@ use App\Models\Assets\AssetCapitalizationCandidate;
 use App\Models\Assets\AssetCapitalizationReconciliation;
 use App\Models\Assets\FixedAsset;
 use App\Support\Assets\AssetSchema;
+use App\Support\ActivityLogger;
 use App\Support\Platform\NumberingService;
 use Illuminate\Validation\ValidationException;
 
@@ -58,7 +59,7 @@ class AssetCapitalizationReconciliationService
             ->whereNull('posted_acquisition_journal_id')
             ->count();
 
-        $postedNotRegistered = 0;
+        $postedNotRegistered = $this->postedNotRegisteredCount($companyId);
 
         $variances = [];
         $valueDiff = round($receivedValue - $capitalizedValue, 2);
@@ -81,7 +82,7 @@ class AssetCapitalizationReconciliationService
             default => AssetCapitalizationReconciliationStatus::Balanced,
         };
 
-        return AssetCapitalizationReconciliation::query()->create([
+        $reconciliation = AssetCapitalizationReconciliation::query()->create([
             'company_id' => $companyId,
             'reconciliation_number' => app(NumberingService::class)->next(
                 DocumentType::AssetCapitalizationReconciliation,
@@ -99,5 +100,24 @@ class AssetCapitalizationReconciliationService
             'variance_details' => $variances,
             'run_by' => $userId,
         ]);
+
+        ActivityLogger::log('reconciliation_run', $reconciliation, $userId, [
+            'status' => $status->value,
+            'variances' => $variances,
+        ]);
+
+        return $reconciliation;
+    }
+
+    protected function postedNotRegisteredCount(int $companyId): ?int
+    {
+        $orphanJournals = FixedAsset::query()
+            ->where('company_id', $companyId)
+            ->where('acquisition_source', AssetAcquisitionSource::Procurement)
+            ->whereNotNull('posted_acquisition_journal_id')
+            ->whereNull('capitalization_candidate_id')
+            ->count();
+
+        return $orphanJournals > 0 ? $orphanJournals : null;
     }
 }

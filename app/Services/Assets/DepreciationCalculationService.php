@@ -34,10 +34,19 @@ class DepreciationCalculationService
 
         if (! $method->isImplemented()) {
             throw ValidationException::withMessages([
-                'depreciation_method' => __('Depreciation method :method is not yet implemented. Straight line is used.', [
+                'depreciation_method' => __('Depreciation method :method is not yet supported. Only straight line can be posted.', [
                     'method' => $method->label(),
                 ]),
             ]);
+        }
+
+        $period = $this->normalizePeriod($periodDate);
+        $startDate = $asset->depreciation_start_date
+            ?? $asset->capitalization_date
+            ?? $asset->acquisition_date;
+
+        if ($startDate && $period < $this->normalizePeriod($startDate->toDateString())) {
+            return $this->zeroResult($asset, $method);
         }
 
         $depreciable = $this->depreciableAmount($asset);

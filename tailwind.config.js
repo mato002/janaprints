@@ -86,8 +86,9 @@ export default {
             },
             maxWidth: {
                 'public-narrow': '42rem',
-                'public-content': '72rem',
-                'public-wide': '87.5rem',
+                'public-content': '90rem',
+                'public-wide': '95rem',
+                'public-hero': '100rem',
             },
             spacing: {
                 sidebar: '260px',

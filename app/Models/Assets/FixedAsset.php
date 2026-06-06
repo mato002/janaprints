@@ -242,6 +242,11 @@ class FixedAsset extends Model
         return $this->hasMany(AssetProcurementDocument::class);
     }
 
+    public function documents(): HasMany
+    {
+        return $this->hasMany(AssetDocument::class);
+    }
+
     public function disposal(): HasOne
     {
         return $this->hasOne(AssetDisposal::class)->latestOfMany();

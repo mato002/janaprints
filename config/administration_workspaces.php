@@ -61,6 +61,15 @@ return [
             'icon' => 'chip',
             'active_routes' => ['admin.workspaces.administration.section:system-operations', 'admin.activity-logs.*', 'admin.operations.health.*', 'admin.operations.jobs.*', 'admin.operations.audit.*', 'admin.operations.backups.*', 'admin.operations.retention.*'],
         ],
+        [
+            'label' => 'Website Content',
+            'description' => 'Public storefront gallery and marketing content.',
+            'route' => 'admin.workspaces.administration.section',
+            'route_params' => ['section' => 'website-content'],
+            'permission' => 'website.gallery.view',
+            'icon' => 'photograph',
+            'active_routes' => ['admin.workspaces.administration.section:website-content', 'admin.website.gallery.*'],
+        ],
     ],
 
     'sections' => [
@@ -169,6 +178,20 @@ return [
                         ['label' => 'System Health', 'description' => 'Service status, queues, and performance metrics.', 'route' => 'admin.operations.health.index', 'permission' => 'operations.health.view', 'icon' => 'chip', 'active_routes' => ['admin.operations.health.*']],
                         ['label' => 'Backups', 'description' => 'Database and file backup schedules.', 'route' => 'admin.operations.backups.index', 'permission' => 'operations.backups.view', 'icon' => 'archive', 'active_routes' => ['admin.operations.backups.*']],
                         ['label' => 'Data Retention', 'description' => 'Archive policies and purge rules.', 'route' => 'admin.operations.retention.index', 'permission' => 'operations.retention.view', 'icon' => 'archive', 'active_routes' => ['admin.operations.retention.*']],
+                    ],
+                ],
+            ],
+        ],
+
+        'website-content' => [
+            'title' => 'Website Content',
+            'description' => 'Public storefront gallery and marketing content.',
+            'icon' => 'photograph',
+            'groups' => [
+                [
+                    'label' => 'Public Website',
+                    'items' => [
+                        ['label' => 'Gallery', 'description' => 'Manage portfolio images and project showcases on the public site.', 'route' => 'admin.website.gallery.index', 'permission' => 'website.gallery.view', 'icon' => 'photograph', 'active_routes' => ['admin.website.gallery.*']],
                     ],
                 ],
             ],

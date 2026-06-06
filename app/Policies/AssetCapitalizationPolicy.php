@@ -29,4 +29,9 @@ class AssetCapitalizationPolicy
     {
         return $user->can('assets.capitalize') && $this->sameTenant($user, $candidate);
     }
+
+    public function approve(User $user, AssetCapitalizationCandidate $candidate): bool
+    {
+        return $user->can('assets.capitalize.approve') && $this->sameTenant($user, $candidate);
+    }
 }

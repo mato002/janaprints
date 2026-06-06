@@ -19,12 +19,11 @@ return [
             'icon' => 'document',
             'title' => 'Request A Quote',
             'description' => 'Share your requirements, artwork, dimensions, quantities and timelines.',
-            'image' => $i['office'],
-            'alt' => 'Quotation request and project brief document',
+            'image' => $i['stationery'],
+            'alt' => 'Quote request and project brief paperwork',
             'badge' => null,
             'trust' => null,
-            'cta' => ['label' => 'Request Quote', 'href' => '#contact'],
-            'featured' => false,
+            'highlight' => false,
         ],
         [
             'number' => 2,
@@ -36,8 +35,7 @@ return [
             'alt' => 'Design team reviewing artwork on screen',
             'badge' => 'Free Artwork Checks',
             'trust' => null,
-            'cta' => null,
-            'featured' => false,
+            'highlight' => false,
         ],
         [
             'number' => 3,
@@ -47,10 +45,9 @@ return [
             'description' => 'Receive a digital proof and approve before production begins.',
             'image' => $i['proof'],
             'alt' => 'Digital artwork proof approval before printing',
-            'badge' => 'Your Approval Required',
-            'trust' => 'No production starts without your approval.',
-            'cta' => null,
-            'featured' => true,
+            'badge' => 'Approval Required',
+            'trust' => null,
+            'highlight' => true,
         ],
         [
             'number' => 4,
@@ -62,8 +59,7 @@ return [
             'alt' => 'Printing equipment and production quality control',
             'badge' => null,
             'trust' => null,
-            'cta' => null,
-            'featured' => false,
+            'highlight' => false,
         ],
         [
             'number' => 5,
@@ -75,8 +71,7 @@ return [
             'alt' => 'Print finishing, binding and premium packaging',
             'badge' => null,
             'trust' => null,
-            'cta' => null,
-            'featured' => false,
+            'highlight' => false,
         ],
         [
             'number' => 6,
@@ -88,30 +83,26 @@ return [
             'alt' => 'Order delivery and package collection handover',
             'badge' => null,
             'trust' => null,
-            'cta' => null,
-            'featured' => false,
+            'highlight' => false,
         ],
-    ],
-
-    'differentiators' => [
-        'Digital Artwork Approval',
-        'Production Tracking',
-        'Quality Control Checkpoints',
-        'Corporate Project Management',
-        'Nationwide Delivery',
-        'Dedicated Account Managers',
     ],
 
     'trust_panel' => [
         'title' => 'Why Customers Love This Process',
+        'headline' => 'No production starts without your approval.',
         'points' => [
-            'No surprises — you know the cost before we print',
-            'No accidental printing errors — approval gates every job',
-            'Full approval before production begins',
-            'Professional communication at every stage',
+            'Clear pricing before production',
+            'Artwork approval before printing',
+            'Quality checks at every stage',
             'Production visibility from press to dispatch',
+            'Professional communication at every stage',
             'Reliable delivery across Kenya',
         ],
+    ],
+
+    'assurance' => [
+        'title' => 'No printing starts without customer approval.',
+        'subtitle' => 'Every job is proofed and signed off before we press print.',
     ],
 
 ];

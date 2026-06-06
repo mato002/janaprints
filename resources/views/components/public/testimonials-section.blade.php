@@ -2,7 +2,6 @@
     $featured = config('testimonials.featured');
     $videos = config('testimonials.videos');
     $stories = config('testimonials.success_stories');
-    $impactStats = config('testimonials.impact_stats');
     $trustCategories = config('testimonials.trust_categories');
 @endphp
 
@@ -21,27 +20,17 @@
             </p>
         </div>
 
-        {{-- Featured testimonials --}}
-        <div class="public-testimonials-rotator mt-16" data-testimonial-rotator data-animate="fade-up">
-            <div class="public-testimonials-rotator__track">
-                @foreach ($featured as $index => $item)
-                    <x-public.featured-testimonial
-                        :testimonial="$item"
-                        data-testimonial-slide
-                        :class="$index === 0 ? 'is-active' : ''"
-                    />
-                @endforeach
-            </div>
-            <div class="public-testimonials-rotator__nav" aria-label="Testimonial navigation">
-                @foreach ($featured as $index => $item)
-                    <button
-                        type="button"
-                        class="public-testimonials-rotator__dot {{ $index === 0 ? 'is-active' : '' }}"
-                        data-testimonial-dot
-                        aria-label="View testimonial {{ $index + 1 }}"
-                    ></button>
-                @endforeach
-            </div>
+        {{-- Featured testimonials — compact responsive grid --}}
+        <p class="public-h-scroll-hint mt-10 lg:hidden">Swipe to read more</p>
+
+        <div class="public-testimonials-grid public-h-scroll public-h-scroll--testimonials mt-4 lg:mt-12" data-animate="fade-up">
+            @foreach ($featured as $index => $item)
+                <x-public.featured-testimonial
+                    :testimonial="$item"
+                    data-animate="fade-up"
+                    :data-animate-delay="min($index + 1, 4)"
+                />
+            @endforeach
         </div>
 
         {{-- Video testimonial placeholders --}}
@@ -68,22 +57,6 @@
             </div>
         </div>
 
-        {{-- Impact numbers --}}
-        <div class="public-testimonials-impact mt-20" data-animate="fade-up">
-            @foreach ($impactStats as $stat)
-                <div class="public-testimonials-impact__item">
-                    <p class="public-testimonials-impact__value">
-                        <span
-                            data-counter="{{ $stat['value'] }}"
-                            data-counter-suffix="{{ $stat['suffix'] }}"
-                            data-counter-duration="1750"
-                        >0</span>
-                    </p>
-                    <p class="public-testimonials-impact__label">{{ $stat['label'] }}</p>
-                </div>
-            @endforeach
-        </div>
-
         {{-- Trust wall --}}
         <div class="mt-20" data-animate="fade-up">
             <h3 class="mb-8 text-center text-sm font-semibold uppercase tracking-wider text-brand-text-muted">
@@ -101,8 +74,8 @@
             <x-public.review-marquee />
         </div>
 
-        {{-- CTA nudge --}}
-        <div class="mt-16 text-center" data-animate="fade-up">
+        {{-- CTA nudge (desktop only — mobile uses header + final CTA) --}}
+        <div class="mt-16 hidden text-center lg:block" data-animate="fade-up">
             <x-public.button href="{{ $quoteFormHref }}" variant="gradient" size="lg">
                 Request Your Quote
             </x-public.button>

@@ -23,6 +23,10 @@ return [
             'title' => 'Portfolio — Recent Print Work & Branding Projects | Jana Prints Kenya',
             'description' => 'View recent print and branding projects delivered for businesses, schools, NGOs, events and corporates across Kenya.',
         ],
+        'gallery' => [
+            'title' => 'Our Work Gallery — Print, Branding & Packaging Projects | Jana Prints Kenya',
+            'description' => 'Browse our gallery of print, branding, packaging and large-format projects. Business cards, brochures, vehicle branding, exhibitions and more.',
+        ],
         'blog' => [
             'title' => 'Print Guides & Resources — Jana Prints Kenya',
             'description' => 'Helpful printing guides and resources for businesses and organisations in Kenya. Tips on artwork, turnaround, bulk printing and choosing the right print products.',

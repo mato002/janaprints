@@ -6,6 +6,10 @@
         </x-slot>
     </x-admin.page-header>
 
+    <x-admin.alert variant="warning" class="mb-4">
+        {{ __('Only straight-line depreciation can be posted. Assets using other methods are skipped during preview and execution.') }}
+    </x-admin.alert>
+
     <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <x-admin.card class="lg:col-span-2">
             <dl class="grid grid-cols-2 gap-3 text-sm">

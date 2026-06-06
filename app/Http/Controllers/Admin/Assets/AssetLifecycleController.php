@@ -16,46 +16,31 @@ use Illuminate\View\View;
 
 class AssetLifecycleController extends Controller
 {
-    public function transferForm(FixedAsset $asset): View
+    public function transferForm(FixedAsset $asset): RedirectResponse
     {
         $this->authorize('manage', $asset);
 
-        return view('admin.assets.transfer', [
-            'asset' => $asset,
-            'branches' => Branch::query()->where('company_id', $asset->company_id)->orderBy('name')->get(),
-        ]);
+        return redirect()
+            ->route('admin.assets.custody.transfers.index')
+            ->with('info', __('Use Branch Transfers for formal asset transfers with approval workflow.'));
     }
 
     public function transfer(Request $request, FixedAsset $asset): RedirectResponse
     {
         $this->authorize('manage', $asset);
 
-        $validated = $request->validate([
-            'to_branch_id' => ['nullable', 'exists:branches,id'],
-            'to_user_id' => ['nullable', 'exists:users,id'],
-            'transfer_date' => ['required', 'date'],
-            'notes' => ['nullable', 'string'],
-        ]);
-
-        AssetLifecycleService::transfer($asset, $validated, (int) auth()->id());
-        ActivityLogger::log('transferred', $asset->fresh(), (int) auth()->id(), $validated);
-
-        return redirect()->route('admin.assets.show', $asset)->with('status', __('Asset transferred.'));
+        return redirect()
+            ->route('admin.assets.custody.transfers.index')
+            ->with('warning', __('Legacy transfer is disabled. Use Branch Transfers.'));
     }
 
     public function maintenance(Request $request, FixedAsset $asset): RedirectResponse
     {
-        abort_unless(auth()->user()?->can('assets.manage'), 403);
+        abort_unless(auth()->user()?->can('maintenance.view'), 403);
 
-        $validated = $request->validate([
-            'maintenance_type' => ['required', 'string', 'max:30'],
-            'scheduled_date' => ['nullable', 'date'],
-            'description' => ['nullable', 'string'],
-        ]);
-
-        AssetLifecycleService::scheduleMaintenance($asset, $validated);
-
-        return back()->with('status', __('Maintenance scheduled.'));
+        return redirect()
+            ->route('admin.assets.maintenance.work-orders.index')
+            ->with('info', __('Use Maintenance Work Orders for preventive and corrective maintenance.'));
     }
 
     public function repair(FixedAsset $asset): RedirectResponse
@@ -107,15 +92,11 @@ class AssetLifecycleController extends Controller
 
     public function depreciate(Request $request, FixedAsset $asset): RedirectResponse
     {
-        abort_unless(auth()->user()?->can('assets.manage'), 403);
+        abort_unless(auth()->user()?->can('assets.depreciation.post'), 403);
 
-        $validated = $request->validate([
-            'period_date' => ['required', 'date'],
-        ]);
-
-        AssetDepreciationService::runPeriod($asset, $validated['period_date'], (int) auth()->id());
-
-        return back()->with('status', __('Depreciation posted.'));
+        return redirect()
+            ->route('admin.assets.finance.runs.index')
+            ->with('warning', __('Ad-hoc depreciation is disabled. Use Depreciation Runs to post depreciation safely with period controls.'));
     }
 
     public function barcode(FixedAsset $asset): View

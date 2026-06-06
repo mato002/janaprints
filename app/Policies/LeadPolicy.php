@@ -44,4 +44,11 @@ class LeadPolicy
             && $user->can('crm.leads.edit')
             && $this->sameTenant($user, $lead);
     }
+
+    public function quote(User $user, Lead $lead): bool
+    {
+        return $user->can('quotations.create')
+            && $user->can('crm.leads.view')
+            && $this->sameTenant($user, $lead);
+    }
 }

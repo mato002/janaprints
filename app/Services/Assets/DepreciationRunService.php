@@ -10,6 +10,7 @@ use App\Models\Assets\AssetDepreciationEntry;
 use App\Models\Assets\DepreciationRun;
 use App\Models\Assets\FixedAsset;
 use App\Support\Accounting\AssetAccountingPostingService;
+use App\Support\ActivityLogger;
 use App\Support\Platform\NumberGenerator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -95,6 +96,12 @@ class DepreciationRunService
             'assets_processed' => $count,
         ]);
 
+        ActivityLogger::log('depreciation_previewed', $run->fresh(), auth()->id(), [
+            'period' => $run->period,
+            'assets_count' => $count,
+            'total_depreciation' => round($total, 2),
+        ]);
+
         return ['run' => $run->fresh(), 'preview' => $preview];
     }
 
@@ -177,6 +184,13 @@ class DepreciationRunService
                 'assets_processed' => $count,
                 'executed_by' => $userId,
                 'run_date' => now()->toDateString(),
+            ]);
+
+            ActivityLogger::log('depreciation_executed', $run->fresh(), $userId, [
+                'period' => $run->period,
+                'assets_count' => $count,
+                'total_depreciation' => round($total, 2),
+                'posted_journals' => $postJournals,
             ]);
 
             return $run->fresh(['entries.asset']);

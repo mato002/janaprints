@@ -14,7 +14,7 @@ class SitemapBuilder
             self::entry(route('storefront.about'), 'monthly', '0.8'),
             self::entry(route('storefront.services'), 'weekly', '0.9'),
             self::entry(route('storefront.products'), 'weekly', '0.9'),
-            self::entry(route('storefront.portfolio'), 'weekly', '0.8'),
+            self::entry(route('storefront.gallery'), 'weekly', '0.8'),
             self::entry(route('storefront.blog'), 'monthly', '0.6'),
             self::entry(route('storefront.contact'), 'monthly', '0.8'),
             self::entry(route('storefront.quote'), 'monthly', '0.9'),
