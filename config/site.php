@@ -32,6 +32,7 @@ return [
         'whatsapp' => env('STOREFRONT_WHATSAPP', '254700000000'),
         'service_areas' => ['Kenya', 'Nairobi', 'Nationwide'],
         'logo' => '/images/logo-mark.png',
+        'sidebar_logo' => '/images/logo-sidebar.png',
     ],
 
     'analytics' => [

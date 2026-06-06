@@ -34,9 +34,9 @@
             @click="$dispatch('close-nav')"
         >
             <img
-                src="{{ $brandingLogoUrl }}"
+                src="{{ $brandingSidebarLogoUrl }}"
                 alt=""
-                class="h-9 w-9 shrink-0 rounded-lg object-contain"
+                class="h-9 w-9 shrink-0 rounded-lg object-contain bg-white"
                 width="36"
                 height="36"
                 decoding="async"
