@@ -33,7 +33,15 @@
             :class="sidebarCollapsed ? 'lg:order-2 lg:flex-none lg:justify-center' : ''"
             @click="$dispatch('close-nav')"
         >
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-erp-accent text-sm font-bold text-white">JP</span>
+            <img
+                src="{{ $brandingLogoUrl }}"
+                alt=""
+                class="h-9 w-9 shrink-0 rounded-lg object-contain"
+                width="36"
+                height="36"
+                decoding="async"
+                aria-hidden="true"
+            >
             <span class="truncate text-base" x-show="!sidebarCollapsed" x-cloak>{{ config('app.name') }}</span>
         </a>
 

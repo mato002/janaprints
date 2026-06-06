@@ -18,7 +18,14 @@
                     <a href="{{ url('/') }}" class="login-card__brand">
                         <span class="login-card__mark-wrap" aria-hidden="true">
                             <span class="login-card__mark-glow"></span>
-                            <span class="login-card__mark">JP</span>
+                            <img
+                                src="{{ url(config('site.local.logo')) }}"
+                                alt=""
+                                class="login-card__mark"
+                                width="44"
+                                height="44"
+                                decoding="async"
+                            >
                         </span>
                         <span class="login-card__brand-text">
                             <span class="login-card__name">{{ config('site.name', 'Jana Prints') }}</span>

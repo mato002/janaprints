@@ -22,7 +22,7 @@
         </div>
 
         <div class="public-loader__brand">
-            <span class="public-loader__logo" aria-hidden="true">JP</span>
+            <x-public.brand-logo size="lg" class="public-loader__logo" />
             <span class="public-loader__name">Jana Prints</span>
         </div>
     </div>

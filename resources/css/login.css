@@ -108,7 +108,7 @@
     }
 
     .login-card__mark {
-        @apply relative flex h-11 w-11 items-center justify-center rounded-[14px] bg-gradient-to-br from-brand-magenta to-brand-orange text-sm font-bold text-white;
+        @apply relative h-11 w-11 rounded-[14px] object-contain;
         box-shadow:
             0 4px 12px rgb(255 45 117 / 0.32),
             0 0 20px rgb(255 122 24 / 0.18);

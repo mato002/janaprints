@@ -10,9 +10,7 @@
     <div class="public-container">
         <div class="flex h-16 items-center justify-between lg:h-[4.5rem]">
             <a href="{{ route('home') }}" class="group flex items-center gap-3" aria-label="Jana Prints home">
-                <span class="flex h-10 w-10 items-center justify-center rounded-brand-lg bg-gradient-to-br from-brand-magenta to-brand-orange text-sm font-bold text-white shadow-brand-sm transition-shadow group-hover:shadow-brand-md" aria-hidden="true">
-                    JP
-                </span>
+                <x-public.brand-logo class="transition-transform group-hover:scale-105" />
                 <span class="public-header__brand font-display text-lg font-bold tracking-tight transition-colors group-hover:text-brand-cyan">
                     Jana Prints
                 </span>

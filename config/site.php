@@ -31,7 +31,7 @@ return [
         'google_maps_url' => env('STOREFRONT_MAPS_URL'),
         'whatsapp' => env('STOREFRONT_WHATSAPP', '254700000000'),
         'service_areas' => ['Kenya', 'Nairobi', 'Nationwide'],
-        'logo' => '/images/logo-mark.svg',
+        'logo' => '/images/logo-mark.png',
     ],
 
     'analytics' => [

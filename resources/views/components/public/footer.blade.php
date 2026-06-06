@@ -32,9 +32,7 @@
             {{-- Brand --}}
             <div class="lg:col-span-4">
                 <div class="mb-5 flex items-center gap-3">
-                    <span class="flex h-10 w-10 items-center justify-center rounded-brand-lg bg-gradient-to-br from-brand-magenta to-brand-orange text-sm font-bold text-white" aria-hidden="true">
-                        JP
-                    </span>
+                    <x-public.brand-logo />
                     <span class="font-display text-xl font-bold text-white">{{ $site['name'] }}</span>
                 </div>
                 <p class="max-w-sm text-sm leading-relaxed">{{ $footer['tagline'] }}</p>

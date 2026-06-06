@@ -390,9 +390,11 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             $company = tenant()->company ?? $user?->company;
 
+            $siteLogoUrl = url(config('site.local.logo'));
+
             $view->with([
-                'brandingLogoUrl' => $assets->url($company?->logo),
-                'brandingFaviconUrl' => $assets->url($company?->favicon_path),
+                'brandingLogoUrl' => $assets->url($company?->logo) ?? $siteLogoUrl,
+                'brandingFaviconUrl' => $assets->url($company?->favicon_path) ?? $siteLogoUrl,
                 'userAvatarUrl' => $assets->url($user?->avatar_path),
             ]);
         });

@@ -2311,7 +2311,7 @@
     }
 
     .public-loader__logo {
-        @apply flex h-12 w-12 items-center justify-center rounded-brand-lg bg-gradient-to-br from-brand-magenta to-brand-orange text-sm font-bold text-white shadow-brand-glow;
+        @apply h-12 w-12;
     }
 
     .public-loader__name {
