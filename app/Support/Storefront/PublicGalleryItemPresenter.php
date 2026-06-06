@@ -21,6 +21,11 @@ class PublicGalleryItemPresenter
             alt: $item->alt_text ?: $item->title,
             description: $item->description,
             slug: $item->slug,
+            location: $item->location,
+            quantityLabel: $item->quantity_label,
+            timelineLabel: $item->timeline_label,
+            materialsLabel: $item->materials_label,
+            outcome: $item->outcome,
         );
     }
 
@@ -40,6 +45,11 @@ class PublicGalleryItemPresenter
             description: (string) ($project['description'] ?? ''),
             slug: (string) ($project['id'] ?? $project['slug'] ?? ''),
             caption: (string) ($project['caption'] ?? ''),
+            location: (string) ($project['location'] ?? ''),
+            quantityLabel: (string) ($project['quantity_label'] ?? $project['quantity'] ?? ''),
+            timelineLabel: (string) ($project['timeline_label'] ?? $project['timeline'] ?? ''),
+            materialsLabel: (string) ($project['materials_label'] ?? $project['materials'] ?? ''),
+            outcome: (string) ($project['outcome'] ?? ''),
         );
     }
 
@@ -56,6 +66,11 @@ class PublicGalleryItemPresenter
         ?string $description,
         string $slug,
         string $caption = '',
+        ?string $location = null,
+        ?string $quantityLabel = null,
+        ?string $timelineLabel = null,
+        ?string $materialsLabel = null,
+        ?string $outcome = null,
     ): array {
         $publicDescription = trim((string) $description);
 
@@ -71,6 +86,11 @@ class PublicGalleryItemPresenter
             'alt' => $alt,
             'alt_text' => $alt,
             'description' => $publicDescription,
+            'location' => trim((string) $location),
+            'quantity_label' => trim((string) $quantityLabel),
+            'timeline_label' => trim((string) $timelineLabel),
+            'materials_label' => trim((string) $materialsLabel),
+            'outcome' => trim((string) $outcome),
             'is_featured' => false,
         ];
     }

@@ -60,8 +60,18 @@
             </div>
 
             <div class="lg:col-span-2">
+                <label class="erp-label" for="materials_label">{{ __('Materials Used') }}</label>
+                <input id="materials_label" name="materials_label" type="text" class="erp-input" value="{{ old('materials_label', $item->materials_label) }}" placeholder="{{ __('e.g. 400gsm black core card, soft-touch laminate') }}">
+            </div>
+
+            <div class="lg:col-span-2">
                 <label class="erp-label" for="description">{{ __('Description') }}</label>
                 <textarea id="description" name="description" rows="4" class="erp-input">{{ old('description', $item->description) }}</textarea>
+            </div>
+
+            <div class="lg:col-span-2">
+                <label class="erp-label" for="outcome">{{ __('Outcome') }}</label>
+                <textarea id="outcome" name="outcome" rows="3" class="erp-input" placeholder="{{ __('e.g. Delivered ahead of the client launch event.') }}">{{ old('outcome', $item->outcome) }}</textarea>
             </div>
 
             <div class="lg:col-span-2">

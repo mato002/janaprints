@@ -12,21 +12,6 @@
 
     <div class="public-footer__ambient" aria-hidden="true"></div>
 
-    {{-- Mini CTA --}}
-    <div class="public-footer__cta">
-        <div class="public-container">
-            <div class="public-footer__cta-inner" data-animate="fade-up">
-                <div>
-                    <h2 class="public-footer__cta-title">{{ $footer['cta']['headline'] }}</h2>
-                    <p class="public-footer__cta-text">Professional printing, branding and nationwide delivery from Nairobi.</p>
-                </div>
-                <x-public.button href="{{ $footer['cta']['href'] }}" variant="gradient" size="lg" class="public-btn--motion shrink-0">
-                    {{ $footer['cta']['button'] }}
-                </x-public.button>
-            </div>
-        </div>
-    </div>
-
     <div class="public-container public-section--compact">
         <div class="grid gap-10 lg:grid-cols-12 lg:gap-12">
             {{-- Brand --}}

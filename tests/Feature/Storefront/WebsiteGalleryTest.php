@@ -33,6 +33,7 @@ class WebsiteGalleryTest extends TestCase
         $response->assertSee('Our Work Gallery');
         $response->assertSee('Print &amp; Branding Projects', false);
         $response->assertSee('data-portfolio-grid', false);
+        $response->assertSee('public-masonry-gallery', false);
         $response->assertSee('Commercial Print Production');
         $response->assertSee('Premium Business Cards');
     }
@@ -79,7 +80,9 @@ class WebsiteGalleryTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Corporate Business Cards');
-        $response->assertDontSee('2,500 cards');
+        $response->assertSee('public-masonry-gallery', false);
+        $response->assertDontSee('public-masonry-item__caption', false);
+        $response->assertDontSee('View Work', false);
         $response->assertDontSee('data-portfolio-empty', false);
     }
 
@@ -115,6 +118,8 @@ class WebsiteGalleryTest extends TestCase
             'location' => 'Nairobi',
             'quantity_label' => '2,500 cards',
             'timeline_label' => '3 business days',
+            'materials_label' => '350gsm art card, matte lamination',
+            'outcome' => 'Consistent brand reproduction across all staff cards.',
             'alt_text' => 'Corporate business cards printed by Jana Prints',
             'is_featured' => true,
             'is_published' => true,
@@ -127,9 +132,41 @@ class WebsiteGalleryTest extends TestCase
         $this->assertDatabaseHas('website_gallery_items', [
             'title' => 'Corporate Business Cards',
             'category' => 'business-cards',
+            'materials_label' => '350gsm art card, matte lamination',
             'is_featured' => true,
             'is_published' => true,
         ]);
+    }
+
+    public function test_gallery_modal_includes_structured_project_detail_markup(): void
+    {
+        WebsiteGalleryItem::query()->create([
+            'uuid' => (string) str()->uuid(),
+            'title' => 'Startup Brand Launch Cards',
+            'slug' => 'startup-brand-launch-cards',
+            'category' => 'business-cards',
+            'description' => 'Launch-day business cards for a tech startup.',
+            'location' => 'Nairobi',
+            'quantity_label' => '1,000 cards',
+            'timeline_label' => '2 days',
+            'materials_label' => '400gsm black core card, soft-touch laminate',
+            'outcome' => 'Cards delivered in time for the investor pitch event.',
+            'image_path' => '/images/storefront/gallery/business-cards.jpg',
+            'alt_text' => 'Startup business cards',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('storefront.gallery'))
+            ->assertOk()
+            ->assertSee('data-portfolio-modal-detail="materials"', false)
+            ->assertSee('data-portfolio-modal-detail="quantity"', false)
+            ->assertSee('data-portfolio-modal-detail="timeline"', false)
+            ->assertSee('data-portfolio-modal-detail="outcome"', false)
+            ->assertSee('data-portfolio-modal-location', false)
+            ->assertSee('Materials Used', false)
+            ->assertSee('Quantity Produced', false)
+            ->assertSee('Completion Timeline', false)
+            ->assertSee('"materials_label":"400gsm black core card, soft-touch laminate"', false);
     }
 
     public function test_gallery_image_url_uses_relative_storage_path(): void
@@ -152,7 +189,8 @@ class WebsiteGalleryTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('public-trust-strip', false);
+        $response->assertSee('public-hero-proof', false);
+        $response->assertDontSee('Scroll to Explore', false);
         $response->assertSee('Everything You Need To Print, Brand &amp; Grow', false);
         $response->assertSee('Recent Work Delivered', false);
         $response->assertSee('View Full Gallery', false);
@@ -168,10 +206,10 @@ class WebsiteGalleryTest extends TestCase
         $response->assertDontSee('Why Businesses Choose Jana Prints', false);
 
         $content = $response->getContent();
-        preg_match_all('/<section id="(services|recent-work|workflow|inside-jana|team|testimonials|contact)"/', $content, $sectionMatches);
+        preg_match_all('/<section id="(services|recent-work|workflow|inside-jana|team|testimonials|quote-form|contact|location)"/', $content, $sectionMatches);
 
         $this->assertSame(
-            ['services', 'recent-work', 'workflow', 'inside-jana', 'team', 'testimonials', 'contact'],
+            ['services', 'recent-work', 'workflow', 'inside-jana', 'team', 'testimonials', 'quote-form', 'contact', 'location'],
             $sectionMatches[1]
         );
         $this->assertStringContainsString('The Jana Prints Quality Promise', $content);
@@ -200,7 +238,9 @@ class WebsiteGalleryTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('id="contact"', false);
+        $response->assertSee('Get Your Free Quotation', false);
         $response->assertSee('Talk To Jana Prints', false);
+        $response->assertSee('id="location"', false);
         $response->assertSee('Contact Details', false);
         $response->assertSee('public-contact-icon-bubble', false);
         $response->assertSee('Ready To Start Your Next Print Project?', false);

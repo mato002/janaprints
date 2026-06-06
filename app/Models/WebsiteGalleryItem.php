@@ -19,6 +19,8 @@ class WebsiteGalleryItem extends Model
         'location',
         'quantity_label',
         'timeline_label',
+        'materials_label',
+        'outcome',
         'image_path',
         'alt_text',
         'is_featured',

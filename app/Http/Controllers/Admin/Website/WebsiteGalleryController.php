@@ -151,6 +151,8 @@ class WebsiteGalleryController extends Controller
             'location' => ['nullable', 'string', 'max:120'],
             'quantity_label' => ['nullable', 'string', 'max:120'],
             'timeline_label' => ['nullable', 'string', 'max:120'],
+            'materials_label' => ['nullable', 'string', 'max:255'],
+            'outcome' => ['nullable', 'string', 'max:2000'],
             'alt_text' => ['required', 'string', 'max:255'],
             'is_featured' => ['sometimes', 'boolean'],
             'is_published' => ['sometimes', 'boolean'],

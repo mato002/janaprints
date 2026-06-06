@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Storefront;
 
+use App\Rules\StorefrontPersonName;
+use App\Rules\StorefrontPhoneNumber;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePublicContactMessageRequest extends FormRequest
@@ -17,9 +19,9 @@ class StorePublicContactMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:120'],
-            'company' => ['nullable', 'string', 'max:160'],
-            'phone' => ['nullable', 'string', 'max:30'],
+            'name' => ['required', 'string', 'min:2', 'max:120', new StorefrontPersonName],
+            'company' => ['nullable', 'string', 'max:160', 'regex:/^[\p{L}\p{N}\s\'.\-&]+$/u'],
+            'phone' => ['nullable', 'string', 'max:20', new StorefrontPhoneNumber],
             'email' => ['required', 'email', 'max:160'],
             'subject' => ['required', 'string', 'max:160'],
             'message' => ['required', 'string', 'max:3000'],

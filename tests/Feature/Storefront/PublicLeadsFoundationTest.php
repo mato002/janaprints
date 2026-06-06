@@ -73,6 +73,29 @@ class PublicLeadsFoundationTest extends TestCase
         $response->assertSessionHasErrors(['name', 'email', 'phone', 'service_needed', 'message']);
     }
 
+    public function test_validation_rejects_special_characters_in_name_and_invalid_phone(): void
+    {
+        $this->post(route('public.quote-requests.store'), [
+            ...$this->validQuotePayload(),
+            'name' => 'John@Doe!',
+        ])->assertSessionHasErrors('name');
+
+        $this->post(route('public.quote-requests.store'), [
+            ...$this->validQuotePayload(),
+            'phone' => '+254700000000000000',
+        ])->assertSessionHasErrors('phone');
+
+        $this->post(route('public.contact-messages.store'), [
+            ...$this->validContactPayload(),
+            'name' => 'Jane#Smith',
+        ])->assertSessionHasErrors('name');
+
+        $this->post(route('public.contact-messages.store'), [
+            ...$this->validContactPayload(),
+            'phone' => 'abc-not-a-phone',
+        ])->assertSessionHasErrors('phone');
+    }
+
     public function test_validation_rejects_invalid_contact_message(): void
     {
         $response = $this->post(route('public.contact-messages.store'), [

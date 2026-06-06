@@ -155,11 +155,11 @@
     }
 
     .public-hero-proof {
-        @apply mt-10 flex flex-wrap gap-8 border-t border-white/10 pt-8 sm:gap-10 lg:justify-between xl:gap-14;
+        @apply mt-8 grid grid-cols-2 gap-5 border-t border-white/10 pt-8 sm:grid-cols-4 sm:gap-4 lg:mt-10 lg:gap-6;
     }
 
     .public-hero-proof__item {
-        @apply min-w-[7rem];
+        @apply min-w-0;
     }
 
     .public-hero-proof__value {
@@ -772,74 +772,105 @@
         @apply border-brand-magenta bg-brand-magenta text-white shadow-brand-sm;
     }
 
-    .public-portfolio-grid {
-        @apply grid gap-6 lg:gap-7 xl:gap-8;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 17.5rem), 1fr));
+    .public-masonry-gallery {
+        width: 100%;
+        max-width: 100%;
+        column-gap: 2px;
+        column-fill: balance;
+        columns: 1;
     }
 
+    @media (min-width: 640px) {
+        .public-masonry-gallery {
+            columns: 2;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .public-masonry-gallery {
+            columns: 3;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .public-masonry-gallery {
+            columns: 4;
+        }
+    }
+
+    .public-gallery-preview .public-container--wide,
+    .public-portfolio .public-container--wide {
+        max-width: min(calc(100% - 2 * var(--storefront-section-padding-x)), 100rem);
+    }
+
+    .public-masonry-item,
     .public-portfolio-card {
-        @apply transition-all duration-300 ease-out;
+        @apply inline-block w-full align-top transition-transform duration-300 ease-out;
+        break-inside: avoid;
+        margin-bottom: 2px;
+        -webkit-column-break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .public-portfolio-card.is-filtered-out {
         display: none !important;
     }
 
+    .public-masonry-item__trigger,
     .public-portfolio-card__trigger {
-        @apply relative block h-full w-full overflow-hidden rounded-brand-xl border border-brand-gray-muted bg-white text-left shadow-brand-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-brand-md;
+        @apply relative block w-full overflow-hidden border-0 bg-transparent p-0 text-left shadow-none outline outline-2 outline-offset-[-2px] outline-transparent transition-[outline-color,transform] duration-300 ease-out;
     }
 
+    .public-masonry-item__trigger:hover,
+    .public-masonry-item__trigger:focus-visible,
+    .public-portfolio-card__trigger:hover,
+    .public-portfolio-card__trigger:focus-visible {
+        @apply -translate-y-0.5 outline-brand-magenta;
+    }
+
+    .public-masonry-item__media,
     .public-portfolio-card__media {
-        @apply relative aspect-[4/3] overflow-hidden;
+        @apply relative overflow-hidden leading-none;
     }
 
+    .public-masonry-item__image,
+    .public-masonry-item__media img,
     .public-portfolio-card__media img {
-        @apply h-full w-full object-cover transition-transform duration-500 ease-out;
+        @apply block h-auto w-full max-w-full transition-transform duration-500 ease-out;
     }
 
-    .public-portfolio-card__trigger:hover .public-portfolio-card__media img {
-        @apply scale-105;
+    .public-masonry-item__trigger:hover .public-masonry-item__image,
+    .public-masonry-item__trigger:focus-visible .public-masonry-item__image,
+    .public-portfolio-card__trigger:hover .public-portfolio-card__media img,
+    .public-portfolio-card__trigger:focus-visible .public-portfolio-card__media img {
+        @apply scale-[1.03];
     }
 
+    .public-masonry-item__overlay,
     .public-portfolio-card__overlay {
-        @apply absolute inset-0 flex items-end bg-gradient-to-t from-brand-navy/90 via-brand-navy/40 to-transparent p-5 opacity-0 transition-opacity duration-300;
+        @apply pointer-events-none absolute inset-0 flex items-end bg-gradient-to-t from-brand-navy/80 via-brand-navy/30 to-transparent p-4 opacity-0 transition-opacity duration-300 sm:p-5;
     }
 
+    .public-masonry-item__trigger:hover .public-masonry-item__overlay,
+    .public-masonry-item__trigger:focus-visible .public-masonry-item__overlay,
     .public-portfolio-card__trigger:hover .public-portfolio-card__overlay,
     .public-portfolio-card__trigger:focus-visible .public-portfolio-card__overlay {
         @apply opacity-100;
     }
 
+    .public-masonry-item__overlay-content,
     .public-portfolio-card__overlay-content {
         @apply w-full;
     }
 
-    .public-portfolio-card__category--overlay {
-        @apply text-white/80;
+    .public-portfolio-card__category--overlay,
+    .public-masonry-item__category {
+        @apply text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-white/85;
     }
 
-    .public-portfolio-card__title--overlay {
-        @apply mt-1 text-white;
-    }
-
-    .public-portfolio-card__view-btn {
-        @apply mt-3 inline-flex rounded-brand-md bg-white px-3 py-1.5 text-xs font-semibold text-brand-navy shadow-brand-sm;
-    }
-
-    .public-portfolio-card__info {
-        @apply border-t border-brand-gray-muted/60 p-4;
-    }
-
-    .public-portfolio-card__category {
-        @apply text-xs font-semibold uppercase tracking-wider text-brand-magenta;
-    }
-
-    .public-portfolio-card__title {
-        @apply mt-1 font-display text-base font-bold text-brand-navy;
-    }
-
-    .public-portfolio-card__caption {
-        @apply mt-1.5 line-clamp-2 text-sm leading-relaxed text-brand-text-muted;
+    .public-portfolio-card__title--overlay,
+    .public-masonry-item__title {
+        @apply mt-1 font-display text-base font-bold leading-snug text-white sm:text-lg;
     }
 
     .public-portfolio-modal {
@@ -863,7 +894,7 @@
     }
 
     .public-portfolio-modal__dialog {
-        @apply relative z-10 max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-brand-xl bg-white shadow-brand-lg;
+        @apply relative z-10 max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-brand-xl bg-white shadow-brand-lg;
         animation: portfolio-modal-in 0.35s ease-out;
     }
 
@@ -872,15 +903,15 @@
     }
 
     .public-portfolio-modal__close {
-        @apply absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-brand-navy shadow-brand-sm transition-colors hover:bg-brand-magenta hover:text-white;
+        @apply absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-brand-gray-muted bg-white text-brand-navy shadow-brand-sm transition-colors hover:border-brand-magenta hover:bg-brand-magenta hover:text-white;
     }
 
     .public-portfolio-modal__layout {
-        @apply grid lg:grid-cols-2;
+        @apply grid max-h-[92vh] lg:grid-cols-2;
     }
 
     .public-portfolio-modal__media {
-        @apply aspect-[4/3] overflow-hidden lg:aspect-auto lg:min-h-full;
+        @apply aspect-[4/3] overflow-hidden bg-brand-off-white lg:aspect-auto lg:min-h-[28rem];
     }
 
     .public-portfolio-modal__media img {
@@ -888,23 +919,47 @@
     }
 
     .public-portfolio-modal__content {
-        @apply p-6 sm:p-8;
+        @apply flex max-h-[92vh] flex-col overflow-y-auto p-6 sm:p-8 lg:max-h-none lg:min-h-[28rem];
+    }
+
+    .public-portfolio-modal__intro {
+        @apply pr-10;
     }
 
     .public-portfolio-modal__category {
-        @apply text-xs font-semibold uppercase tracking-wider text-brand-magenta;
+        @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-magenta;
     }
 
     .public-portfolio-modal__title {
-        @apply mt-2 font-display text-2xl font-bold text-brand-navy;
+        @apply mt-2 font-display text-2xl font-bold leading-tight text-brand-navy sm:text-3xl;
     }
 
-    .public-portfolio-modal__description {
-        @apply mt-4 text-sm leading-relaxed text-brand-text-secondary;
+    .public-portfolio-modal__location {
+        @apply mt-2 text-sm font-medium text-brand-text-muted;
     }
 
-    .public-portfolio-modal__description[hidden] {
+    .public-portfolio-modal__location[hidden] {
         display: none;
+    }
+
+    .public-portfolio-modal__details {
+        @apply mt-6 space-y-5 border-t border-brand-gray-muted pt-6;
+    }
+
+    .public-portfolio-modal__detail[hidden] {
+        display: none;
+    }
+
+    .public-portfolio-modal__detail-label {
+        @apply text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-brand-text-muted;
+    }
+
+    .public-portfolio-modal__detail-value {
+        @apply mt-1.5 text-sm leading-relaxed text-brand-text-secondary;
+    }
+
+    .public-portfolio-modal__actions {
+        @apply mt-auto border-t border-brand-gray-muted pt-6;
     }
 
     /* ── Services & capabilities showcase ── */
@@ -1093,10 +1148,6 @@
     }
 
     /* ── Homepage gallery preview ── */
-    .public-gallery-preview__grid {
-        @apply grid gap-6 lg:gap-7;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 17.5rem), 1fr));
-    }
 
     /* ── Production journey ── */
     .public-journey-visuals {
@@ -2234,7 +2285,7 @@
     }
 
     .public-conversion-form--light .public-conversion-form__submit {
-        @apply justify-start;
+        @apply justify-center;
     }
 
     .public-conversion-form--light .public-conversion-form__upload {
@@ -2258,7 +2309,11 @@
     }
 
     .public-conversion-form__submit--quote {
-        @apply justify-stretch sm:justify-start;
+        @apply justify-center;
+    }
+
+    .public-conversion-form__submit .public-btn {
+        @apply mx-auto w-full max-w-sm px-10 sm:min-w-[20rem] sm:max-w-lg sm:w-auto;
     }
 
     /* Standalone quote section — detached from footer */
@@ -2273,7 +2328,83 @@
     }
 
     .public-quote-section__card {
-        @apply w-full rounded-brand-2xl border border-brand-gray-muted/60 bg-white p-5 shadow-brand-sm sm:p-8;
+        @apply mx-auto w-full max-w-3xl rounded-brand-2xl border border-brand-gray-muted/60 bg-white p-5 shadow-brand-sm sm:p-8;
+    }
+
+    .public-conversion-form__upload-label {
+        @apply mb-2 text-sm font-medium text-brand-navy;
+    }
+
+    /* Floating labels */
+    .public-field-float {
+        @apply relative;
+    }
+
+    .public-field-float input,
+    .public-field-float textarea,
+    .public-field-float select {
+        @apply w-full rounded-brand-lg border border-brand-gray-muted/80 bg-white px-4 pb-3 pt-5 text-sm text-brand-navy transition-all duration-200;
+        @apply focus:border-brand-magenta/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-magenta/20;
+    }
+
+    .public-field-float textarea {
+        @apply min-h-[8.5rem] resize-y;
+    }
+
+    .public-field-float select {
+        @apply cursor-pointer appearance-none bg-[length:1.25rem] bg-[right_0.75rem_center] bg-no-repeat pr-10;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%231a2744'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    }
+
+    .public-field-float--select select {
+        @apply pb-3 pt-7;
+    }
+
+    .public-field-float label {
+        @apply pointer-events-none absolute left-4 top-4 z-[1] origin-left text-sm text-brand-text-muted transition-all duration-200;
+    }
+
+    .public-field-float--select label {
+        @apply top-2 scale-[0.85] text-xs font-medium text-brand-magenta;
+    }
+
+    .public-field-float--select select:has(option[value='']:checked) {
+        @apply text-brand-text-muted;
+    }
+
+    .public-field-float__required {
+        @apply text-brand-magenta;
+    }
+
+    .public-field-float__optional {
+        @apply text-xs font-normal text-brand-text-muted;
+    }
+
+    .public-field-float__hint {
+        @apply mt-2 text-xs text-brand-text-muted;
+    }
+
+    .public-field-float input::placeholder,
+    .public-field-float textarea::placeholder {
+        @apply text-transparent;
+    }
+
+    .public-field-float input:focus + label,
+    .public-field-float textarea:focus + label,
+    .public-field-float select:focus + label,
+    .public-field-float.is-filled label {
+        @apply top-2 scale-[0.85] text-xs font-medium text-brand-magenta;
+    }
+
+    .public-conversion-form--light .public-field-float input,
+    .public-conversion-form--light .public-field-float textarea,
+    .public-conversion-form--light .public-field-float select {
+        @apply border-brand-gray-muted/80 bg-white text-brand-navy placeholder:text-transparent;
+        @apply focus:border-brand-magenta/50 focus:bg-white focus:ring-brand-magenta/20;
+    }
+
+    .public-conversion-form--light .public-field-float label {
+        @apply text-brand-text-muted;
     }
 
     .public-btn--glow {
@@ -2490,6 +2621,18 @@
         @apply mt-5 w-full sm:w-auto;
     }
 
+    .public-location-map-section {
+        @apply pt-0;
+    }
+
+    .public-location-map-section .public-contact-map {
+        @apply mt-0 w-full;
+    }
+
+    .public-contact-section + .public-location-map-section {
+        @apply pt-8 sm:pt-10;
+    }
+
     .public-contact-map {
         @apply mt-10 w-full lg:mt-12;
     }
@@ -2505,23 +2648,12 @@
         @apply absolute inset-0 h-full w-full border-0;
     }
 
-    .public-contact-map__caption {
-        @apply mt-4 flex flex-col gap-4 rounded-brand-xl border border-brand-gray-muted/60 bg-white p-5 shadow-brand-sm sm:flex-row sm:items-center sm:justify-between sm:p-6;
+    .public-contact-map__overlay {
+        @apply pointer-events-none absolute bottom-4 left-4 z-10 max-w-[calc(100%-2rem)] rounded-brand-xl border border-brand-gray-muted/60 bg-white/95 p-4 shadow-brand-md backdrop-blur-sm sm:bottom-5 sm:left-5 sm:max-w-sm sm:p-5;
     }
 
     .public-contact-map__title {
-        @apply flex items-center gap-3;
-    }
-
-    .public-contact-map__link {
-        @apply inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-brand-magenta transition-colors hover:text-brand-magenta-hover;
-    }
-
-    .public-contact-map__link .public-contact-icon {
-        width: 16px;
-        height: 16px;
-        max-width: 16px;
-        max-height: 16px;
+        @apply flex items-center gap-2.5;
     }
 
     @media (max-width: 639px) {
@@ -2529,6 +2661,10 @@
             aspect-ratio: 4 / 3;
             min-height: clamp(14rem, 55vw, 18rem);
             max-height: none;
+        }
+
+        .public-contact-map__overlay {
+            @apply bottom-3 left-3 right-3 max-w-none p-3.5;
         }
     }
 
@@ -2872,18 +3008,6 @@
         transform: scale(1);
     }
 
-    .public-portfolio-card__media .public-image-reveal {
-        @apply absolute inset-0;
-    }
-
-    .public-portfolio-card__media .public-image-reveal img {
-        @apply h-full w-full object-cover transition-transform duration-700 ease-out;
-    }
-
-    .public-portfolio-card__trigger:hover .public-portfolio-card__media .public-image-reveal img {
-        @apply scale-110;
-    }
-
     /* Testimonials rotator */
     .public-testimonials-rotator {
         @apply mx-auto max-w-4xl;
@@ -3045,11 +3169,6 @@
         @apply h-full w-full object-cover;
     }
 
-    /* Portfolio card glow on hover */
-    .public-portfolio-card__trigger:hover {
-        box-shadow: 0 12px 40px rgb(255 45 117 / 0.12), 0 4px 20px rgb(8 18 41 / 0.08);
-        border-color: rgb(255 45 117 / 0.25);
-    }
 }
 
 @layer utilities {
@@ -3543,7 +3662,7 @@
             bottom: calc(var(--public-mobile-cta-height) + 0.75rem);
         }
 
-        .public-page.has-scroll-cta .public-quote-section {
+        .public-page.has-scroll-cta .public-location-map-section {
             padding-bottom: calc(3rem + var(--public-mobile-cta-height));
         }
     }
@@ -3650,46 +3769,6 @@
             display: none;
         }
 
-        .public-h-scroll--portfolio.public-portfolio-grid {
-            display: flex;
-            grid-template-columns: unset;
-            grid-auto-rows: unset;
-            gap: 1rem;
-        }
-
-        .public-h-scroll--portfolio .public-portfolio-card {
-            flex: 0 0 85vw;
-            max-width: 22rem;
-            scroll-snap-align: start;
-        }
-
-        .public-h-scroll--portfolio .public-portfolio-card.is-filtered-out {
-            display: none !important;
-            position: static !important;
-            visibility: hidden !important;
-            height: auto !important;
-            width: auto !important;
-            opacity: 0 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: 0 !important;
-            pointer-events: none !important;
-        }
-
-        .public-h-scroll--portfolio .public-portfolio-card__media {
-            @apply aspect-[4/3] min-h-0;
-        }
-
-        .public-h-scroll--portfolio .public-portfolio-card__overlay,
-        .public-h-scroll--portfolio .public-portfolio-card__hover {
-            @apply opacity-100;
-            transform: none;
-        }
-
-        .public-h-scroll--portfolio .public-portfolio-card__view-btn {
-            @apply text-xs;
-        }
-
         .public-h-scroll--featured .public-portfolio-featured {
             flex: 0 0 85vw;
             max-width: 22rem;
@@ -3746,18 +3825,6 @@
         }
 
         .public-h-scroll--recent-work .public-recent-work-card {
-            flex: 0 0 85vw;
-            max-width: 22rem;
-            scroll-snap-align: start;
-        }
-
-        .public-h-scroll--gallery-preview.public-gallery-preview__grid {
-            display: flex;
-            grid-template-columns: unset;
-            gap: 1rem;
-        }
-
-        .public-h-scroll--gallery-preview .public-portfolio-card {
             flex: 0 0 85vw;
             max-width: 22rem;
             scroll-snap-align: start;

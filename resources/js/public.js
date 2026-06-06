@@ -846,9 +846,22 @@ function initPortfolioModal() {
     const image = modal.querySelector('[data-portfolio-modal-image]');
     const category = modal.querySelector('[data-portfolio-modal-category]');
     const title = modal.querySelector('[data-portfolio-modal-title]');
-    const description = modal.querySelector('[data-portfolio-modal-description]');
+    const location = modal.querySelector('[data-portfolio-modal-location]');
 
     let lastFocus = null;
+
+    const setDetail = (key, value) => {
+        const block = modal.querySelector(`[data-portfolio-modal-detail="${key}"]`);
+        const field = modal.querySelector(`[data-portfolio-modal-value="${key}"]`);
+
+        if (!block || !field) {
+            return;
+        }
+
+        const text = (value || '').trim();
+        field.textContent = text;
+        block.hidden = text === '';
+    };
 
     const open = (project) => {
         if (!project) {
@@ -859,13 +872,20 @@ function initPortfolioModal() {
 
         image.src = project.image;
         image.alt = project.alt || project.title;
-        category.textContent = project.category_label;
-        title.textContent = project.title;
+        category.textContent = project.category_label || '';
+        title.textContent = project.title || '';
 
-        if (description) {
-            description.textContent = project.description || '';
-            description.hidden = !project.description;
+        if (location) {
+            const locationText = (project.location || '').trim();
+            location.textContent = locationText;
+            location.hidden = locationText === '';
         }
+
+        setDetail('description', project.description);
+        setDetail('materials', project.materials_label);
+        setDetail('quantity', project.quantity_label);
+        setDetail('timeline', project.timeline_label);
+        setDetail('outcome', project.outcome);
 
         modal.hidden = false;
         modal.setAttribute('aria-hidden', 'false');
@@ -1043,9 +1063,40 @@ function syncContactInquiryHint(select) {
     hint.hidden = !isQuote;
 }
 
+function syncFloatingFieldState(field) {
+    const control = field.querySelector('input, textarea, select');
+
+    if (!control) {
+        return;
+    }
+
+    const filled = control.tagName === 'SELECT'
+        ? control.value !== ''
+        : control.value.trim() !== '';
+
+    field.classList.toggle('is-filled', filled);
+}
+
+function initFloatingFormFields(root = document) {
+    root.querySelectorAll('.public-field-float').forEach((field) => {
+        const control = field.querySelector('input, textarea, select');
+
+        if (!control) {
+            return;
+        }
+
+        syncFloatingFieldState(field);
+
+        control.addEventListener('input', () => syncFloatingFieldState(field));
+        control.addEventListener('change', () => syncFloatingFieldState(field));
+        control.addEventListener('blur', () => syncFloatingFieldState(field));
+    });
+}
+
 function initConversion() {
     initConversionFaq();
     initArtworkUpload();
+    initFloatingFormFields();
     initQuoteForm();
     initContactForm();
     initScrollCta();
@@ -1141,6 +1192,7 @@ async function submitPublicForm(form, successSelector) {
         }
 
         form.reset();
+        form.querySelectorAll('.public-field-float').forEach((field) => syncFloatingFieldState(field));
         form.querySelectorAll('input, select, textarea, button').forEach((el) => {
             if (el.type !== 'hidden' && el.name !== '_token') {
                 el.disabled = true;

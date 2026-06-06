@@ -29,43 +29,12 @@
             </div>
         </div>
 
-        <p class="public-h-scroll-hint mt-8 lg:hidden">Swipe to view more</p>
-
-        <div class="public-gallery-preview__grid public-h-scroll public-h-scroll--gallery-preview mt-4 lg:mt-10" data-portfolio-grid data-animate="fade-up">
+        <div class="public-masonry-gallery mt-8 lg:mt-10" data-portfolio-grid data-animate="fade-up">
             @foreach ($projects as $project)
                 <x-public.portfolio-card :project="$project" />
             @endforeach
         </div>
     </div>
 
-    <div class="public-portfolio-modal" data-portfolio-modal hidden aria-hidden="true">
-        <div class="public-portfolio-modal__backdrop" data-portfolio-close></div>
-        <div
-            class="public-portfolio-modal__dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="portfolio-modal-title"
-        >
-            <button type="button" class="public-portfolio-modal__close" data-portfolio-close aria-label="Close project details">
-                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-
-            <div class="public-portfolio-modal__layout">
-                <div class="public-portfolio-modal__media">
-                    <img src="" alt="" data-portfolio-modal-image loading="lazy">
-                </div>
-                <div class="public-portfolio-modal__content">
-                    <span class="public-portfolio-modal__category" data-portfolio-modal-category></span>
-                    <h3 id="portfolio-modal-title" class="public-portfolio-modal__title" data-portfolio-modal-title></h3>
-                    <p class="public-portfolio-modal__description" data-portfolio-modal-description></p>
-
-                    <x-public.button href="{{ $quoteFormHref }}" variant="primary" class="mt-6" data-portfolio-close-on-click>
-                        Request Similar Project
-                    </x-public.button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <x-public.portfolio-modal />
 </section>

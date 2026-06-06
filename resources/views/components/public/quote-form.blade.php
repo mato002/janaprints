@@ -44,57 +44,93 @@
                 <input type="text" name="_gotcha" value="" tabindex="-1" autocomplete="off" class="sr-only" aria-hidden="true">
 
                 <div class="public-conversion-form__grid">
-                    <div class="public-conversion-form__field">
-                        <label for="quote-name">Name <span aria-hidden="true">*</span></label>
-                        <input type="text" id="quote-name" name="name" required autocomplete="name" placeholder="Your full name" value="{{ old('name') }}">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-company">Company</label>
-                        <input type="text" id="quote-company" name="company" autocomplete="organization" placeholder="Company name (optional)" value="{{ old('company') }}">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-phone">Phone <span aria-hidden="true">*</span></label>
-                        <input type="tel" id="quote-phone" name="phone" required autocomplete="tel" placeholder="+254 700 000 000" value="{{ old('phone') }}">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-email">Email <span aria-hidden="true">*</span></label>
-                        <input type="email" id="quote-email" name="email" required autocomplete="email" placeholder="you@company.com" value="{{ old('email') }}">
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-service">Service Needed <span aria-hidden="true">*</span></label>
-                        <select id="quote-service" name="service" required>
-                            <option value="">Select a service</option>
-                            @foreach ($services as $service)
-                                <option value="{{ $service }}" @selected(old('service', old('service_needed')) === $service)>{{ $service }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="public-conversion-form__field">
-                        <label for="quote-quantity">Quantity</label>
-                        <input type="text" id="quote-quantity" name="quantity" placeholder="e.g. 500 business cards" value="{{ old('quantity') }}">
-                    </div>
+                    <x-public.form-floating-field
+                        id="quote-name"
+                        name="name"
+                        label="Name"
+                        required
+                        autocomplete="name"
+                        maxlength="120"
+                    />
+                    <x-public.form-floating-field
+                        id="quote-company"
+                        name="company"
+                        label="Company"
+                        optional
+                        autocomplete="organization"
+                        maxlength="160"
+                    />
+                    <x-public.form-floating-field
+                        id="quote-phone"
+                        name="phone"
+                        label="Phone"
+                        type="tel"
+                        required
+                        autocomplete="tel"
+                        inputmode="tel"
+                        maxlength="20"
+                    />
+                    <x-public.form-floating-field
+                        id="quote-email"
+                        name="email"
+                        label="Email"
+                        type="email"
+                        required
+                        autocomplete="email"
+                        maxlength="160"
+                    />
+                    <x-public.form-floating-select
+                        id="quote-service"
+                        name="service"
+                        label="Service Needed"
+                        :required="true"
+                        placeholder="Select a service"
+                        :options="$services"
+                        :value="old('service', old('service_needed'))"
+                    />
+                    <x-public.form-floating-field
+                        id="quote-quantity"
+                        name="quantity"
+                        label="Quantity"
+                        optional
+                        maxlength="80"
+                    />
+                    <x-public.form-floating-field
+                        id="quote-deadline"
+                        name="deadline"
+                        label="Deadline"
+                        optional
+                        full
+                        maxlength="80"
+                    />
+                    <x-public.form-floating-field
+                        id="quote-message"
+                        name="message"
+                        label="Message"
+                        type="textarea"
+                        :rows="4"
+                        required
+                        full
+                        maxlength="3000"
+                    />
+
                     <div class="public-conversion-form__field public-conversion-form__field--full">
-                        <label for="quote-deadline">Deadline</label>
-                        <input type="text" id="quote-deadline" name="deadline" placeholder="When do you need this delivered?" value="{{ old('deadline') }}">
-                    </div>
-                    <div class="public-conversion-form__field public-conversion-form__field--full">
-                        <label for="quote-message">Message <span aria-hidden="true">*</span></label>
-                        <textarea id="quote-message" name="message" rows="4" required placeholder="Share project details, dimensions, materials, or special requirements">{{ old('message') }}</textarea>
-                    </div>
-                    <div class="public-conversion-form__field public-conversion-form__field--full">
-                        <label>Artwork Upload</label>
+                        <p class="public-conversion-form__upload-label">
+                            Artwork Upload
+                            <span class="public-field-float__optional">(optional)</span>
+                        </p>
                         <div class="public-conversion-form__upload" data-upload-placeholder>
                             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                             <p>Drag &amp; drop artwork files here, or click to browse</p>
                             <span>PDF, AI, EPS, PSD, JPG, PNG, SVG — max 25 MB</span>
                             <input type="file" name="artwork" accept=".pdf,.ai,.eps,.psd,.jpg,.jpeg,.png,.svg" class="sr-only" data-artwork-input>
                         </div>
-                        <p class="public-conversion-form__upload-note">Optional — attach artwork for faster quoting.</p>
+                        <p class="public-conversion-form__upload-note">Not required — attach artwork only if you already have files ready.</p>
                     </div>
                 </div>
 
                 <div class="public-conversion-form__submit public-conversion-form__submit--quote">
-                    <x-public.button type="submit" variant="gradient" size="lg" class="w-full sm:w-auto">
+                    <x-public.button type="submit" variant="gradient" size="lg">
                         Submit Quote Request
                     </x-public.button>
                 </div>

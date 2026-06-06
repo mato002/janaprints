@@ -54,6 +54,8 @@
                             View Our Work
                         </x-public.button>
                     </div>
+
+                    <x-public.hero-stats />
                 </div>
 
                 {{-- Right: product showcase --}}
@@ -63,16 +65,7 @@
             </div>
         </div>
 
-        <a href="#services" class="public-hero-scroll max-md:hidden" aria-label="Scroll to explore">
-            <div class="public-hero-scroll__mouse">
-                <div class="public-hero-scroll__wheel"></div>
-            </div>
-            <span class="public-hero-scroll__text">Scroll to Explore</span>
-        </a>
     </section>
-
-    {{-- Compact trust strip (shown once) --}}
-    <x-public.trust-strip />
 
     {{-- Capabilities --}}
     <x-public.services-section />
@@ -95,9 +88,10 @@
     {{-- Testimonials --}}
     <x-public.testimonials-section />
 
-    {{-- Final CTA + unified contact + dedicated quote form --}}
+    {{-- Final CTA, quote form, contact, then location map before footer --}}
     <x-public.final-cta-section />
-    <x-public.contact-section />
     <x-public.quote-form />
+    <x-public.contact-section />
+    <x-public.contact-map-section />
 
 </x-layouts.public>

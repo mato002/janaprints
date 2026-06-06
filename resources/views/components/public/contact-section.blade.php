@@ -60,19 +60,8 @@
         </div>
 
         <div class="public-contact-section__layout">
-            {{-- Contact form --}}
-            <div class="public-contact-section__form" data-animate="fade-up">
-                <div class="public-card public-card--soft public-contact-section__form-card">
-                    <h3 class="font-display text-xl font-bold text-brand-navy">Send us a message</h3>
-                    <p class="mt-2 text-sm text-brand-text-secondary">We typically respond within one business day.</p>
-                    <div class="mt-6">
-                        <x-public.contact-form />
-                    </div>
-                </div>
-            </div>
-
-            {{-- Contact details --}}
-            <div class="public-contact-section__aside" data-animate="fade-up" data-animate-delay="1">
+            {{-- Contact details (left on desktop) --}}
+            <div class="public-contact-section__aside" data-animate="fade-up">
                 <article class="public-contact-details-card public-card public-card--soft">
                     <h3 class="font-display text-lg font-bold text-brand-navy">Contact Details</h3>
 
@@ -137,10 +126,18 @@
                         Start WhatsApp Chat
                     </a>
                 </article>
+            </div>
 
+            {{-- Contact form (right on desktop) --}}
+            <div class="public-contact-section__form" data-animate="fade-up" data-animate-delay="1">
+                <div class="public-card public-card--soft public-contact-section__form-card">
+                    <h3 class="font-display text-xl font-bold text-brand-navy">Send us a message</h3>
+                    <p class="mt-2 text-sm text-brand-text-secondary">We typically respond within one business day.</p>
+                    <div class="mt-6">
+                        <x-public.contact-form />
+                    </div>
+                </div>
             </div>
         </div>
-
-        <x-public.contact-map />
     </div>
 </section>
