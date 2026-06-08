@@ -22,8 +22,7 @@
         </div>
 
         <div class="public-loader__brand">
-            <x-public.brand-logo size="lg" class="public-loader__logo" />
-            <span class="public-loader__name">Jana Prints</span>
+            <x-public.brand-logo full size="lg" class="public-loader__logo mx-auto" />
         </div>
     </div>
 

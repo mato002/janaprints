@@ -31,7 +31,8 @@ return [
         'google_maps_url' => env('STOREFRONT_MAPS_URL'),
         'whatsapp' => env('STOREFRONT_WHATSAPP', '254700000000'),
         'service_areas' => ['Kenya', 'Nairobi', 'Nationwide'],
-        'logo' => '/images/logo-mark.png',
+        'logo' => '/images/jana-prints-logo.png',
+        'favicon' => '/images/logo-mark.png',
         'sidebar_logo' => '/images/logo-sidebar.png',
     ],
 

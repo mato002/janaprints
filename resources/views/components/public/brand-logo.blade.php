@@ -1,21 +1,44 @@
 @props([
     'size' => 'md',
+    'full' => false,
+    'header' => false,
 ])
 
 @php
-    $sizeClasses = [
+    $markSizeClasses = [
         'sm' => 'h-8 w-8',
         'md' => 'h-10 w-10',
         'lg' => 'h-12 w-12',
     ];
+
+    $fullSizeClasses = [
+        'sm' => 'h-8 w-auto max-w-[150px]',
+        'md' => 'h-10 w-auto max-w-[190px] sm:max-w-[210px]',
+        'lg' => 'h-14 w-auto max-w-[240px] sm:max-w-[260px]',
+    ];
+
+    if ($header) {
+        $classList = 'public-header__logo shrink-0 object-contain object-left';
+    } elseif ($full) {
+        $classList = ($fullSizeClasses[$size] ?? $fullSizeClasses['md']) . ' shrink-0 object-contain object-left';
+    } else {
+        $classList = ($markSizeClasses[$size] ?? $markSizeClasses['md']) . ' shrink-0 object-contain';
+    }
 @endphp
 
 <img
     src="{{ url(config('site.local.logo')) }}"
-    alt=""
-    {{ $attributes->merge(['class' => ($sizeClasses[$size] ?? $sizeClasses['md']) . ' shrink-0 object-contain']) }}
-    width="40"
-    height="40"
+    alt="{{ $full || $header ? config('site.name') : '' }}"
+    {{ $attributes->merge(['class' => $classList]) }}
+    @if ($full || $header)
+        width="280"
+        height="132"
+    @else
+        width="40"
+        height="40"
+    @endif
     decoding="async"
-    aria-hidden="true"
+    @if (! $full && ! $header)
+        aria-hidden="true"
+    @endif
 >

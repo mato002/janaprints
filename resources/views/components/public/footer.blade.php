@@ -16,9 +16,8 @@
         <div class="grid gap-10 lg:grid-cols-12 lg:gap-12">
             {{-- Brand --}}
             <div class="lg:col-span-4">
-                <div class="mb-5 flex items-center gap-3">
-                    <x-public.brand-logo />
-                    <span class="font-display text-xl font-bold text-white">{{ $site['name'] }}</span>
+                <div class="mb-5">
+                    <x-public.brand-logo full size="lg" />
                 </div>
                 <p class="max-w-sm text-sm leading-relaxed">{{ $footer['tagline'] }}</p>
 

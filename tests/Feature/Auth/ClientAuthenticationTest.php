@@ -4,6 +4,9 @@ namespace Tests\Feature\Auth;
 
 use App\Models\Crm\Customer;
 use App\Models\User;
+use Database\Seeders\ClientDemoUserSeeder;
+use Database\Seeders\OrganizationFoundationSeeder;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -65,6 +68,24 @@ class ClientAuthenticationTest extends TestCase
 
         $this->assertGuest();
         $response->assertSessionHasErrors('email');
+    }
+
+    public function test_client_demo_seeder_creates_portal_login(): void
+    {
+        $this->seed([
+            RolesAndPermissionsSeeder::class,
+            OrganizationFoundationSeeder::class,
+            ClientDemoUserSeeder::class,
+        ]);
+
+        $response = $this->post('/client/login', [
+            'email' => 'client@janaprints.local',
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('client.dashboard', absolute: false));
+        $this->assertTrue(auth()->user()->isClientPortalAccount());
     }
 
     public function test_client_session_cannot_access_admin_routes(): void

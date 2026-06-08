@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             CrmFoundationSeeder::class,
             BootstrapAdminSeeder::class,
             DemoUsersSeeder::class,
+            ClientDemoUserSeeder::class,
             PlatformConfigurationSeeder::class,
             GlAccountTypeSeeder::class,
             JanaPrintsChartOfAccountsSeeder::class,

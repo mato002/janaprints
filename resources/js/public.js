@@ -307,12 +307,19 @@ function initStickyFab() {
 }
 
 function initMobileNav() {
+    const header = document.querySelector('[data-public-header]');
     const nav = document.querySelector('[data-mobile-nav]');
     const toggle = document.querySelector('[data-mobile-nav-toggle]');
 
     if (!nav || !toggle) {
         return;
     }
+
+    const setToggleState = (isOpen) => {
+        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+        header?.classList.toggle('public-header--menu-open', isOpen);
+    };
 
     const open = () => {
         nav.hidden = false;
@@ -321,20 +328,18 @@ function initMobileNav() {
             nav.classList.add('is-open');
         });
 
-        toggle.setAttribute('aria-expanded', 'true');
-        document.body.style.overflow = 'hidden';
+        setToggleState(true);
     };
 
     const close = () => {
         nav.classList.remove('is-open');
-        toggle.setAttribute('aria-expanded', 'false');
-        document.body.style.overflow = '';
+        setToggleState(false);
 
         window.setTimeout(() => {
             if (!nav.classList.contains('is-open')) {
                 nav.hidden = true;
             }
-        }, 300);
+        }, 200);
     };
 
     toggle.addEventListener('click', () => {
@@ -345,16 +350,18 @@ function initMobileNav() {
         }
     });
 
-    nav.querySelectorAll('[data-mobile-nav-close]').forEach((el) => {
-        el.addEventListener('click', close);
-    });
-
-    nav.querySelectorAll('.public-mobile-nav__links a').forEach((link) => {
+    nav.querySelectorAll('a').forEach((link) => {
         link.addEventListener('click', close);
     });
 
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && nav.classList.contains('is-open')) {
+            close();
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        if (window.matchMedia('(min-width: 768px)').matches && nav.classList.contains('is-open')) {
             close();
         }
     });

@@ -72,8 +72,8 @@
     <meta name="twitter:site" content="{{ $seoDefaults['twitter_site'] }}">
 @endif
 
-<link rel="icon" href="{{ url($site['local']['logo']) }}" type="image/png">
-<link rel="apple-touch-icon" href="{{ url($site['local']['logo']) }}">
+<link rel="icon" href="{{ url($site['local']['favicon'] ?? $site['local']['logo']) }}" type="image/png">
+<link rel="apple-touch-icon" href="{{ url($site['local']['favicon'] ?? $site['local']['logo']) }}">
 
 @foreach ($jsonLdBlocks as $schema)
     <script type="application/ld+json">{!! json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) !!}</script>
