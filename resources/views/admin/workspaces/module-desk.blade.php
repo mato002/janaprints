@@ -1,0 +1,25 @@
+<x-admin-layout :title="$shell['title']">
+    <x-admin.module-shell
+        :title="$shell['title']"
+        :description="$shell['description']"
+        :primary-workspaces="$shell['primary_workspaces']"
+        :active-primary="$shell['active_primary']"
+        :secondary-workspaces="$shell['secondary_workspaces']"
+        :active-secondary="$shell['active_secondary']"
+        :content-url="$shell['content_url']"
+    >
+        @if (empty($shell['content_url']) && empty($shell['secondary_workspaces']))
+            <x-admin.empty-state
+                icon="{{ $shell['icon'] ?? 'inbox' }}"
+                :title="__('Select a workspace')"
+                :description="__('Choose a workspace tab above to open operational content.')"
+            />
+        @elseif (empty($shell['content_url']))
+            <x-admin.empty-state
+                icon="{{ $shell['active_secondary']['icon'] ?? 'inbox' }}"
+                :title="$shell['active_secondary']['label'] ?? __('Coming soon')"
+                :description="$shell['active_secondary']['description'] ?? __('This workspace is not available yet.')"
+            />
+        @endif
+    </x-admin.module-shell>
+</x-admin-layout>
