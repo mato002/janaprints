@@ -11,6 +11,7 @@ use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerActivity;
 use App\Models\Crm\Lead;
 use App\Models\User;
+use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -19,6 +20,10 @@ use Illuminate\View\View;
 class CommercialActivityController extends Controller
 {
     use ResolvesCrmTenant, ScopesToTenant;
+
+    public function __construct(
+        protected FormSettingsService $formSettings,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -120,7 +125,10 @@ class CommercialActivityController extends Controller
      */
     protected function formMeta(Request $request, ?CustomerActivity $activity = null): array
     {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
         return [
+            'formFields' => $this->formSettings->resolvedFields('activity.create', $companyId, $branchId, $activity),
             'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
             'leads' => Lead::query()->forTenant()->orderBy('lead_name')->get(['id', 'lead_name']),
             'users' => $this->assignableUsers(),
@@ -150,16 +158,18 @@ class CommercialActivityController extends Controller
      */
     protected function validateActivity(Request $request, ?CustomerActivity $activity = null): array
     {
-        $data = $request->validate([
-            'customer_id' => ['nullable', 'integer', 'exists:customers,id'],
-            'lead_id' => ['nullable', 'integer', 'exists:leads,id'],
-            'user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'activity_type' => ['required', Rule::enum(ActivityType::class)],
-            'status' => ['required', Rule::enum(ActivityStatus::class)],
-            'subject' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'activity_at' => ['required', 'date'],
-        ]);
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        $data = $request->validate($this->formSettings->mergeValidationRules('activity.create', [
+            'customer_id' => ['integer', 'exists:customers,id'],
+            'lead_id' => ['integer', 'exists:leads,id'],
+            'user_id' => ['integer', 'exists:users,id'],
+            'activity_type' => [Rule::enum(ActivityType::class)],
+            'status' => [Rule::enum(ActivityStatus::class)],
+            'subject' => ['string', 'max:255'],
+            'description' => ['string'],
+            'activity_at' => ['date'],
+        ], $companyId, $branchId));
 
         if (empty($data['customer_id']) && empty($data['lead_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([

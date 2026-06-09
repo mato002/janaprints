@@ -261,19 +261,15 @@ class ModuleShellPresenter
         $contentUrl = $this->resolveContentUrl($activeSecondary)
             ?? $this->resolvePrimaryContentUrl($catalog, $activePrimary, $module);
 
-        return [
-            'module' => $moduleKey,
-            'title' => $module['title'] ?? $moduleKey,
-            'description' => $module['description'] ?? '',
-            'icon' => $module['icon'] ?? 'home',
-            'primary_workspaces' => $primaryWorkspaces,
-            'active_primary' => $activePrimary,
-            'secondary_workspaces' => $secondaryWorkspaces,
-            'active_secondary' => $activeSecondary,
-            'content_url' => $contentUrl,
-            'hub_route' => $module['hub_route'] ?? null,
-            'section_route' => $module['section_route'] ?? null,
-        ];
+        return $this->presentDeskPayload(
+            $moduleKey,
+            $module,
+            $primaryWorkspaces,
+            $activePrimary,
+            $secondaryWorkspaces,
+            $activeSecondary,
+            $contentUrl,
+        );
     }
 
     /**
@@ -338,6 +334,31 @@ class ModuleShellPresenter
         $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module);
         $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
 
+        return $this->presentDeskPayload(
+            $moduleKey,
+            $module,
+            $primaryWorkspaces,
+            $activePrimary,
+            $secondaryWorkspaces,
+            $activeSecondary,
+            $this->resolveContentUrl($activeSecondary),
+        );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $primaryWorkspaces
+     * @param  list<array<string, mixed>>  $secondaryWorkspaces
+     * @return array<string, mixed>
+     */
+    protected function presentDeskPayload(
+        string $moduleKey,
+        array $module,
+        array $primaryWorkspaces,
+        ?array $activePrimary,
+        array $secondaryWorkspaces,
+        ?array $activeSecondary,
+        ?string $contentUrl,
+    ): array {
         return [
             'module' => $moduleKey,
             'title' => $module['title'] ?? $moduleKey,
@@ -347,7 +368,8 @@ class ModuleShellPresenter
             'active_primary' => $activePrimary,
             'secondary_workspaces' => $secondaryWorkspaces,
             'active_secondary' => $activeSecondary,
-            'content_url' => $this->resolveContentUrl($activeSecondary),
+            'content_url' => $contentUrl,
+            'feature_index' => app(\App\Support\Discovery\FeatureRegistry::class)->index($moduleKey),
             'hub_route' => $module['hub_route'] ?? null,
             'section_route' => $module['section_route'] ?? null,
         ];

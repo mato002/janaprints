@@ -1,5 +1,5 @@
 @if (session('status'))
-    <div class="mb-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-erp-success" role="status">
+    <div class="mb-4 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-erp-success" role="status" data-erp-flash-status>
         <x-admin.icon name="badge-check" class="w-5 h-5 shrink-0" />
         <span>{{ session('status') }}</span>
     </div>

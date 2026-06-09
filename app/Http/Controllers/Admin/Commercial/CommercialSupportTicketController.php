@@ -13,6 +13,7 @@ use App\Models\Commercial\CommercialSupportTicket;
 use App\Models\Crm\Customer;
 use App\Models\User;
 use App\Support\Commercial\SupportTicketService;
+use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,6 +25,7 @@ class CommercialSupportTicketController extends Controller
 
     public function __construct(
         protected SupportTicketService $tickets,
+        protected FormSettingsService $formSettings,
     ) {}
 
     public function index(Request $request): View
@@ -173,14 +175,29 @@ class CommercialSupportTicketController extends Controller
      */
     protected function validateTicket(Request $request, bool $requireSubject = true): array
     {
-        return $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
-            'subject' => [$requireSubject ? 'required' : 'sometimes', 'string', 'max:255'],
-            'description' => [$requireSubject ? 'required' : 'sometimes', 'string', 'max:10000'],
-            'channel' => ['required', Rule::enum(CommercialTicketChannel::class)],
-            'priority' => ['required', Rule::enum(CommercialTicketPriority::class)],
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        $rules = $this->formSettings->mergeValidationRules('commercial_support_ticket.create', [
+            'customer_id' => ['exists:customers,id'],
+            'subject' => ['string', 'max:255'],
+            'description' => ['string', 'max:10000'],
+            'channel' => [Rule::enum(CommercialTicketChannel::class)],
+            'priority' => [Rule::enum(CommercialTicketPriority::class)],
             'status' => ['sometimes', Rule::enum(CommercialTicketStatus::class)],
-        ]);
+        ], $companyId, $branchId);
+
+        if (! $requireSubject) {
+            foreach (['subject', 'description'] as $field) {
+                if (isset($rules[$field])) {
+                    $rules[$field] = array_map(
+                        fn ($rule) => $rule === 'required' ? 'sometimes' : $rule,
+                        $rules[$field],
+                    );
+                }
+            }
+        }
+
+        return $request->validate($rules);
     }
 
     /**
@@ -188,7 +205,10 @@ class CommercialSupportTicketController extends Controller
      */
     protected function formMeta(Request $request): array
     {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
         return [
+            'formFields' => $this->formSettings->resolvedFields('commercial_support_ticket.create', $companyId, $branchId),
             'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
         ];
     }

@@ -83,7 +83,7 @@ const erpModalManager = {
         return this.isModalFormUrl(link.href);
     },
 
-    prepareModalFormContent(root) {
+    prepareModalFormContent(root, sourceUrl = null) {
         root.querySelectorAll('form').forEach((form) => {
             form.removeAttribute('data-turbo-frame');
 
@@ -94,7 +94,22 @@ const erpModalManager = {
                 input.value = '1';
                 form.appendChild(input);
             }
+
+            if (sourceUrl && ! form.querySelector('[name="_erp_modal_return"]')) {
+                const returnInput = document.createElement('input');
+                returnInput.type = 'hidden';
+                returnInput.name = '_erp_modal_return';
+                returnInput.value = sourceUrl;
+                form.appendChild(returnInput);
+            }
         });
+    },
+
+    hasValidationErrors(doc) {
+        return Boolean(
+            doc?.querySelector('[data-erp-validation-errors]')
+            || doc?.querySelector('[role="alert"]'),
+        );
     },
 
     buildModalPanel(title, bodyHtml) {
@@ -159,8 +174,10 @@ const erpModalManager = {
             ?? form.parentElement;
 
         const bodyHtml = container?.innerHTML ?? form.outerHTML;
+        const panel = this.buildModalPanel(title, bodyHtml);
+        this.prepareModalFormContent(panel, doc.baseURI || window.location.href);
 
-        return this.buildModalPanel(title, bodyHtml);
+        return panel;
     },
 
     abortModalLoad() {
@@ -233,6 +250,7 @@ const erpModalManager = {
                 throw new Error('Modal form markup was not found in the response.');
             }
 
+            this.prepareModalFormContent(panel, url);
             frame.replaceChildren(panel);
             this.pendingModalLoad = false;
             this.modalAbortController = null;
@@ -373,7 +391,7 @@ const erpModalManager = {
         });
 
         sessionStorage.setItem(WORKSPACE_STATE_KEY, JSON.stringify({
-            scrollY: window.scrollY,
+            scrollY: shellScrollY(),
             tables: states,
         }));
     },
@@ -429,7 +447,7 @@ const erpModalManager = {
 
         if (typeof saved.scrollY === 'number') {
             window.requestAnimationFrame(() => {
-                window.scrollTo(0, saved.scrollY);
+                setShellScrollY(saved.scrollY);
             });
         }
     },
@@ -456,6 +474,14 @@ const erpModalManager = {
 
         const formData = new FormData(form);
         const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
+        const submitButton = form.querySelector('[type="submit"]');
+        const modalReturnUrl = formData.get('_erp_modal_return')?.toString()
+            || form.dataset.erpModalReturn
+            || null;
+
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
 
         try {
             const response = await fetch(form.action, {
@@ -466,6 +492,7 @@ const erpModalManager = {
                     'Accept': 'text/html, application/xhtml+xml',
                 },
                 credentials: 'same-origin',
+                redirect: 'follow',
             });
 
             const html = await response.text();
@@ -485,25 +512,32 @@ const erpModalManager = {
             const frame = this.modalFrame();
 
             if (panel && frame) {
-                frame.innerHTML = '';
-                frame.append(panel);
+                this.prepareModalFormContent(panel, modalReturnUrl || response.url);
+                frame.replaceChildren(panel);
                 this.showOverlay();
                 Alpine.initTree(frame);
+
+                if (this.hasValidationErrors(doc)) {
+                    this.showToast('Please fix the highlighted errors.', 'error');
+                }
 
                 return;
             }
 
-            const requestUrl = new URL(form.action, window.location.origin).href;
+            if (! response.ok) {
+                this.showToast(`Unable to save form (${response.status}). Please try again.`, 'error');
 
-            if (response.ok && response.url !== requestUrl) {
-                this.handleSuccess({
-                    message: 'Saved successfully.',
-                    refresh: true,
-                });
+                return;
             }
+
+            this.showToast('Unable to save form. Please try again.', 'error');
         } catch (error) {
             console.error('erpModalManager.submitFormRequest', error);
             this.showToast('Unable to save form. Please try again.', 'error');
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
         }
     },
 
@@ -589,13 +623,18 @@ const erpModalManager = {
         document.addEventListener('submit', (event) => {
             const form = event.target;
 
-            if (! (form instanceof HTMLFormElement) || ! form.closest('#erp-form-modal')) {
+            if (! (form instanceof HTMLFormElement)) {
+                return;
+            }
+
+            if (! form.closest('#erp-form-modal')) {
                 return;
             }
 
             event.preventDefault();
+            event.stopPropagation();
             this.submitFormRequest(form);
-        });
+        }, true);
 
         document.addEventListener('keydown', (event) => {
             if (event.key !== 'Escape') {
@@ -692,13 +731,52 @@ document.addEventListener('turbo:frame-render', (event) => {
     }
 });
 
+function discoveryTokenize(value) {
+    return String(value ?? '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+}
+
+function discoveryEntryMatches(entry, tokens) {
+    if (! entry || entry.coming_soon || ! entry.url) {
+        return false;
+    }
+
+    const haystack = String(entry.search_text ?? `${entry.label} ${entry.path}`).toLowerCase();
+
+    return tokens.every((token) => haystack.includes(token));
+}
+
+function discoveryResolveUrl(entry) {
+    if (entry?.url) {
+        return entry.url;
+    }
+
+    const routeName = entry?.route;
+
+    if (routeName && window.__erpRoutes && window.__erpRoutes[routeName]) {
+        return window.__erpRoutes[routeName];
+    }
+
+    return routeName ? `/admin?nav=${encodeURIComponent(routeName)}` : '#';
+}
+
 document.addEventListener('alpine:init', () => {
-    Alpine.data('erpShell', (searchIndex = []) => ({
+    Alpine.data('erpShell', (searchIndex = [], discoveryIndex = []) => ({
         sidebarCollapsed: localStorage.getItem('erp.sidebarCollapsed') === '1',
         mobileNavOpen: false,
         query: '',
         searchOpen: false,
         searchIndex: Array.isArray(searchIndex) ? searchIndex : [],
+        discoveryIndex: Array.isArray(discoveryIndex) ? discoveryIndex : [],
+        discoveryFavorites: JSON.parse(localStorage.getItem('erp.discovery.favorites') || '[]'),
+        discoveryRecent: JSON.parse(localStorage.getItem('erp.discovery.recent') || '[]'),
+        paletteOpen: false,
+        paletteQuery: '',
+        paletteHighlightIndex: 0,
         favorites: JSON.parse(localStorage.getItem('erp.nav.favorites') || '[]'),
 
         init() {
@@ -709,36 +787,280 @@ document.addEventListener('alpine:init', () => {
             this.$watch('favorites', (value) => {
                 localStorage.setItem('erp.nav.favorites', JSON.stringify(value));
             });
+
+            this.$watch('discoveryFavorites', (value) => {
+                localStorage.setItem('erp.discovery.favorites', JSON.stringify(value));
+            });
+
+            this.$watch('discoveryRecent', (value) => {
+                localStorage.setItem('erp.discovery.recent', JSON.stringify(value));
+            });
+
+            this.$watch('paletteQuery', () => {
+                this.paletteHighlightIndex = 0;
+            });
+
+            document.addEventListener('erp:page-loaded', () => {
+                this.trackRecentVisit();
+            });
+
+            this.trackRecentVisit();
         },
 
         get searchHits() {
-            const query = this.query.trim().toLowerCase();
+            const tokens = discoveryTokenize(this.query);
 
-            if (! query) {
+            if (tokens.length === 0) {
                 return [];
             }
 
-            return this.searchIndex
-                .filter((entry) => {
-                    const haystack = `${entry.label} ${entry.path}`.toLowerCase();
+            const source = this.discoveryIndex.length > 0 ? this.discoveryIndex : this.searchIndex;
 
-                    return haystack.includes(query) && ! entry.coming_soon && entry.route;
-                })
+            return source
+                .filter((entry) => discoveryEntryMatches(entry, tokens))
                 .slice(0, 12)
                 .map((entry) => ({
                     ...entry,
-                    url: this.routeUrl(entry.route),
+                    url: discoveryResolveUrl(entry),
                 }));
         },
 
         get favoriteItems() {
-            return this.favorites
-                .map((route) => this.searchIndex.find((entry) => entry.route === route))
-                .filter((entry) => entry && ! entry.coming_soon && entry.route)
+            const source = this.discoveryIndex.length > 0 ? this.discoveryIndex : this.searchIndex;
+
+            return this.discoveryFavorites
+                .map((id) => source.find((entry) => entry.id === id))
+                .filter((entry) => entry && ! entry.coming_soon && (entry.url || entry.route))
                 .map((entry) => ({
                     ...entry,
-                    url: this.routeUrl(entry.route),
+                    url: discoveryResolveUrl(entry),
                 }));
+        },
+
+        get favoriteDiscoveryItems() {
+            return this.favoriteItems;
+        },
+
+        get recentItems() {
+            const source = this.discoveryIndex.length > 0 ? this.discoveryIndex : this.searchIndex;
+            const byId = new Map(source.map((entry) => [entry.id, entry]));
+
+            return this.discoveryRecent
+                .map((recent) => {
+                    const entry = byId.get(recent.id);
+
+                    if (! entry) {
+                        return null;
+                    }
+
+                    return {
+                        ...entry,
+                        url: discoveryResolveUrl(entry),
+                    };
+                })
+                .filter(Boolean)
+                .slice(0, 20);
+        },
+
+        get paletteFlatResults() {
+            const tokens = discoveryTokenize(this.paletteQuery);
+
+            if (tokens.length === 0) {
+                return [];
+            }
+
+            return this.discoveryIndex
+                .filter((entry) => discoveryEntryMatches(entry, tokens))
+                .slice(0, 24)
+                .map((entry) => ({
+                    ...entry,
+                    url: discoveryResolveUrl(entry),
+                }));
+        },
+
+        get paletteSections() {
+            if (! this.paletteQuery.trim()) {
+                return [];
+            }
+
+            const buckets = {
+                features: [],
+                reports: [],
+                settings: [],
+                workflows: [],
+                workspaces: [],
+            };
+
+            for (const item of this.paletteFlatResults) {
+                const key = buckets[item.category] ? item.category : 'features';
+                buckets[key].push(item);
+            }
+
+            const labels = {
+                features: 'Features',
+                reports: 'Reports',
+                settings: 'Settings',
+                workflows: 'Workflows',
+                workspaces: 'Workspaces',
+            };
+
+            return Object.entries(buckets)
+                .filter(([, items]) => items.length > 0)
+                .map(([key, items]) => ({
+                    key,
+                    label: labels[key] ?? key,
+                    items,
+                }));
+        },
+
+        get paletteSelectableItems() {
+            if (this.paletteQuery.trim()) {
+                return this.paletteSections.flatMap((section) => section.items);
+            }
+
+            return [...this.recentItems, ...this.favoriteDiscoveryItems];
+        },
+
+        paletteSectionOffset(sectionKey, index) {
+            let offset = this.paletteQuery.trim() ? 0 : this.recentItems.length;
+
+            for (const section of this.paletteSections) {
+                if (section.key === sectionKey) {
+                    return offset + index;
+                }
+
+                offset += section.items.length;
+            }
+
+            if (! this.paletteQuery.trim()) {
+                return this.recentItems.length + index;
+            }
+
+            return index;
+        },
+
+        openPalette() {
+            this.paletteOpen = true;
+            this.paletteQuery = '';
+            this.paletteHighlightIndex = 0;
+
+            this.$nextTick(() => {
+                this.$refs.paletteInput?.focus();
+            });
+        },
+
+        closePalette() {
+            this.paletteOpen = false;
+            this.paletteQuery = '';
+            this.paletteHighlightIndex = 0;
+        },
+
+        movePaletteSelection(step) {
+            const total = this.paletteSelectableItems.length;
+
+            if (total === 0) {
+                return;
+            }
+
+            this.paletteHighlightIndex = (this.paletteHighlightIndex + step + total) % total;
+        },
+
+        openPaletteSelection() {
+            const item = this.paletteSelectableItems[this.paletteHighlightIndex];
+
+            if (item) {
+                this.navigatePaletteItem(item);
+            }
+        },
+
+        navigatePaletteItem(item) {
+            if (! item?.url) {
+                return;
+            }
+
+            this.recordRecent(item);
+            this.closePalette();
+            window.Turbo.visit(item.url, { frame: 'erp-main', action: 'advance' });
+        },
+
+        openPaletteItemNewTab(item) {
+            if (! item?.url) {
+                return;
+            }
+
+            this.recordRecent(item);
+            window.open(item.url, '_blank', 'noopener,noreferrer');
+        },
+
+        async copyPaletteItemLink(item) {
+            if (! item?.url) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(new URL(item.url, window.location.origin).href);
+            } catch {
+                // Clipboard may be unavailable in non-secure contexts.
+            }
+        },
+
+        isDiscoveryFavorite(id) {
+            return this.discoveryFavorites.includes(id);
+        },
+
+        toggleDiscoveryFavorite(id) {
+            if (this.isDiscoveryFavorite(id)) {
+                this.discoveryFavorites = this.discoveryFavorites.filter((entry) => entry !== id);
+            } else {
+                this.discoveryFavorites = [...this.discoveryFavorites, id].slice(0, 12);
+            }
+        },
+
+        recordRecent(item) {
+            if (! item?.id) {
+                return;
+            }
+
+            const next = [
+                {
+                    id: item.id,
+                    visited_at: new Date().toISOString(),
+                },
+                ...this.discoveryRecent.filter((entry) => entry.id !== item.id),
+            ].slice(0, 20);
+
+            this.discoveryRecent = next;
+        },
+
+        trackRecentVisit() {
+            const meta = document.getElementById('erp-route-meta');
+
+            if (! meta) {
+                return;
+            }
+
+            const route = meta.dataset.route ?? '';
+            const title = meta.dataset.title ?? '';
+
+            if (! route) {
+                return;
+            }
+
+            const match = this.discoveryIndex.find((entry) => entry.route === route);
+
+            if (match) {
+                this.recordRecent(match);
+
+                return;
+            }
+
+            if (title) {
+                const fallback = this.discoveryIndex.find((entry) => entry.label === title);
+
+                if (fallback) {
+                    this.recordRecent(fallback);
+                }
+            }
         },
 
         routeUrl(routeName) {
@@ -776,6 +1098,33 @@ document.addEventListener('alpine:init', () => {
 
         closeMobileNav() {
             this.mobileNavOpen = false;
+        },
+    }));
+
+    Alpine.data('moduleWorkspaceSearch', (featureIndex = []) => ({
+        query: '',
+        open: false,
+        index: Array.isArray(featureIndex) ? featureIndex : [],
+
+        get hits() {
+            const tokens = discoveryTokenize(this.query);
+
+            if (tokens.length === 0) {
+                return [];
+            }
+
+            return this.index
+                .filter((entry) => discoveryEntryMatches(entry, tokens))
+                .slice(0, 16)
+                .map((entry) => ({
+                    ...entry,
+                    url: discoveryResolveUrl(entry),
+                }));
+        },
+
+        clear() {
+            this.query = '';
+            this.open = false;
         },
     }));
 
@@ -3032,21 +3381,49 @@ function syncQuickCreateFromFrame(meta) {
     }
 }
 
+function shellScrollContainer() {
+    const frame = document.getElementById('erp-main');
+
+    if (frame?.classList.contains('overflow-y-auto')) {
+        return frame;
+    }
+
+    return null;
+}
+
+function shellScrollY() {
+    const container = shellScrollContainer();
+
+    return container ? container.scrollTop : window.scrollY;
+}
+
+function setShellScrollY(y) {
+    const container = shellScrollContainer();
+
+    if (container) {
+        container.scrollTop = y;
+
+        return;
+    }
+
+    window.scrollTo(0, y);
+}
+
 function applyShellLayout(compact) {
     const shell = document.getElementById('erp-app-shell');
     const frame = document.getElementById('erp-main');
 
-    document.body.classList.toggle('overflow-hidden', compact);
+    document.body.classList.add('overflow-hidden');
 
     if (shell) {
-        shell.classList.toggle('h-screen', compact);
-        shell.classList.toggle('max-h-screen', compact);
-        shell.classList.toggle('overflow-hidden', compact);
-        shell.classList.toggle('min-h-screen', ! compact);
+        shell.classList.add('h-screen', 'max-h-screen', 'overflow-hidden');
+        shell.classList.remove('min-h-screen');
     }
 
     if (frame) {
         frame.classList.toggle('overflow-hidden', compact);
+        frame.classList.toggle('overflow-x-hidden', ! compact);
+        frame.classList.toggle('overflow-y-auto', ! compact);
     }
 }
 
@@ -3128,6 +3505,22 @@ function cleanupRowActionMenus(root = document) {
     window.__erpOpenRowMenu = null;
 }
 
+function promoteFlashAlertsToToast(root) {
+    if (! root) {
+        return;
+    }
+
+    root.querySelectorAll('[data-erp-flash-status]').forEach((alert) => {
+        const message = alert.textContent?.trim();
+
+        if (message) {
+            erpModalManager.showToast(message);
+        }
+
+        alert.remove();
+    });
+}
+
 function refreshFrameAlpine(frame) {
     if (! frame) {
         return;
@@ -3136,6 +3529,7 @@ function refreshFrameAlpine(frame) {
     cleanupRowActionMenus(frame);
     Alpine.destroyTree(frame);
     Alpine.initTree(frame);
+    promoteFlashAlertsToToast(frame);
     syncShellFromFrame();
 }
 
@@ -3228,6 +3622,12 @@ document.addEventListener('turbo:before-cache', () => {
 
 document.addEventListener('turbo:frame-load', (event) => {
     if (event.target.id === 'erp-main') {
+        const scrollContainer = shellScrollContainer();
+
+        if (scrollContainer) {
+            scrollContainer.scrollTop = 0;
+        }
+
         refreshFrameAlpine(event.target);
         erpModalManager.restoreWorkspaceState();
     }

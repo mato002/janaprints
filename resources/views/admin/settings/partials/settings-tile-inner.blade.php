@@ -7,19 +7,18 @@
         <x-admin.icon :name="$icon" class="h-4 w-4" />
     </span>
 
-    <div class="min-w-0 flex-1 overflow-hidden">
-        <div class="flex min-w-0 items-start justify-between gap-1.5">
-            <h3 class="min-w-0 truncate text-sm font-semibold leading-tight text-erp-primary group-hover:text-erp-accent">
-                {{ $title }}
-            </h3>
-            @if ($statusLabel)
-                <span class="max-w-[5.5rem] shrink-0 truncate rounded px-1.5 py-0.5 text-[10px] font-medium leading-none ring-1 ring-inset {{ $statusClasses }}">
-                    {{ $statusLabel }}
-                </span>
-            @endif
-        </div>
+    <div class="min-w-0 flex-1">
+        <h3 class="text-sm font-semibold leading-snug text-erp-primary group-hover:text-erp-accent [overflow-wrap:anywhere]">
+            {{ $title }}
+        </h3>
 
-        <p class="mt-1 line-clamp-2 text-[11px] leading-snug text-slate-500">
+        @if ($statusLabel)
+            <span class="mt-1 inline-flex max-w-full rounded px-1.5 py-0.5 text-[10px] font-medium leading-snug ring-1 ring-inset {{ $statusClasses }}">
+                {{ $statusLabel }}
+            </span>
+        @endif
+
+        <p class="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">
             {{ $description }}
         </p>
 

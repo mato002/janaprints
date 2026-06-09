@@ -194,9 +194,10 @@ return [
                 'lead_id' => ['label' => 'Lead', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 2],
                 'activity_type' => ['label' => 'Activity type', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 3],
                 'status' => ['label' => 'Status', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 4],
-                'subject' => ['label' => 'Subject', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 5],
+                'user_id' => ['label' => 'Assigned to', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 5],
                 'activity_at' => ['label' => 'Activity date', 'type' => 'datetime', 'required' => true, 'visible' => true, 'sort_order' => 6],
-                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
+                'subject' => ['label' => 'Subject', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 7],
+                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 8],
             ],
         ],
 
@@ -205,8 +206,9 @@ return [
             'description' => 'Customer segment definition fields.',
             'fields' => [
                 'name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
-                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 2],
-                'is_active' => ['label' => 'Active', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 3],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 3],
+                'is_active' => ['label' => 'Active', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
             ],
         ],
 

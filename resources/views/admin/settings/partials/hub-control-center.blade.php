@@ -105,7 +105,7 @@
     {{-- Results --}}
     <div
         x-show="viewMode === 'grid'"
-        class="grid w-full grid-cols-[repeat(auto-fill,minmax(10.5rem,1fr))] gap-2.5"
+        class="grid w-full grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"
     >
         @foreach ($controlCenter['cards'] as $card)
             <div class="min-w-0" x-show="cardVisible(@js($card['id']))">

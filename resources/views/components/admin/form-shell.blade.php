@@ -17,6 +17,7 @@
     @csrf
     @if ($inFormModal)
         <input type="hidden" name="_erp_modal" value="1">
+        <input type="hidden" name="_erp_modal_return" value="{{ url()->current() }}">
     @endif
     @if (! in_array($httpMethod, ['GET', 'POST'], true))
         @method($method)

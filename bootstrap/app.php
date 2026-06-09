@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
@@ -43,6 +44,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
             return route('admin.dashboard');
         });
+
+        $middleware->web(append: [
+            \App\Http\Middleware\PromoteEmbeddedWorkspaceRequest::class,
+        ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('commercial:expire-report-exports')->daily();
@@ -52,4 +57,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (ValidationException $exception, Request $request) {
+            if ($request->boolean('_erp_modal') && $request->filled('_erp_modal_return')) {
+                return redirect($request->input('_erp_modal_return'))
+                    ->withErrors($exception->validator)
+                    ->withInput();
+            }
+
+            return null;
+        });
     })->create();

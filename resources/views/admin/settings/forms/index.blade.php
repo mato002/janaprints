@@ -26,6 +26,7 @@
             'branchId' => $branchId,
             'companies' => $companies,
             'branches' => $branches,
+            'compact' => true,
         ])
 
         @include('admin.settings.forms.partials.workspace', [

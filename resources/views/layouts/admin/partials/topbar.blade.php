@@ -1,32 +1,44 @@
-<header id="erp-topbar" class="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-erp-border bg-erp-card px-4 sm:gap-4 sm:px-6">
+<header id="erp-topbar" class="z-30 flex h-16 min-w-0 shrink-0 items-center gap-2 overflow-hidden border-b border-erp-border bg-erp-card px-3 sm:gap-3 sm:px-4 lg:px-6">
     <button
         type="button"
-        class="rounded-lg p-2 text-slate-500 hover:bg-erp-page lg:hidden"
+        class="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page lg:hidden"
         @click="toggleMobileNav()"
         aria-label="{{ __('Open menu') }}"
     >
         <x-admin.icon name="menu" class="w-5 h-5" />
     </button>
 
-    <div class="min-w-0 flex-1 lg:max-w-xs">
-        <h1 id="erp-page-title" class="truncate text-base font-semibold text-erp-primary sm:text-lg">{{ $title ?? __('Admin') }}</h1>
+    <div class="hidden min-w-0 max-w-[7rem] shrink sm:block md:max-w-[9rem] lg:max-w-xs xl:max-w-sm">
+        <h1 id="erp-page-title" class="truncate text-sm font-semibold text-erp-primary sm:text-base lg:text-lg">{{ $title ?? __('Admin') }}</h1>
     </div>
 
-    <div class="hidden flex-1 justify-center px-4 md:flex">
-        <div class="relative w-full max-w-xl">
-            <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-slate-400" />
-            <input
-                type="search"
-                placeholder="{{ __('Search customers, orders, jobs…') }}"
-                class="erp-input w-full py-2 pl-9 pr-4"
-                aria-label="{{ __('Global search') }}"
-                disabled
-                title="{{ __('Global search coming soon') }}"
-            />
-        </div>
+    <div class="hidden min-w-0 flex-1 md:block">
+        <button
+            type="button"
+            class="relative flex w-full min-w-0 max-w-xl items-center rounded-lg border border-erp-border bg-erp-page py-2 pl-9 pr-14 text-left text-sm text-slate-500 transition-colors hover:border-erp-accent/40 hover:bg-white lg:mx-auto lg:max-w-2xl xl:pr-16"
+            @click="openPalette()"
+            aria-label="{{ __('Open feature finder') }}"
+        >
+            <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <span class="truncate lg:hidden">{{ __('Search features…') }}</span>
+            <span class="hidden truncate lg:inline">{{ __('Search customers, jobs, reports, settings, features…') }}</span>
+            <span class="pointer-events-none absolute right-2 top-1/2 hidden -translate-y-1/2 items-center gap-1 xl:flex">
+                <kbd class="rounded border border-erp-border bg-erp-card px-1.5 py-0.5 text-[10px] font-medium text-slate-400">Ctrl</kbd>
+                <kbd class="rounded border border-erp-border bg-erp-card px-1.5 py-0.5 text-[10px] font-medium text-slate-400">K</kbd>
+            </span>
+        </button>
     </div>
 
-    <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+    <button
+        type="button"
+        class="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page md:hidden"
+        @click="openPalette()"
+        aria-label="{{ __('Open feature finder') }}"
+    >
+        <x-admin.icon name="search" class="h-5 w-5" />
+    </button>
+
+    <div class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:gap-3">
         @php
             $companies = auth()->user()->hasRole('Super Admin')
                 ? \App\Models\Company::query()->where('is_active', true)->orderBy('name')->get()

@@ -144,8 +144,14 @@ class FormSettingsManager
         ?array $fieldMeta,
         bool $isCustom,
     ): void {
+        $registryRequired = $fieldMeta !== null && (bool) ($fieldMeta['required'] ?? false);
         $visibility = $fieldInput['visibility'] ?? 'visible';
-        $requirement = $fieldInput['requirement'] ?? 'optional';
+        $requirement = $registryRequired ? 'required' : ($fieldInput['requirement'] ?? 'optional');
+
+        if ($requirement === 'required') {
+            $visibility = 'visible';
+        }
+
         $readOnly = filter_var($fieldInput['read_only'] ?? false, FILTER_VALIDATE_BOOLEAN);
         $defaultData = filled($fieldInput['default_value'] ?? null)
             ? $fieldInput['default_value']
@@ -187,6 +193,10 @@ class FormSettingsManager
 
     public function ensureForms(int $companyId, ?int $branchId): void
     {
+        if ($branchId !== null) {
+            return;
+        }
+
         foreach (config('form_registry.forms', []) as $formKey => $meta) {
             $formSetting = FormSetting::query()->firstOrCreate(
                 [

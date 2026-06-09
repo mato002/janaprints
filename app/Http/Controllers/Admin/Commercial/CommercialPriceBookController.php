@@ -13,6 +13,7 @@ use App\Models\Commercial\CommercialPriceBookItem;
 use App\Models\Crm\Customer;
 use App\Models\Inventory\InventoryItem;
 use App\Support\Commercial\CommercialPriceBookService;
+use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -24,6 +25,7 @@ class CommercialPriceBookController extends Controller
 
     public function __construct(
         protected CommercialPriceBookService $priceBooks,
+        protected FormSettingsService $formSettings,
     ) {}
 
     public function index(Request $request): View
@@ -90,7 +92,7 @@ class CommercialPriceBookController extends Controller
 
         return view('admin.commercial.price-books.edit', array_merge(
             ['priceBook' => $priceBook],
-            $this->formMeta(request()),
+            $this->formMeta(request(), $priceBook),
         ));
     }
 
@@ -175,32 +177,35 @@ class CommercialPriceBookController extends Controller
      */
     protected function validateBook(Request $request, ?CommercialPriceBook $book = null): array
     {
-        return $request->validate([
-            'name' => ['required', 'string', 'max:120'],
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        return $request->validate($this->formSettings->mergeValidationRules('commercial_price_book.create', [
+            'name' => ['string', 'max:120'],
             'code' => [
-                'required', 'string', 'max:40',
+                'string', 'max:40',
                 Rule::unique('commercial_price_books', 'code')
-                    ->where('company_id', tenant()->companyId())
+                    ->where('company_id', $companyId)
                     ->ignore($book?->id),
             ],
-            'description' => ['nullable', 'string', 'max:2000'],
-            'currency' => ['required', 'string', 'size:3'],
-            'branch_id' => ['nullable', 'exists:branches,id'],
-            'status' => ['required', Rule::enum(CommercialPriceBookStatus::class)],
-            'starts_at' => ['nullable', 'date'],
-            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'description' => ['string', 'max:2000'],
+            'currency' => ['string', 'size:3'],
+            'branch_id' => ['exists:branches,id'],
+            'status' => [Rule::enum(CommercialPriceBookStatus::class)],
+            'starts_at' => ['date'],
+            'ends_at' => ['date', 'after_or_equal:starts_at'],
             'is_default' => ['sometimes', 'boolean'],
-        ]);
+        ], $companyId, $branchId));
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function formMeta(Request $request): array
+    protected function formMeta(Request $request, ?CommercialPriceBook $priceBook = null): array
     {
-        ['companyId' => $companyId] = $this->tenantIds($request);
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
 
         return [
+            'formFields' => $this->formSettings->resolvedFields('commercial_price_book.create', $companyId, $branchId, $priceBook),
             'branches' => Branch::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'customers' => Customer::query()->forTenant()->orderBy('company_name')->limit(100)->get(['id', 'company_name']),
         ];

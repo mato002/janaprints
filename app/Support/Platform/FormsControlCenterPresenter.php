@@ -177,7 +177,7 @@ class FormsControlCenterPresenter
      */
     protected function governanceForForm(string $formKey, Collection $fields, bool $isActive): array
     {
-        $registryFields = config("form_registry.forms.{$formKey}.fields", []);
+        $registryFields = config('form_registry.forms')[$formKey]['fields'] ?? [];
         $missingRequired = 0;
         $hiddenRequired = 0;
 

@@ -32,6 +32,16 @@
             </button>
         </div>
         <div class="erp-form-modal__body">
+            @if ($errors->any())
+                <x-admin.alert variant="danger" class="mb-4" data-erp-validation-errors>
+                    <p class="font-medium">{{ __('Please fix the following:') }}</p>
+                    <ul class="mt-2 list-disc space-y-1 pl-5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </x-admin.alert>
+            @endif
             {{ $slot }}
         </div>
     </div>

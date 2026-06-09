@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Crm\CustomerSegment;
+use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,6 +15,10 @@ use Illuminate\View\View;
 class CustomerSegmentController extends Controller
 {
     use ScopesToTenant;
+
+    public function __construct(
+        protected FormSettingsService $formSettings,
+    ) {}
 
     public function index(): View
     {
@@ -28,7 +33,7 @@ class CustomerSegmentController extends Controller
     {
         $this->authorize('create', CustomerSegment::class);
 
-        return view('admin.crm.segments.create', ['companies' => $this->companies()]);
+        return view('admin.crm.segments.create', $this->formMeta());
     }
 
     public function store(Request $request): RedirectResponse
@@ -43,16 +48,18 @@ class CustomerSegmentController extends Controller
             abort(403);
         }
 
-        $data = $request->validate([
+        $branchId = tenant()->branchId();
+
+        $data = $request->validate($this->formSettings->mergeValidationRules('segment.create', [
             'company_id' => ['required', 'exists:companies,id'],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['string', 'max:255'],
             'code' => [
-                'required', 'string', 'max:50',
+                'string', 'max:50',
                 Rule::unique('customer_segments', 'code')->where('company_id', $companyId),
             ],
-            'description' => ['nullable', 'string'],
+            'description' => ['string'],
             'is_active' => ['boolean'],
-        ]);
+        ], $companyId, $branchId));
 
         CustomerSegment::query()->create([
             ...$data,
@@ -67,25 +74,25 @@ class CustomerSegmentController extends Controller
     {
         $this->authorize('update', $segment);
 
-        return view('admin.crm.segments.edit', [
-            'segment' => $segment,
-            'companies' => $this->companies(),
-        ]);
+        return view('admin.crm.segments.edit', array_merge(
+            ['segment' => $segment],
+            $this->formMeta($segment),
+        ));
     }
 
     public function update(Request $request, CustomerSegment $segment): RedirectResponse
     {
         $this->authorize('update', $segment);
 
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+        $data = $request->validate($this->formSettings->mergeValidationRules('segment.create', [
+            'name' => ['string', 'max:255'],
             'code' => [
-                'required', 'string', 'max:50',
+                'string', 'max:50',
                 Rule::unique('customer_segments', 'code')->where('company_id', $segment->company_id)->ignore($segment->id),
             ],
-            'description' => ['nullable', 'string'],
+            'description' => ['string'],
             'is_active' => ['boolean'],
-        ]);
+        ], $segment->company_id, tenant()->branchId()));
 
         $segment->update([
             ...$data,
@@ -111,5 +118,19 @@ class CustomerSegmentController extends Controller
         }
 
         return Company::query()->where('id', auth()->user()->company_id)->get();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function formMeta(?CustomerSegment $segment = null): array
+    {
+        $companyId = $segment?->company_id ?? tenant()->companyId() ?? auth()->user()->company_id;
+        $branchId = tenant()->branchId();
+
+        return [
+            'formFields' => $this->formSettings->resolvedFields('segment.create', $companyId, $branchId, $segment),
+            'companies' => $this->companies(),
+        ];
     }
 }

@@ -420,9 +420,12 @@ class AppServiceProvider extends ServiceProvider
                 function () use ($presenter) {
                     $navItems = $this->filterNavigation(config('navigation'));
 
+                    $featureRegistry = app(\App\Support\Discovery\FeatureRegistry::class);
+
                     return [
                         'navItems' => $navItems,
                         'navSearchIndex' => $presenter->flattenForSearch(),
+                        'featureDiscoveryIndex' => $featureRegistry->index(),
                         'navRouteUrls' => static::buildNavRouteUrls($navItems, $presenter),
                     ];
                 },
@@ -440,6 +443,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'navItems' => $navItems,
                 'navSearchIndex' => $navigation['navSearchIndex'],
+                'featureDiscoveryIndex' => $navigation['featureDiscoveryIndex'],
                 'navRouteUrls' => $navigation['navRouteUrls'],
             ]);
         });
@@ -554,6 +558,17 @@ class AppServiceProvider extends ServiceProvider
         $map = [];
 
         foreach ($presenter->flattenForSearch() as $entry) {
+            $route = $entry['route'] ?? null;
+
+            if ($entry['coming_soon'] || ! $route || isset($map[$route]) || ! Route::has($route)) {
+                continue;
+            }
+
+            $params = $entry['route_params'] ?? [];
+            $map[$route] = route($route, $params);
+        }
+
+        foreach (app(\App\Support\Discovery\FeatureRegistry::class)->index() as $entry) {
             $route = $entry['route'] ?? null;
 
             if ($entry['coming_soon'] || ! $route || isset($map[$route]) || ! Route::has($route)) {

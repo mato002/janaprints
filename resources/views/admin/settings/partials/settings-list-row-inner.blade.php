@@ -7,13 +7,13 @@
 </span>
 
 <div class="min-w-0 flex-1">
-    <div class="flex items-center gap-2">
-        <span class="truncate text-sm font-medium text-erp-primary group-hover:text-erp-accent">{{ $title }}</span>
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+        <span class="text-sm font-medium text-erp-primary group-hover:text-erp-accent">{{ $title }}</span>
         @if ($domainLabel)
             <span class="hidden shrink-0 text-[10px] text-slate-400 sm:inline">{{ $domainLabel }}</span>
         @endif
     </div>
-    <p class="truncate text-[11px] text-slate-500">{{ $description }}</p>
+    <p class="line-clamp-1 text-[11px] text-slate-500">{{ $description }}</p>
 </div>
 
 @if ($statusLabel)

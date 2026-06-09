@@ -12,6 +12,7 @@ use App\Models\Commercial\CommercialComplaint;
 use App\Models\Crm\Customer;
 use App\Models\User;
 use App\Support\Commercial\ComplaintService;
+use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,6 +24,7 @@ class CommercialComplaintController extends Controller
 
     public function __construct(
         protected ComplaintService $complaints,
+        protected FormSettingsService $formSettings,
     ) {}
 
     public function index(Request $request): View
@@ -150,16 +152,31 @@ class CommercialComplaintController extends Controller
      */
     protected function validateComplaint(Request $request, bool $requireSubject = true): array
     {
-        return $request->validate([
-            'customer_id' => ['nullable', 'exists:customers,id'],
-            'subject' => [$requireSubject ? 'required' : 'sometimes', 'string', 'max:255'],
-            'description' => [$requireSubject ? 'required' : 'sometimes', 'string', 'max:10000'],
-            'source' => ['required', Rule::enum(CommercialComplaintSource::class)],
-            'priority' => ['required', Rule::enum(CommercialComplaintPriority::class)],
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
+        $rules = $this->formSettings->mergeValidationRules('commercial_complaint.create', [
+            'customer_id' => ['exists:customers,id'],
+            'subject' => ['string', 'max:255'],
+            'description' => ['string', 'max:10000'],
+            'source' => [Rule::enum(CommercialComplaintSource::class)],
+            'priority' => [Rule::enum(CommercialComplaintPriority::class)],
             'status' => ['sometimes', Rule::enum(CommercialComplaintStatus::class)],
-            'related_document_type' => ['nullable', 'string', 'max:60'],
-            'related_document_id' => ['nullable', 'integer', 'min:1'],
-        ]);
+            'related_document_type' => ['string', 'max:60'],
+            'related_document_id' => ['integer', 'min:1'],
+        ], $companyId, $branchId);
+
+        if (! $requireSubject) {
+            foreach (['subject', 'description'] as $field) {
+                if (isset($rules[$field])) {
+                    $rules[$field] = array_map(
+                        fn ($rule) => $rule === 'required' ? 'sometimes' : $rule,
+                        $rules[$field],
+                    );
+                }
+            }
+        }
+
+        return $request->validate($rules);
     }
 
     /**
@@ -167,7 +184,10 @@ class CommercialComplaintController extends Controller
      */
     protected function formMeta(Request $request): array
     {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+
         return [
+            'formFields' => $this->formSettings->resolvedFields('commercial_complaint.create', $companyId, $branchId),
             'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
         ];
     }

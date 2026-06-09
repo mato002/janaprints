@@ -8,6 +8,12 @@
         :active-secondary="$shell['active_secondary']"
         :content-url="$shell['content_url']"
     >
+        <x-slot:search>
+            <x-admin.module-workspace-search
+                :module-title="$shell['title']"
+                :feature-index="$shell['feature_index'] ?? []"
+            />
+        </x-slot:search>
         @if (empty($shell['content_url']) && empty($shell['secondary_workspaces']))
             <x-admin.empty-state
                 icon="{{ $shell['icon'] ?? 'inbox' }}"

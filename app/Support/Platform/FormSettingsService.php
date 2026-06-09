@@ -10,6 +10,30 @@ use Illuminate\Support\Collection;
 class FormSettingsService
 {
     /**
+     * @return array<string, mixed>
+     */
+    protected function registryForm(string $formKey): array
+    {
+        return config('form_registry.forms')[$formKey] ?? [];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected function registryFields(string $formKey): array
+    {
+        return $this->registryForm($formKey)['fields'] ?? [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function registryField(string $formKey, string $fieldKey): array
+    {
+        return $this->registryFields($formKey)[$fieldKey] ?? [];
+    }
+
+    /**
      * @return array<string, array<string, mixed>>
      */
     public function resolvedFields(
@@ -18,7 +42,7 @@ class FormSettingsService
         ?int $branchId = null,
         ?Model $entity = null,
     ): array {
-        $registryFields = config("form_registry.forms.{$formKey}.fields", []);
+        $registryFields = $this->registryFields($formKey);
 
         $fields = collect($registryFields)
             ->mapWithKeys(fn (array $meta, string $fieldKey) => [
@@ -50,7 +74,7 @@ class FormSettingsService
     {
         $companyId ??= tenant()->companyId();
         $branchId ??= tenant()->branchId();
-        $registryKeys = array_keys(config("form_registry.forms.{$formKey}.fields", []));
+        $registryKeys = array_keys($this->registryFields($formKey));
 
         $formSetting = $this->resolveFormSetting($formKey, $companyId, $branchId);
 
@@ -78,7 +102,7 @@ class FormSettingsService
         $companyId ??= tenant()->companyId();
         $branchId ??= tenant()->branchId();
 
-        $registry = config("form_registry.forms.{$formKey}.fields.{$fieldKey}", []);
+        $registry = $this->registryField($formKey, $fieldKey);
         $isCustom = $registry === [];
 
         $branchForm = $branchId !== null
@@ -89,12 +113,25 @@ class FormSettingsService
         $branchField = $branchForm?->fields->firstWhere('field_key', $fieldKey);
         $companyField = $companyForm?->fields->firstWhere('field_key', $fieldKey);
 
-        $inheritsCompany = $branchId !== null && $branchForm === null && $companyField !== null;
+        $inheritsCompany = false;
 
         if ($branchField) {
-            $source = $branchField;
+            if (
+                $companyField
+                && ! $isCustom
+                && $branchForm
+                && $this->branchFormIsRegistryPlaceholder($branchForm, $formKey)
+                && $this->branchFieldMatchesRegistry($branchField, $registry)
+                && ! $this->branchFieldMatchesRegistry($companyField, $registry)
+            ) {
+                $source = $companyField;
+                $inheritsCompany = true;
+            } else {
+                $source = $branchField;
+            }
         } elseif ($companyField) {
             $source = $companyField;
+            $inheritsCompany = $branchId !== null && $branchForm === null;
         } elseif ($isCustom) {
             return [
                 'field_key' => $fieldKey,
@@ -107,39 +144,84 @@ class FormSettingsService
                 'default' => null,
                 'sort_order' => 999,
                 'inherits_company' => false,
+                'registry_required' => false,
                 'is_custom' => true,
             ];
         } else {
+            $required = (bool) ($registry['required'] ?? false);
+            $visible = $required || (bool) ($registry['visible'] ?? true);
+
             return [
                 'field_key' => $fieldKey,
                 'label' => $registry['label'] ?? $fieldKey,
                 'type' => $registry['type'] ?? 'text',
-                'required' => (bool) ($registry['required'] ?? false),
-                'visible' => (bool) ($registry['visible'] ?? true),
-                'hidden' => ! ($registry['visible'] ?? true),
+                'required' => $required,
+                'visible' => $visible,
+                'hidden' => ! $visible,
                 'read_only' => (bool) ($registry['read_only'] ?? false),
                 'default' => $registry['default'] ?? null,
                 'sort_order' => (int) ($registry['sort_order'] ?? 0),
                 'inherits_company' => false,
+                'registry_required' => $required,
                 'is_custom' => false,
             ];
         }
 
         $meta = $source->default_value ?? [];
+        $registryRequired = ! $isCustom && (bool) ($registry['required'] ?? false);
+        $required = $registryRequired || (bool) $source->is_required;
+        $visible = $required || ($source->is_visible && ! $source->is_hidden);
 
         return [
             'field_key' => $fieldKey,
             'label' => $registry['label'] ?? ($meta['label'] ?? $fieldKey),
             'type' => $registry['type'] ?? ($meta['type'] ?? 'text'),
-            'required' => (bool) $source->is_required,
-            'visible' => $source->is_visible && ! $source->is_hidden,
-            'hidden' => (bool) $source->is_hidden,
+            'required' => $required,
+            'visible' => $visible,
+            'hidden' => ! $visible,
             'read_only' => (bool) ($meta['read_only'] ?? false),
             'default' => $meta['data'] ?? ($registry['default'] ?? null),
             'sort_order' => (int) ($source->sort_order ?: ($registry['sort_order'] ?? 0)),
             'inherits_company' => $inheritsCompany,
-            'is_custom' => $isCustom || (bool) ($meta['custom'] ?? false),
+            'registry_required' => $registryRequired,
+            'is_custom' => $isCustom,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $registry
+     */
+    protected function branchFieldMatchesRegistry(FormFieldSetting $branchField, array $registry): bool
+    {
+        if ($registry === []) {
+            return false;
+        }
+
+        $registryRequired = (bool) ($registry['required'] ?? false);
+        $registryVisible = (bool) ($registry['visible'] ?? true);
+
+        return (bool) $branchField->is_required === $registryRequired
+            && (bool) $branchField->is_visible === $registryVisible
+            && (bool) $branchField->is_hidden === ! $registryVisible;
+    }
+
+    protected function branchFormIsRegistryPlaceholder(FormSetting $branchForm, string $formKey): bool
+    {
+        $registryFields = $this->registryFields($formKey);
+
+        if ($registryFields === [] || $branchForm->fields->count() < count($registryFields)) {
+            return false;
+        }
+
+        foreach ($registryFields as $fieldKey => $registry) {
+            $field = $branchForm->fields->firstWhere('field_key', $fieldKey);
+
+            if (! $field || ! $this->branchFieldMatchesRegistry($field, $registry)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**

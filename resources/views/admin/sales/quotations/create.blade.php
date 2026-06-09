@@ -37,8 +37,14 @@
             @endif
             @if(($fields['currency']['visible'] ?? true))
             <div>
-                <label class="erp-label">{{ __('Currency') }}</label>
+                <label class="erp-label">{{ $fields['currency']['label'] ?? __('Currency') }}</label>
                 <input type="text" name="currency" class="erp-input" value="{{ old('currency', $fields['currency']['default'] ?? 'KES') }}" maxlength="3" @required($fields['currency']['required'] ?? true) @readonly($fields['currency']['read_only'] ?? false)>
+            </div>
+            @endif
+            @if(($fields['notes']['visible'] ?? true))
+            <div class="md:col-span-2">
+                <label class="erp-label">{{ $fields['notes']['label'] ?? __('Notes') }}</label>
+                <textarea name="notes" class="erp-input w-full" rows="3" @required($fields['notes']['required'] ?? false) @readonly($fields['notes']['read_only'] ?? false)>{{ old('notes') }}</textarea>
             </div>
             @endif
         </div>

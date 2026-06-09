@@ -19,7 +19,7 @@
         default => 'bg-slate-100 text-slate-600 ring-slate-500/10',
     };
 
-    $shellClasses = 'group relative flex h-full w-full min-w-0 min-h-[5rem] overflow-hidden rounded-lg border bg-white p-2 transition-colors';
+    $shellClasses = 'group relative flex h-full w-full min-w-0 min-h-[6.75rem] rounded-lg border bg-white p-2.5 transition-colors';
     $interactiveClasses = 'hover:border-erp-accent/30 hover:bg-slate-50/50 focus:outline-none focus:ring-2 focus:ring-erp-accent/25 focus:ring-offset-1';
     $disabledClasses = 'border-dashed border-erp-border/80 bg-erp-page/40 opacity-80';
     $enabledClasses = 'border-erp-border shadow-sm';

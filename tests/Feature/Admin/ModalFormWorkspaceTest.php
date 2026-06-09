@@ -52,6 +52,23 @@ class ModalFormWorkspaceTest extends TestCase
             ->assertSee(__('Create customer'), false);
     }
 
+    public function test_modal_store_validation_redirects_back_to_create_form(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext();
+        $createUrl = route('admin.crm.customers.create');
+
+        $this->actingAs($user)
+            ->post(route('admin.crm.customers.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_return' => $createUrl,
+                'customer_type' => 'corporate',
+                'status' => 'active',
+                'credit_limit' => 0,
+            ])
+            ->assertRedirect($createUrl)
+            ->assertSessionHasErrors('company_name');
+    }
+
     public function test_customer_store_from_modal_returns_success_marker_without_redirect(): void
     {
         [$company, $branch, $user] = $this->tenantContext();

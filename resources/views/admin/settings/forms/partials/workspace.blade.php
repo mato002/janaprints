@@ -8,15 +8,8 @@
     $formsLandingUrl = route('admin.settings.forms.index', $scopeQuery);
 @endphp
 
-@include('admin.settings.partials.hub-toolbar', [
-    'title' => $form['label'],
-    'description' => $form['description'],
-    'backUrl' => $formsLandingUrl,
-    'backLabel' => __('All forms'),
-])
-
 @if (! $canManage)
-    <x-admin.card class="mb-4 border-amber-200 bg-amber-50">
+    <x-admin.card class="mb-3 border-amber-200 bg-amber-50 !p-3">
         <p class="text-sm text-amber-900">
             <span class="font-semibold">{{ __('View only') }}</span>
             — {{ __('You have settings.view but need settings.manage to edit fields, save changes, or add custom fields. Ask an administrator to grant the Company Admin role or settings.manage permission.') }}
@@ -25,7 +18,12 @@
 @endif
 
 @if ($canManage)
-    <form method="POST" action="{{ route('admin.settings.forms.update') }}" class="space-y-4">
+    <form
+        method="POST"
+        action="{{ route('admin.settings.forms.update', $scopeQuery) }}"
+        data-turbo-frame="erp-main"
+        data-turbo-action="advance"
+    >
         @csrf
         @method('PUT')
         <input type="hidden" name="company_id" value="{{ $companyId }}">
@@ -38,15 +36,9 @@
 @include('admin.settings.forms.partials.workspace-panel', [
     'form' => $form,
     'canManage' => $canManage,
+    'backUrl' => $formsLandingUrl,
 ])
 
 @if ($canManage)
-        <div class="sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-erp-border bg-erp-card px-5 py-4 shadow-lg">
-            <p class="text-xs text-slate-500">
-                {{ __('Save applies to this form. Built-in fields are defined by the system; custom fields are stored for your tenant.') }}
-                <a href="#add-custom-field" class="ml-1 font-medium text-erp-accent hover:underline">{{ __('Add custom field') }}</a>
-            </p>
-            <x-primary-button>{{ __('Save form settings') }}</x-primary-button>
-        </div>
     </form>
 @endif

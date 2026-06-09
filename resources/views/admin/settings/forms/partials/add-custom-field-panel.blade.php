@@ -1,26 +1,33 @@
-@props(['form', 'canManage', 'position' => 'bottom'])
+@props(['form', 'canManage', 'position' => 'bottom', 'bare' => false])
 
 @if ($canManage)
     <div
         @class([
-            'border-erp-border bg-violet-50/60 px-5 py-4 sm:px-6',
-            'border-b' => $position === 'top',
-            'border-t' => $position === 'bottom',
+            'px-4 py-3 sm:px-5' => $bare,
+            'border-erp-border bg-violet-50/60 px-5 py-4 sm:px-6' => ! $bare,
+            'border-b' => ! $bare && $position === 'top',
+            'border-t' => ! $bare && $position === 'bottom',
         ])
-        id="add-custom-field"
+        @unless($bare) id="add-custom-field" @endunless
     >
-        <div class="flex flex-wrap items-start justify-between gap-3">
-            <div>
-                <h3 class="text-sm font-semibold text-erp-primary">{{ __('Add custom field') }}</h3>
-                <p class="mt-1 text-xs text-slate-500">
-                    {{ __('Use lowercase keys with underscores (e.g. tax_id). Fill in the fields below, then click Save form settings.') }}
-                </p>
+        @unless ($bare)
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                    <h3 class="text-sm font-semibold text-erp-primary">{{ __('Add custom field') }}</h3>
+                    <p class="mt-1 text-xs text-slate-500">
+                        {{ __('Use lowercase keys with underscores (e.g. tax_id). Fill in the fields below, then click Save form settings.') }}
+                    </p>
+                </div>
+                @if ($position === 'bottom')
+                    <a href="#add-custom-field" class="text-xs font-medium text-erp-accent hover:underline">{{ __('Jump here') }}</a>
+                @endif
             </div>
-            @if ($position === 'bottom')
-                <a href="#add-custom-field" class="text-xs font-medium text-erp-accent hover:underline">{{ __('Jump here') }}</a>
-            @endif
-        </div>
-        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        @else
+            <p class="mb-3 text-xs text-slate-500">
+                {{ __('Use lowercase keys with underscores (e.g. tax_id), then save the form.') }}
+            </p>
+        @endunless
+        <div @class(['grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4', 'mt-3' => ! $bare])>
             <div>
                 <x-input-label for="add_field_key_{{ $form['form_key'] }}" :value="__('Field key')" />
                 <input
@@ -54,9 +61,11 @@
                     <option value="checkbox">{{ __('Checkbox') }}</option>
                 </select>
             </div>
-            <div class="flex items-end">
-                <p class="text-xs text-slate-500">{{ __('New fields appear in the table above after saving.') }}</p>
-            </div>
+            @unless ($bare)
+                <div class="flex items-end">
+                    <p class="text-xs text-slate-500">{{ __('New fields appear in the table above after saving.') }}</p>
+                </div>
+            @endunless
         </div>
     </div>
 @endif

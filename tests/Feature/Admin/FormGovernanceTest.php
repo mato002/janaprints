@@ -4,6 +4,8 @@ namespace Tests\Feature\Admin;
 
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Platform\FormFieldSetting;
+use App\Models\Platform\FormSetting;
 use App\Models\User;
 use App\Support\Platform\FormSettingsManager;
 use App\Support\Platform\FormSettingsService;
@@ -112,6 +114,72 @@ class FormGovernanceTest extends TestCase
         $this->assertTrue($resolved['tax_id']['is_custom']);
     }
 
+    public function test_form_settings_validation_failure_keeps_active_form_redirect(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $this->actingAs($user)
+            ->from(route('admin.settings.forms.index', [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'customer',
+            ]))
+            ->put(route('admin.settings.forms.update'), [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'return_form' => 'customer',
+                'forms' => 'invalid',
+            ])
+            ->assertRedirect(route('admin.settings.forms.index', [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'customer',
+            ]));
+    }
+
+    public function test_form_settings_update_returns_turbo_frame_response(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('admin.settings.forms.update'), [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'return_form' => 'customer',
+                'forms' => [
+                    'customer' => [
+                        'is_active' => '1',
+                        'fields' => [
+                            'email' => [
+                                'visibility' => 'hidden',
+                                'requirement' => 'optional',
+                                'read_only' => '0',
+                                'default_value' => '',
+                            ],
+                        ],
+                        'add_field' => [
+                            'field_key' => '',
+                            'label' => '',
+                            'type' => 'text',
+                        ],
+                    ],
+                ],
+            ], ['Turbo-Frame' => 'erp-main'])
+            ->assertOk()
+            ->assertSee('data-erp-flash-status', false)
+            ->assertSee(__('Form settings updated.'))
+            ->assertSee('id="erp-main"', false)
+            ->assertSee(__('KRA PIN'));
+
+        $forms = app(FormSettingsService::class);
+
+        $this->assertFalse($forms->isVisible('customer', 'email', $company->id, $branch->id));
+    }
+
     public function test_company_admin_can_save_form_field_settings(): void
     {
         $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
@@ -137,6 +205,7 @@ class FormGovernanceTest extends TestCase
             ->assertRedirect(route('admin.settings.forms.index', [
                 'company_id' => $company->id,
                 'branch_id' => $user->default_branch_id,
+                'form' => 'customer',
             ]));
 
         $forms = app(FormSettingsService::class);
@@ -194,6 +263,157 @@ class FormGovernanceTest extends TestCase
         ], $company->id);
 
         $this->assertSame('KES', $data['currency']);
+    }
+
+    public function test_required_fields_are_always_visible_in_resolved_config(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $manager = app(FormSettingsManager::class);
+
+        $manager->save($company->id, null, [
+            'customer' => [
+                'is_active' => '1',
+                'fields' => [
+                    'phone' => [
+                        'visibility' => 'hidden',
+                        'requirement' => 'required',
+                        'read_only' => '0',
+                        'default_value' => '',
+                    ],
+                ],
+            ],
+        ]);
+
+        $config = app(FormSettingsService::class)->fieldConfig('customer', 'phone', $company->id);
+
+        $this->assertTrue($config['required']);
+        $this->assertTrue($config['visible']);
+        $this->assertFalse($config['hidden']);
+    }
+
+    public function test_registry_fields_are_never_marked_as_custom(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $companyForm = FormSetting::query()
+            ->where('company_id', $company->id)
+            ->whereNull('branch_id')
+            ->where('form_key', 'warehouse.create')
+            ->firstOrFail();
+
+        $nameField = $companyForm->fields()->where('field_key', 'name')->firstOrFail();
+        $nameField->update([
+            'default_value' => [
+                'data' => null,
+                'read_only' => false,
+                'custom' => true,
+                'label' => 'name',
+                'type' => 'text',
+            ],
+        ]);
+
+        $config = app(FormSettingsService::class)->fieldConfig('warehouse.create', 'name', $company->id);
+
+        $this->assertFalse($config['is_custom']);
+        $this->assertSame('Warehouse name', $config['label']);
+    }
+
+    public function test_branch_registry_defaults_inherit_company_overrides(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $companyForm = FormSetting::query()
+            ->where('company_id', $company->id)
+            ->whereNull('branch_id')
+            ->where('form_key', 'customer')
+            ->firstOrFail();
+
+        $branchForm = FormSetting::query()->firstOrCreate(
+            [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form_key' => 'customer',
+            ],
+            ['is_active' => true],
+        );
+
+        foreach (config('form_registry.forms.customer.fields', []) as $fieldKey => $registry) {
+            FormFieldSetting::query()->updateOrCreate(
+                [
+                    'form_setting_id' => $branchForm->id,
+                    'field_key' => $fieldKey,
+                ],
+                [
+                    'is_required' => (bool) ($registry['required'] ?? false),
+                    'is_visible' => (bool) ($registry['visible'] ?? true),
+                    'is_hidden' => ! ($registry['visible'] ?? true),
+                    'sort_order' => (int) ($registry['sort_order'] ?? 0),
+                ],
+            );
+        }
+
+        FormFieldSetting::query()->updateOrCreate(
+            [
+                'form_setting_id' => $companyForm->id,
+                'field_key' => 'contact_person',
+            ],
+            [
+                'is_required' => false,
+                'is_visible' => false,
+                'is_hidden' => true,
+                'sort_order' => 3,
+            ],
+        );
+
+        $config = $forms->fieldConfig('customer', 'contact_person', $company->id, $branch->id);
+
+        $this->assertFalse($config['visible']);
+        $this->assertTrue($config['hidden']);
+        $this->assertTrue($config['inherits_company']);
+    }
+
+    public function test_registry_required_system_fields_cannot_be_saved_as_optional(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $manager = app(FormSettingsManager::class);
+
+        $manager->save($company->id, null, [
+            'customer' => [
+                'is_active' => '1',
+                'fields' => [
+                    'company_name' => [
+                        'visibility' => 'hidden',
+                        'requirement' => 'optional',
+                        'read_only' => '0',
+                        'default_value' => '',
+                    ],
+                ],
+            ],
+        ]);
+
+        $config = app(FormSettingsService::class)->fieldConfig('customer', 'company_name', $company->id);
+
+        $this->assertTrue($config['required']);
+        $this->assertTrue($config['visible']);
+        $this->assertTrue($config['registry_required']);
+    }
+
+    public function test_ensure_forms_does_not_seed_branch_field_defaults(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $manager = app(FormSettingsManager::class);
+
+        $manager->ensureForms($company->id, $branch->id);
+
+        $branchForm = FormSetting::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->where('form_key', 'customer')
+            ->first();
+
+        $this->assertNull($branchForm);
     }
 
     /**

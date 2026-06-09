@@ -2,7 +2,9 @@
 
 @php
     $customFields = collect($fields)->filter(
-        fn (array $field) => ($field['is_custom'] ?? false) && ($field['visible'] ?? true),
+        fn (array $field) => ($field['is_custom'] ?? false)
+            && ! ($field['registry_required'] ?? false)
+            && ($field['visible'] ?? true),
     );
 @endphp
 
@@ -19,8 +21,8 @@
                 @endphp
 
                 @if (($field['type'] ?? 'text') === 'textarea')
-                    <div class="md:col-span-2">
-                        <x-input-label :for="$inputId" :value="__($field['label'])" />
+                    <div class="erp-form-field md:col-span-2">
+                        <x-input-label :for="$inputId" :value="__($field['label'])" :required="$required" />
                         <textarea
                             id="{{ $inputId }}"
                             name="{{ $fieldKey }}"
@@ -50,8 +52,8 @@
                         <x-input-label :for="$inputId" :value="__($field['label'])" class="!mb-0" />
                     </div>
                 @else
-                    <div>
-                        <x-input-label :for="$inputId" :value="__($field['label'])" />
+                    <div class="erp-form-field">
+                        <x-input-label :for="$inputId" :value="__($field['label'])" :required="$required" />
                         <x-text-input
                             :id="$inputId"
                             :name="$fieldKey"

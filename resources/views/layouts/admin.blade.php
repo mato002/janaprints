@@ -28,11 +28,10 @@
 </head>
 <body
     @class([
-        'font-sans antialiased bg-erp-page text-erp-primary',
-        'overflow-hidden' => $compactPage,
+        'font-sans antialiased bg-erp-page text-erp-primary overflow-hidden',
     ])
-    x-data="erpShell(@js($navSearchIndex ?? []))"
-    @keydown.escape.window="closeMobileNav()"
+    x-data="erpShell(@js($navSearchIndex ?? []), @js($featureDiscoveryIndex ?? []))"
+    @keydown.escape.window="if (paletteOpen) { closePalette(); } else { closeMobileNav(); }"
     @close-nav.window="closeMobileNav()"
 >
     <div class="turbo-progress" id="turbo-progress" aria-hidden="true"></div>
@@ -54,11 +53,7 @@
 
     <div
         id="erp-app-shell"
-        @class([
-            'flex min-w-0 flex-col transition-[margin-left] duration-sidebar max-lg:ml-0',
-            'h-screen max-h-screen overflow-hidden' => $compactPage,
-            'min-h-screen' => ! $compactPage,
-        ])
+        class="flex h-screen max-h-screen min-w-0 flex-col overflow-hidden transition-[margin-left] duration-sidebar max-lg:ml-0"
         :class="sidebarCollapsed ? 'lg:ml-sidebar-collapsed' : 'lg:ml-sidebar'"
     >
         @include('layouts.admin.partials.topbar')
@@ -69,6 +64,7 @@
             @class([
                 'flex min-h-0 flex-1 flex-col',
                 'overflow-hidden' => $compactPage,
+                'overflow-x-hidden overflow-y-auto' => ! $compactPage,
             ])
         >
             @php
@@ -154,5 +150,7 @@
     </div>
 
     <div id="erp-toast-host" class="erp-toast-host" data-turbo-permanent aria-live="polite" aria-atomic="true"></div>
+
+    <x-admin.command-palette />
 </body>
 </html>
