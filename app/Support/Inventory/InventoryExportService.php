@@ -2,10 +2,14 @@
 
 namespace App\Support\Inventory;
 
+use App\Support\Export\PdfExportService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class InventoryExportService
 {
+    public function __construct(
+        protected PdfExportService $pdfExports,
+    ) {}
     /**
      * @param  list<string>  $headers
      * @param  iterable<int, list<string|float|int|null>>  $rows
@@ -54,10 +58,6 @@ class InventoryExportService
 
     public function streamHtmlDocument(string $filename, string $html): StreamedResponse
     {
-        return response()->streamDownload(
-            fn () => print($html),
-            "{$filename}.html",
-            ['Content-Type' => 'text/html; charset=UTF-8'],
-        );
+        return $this->pdfExports->downloadHtml($filename, $html, 'landscape');
     }
 }

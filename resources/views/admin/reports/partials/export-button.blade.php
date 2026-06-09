@@ -1,13 +1,19 @@
-@props(['can_export' => false, 'export_url' => null])
+@props([
+    'can_export' => false,
+    'export_route' => null,
+    'export_query' => null,
+    'export_route_params' => [],
+    'format_in_path' => false,
+    'post_action' => null,
+    'post_fields' => [],
+])
 
-@if ($can_export && $export_url)
-    <a href="{{ $export_url }}" class="erp-btn-secondary" data-turbo="false">{{ __('Export CSV') }}</a>
-@elseif ($can_export)
-    <button type="button" class="erp-btn-secondary" disabled title="{{ __('Export will be available in a future release') }}">
-        {{ __('Export') }}
-    </button>
-@else
-    <button type="button" class="erp-btn-secondary opacity-60" disabled title="{{ __('You do not have permission to export reports') }}">
-        {{ __('Export') }}
-    </button>
-@endif
+<x-admin.export-dropdown
+    :export-route="$can_export ? $export_route : null"
+    :export-query="$export_query ?? request()->query()"
+    :export-route-params="$export_route_params"
+    :format-in-path="$format_in_path"
+    :post-action="$can_export ? $post_action : null"
+    :post-fields="$post_fields"
+    :can-export="$can_export"
+/>

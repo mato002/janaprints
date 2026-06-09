@@ -5,31 +5,22 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-6">
-        <form method="GET" action="{{ route('admin.commercial.pos.reconciliation.history') }}" class="grid gap-3 md:grid-cols-3">
-            <div>
-                <label class="text-[11px] text-slate-500" for="status">{{ __('Status') }}</label>
-                <select id="status" name="status" class="erp-input mt-1 w-full">
-                    <option value="">{{ __('All') }}</option>
-                    <option value="approved" @selected(($filters['status'] ?? '') === 'approved')>{{ __('Approved') }}</option>
-                    <option value="rejected" @selected(($filters['status'] ?? '') === 'rejected')>{{ __('Rejected') }}</option>
-                </select>
-            </div>
+    <x-admin.card :padding="false" class="mb-6">
+        <x-admin.index-toolbar :action="route('admin.commercial.pos.reconciliation.history')" :reset-url="route('admin.commercial.pos.reconciliation.history')">
+            <x-admin.status-pills
+                :options="[['value' => '', 'label' => __('All')], ['value' => 'approved', 'label' => __('Approved')], ['value' => 'rejected', 'label' => __('Rejected')]]"
+                param="status"
+                :current="$filters['status'] ?? ''"
+            />
             @if ($branches->isNotEmpty())
-                <div>
-                    <label class="text-[11px] text-slate-500" for="branch_id">{{ __('Branch') }}</label>
-                    <select id="branch_id" name="branch_id" class="erp-input mt-1 w-full">
-                        <option value="">{{ __('All branches') }}</option>
-                        @foreach ($branches as $branch)
-                            <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>{{ $branch->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <select id="branch_id" name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                    <option value="">{{ __('All branches') }}</option>
+                    @foreach ($branches as $branch)
+                        <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>{{ $branch->name }}</option>
+                    @endforeach
+                </select>
             @endif
-            <div class="flex items-end">
-                <button type="submit" class="erp-btn-primary">{{ __('Apply filters') }}</button>
-            </div>
-        </form>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

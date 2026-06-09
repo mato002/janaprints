@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin\Hr;
 use App\Http\Controllers\Controller;
 use App\Support\Hr\HrKpiExporter;
 use App\Support\Hr\HrKpiPresenter;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -27,7 +26,7 @@ class HrKpiController extends Controller
         return view('admin.hr.kpi.index', $this->presenter->present($request));
     }
 
-    public function export(Request $request): StreamedResponse|RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless(
             $request->user()?->can('hr.kpi.export') || $request->user()?->can('reports.export'),
@@ -39,28 +38,6 @@ class HrKpiController extends Controller
             $format = 'csv';
         }
 
-        if ($format === 'pdf') {
-            return redirect()->route('admin.hr.kpi', $request->query());
-        }
-
-        $rows = $this->exporter->rows($request);
-        $extension = $format === 'excel' ? 'xls' : 'csv';
-        $mime = $format === 'excel' ? 'application/vnd.ms-excel' : 'text/csv';
-
-        return response()->streamDownload(function () use ($rows, $format) {
-            $out = fopen('php://output', 'w');
-
-            if ($format === 'excel') {
-                fwrite($out, "\xEF\xBB\xBF");
-            }
-
-            foreach ($rows as $row) {
-                fputcsv($out, $row);
-            }
-
-            fclose($out);
-        }, 'hr-kpi-'.now()->format('Y-m-d').'.'.$extension, [
-            'Content-Type' => $mime,
-        ]);
+        return $this->exporter->download($request, $format);
     }
 }

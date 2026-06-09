@@ -2,15 +2,14 @@
     <x-admin.page-header :title="__('Capitalization Queue')" :description="__('Received asset purchases awaiting capitalization.')" />
 
     <x-admin.card>
-        <form method="GET" class="mb-4 flex flex-wrap gap-2">
-            <select name="status" class="erp-select">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" class="mb-4">
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>
                 @foreach (\App\Enums\CapitalizationCandidateStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
                 @endforeach
             </select>
-            <button class="erp-btn-secondary" type="submit">{{ __('Filter') }}</button>
-        </form>
+        </x-admin.index-toolbar>
 
         <div class="overflow-x-auto">
             <table class="erp-table w-full text-sm">

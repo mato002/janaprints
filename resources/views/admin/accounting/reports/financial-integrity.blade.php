@@ -1,21 +1,14 @@
 <x-admin-layout :title="__('Financial Integrity')">
     <x-admin.page-header :title="__('Financial Integrity')" :description="__('Trial balance and balance sheet equation checks')" />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div><label class="erp-label">{{ __('As of date') }}</label><input type="date" name="as_of_date" value="{{ $filters['as_of_date'] }}" class="erp-input" required></div>
-            <div>
-                <label class="erp-label">{{ __('Period filter (optional)') }}</label>
-                <select name="period_id" class="erp-input">
-                    <option value="">{{ __('All posted through date') }}</option>
-                    @foreach ($periods as $period)
-                        <option value="{{ $period->id }}" @selected(($filters['period_id'] ?? null) == $period->id)>{{ $period->code }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button class="erp-btn-primary">{{ __('Run check') }}</button>
-        </form>
-    </x-admin.card>
+    @include('admin.accounting.partials.as-of-toolbar', [
+        'action' => route('admin.accounting.reports.financial-integrity'),
+        'resetUrl' => route('admin.accounting.reports.financial-integrity'),
+        'filters' => $filters,
+        'periods' => $periods,
+        'periodLabel' => __('Period filter (optional)'),
+        'nonePeriodLabel' => __('All posted through date'),
+    ])
 
     @if ($report)
         <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">

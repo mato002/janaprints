@@ -4,45 +4,35 @@
         :description="__('Finance command center — KPIs, collections, payables, and period close alerts.')"
     />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" action="{{ route('admin.accounting.dashboard') }}" class="flex flex-wrap items-end gap-3">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.accounting.dashboard')" :reset-url="route('admin.accounting.dashboard')">
             @if ($dashboard['filter_options']['companies']->count() > 1)
-                <div>
-                    <label class="erp-label">{{ __('Company') }}</label>
-                    <select name="company_id" class="erp-input">
-                        @foreach ($dashboard['filter_options']['companies'] as $company)
-                            <option value="{{ $company->id }}" @selected($dashboard['filters']['company_id'] == $company->id)>{{ $company->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <select name="company_id" class="erp-toolbar-select" aria-label="{{ __('Company') }}">
+                    @foreach ($dashboard['filter_options']['companies'] as $company)
+                        <option value="{{ $company->id }}" @selected($dashboard['filters']['company_id'] == $company->id)>{{ $company->name }}</option>
+                    @endforeach
+                </select>
             @endif
-            <div>
-                <label class="erp-label">{{ __('Branch') }}</label>
-                <select name="branch_id" class="erp-input">
-                    <option value="">{{ __('All branches') }}</option>
-                    @foreach ($dashboard['filter_options']['branches'] as $branch)
-                        <option value="{{ $branch->id }}" @selected($dashboard['filters']['branch_id'] == $branch->id)>{{ $branch->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Fiscal Period') }}</label>
-                <select name="period_id" class="erp-input">
-                    @foreach ($dashboard['filter_options']['periods'] as $period)
-                        <option value="{{ $period->id }}" @selected($dashboard['filters']['period_id'] == $period->id)>
-                            {{ $period->code }} — {{ $period->name }}
-                            @if ($period->is_current) ({{ __('current') }}) @endif
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="erp-btn-primary">{{ __('Apply') }}</button>
-        </form>
-        <p class="mt-2 text-[11px] text-slate-500">
-            {{ $dashboard['context']['company'] }} · {{ $dashboard['context']['branch'] }} · {{ $dashboard['context']['period'] }}
-            · {{ __('As of') }} {{ $dashboard['context']['as_of_date'] }}
-        </p>
+            <select name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                <option value="">{{ __('All branches') }}</option>
+                @foreach ($dashboard['filter_options']['branches'] as $branch)
+                    <option value="{{ $branch->id }}" @selected($dashboard['filters']['branch_id'] == $branch->id)>{{ $branch->name }}</option>
+                @endforeach
+            </select>
+            <select name="period_id" class="erp-toolbar-select" aria-label="{{ __('Fiscal Period') }}">
+                @foreach ($dashboard['filter_options']['periods'] as $period)
+                    <option value="{{ $period->id }}" @selected($dashboard['filters']['period_id'] == $period->id)>
+                        {{ $period->code }} — {{ $period->name }}
+                        @if ($period->is_current) ({{ __('current') }}) @endif
+                    </option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
+    <p class="mb-4 text-[11px] text-slate-500">
+        {{ $dashboard['context']['company'] }} · {{ $dashboard['context']['branch'] }} · {{ $dashboard['context']['period'] }}
+        · {{ __('As of') }} {{ $dashboard['context']['as_of_date'] }}
+    </p>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         @foreach ($dashboard['cards'] as $card)

@@ -174,7 +174,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('stock-counts', [StockCountController::class, 'index'])->name('stock-counts.index');
             Route::get('stock-counts/{stockCount}', [StockCountController::class, 'show'])->whereNumber('stockCount')->name('stock-counts.show');
             Route::get('stock-counts/{stockCount}/worksheet', [StockCountController::class, 'worksheet'])->whereNumber('stockCount')->name('stock-counts.worksheet');
-            Route::get('stock-counts/{stockCount}/export', [StockCountController::class, 'exportWorksheet'])->whereNumber('stockCount')->name('stock-counts.export');
+            Route::get('stock-counts/{stockCount}/export/{format}', [StockCountController::class, 'exportWorksheet'])
+                ->whereNumber('stockCount')
+                ->where('format', 'csv|excel|pdf')
+                ->name('stock-counts.export');
         });
 
         Route::middleware('permission:inventory.count.edit')->group(function () {
@@ -210,8 +213,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:inventory.variance.view')->group(function () {
             Route::get('variances', [InventoryVarianceController::class, 'index'])->name('variances.index');
-            Route::get('variances/export', [InventoryVarianceController::class, 'export'])->name('variances.export');
-            Route::get('variances/export-pdf', [InventoryVarianceController::class, 'exportPdf'])->name('variances.export-pdf');
+            Route::get('variances/export/{format}', [InventoryVarianceController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('variances.export');
         });
 
         Route::middleware('permission:inventory.reconcile.view')->group(function () {

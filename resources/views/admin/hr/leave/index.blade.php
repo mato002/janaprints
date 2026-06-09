@@ -12,67 +12,50 @@
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    <form method="GET" class="erp-card mb-4">
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div>
-                <label class="erp-label">{{ __('Status') }}</label>
-                <select name="status" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Employee') }}</label>
-                <select name="employee_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['employees'] as $employee)
-                        <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Leave Type') }}</label>
-                <select name="leave_type_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['leaveTypes'] as $type)
-                        <option value="{{ $type->id }}" @selected((int) ($filters['leave_type_id'] ?? 0) === $type->id)>{{ $type->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Department') }}</label>
-                <select name="department_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['departments'] as $department)
-                        <option value="{{ $department->id }}" @selected((int) ($filters['department_id'] ?? 0) === $department->id)>{{ $department->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="mt-3 flex gap-2">
-            <button type="submit" class="erp-btn-primary">{{ __('Filter') }}</button>
-            <a href="{{ route('admin.hr.leave.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-        </div>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar
+            :action="route('admin.hr.leave.index')"
+            :reset-url="route('admin.hr.leave.index')"
+            compact
+            class="erp-index-toolbar-form--compact"
+        >
+            @can('export', App\Models\Hr\LeaveRequest::class)
+                <x-slot name="export">
+                    <x-admin.export-dropdown
+                        :post-action="route('admin.hr.leave.export')"
+                        :post-fields="$filters"
+                    />
+                </x-slot>
+            @endcan
 
-    @can('export', App\Models\Hr\LeaveRequest::class)
-        <div class="mb-4 flex flex-wrap gap-2">
-            @foreach (['csv' => 'CSV', 'excel' => 'Excel', 'pdf' => 'PDF'] as $format => $label)
-                <form method="POST" action="{{ route('admin.hr.leave.export') }}">
-                    @csrf
-                    <input type="hidden" name="format" value="{{ $format }}">
-                    @foreach ($filters as $key => $value)
-                        @if ($value)<input type="hidden" name="{{ $key }}" value="{{ $value }}">@endif
-                    @endforeach
-                    <button type="submit" class="erp-btn-secondary">{{ __('Export :format', ['format' => $label]) }}</button>
-                </form>
-            @endforeach
-        </div>
-    @endcan
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All statuses') }}</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+            <select name="employee_id" class="erp-toolbar-select" aria-label="{{ __('Employee') }}">
+                <option value="">{{ __('All employees') }}</option>
+                @foreach ($formData['employees'] as $employee)
+                    <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
+                @endforeach
+            </select>
+            <select name="leave_type_id" class="erp-toolbar-select" aria-label="{{ __('Leave Type') }}">
+                <option value="">{{ __('All types') }}</option>
+                @foreach ($formData['leaveTypes'] as $type)
+                    <option value="{{ $type->id }}" @selected((int) ($filters['leave_type_id'] ?? 0) === $type->id)>{{ $type->name }}</option>
+                @endforeach
+            </select>
+            <select name="department_id" class="erp-toolbar-select" aria-label="{{ __('Department') }}">
+                <option value="">{{ __('All departments') }}</option>
+                @foreach ($formData['departments'] as $department)
+                    <option value="{{ $department->id }}" @selected((int) ($filters['department_id'] ?? 0) === $department->id)>{{ $department->name }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
-    <x-admin.data-table :search-placeholder="__('Search leave requests…')" export-filename="leave-requests">
+    <x-admin.data-table :search-placeholder="__('Search leave requests…')" :exportable="false" export-filename="leave-requests">
         <x-slot name="head">
             <tr>
                 <th>{{ __('Reference') }}</th>

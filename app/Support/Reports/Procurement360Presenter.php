@@ -48,6 +48,8 @@ class Procurement360Presenter
             'branches' => $resolved['branches'],
             'vendors' => $vendors,
             'can_export' => $resolved['can_export'],
+            'export_route' => 'admin.reports.intelligence360.export',
+            'export_route_params' => ['reportKey' => 'procurement'],
             'sections' => [
                 $this->summary($scope),
                 $this->rfqSection($scope),

@@ -25,6 +25,7 @@ class InventoryFoundationSeeder extends Seeder
         ['code' => 'LITRE', 'name' => 'Litre'],
         ['code' => 'METER', 'name' => 'Meter'],
         ['code' => 'BOX', 'name' => 'Box'],
+        ['code' => 'PACK', 'name' => 'Pack'],
     ];
 
     /** @var list<array{code: string, name: string}> */

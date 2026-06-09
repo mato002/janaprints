@@ -3,6 +3,7 @@
 namespace App\Support\Hr;
 
 use App\Models\Hr\AttendanceRecord;
+use App\Support\Export\PdfExportService;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -10,6 +11,7 @@ class AttendanceExportService
 {
     public function __construct(
         protected AttendanceService $attendance,
+        protected PdfExportService $pdfExports,
     ) {}
 
     /**
@@ -77,15 +79,15 @@ class AttendanceExportService
     {
         $records = $this->attendance->exportRows($companyId, $filters);
 
-        $html = view('admin.hr.attendance.exports.pdf', [
-            'records' => $records,
-            'generatedAt' => now(),
-            'filters' => $filters,
-        ])->render();
-
-        return response()->streamDownload(fn () => print($html), "{$filename}.html", [
-            'Content-Type' => 'text/html; charset=UTF-8',
-        ]);
+        return $this->pdfExports->downloadHtml(
+            $filename,
+            view('admin.hr.attendance.exports.pdf', [
+                'records' => $records,
+                'generatedAt' => now(),
+                'filters' => $filters,
+            ])->render(),
+            'landscape',
+        );
     }
 
     /**

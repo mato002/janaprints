@@ -24,6 +24,8 @@ enum PostingEventCode: string
     case PaymentReceived = 'payment.received';
     case PaymentMade = 'payment.made';
     case PaymentRefundPosted = 'payment.refund.posted';
+    case DepositApplicationPosted = 'payment.deposit.application.posted';
+    case DepositRefundPosted = 'payment.deposit.refund.posted';
 
     case SupplierBillPosted = 'supplier_bill.posted';
     case SupplierBillCreditNotePosted = 'supplier_bill.credit_note.posted';
@@ -63,7 +65,9 @@ enum PostingEventCode: string
 
             self::PaymentReceived,
             self::PaymentMade,
-            self::PaymentRefundPosted => PostingModule::Payment,
+            self::PaymentRefundPosted,
+            self::DepositApplicationPosted,
+            self::DepositRefundPosted => PostingModule::Payment,
 
             self::SupplierBillPosted,
             self::SupplierBillCreditNotePosted => PostingModule::Procurement,
@@ -101,6 +105,8 @@ enum PostingEventCode: string
             self::PaymentReceived => __('Customer payment received'),
             self::PaymentMade => __('Supplier payment made'),
             self::PaymentRefundPosted => __('Payment refund posted'),
+            self::DepositApplicationPosted => __('Customer deposit applied'),
+            self::DepositRefundPosted => __('Customer deposit refund posted'),
             self::SupplierBillPosted => __('Supplier bill posted'),
             self::SupplierBillCreditNotePosted => __('Supplier credit note posted'),
             self::AssetAcquisitionPosted => __('Asset acquisition posted'),

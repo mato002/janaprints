@@ -9,16 +9,12 @@
 
     <x-admin.data-table :search-placeholder="__('Search units...')" export-filename="units-of-measure" :filterable="true">
         <x-slot name="filters">
-            <form method="GET" class="flex flex-wrap items-end gap-3">
-                <label class="text-xs font-medium text-slate-600">
-                    {{ __('Status') }}
-                    <select name="status" class="erp-select mt-1">
-                        <option value="all" @selected($status === 'all')>{{ __('All') }}</option>
-                        <option value="active" @selected($status === 'active')>{{ __('Active') }}</option>
-                        <option value="inactive" @selected($status === 'inactive')>{{ __('Inactive') }}</option>
-                    </select>
-                </label>
-                <button type="submit" class="erp-btn-secondary">{{ __('Apply') }}</button>
+            <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="flex flex-wrap items-center gap-2">
+                <x-admin.status-pills
+                    :options="[['value' => 'all', 'label' => __('All')], ['value' => 'active', 'label' => __('Active')], ['value' => 'inactive', 'label' => __('Inactive')]]"
+                    param="status"
+                    :current="$status"
+                />
             </form>
         </x-slot>
         <x-slot name="head">

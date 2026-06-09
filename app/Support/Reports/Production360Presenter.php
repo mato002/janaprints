@@ -31,9 +31,8 @@ class Production360Presenter
             'branches' => $resolved['branches'],
             'can_export' => $resolved['can_export'],
             'read_only' => true,
-            'export_url' => $resolved['can_export']
-                ? route('admin.reports.production360', array_merge($request->query(), ['export' => 'csv']))
-                : null,
+            'export_route' => 'admin.reports.intelligence360.export',
+            'export_route_params' => ['reportKey' => 'production'],
             'sections' => [
                 $this->summary($scope),
                 $this->branchComparison($scope),

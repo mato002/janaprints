@@ -61,6 +61,19 @@ class ProductionSchedulingWorkspaceService
     }
 
     /**
+     * @return Collection<int, ProductionJobCard>
+     */
+    public function exportIndex(Request $request): Collection
+    {
+        return $this->filteredQuery($request)
+            ->with($this->listRelations())
+            ->orderByRaw('planned_start_date IS NULL')
+            ->orderBy('planned_start_date')
+            ->orderBy('job_card_number')
+            ->get();
+    }
+
+    /**
      * @return array{
      *     month: string,
      *     label: string,

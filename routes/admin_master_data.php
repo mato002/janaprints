@@ -13,7 +13,9 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             });
 
             Route::middleware('permission:configuration.master_data.export')->group(function () {
-                Route::get('export', [MasterDataController::class, 'export'])->name('export');
+                Route::get('export/{format}', [MasterDataController::class, 'export'])
+                    ->where('format', 'csv|excel|pdf')
+                    ->name('export');
             });
 
             Route::middleware('permission:configuration.master_data.create')->group(function () {

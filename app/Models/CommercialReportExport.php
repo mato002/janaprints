@@ -86,7 +86,7 @@ class CommercialReportExport extends Model
     {
         return match ($format) {
             'excel' => 'application/vnd.ms-excel',
-            'pdf' => 'text/html',
+            'pdf' => 'application/pdf',
             default => 'text/csv',
         };
     }
@@ -95,7 +95,7 @@ class CommercialReportExport extends Model
     {
         return match ($format) {
             'excel' => 'xls',
-            'pdf' => 'html',
+            'pdf' => 'pdf',
             default => 'csv',
         };
     }

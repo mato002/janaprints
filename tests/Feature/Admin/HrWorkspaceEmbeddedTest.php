@@ -60,7 +60,8 @@ class HrWorkspaceEmbeddedTest extends TestCase
             ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
             ->get(route('admin.hr.dashboard', ['embedded' => '1']))
             ->assertOk()
-            ->assertSee('id="module-workspace-content"', false);
+            ->assertSee('id="module-workspace-content"', false)
+            ->assertSee(__('HR Dashboard'));
     }
 
     public function test_employees_tab_full_page_embedded_query_redirects_to_shell_url(): void

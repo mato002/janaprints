@@ -12,22 +12,21 @@
         <x-admin.stat-card :label="__('Failed')" :value="$stats['failed_messages']" />
     </div>
 
-    <form method="GET" class="erp-card mb-4" data-turbo-frame="erp-main">
-        <div class="flex flex-wrap gap-2">
-            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-input flex-1 min-w-[12rem]" placeholder="{{ __('Search phone, preview, code…') }}">
-            <select name="status" class="erp-input" onchange="this.form.submit()">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" turbo-frame="erp-main">
+            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search phone, preview, code…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>
                 @foreach (\App\Enums\WhatsappConversationStatus::cases() as $st)
                     <option value="{{ $st->value }}" @selected(($filters['status'] ?? '') === $st->value)>{{ $st->label() }}</option>
                 @endforeach
             </select>
-            <label class="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="unread_only" value="1" @checked(($filters['unread_only'] ?? '') === '1') onchange="this.form.submit()">
+            <label class="inline-flex items-center gap-2 text-sm">
+                <input type="checkbox" name="unread_only" value="1" @checked(($filters['unread_only'] ?? '') === '1')>
                 {{ __('Unread only') }}
             </label>
-            <button type="submit" class="erp-btn erp-btn--primary erp-btn--sm">{{ __('Filter') }}</button>
-        </div>
-    </form>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <div class="erp-card divide-y">
         @forelse ($conversations as $conversation)

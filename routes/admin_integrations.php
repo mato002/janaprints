@@ -62,7 +62,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:integrations.view|integrations.api.manage|integrations.manage')->group(function () {
             Route::get('api-keys', [IntegrationApiKeyController::class, 'index'])->name('api-keys.index');
-            Route::get('api-keys/export', [IntegrationApiKeyController::class, 'export'])->name('api-keys.export');
+            Route::get('api-keys/export/{format}', [IntegrationApiKeyController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('api-keys.export');
             Route::get('api-keys/{apiKey}', [IntegrationApiKeyController::class, 'show'])->name('api-keys.show');
         });
 

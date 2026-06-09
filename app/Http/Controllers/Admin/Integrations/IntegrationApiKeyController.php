@@ -121,29 +121,45 @@ class IntegrationApiKeyController extends Controller
         return redirect()->route('admin.integrations.api-keys.index')->with('status', __('API key revoked.'));
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request, string $format = 'csv'): StreamedResponse
     {
         $this->authorize('viewAny', IntegrationApiKey::class);
 
-        $keys = $this->scopeToTenant(IntegrationApiKey::query())->orderBy('name')->get();
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
 
-        return response()->streamDownload(function () use ($keys) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Name', 'Key', 'Environment', 'Active', 'Last Used', 'Created']);
+        $keys = $this->scopeToTenant(IntegrationApiKey::query())
+            ->when($request->filled('environment'), fn ($q) => $q->where('environment', $request->string('environment')))
+            ->when($request->filled('status'), function ($q) use ($request) {
+                if ($request->string('status')->toString() === 'active') {
+                    $q->where('is_active', true)->whereNull('revoked_at');
+                } elseif ($request->string('status')->toString() === 'disabled') {
+                    $q->where('is_active', false)->whereNull('revoked_at');
+                } elseif ($request->string('status')->toString() === 'revoked') {
+                    $q->whereNotNull('revoked_at');
+                }
+            })
+            ->orderBy('name')
+            ->get();
 
-            foreach ($keys as $key) {
-                fputcsv($handle, [
-                    $key->name,
-                    $key->key,
-                    $key->environment->value,
-                    $key->is_active ? 'yes' : 'no',
-                    $key->last_used_at?->toDateTimeString() ?? '',
-                    $key->created_at?->toDateTimeString() ?? '',
-                ]);
-            }
+        $headers = ['Name', 'Key', 'Environment', 'Active', 'Last Used', 'Created'];
+        $rows = $keys->map(fn ($key) => [
+            $key->name,
+            $key->key,
+            $key->environment->value,
+            $key->is_active ? 'yes' : 'no',
+            $key->last_used_at?->toDateTimeString() ?? '',
+            $key->created_at?->toDateTimeString() ?? '',
+        ]);
 
-            fclose($handle);
-        }, 'api-keys.csv', ['Content-Type' => 'text/csv']);
+        return app(\App\Support\Export\TabularExportWriter::class)->download(
+            $format,
+            'api-keys-'.now()->format('Y-m-d'),
+            $headers,
+            $rows,
+            __('API Keys'),
+        );
     }
 
     /**

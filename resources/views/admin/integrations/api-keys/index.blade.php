@@ -4,21 +4,30 @@
             @can('create', App\Models\Integrations\IntegrationApiKey::class)
                 <a href="{{ route('admin.integrations.api-keys.create') }}" class="erp-btn-primary">{{ __('Generate key') }}</a>
             @endcan
-            <a href="{{ route('admin.integrations.api-keys.export') }}" class="erp-btn-secondary">{{ __('Export CSV') }}</a>
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search API keys...')" export-filename="api-keys" :chips="[['id' => 'all', 'label' => __('All')], ['id' => 'active', 'label' => __('Active')], ['id' => 'disabled', 'label' => __('Disabled')]]">
-        <x-slot name="filters">
-            <form method="GET" class="flex gap-2">
-                <select name="environment" class="erp-select text-sm" onchange="this.form.submit()">
-                    <option value="">{{ __('All environments') }}</option>
-                    @foreach ($environments as $env)
-                        <option value="{{ $env->value }}" @selected(($filters['environment'] ?? '') === $env->value)>{{ $env->label() }}</option>
-                    @endforeach
-                </select>
-            </form>
-        </x-slot>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.integrations.api-keys.index')" :reset-url="route('admin.integrations.api-keys.index')" :show-reset="false">
+            <select name="environment" class="erp-toolbar-select" aria-label="{{ __('Environment') }}">
+                <option value="">{{ __('All environments') }}</option>
+                @foreach ($environments as $env)
+                    <option value="{{ $env->value }}" @selected(($filters['environment'] ?? '') === $env->value)>{{ $env->label() }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
+    </x-admin.card>
+
+    <x-admin.data-table
+        :search-placeholder="__('Search API keys...')"
+        export-filename="api-keys"
+        :export-route="'admin.integrations.api-keys.export'"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        :exportable="true"
+        :filterable="false"
+        :chips="[['id' => 'all', 'label' => __('All')], ['id' => 'active', 'label' => __('Active')], ['id' => 'disabled', 'label' => __('Disabled')]]"
+    >
         <x-slot name="head">
             <th>{{ __('Name') }}</th>
             <th>{{ __('Key') }}</th>

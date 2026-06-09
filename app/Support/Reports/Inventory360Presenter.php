@@ -40,6 +40,8 @@ class Inventory360Presenter
             'branches' => $resolved['branches'],
             'warehouses' => $warehouses,
             'can_export' => $resolved['can_export'],
+            'export_route' => 'admin.reports.intelligence360.export',
+            'export_route_params' => ['reportKey' => 'inventory'],
             'sections' => [
                 $this->valueSummary($scope),
                 $this->stockHealth($scope),

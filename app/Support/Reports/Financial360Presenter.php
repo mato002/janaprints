@@ -34,6 +34,8 @@ class Financial360Presenter
             'filters' => $resolved['filters'],
             'branches' => $resolved['branches'],
             'can_export' => $resolved['can_export'],
+            'export_route' => 'admin.reports.intelligence360.export',
+            'export_route_params' => ['reportKey' => 'financial'],
             'sections' => [
                 $this->summary($scope),
                 $this->revenueIntelligence($scope),

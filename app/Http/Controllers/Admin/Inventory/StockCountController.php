@@ -10,6 +10,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockCount;
 use App\Models\Inventory\Warehouse;
+use App\Support\Export\TabularExportWriter;
 use App\Support\Inventory\StockCountService;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
@@ -171,33 +172,36 @@ class StockCountController extends Controller
             ->with('status', __('Stock count cancelled.'));
     }
 
-    public function exportWorksheet(StockCount $stockCount): StreamedResponse
+    public function exportWorksheet(StockCount $stockCount, string $format = 'csv'): StreamedResponse
     {
         $this->authorize('view', $stockCount);
 
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
+
         $stockCount->load('items.inventoryItem');
 
-        $filename = 'stock-count-'.$stockCount->count_number.'.csv';
+        $headers = ['Item', 'SKU', 'System Qty', 'Counted Qty', 'Variance', 'Unit Cost', 'Variance Value', 'Reason'];
+        $rows = $stockCount->items->map(fn ($line) => [
+            $line->inventoryItem?->item_name,
+            $line->inventoryItem?->sku,
+            $line->system_quantity,
+            $line->counted_quantity,
+            $line->variance_quantity,
+            $line->system_unit_cost,
+            $line->variance_value,
+            $line->reason,
+        ])->all();
 
-        return response()->streamDownload(function () use ($stockCount) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Item', 'SKU', 'System Qty', 'Counted Qty', 'Variance', 'Unit Cost', 'Variance Value', 'Reason']);
-
-            foreach ($stockCount->items as $line) {
-                fputcsv($handle, [
-                    $line->inventoryItem?->item_name,
-                    $line->inventoryItem?->sku,
-                    $line->system_quantity,
-                    $line->counted_quantity,
-                    $line->variance_quantity,
-                    $line->system_unit_cost,
-                    $line->variance_value,
-                    $line->reason,
-                ]);
-            }
-
-            fclose($handle);
-        }, $filename, ['Content-Type' => 'text/csv']);
+        return app(TabularExportWriter::class)->download(
+            $format,
+            'stock-count-'.$stockCount->count_number,
+            $headers,
+            $rows,
+            __('Stock Count :number', ['number' => $stockCount->count_number]),
+            $stockCount->count_date?->format('Y-m-d'),
+        );
     }
 
     /**

@@ -1,22 +1,13 @@
 <x-admin-layout :title="__('Profit & Loss')">
     <x-admin.page-header :title="__('Profit & Loss')" :description="__(':from to :to — posted journals only', ['from' => $report['from_date'], 'to' => $report['to_date']])" />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="erp-label">{{ __('Period') }}</label>
-                <select name="period_id" class="erp-input" onchange="this.form.submit()">
-                    <option value="">{{ __('Custom') }}</option>
-                    @foreach ($periods as $period)
-                        <option value="{{ $period->id }}" @selected(($filters['period_id'] ?? null) == $period->id)>{{ $period->code }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div><label class="erp-label">{{ __('From') }}</label><input type="date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-input" required></div>
-            <div><label class="erp-label">{{ __('To') }}</label><input type="date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-input" required></div>
-            <button class="erp-btn-primary">{{ __('Run report') }}</button>
-        </form>
-    </x-admin.card>
+    @include('admin.accounting.partials.period-range-toolbar', [
+        'action' => route('admin.accounting.reports.profit-and-loss'),
+        'resetUrl' => route('admin.accounting.reports.profit-and-loss'),
+        'filters' => $filters,
+        'periods' => $periods,
+        'customPeriodLabel' => __('Custom'),
+    ])
 
     <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <x-admin.kpi-widget :label="__('Revenue')" :value="number_format($report['total_revenue'], 2)" />

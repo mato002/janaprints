@@ -7,45 +7,41 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" action="{{ route('admin.commercial.activities.index') }}" class="grid grid-cols-1 gap-3 p-4 md:grid-cols-4 lg:grid-cols-7">
-            <select name="customer_id" class="erp-input text-sm">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.commercial.activities.index')" :reset-url="route('admin.commercial.activities.index')">
+            <x-admin.filter-pill-select name="customer_id" :label="__('Customer')" :selected="$filters['customer_id'] ?? ''">
                 <option value="">{{ __('All customers') }}</option>
                 @foreach ($customers as $customer)
                     <option value="{{ $customer->id }}" @selected(($filters['customer_id'] ?? '') == $customer->id)>{{ $customer->company_name }}</option>
                 @endforeach
-            </select>
-            <select name="lead_id" class="erp-input text-sm">
+            </x-admin.filter-pill-select>
+            <x-admin.filter-pill-select name="lead_id" :label="__('Lead')" :selected="$filters['lead_id'] ?? ''">
                 <option value="">{{ __('All leads') }}</option>
                 @foreach ($leads as $lead)
                     <option value="{{ $lead->id }}" @selected(($filters['lead_id'] ?? '') == $lead->id)>{{ $lead->lead_name }}</option>
                 @endforeach
-            </select>
-            <select name="activity_type" class="erp-input text-sm">
+            </x-admin.filter-pill-select>
+            <x-admin.filter-pill-select name="activity_type" :label="__('Activity type')" :selected="$filters['activity_type'] ?? ''">
                 <option value="">{{ __('All types') }}</option>
                 @foreach (App\Enums\ActivityType::cases() as $type)
                     <option value="{{ $type->value }}" @selected(($filters['activity_type'] ?? '') === $type->value)>{{ ucfirst(str_replace('_', ' ', $type->value)) }}</option>
                 @endforeach
-            </select>
-            <select name="user_id" class="erp-input text-sm">
+            </x-admin.filter-pill-select>
+            <x-admin.filter-pill-select name="user_id" :label="__('Assignee')" :selected="$filters['user_id'] ?? ''">
                 <option value="">{{ __('All assignees') }}</option>
                 @foreach ($users as $user)
                     <option value="{{ $user->id }}" @selected(($filters['user_id'] ?? '') == $user->id)>{{ $user->name }}</option>
                 @endforeach
-            </select>
-            <select name="status" class="erp-input text-sm">
+            </x-admin.filter-pill-select>
+            <x-admin.filter-pill-date name="date_from" :label="__('From date')" :value="$filters['date_from'] ?? ''" />
+            <x-admin.filter-pill-date name="date_to" :label="__('To date')" :value="$filters['date_to'] ?? ''" />
+            <x-admin.filter-pill-select name="status" :label="__('Status')" :selected="$filters['status'] ?? ''">
                 <option value="">{{ __('All statuses') }}</option>
                 @foreach (App\Enums\ActivityStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ ucfirst($status->value) }}</option>
                 @endforeach
-            </select>
-            <input type="date" name="date_from" class="erp-input text-sm" value="{{ $filters['date_from'] ?? '' }}" placeholder="{{ __('From') }}">
-            <input type="date" name="date_to" class="erp-input text-sm" value="{{ $filters['date_to'] ?? '' }}" placeholder="{{ __('To') }}">
-            <div class="flex gap-2 md:col-span-4 lg:col-span-7">
-                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-                <a href="{{ route('admin.commercial.activities.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-            </div>
-        </form>
+            </x-admin.filter-pill-select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

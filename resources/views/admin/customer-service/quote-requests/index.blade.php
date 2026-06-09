@@ -18,28 +18,24 @@
         <x-admin.kpi-widget :label="__('New messages today')" :value="$stats['new_contact_messages']" icon="mail" />
     </div>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" action="{{ route('admin.public-quote-requests.index') }}" class="grid grid-cols-1 gap-3 p-4 md:grid-cols-3 lg:grid-cols-6">
-            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-input text-sm lg:col-span-2" placeholder="{{ __('Search name, company, phone, email…') }}">
-            <select name="status" class="erp-input text-sm">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.public-quote-requests.index')" :reset-url="route('admin.public-quote-requests.index')">
+            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search name, company, phone, email…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>
                 @foreach (App\Enums\PublicQuoteRequestStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
                 @endforeach
             </select>
-            <select name="service_needed" class="erp-input text-sm">
+            <select name="service_needed" class="erp-toolbar-select" aria-label="{{ __('Service') }}">
                 <option value="">{{ __('All services') }}</option>
                 @foreach ($services as $service)
                     <option value="{{ $service }}" @selected(($filters['service_needed'] ?? '') === $service)>{{ $service }}</option>
                 @endforeach
             </select>
-            <input type="date" name="date_from" class="erp-input text-sm" value="{{ $filters['date_from'] ?? '' }}">
-            <input type="date" name="date_to" class="erp-input text-sm" value="{{ $filters['date_to'] ?? '' }}">
-            <div class="flex gap-2 lg:col-span-6">
-                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-                <a href="{{ route('admin.public-quote-requests.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-            </div>
-        </form>
+            <input type="date" name="date_from" class="erp-toolbar-input" value="{{ $filters['date_from'] ?? '' }}" aria-label="{{ __('From date') }}">
+            <input type="date" name="date_to" class="erp-toolbar-input" value="{{ $filters['date_to'] ?? '' }}" aria-label="{{ __('To date') }}">
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

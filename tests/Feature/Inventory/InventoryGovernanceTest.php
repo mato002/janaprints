@@ -70,7 +70,6 @@ class InventoryGovernanceTest extends TestCase
             'inventory.cycle.edit',
             'inventory.cycle.generate',
             'inventory.variance.view',
-            'inventory.variance.export',
             'inventory.reconcile.view',
             'inventory.reconcile.approve',
             'inventory.reconcile.post',
@@ -93,14 +92,14 @@ class InventoryGovernanceTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_variance_export_requires_export_permission(): void
+    public function test_variance_export_requires_view_permission(): void
     {
-        [$company, $branch, $user] = $this->tenantUser(['inventory.variance.view']);
+        [$company, $branch, $user] = $this->tenantUser(['inventory.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.inventory.variances.export'))
+            ->get(route('admin.inventory.variances.export', ['format' => 'csv']))
             ->assertForbidden();
     }
 

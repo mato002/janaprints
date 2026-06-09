@@ -155,8 +155,8 @@ class CustomerPaymentReceiptTest extends TestCase
             ->get(route('admin.payments.receipt.pdf', $payment));
 
         $response->assertOk();
-        $this->assertStringContainsString('text/html', (string) $response->headers->get('content-type'));
-        $this->assertStringContainsString($payment->receipt_number, $response->streamedContent());
+        $this->assertSame('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringStartsWith('%PDF', $response->streamedContent());
     }
 
     public function test_receipt_email_sent(): void

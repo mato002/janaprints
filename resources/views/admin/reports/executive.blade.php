@@ -1,11 +1,13 @@
 <x-admin-layout :title="$title">
-    <x-admin.page-header :title="$title" :description="$description">
-        <x-slot name="actions">
-            @include('admin.reports.partials.export-button', ['can_export' => $can_export])
-        </x-slot>
-    </x-admin.page-header>
+    <x-admin.page-header :title="$title" :description="$description" />
 
-    @include('admin.reports.partials.filters', ['filters' => $filters, 'branches' => $branches])
+    @include('admin.reports.partials.filters', [
+        'filters' => $filters,
+        'branches' => $branches,
+        'can_export' => $can_export,
+        'export_route' => 'admin.reports.executive.export',
+        'format_in_path' => true,
+    ])
 
     @foreach ($widget_sections as $section)
         @include('admin.reports.partials.kpi-grid', [

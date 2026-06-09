@@ -1,5 +1,7 @@
 import Alpine from 'alpinejs';
 import * as Turbo from '@hotwired/turbo';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 window.Alpine = Alpine;
 window.Turbo = Turbo;
@@ -1169,6 +1171,7 @@ document.addEventListener('alpine:init', () => {
         selected: new Set(),
         tableId: config.tableId ?? null,
         exportFilename: config.exportFilename ?? 'export',
+        brandingLogoUrl: config.brandingLogoUrl ?? null,
 
         _tableRevision: 0,
 
@@ -1263,13 +1266,7 @@ document.addEventListener('alpine:init', () => {
                 return 0;
             }
 
-            return [...table.querySelectorAll('tbody tr')].filter((row) => {
-                if (row.querySelector('[data-empty-state], .erp-empty-state')) {
-                    return false;
-                }
-
-                return row.offsetParent !== null;
-            }).length;
+            return [...table.querySelectorAll('tbody tr')].filter((row) => this.isExportableRow(row)).length;
         },
 
         get showNoResults() {
@@ -1354,7 +1351,7 @@ document.addEventListener('alpine:init', () => {
             table.querySelectorAll('tbody tr[data-row-id]').forEach((row) => {
                 const id = row.dataset.rowId;
                 const checkbox = row.querySelector('input[type="checkbox"]');
-                const visible = row.offsetParent !== null;
+                const visible = this.isExportableRow(row);
 
                 if (!visible || !checkbox) {
                     return;
@@ -1373,10 +1370,6 @@ document.addEventListener('alpine:init', () => {
         },
 
         exportTable(format = 'csv') {
-            if (format !== 'csv') {
-                return;
-            }
-
             this.exportOpen = false;
 
             const table = this.tableId
@@ -1421,20 +1414,65 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
+            const suffix = dataRowCount === 0 ? '-headers-only' : '';
+            const baseName = `${this.exportFilename}${suffix}`;
+
+            if (format === 'excel') {
+                let html = '\uFEFF<table border="1"><thead><tr>';
+                html += headers.map((header) => `<th>${this.escapeHtml(header)}</th>`).join('');
+                html += '</tr></thead><tbody>';
+                rows.slice(headers.length ? 1 : 0).forEach((row) => {
+                    html += '<tr>';
+                    html += row.map((cell) => `<td>${this.escapeHtml(cell)}</td>`).join('');
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                this.downloadBlob(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' }), `${baseName}.xls`);
+
+                return;
+            }
+
+            if (format === 'pdf') {
+                this.exportTablePdf(headers, rows.slice(headers.length ? 1 : 0), baseName);
+
+                return;
+            }
+
             const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
+            this.downloadBlob(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `${baseName}.csv`);
+        },
+
+        escapeHtml(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        },
+
+        downloadBlob(blob, filename) {
             const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
             link.href = url;
-            link.download = `${this.exportFilename}${dataRowCount === 0 ? '-headers-only' : ''}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
+            link.download = filename;
+            link.style.display = 'none';
+            link.setAttribute('data-turbo', 'false');
+            (document.body ?? document.documentElement).appendChild(link);
+
+            if (typeof link.click === 'function') {
+                link.click();
+            } else {
+                link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+            }
+
+            window.setTimeout(() => {
+                link.remove();
+                URL.revokeObjectURL(url);
+            }, 100);
         },
 
         isExportableRow(row) {
-            if (row.offsetParent === null || row.hidden) {
+            if (! row || row.hidden) {
                 return false;
             }
 
@@ -1442,7 +1480,75 @@ document.addEventListener('alpine:init', () => {
                 return false;
             }
 
-            return true;
+            if (row.querySelectorAll('td').length === 0) {
+                return false;
+            }
+
+            const style = window.getComputedStyle(row);
+
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        },
+
+        async exportTablePdf(headers, bodyRows, baseName) {
+            const landscape = headers.length > 5;
+            const doc = new jsPDF({
+                orientation: landscape ? 'landscape' : 'portrait',
+                unit: 'pt',
+                format: 'a4',
+            });
+            let startY = 48;
+
+            if (this.brandingLogoUrl) {
+                try {
+                    const logo = await this.loadLogoForPdf(this.brandingLogoUrl);
+                    const maxWidth = 140;
+                    const maxHeight = 48;
+                    const scale = Math.min(maxWidth / logo.width, maxHeight / logo.height, 1);
+                    const width = logo.width * scale;
+                    const height = logo.height * scale;
+                    const pageWidth = doc.internal.pageSize.getWidth();
+
+                    doc.addImage(logo.dataUrl, 'PNG', (pageWidth - width) / 2, 24, width, height);
+                    startY = 24 + height + 22;
+                } catch {
+                    // Continue without logo when it cannot be loaded.
+                }
+            }
+
+            doc.setFontSize(13);
+            doc.text(this.exportFilename, 40, startY);
+            startY += 18;
+
+            autoTable(doc, {
+                startY,
+                head: headers.length ? [headers] : undefined,
+                body: bodyRows,
+                styles: { fontSize: 8, cellPadding: 4 },
+                headStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59] },
+            });
+
+            doc.save(`${baseName}.pdf`);
+        },
+
+        loadLogoForPdf(url) {
+            return new Promise((resolve, reject) => {
+                const image = new Image();
+                image.crossOrigin = 'anonymous';
+                image.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.naturalWidth;
+                    canvas.height = image.naturalHeight;
+                    canvas.getContext('2d').drawImage(image, 0, 0);
+
+                    resolve({
+                        dataUrl: canvas.toDataURL('image/png'),
+                        width: image.naturalWidth,
+                        height: image.naturalHeight,
+                    });
+                };
+                image.onerror = () => reject(new Error('Logo failed to load'));
+                image.src = url;
+            });
         },
 
         exportSelected() {
@@ -3167,6 +3273,49 @@ document.addEventListener('alpine:init', () => {
         closeDrawer() {
             this.drawerOpen = false;
             this.detail = null;
+        },
+    }));
+
+    Alpine.data('erpIndexFilterForm', () => ({
+        debounceTimer: null,
+
+        init() {
+            this.$el.querySelectorAll('input[type="search"], input[data-erp-auto-search]').forEach((input) => {
+                input.addEventListener('input', () => {
+                    clearTimeout(this.debounceTimer);
+                    this.debounceTimer = setTimeout(() => this.submitForm(), 400);
+                });
+
+                input.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        clearTimeout(this.debounceTimer);
+                        this.submitForm();
+                    }
+                });
+            });
+        },
+
+        onFieldChange(event) {
+            const element = event.target;
+
+            if (! element?.name) {
+                return;
+            }
+
+            if (element.type === 'checkbox' || element.tagName === 'SELECT' || element.type === 'date' || element.type === 'datetime-local') {
+                this.submitForm();
+            }
+        },
+
+        submitForm() {
+            this.$el.querySelectorAll('input[name="page"]').forEach((input) => input.remove());
+
+            if (typeof this.$el.requestSubmit === 'function') {
+                this.$el.requestSubmit();
+            } else {
+                this.$el.submit();
+            }
         },
     }));
 

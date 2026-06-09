@@ -1,17 +1,13 @@
-@props(['can_export', 'filters', 'schedule_frequencies'])
+@props(['can_export', 'filters', 'schedule_frequencies' => null])
 
-@if ($can_export)
-    <div class="flex flex-wrap items-center gap-2">
-        @foreach (['csv' => 'CSV', 'excel' => 'Excel', 'pdf' => 'PDF'] as $format => $label)
-            <form method="POST" action="{{ route('admin.reports.production.export', $filters) }}">
-                @csrf
-                <input type="hidden" name="format" value="{{ $format }}">
-                <button type="submit" class="erp-btn-secondary text-xs">
-                    {{ __('Export :format', ['format' => $label]) }}
-                </button>
-            </form>
-        @endforeach
+<div class="flex flex-wrap items-center gap-2">
+    <x-admin.export-dropdown
+        :post-action="route('admin.reports.production.export', $filters)"
+        :post-fields="$filters"
+        :can-export="$can_export"
+    />
 
+    @if ($can_export && $schedule_frequencies)
         <details class="relative">
             <summary class="erp-btn-secondary cursor-pointer text-xs list-none">{{ __('Schedule Export') }}</summary>
             <div class="absolute right-0 z-10 mt-2 w-64 rounded-lg border border-erp-border bg-white p-3 shadow-lg">
@@ -42,9 +38,5 @@
         <a href="{{ route('admin.reports.production.print', $filters) }}" target="_blank" class="erp-btn-secondary text-xs">
             {{ __('Print') }}
         </a>
-    </div>
-@else
-    <button type="button" class="erp-btn-secondary opacity-60" disabled title="{{ __('You do not have permission to export reports') }}">
-        {{ __('Export') }}
-    </button>
-@endif
+    @endif
+</div>

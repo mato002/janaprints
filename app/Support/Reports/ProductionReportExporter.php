@@ -2,13 +2,16 @@
 
 namespace App\Support\Reports;
 
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionReportExporter
 {
     public function __construct(
         protected ProductionReportScopeResolver $scopeResolver,
         protected ProductionReportPresenter $presenter,
+        protected TabularExportWriter $writer,
     ) {}
 
     /**
@@ -36,6 +39,19 @@ class ProductionReportExporter
         }
 
         return $rows;
+    }
+
+    public function download(Request $request, string $format): StreamedResponse
+    {
+        $resolved = $this->scopeResolver->resolve($request);
+
+        return $this->writer->downloadRawRows(
+            $format,
+            'production-report-'.now()->format('Y-m-d'),
+            $this->rows($request),
+            __('Production Report'),
+            trim(($resolved['scope']->fromDate ?? '…').' — '.($resolved['scope']->toDate ?? '…')),
+        );
     }
 
     /**

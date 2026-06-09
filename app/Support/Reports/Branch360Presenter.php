@@ -32,6 +32,8 @@ class Branch360Presenter
             'filters' => $resolved['filters'],
             'branches' => $resolved['branches'],
             'can_export' => $resolved['can_export'],
+            'export_route' => 'admin.reports.intelligence360.export',
+            'export_route_params' => ['reportKey' => 'branch'],
             'detail_mode' => $scope->branchId !== null,
             'sections' => $scope->branchId
                 ? [$this->branchDetail($scope)]

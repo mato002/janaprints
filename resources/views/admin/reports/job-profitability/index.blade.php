@@ -1,17 +1,12 @@
 <x-admin-layout :title="__('Job Profitability')" :breadcrumbs="[['label' => __('Reports & Intelligence'), 'url' => route('admin.reports.executive')], ['label' => __('Job Profitability')]]">
     <x-admin.page-header :title="__('Job Profitability')" :description="__('Profitability intelligence from production job costing truth.')" />
 
-    <form method="GET" class="mb-4 flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="erp-label text-xs">{{ __('From') }}</label>
-            <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="erp-input">
-        </div>
-        <div>
-            <label class="erp-label text-xs">{{ __('To') }}</label>
-            <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="erp-input">
-        </div>
-        <button class="erp-btn-secondary">{{ __('Apply') }}</button>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('From') }}">
+            <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('To') }}">
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <x-admin.card>

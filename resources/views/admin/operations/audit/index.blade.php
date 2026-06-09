@@ -34,68 +34,53 @@
             <x-admin.kpi-widget :label="__('Accounting Events')" :value="$metrics['accounting_events']" icon="currency-dollar" />
         </div>
 
-        <form method="GET" action="{{ route('admin.operations.audit.index') }}" class="erp-card mb-4">
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div>
-                    <label class="erp-label">{{ __('Date from') }}</label>
-                    <input type="date" name="date_from" value="{{ $filters['date_from'] }}" class="erp-input w-full text-sm" />
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Date to') }}</label>
-                    <input type="date" name="date_to" value="{{ $filters['date_to'] }}" class="erp-input w-full text-sm" />
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('User') }}</label>
-                    <select name="user_id" class="erp-input w-full text-sm">
-                        <option value="">{{ __('All users') }}</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}" @selected((int) $filters['user_id'] === $user->id)>{{ $user->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Compliance Event') }}</label>
-                    <select name="category" class="erp-input w-full text-sm">
-                        @foreach ($categoryOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['category'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Module') }}</label>
-                    <select name="module" class="erp-input w-full text-sm">
-                        @foreach ($moduleOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['module'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Risk level') }}</label>
-                    <select name="risk_level" class="erp-input w-full text-sm">
-                        @foreach ($riskOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['risk_level'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="md:col-span-2 xl:col-span-2">
-                    <label class="erp-label">{{ __('Search') }}</label>
-                    <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-input w-full text-sm" placeholder="{{ __('Search audit logs…') }}" />
-                </div>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply filters') }}</button>
-                <a href="{{ route('admin.operations.audit.index') }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
+        <x-admin.card :padding="false" class="mb-4">
+            <x-admin.index-toolbar :action="route('admin.operations.audit.index')" :reset-url="route('admin.operations.audit.index')">
                 @if ($canExport)
-                    <div class="ml-auto flex flex-wrap gap-2">
-                        <a :href="exportUrl('csv')" class="erp-btn-secondary text-sm">{{ __('Export CSV') }}</a>
-                        <a :href="exportUrl('excel')" class="erp-btn-secondary text-sm">{{ __('Export Excel') }}</a>
-                        <a :href="exportUrl('pdf')" class="erp-btn-secondary text-sm">{{ __('Export PDF') }}</a>
-                    </div>
+                    <x-slot name="export">
+                        <x-admin.export-dropdown
+                            export-route="admin.operations.audit.export"
+                            :can-export="true"
+                        />
+                    </x-slot>
                 @endif
-            </div>
-        </form>
 
-        <x-admin.data-table :search-placeholder="__('Search audit logs…')" export-filename="audit-logs">
+                <input type="date" name="date_from" value="{{ $filters['date_from'] }}" class="erp-toolbar-input" aria-label="{{ __('Date from') }}">
+                <input type="date" name="date_to" value="{{ $filters['date_to'] }}" class="erp-toolbar-input" aria-label="{{ __('Date to') }}">
+                <select name="user_id" class="erp-toolbar-select" aria-label="{{ __('User') }}">
+                    <option value="">{{ __('All users') }}</option>
+                    @foreach ($users as $user)
+                        <option value="{{ $user->id }}" @selected((int) $filters['user_id'] === $user->id)>{{ $user->name }}</option>
+                    @endforeach
+                </select>
+                <select name="category" class="erp-toolbar-select" aria-label="{{ __('Compliance Event') }}">
+                    @foreach ($categoryOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['category'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select name="module" class="erp-toolbar-select" aria-label="{{ __('Module') }}">
+                    @foreach ($moduleOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['module'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select name="risk_level" class="erp-toolbar-select" aria-label="{{ __('Risk level') }}">
+                    @foreach ($riskOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['risk_level'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <input
+                    type="search"
+                    name="search"
+                    value="{{ $filters['search'] }}"
+                    class="erp-toolbar-input min-w-[12rem] flex-1"
+                    placeholder="{{ __('Search audit logs…') }}"
+                    data-erp-auto-search
+                    aria-label="{{ __('Search') }}"
+                >
+            </x-admin.index-toolbar>
+        </x-admin.card>
+
+        <x-admin.data-table :searchable="false" :exportable="false" export-filename="audit-logs">
             <x-slot name="head">
                 <tr>
                     <th scope="col">{{ __('Timestamp') }}</th>

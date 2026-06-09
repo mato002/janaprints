@@ -16,7 +16,12 @@
     >
         <x-slot name="actions">
             @if ($canExport)
-                <a href="{{ route('admin.master-data.export', array_filter(['category' => $category !== 'all' ? $category : null])) }}" class="erp-btn-secondary">{{ __('Export') }}</a>
+                <x-admin.export-dropdown
+                    export-route="admin.master-data.export"
+                    :export-query="array_filter(['category' => $category !== 'all' ? $category : null, 'search' => $search ?: null])"
+                    :format-in-path="true"
+                    :can-export="true"
+                />
             @endif
             @if ($canCreate)
                 <a href="{{ route('admin.master-data.create', array_filter(['category' => $category !== 'all' ? $category : null])) }}" class="erp-btn-primary">{{ __('Create value') }}</a>
@@ -24,25 +29,22 @@
         </x-slot>
     </x-admin.page-header>
 
-    <form method="GET" action="{{ route('admin.master-data.index') }}" class="mb-4 grid gap-3 lg:grid-cols-4">
-        <div class="lg:col-span-2">
-            <input type="search" name="search" value="{{ $search }}" class="erp-input w-full text-sm" placeholder="{{ __('Search code, name, or description…') }}" />
-        </div>
-        <select name="category" class="erp-input text-sm">
-            <option value="all">{{ __('All categories') }}</option>
-            @foreach ($categories as $option)
-                <option value="{{ $option['value'] }}" @selected($category === $option['value'])>{{ $option['module'] }} · {{ $option['label'] }}</option>
-            @endforeach
-        </select>
-        <div class="flex gap-2">
-            <select name="status" class="erp-input flex-1 text-sm">
-                <option value="all">{{ __('All statuses') }}</option>
-                <option value="active" @selected($status === 'active')>{{ __('Active') }}</option>
-                <option value="inactive" @selected($status === 'inactive')>{{ __('Inactive') }}</option>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.master-data.index')" :reset-url="route('admin.master-data.index')">
+            <input type="search" name="search" value="{{ $search }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search code, name, or description…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="category" class="erp-toolbar-select" aria-label="{{ __('Category') }}">
+                <option value="all">{{ __('All categories') }}</option>
+                @foreach ($categories as $option)
+                    <option value="{{ $option['value'] }}" @selected($category === $option['value'])>{{ $option['module'] }} · {{ $option['label'] }}</option>
+                @endforeach
             </select>
-            <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply') }}</button>
-        </div>
-    </form>
+            <x-admin.status-pills
+                :options="[['value' => 'all', 'label' => __('All statuses')], ['value' => 'active', 'label' => __('Active')], ['value' => 'inactive', 'label' => __('Inactive')]]"
+                param="status"
+                :current="$status"
+            />
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     @if ($canImport)
         <x-admin.card class="mb-4">

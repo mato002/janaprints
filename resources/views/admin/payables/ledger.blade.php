@@ -1,16 +1,16 @@
 <x-admin-layout :title="__('Supplier ledger')">
     <x-admin.page-header :title="__('Supplier ledger')" />
-    <form method="GET" class="mb-4 flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="erp-label">{{ __('Supplier') }}</label>
-            <select name="vendor_id" class="erp-input" required>
+
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.payables.ledger')" :reset-url="route('admin.payables.ledger')">
+            <select name="vendor_id" class="erp-toolbar-select min-w-[12rem]" aria-label="{{ __('Supplier') }}" required>
                 @foreach ($vendors as $v)
                     <option value="{{ $v->id }}" @selected($vendorId == $v->id)>{{ $v->vendor_name }}</option>
                 @endforeach
             </select>
-        </div>
-        <button class="erp-btn-primary">{{ __('Run') }}</button>
-    </form>
+        </x-admin.index-toolbar>
+    </x-admin.card>
+
     @if ($report)
         <x-admin.card>
             <p class="text-sm mb-2">{{ __('Closing balance') }}: <strong class="font-mono">{{ number_format($report['closing_balance'], 2) }}</strong></p>

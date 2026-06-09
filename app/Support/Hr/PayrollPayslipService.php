@@ -3,25 +3,29 @@
 namespace App\Support\Hr;
 
 use App\Models\Hr\PayrollPayslip;
+use App\Support\Export\PdfExportService;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollPayslipService
 {
+    public function __construct(
+        protected PdfExportService $pdfExports,
+    ) {}
+
     public function downloadPdf(PayrollPayslip $payslip): StreamedResponse
     {
         $payslip->load(['employee', 'payrollRun', 'items']);
 
-        $html = view('admin.hr.payroll.payslip-pdf', [
-            'payslip' => $payslip,
-            'generatedAt' => now(),
-        ])->render();
+        $basename = $payslip->reference ?? 'payslip-'.$payslip->id;
 
-        $filename = ($payslip->reference ?? 'payslip-'.$payslip->id).'.html';
-
-        return response()->streamDownload(fn () => print($html), $filename, [
-            'Content-Type' => 'text/html; charset=UTF-8',
-        ]);
+        return $this->pdfExports->downloadHtml(
+            $basename,
+            view('admin.hr.payroll.payslip-pdf', [
+                'payslip' => $payslip,
+                'generatedAt' => now(),
+            ])->render(),
+        );
     }
 
     public function email(PayrollPayslip $payslip): bool

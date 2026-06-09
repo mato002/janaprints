@@ -8,8 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\WorkCenter;
 use App\Services\Production\ProductionSchedulingWorkspaceService;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionSchedulingController extends Controller
 {
@@ -41,5 +43,52 @@ class ProductionSchedulingController extends Controller
             'viewMode' => $viewMode,
             'workspace' => $workspace,
         ]);
+    }
+
+    public function export(Request $request, ProductionSchedulingWorkspaceService $workspace): StreamedResponse
+    {
+        $this->authorize('viewSchedulingWorkspace', ProductionJobCard::class);
+
+        $format = $request->input('format', 'csv');
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
+
+        $jobs = $workspace->exportIndex($request);
+
+        $headers = [
+            __('Job Number'),
+            __('Customer'),
+            __('Work Center'),
+            __('Status'),
+            __('Priority'),
+            __('Planned Start'),
+            __('Planned End'),
+            __('Due Date'),
+        ];
+
+        $rows = $jobs->map(function (ProductionJobCard $job) use ($workspace) {
+            $centers = implode(', ', $workspace->workCenterNames($job));
+            $dueDate = $job->planned_end_date ?? $job->salesOrder?->required_date;
+
+            return [
+                $job->job_card_number,
+                $job->customer?->company_name ?? '',
+                $centers !== '' ? $centers : '',
+                str_replace('_', ' ', ucfirst($job->status->value)),
+                str_replace('_', ' ', ucfirst($job->priority->value)),
+                $job->planned_start_date?->format('Y-m-d') ?? '',
+                $job->planned_end_date?->format('Y-m-d') ?? '',
+                $dueDate?->format('Y-m-d') ?? '',
+            ];
+        });
+
+        return app(TabularExportWriter::class)->download(
+            $format,
+            'production-scheduling-'.now()->format('Y-m-d'),
+            $headers,
+            $rows,
+            __('Production Scheduling'),
+        );
     }
 }

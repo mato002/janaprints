@@ -12,44 +12,28 @@
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    <form method="GET" class="erp-card mb-4">
-        <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div>
-                <label class="erp-label">{{ __('Employee') }}</label>
-                <select name="employee_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['employees'] as $employee)
-                        <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Category') }}</label>
-                <select name="category" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['categories'] as $category)
-                        <option value="{{ $category->value }}" @selected(($filters['category'] ?? '') === $category->value)>{{ $category->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Expiry') }}</label>
-                <select name="expiry" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    <option value="expiring" @selected(($filters['expiry'] ?? '') === 'expiring')>{{ __('Expiring soon') }}</option>
-                    <option value="expired" @selected(($filters['expiry'] ?? '') === 'expired')>{{ __('Expired') }}</option>
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Search') }}</label>
-                <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="erp-input w-full text-sm" placeholder="{{ __('Title or employee…') }}">
-            </div>
-        </div>
-        <div class="mt-3 flex gap-2">
-            <button type="submit" class="erp-btn-primary">{{ __('Filter') }}</button>
-            <a href="{{ route('admin.hr.documents.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-        </div>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.hr.documents.index')" :reset-url="route('admin.hr.documents.index')">
+            <select name="employee_id" class="erp-toolbar-select" aria-label="{{ __('Employee') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($formData['employees'] as $employee)
+                    <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
+                @endforeach
+            </select>
+            <select name="category" class="erp-toolbar-select" aria-label="{{ __('Category') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($formData['categories'] as $category)
+                    <option value="{{ $category->value }}" @selected(($filters['category'] ?? '') === $category->value)>{{ $category->label() }}</option>
+                @endforeach
+            </select>
+            <select name="expiry" class="erp-toolbar-select" aria-label="{{ __('Expiry') }}">
+                <option value="">{{ __('All') }}</option>
+                <option value="expiring" @selected(($filters['expiry'] ?? '') === 'expiring')>{{ __('Expiring soon') }}</option>
+                <option value="expired" @selected(($filters['expiry'] ?? '') === 'expired')>{{ __('Expired') }}</option>
+            </select>
+            <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Title or employee…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.data-table :search-placeholder="__('Search documents…')" export-filename="employee-documents">
         <x-slot name="head">

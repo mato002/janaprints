@@ -12,10 +12,10 @@ return new class extends Migration
         if (! Schema::hasTable('inventory_item_warehouse_reorder_settings')) {
             Schema::create('inventory_item_warehouse_reorder_settings', function (Blueprint $table) {
                 $table->id();
-                $table->foreignId('company_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('branch_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
-                $table->foreignId('inventory_item_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('company_id')->constrained('companies', 'id', 'iiwr_company_id_fk')->cascadeOnDelete();
+                $table->foreignId('branch_id')->constrained('branches', 'id', 'iiwr_branch_id_fk')->cascadeOnDelete();
+                $table->foreignId('warehouse_id')->constrained('warehouses', 'id', 'iiwr_warehouse_id_fk')->cascadeOnDelete();
+                $table->foreignId('inventory_item_id')->constrained('inventory_items', 'id', 'iiwr_item_id_fk')->cascadeOnDelete();
                 $table->decimal('min_level', 12, 3)->default(0);
                 $table->decimal('max_level', 12, 3)->nullable();
                 $table->decimal('reorder_quantity', 12, 3)->default(0);
@@ -43,7 +43,8 @@ return new class extends Migration
                 }
                 if (! Schema::hasColumn('inventory_reorder_alerts', 'source_warehouse_id')) {
                     $table->foreignId('source_warehouse_id')->nullable()->after('replenishment_action')
-                        ->constrained('warehouses')->nullOnDelete();
+                        ->constrained('warehouses', 'id', 'inv_reorder_src_wh_fk')
+                        ->nullOnDelete();
                 }
                 if (! Schema::hasColumn('inventory_reorder_alerts', 'recommended_quantity')) {
                     $table->decimal('recommended_quantity', 12, 3)->default(0)->after('source_warehouse_id');
@@ -105,7 +106,8 @@ return new class extends Migration
                     }
                 }
                 if (Schema::hasColumn('inventory_reorder_alerts', 'source_warehouse_id')) {
-                    $table->dropConstrainedForeignId('source_warehouse_id');
+                    $table->dropForeign('inv_reorder_src_wh_fk');
+                    $table->dropColumn('source_warehouse_id');
                 }
             });
 

@@ -46,34 +46,21 @@
             <x-admin.kpi-widget :label="__('Expired')" :value="$metrics['expired']" icon="exclamation" />
         </div>
 
-        <form method="GET" action="{{ route('admin.operations.backups.index') }}" class="erp-card mb-4">
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div>
-                    <label class="erp-label">{{ __('Type') }}</label>
-                    <select name="type" class="erp-input w-full text-sm">
-                        @foreach ($typeOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['type'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Status') }}</label>
-                    <select name="status" class="erp-input w-full text-sm">
-                        @foreach ($statusOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="md:col-span-2 xl:col-span-2">
-                    <label class="erp-label">{{ __('Search') }}</label>
-                    <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-input w-full text-sm" placeholder="{{ __('Search backups…') }}" />
-                </div>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply filters') }}</button>
-                <a href="{{ route('admin.operations.backups.index') }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
-            </div>
-        </form>
+        <x-admin.card :padding="false" class="mb-4">
+            <x-admin.index-toolbar :action="route('admin.operations.backups.index')" :reset-url="route('admin.operations.backups.index')">
+                <select name="type" class="erp-toolbar-select" aria-label="{{ __('Type') }}">
+                    @foreach ($typeOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['type'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                    @foreach ($statusOptions as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['status'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search backups…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            </x-admin.index-toolbar>
+        </x-admin.card>
 
         <x-admin.data-table :search-placeholder="__('Search backups…')" export-filename="backups">
             <x-slot name="head">

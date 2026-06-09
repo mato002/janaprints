@@ -47,6 +47,9 @@
         <x-admin.data-table
             class="crm-customers__data-grid"
             :search-placeholder="__('Search customers…')"
+            export-route="admin.crm.customers.export"
+            :export-query="request()->query()"
+            :format-in-path="true"
             export-filename="customers"
             :chips="[
                 ['id' => 'all', 'label' => __('All')],

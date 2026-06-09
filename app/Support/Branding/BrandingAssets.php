@@ -83,6 +83,48 @@ class BrandingAssets
         return $this->presentation()['brandingLogoUrl'];
     }
 
+    public function companyDisplayName(): string
+    {
+        return $this->resolveCompany()?->name
+            ?? config('site.local.company_name', config('app.name'));
+    }
+
+    public function logoDataUri(): ?string
+    {
+        $company = $this->resolveCompany();
+
+        if ($company?->logo && Storage::disk(self::DISK)->exists($company->logo)) {
+            return $this->storagePathToDataUri($company->logo);
+        }
+
+        $siteLogo = config('site.local.logo');
+
+        if (is_string($siteLogo) && $siteLogo !== '') {
+            $publicPath = public_path(ltrim($siteLogo, '/'));
+
+            if (is_file($publicPath)) {
+                return $this->filePathToDataUri($publicPath);
+            }
+        }
+
+        return null;
+    }
+
+    protected function storagePathToDataUri(string $path): string
+    {
+        $contents = Storage::disk(self::DISK)->get($path);
+        $mime = Storage::disk(self::DISK)->mimeType($path) ?: 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode($contents);
+    }
+
+    protected function filePathToDataUri(string $path): string
+    {
+        $mime = mime_content_type($path) ?: 'image/png';
+
+        return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($path));
+    }
+
     public function faviconUrl(): string
     {
         return $this->presentation()['brandingFaviconUrl'];

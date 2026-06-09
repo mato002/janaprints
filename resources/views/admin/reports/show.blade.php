@@ -1,63 +1,28 @@
 <x-admin-layout :title="$title">
     <x-admin.page-header :title="$title" :description="$description">
         <x-slot name="actions">
-            @if ($can_export)
-                <button
-                    type="button"
-                    class="erp-btn-secondary"
-                    disabled
-                    title="{{ __('Export will be available in a future release') }}"
-                >
-                    {{ __('Export') }}
-                </button>
-            @else
-                <button
-                    type="button"
-                    class="erp-btn-secondary opacity-60"
-                    disabled
-                    title="{{ __('You do not have permission to export reports') }}"
-                >
-                    {{ __('Export') }}
-                </button>
-            @endif
+            @include('admin.reports.partials.export-button', [
+                'can_export' => $can_export,
+                'export_route' => 'admin.reports.legacy.export',
+                'export_route_params' => ['reportKey' => $key],
+                'format_in_path' => true,
+            ])
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-6">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="text-[11px] text-slate-500" for="from_date">{{ __('From') }}</label>
-                <input
-                    type="date"
-                    id="from_date"
-                    name="from_date"
-                    value="{{ $filters['from_date'] }}"
-                    class="erp-input mt-1"
-                >
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500" for="to_date">{{ __('To') }}</label>
-                <input
-                    type="date"
-                    id="to_date"
-                    name="to_date"
-                    value="{{ $filters['to_date'] }}"
-                    class="erp-input mt-1"
-                >
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500" for="branch_id">{{ __('Branch') }}</label>
-                <select id="branch_id" name="branch_id" class="erp-input mt-1 min-w-[10rem]">
-                    <option value="">{{ __('All branches') }}</option>
-                    @foreach ($branches as $branch)
-                        <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>
-                            {{ $branch->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="erp-btn-primary">{{ __('Apply filters') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-6">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From') }}">
+            <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To') }}">
+            <select id="branch_id" name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                <option value="">{{ __('All branches') }}</option>
+                @foreach ($branches as $branch)
+                    <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>
+                        {{ $branch->name }}
+                    </option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">

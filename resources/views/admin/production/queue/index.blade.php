@@ -21,21 +21,10 @@
         @endforeach
     </div>
 
-    <form method="GET" action="{{ route('admin.production.queue.index') }}" class="mb-4 flex flex-wrap items-end gap-3">
-        <div class="min-w-[10rem] flex-1">
-            <label class="text-xs text-slate-600" for="search">{{ __('Search') }}</label>
-            <input
-                id="search"
-                type="search"
-                name="search"
-                value="{{ $filters['search'] }}"
-                class="erp-input mt-1 w-full text-sm"
-                placeholder="{{ __('Job number or customer…') }}"
-            >
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="status">{{ __('Queue status') }}</label>
-            <select id="status" name="status" class="erp-select mt-1">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.production.queue.index')" :reset-url="route('admin.production.queue.index')">
+            <input id="search" type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Job number or customer…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select id="status" name="status" class="erp-toolbar-select" aria-label="{{ __('Queue status') }}">
                 <option value="">{{ __('All') }}</option>
                 @foreach (App\Enums\ProductionQueueStatus::cases() as $queueStatus)
                     <option value="{{ $queueStatus->value }}" @selected($filters['status'] === $queueStatus->value)>
@@ -44,46 +33,30 @@
                 @endforeach
                 <option value="blocked" @selected($filters['status'] === 'blocked')>{{ __('Blocked (unassigned)') }}</option>
             </select>
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="work_center_id">{{ __('Work center') }}</label>
-            <select id="work_center_id" name="work_center_id" class="erp-select mt-1">
+            <select id="work_center_id" name="work_center_id" class="erp-toolbar-select" aria-label="{{ __('Work center') }}">
                 <option value="">{{ __('All') }}</option>
                 @foreach ($workCenters as $center)
                     <option value="{{ $center->id }}" @selected((string) $filters['work_center_id'] === (string) $center->id)>{{ $center->name }}</option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="operator_id">{{ __('Operator') }}</label>
-            <select id="operator_id" name="operator_id" class="erp-select mt-1">
+            <select id="operator_id" name="operator_id" class="erp-toolbar-select" aria-label="{{ __('Operator') }}">
                 <option value="">{{ __('All Operators') }}</option>
                 <option value="unassigned" @selected($filters['operator_id'] === 'unassigned')>{{ __('Unassigned') }}</option>
                 @foreach ($operators as $operator)
                     <option value="{{ $operator->id }}" @selected((string) $filters['operator_id'] === (string) $operator->id)>{{ $operator->name }}</option>
                 @endforeach
             </select>
-        </div>
-        @if ($stages->isNotEmpty())
-            <div>
-                <label class="text-xs text-slate-600" for="stage_id">{{ __('Stage') }}</label>
-                <select id="stage_id" name="stage_id" class="erp-select mt-1">
+            @if ($stages->isNotEmpty())
+                <select id="stage_id" name="stage_id" class="erp-toolbar-select" aria-label="{{ __('Stage') }}">
                     <option value="">{{ __('All') }}</option>
                     @foreach ($stages as $stage)
                         <option value="{{ $stage->id }}" @selected((string) $filters['stage_id'] === (string) $stage->id)>{{ $stage->name }}</option>
                     @endforeach
                 </select>
-            </div>
-        @endif
-        <div>
-            <label class="text-xs text-slate-600" for="date">{{ __('Updated') }}</label>
-            <input id="date" type="date" name="date" value="{{ $filters['date'] }}" class="erp-input mt-1 text-sm">
-        </div>
-        <x-secondary-button type="submit">{{ __('Filter') }}</x-secondary-button>
-        @if ($filters['status'] || $filters['work_center_id'] || $filters['operator_id'] || $filters['stage_id'] || $filters['date'] || $filters['search'])
-            <a href="{{ route('admin.production.queue.index') }}" class="text-sm text-slate-600 hover:text-erp-primary" data-turbo-frame="erp-main">{{ __('Clear') }}</a>
-        @endif
-    </form>
+            @endif
+            <input id="date" type="date" name="date" value="{{ $filters['date'] }}" class="erp-toolbar-input" aria-label="{{ __('Updated') }}">
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.card :padding="false">
         <div class="border-b border-erp-border px-4 py-3">

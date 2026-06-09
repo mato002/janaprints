@@ -1,36 +1,23 @@
 <x-admin-layout :title="__('General Ledger')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('General Ledger')]]">
     <x-admin.page-header :title="__('General Ledger')" :description="__('Posted journal lines')" />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="text-[11px] text-slate-500">{{ __('Period') }}</label>
-                <select name="period_id" class="erp-input mt-1">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($periods as $period)
-                        <option value="{{ $period->id }}" @selected(($filters['period_id'] ?? null) == $period->id)>{{ $period->code }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500">{{ __('Account') }}</label>
-                <select name="account_id" class="erp-input mt-1">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($accounts as $account)
-                        <option value="{{ $account->id }}" @selected(($filters['account_id'] ?? null) == $account->id)>{{ $account->code }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500">{{ __('From') }}</label>
-                <input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="erp-input mt-1">
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500">{{ __('To') }}</label>
-                <input type="date" name="to_date" value="{{ $filters['to_date'] ?? '' }}" class="erp-input mt-1">
-            </div>
-            <button class="erp-btn-primary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.accounting.ledger.index')" :reset-url="route('admin.accounting.ledger.index')">
+            <select name="period_id" class="erp-toolbar-select" aria-label="{{ __('Period') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($periods as $period)
+                    <option value="{{ $period->id }}" @selected(($filters['period_id'] ?? null) == $period->id)>{{ $period->code }}</option>
+                @endforeach
+            </select>
+            <select name="account_id" class="erp-toolbar-select" aria-label="{{ __('Account') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($accounts as $account)
+                    <option value="{{ $account->id }}" @selected(($filters['account_id'] ?? null) == $account->id)>{{ $account->code }}</option>
+                @endforeach
+            </select>
+            <input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
+            <input type="date" name="to_date" value="{{ $filters['to_date'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.data-table>

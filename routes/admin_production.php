@@ -35,6 +35,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:production.scheduling.view')->group(function () {
             Route::get('scheduling', [ProductionSchedulingController::class, 'index'])->name('scheduling.index');
+            Route::get('scheduling/export', [ProductionSchedulingController::class, 'export'])->name('scheduling.export');
         });
 
         Route::middleware('permission:production.quality.view')->group(function () {

@@ -27,8 +27,12 @@ class JanaPrintsPostingEngineSeeder extends Seeder
             return;
         }
 
-        if (PostingTemplate::query()->where('company_id', $company->id)->exists()) {
-            $this->command?->warn('Posting engine already seeded for JANA.');
+        if (PostingRule::query()
+            ->where('company_id', $company->id)
+            ->where('event_code', PostingEventCode::InvoicePosted->value)
+            ->where('is_active', true)
+            ->exists()) {
+            app(SupplierPayablesPostingSeeder::class)->run();
 
             return;
         }
@@ -232,45 +236,52 @@ class JanaPrintsPostingEngineSeeder extends Seeder
         ];
 
         foreach ($definitions as $code => $def) {
-            $template = PostingTemplate::query()->create([
-                'company_id' => $companyId,
-                'code' => $code,
-                'name' => $def['name'],
-                'module' => $def['module'],
-                'description' => __('System posting template for :name', ['name' => $def['name']]),
-                'is_active' => true,
-                'is_system' => true,
-            ]);
+            $template = PostingTemplate::query()->firstOrCreate(
+                ['company_id' => $companyId, 'code' => $code],
+                [
+                    'name' => $def['name'],
+                    'module' => $def['module'],
+                    'description' => __('System posting template for :name', ['name' => $def['name']]),
+                    'is_active' => true,
+                    'is_system' => true,
+                ],
+            );
 
-            if (($def['lines'] ?? null) === 'payment_received_split') {
-                $this->seedPaymentReceivedTemplateLines($template->id);
-            } else {
-                foreach ($def['lines'] as $index => [$side, $accountKey, $amountSource]) {
-                    PostingTemplateLine::query()->create([
-                        'posting_template_id' => $template->id,
-                        'line_number' => $index + 1,
-                        'entry_side' => $side === 'debit' ? PostingLineSide::Debit : PostingLineSide::Credit,
-                        'account_resolver' => PostingAccountResolver::AccountKey,
-                        'account_key' => $accountKey,
-                        'amount_source' => $amountSource,
-                        'line_description' => ':description',
-                    ]);
+            if ($template->wasRecentlyCreated) {
+                if (($def['lines'] ?? null) === 'payment_received_split') {
+                    $this->seedPaymentReceivedTemplateLines($template->id);
+                } else {
+                    foreach ($def['lines'] as $index => [$side, $accountKey, $amountSource]) {
+                        PostingTemplateLine::query()->create([
+                            'posting_template_id' => $template->id,
+                            'line_number' => $index + 1,
+                            'entry_side' => $side === 'debit' ? PostingLineSide::Debit : PostingLineSide::Credit,
+                            'account_resolver' => PostingAccountResolver::AccountKey,
+                            'account_key' => $accountKey,
+                            'amount_source' => $amountSource,
+                            'line_description' => ':description',
+                        ]);
+                    }
                 }
             }
 
             foreach ($def['events'] as $event) {
-                PostingRule::query()->create([
-                    'company_id' => $companyId,
-                    'event_code' => $event->value,
-                    'module' => $event->module(),
-                    'posting_template_id' => $template->id,
-                    'name' => $event->label(),
-                    'description' => __('Auto-posting rule for :event', ['event' => $event->label()]),
-                    'priority' => 100,
-                    'is_active' => true,
-                    'auto_post' => true,
-                    'is_system' => true,
-                ]);
+                PostingRule::query()->updateOrCreate(
+                    [
+                        'company_id' => $companyId,
+                        'event_code' => $event->value,
+                    ],
+                    [
+                        'module' => $event->module(),
+                        'posting_template_id' => $template->id,
+                        'name' => $event->label(),
+                        'description' => __('Auto-posting rule for :event', ['event' => $event->label()]),
+                        'priority' => 100,
+                        'is_active' => true,
+                        'auto_post' => true,
+                        'is_system' => true,
+                    ],
+                );
             }
         }
 

@@ -41,30 +41,23 @@
     </x-admin.card>
 @elseif (($tab_data['type'] ?? '') === 'top_customers')
     <x-admin.card class="mb-6">
-        <form method="GET" action="{{ route('commercial.reports.sales.index') }}" class="mb-4 flex flex-wrap items-end gap-3" data-turbo-frame="erp-main">
+        <form method="GET" action="{{ route('commercial.reports.sales.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2" data-turbo-frame="erp-main">
             @foreach (collect($filters)->except(['top_limit', 'top_by', 'page']) as $key => $value)
                 @if ($value !== null && $value !== '')
                     <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                 @endif
             @endforeach
             <input type="hidden" name="tab" value="top_customers">
-            <div>
-                <label class="text-[11px] text-slate-500" for="top_limit">{{ __('Show top') }}</label>
-                <select id="top_limit" name="top_limit" class="erp-input mt-1">
-                    @foreach ([10, 25, 50] as $limit)
-                        <option value="{{ $limit }}" @selected(($filters['top_limit'] ?? 10) == $limit)>{{ $limit }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500" for="top_by">{{ __('Rank by') }}</label>
-                <select id="top_by" name="top_by" class="erp-input mt-1">
-                    <option value="revenue" @selected(($filters['top_by'] ?? 'revenue') === 'revenue')>{{ __('Revenue') }}</option>
-                    <option value="orders" @selected(($filters['top_by'] ?? '') === 'orders')>{{ __('Orders') }}</option>
-                    <option value="lifetime" @selected(($filters['top_by'] ?? '') === 'lifetime')>{{ __('Lifetime Value') }}</option>
-                </select>
-            </div>
-            <button type="submit" class="erp-btn-primary">{{ __('Apply') }}</button>
+            <select id="top_limit" name="top_limit" class="erp-toolbar-select" aria-label="{{ __('Show top') }}">
+                @foreach ([10, 25, 50] as $limit)
+                    <option value="{{ $limit }}" @selected(($filters['top_limit'] ?? 10) == $limit)>{{ $limit }}</option>
+                @endforeach
+            </select>
+            <select id="top_by" name="top_by" class="erp-toolbar-select" aria-label="{{ __('Rank by') }}">
+                <option value="revenue" @selected(($filters['top_by'] ?? 'revenue') === 'revenue')>{{ __('Revenue') }}</option>
+                <option value="orders" @selected(($filters['top_by'] ?? '') === 'orders')>{{ __('Orders') }}</option>
+                <option value="lifetime" @selected(($filters['top_by'] ?? '') === 'lifetime')>{{ __('Lifetime Value') }}</option>
+            </select>
         </form>
 
         @include('admin.commercial.reports.sales.partials.simple-table', [

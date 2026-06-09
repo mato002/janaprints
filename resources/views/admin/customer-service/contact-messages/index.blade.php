@@ -18,22 +18,18 @@
         <x-admin.kpi-widget :label="__('New quotes today')" :value="$stats['new_quote_requests']" icon="sparkles" />
     </div>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" action="{{ route('admin.public-contact-messages.index') }}" class="grid grid-cols-1 gap-3 p-4 md:grid-cols-3 lg:grid-cols-5">
-            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-input text-sm lg:col-span-2" placeholder="{{ __('Search name, company, phone, email, subject…') }}">
-            <select name="status" class="erp-input text-sm">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.public-contact-messages.index')" :reset-url="route('admin.public-contact-messages.index')">
+            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search name, company, phone, email, subject…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>
                 @foreach (App\Enums\PublicContactMessageStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
                 @endforeach
             </select>
-            <input type="date" name="date_from" class="erp-input text-sm" value="{{ $filters['date_from'] ?? '' }}">
-            <input type="date" name="date_to" class="erp-input text-sm" value="{{ $filters['date_to'] ?? '' }}">
-            <div class="flex gap-2 lg:col-span-5">
-                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-                <a href="{{ route('admin.public-contact-messages.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-            </div>
-        </form>
+            <input type="date" name="date_from" class="erp-toolbar-input" value="{{ $filters['date_from'] ?? '' }}" aria-label="{{ __('From date') }}">
+            <input type="date" name="date_to" class="erp-toolbar-input" value="{{ $filters['date_to'] ?? '' }}" aria-label="{{ __('To date') }}">
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

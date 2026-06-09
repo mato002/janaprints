@@ -215,11 +215,14 @@ class PosSessionShiftControlTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.pos.sessions.export', $session))
-            ->assertOk()
+        $response = $this->actingAs($user)
+            ->get(route('admin.commercial.pos.sessions.export', $session));
+
+        $response->assertOk()
             ->assertHeader('content-disposition')
-            ->assertSee($session->session_number, false);
+            ->assertHeader('content-type', 'application/pdf');
+
+        $this->assertStringStartsWith('%PDF', $response->streamedContent());
     }
 
     public function test_dashboard_shows_session_widget(): void

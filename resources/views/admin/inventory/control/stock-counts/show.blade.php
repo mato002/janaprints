@@ -12,7 +12,11 @@
         @can('update', $count)
             <a href="{{ route('admin.inventory.stock-counts.worksheet', $count) }}" class="erp-btn-secondary">{{ __('Worksheet') }}</a>
         @endcan
-        <a href="{{ route('admin.inventory.stock-counts.export', $count) }}" class="erp-btn-secondary">{{ __('Export CSV') }}</a>
+        <x-admin.export-dropdown
+            export-route="admin.inventory.stock-counts.export"
+            :export-route-params="['stockCount' => $count]"
+            :format-in-path="true"
+        />
         @can('submit', $count)
             <form method="POST" action="{{ route('admin.inventory.stock-counts.submit', $count) }}">@csrf<button class="erp-btn-primary">{{ __('Submit') }}</button></form>
         @endcan

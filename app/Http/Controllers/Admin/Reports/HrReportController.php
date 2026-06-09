@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin\Reports;
 use App\Http\Controllers\Controller;
 use App\Support\Reports\HrReportExporter;
 use App\Support\Reports\HrReportPresenter;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -37,7 +36,7 @@ class HrReportController extends Controller
         return view('admin.reports.hr.print', $this->presenter->present($request));
     }
 
-    public function export(Request $request): StreamedResponse|RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless(
             $request->user()?->can('hr.reports.export') || $request->user()?->can('reports.export'),
@@ -49,30 +48,6 @@ class HrReportController extends Controller
             $format = 'csv';
         }
 
-        if ($format === 'pdf') {
-            return redirect()->route('admin.reports.hr.print', $request->query());
-        }
-
-        $rows = $this->exporter->rows($request);
-        $extension = $format === 'excel' ? 'xls' : 'csv';
-        $mime = $format === 'excel'
-            ? 'application/vnd.ms-excel'
-            : 'text/csv';
-
-        return response()->streamDownload(function () use ($rows, $format) {
-            $out = fopen('php://output', 'w');
-
-            if ($format === 'excel') {
-                fwrite($out, "\xEF\xBB\xBF");
-            }
-
-            foreach ($rows as $row) {
-                fputcsv($out, $row);
-            }
-
-            fclose($out);
-        }, 'hr-report-'.now()->format('Y-m-d').'.'.$extension, [
-            'Content-Type' => $mime,
-        ]);
+        return $this->exporter->download($request, $format);
     }
 }

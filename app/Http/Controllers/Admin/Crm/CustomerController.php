@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CustomerController extends Controller
 {
@@ -38,6 +39,53 @@ class CustomerController extends Controller
         )->latest()->paginate(15);
 
         return view('admin.crm.customers.index', compact('customers'));
+    }
+
+    public function export(Request $request, string $format = 'csv'): StreamedResponse
+    {
+        $this->authorize('viewAny', Customer::class);
+
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
+
+        $query = $this->scopeToTenant(
+            Customer::query()->with('branch')
+        );
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->string('search')->toString();
+            $query->where(function ($builder) use ($search) {
+                $builder->where('company_name', 'like', "%{$search}%")
+                    ->orWhere('customer_code', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $customers = $query->orderByDesc('created_at')->get();
+
+        $headers = [__('Customer'), __('Code'), __('Branch'), __('Phone'), __('Email'), __('Status')];
+        $rows = $customers->map(fn (Customer $customer) => [
+            $customer->company_name,
+            $customer->customer_code,
+            $customer->branch?->name ?? '',
+            $customer->phone ?? '',
+            $customer->email ?? '',
+            $customer->status?->value ?? '',
+        ])->all();
+
+        return app(\App\Support\Export\TabularExportWriter::class)->download(
+            $format,
+            'customers-'.now()->format('Y-m-d'),
+            $headers,
+            $rows,
+            __('Customers'),
+        );
     }
 
     public function create(): View

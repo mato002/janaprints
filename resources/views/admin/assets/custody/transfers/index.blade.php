@@ -7,19 +7,15 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="erp-label">{{ __('Status') }}</label>
-                <select name="status" class="erp-select">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

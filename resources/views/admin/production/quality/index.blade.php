@@ -21,21 +21,10 @@
         @endforeach
     </div>
 
-    <form method="GET" action="{{ route('admin.production.quality.index') }}" class="mb-4 flex flex-wrap items-end gap-3">
-        <div class="min-w-[10rem] flex-1">
-            <label class="text-xs text-slate-600" for="search">{{ __('Search') }}</label>
-            <input
-                id="search"
-                type="search"
-                name="search"
-                value="{{ $filters['search'] }}"
-                class="erp-input mt-1 w-full text-sm"
-                placeholder="{{ __('Job, customer, inspector…') }}"
-            >
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="status">{{ __('Status') }}</label>
-            <select id="status" name="status" class="erp-select mt-1">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.production.quality.index')" :reset-url="route('admin.production.quality.index')">
+            <input id="search" type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Job, customer, inspector…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select id="status" name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All results') }}</option>
                 <option value="pending" @selected($filters['status'] === 'pending')>{{ __('Pending inspection') }}</option>
                 @foreach (App\Enums\QualityCheckResult::cases() as $result)
@@ -44,22 +33,9 @@
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="date">{{ __('Date') }}</label>
-            <input
-                id="date"
-                type="date"
-                name="date"
-                value="{{ $showingPending ? '' : $filters['date'] }}"
-                class="erp-input mt-1 text-sm"
-                @disabled($showingPending)
-            >
-        </div>
-        @if ($inspectors->isNotEmpty())
-            <div>
-                <label class="text-xs text-slate-600" for="inspector">{{ __('Inspector') }}</label>
-                <select id="inspector" name="inspector" class="erp-select mt-1" @disabled($showingPending)>
+            <input id="date" type="date" name="date" value="{{ $showingPending ? '' : $filters['date'] }}" class="erp-toolbar-input" aria-label="{{ __('Date') }}" @disabled($showingPending)>
+            @if ($inspectors->isNotEmpty())
+                <select id="inspector" name="inspector" class="erp-toolbar-select" aria-label="{{ __('Inspector') }}" @disabled($showingPending)>
                     <option value="">{{ __('All inspectors') }}</option>
                     @foreach ($inspectors as $inspector)
                         <option value="{{ $inspector->id }}" @selected((string) $filters['inspector'] === (string) $inspector->id)>
@@ -67,13 +43,9 @@
                         </option>
                     @endforeach
                 </select>
-            </div>
-        @endif
-        <x-secondary-button type="submit">{{ __('Filter') }}</x-secondary-button>
-        @if ($filters['status'] || $filters['date'] || $filters['inspector'] || $filters['search'])
-            <a href="{{ route('admin.production.quality.index') }}" class="text-sm text-slate-600 hover:text-erp-primary">{{ __('Clear') }}</a>
-        @endif
-    </form>
+            @endif
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.card>
         <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Inspection Register') }}</h2>

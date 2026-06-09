@@ -47,31 +47,7 @@ class ProductionReportController extends Controller
             $format = 'csv';
         }
 
-        if ($format === 'pdf') {
-            return redirect()->route('admin.reports.production.print', $request->query());
-        }
-
-        $rows = $this->exporter->rows($request);
-        $extension = $format === 'excel' ? 'xls' : 'csv';
-        $mime = $format === 'excel'
-            ? 'application/vnd.ms-excel'
-            : 'text/csv';
-
-        return response()->streamDownload(function () use ($rows, $format) {
-            $out = fopen('php://output', 'w');
-
-            if ($format === 'excel') {
-                fwrite($out, "\xEF\xBB\xBF");
-            }
-
-            foreach ($rows as $row) {
-                fputcsv($out, $row);
-            }
-
-            fclose($out);
-        }, 'production-report-'.now()->format('Y-m-d').'.'.$extension, [
-            'Content-Type' => $mime,
-        ]);
+        return $this->exporter->download($request, $format);
     }
 
     protected function scheduleExport(Request $request): RedirectResponse

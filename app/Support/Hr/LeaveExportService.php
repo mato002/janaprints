@@ -3,12 +3,14 @@
 namespace App\Support\Hr;
 
 use App\Models\Hr\LeaveRequest;
+use App\Support\Export\PdfExportService;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LeaveExportService
 {
     public function __construct(
         protected LeaveRequestService $leaveRequests,
+        protected PdfExportService $pdfExports,
     ) {}
 
     /**
@@ -76,14 +78,13 @@ class LeaveExportService
     {
         $requests = $this->leaveRequests->exportRows($companyId, $filters);
 
-        $html = view('admin.hr.leave.exports.pdf', [
-            'requests' => $requests,
-            'generatedAt' => now(),
-        ])->render();
-
-        return response()->streamDownload(fn () => print($html), "{$filename}.html", [
-            'Content-Type' => 'text/html; charset=UTF-8',
-        ]);
+        return $this->pdfExports->downloadHtml(
+            $filename,
+            view('admin.hr.leave.exports.pdf', [
+                'requests' => $requests,
+                'generatedAt' => now(),
+            ])->render(),
+        );
     }
 
     /**

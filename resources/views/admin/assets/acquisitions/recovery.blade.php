@@ -9,16 +9,15 @@
     </x-admin.page-header>
 
     <x-admin.card>
-        <form method="GET" class="mb-4 flex flex-wrap gap-2">
-            <input type="search" name="search" value="{{ request('search') }}" class="erp-input" placeholder="{{ __('Search asset…') }}">
-            <select name="status" class="erp-select">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" class="mb-4">
+            <input type="search" name="search" value="{{ request('search') }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search asset…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>
                 @foreach (\App\Enums\AssetAcquisitionAccountingStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
                 @endforeach
             </select>
-            <button class="erp-btn-secondary" type="submit">{{ __('Filter') }}</button>
-        </form>
+        </x-admin.index-toolbar>
 
         <div class="overflow-x-auto">
             <table class="erp-table w-full text-sm">

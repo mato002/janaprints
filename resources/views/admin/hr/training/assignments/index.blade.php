@@ -8,29 +8,22 @@
         </x-slot>
     </x-admin.page-header>
 
-    <form method="GET" class="erp-card mb-4">
-        <div class="grid gap-3 md:grid-cols-3">
-            <div>
-                <label class="erp-label">{{ __('Employee') }}</label>
-                <select name="employee_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['employees'] as $employee)
-                        <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Status') }}</label>
-                <select name="status" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($formData['statuses'] as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-        </div>
-        <div class="mt-3"><button type="submit" class="erp-btn-primary">{{ __('Filter') }}</button></div>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <select name="employee_id" class="erp-toolbar-select" aria-label="{{ __('Employee') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($formData['employees'] as $employee)
+                    <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
+                @endforeach
+            </select>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($formData['statuses'] as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.data-table export-filename="training-assignments">
         <x-slot name="head">

@@ -12,46 +12,32 @@
         :search-placeholder="__('Search variances…')"
         :filterable="true"
         export-filename="inventory-variances"
-        :export-csv-url="route('admin.inventory.variances.export', request()->query())"
-        :export-pdf-url="route('admin.inventory.variances.export-pdf', request()->query())"
+        export-route="admin.inventory.variances.export"
+        :export-query="request()->query()"
+        :format-in-path="true"
     >
         <x-slot name="filters">
-            <form method="GET" class="flex flex-wrap gap-3 items-end mb-4">
-                <div>
-                    <label class="erp-label text-xs">{{ __('Warehouse') }}</label>
-                    <select name="warehouse_id" class="erp-input">
-                        <option value="">{{ __('All') }}</option>
-                        @foreach ($warehouses as $w)
-                            <option value="{{ $w->id }}" @selected(($filters['warehouse_id'] ?? '') == $w->id)>{{ $w->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs">{{ __('Status') }}</label>
-                    <select name="status" class="erp-input">
-                        <option value="">{{ __('All') }}</option>
-                        @foreach ($statuses as $status)
-                            <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->value }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs">{{ __('Variance') }}</label>
-                    <select name="variance_type" class="erp-input">
-                        <option value="">{{ __('All') }}</option>
-                        <option value="positive" @selected(($filters['variance_type'] ?? '') === 'positive')>{{ __('Positive') }}</option>
-                        <option value="negative" @selected(($filters['variance_type'] ?? '') === 'negative')>{{ __('Negative') }}</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs">{{ __('From') }}</label>
-                    <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="erp-input">
-                </div>
-                <div>
-                    <label class="erp-label text-xs">{{ __('To') }}</label>
-                    <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="erp-input">
-                </div>
-                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
+            <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2">
+                <select name="warehouse_id" class="erp-toolbar-select" aria-label="{{ __('Warehouse') }}">
+                    <option value="">{{ __('All') }}</option>
+                    @foreach ($warehouses as $w)
+                        <option value="{{ $w->id }}" @selected(($filters['warehouse_id'] ?? '') == $w->id)>{{ $w->name }}</option>
+                    @endforeach
+                </select>
+                <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                    <option value="">{{ __('All') }}</option>
+                    @foreach ($statuses as $status)
+                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->value }}</option>
+                    @endforeach
+                </select>
+                <select name="variance_type" class="erp-toolbar-select" aria-label="{{ __('Variance') }}">
+                    <option value="">{{ __('All') }}</option>
+                    <option value="positive" @selected(($filters['variance_type'] ?? '') === 'positive')>{{ __('Positive') }}</option>
+                    <option value="negative" @selected(($filters['variance_type'] ?? '') === 'negative')>{{ __('Negative') }}</option>
+                </select>
+                <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('From') }}">
+                <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('To') }}">
+                <a href="{{ route('admin.inventory.variances.index') }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
             </form>
         </x-slot>
         <x-slot name="head">

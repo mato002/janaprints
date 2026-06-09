@@ -90,9 +90,10 @@ class ReportsIntelligenceActivationTest extends TestCase
             return;
         }
 
-        $response->assertSee(__('Apply filters'), false);
         $response->assertSee(__('All branches'), false);
         $response->assertSee(__('Export'), false);
+        $response->assertSee('erp-index-toolbar', false);
+        $response->assertDontSee(__('Apply filters'), false);
 
         if ($routeName === 'admin.reports.production') {
             $response->assertSee(__('Reporting Catalog'), false);

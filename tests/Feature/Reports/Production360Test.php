@@ -100,7 +100,7 @@ class Production360Test extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production360', ['export' => 'csv']))
+            ->get(route('admin.reports.intelligence360.export', ['reportKey' => 'production', 'format' => 'csv']))
             ->assertForbidden();
     }
 
@@ -111,7 +111,7 @@ class Production360Test extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production360', ['export' => 'csv']))
+            ->get(route('admin.reports.intelligence360.export', ['reportKey' => 'production', 'format' => 'csv']))
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
     }

@@ -11,7 +11,11 @@
 <x-admin-layout :title="__('Worksheet').' — '.$count->count_number" :breadcrumbs="$breadcrumbs">
     <x-admin.page-header :title="__('Count worksheet')">
         <x-admin.enum-status-badge :status="$count->status->value" />
-        <a href="{{ route('admin.inventory.stock-counts.export', $count) }}" class="erp-btn-secondary">{{ __('Export CSV') }}</a>
+        <x-admin.export-dropdown
+            export-route="admin.inventory.stock-counts.export"
+            :export-route-params="['stockCount' => $count]"
+            :format-in-path="true"
+        />
     </x-admin.page-header>
 
     <x-admin.card>

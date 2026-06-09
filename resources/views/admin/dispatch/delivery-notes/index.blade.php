@@ -1,18 +1,15 @@
 <x-admin-layout :title="__('Delivery Notes')" :breadcrumbs="[['label' => __('Dispatch'), 'url' => route('admin.dispatch.dashboard')], ['label' => __('Delivery notes')]]">
     <x-admin.page-header :title="__('Delivery notes')" :description="__('Operational delivery truth — not sales order status.')" />
 
-    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
-        <div>
-            <label class="text-xs text-slate-600" for="status">{{ __('Status') }}</label>
-            <select id="status" name="status" class="erp-select mt-1">
-                <option value="">{{ __('All') }}</option>
-                @foreach (App\Enums\Dispatch\DeliveryNoteStatus::cases() as $status)
-                    <option value="{{ $status->value }}" @selected($filterStatus === $status->value)>{{ $status->label() }}</option>
-                @endforeach
-            </select>
-        </div>
-        <x-secondary-button type="submit">{{ __('Filter') }}</x-secondary-button>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.dispatch.delivery-notes.index')" :reset-url="route('admin.dispatch.delivery-notes.index')" :show-reset="false">
+            <x-admin.status-pills
+                :options="collect(App\Enums\Dispatch\DeliveryNoteStatus::cases())->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()])->prepend(['value' => '', 'label' => __('All')])->all()"
+                param="status"
+                :current="$filterStatus ?? ''"
+            />
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.data-table :searchable="false" :exportable="false">
         <x-slot:head>

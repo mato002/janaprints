@@ -56,7 +56,6 @@ class InventoryReportTest extends TestCase
             ->get(route('admin.inventory.reports.index'))
             ->assertOk()
             ->assertSee(__('Inventory Reports'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Stock On Hand'), false)
             ->assertSee(__('Low Stock'), false);
     }

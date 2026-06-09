@@ -25,6 +25,9 @@ class DatabaseSeeder extends Seeder
             JanaPrintsPosPostingSeeder::class,
             JanaPrintsTaxSeeder::class,
             AssetCategorySeeder::class,
+            MasterDataFoundationSeeder::class,
+            BomFoundationSeeder::class,
+            OperationalDemoSeeder::class,
         ]);
     }
 }

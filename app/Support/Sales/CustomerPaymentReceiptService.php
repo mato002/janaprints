@@ -16,6 +16,7 @@ use App\Models\Sales\CustomerPayment;
 use App\Support\Communications\CommunicationLogService;
 use App\Support\Communications\Sms\SmsCreditService;
 use App\Support\Communications\Sms\SmsProviderGateway;
+use App\Support\Export\PdfExportService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -26,6 +27,7 @@ class CustomerPaymentReceiptService
 {
     public function __construct(
         protected CustomerLedgerService $ledger,
+        protected PdfExportService $pdfExports,
     ) {}
 
     public function assignReceiptNumber(CustomerPayment $payment): CustomerPayment
@@ -96,16 +98,13 @@ class CustomerPaymentReceiptService
     {
         $receipt = $this->build($payment);
 
-        $html = view('admin.sales.payments.receipt-pdf', [
-            'payment' => $payment,
-            'receipt' => $receipt,
-        ])->render();
-
-        $filename = $receipt['receipt_number'].'.html';
-
-        return response()->streamDownload(fn () => print($html), $filename, [
-            'Content-Type' => 'text/html; charset=UTF-8',
-        ]);
+        return $this->pdfExports->downloadHtml(
+            $receipt['receipt_number'],
+            view('admin.sales.payments.receipt-pdf', [
+                'payment' => $payment,
+                'receipt' => $receipt,
+            ])->render(),
+        );
     }
 
     public function sendEmail(CustomerPayment $payment): bool

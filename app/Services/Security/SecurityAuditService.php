@@ -5,6 +5,7 @@ namespace App\Services\Security;
 use App\Enums\SecurityAuditRiskLevel;
 use App\Models\SecurityAuditEvent;
 use App\Models\User;
+use App\Support\Export\PdfExportService;
 use App\Support\Security\UserAgentParser;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -18,6 +19,7 @@ class SecurityAuditService
 {
     public function __construct(
         protected UserAgentParser $userAgentParser,
+        protected PdfExportService $pdfExports,
     ) {}
 
     public function record(
@@ -379,14 +381,14 @@ class SecurityAuditService
             ->limit(500)
             ->get();
 
-        $html = view('admin.security.audit.exports.pdf', [
-            'events' => $events,
-            'generatedAt' => now(),
-            'filters' => $filters,
-        ])->render();
-
-        return response()->streamDownload(fn () => print($html), "{$filename}.html", [
-            'Content-Type' => 'text/html; charset=UTF-8',
-        ]);
+        return $this->pdfExports->downloadHtml(
+            $filename,
+            view('admin.security.audit.exports.pdf', [
+                'events' => $events,
+                'generatedAt' => now(),
+                'filters' => $filters,
+            ])->render(),
+            'landscape',
+        );
     }
 }

@@ -38,7 +38,7 @@ class VarianceExportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.inventory.variances.export'))
+            ->get(route('admin.inventory.variances.export', ['format' => 'csv']))
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
     }
@@ -49,7 +49,7 @@ class VarianceExportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $response = $this->actingAs($user)
-            ->get(route('admin.inventory.variances.export-excel'));
+            ->get(route('admin.inventory.variances.export', ['format' => 'excel']));
 
         $response->assertOk()
             ->assertHeader('content-type', 'application/vnd.ms-excel; charset=UTF-8');
@@ -63,21 +63,14 @@ class VarianceExportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $response = $this->actingAs($user)
-            ->get(route('admin.inventory.variances.export-pdf'));
+            ->get(route('admin.inventory.variances.export', ['format' => 'pdf']));
 
         $response->assertOk()
-            ->assertHeader('content-type', 'text/html; charset=UTF-8');
+            ->assertHeader('content-type', 'application/pdf');
 
         $content = $response->streamedContent();
-        $this->assertStringContainsString('Inventory Variance Report', $content);
-        $this->assertStringContainsString('Variance summary', $content);
-        $this->assertStringContainsString('Detailed variances', $content);
-        $this->assertStringContainsString($item->item_name, $content);
-        $this->assertStringContainsString($item->sku, $content);
-        $this->assertStringContainsString($warehouse->name, $content);
-        $this->assertStringContainsString('Positive variance', $content);
-        $this->assertStringContainsString('Negative variance', $content);
-        $this->assertStringContainsString('Net variance', $content);
+        $this->assertStringStartsWith('%PDF', $content);
+        $this->assertNotEmpty($content);
     }
 
     public function test_exports_do_not_mutate_stock(): void
@@ -87,9 +80,9 @@ class VarianceExportTest extends TestCase
 
         $movementsBefore = InventoryMovement::query()->count();
 
-        $this->actingAs($user)->get(route('admin.inventory.variances.export'))->assertOk();
-        $this->actingAs($user)->get(route('admin.inventory.variances.export-excel'))->assertOk();
-        $this->actingAs($user)->get(route('admin.inventory.variances.export-pdf'))->assertOk();
+        $this->actingAs($user)->get(route('admin.inventory.variances.export', ['format' => 'csv']))->assertOk();
+        $this->actingAs($user)->get(route('admin.inventory.variances.export', ['format' => 'excel']))->assertOk();
+        $this->actingAs($user)->get(route('admin.inventory.variances.export', ['format' => 'pdf']))->assertOk();
 
         $this->assertEquals($movementsBefore, InventoryMovement::query()->count());
     }
@@ -107,7 +100,7 @@ class VarianceExportTest extends TestCase
             'email_verified_at' => now(),
             'is_active' => true,
         ]);
-        Role::findByName('Storekeeper', 'web')->syncPermissions(['inventory.variance.view', 'inventory.variance.export']);
+        Role::findByName('Storekeeper', 'web')->syncPermissions(['inventory.variance.view']);
         $user->assignRole('Storekeeper');
         $this->seed(InventoryFoundationSeeder::class);
 

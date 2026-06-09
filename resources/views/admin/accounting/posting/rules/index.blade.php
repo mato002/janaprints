@@ -75,77 +75,44 @@
         </div>
 
         {{-- Section 9: Filters --}}
-        <form method="GET" action="{{ route('admin.accounting.posting.rules.index') }}" class="erp-card mb-4" data-turbo-frame="erp-main">
-            <div class="flex flex-wrap items-end gap-3">
-                <div class="min-w-[8rem] flex-1">
-                    <label class="erp-label text-xs" for="filter-q">{{ __('Search') }}</label>
-                    <input id="filter-q" type="search" name="q" value="{{ $activeFilters['q'] ?? '' }}" class="erp-input w-full text-sm" placeholder="{{ __('Event, name, template…') }}">
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-module">{{ __('Module') }}</label>
-                    <select id="filter-module" name="module" class="erp-input text-sm">
-                        <option value="">{{ __('All modules') }}</option>
-                        @foreach ($filterOptions['modules'] as $option)
-                            <option value="{{ $option['value'] }}" @selected(($activeFilters['module'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-status">{{ __('Status') }}</label>
-                    <select id="filter-status" name="status" class="erp-input text-sm">
-                        <option value="">{{ __('All statuses') }}</option>
-                        @foreach ($filterOptions['statuses'] as $option)
-                            <option value="{{ $option['value'] }}" @selected(($activeFilters['status'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-auto-post">{{ __('Auto post') }}</label>
-                    <select id="filter-auto-post" name="auto_post" class="erp-input text-sm">
-                        <option value="">{{ __('Any') }}</option>
-                        @foreach ($filterOptions['auto_post'] as $option)
-                            <option value="{{ $option['value'] }}" @selected(($activeFilters['auto_post'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-validation">{{ __('Validation status') }}</label>
-                    <select id="filter-validation" name="validation_status" class="erp-input text-sm">
-                        <option value="">{{ __('Any') }}</option>
-                        @foreach ($filterOptions['validation_statuses'] as $option)
-                            <option value="{{ $option['value'] }}" @selected(($activeFilters['validation_status'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-rule-type">{{ __('Rule type') }}</label>
-                    <select id="filter-rule-type" name="rule_type" class="erp-input text-sm">
-                        <option value="">{{ __('Any') }}</option>
-                        @foreach ($filterOptions['rule_types'] as $option)
-                            <option value="{{ $option['value'] }}" @selected(($activeFilters['rule_type'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-created-from">{{ __('Created from') }}</label>
-                    <input id="filter-created-from" type="date" name="created_from" value="{{ $activeFilters['created_from'] ?? '' }}" class="erp-input text-sm">
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-created-to">{{ __('Created to') }}</label>
-                    <input id="filter-created-to" type="date" name="created_to" value="{{ $activeFilters['created_to'] ?? '' }}" class="erp-input text-sm">
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-updated-from">{{ __('Updated from') }}</label>
-                    <input id="filter-updated-from" type="date" name="updated_from" value="{{ $activeFilters['updated_from'] ?? '' }}" class="erp-input text-sm">
-                </div>
-                <div>
-                    <label class="erp-label text-xs" for="filter-updated-to">{{ __('Updated to') }}</label>
-                    <input id="filter-updated-to" type="date" name="updated_to" value="{{ $activeFilters['updated_to'] ?? '' }}" class="erp-input text-sm">
-                </div>
-                <div class="flex gap-2">
-                    <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply filters') }}</button>
-                    <a href="{{ route('admin.accounting.posting.rules.index') }}" data-turbo-frame="erp-main" class="erp-btn-secondary text-sm">{{ __('Reset') }}</a>
-                </div>
+        <form method="GET" action="{{ route('admin.accounting.posting.rules.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="erp-card mb-4" data-turbo-frame="erp-main">
+            <div class="flex flex-wrap items-center gap-2 p-4">
+                <input id="filter-q" type="search" name="q" value="{{ $activeFilters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Event, name, template…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+                <select id="filter-module" name="module" class="erp-toolbar-select" aria-label="{{ __('Module') }}">
+                    <option value="">{{ __('All modules') }}</option>
+                    @foreach ($filterOptions['modules'] as $option)
+                        <option value="{{ $option['value'] }}" @selected(($activeFilters['module'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
+                    @endforeach
+                </select>
+                <select id="filter-status" name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                    <option value="">{{ __('All statuses') }}</option>
+                    @foreach ($filterOptions['statuses'] as $option)
+                        <option value="{{ $option['value'] }}" @selected(($activeFilters['status'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
+                    @endforeach
+                </select>
+                <select id="filter-auto-post" name="auto_post" class="erp-toolbar-select" aria-label="{{ __('Auto post') }}">
+                    <option value="">{{ __('Any') }}</option>
+                    @foreach ($filterOptions['auto_post'] as $option)
+                        <option value="{{ $option['value'] }}" @selected(($activeFilters['auto_post'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
+                    @endforeach
+                </select>
+                <select id="filter-validation" name="validation_status" class="erp-toolbar-select" aria-label="{{ __('Validation status') }}">
+                    <option value="">{{ __('Any') }}</option>
+                    @foreach ($filterOptions['validation_statuses'] as $option)
+                        <option value="{{ $option['value'] }}" @selected(($activeFilters['validation_status'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
+                    @endforeach
+                </select>
+                <select id="filter-rule-type" name="rule_type" class="erp-toolbar-select" aria-label="{{ __('Rule type') }}">
+                    <option value="">{{ __('Any') }}</option>
+                    @foreach ($filterOptions['rule_types'] as $option)
+                        <option value="{{ $option['value'] }}" @selected(($activeFilters['rule_type'] ?? '') === $option['value'])>{{ $option['label'] }}</option>
+                    @endforeach
+                </select>
+                <input id="filter-created-from" type="date" name="created_from" value="{{ $activeFilters['created_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Created from') }}">
+                <input id="filter-created-to" type="date" name="created_to" value="{{ $activeFilters['created_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Created to') }}">
+                <input id="filter-updated-from" type="date" name="updated_from" value="{{ $activeFilters['updated_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Updated from') }}">
+                <input id="filter-updated-to" type="date" name="updated_to" value="{{ $activeFilters['updated_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Updated to') }}">
+                <a href="{{ route('admin.accounting.posting.rules.index') }}" data-turbo-frame="erp-main" class="erp-btn-ghost py-1 text-xs text-slate-500">{{ __('Reset') }}</a>
             </div>
             @if ($activeFilters !== [])
                 <div class="mt-3 flex flex-wrap gap-1.5">

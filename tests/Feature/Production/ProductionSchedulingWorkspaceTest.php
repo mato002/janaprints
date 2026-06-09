@@ -229,6 +229,31 @@ class ProductionSchedulingWorkspaceTest extends TestCase
             ->assertSee(__('Schedule Register'), false);
     }
 
+    public function test_scheduling_list_view_includes_export_action(): void
+    {
+        [$company, $branch, $user, $job] = $this->schedulingContext();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.scheduling.index'))
+            ->assertOk()
+            ->assertSee(__('Export'), false)
+            ->assertSee(route('admin.production.scheduling.export', ['format' => 'csv']), false);
+    }
+
+    public function test_scheduling_export_downloads_csv(): void
+    {
+        [$company, $branch, $user, $job] = $this->schedulingContext();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.scheduling.export', ['format' => 'csv']))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2: User, 3: ProductionJobCard, 4?: WorkCenter}
      */

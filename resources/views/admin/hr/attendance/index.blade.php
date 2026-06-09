@@ -17,26 +17,11 @@
         'formData' => $formData,
         'statuses' => $statuses,
         'action' => route('admin.hr.attendance.index'),
+        'exportAction' => route('admin.hr.attendance.export'),
+        'canExport' => auth()->user()?->can('export', App\Models\Hr\AttendanceRecord::class) ?? false,
     ])
 
-    @can('export', App\Models\Hr\AttendanceRecord::class)
-        <div class="mb-4 flex flex-wrap gap-2">
-            @foreach (['csv' => __('Export CSV'), 'excel' => __('Export Excel'), 'pdf' => __('Export PDF')] as $format => $label)
-                <form method="POST" action="{{ route('admin.hr.attendance.export') }}">
-                    @csrf
-                    <input type="hidden" name="format" value="{{ $format }}">
-                    @foreach ($filters as $key => $value)
-                        @if ($value !== null && $value !== '')
-                            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                        @endif
-                    @endforeach
-                    <button type="submit" class="erp-btn-secondary">{{ $label }}</button>
-                </form>
-            @endforeach
-        </div>
-    @endcan
-
-    <x-admin.data-table :search-placeholder="__('Search attendance…')" export-filename="attendance-register">
+    <x-admin.data-table :search-placeholder="__('Search attendance…')" export-filename="attendance-register" :exportable="false">
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Employee') }}</th>

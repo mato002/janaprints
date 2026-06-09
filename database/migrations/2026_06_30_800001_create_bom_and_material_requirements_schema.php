@@ -84,7 +84,7 @@ return new class extends Migration
                 $table->foreignId('production_material_requirement_id')
                     ->nullable()
                     ->after('production_job_card_id')
-                    ->constrained('production_material_requirements')
+                    ->constrained('production_material_requirements', 'id', 'pmc_pmr_id_foreign')
                     ->nullOnDelete();
             });
         }
@@ -92,9 +92,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('production_material_consumptions', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('production_material_requirement_id');
-        });
+        if (Schema::hasColumn('production_material_consumptions', 'production_material_requirement_id')) {
+            Schema::table('production_material_consumptions', function (Blueprint $table) {
+                $table->dropForeign('pmc_pmr_id_foreign');
+                $table->dropColumn('production_material_requirement_id');
+            });
+        }
 
         Schema::dropIfExists('production_material_requirements');
         Schema::table('sales_order_items', function (Blueprint $table) {

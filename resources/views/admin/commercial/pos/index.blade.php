@@ -7,23 +7,16 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3 p-4">
-            <div>
-                <label class="text-xs text-slate-500">{{ __('Date') }}</label>
-                <input type="date" name="date" value="{{ $filters['date'] ?? today()->toDateString() }}" class="erp-input mt-1">
-            </div>
-            <div>
-                <label class="text-xs text-slate-500">{{ __('Status') }}</label>
-                <select name="status" class="erp-input mt-1">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach (App\Enums\PosSaleStatus::cases() as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ ucfirst($status->value) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <input type="date" name="date" value="{{ $filters['date'] ?? today()->toDateString() }}" class="erp-toolbar-input" aria-label="{{ __('Date') }}">
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach (App\Enums\PosSaleStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ ucfirst($status->value) }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

@@ -68,7 +68,7 @@
                     <td class="tabular-nums">{{ number_format($balance * (float) $line->standard_cost, 2) }}</td>
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.inventory.items.show', $line->id)">{{ __('View item') }}</x-admin.table-row-action>
+                            <x-admin.table-row-action :href="route('admin.inventory.items.show', $line->item_id)">{{ __('View item') }}</x-admin.table-row-action>
                             <x-admin.table-row-action :href="route('admin.inventory.warehouses.show', $line->warehouse_id)">{{ __('View warehouse') }}</x-admin.table-row-action>
                             <x-admin.table-row-action :href="route('admin.inventory.warehouses.balances', $line->warehouse_id)">{{ __('View balances') }}</x-admin.table-row-action>
                             <x-admin.table-row-action :href="route('admin.inventory.movements.index')">{{ __('View movements') }}</x-admin.table-row-action>

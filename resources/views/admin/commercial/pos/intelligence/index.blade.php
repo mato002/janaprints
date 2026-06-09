@@ -10,12 +10,6 @@
 
     @include('admin.commercial.reports.partials.export-status')
 
-    @include('admin.commercial.reports.sales.partials.readiness-table', [
-        'readiness' => $readiness,
-        'report_ready' => $report_ready,
-        'context' => __('POS intelligence'),
-    ])
-
     @include('admin.commercial.pos.intelligence.partials.filters', [
         'filters' => $filters,
         'branches' => $branches,

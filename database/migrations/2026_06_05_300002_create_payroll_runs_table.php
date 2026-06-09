@@ -29,7 +29,7 @@ return new class extends Migration
             $table->timestamp('processed_at')->nullable();
             $table->foreignId('approved_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('approved_at')->nullable();
-            $table->foreignId('posted_journal_id')->nullable()->constrained('journals')->nullOnDelete();
+            $table->unsignedBigInteger('posted_journal_id')->nullable();
             $table->foreignId('posted_by_user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamp('posted_at')->nullable();
             $table->text('notes')->nullable();

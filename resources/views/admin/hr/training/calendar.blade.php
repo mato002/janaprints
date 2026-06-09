@@ -6,17 +6,10 @@
     </x-admin.page-header>
 
     <x-admin.card>
-        <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
-            <div>
-                <label class="text-[11px] text-slate-500" for="month">{{ __('Month') }}</label>
-                <input type="number" id="month" name="month" min="1" max="12" value="{{ $month }}" class="erp-input mt-1 w-20">
-            </div>
-            <div>
-                <label class="text-[11px] text-slate-500" for="year">{{ __('Year') }}</label>
-                <input type="number" id="year" name="year" value="{{ $year }}" class="erp-input mt-1 w-24">
-            </div>
-            <button type="submit" class="erp-btn-primary">{{ __('Apply') }}</button>
-        </form>
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" class="mb-4">
+            <input type="number" id="month" name="month" min="1" max="12" value="{{ $month }}" class="erp-toolbar-input w-20" aria-label="{{ __('Month') }}">
+            <input type="number" id="year" name="year" value="{{ $year }}" class="erp-toolbar-input w-24" aria-label="{{ __('Year') }}">
+        </x-admin.index-toolbar>
 
         <div class="space-y-3">
             @forelse ($programs as $program)

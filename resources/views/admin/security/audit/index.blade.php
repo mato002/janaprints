@@ -34,87 +34,70 @@
             <x-admin.kpi-widget :label="__('High Risk Actions')" :value="$metrics['high_risk_actions']" icon="flag" />
         </div>
 
-        <form method="GET" action="{{ route('admin.security.audit.index') }}" class="erp-card mb-4">
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div>
-                    <label class="erp-label">{{ __('Date from') }}</label>
-                    <input type="date" name="date_from" value="{{ $filters['date_from'] }}" class="erp-input w-full text-sm" />
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Date to') }}</label>
-                    <input type="date" name="date_to" value="{{ $filters['date_to'] }}" class="erp-input w-full text-sm" />
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('User') }}</label>
-                    <select name="user_id" class="erp-input w-full text-sm">
-                        <option value="">{{ __('All users') }}</option>
-                        @foreach ($users as $user)
-                            <option value="{{ $user->id }}" @selected((int) $filters['user_id'] === $user->id)>{{ $user->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Role') }}</label>
-                    <select name="role" class="erp-input w-full text-sm">
-                        <option value="">{{ __('All roles') }}</option>
-                        @foreach ($roles as $role)
-                            <option value="{{ $role }}" @selected($filters['role'] === $role)>{{ $role }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Module') }}</label>
-                    <select name="module" class="erp-input w-full text-sm">
-                        @foreach ($modules as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['module'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Entity') }}</label>
-                    <select name="entity" class="erp-input w-full text-sm">
-                        @foreach ($entities as $value => $label)
-                            <option value="{{ $value }}" @selected($filters['entity'] === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Branch') }}</label>
-                    <select name="branch_id" class="erp-input w-full text-sm">
-                        <option value="all">{{ __('All branches') }}</option>
-                        @foreach ($branches as $branch)
-                            <option value="{{ $branch->id }}" @selected($filters['branch_id'] == $branch->id)>{{ $branch->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Risk level') }}</label>
-                    <select name="risk_level" class="erp-input w-full text-sm">
-                        <option value="all">{{ __('All levels') }}</option>
-                        @foreach (\App\Enums\SecurityAuditRiskLevel::cases() as $level)
-                            <option value="{{ $level->value }}" @selected($filters['risk_level'] === $level->value)>{{ $level->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="md:col-span-2 xl:col-span-4">
-                    <label class="erp-label">{{ __('Search') }}</label>
-                    <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-input w-full text-sm" placeholder="{{ __('Search audit events…') }}" />
-                </div>
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply filters') }}</button>
-                <a href="{{ route('admin.security.audit.index') }}" class="erp-btn-secondary text-sm">{{ __('Reset') }}</a>
+        <x-admin.card :padding="false" class="mb-4">
+            <x-admin.index-toolbar
+                :action="route('admin.security.audit.index')"
+                :reset-url="route('admin.security.audit.index')"
+                compact
+                class="erp-index-toolbar-form--compact erp-index-toolbar-form--dense"
+            >
                 @if ($canExport)
-                    <div class="ml-auto flex flex-wrap gap-2">
-                        <a :href="exportUrl('csv')" class="erp-btn-secondary text-sm">{{ __('Export CSV') }}</a>
-                        <a :href="exportUrl('excel')" class="erp-btn-secondary text-sm">{{ __('Export Excel') }}</a>
-                        <a :href="exportUrl('pdf')" class="erp-btn-secondary text-sm">{{ __('Export PDF') }}</a>
-                    </div>
+                    <x-slot name="export">
+                        <x-admin.export-dropdown
+                            export-route="admin.security.audit.export"
+                            :can-export="true"
+                        />
+                    </x-slot>
                 @endif
-            </div>
-        </form>
 
-        <x-admin.data-table :search-placeholder="__('Search audit events…')" export-filename="access-audit">
+                <input type="date" name="date_from" value="{{ $filters['date_from'] }}" class="erp-toolbar-input" aria-label="{{ __('Date from') }}">
+                <input type="date" name="date_to" value="{{ $filters['date_to'] }}" class="erp-toolbar-input" aria-label="{{ __('Date to') }}">
+                <select name="user_id" class="erp-toolbar-select" aria-label="{{ __('User') }}">
+                    <option value="">{{ __('All users') }}</option>
+                    @foreach ($users as $user)
+                        <option value="{{ $user->id }}" @selected((int) $filters['user_id'] === $user->id)>{{ $user->name }}</option>
+                    @endforeach
+                </select>
+                <select name="role" class="erp-toolbar-select" aria-label="{{ __('Role') }}">
+                    <option value="">{{ __('All roles') }}</option>
+                    @foreach ($roles as $role)
+                        <option value="{{ $role }}" @selected($filters['role'] === $role)>{{ $role }}</option>
+                    @endforeach
+                </select>
+                <select name="module" class="erp-toolbar-select" aria-label="{{ __('Module') }}">
+                    @foreach ($modules as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['module'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select name="entity" class="erp-toolbar-select" aria-label="{{ __('Entity') }}">
+                    @foreach ($entities as $value => $label)
+                        <option value="{{ $value }}" @selected($filters['entity'] === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                <select name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                    <option value="all">{{ __('All branches') }}</option>
+                    @foreach ($branches as $branch)
+                        <option value="{{ $branch->id }}" @selected($filters['branch_id'] == $branch->id)>{{ $branch->name }}</option>
+                    @endforeach
+                </select>
+                <select name="risk_level" class="erp-toolbar-select" aria-label="{{ __('Risk level') }}">
+                    <option value="all">{{ __('All levels') }}</option>
+                    @foreach (\App\Enums\SecurityAuditRiskLevel::cases() as $level)
+                        <option value="{{ $level->value }}" @selected($filters['risk_level'] === $level->value)>{{ $level->label() }}</option>
+                    @endforeach
+                </select>
+                <input
+                    type="search"
+                    name="search"
+                    value="{{ $filters['search'] }}"
+                    class="erp-toolbar-input"
+                    placeholder="{{ __('Search audit events…') }}"
+                    aria-label="{{ __('Search') }}"
+                >
+            </x-admin.index-toolbar>
+        </x-admin.card>
+
+        <x-admin.data-table :searchable="false" :exportable="false" export-filename="access-audit">
             <x-slot name="head">
                 <tr>
                     <th scope="col">{{ __('Timestamp') }}</th>

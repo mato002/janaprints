@@ -29,19 +29,22 @@
         @endforeach
     </div>
 
-    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
-        <input type="hidden" name="month" value="{{ $calendar['month'] }}">
-        <div>
-            <label class="text-xs text-slate-600" for="status">{{ __('Status') }}</label>
-            <select id="status" name="status" class="erp-select mt-1">
-                <option value="">{{ __('All') }}</option>
-                @foreach ($statuses as $status)
-                    <option value="{{ $status->value }}" @selected($filterStatus === $status->value)>{{ $status->label() }}</option>
-                @endforeach
-            </select>
-        </div>
-        <x-secondary-button type="submit">{{ __('Filter') }}</x-secondary-button>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="erp-index-toolbar-form" data-turbo-frame="erp-main">
+            <div class="erp-index-toolbar border-b border-erp-border bg-white px-4 py-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="month" value="{{ $calendar['month'] }}">
+                    <select id="status" name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                        <option value="">{{ __('All') }}</option>
+                        @foreach ($statuses as $status)
+                            <option value="{{ $status->value }}" @selected($filterStatus === $status->value)>{{ $status->label() }}</option>
+                        @endforeach
+                    </select>
+                    <a href="{{ route('admin.dispatch.calendar', ['month' => $calendar['month']]) }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
+                </div>
+            </div>
+        </form>
+    </x-admin.card>
 
     <x-admin.card>
         <div class="mb-4 flex items-center justify-between gap-3">

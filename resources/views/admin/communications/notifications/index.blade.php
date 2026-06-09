@@ -31,63 +31,46 @@
 
         <div class="grid gap-4 xl:grid-cols-12">
             <div class="space-y-4 xl:col-span-8">
-                <form method="GET" action="{{ route('admin.communications.notifications.index') }}" class="erp-card" data-turbo-frame="erp-main">
-                    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                        <div>
-                            <label class="erp-label text-xs">{{ __('Status') }}</label>
-                            <select name="status" class="erp-input w-full">
-                                <option value="">{{ __('All') }}</option>
-                                @foreach (\App\Enums\NotificationReadStatus::cases() as $status)
-                                    <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="erp-label text-xs">{{ __('Priority') }}</label>
-                            <select name="priority" class="erp-input w-full">
-                                <option value="">{{ __('All') }}</option>
-                                @foreach (\App\Enums\NotificationPriority::cases() as $priority)
-                                    <option value="{{ $priority->value }}" @selected(request('priority') === $priority->value)>{{ $priority->label() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        <div>
-                            <label class="erp-label text-xs">{{ __('Type') }}</label>
-                            <select name="type" class="erp-input w-full">
-                                <option value="">{{ __('All') }}</option>
-                                @foreach (\App\Enums\NotificationType::cases() as $type)
-                                    <option value="{{ $type->value }}" @selected(request('type') === $type->value)>{{ $type->label() }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        @if ($users->isNotEmpty())
-                            <div>
-                                <label class="erp-label text-xs">{{ __('User') }}</label>
-                                <select name="user_id" class="erp-input w-full">
-                                    <option value="">{{ __('All users') }}</option>
-                                    @foreach ($users as $user)
-                                        <option value="{{ $user->id }}" @selected((int) request('user_id') === $user->id)>{{ $user->name }}</option>
+                <x-admin.card :padding="false">
+                    <form method="GET" action="{{ route('admin.communications.notifications.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="erp-index-toolbar-form" data-turbo-frame="erp-main">
+                        <div class="erp-index-toolbar border-b border-erp-border bg-white px-4 py-3">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                                    <option value="">{{ __('All') }}</option>
+                                    @foreach (\App\Enums\NotificationReadStatus::cases() as $status)
+                                        <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
                                     @endforeach
                                 </select>
+                                <select name="priority" class="erp-toolbar-select" aria-label="{{ __('Priority') }}">
+                                    <option value="">{{ __('All') }}</option>
+                                    @foreach (\App\Enums\NotificationPriority::cases() as $priority)
+                                        <option value="{{ $priority->value }}" @selected(request('priority') === $priority->value)>{{ $priority->label() }}</option>
+                                    @endforeach
+                                </select>
+                                <select name="type" class="erp-toolbar-select" aria-label="{{ __('Type') }}">
+                                    <option value="">{{ __('All') }}</option>
+                                    @foreach (\App\Enums\NotificationType::cases() as $type)
+                                        <option value="{{ $type->value }}" @selected(request('type') === $type->value)>{{ $type->label() }}</option>
+                                    @endforeach
+                                </select>
+                                @if ($users->isNotEmpty())
+                                    <select name="user_id" class="erp-toolbar-select" aria-label="{{ __('User') }}">
+                                        <option value="">{{ __('All users') }}</option>
+                                        @foreach ($users as $user)
+                                            <option value="{{ $user->id }}" @selected((int) request('user_id') === $user->id)>{{ $user->name }}</option>
+                                        @endforeach
+                                    </select>
+                                @endif
+                                <input type="date" name="date_from" value="{{ request('date_from') }}" class="erp-toolbar-input" aria-label="{{ __('From') }}">
+                                <input type="date" name="date_to" value="{{ request('date_to') }}" class="erp-toolbar-input" aria-label="{{ __('To') }}">
+                                @if (request('view'))
+                                    <input type="hidden" name="view" value="{{ request('view') }}">
+                                @endif
+                                <a href="{{ route('admin.communications.notifications.index') }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
                             </div>
-                        @endif
-                        <div>
-                            <label class="erp-label text-xs">{{ __('From') }}</label>
-                            <input type="date" name="date_from" value="{{ request('date_from') }}" class="erp-input w-full">
                         </div>
-                        <div>
-                            <label class="erp-label text-xs">{{ __('To') }}</label>
-                            <input type="date" name="date_to" value="{{ request('date_to') }}" class="erp-input w-full">
-                        </div>
-                    </div>
-                    @if (request('view'))
-                        <input type="hidden" name="view" value="{{ request('view') }}">
-                    @endif
-                    <div class="mt-3 flex gap-2">
-                        <button type="submit" class="erp-btn erp-btn--primary erp-btn--sm">{{ __('Apply filters') }}</button>
-                        <a href="{{ route('admin.communications.notifications.index') }}" class="erp-btn erp-btn--ghost erp-btn--sm" data-turbo-frame="erp-main">{{ __('Clear') }}</a>
-                    </div>
-                </form>
+                    </form>
+                </x-admin.card>
 
                 <div class="erp-card overflow-hidden p-0">
                     @if ($bootstrap['can']['manage'])

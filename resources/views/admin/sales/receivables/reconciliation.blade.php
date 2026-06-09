@@ -5,13 +5,11 @@
         </x-admin.status-badge>
     </x-admin.page-header>
 
-    <form method="GET" class="mb-6 flex flex-wrap items-end gap-3">
-        <div>
-            <label class="erp-label">{{ __('As of date') }}</label>
-            <input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-input">
-        </div>
-        <button class="erp-btn-secondary">{{ __('Refresh') }}</button>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.sales.receivables.reconciliation')" :reset-url="route('admin.sales.receivables.reconciliation')">
+            <input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-toolbar-input" aria-label="{{ __('As of date') }}">
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.card class="mb-4">
         <h3 class="mb-3 font-medium">{{ __('Reconciliation checks') }}</h3>

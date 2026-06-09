@@ -171,12 +171,16 @@ class MasterDataController extends Controller
         return back()->with('status', __(':count master data row(s) imported.', ['count' => $result['imported']]));
     }
 
-    public function export(Request $request)
+    public function export(Request $request, string $format = 'csv')
     {
         $this->authorize('export', MasterDataValue::class);
 
         $category = $request->string('category')->toString() ?: null;
 
-        return $this->importExport->export($category !== 'all' ? $category : null);
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
+
+        return $this->importExport->export($category !== 'all' ? $category : null, $format);
     }
 }

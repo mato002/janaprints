@@ -2,11 +2,15 @@
     <x-admin.page-header :title="__('Maintenance Technicians')" :description="__('Internal and vendor maintenance technicians.')" />
     @can('create', \App\Models\Assets\MaintenanceTechnician::class)
         <x-admin.card class="mb-4">
-            <form method="POST" action="{{ route('admin.assets.maintenance.technicians.store') }}" class="grid grid-cols-1 gap-3 sm:grid-cols-3">@csrf
-                <input type="text" name="name" class="erp-input" placeholder="{{ __('Name') }}" required>
-                <select name="technician_type" class="erp-select" required><option value="internal">{{ __('Internal') }}</option><option value="external">{{ __('External') }}</option></select>
-                <input type="text" name="specialization" class="erp-input" placeholder="{{ __('Specialization') }}">
-                <button type="submit" class="erp-btn-primary sm:col-span-3">{{ __('Add Technician') }}</button>
+            <form method="POST" action="{{ route('admin.assets.maintenance.technicians.store') }}" class="flex flex-wrap items-end gap-2">
+                @csrf
+                <input type="text" name="name" class="erp-input min-w-[8rem] flex-1" placeholder="{{ __('Name') }}" required>
+                <select name="technician_type" class="erp-select w-auto shrink-0 min-w-[7rem]" required>
+                    <option value="internal">{{ __('Internal') }}</option>
+                    <option value="external">{{ __('External') }}</option>
+                </select>
+                <input type="text" name="specialization" class="erp-input min-w-[8rem] flex-1" placeholder="{{ __('Specialization') }}">
+                <button type="submit" class="erp-btn-primary ml-auto shrink-0">{{ __('Add Technician') }}</button>
             </form>
         </x-admin.card>
     @endcan

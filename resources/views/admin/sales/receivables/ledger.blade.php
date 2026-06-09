@@ -1,20 +1,18 @@
 <x-admin-layout :title="__('Customer ledger')">
     <x-admin.page-header :title="__('Customer ledger')" />
 
-    <form method="GET" class="mb-6 flex flex-wrap gap-3 items-end">
-        <div>
-            <label class="erp-label">{{ __('Customer') }}</label>
-            <select name="customer_id" class="erp-input" onchange="this.form.submit()">
-                <option value="">{{ __('Select') }}</option>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.sales.receivables.ledger')" :reset-url="route('admin.sales.receivables.ledger')">
+            <select name="customer_id" class="erp-toolbar-select min-w-[12rem]" aria-label="{{ __('Customer') }}">
+                <option value="">{{ __('Select customer') }}</option>
                 @foreach ($customers as $c)
                     <option value="{{ $c->id }}" @selected($customerId == $c->id)>{{ $c->company_name }}</option>
                 @endforeach
             </select>
-        </div>
-        <div><label class="erp-label">{{ __('From') }}</label><input type="date" name="from_date" value="{{ request('from_date') }}" class="erp-input"></div>
-        <div><label class="erp-label">{{ __('To') }}</label><input type="date" name="to_date" value="{{ request('to_date') }}" class="erp-input"></div>
-        <button class="erp-btn-secondary">{{ __('Apply') }}</button>
-    </form>
+            <input type="date" name="from_date" value="{{ request('from_date') }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
+            <input type="date" name="to_date" value="{{ request('to_date') }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     @if ($report)
         <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">

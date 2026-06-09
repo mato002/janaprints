@@ -13,27 +13,17 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div class="min-w-[12rem] flex-1">
-                <label class="erp-label">{{ __('Search') }}</label>
-                <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-input w-full" placeholder="{{ __('Name, code, type…') }}">
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Status') }}</label>
-                <select name="status" class="erp-select">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}" @selected($filters['status'] === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Type') }}</label>
-                <input type="text" name="machine_type" value="{{ $filters['machine_type'] }}" class="erp-input" placeholder="{{ __('Offset, Digital…') }}">
-            </div>
-            <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Name, code, type…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->value }}" @selected($filters['status'] === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+            <input type="search" name="machine_type" value="{{ $filters['machine_type'] }}" class="erp-toolbar-input" placeholder="{{ __('Offset, Digital…') }}" aria-label="{{ __('Type') }}" data-erp-auto-search>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

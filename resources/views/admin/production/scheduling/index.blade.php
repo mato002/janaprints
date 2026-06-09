@@ -38,25 +38,28 @@
         </div>
     </div>
 
-    <form method="GET" action="{{ route('admin.production.scheduling.index') }}" class="mb-4 flex flex-wrap items-end gap-3">
-        <input type="hidden" name="view" value="{{ $viewMode }}">
-        @if ($viewMode === 'calendar')
-            <input type="hidden" name="month" value="{{ $filters['month'] }}">
-        @endif
-        <div class="min-w-[10rem] flex-1">
-            <label class="text-xs text-slate-600" for="search">{{ __('Search') }}</label>
-            <input
-                id="search"
-                type="search"
-                name="search"
-                value="{{ $filters['search'] }}"
-                class="erp-input mt-1 w-full text-sm"
-                placeholder="{{ __('Job number or customer…') }}"
-            >
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="status">{{ __('Job Status') }}</label>
-            <select id="status" name="status" class="erp-select mt-1">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar
+            :action="route('admin.production.scheduling.index')"
+            :reset-url="route('admin.production.scheduling.index', ['view' => $viewMode])"
+            compact
+            class="erp-index-toolbar-form--compact"
+        >
+            @if ($viewMode === 'list')
+                <x-slot name="export">
+                    <x-admin.export-dropdown
+                        export-route="admin.production.scheduling.export"
+                        :export-query="request()->query()"
+                    />
+                </x-slot>
+            @endif
+
+            <input type="hidden" name="view" value="{{ $viewMode }}">
+            @if ($viewMode === 'calendar')
+                <input type="hidden" name="month" value="{{ $filters['month'] }}">
+            @endif
+            <input id="search" type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Job number or customer…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select id="status" name="status" class="erp-toolbar-select" aria-label="{{ __('Job Status') }}">
                 <option value="">{{ __('All') }}</option>
                 @foreach ($statuses as $status)
                     <option value="{{ $status->value }}" @selected($filters['status'] === $status->value)>
@@ -64,10 +67,7 @@
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="priority">{{ __('Priority') }}</label>
-            <select id="priority" name="priority" class="erp-select mt-1">
+            <select id="priority" name="priority" class="erp-toolbar-select" aria-label="{{ __('Priority') }}">
                 <option value="">{{ __('All') }}</option>
                 @foreach ($priorities as $priority)
                     <option value="{{ $priority->value }}" @selected($filters['priority'] === $priority->value)>
@@ -75,29 +75,16 @@
                     </option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="work_center_id">{{ __('Work Center') }}</label>
-            <select id="work_center_id" name="work_center_id" class="erp-select mt-1">
+            <select id="work_center_id" name="work_center_id" class="erp-toolbar-select" aria-label="{{ __('Work Center') }}">
                 <option value="">{{ __('All') }}</option>
                 @foreach ($workCenters as $center)
                     <option value="{{ $center->id }}" @selected((string) $filters['work_center_id'] === (string) $center->id)>{{ $center->name }}</option>
                 @endforeach
             </select>
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="date_from">{{ __('From') }}</label>
-            <input id="date_from" type="date" name="date_from" value="{{ $filters['date_from'] }}" class="erp-input mt-1 text-sm">
-        </div>
-        <div>
-            <label class="text-xs text-slate-600" for="date_to">{{ __('To') }}</label>
-            <input id="date_to" type="date" name="date_to" value="{{ $filters['date_to'] }}" class="erp-input mt-1 text-sm">
-        </div>
-        <x-secondary-button type="submit">{{ __('Filter') }}</x-secondary-button>
-        @if ($filters['status'] || $filters['priority'] || $filters['work_center_id'] || $filters['date'] || $filters['date_from'] || $filters['date_to'] || $filters['search'])
-            <a href="{{ route('admin.production.scheduling.index', ['view' => $viewMode]) }}" class="text-sm text-slate-600 hover:text-erp-primary">{{ __('Clear') }}</a>
-        @endif
-    </form>
+            <input id="date_from" type="date" name="date_from" value="{{ $filters['date_from'] }}" class="erp-toolbar-input" aria-label="{{ __('From') }}">
+            <input id="date_to" type="date" name="date_to" value="{{ $filters['date_to'] }}" class="erp-toolbar-input" aria-label="{{ __('To') }}">
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     @if ($viewMode === 'calendar' && $calendar)
         @include('admin.production.scheduling.partials.calendar', ['calendar' => $calendar, 'filters' => $filters])

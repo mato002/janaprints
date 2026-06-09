@@ -30,6 +30,7 @@ class StoreBalanceController extends Controller
             $movement = $movementMap->get("{$warehouse->id}:{$item->id}");
 
             return (object) [
+                'item_id' => $item->id,
                 'warehouse_id' => $warehouse->id,
                 'warehouse_code' => $warehouse->code,
                 'warehouse_name' => $warehouse->name,

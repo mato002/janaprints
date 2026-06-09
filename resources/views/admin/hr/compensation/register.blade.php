@@ -12,39 +12,26 @@
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    <form method="GET" class="erp-card mb-4">
-        <div class="grid gap-3 md:grid-cols-3">
-            <div>
-                <label class="erp-label">{{ __('Branch') }}</label>
-                <select name="branch_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($branches as $branch)
-                        <option value="{{ $branch->id }}" @selected((int) ($filters['branch_id'] ?? 0) === $branch->id)>{{ $branch->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Payroll Group') }}</label>
-                <select name="payroll_group" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($payrollGroups as $group)
-                        <option value="{{ $group->value }}" @selected(($filters['payroll_group'] ?? '') === $group->value)>{{ $group->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Coverage') }}</label>
-                <select name="coverage" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    <option value="missing" @selected(($filters['coverage'] ?? '') === 'missing')>{{ __('Missing compensation') }}</option>
-                </select>
-            </div>
-        </div>
-        <div class="mt-3 flex gap-2">
-            <button type="submit" class="erp-btn-primary">{{ __('Filter') }}</button>
-            <a href="{{ route('admin.hr.compensation.register') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-        </div>
-    </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.hr.compensation.register')" :reset-url="route('admin.hr.compensation.register')">
+            <select name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($branches as $branch)
+                    <option value="{{ $branch->id }}" @selected((int) ($filters['branch_id'] ?? 0) === $branch->id)>{{ $branch->name }}</option>
+                @endforeach
+            </select>
+            <select name="payroll_group" class="erp-toolbar-select" aria-label="{{ __('Payroll Group') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($payrollGroups as $group)
+                    <option value="{{ $group->value }}" @selected(($filters['payroll_group'] ?? '') === $group->value)>{{ $group->label() }}</option>
+                @endforeach
+            </select>
+            <select name="coverage" class="erp-toolbar-select" aria-label="{{ __('Coverage') }}">
+                <option value="">{{ __('All') }}</option>
+                <option value="missing" @selected(($filters['coverage'] ?? '') === 'missing')>{{ __('Missing compensation') }}</option>
+            </select>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.data-table :search-placeholder="__('Search employees…')">
         <x-slot name="head">

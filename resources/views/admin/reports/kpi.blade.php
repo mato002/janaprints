@@ -1,7 +1,11 @@
 <x-admin-layout :title="$title">
     <x-admin.page-header :title="$title" :description="$description">
         <x-slot name="actions">
-            @include('admin.reports.partials.export-button', ['can_export' => $can_export])
+            @include('admin.reports.partials.export-button', [
+                'can_export' => $can_export,
+                'export_route' => 'admin.reports.kpi.export',
+                'format_in_path' => true,
+            ])
         </x-slot>
     </x-admin.page-header>
 

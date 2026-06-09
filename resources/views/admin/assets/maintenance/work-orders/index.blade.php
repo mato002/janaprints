@@ -7,13 +7,22 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div class="min-w-[12rem] flex-1"><label class="erp-label">{{ __('Search') }}</label><input type="search" name="search" value="{{ $filters['search'] }}" class="erp-input w-full"></div>
-            <div><label class="erp-label">{{ __('Status') }}</label><select name="status" class="erp-select"><option value="">{{ __('All') }}</option>@foreach ($statuses as $s)<option value="{{ $s->value }}" @selected($filters['status'] === $s->value)>{{ $s->label() }}</option>@endforeach</select></div>
-            <div><label class="erp-label">{{ __('Priority') }}</label><select name="priority" class="erp-select"><option value="">{{ __('All') }}</option>@foreach ($priorities as $p)<option value="{{ $p->value }}" @selected($filters['priority'] === $p->value)>{{ $p->label() }}</option>@endforeach</select></div>
-            <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <input type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search work orders…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($statuses as $s)
+                    <option value="{{ $s->value }}" @selected($filters['status'] === $s->value)>{{ $s->label() }}</option>
+                @endforeach
+            </select>
+            <select name="priority" class="erp-toolbar-select" aria-label="{{ __('Priority') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($priorities as $p)
+                    <option value="{{ $p->value }}" @selected($filters['priority'] === $p->value)>{{ $p->label() }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

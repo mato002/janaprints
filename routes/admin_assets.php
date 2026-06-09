@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:assets.view')->group(function () {
             Route::get('register', [FixedAssetController::class, 'index'])->name('index');
             Route::get('register/export/{format}', AssetExportController::class)
-                ->where('format', 'csv|excel')
+                ->where('format', 'csv|excel|pdf')
                 ->name('export');
             Route::get('register/{asset}', [FixedAssetController::class, 'show'])->name('show');
             Route::get('register/{asset}/360', [Asset360Controller::class, 'show'])
@@ -166,6 +166,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.return')->group(function () {
+                Route::get('returns/create', [AssetReturnController::class, 'create'])->name('returns.create');
                 Route::post('returns', [AssetReturnController::class, 'store'])->name('returns.store');
             });
 
@@ -247,6 +248,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.writeoff.manage')->group(function () {
+                Route::get('write-offs/create', [AssetWriteOffController::class, 'create'])->name('write-offs.create');
                 Route::post('write-offs', [AssetWriteOffController::class, 'store'])->name('write-offs.store');
                 Route::post('write-offs/{writeOff}/approve', [AssetWriteOffController::class, 'approve'])->name('write-offs.approve');
                 Route::post('write-offs/{writeOff}/post', [AssetWriteOffController::class, 'post'])->name('write-offs.post');

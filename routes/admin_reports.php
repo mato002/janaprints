@@ -9,6 +9,23 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
     ->name('admin.')
     ->group(function () {
         Route::middleware('permission:reports.view')->prefix('reports')->name('reports.')->group(function () {
+            Route::middleware('permission:reports.export')->group(function () {
+                Route::get('{reportKey}/360/export/{format}', [IntelligenceReportController::class, 'exportIntelligence360'])
+                    ->where('format', 'csv|excel|pdf')
+                    ->whereIn('reportKey', ['inventory', 'procurement', 'branch', 'production', 'financial', 'commercial'])
+                    ->name('intelligence360.export');
+                Route::get('executive/export/{format}', [IntelligenceReportController::class, 'exportExecutive'])
+                    ->where('format', 'csv|excel|pdf')
+                    ->name('executive.export');
+                Route::get('kpi/export/{format}', [IntelligenceReportController::class, 'exportKpi'])
+                    ->where('format', 'csv|excel|pdf')
+                    ->name('kpi.export');
+                Route::get('{reportKey}/export/{format}', [IntelligenceReportController::class, 'exportLegacy'])
+                    ->where('format', 'csv|excel|pdf')
+                    ->whereIn('reportKey', ['procurement', 'accounting'])
+                    ->name('legacy.export');
+            });
+
             Route::get('executive', [IntelligenceReportController::class, 'executive'])->name('executive');
             Route::get('commercial', [IntelligenceReportController::class, 'commercial'])->name('commercial');
             Route::get('production', [ProductionReportController::class, 'index'])->name('production');

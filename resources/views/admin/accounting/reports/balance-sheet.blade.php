@@ -1,21 +1,12 @@
 <x-admin-layout :title="__('Balance Sheet')">
     <x-admin.page-header :title="__('Balance Sheet')" :description="__('As of :date — posted journals only', ['date' => $report['as_of_date']])" />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div><label class="erp-label">{{ __('As of date') }}</label><input type="date" name="as_of_date" value="{{ $filters['as_of_date'] }}" class="erp-input" required></div>
-            <div>
-                <label class="erp-label">{{ __('Period cap (optional)') }}</label>
-                <select name="period_id" class="erp-input">
-                    <option value="">{{ __('None') }}</option>
-                    @foreach ($periods as $period)
-                        <option value="{{ $period->id }}" @selected(($filters['period_id'] ?? null) == $period->id)>{{ $period->code }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button class="erp-btn-primary">{{ __('Run report') }}</button>
-        </form>
-    </x-admin.card>
+    @include('admin.accounting.partials.as-of-toolbar', [
+        'action' => route('admin.accounting.reports.balance-sheet'),
+        'resetUrl' => route('admin.accounting.reports.balance-sheet'),
+        'filters' => $filters,
+        'periods' => $periods,
+    ])
 
     <div class="mb-4 grid grid-cols-2 gap-3">
         <x-admin.kpi-widget :label="__('Total assets')" :value="number_format($report['total_assets'], 2)" />

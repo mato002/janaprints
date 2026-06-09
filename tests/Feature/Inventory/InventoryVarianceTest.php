@@ -90,7 +90,7 @@ class InventoryVarianceTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.inventory.variances.export'))
+            ->get(route('admin.inventory.variances.export', ['format' => 'csv']))
             ->assertOk()
             ->assertHeader('content-type', 'text/csv; charset=UTF-8');
     }

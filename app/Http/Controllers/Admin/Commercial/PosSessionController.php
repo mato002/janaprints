@@ -14,11 +14,12 @@ use App\Support\Commercial\PosCashReconciliationService;
 use App\Support\Commercial\PosSessionReadiness;
 use App\Support\Commercial\PosSessionService;
 use App\Support\Commercial\PosSessionVarianceService;
+use App\Support\Export\PdfExportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PosSessionController extends Controller
 {
@@ -29,6 +30,7 @@ class PosSessionController extends Controller
         protected PosSessionReadiness $readiness,
         protected PosCashReconciliationService $reconciliations,
         protected PosSessionVarianceService $variance,
+        protected PdfExportService $pdfExports,
     ) {}
 
     public function index(Request $request): View
@@ -204,25 +206,21 @@ class PosSessionController extends Controller
         ]);
     }
 
-    public function export(PosSession $session): Response
+    public function export(PosSession $session): StreamedResponse
     {
         $this->authorize('export', $session);
 
         $session->load(['cashier', 'branch', 'opener', 'closer', 'varianceApprover']);
         $metrics = $this->sessions->sessionMetrics($session);
 
-        $html = view('admin.commercial.pos.sessions.exports.summary-pdf', [
-            'session' => $session,
-            'metrics' => $metrics,
-            'varianceTolerance' => $this->variance->tolerance(),
-        ])->render();
-
-        $filename = "pos-session-{$session->session_number}.html";
-
-        return response($html, 200, [
-            'Content-Type' => 'text/html; charset=UTF-8',
-            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-        ]);
+        return $this->pdfExports->downloadHtml(
+            "pos-session-{$session->session_number}",
+            view('admin.commercial.pos.sessions.exports.summary-pdf', [
+                'session' => $session,
+                'metrics' => $metrics,
+                'varianceTolerance' => $this->variance->tolerance(),
+            ])->render(),
+        );
     }
 
     public function closeForm(PosSession $session): View

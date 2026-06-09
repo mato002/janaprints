@@ -1,32 +1,7 @@
 <x-admin-layout :title="__('General Ledger Report')">
     <x-admin.page-header :title="__('General Ledger Report')" :description="__('Posted journal lines with running balance')" />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <input type="hidden" name="run" value="1">
-            <div>
-                <label class="erp-label">{{ __('Account') }}</label>
-                <select name="account_id" class="erp-input min-w-[200px]">
-                    <option value="">{{ __('Summary — all accounts') }}</option>
-                    @foreach ($accounts as $account)
-                        <option value="{{ $account->id }}" @selected(($filters['account_id'] ?? null) == $account->id)>{{ $account->code }} — {{ $account->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Period') }}</label>
-                <select name="period_id" class="erp-input">
-                    <option value="">{{ __('Custom') }}</option>
-                    @foreach ($periods as $period)
-                        <option value="{{ $period->id }}" @selected(($filters['period_id'] ?? null) == $period->id)>{{ $period->code }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div><label class="erp-label">{{ __('From') }}</label><input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="erp-input"></div>
-            <div><label class="erp-label">{{ __('To') }}</label><input type="date" name="to_date" value="{{ $filters['to_date'] ?? '' }}" class="erp-input"></div>
-            <button class="erp-btn-primary">{{ __('Run report') }}</button>
-        </form>
-    </x-admin.card>
+    @include('admin.accounting.reports._general-ledger-toolbar')
 
     @if ($report)
         <div class="mb-4">

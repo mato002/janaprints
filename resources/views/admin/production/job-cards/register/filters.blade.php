@@ -16,7 +16,14 @@
         @endforeach
     </nav>
 
-    <form method="GET" action="{{ $indexUrl }}" class="space-y-3">
+    <form
+        method="GET"
+        action="{{ $indexUrl }}"
+        x-data="erpIndexFilterForm()"
+        @change="onFieldChange($event)"
+        class="space-y-3"
+        data-turbo-frame="erp-main"
+    >
         <div class="flex flex-col gap-3 lg:flex-row lg:items-end">
             <div class="min-w-0 flex-1">
                 <label class="mb-1 block text-xs font-medium text-slate-600" for="job-cards-search">{{ __('Quick search') }}</label>
@@ -29,6 +36,7 @@
                         value="{{ $filters['search'] ?? '' }}"
                         class="erp-input w-full py-2 pl-9 text-sm"
                         placeholder="{{ __('Job number, customer, order, product…') }}"
+                        data-erp-auto-search
                     />
                 </div>
             </div>
@@ -67,7 +75,6 @@
                     </div>
                 </div>
 
-                <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply') }}</button>
                 <a href="{{ $indexUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
             </div>
         </div>

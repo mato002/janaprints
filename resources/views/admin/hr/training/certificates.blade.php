@@ -5,16 +5,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <select name="status" class="erp-input">
-                <option value="">{{ __('All certificates') }}</option>
-                <option value="valid" @selected(($filters['status'] ?? '') === 'valid')>{{ __('Valid') }}</option>
-                <option value="expiring" @selected(($filters['status'] ?? '') === 'expiring')>{{ __('Expiring Soon') }}</option>
-                <option value="expired" @selected(($filters['status'] ?? '') === 'expired')>{{ __('Expired') }}</option>
-            </select>
-            <button type="submit" class="erp-btn-primary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <x-admin.status-pills
+                :options="[['value' => '', 'label' => __('All certificates')], ['value' => 'valid', 'label' => __('Valid')], ['value' => 'expiring', 'label' => __('Expiring Soon')], ['value' => 'expired', 'label' => __('Expired')]]"
+                param="status"
+                :current="$filters['status'] ?? ''"
+            />
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.data-table>

@@ -7,12 +7,17 @@ use App\Enums\SecurityAuditRiskLevel;
 use App\Models\SecurityAuditEvent;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use App\Support\Export\PdfExportService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ComplianceAuditService
 {
+    public function __construct(
+        protected PdfExportService $pdfExports,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $filters
      */
@@ -340,16 +345,16 @@ class ComplianceAuditService
             ->limit(500)
             ->get();
 
-        $html = view('admin.operations.audit.exports.pdf', [
-            'events' => $events,
-            'generatedAt' => now(),
-            'filters' => $filters,
-            'auditService' => $this,
-        ])->render();
-
-        return response()->streamDownload(fn () => print($html), "{$filename}.html", [
-            'Content-Type' => 'text/html; charset=UTF-8',
-        ]);
+        return $this->pdfExports->downloadHtml(
+            $filename,
+            view('admin.operations.audit.exports.pdf', [
+                'events' => $events,
+                'generatedAt' => now(),
+                'filters' => $filters,
+                'auditService' => $this,
+            ])->render(),
+            'landscape',
+        );
     }
 
     protected function serializeValues(?array $values): string

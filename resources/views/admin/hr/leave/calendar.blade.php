@@ -6,38 +6,34 @@
         </x-slot>
     </x-admin.page-header>
 
-    <form method="GET" class="erp-card mb-4">
-        <input type="hidden" name="view" value="{{ $view }}">
-        @if ($view === 'month')
-            <input type="hidden" name="year" value="{{ $year }}">
-            <input type="hidden" name="month" value="{{ $month }}">
-        @else
-            <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
-        @endif
-        <div class="grid gap-3 md:grid-cols-3">
-            <div>
-                <label class="erp-label">{{ __('Branch') }}</label>
-                <select name="branch_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All branches') }}</option>
-                    @foreach ($formData['branches'] as $branch)
-                        <option value="{{ $branch->id }}" @selected((int) ($filters['branch_id'] ?? 0) === $branch->id)>{{ $branch->name }}</option>
-                    @endforeach
-                </select>
+    <x-admin.card :padding="false" class="mb-4">
+        <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="erp-index-toolbar-form">
+            <div class="erp-index-toolbar border-b border-erp-border bg-white px-4 py-3">
+                <div class="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="view" value="{{ $view }}">
+                    @if ($view === 'month')
+                        <input type="hidden" name="year" value="{{ $year }}">
+                        <input type="hidden" name="month" value="{{ $month }}">
+                    @else
+                        <input type="hidden" name="week" value="{{ $weekStart->toDateString() }}">
+                    @endif
+                    <select name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                        <option value="">{{ __('All branches') }}</option>
+                        @foreach ($formData['branches'] as $branch)
+                            <option value="{{ $branch->id }}" @selected((int) ($filters['branch_id'] ?? 0) === $branch->id)>{{ $branch->name }}</option>
+                        @endforeach
+                    </select>
+                    <select name="department_id" class="erp-toolbar-select" aria-label="{{ __('Department') }}">
+                        <option value="">{{ __('All departments') }}</option>
+                        @foreach ($formData['departments'] as $department)
+                            <option value="{{ $department->id }}" @selected((int) ($filters['department_id'] ?? 0) === $department->id)>{{ $department->name }}</option>
+                        @endforeach
+                    </select>
+                    <a href="{{ route('admin.hr.leave.calendar') }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
+                </div>
             </div>
-            <div>
-                <label class="erp-label">{{ __('Department') }}</label>
-                <select name="department_id" class="erp-input w-full text-sm">
-                    <option value="">{{ __('All departments') }}</option>
-                    @foreach ($formData['departments'] as $department)
-                        <option value="{{ $department->id }}" @selected((int) ($filters['department_id'] ?? 0) === $department->id)>{{ $department->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="erp-btn-primary">{{ __('Apply') }}</button>
-            </div>
-        </div>
-    </form>
+        </form>
+    </x-admin.card>
 
     <div class="grid gap-2 @if($view === 'month') sm:grid-cols-7 @else grid-cols-1 @endif">
         @foreach ($events as $day)

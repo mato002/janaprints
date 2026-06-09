@@ -7,32 +7,22 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="mb-1 block text-xs text-slate-500">{{ __('Status') }}</label>
-                <select name="status" class="erp-input">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($statuses as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="mb-1 block text-xs text-slate-500">{{ __('Return Type') }}</label>
-                <select name="return_type" class="erp-input">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($returnTypes as $type)
-                        <option value="{{ $type->value }}" @selected(($filters['return_type'] ?? '') === $type->value)>{{ $type->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="mb-1 block text-xs text-slate-500">{{ __('Date') }}</label>
-                <input type="date" name="date" value="{{ $filters['date'] ?? '' }}" class="erp-input">
-            </div>
-            <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($statuses as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+            <select name="return_type" class="erp-toolbar-select" aria-label="{{ __('Return Type') }}">
+                <option value="">{{ __('All') }}</option>
+                @foreach ($returnTypes as $type)
+                    <option value="{{ $type->value }}" @selected(($filters['return_type'] ?? '') === $type->value)>{{ $type->label() }}</option>
+                @endforeach
+            </select>
+            <input type="date" name="date" value="{{ $filters['date'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Date') }}">
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

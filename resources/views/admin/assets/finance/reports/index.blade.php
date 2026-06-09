@@ -1,34 +1,24 @@
 <x-admin-layout :title="__('Asset Reports')" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Reports')]]">
     <x-admin.page-header :title="__('Fixed Asset Reports')" :description="__('Tenant-scoped, branch-filterable read-only reports.')" />
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="flex flex-wrap items-end gap-3">
-            <div>
-                <label class="erp-label">{{ __('Report') }}</label>
-                <select name="report" class="erp-select">
-                    <option value="register" @selected($report === 'register')>{{ __('Asset Register') }}</option>
-                    <option value="valuation" @selected($report === 'valuation')>{{ __('Asset Valuation') }}</option>
-                    <option value="depreciation_schedule" @selected($report === 'depreciation_schedule')>{{ __('Depreciation Report') }}</option>
-                    <option value="maintenance" @selected($report === 'maintenance')>{{ __('Maintenance Report') }}</option>
-                    <option value="custody" @selected($report === 'custody')>{{ __('Custody Report') }}</option>
-                    <option value="warranty_expiry" @selected($report === 'warranty_expiry')>{{ __('Warranty Expiry') }}</option>
-                    <option value="replacement" @selected($report === 'replacement')>{{ __('Replacement Candidates') }}</option>
-                    <option value="fully_depreciated" @selected($report === 'fully_depreciated')>{{ __('Fully Depreciated') }}</option>
-                    <option value="near_end_of_life" @selected($report === 'near_end_of_life')>{{ __('Near End of Life') }}</option>
-                </select>
-            </div>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.assets.finance.reports.index')" :reset-url="route('admin.assets.finance.reports.index')">
+            <select name="report" class="erp-toolbar-select min-w-[12rem]" aria-label="{{ __('Report') }}">
+                <option value="register" @selected($report === 'register')>{{ __('Asset Register') }}</option>
+                <option value="valuation" @selected($report === 'valuation')>{{ __('Asset Valuation') }}</option>
+                <option value="depreciation_schedule" @selected($report === 'depreciation_schedule')>{{ __('Depreciation Report') }}</option>
+                <option value="maintenance" @selected($report === 'maintenance')>{{ __('Maintenance Report') }}</option>
+                <option value="custody" @selected($report === 'custody')>{{ __('Custody Report') }}</option>
+                <option value="warranty_expiry" @selected($report === 'warranty_expiry')>{{ __('Warranty Expiry') }}</option>
+                <option value="replacement" @selected($report === 'replacement')>{{ __('Replacement Candidates') }}</option>
+                <option value="fully_depreciated" @selected($report === 'fully_depreciated')>{{ __('Fully Depreciated') }}</option>
+                <option value="near_end_of_life" @selected($report === 'near_end_of_life')>{{ __('Near End of Life') }}</option>
+            </select>
             @if (in_array($report, ['depreciation_schedule', 'maintenance'], true))
-                <div>
-                    <label class="erp-label">{{ __('From') }}</label>
-                    <input type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="erp-input">
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('To') }}</label>
-                    <input type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="erp-input">
-                </div>
+                <input type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
+                <input type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">
             @endif
-            <button type="submit" class="erp-btn-secondary">{{ __('Generate') }}</button>
-        </form>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

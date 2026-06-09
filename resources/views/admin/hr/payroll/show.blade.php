@@ -47,7 +47,10 @@
                 @endif
             @endcan
             @can('export', App\Models\Hr\PayrollRun::class)
-                <a href="{{ route('admin.hr.payroll.export', ['payrollRun' => $run, 'format' => 'csv']) }}" class="erp-btn-secondary">{{ __('Export CSV') }}</a>
+                <x-admin.export-dropdown
+                    export-route="admin.hr.payroll.export"
+                    :export-route-params="['payrollRun' => $run]"
+                />
             @endcan
         </div>
         @if ($run->postedJournal)

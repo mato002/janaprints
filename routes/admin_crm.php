@@ -21,6 +21,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:crm.customers.view')->group(function () {
             Route::get('customers', [CustomerController::class, 'index'])->name('customers.index');
+            Route::get('customers/export/{format}', [CustomerController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('customers.export');
             Route::get('segments', [CustomerSegmentController::class, 'index'])->name('segments.index');
         });
 

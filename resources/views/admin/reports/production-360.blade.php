@@ -6,7 +6,9 @@
             @endif
             @include('admin.reports.partials.export-button', [
                 'can_export' => $can_export,
-                'export_url' => $export_url ?? null,
+                'export_route' => $export_route ?? null,
+                'export_route_params' => $export_route_params ?? [],
+                'format_in_path' => true,
             ])
         </x-slot>
     </x-admin.page-header>

@@ -18,14 +18,15 @@ class AdminLayout extends Component
         /** Embedded module workspace content — renders inside turbo-frame without app chrome. */
         public bool $embedded = false,
     ) {
-        if (
-            ! $embedded
-            && request()->query('embedded') === '1'
-            && request()->header('Turbo-Frame') === 'module-workspace-content'
-        ) {
-            $this->embedded = true;
-            $this->useWorkspaceNavigation = false;
-            $this->compactPage = false;
+        if (! $embedded && request()->query('embedded') === '1') {
+            // Embedded pages are turbo-frame fragments; only strip the admin shell
+            // when the workspace frame is loading content (not on direct browser visits).
+            $this->embedded = request()->header('Turbo-Frame') === 'module-workspace-content';
+
+            if ($this->embedded) {
+                $this->useWorkspaceNavigation = false;
+                $this->compactPage = false;
+            }
         }
     }
 

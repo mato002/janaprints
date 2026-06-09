@@ -1,42 +1,17 @@
 <x-admin-layout :title="__('Returns')" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Returns')]]">
-    <x-admin.page-header :title="__('Asset Returns')" :description="__('Return workflow with condition capture.')" />
+    <x-admin.page-header :title="__('Asset Returns')" :description="__('Return workflow with condition capture.')">
+        <x-slot name="actions">
+            @can('create', \App\Models\Assets\AssetReturn::class)
+                <x-admin.form-modal-link :href="route('admin.assets.custody.returns.create')">
+                    {{ __('Record Return') }}
+                </x-admin.form-modal-link>
+            @endcan
+        </x-slot>
+    </x-admin.page-header>
 
-    @can('create', \App\Models\Assets\AssetReturn::class)
-        <x-admin.card class="mb-4">
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Record Return') }}</h3>
-            <form method="POST" action="{{ route('admin.assets.custody.returns.store') }}" class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                @csrf
-                <div>
-                    <label class="erp-label">{{ __('Asset') }}</label>
-                    <select name="fixed_asset_id" class="erp-select w-full" required>
-                        <option value="">{{ __('Select asset…') }}</option>
-                        @foreach (\App\Models\Assets\FixedAsset::query()->forTenant()->notArchived()->orderBy('asset_name')->get(['id', 'asset_name', 'asset_number']) as $asset)
-                            <option value="{{ $asset->id }}">{{ $asset->asset_number }} — {{ $asset->asset_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Return Date') }}</label>
-                    <input type="date" name="return_date" value="{{ now()->toDateString() }}" class="erp-input w-full" required>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Condition') }}</label>
-                    <select name="condition" class="erp-select w-full" required>
-                        @foreach ($conditions as $condition)
-                            <option value="{{ $condition->value }}">{{ $condition->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="md:col-span-2 lg:col-span-3">
-                    <label class="erp-label">{{ __('Notes') }}</label>
-                    <textarea name="notes" class="erp-input w-full" rows="2"></textarea>
-                </div>
-                <div>
-                    <button type="submit" class="erp-btn-primary">{{ __('Record Return') }}</button>
-                </div>
-            </form>
-        </x-admin.card>
-    @endcan
+    @if (session('status'))
+        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
+    @endif
 
     <x-admin.card>
         <div class="overflow-x-auto">

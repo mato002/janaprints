@@ -19,24 +19,16 @@
         <x-admin.kpi-widget :label="__('Concurrent Sessions')" :value="$metrics['concurrent_sessions']" icon="switch-horizontal" />
     </div>
 
-    <form method="GET" action="{{ route('admin.security.sessions.index') }}" class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-        <div class="relative min-w-0 flex-1 max-w-xl">
-            <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-                type="search"
-                name="search"
-                value="{{ $search }}"
-                class="erp-input w-full py-2 pl-9 text-sm"
-                placeholder="{{ __('Search sessions…') }}"
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.security.sessions.index')" :reset-url="route('admin.security.sessions.index')">
+            <input type="search" name="search" value="{{ $search }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search sessions…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <x-admin.status-pills
+                :options="[['value' => 'all', 'label' => __('All')], ['value' => 'active', 'label' => __('Active')], ['value' => 'expired', 'label' => __('Expired')], ['value' => 'logged_out', 'label' => __('Logged Out')], ['value' => 'revoked', 'label' => __('Revoked')]]"
+                param="status"
+                :current="$status"
             />
-        </div>
-        <select name="status" class="erp-input text-sm">
-            @foreach (['all' => __('All'), 'active' => __('Active'), 'expired' => __('Expired'), 'logged_out' => __('Logged Out'), 'revoked' => __('Revoked')] as $value => $label)
-                <option value="{{ $value }}" @selected($status === $value)>{{ $label }}</option>
-            @endforeach
-        </select>
-        <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply') }}</button>
-    </form>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.data-table
         :search-placeholder="__('Search sessions…')"

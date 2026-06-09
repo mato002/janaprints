@@ -24,25 +24,21 @@
         <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
     @endif
 
-    <x-admin.card class="mb-4">
-        <form method="GET" action="{{ route('admin.website.gallery.index') }}" class="grid grid-cols-1 gap-3 p-4 md:grid-cols-4">
-            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-input text-sm md:col-span-2" placeholder="{{ __('Search title, description, location…') }}">
-            <select name="category" class="erp-input text-sm">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.website.gallery.index')" :reset-url="route('admin.website.gallery.index')">
+            <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search title, description, location…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
+            <select name="category" class="erp-toolbar-select" aria-label="{{ __('Category') }}">
                 <option value="">{{ __('All categories') }}</option>
                 @foreach ($categories as $value => $label)
                     <option value="{{ $value }}" @selected(($filters['category'] ?? '') === $value)>{{ $label }}</option>
                 @endforeach
             </select>
-            <select name="published" class="erp-input text-sm">
-                <option value="">{{ __('All statuses') }}</option>
-                <option value="1" @selected(($filters['published'] ?? '') === '1')>{{ __('Published') }}</option>
-                <option value="0" @selected(($filters['published'] ?? '') === '0')>{{ __('Hidden') }}</option>
-            </select>
-            <div class="flex gap-2 md:col-span-4">
-                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-                <a href="{{ route('admin.website.gallery.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
-            </div>
-        </form>
+            <x-admin.status-pills
+                :options="[['value' => '', 'label' => __('All statuses')], ['value' => '1', 'label' => __('Published')], ['value' => '0', 'label' => __('Hidden')]]"
+                param="published"
+                :current="$filters['published'] ?? ''"
+            />
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

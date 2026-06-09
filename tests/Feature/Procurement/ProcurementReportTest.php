@@ -48,7 +48,6 @@ class ProcurementReportTest extends TestCase
             ->get(route('admin.procurement.reports.index'))
             ->assertOk()
             ->assertSee(__('Procurement Reports'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Procurement Dashboard'), false)
             ->assertSee(__('Purchase Summary'), false)
             ->assertSee(__('Supplier Performance'), false);

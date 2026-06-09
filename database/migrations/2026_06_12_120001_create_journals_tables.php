@@ -49,10 +49,25 @@ return new class extends Migration
             $table->unique(['journal_id', 'line_number']);
             $table->index(['gl_account_id']);
         });
+
+        if (Schema::hasTable('payroll_runs') && Schema::hasColumn('payroll_runs', 'posted_journal_id')) {
+            Schema::table('payroll_runs', function (Blueprint $table) {
+                $table->foreign('posted_journal_id', 'payroll_runs_posted_journal_fk')
+                    ->references('id')
+                    ->on('journals')
+                    ->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
+        if (Schema::hasTable('payroll_runs')) {
+            Schema::table('payroll_runs', function (Blueprint $table) {
+                $table->dropForeign('payroll_runs_posted_journal_fk');
+            });
+        }
+
         Schema::dropIfExists('journal_lines');
         Schema::dropIfExists('journals');
     }

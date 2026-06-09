@@ -3,17 +3,21 @@
 namespace App\Http\Controllers\Admin\Assets;
 
 use App\Enums\AssetWriteOffReason;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\AssetWriteOff;
 use App\Models\Assets\FixedAsset;
 use App\Services\Assets\AssetWriteOffService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AssetWriteOffController extends Controller
 {
+    use HandlesModalFormResponses;
+
     public function __construct(
         protected AssetWriteOffService $writeOffs,
     ) {}
@@ -33,7 +37,23 @@ class AssetWriteOffController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function create(): View
+    {
+        $this->authorize('manage', AssetWriteOff::class);
+
+        $assets = FixedAsset::query()
+            ->forTenant()
+            ->notArchived()
+            ->orderBy('asset_name')
+            ->get(['id', 'asset_number', 'asset_name']);
+
+        return view('admin.assets.finance.write-offs.create', [
+            'assets' => $assets,
+            'reasons' => AssetWriteOffReason::cases(),
+        ]);
+    }
+
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('manage', AssetWriteOff::class);
 
@@ -47,9 +67,10 @@ class AssetWriteOffController extends Controller
         $asset = FixedAsset::query()->forTenant()->findOrFail($validated['fixed_asset_id']);
         $writeOff = $this->writeOffs->create($asset, $validated, (int) auth()->id());
 
-        return redirect()
-            ->route('admin.assets.finance.write-offs.index')
-            ->with('status', __('Write-off request created: :no', ['no' => $writeOff->writeoff_no]));
+        return $this->modalOrRedirect(
+            __('Write-off request created: :no', ['no' => $writeOff->writeoff_no]),
+            redirect()->route('admin.assets.finance.write-offs.index'),
+        );
     }
 
     public function approve(AssetWriteOff $writeOff): RedirectResponse

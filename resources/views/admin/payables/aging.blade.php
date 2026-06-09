@@ -1,9 +1,12 @@
 <x-admin-layout :title="__('AP aging')">
     <x-admin.page-header :title="__('Accounts payable aging')" :description="__('As of :date', ['date' => $report['as_of_date']])" />
-    <form method="GET" class="mb-4 flex gap-3 items-end">
-        <div><label class="erp-label">{{ __('As of') }}</label><input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-input"></div>
-        <button class="erp-btn-secondary">{{ __('Refresh') }}</button>
-    </form>
+
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.payables.aging')" :reset-url="route('admin.payables.aging')">
+            <input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-toolbar-input" aria-label="{{ __('As of date') }}">
+        </x-admin.index-toolbar>
+    </x-admin.card>
+
     <x-admin.card>
         <table class="w-full text-sm">
             <thead><tr class="text-[11px] uppercase text-slate-400"><th>{{ __('Supplier') }}</th><th>{{ __('Total') }}</th></tr></thead>

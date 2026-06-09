@@ -11,12 +11,6 @@
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
     @endif
 
-    @include('admin.commercial.reports.sales.partials.readiness-table', [
-        'readiness' => $readiness,
-        'report_ready' => $report_ready,
-        'context' => __('POS sessions'),
-    ])
-
     <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
         <x-admin.kpi-widget :label="__('Open Sessions')" :value="$stats['open_sessions']" icon="clock" />
         <x-admin.kpi-widget :label="__('Closed Today')" :value="$stats['closed_today']" icon="check-circle" />
@@ -26,41 +20,29 @@
         <x-admin.kpi-widget :label="__('Variance')" :value="number_format($stats['variance'], 2)" icon="chart-bar" />
     </div>
 
-    <x-admin.card class="mb-6">
-        <form method="GET" action="{{ route('admin.commercial.pos.sessions.index') }}" class="grid gap-3 md:grid-cols-4">
-            <div>
-                <label class="text-[11px] text-slate-500" for="status">{{ __('Status') }}</label>
-                <select id="status" name="status" class="erp-input mt-1 w-full">
-                    <option value="">{{ __('All statuses') }}</option>
-                    @foreach (App\Enums\PosSessionStatus::cases() as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ ucfirst($status->value) }}</option>
-                    @endforeach
-                </select>
-            </div>
+    <x-admin.card :padding="false" class="mb-6">
+        <x-admin.index-toolbar :action="route('admin.commercial.pos.sessions.index')" :reset-url="route('admin.commercial.pos.sessions.index')">
+            <select id="status" name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All statuses') }}</option>
+                @foreach (App\Enums\PosSessionStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ ucfirst($status->value) }}</option>
+                @endforeach
+            </select>
             @if ($branches->isNotEmpty())
-                <div>
-                    <label class="text-[11px] text-slate-500" for="branch_id">{{ __('Branch') }}</label>
-                    <select id="branch_id" name="branch_id" class="erp-input mt-1 w-full">
-                        <option value="">{{ __('All branches') }}</option>
-                        @foreach ($branches as $branch)
-                            <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>{{ $branch->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-            @endif
-            <div>
-                <label class="text-[11px] text-slate-500" for="cashier_id">{{ __('Cashier') }}</label>
-                <select id="cashier_id" name="cashier_id" class="erp-input mt-1 w-full">
-                    <option value="">{{ __('All cashiers') }}</option>
-                    @foreach ($cashiers as $cashier)
-                        <option value="{{ $cashier->id }}" @selected(($filters['cashier_id'] ?? null) == $cashier->id)>{{ $cashier->name }}</option>
+                <select id="branch_id" name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                    <option value="">{{ __('All branches') }}</option>
+                    @foreach ($branches as $branch)
+                        <option value="{{ $branch->id }}" @selected(($filters['branch_id'] ?? null) == $branch->id)>{{ $branch->name }}</option>
                     @endforeach
                 </select>
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="erp-btn-primary">{{ __('Apply filters') }}</button>
-            </div>
-        </form>
+            @endif
+            <select id="cashier_id" name="cashier_id" class="erp-toolbar-select" aria-label="{{ __('Cashier') }}">
+                <option value="">{{ __('All cashiers') }}</option>
+                @foreach ($cashiers as $cashier)
+                    <option value="{{ $cashier->id }}" @selected(($filters['cashier_id'] ?? null) == $cashier->id)>{{ $cashier->name }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     <x-admin.card>

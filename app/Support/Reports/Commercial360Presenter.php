@@ -38,6 +38,8 @@ class Commercial360Presenter
             'filters' => $resolved['filters'],
             'branches' => $resolved['branches'],
             'can_export' => $resolved['can_export'],
+            'export_route' => 'admin.reports.intelligence360.export',
+            'export_route_params' => ['reportKey' => 'commercial'],
             'sections' => [
                 $this->summary($scope),
                 $this->leadIntelligence($scope),

@@ -3,10 +3,19 @@
     'searchPlaceholder' => null,
     'exportable' => true,
     'selectable' => false,
-    'filterable' => true,
+    'filterable' => null,
     'exportFilename' => 'export',
     'exportCsvUrl' => null,
+    'exportExcelUrl' => null,
     'exportPdfUrl' => null,
+    'exportRoute' => null,
+    'exportQuery' => null,
+    'exportRouteParams' => [],
+    'formatInPath' => false,
+    'exportPostAction' => null,
+    'exportPostFields' => [],
+    'exportPostFormats' => null,
+    'canExport' => true,
     'chips' => [],
     'tableId' => null,
 ])
@@ -14,6 +23,7 @@
 @php
     $searchPlaceholder ??= __('Search…');
     $tableId ??= 'erp-table-'.Str::random(6);
+    $showFilters = $filterable ?? isset($filters);
     $chipPayload = collect($chips)->map(fn ($chip) => [
         'id' => $chip['id'] ?? $chip['label'] ?? 'all',
         'label' => $chip['label'] ?? $chip['id'] ?? 'All',
@@ -23,11 +33,16 @@
         $chipPayload = [['id' => 'all', 'label' => __('All')]];
     }
 
+    $hasServerExport = filled($exportRoute) || filled($exportCsvUrl) || filled($exportExcelUrl) || filled($exportPdfUrl) || filled($exportPostAction);
+    $hasClientExport = ! $hasServerExport;
+
     $gridConfig = [
         'exportFilename' => $exportFilename,
         'chips' => $chipPayload,
         'selectable' => $selectable,
         'tableId' => $tableId,
+        'hasClientExport' => $hasClientExport,
+        'brandingLogoUrl' => app(\App\Support\Branding\BrandingAssets::class)->logoUrl(),
     ];
 @endphp
 
@@ -35,26 +50,26 @@
     x-data="erpDataTable(@js($gridConfig))"
     {{ $attributes->merge(['class' => 'erp-data-grid w-full min-w-0']) }}
 >
-    @if (count($chipPayload) > 1)
-        <div class="erp-table-chips mb-3 flex flex-wrap gap-1.5">
-            @foreach ($chipPayload as $chip)
-                <button
-                    type="button"
-                    class="erp-filter-pill"
-                    :class="activeChip === @js($chip['id']) ? 'erp-filter-pill--active' : ''"
-                    @click="setChip(@js($chip['id']))"
-                >
-                    {{ $chip['label'] }}
-                </button>
-            @endforeach
-        </div>
-    @endif
-
     <x-admin.card :padding="false" class="min-w-0">
-        @if ($searchable || $filterable || $exportable || $selectable || isset($toolbar) || isset($bulk) || isset($filters))
+        @if ($searchable || $showFilters || $exportable || $selectable || isset($toolbar) || isset($bulk) || count($chipPayload) > 1)
             <div class="erp-table-toolbar border-b border-erp-border bg-white px-4 py-3">
                 <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                     <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                        @if (count($chipPayload) > 1)
+                            <div class="erp-table-chips flex flex-wrap gap-1.5">
+                                @foreach ($chipPayload as $chip)
+                                    <button
+                                        type="button"
+                                        class="erp-filter-pill"
+                                        :class="activeChip === @js($chip['id']) ? 'erp-filter-pill--active' : ''"
+                                        @click="setChip(@js($chip['id']))"
+                                    >
+                                        {{ $chip['label'] }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+
                         @if ($searchable)
                             <div class="relative min-w-[12rem] flex-1 max-w-md">
                                 <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -68,16 +83,8 @@
                             </div>
                         @endif
 
-                        @if ($filterable)
-                            <button
-                                type="button"
-                                class="erp-btn-secondary py-2 text-sm"
-                                @click="filterOpen = !filterOpen"
-                                :class="filterOpen ? 'border-erp-accent text-erp-accent' : ''"
-                            >
-                                <x-admin.icon name="filter" class="h-4 w-4" />
-                                {{ __('Filters') }}
-                            </button>
+                        @if ($showFilters && isset($filters))
+                            {{ $filters }}
                         @endif
 
                         <label class="flex items-center gap-2 text-xs font-medium text-slate-500">
@@ -114,55 +121,41 @@
                         </div>
 
                         @if ($exportable)
-                            <div class="relative" @click.outside="exportOpen = false">
-                                <button type="button" class="erp-btn-secondary py-2 text-sm" @click.stop="exportOpen = !exportOpen">
-                                    <x-admin.icon name="download" class="h-4 w-4" />
-                                    {{ __('Export') }}
-                                </button>
-                                <div
-                                    x-show="exportOpen"
-                                    x-cloak
-                                    class="absolute end-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
-                                >
-                                    @if ($exportCsvUrl)
-                                        <a
-                                            href="{{ $exportCsvUrl }}"
-                                            data-turbo="false"
-                                            class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
-                                            @click="exportOpen = false"
-                                        >{{ __('Export CSV') }}</a>
-                                    @else
+                            @if ($hasServerExport)
+                                <x-admin.export-dropdown
+                                    :export-route="$exportRoute"
+                                    :export-query="$exportQuery"
+                                    :export-route-params="$exportRouteParams"
+                                    :format-in-path="$formatInPath"
+                                    :csv-url="$exportCsvUrl"
+                                    :excel-url="$exportExcelUrl"
+                                    :pdf-url="$exportPdfUrl"
+                                    :post-action="$exportPostAction"
+                                    :post-fields="$exportPostFields"
+                                    :can-export="$canExport"
+                                />
+                            @else
+                                <div class="relative" @click.outside="exportOpen = false">
+                                    <button type="button" class="erp-btn-secondary py-2 text-sm" @click.stop="exportOpen = !exportOpen">
+                                        <x-admin.icon name="download" class="h-4 w-4" />
+                                        {{ __('Export') }}
+                                    </button>
+                                    <div
+                                        x-show="exportOpen"
+                                        x-cloak
+                                        class="absolute end-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
+                                    >
                                         <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click.stop="exportTable('csv')">{{ __('Export CSV') }}</button>
-                                    @endif
-                                    <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export Excel') }}</button>
-                                    @if ($exportPdfUrl)
-                                        <a
-                                            href="{{ $exportPdfUrl }}"
-                                            data-turbo="false"
-                                            class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
-                                            @click="exportOpen = false"
-                                        >{{ __('Export PDF') }}</a>
-                                    @else
-                                        <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-400 cursor-not-allowed" disabled title="{{ __('Coming soon') }}">{{ __('Export PDF') }}</button>
-                                    @endif
+                                        <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click.stop="exportTable('excel')">{{ __('Export Excel') }}</button>
+                                        <button type="button" class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page" @click.stop="exportTable('pdf')">{{ __('Export PDF') }}</button>
+                                    </div>
                                 </div>
-                            </div>
+                            @endif
                         @endif
 
                         {{ $actions ?? '' }}
                     </div>
                 </div>
-
-                @if ($filterable && isset($filters))
-                    <div x-show="filterOpen" x-cloak class="mt-3 rounded-lg border border-erp-border bg-erp-page/50 p-3">
-                        <div class="flex flex-col gap-3">
-                            {{ $filters }}
-                            <div class="flex justify-end">
-                                <button type="button" class="erp-btn-ghost py-1 text-xs" @click="resetFilters()">{{ __('Reset filters') }}</button>
-                            </div>
-                        </div>
-                    </div>
-                @endif
             </div>
         @endif
 

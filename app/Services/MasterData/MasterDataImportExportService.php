@@ -3,6 +3,7 @@
 namespace App\Services\MasterData;
 
 use App\Models\User;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\UploadedFile;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -10,31 +11,29 @@ class MasterDataImportExportService
 {
     public function __construct(
         protected MasterDataService $masterData,
+        protected TabularExportWriter $writer,
     ) {}
 
-    public function export(?string $category = null): StreamedResponse
+    public function export(?string $category, string $format = 'csv'): StreamedResponse
     {
         $rows = $this->masterData->exportCollection($category);
-
-        return response()->streamDownload(function () use ($rows) {
-            $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['category_key', 'code', 'name', 'description', 'sort_order', 'is_active']);
-
-            foreach ($rows as $row) {
-                fputcsv($handle, [
-                    $row->category_key,
-                    $row->code,
-                    $row->name,
-                    $row->description,
-                    $row->sort_order,
-                    $row->is_active ? '1' : '0',
-                ]);
-            }
-
-            fclose($handle);
-        }, 'master-data-'.now()->format('Y-m-d').'.csv', [
-            'Content-Type' => 'text/csv',
+        $headers = ['category_key', 'code', 'name', 'description', 'sort_order', 'is_active'];
+        $mappedRows = $rows->map(fn ($row) => [
+            $row->category_key,
+            $row->code,
+            $row->name,
+            $row->description,
+            $row->sort_order,
+            $row->is_active ? '1' : '0',
         ]);
+
+        return $this->writer->download(
+            $format,
+            'master-data-'.now()->format('Y-m-d'),
+            $headers,
+            $mappedRows,
+            __('Master Data'),
+        );
     }
 
     /**
