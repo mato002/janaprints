@@ -152,6 +152,7 @@ use App\Support\Platform\NumberGenerator;
 use App\Support\Platform\NumberingSequenceManager;
 use App\Support\Platform\NumberingService;
 use App\Support\Branding\BrandingAssets;
+use App\View\Composers\BrandingViewComposer;
 use App\Support\Dashboard\ExecutiveDashboardPresenter;
 use App\Support\Platform\PlatformCacheService;
 use App\Support\Platform\SettingsRegistry;
@@ -292,6 +293,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        $this->app->singleton(BrandingAssets::class);
         $this->app->singleton(NumberGenerator::class);
         $this->app->singleton(NumberingSequenceManager::class);
         $this->app->singleton(NumberingService::class);
@@ -393,18 +395,13 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.admin', WorkspaceNavigationComposer::class);
 
+        View::composer('*', BrandingViewComposer::class);
+
         View::composer(['layouts.admin', 'layouts.admin.partials.sidebar', 'layouts.admin.partials.topbar'], function ($view) {
             $assets = app(BrandingAssets::class);
             $user = auth()->user();
-            $company = tenant()->company ?? $user?->company;
-
-            $siteLogoUrl = url(config('site.local.logo'));
-            $siteSidebarLogoUrl = url(config('site.local.sidebar_logo', config('site.local.logo')));
 
             $view->with([
-                'brandingLogoUrl' => $assets->url($company?->logo) ?? $siteLogoUrl,
-                'brandingSidebarLogoUrl' => $assets->url($company?->logo) ?? $siteSidebarLogoUrl,
-                'brandingFaviconUrl' => $assets->url($company?->favicon_path) ?? $siteLogoUrl,
                 'userAvatarUrl' => $assets->url($user?->avatar_path),
             ]);
         });

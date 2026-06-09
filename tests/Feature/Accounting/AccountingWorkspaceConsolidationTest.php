@@ -23,19 +23,15 @@ class AccountingWorkspaceConsolidationTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_accounting_hub_shows_six_workspace_cards_only(): void
+    public function test_accounting_hub_renders_dashboard_workspace_desk(): void
     {
         $user = $this->companyAdmin();
 
         $response = $this->actingAs($user)->get(route('admin.workspaces.accounting'));
 
         $response->assertOk();
-        $response->assertSee(__('Dashboard'), false);
+        $response->assertSee(route('admin.accounting.dashboard', ['embedded' => '1']), false);
         $response->assertSee(__('General Ledger'), false);
-        $response->assertSee(__('Receivables'), false);
-        $response->assertSee(__('Payables'), false);
-        $response->assertSee(__('Tax'), false);
-        $response->assertSee(__('Setup'), false);
     }
 
     public function test_general_ledger_section_lists_gl_features(): void
@@ -45,9 +41,11 @@ class AccountingWorkspaceConsolidationTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.workspaces.accounting.section', ['section' => 'general-ledger']));
 
         $response->assertOk();
-        $response->assertSee(route('admin.accounting.journals.index'), false);
-        $response->assertSee(route('admin.accounting.reports.trial-balance'), false);
-        $response->assertSee(__('Recent Journals'), false);
+        $response->assertSee('module-workspace-switcher--secondary', false);
+        $response->assertSee('Journals', false);
+        $response->assertSee('Trial Balance', false);
+        $response->assertSee('embedded=1', false);
+        $response->assertSee('accounting/journals', false);
     }
 
     public function test_existing_accounting_routes_remain_registered(): void

@@ -57,6 +57,11 @@ class BrandingAssetsTest extends TestCase
         $this->assertNotNull($company->favicon_path);
         Storage::disk(BrandingAssets::DISK)->assertExists($company->logo);
         Storage::disk(BrandingAssets::DISK)->assertExists($company->favicon_path);
+
+        $assets = app(BrandingAssets::class);
+
+        $this->get($assets->url($company->logo))->assertOk();
+        $this->get($assets->url($company->favicon_path))->assertOk();
     }
 
     public function test_user_can_upload_profile_avatar(): void
@@ -87,6 +92,30 @@ class BrandingAssetsTest extends TestCase
 
         $this->assertNotNull($user->avatar_path);
         Storage::disk(BrandingAssets::DISK)->assertExists($user->avatar_path);
+    }
+
+    public function test_storefront_uses_company_branding_assets(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $logo = UploadedFile::fake()->image('logo.png', 64, 64);
+        $favicon = UploadedFile::fake()->image('favicon.png', 32, 32);
+
+        $company->logo = app(BrandingAssets::class)->storeCompanyLogo($company, $logo);
+        $company->favicon_path = app(BrandingAssets::class)->storeCompanyFavicon($company, $favicon);
+        $company->save();
+
+        $assets = app(BrandingAssets::class);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee($assets->logoUrl(), false)
+            ->assertSee($assets->faviconUrl(), false);
+    }
+
+    public function test_branding_asset_route_rejects_path_traversal(): void
+    {
+        $this->get('/branding/../.env')->assertNotFound();
+        $this->get('/branding/not-branding/logo.png')->assertNotFound();
     }
 
     /**

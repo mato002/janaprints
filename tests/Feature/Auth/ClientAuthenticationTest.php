@@ -21,6 +21,31 @@ class ClientAuthenticationTest extends TestCase
         $response->assertStatus(200);
     }
 
+    public function test_staff_user_can_view_client_login_without_admin_redirect(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->withSession(['auth_context' => 'admin'])
+            ->actingAs($user)
+            ->get('/client/login');
+
+        $response->assertOk();
+        $response->assertSee(__('Client Login'), false);
+        $this->assertFalse($response->isRedirect(route('admin.dashboard', absolute: false)));
+    }
+
+    public function test_staff_user_can_view_public_homepage_without_admin_redirect(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->withSession(['auth_context' => 'admin'])
+            ->actingAs($user)
+            ->get('/');
+
+        $response->assertOk();
+        $this->assertFalse($response->isRedirect(route('admin.dashboard', absolute: false)));
+    }
+
     public function test_staff_users_cannot_authenticate_through_client_login(): void
     {
         $user = User::factory()->create();

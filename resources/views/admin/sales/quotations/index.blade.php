@@ -1,7 +1,7 @@
 <x-admin-layout :title="__('All quotations')" :breadcrumbs="[['label' => __('Quotations'), 'url' => route('admin.quotations.dashboard')], ['label' => __('List')]]">
     <x-admin.page-header :title="__('Quotations')">
         @can('create', App\Models\Sales\Quotation::class)
-            <a href="{{ route('admin.quotations.create') }}" class="erp-btn-primary">{{ __('Create') }}</a>
+            <x-admin.form-modal-link :href="route('admin.quotations.create')">{{ __('Create') }}</x-admin.form-modal-link>
         @endcan
     </x-admin.page-header>
 
@@ -42,7 +42,7 @@
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.quotations.show', $quotation)">{{ __('View') }}</x-admin.table-row-action>
                             @can('update', $quotation)
-                                <x-admin.table-row-action :href="route('admin.quotations.edit', $quotation)">{{ __('Edit') }}</x-admin.table-row-action>
+                                <x-admin.table-row-action :href="route('admin.quotations.edit', $quotation)" data-erp-modal-open>{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan
                         </x-admin.table-row-actions>
                     </td>

@@ -55,9 +55,14 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
 
         Route::get('workspaces/production', [ProductionWorkspaceController::class, 'hub'])
             ->name('workspaces.production');
+        Route::get('workspaces/production/{section}', [ProductionWorkspaceController::class, 'section'])
+            ->where('section', 'operations|planning|quality|dispatch|reports')
+            ->name('workspaces.production.section');
 
         Route::get('workspaces/assets', [AssetsWorkspaceController::class, 'hub'])
             ->name('workspaces.assets');
+        Route::get('workspaces/assets/{section}', [AssetsWorkspaceController::class, 'section'])
+            ->name('workspaces.assets.section');
 
         Route::get('workspaces/administration', [AdministrationWorkspaceController::class, 'hub'])
             ->name('workspaces.administration');
@@ -65,13 +70,17 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             ->where('section', implode('|', array_keys(config('administration_workspaces.sections', []))))
             ->name('workspaces.administration.section');
 
-        foreach (array_keys(config('workspaces', [])) as $workspace) {
-            if (in_array($workspace, ['accounting', 'supply-chain', 'commercial', 'administration', 'production', 'assets'], true)) {
-                continue;
-            }
-
+        foreach (['hr', 'communications', 'reports', 'dispatch'] as $workspace) {
             Route::get("workspaces/{$workspace}", fn (WorkspacePresenter $presenter) => app(WorkspaceController::class)->show(request(), $workspace, $presenter))
                 ->name("workspaces.{$workspace}");
+
+            $sections = array_keys(config("{$workspace}_workspaces.sections", []));
+
+            if ($sections !== []) {
+                Route::get("workspaces/{$workspace}/{section}", fn (string $section) => app(WorkspaceController::class)->section(request(), $workspace, $section))
+                    ->where('section', implode('|', $sections))
+                    ->name("workspaces.{$workspace}.section");
+            }
         }
 
         Route::post('context', [TenantContextController::class, 'update'])->name('context.update');

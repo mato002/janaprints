@@ -19,7 +19,7 @@
                         <span class="login-card__mark-wrap" aria-hidden="true">
                             <span class="login-card__mark-glow"></span>
                             <img
-                                src="{{ url(config('site.local.logo')) }}"
+                                src="{{ $brandingLogoUrl }}"
                                 alt=""
                                 class="login-card__mark"
                                 width="44"

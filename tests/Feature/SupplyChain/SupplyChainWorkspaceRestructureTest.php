@@ -23,22 +23,14 @@ class SupplyChainWorkspaceRestructureTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_supply_chain_hub_shows_seven_workspace_cards_only(): void
+    public function test_supply_chain_hub_redirects_to_default_workspace_desk(): void
     {
         $user = $this->companyAdmin();
 
         $response = $this->actingAs($user)->get(route('admin.workspaces.supply-chain'));
 
-        $response->assertOk();
-        $response->assertSee(__('Catalogue'), false);
-        $response->assertSee(__('Store Operations'), false);
-        $response->assertSee(__('Procurement'), false);
-        $response->assertSee(__('Inventory Control'), false);
-        $response->assertSee(__('Costing'), false);
-        $response->assertSee(__('Assets'), false);
-        $response->assertSee(__('Reports'), false);
-        $response->assertDontSee(__('Catalogue Dashboard'), false);
-        $response->assertDontSee(__('Store Dashboard'), false);
+        $response->assertRedirect();
+        $this->actingAs($user)->get($response->headers->get('Location'))->assertOk();
     }
 
     public function test_catalogue_section_lists_catalogue_features(): void
@@ -48,9 +40,25 @@ class SupplyChainWorkspaceRestructureTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.workspaces.supply-chain.section', ['section' => 'catalogue']));
 
         $response->assertOk();
-        $response->assertSee(route('admin.inventory.items.index'), false);
-        $response->assertSee(route('admin.inventory.catalogue.categories.index'), false);
-        $response->assertSee(route('admin.inventory.catalogue.price-lists.index'), false);
+        $response->assertSee(__('Categories'), false);
+        $response->assertSee(route('admin.inventory.items.index', ['embedded' => '1']), false);
+    }
+
+    public function test_catalogue_tab_switch_loads_categories_content(): void
+    {
+        $user = $this->companyAdmin();
+
+        $response = $this->actingAs($user)->get(route('admin.workspaces.supply-chain.section', [
+            'section' => 'catalogue',
+            'tab' => 'categories',
+        ]));
+
+        $response->assertOk();
+        $response->assertSee('module-workspace-tab--active', false);
+        $response->assertSee(route('admin.workspaces.supply-chain.section', ['section' => 'catalogue', 'tab' => 'categories']), false);
+        $response->assertSee(route('admin.inventory.catalogue.categories.index', ['embedded' => '1']), false);
+        $response->assertDontSee('tab=products&amp;tab=', false);
+        $response->assertDontSee(route('admin.inventory.items.index', ['embedded' => '1']), false);
     }
 
     public function test_store_operations_section_lists_store_features(): void

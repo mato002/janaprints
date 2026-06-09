@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ClientLoginRequest;
 use App\Services\Security\UserSessionService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class ClientAuthenticatedSessionController extends Controller
@@ -15,11 +16,25 @@ class ClientAuthenticatedSessionController extends Controller
     ) {}
     public function create(): View
     {
-        return view('auth.client-login');
+        $user = auth()->user();
+
+        return view('auth.client-login', [
+            'staffSessionActive' => $user && $user->isStaffAccount(),
+        ]);
     }
 
     public function store(ClientLoginRequest $request): RedirectResponse
     {
+        if (Auth::check()) {
+            if ($request->user()->isClientPortalAccount()) {
+                return redirect()->route('client.dashboard');
+            }
+
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
         $request->authenticate();
 
         $request->session()->regenerate();

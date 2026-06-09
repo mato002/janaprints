@@ -22,7 +22,7 @@ class CommercialWorkspaceRestructureTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_commercial_hub_shows_five_workspace_cards_only(): void
+    public function test_commercial_hub_redirects_to_default_workspace_desk(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
             'crm.customers.view', 'quotations.view', 'pos.view',
@@ -32,18 +32,11 @@ class CommercialWorkspaceRestructureTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('admin.workspaces.commercial'));
 
-        $response->assertOk();
-        $response->assertSee(__('CRM'), false);
-        $response->assertSee(__('Sales'), false);
-        $response->assertSee(__('Customer Service'), false);
-        $response->assertSee(__('Point Of Sale'), false);
-        $response->assertSee(__('Reports'), false);
-        $response->assertDontSee(route('admin.crm.customers.index'), false);
-        $response->assertDontSee(route('admin.quotations.dashboard'), false);
-        $response->assertDontSee(route('admin.commercial.pos.dashboard'), false);
+        $response->assertRedirect();
+        $this->actingAs($user)->get($response->headers->get('Location'))->assertOk();
     }
 
-    public function test_crm_section_lists_crm_features(): void
+    public function test_crm_section_renders_workspace_switchers_and_embedded_content(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
             'crm.customers.view', 'crm.leads.view', 'crm.activities.view',
@@ -54,12 +47,14 @@ class CommercialWorkspaceRestructureTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'crm']));
 
         $response->assertOk();
-        $response->assertSee(route('admin.crm.customers.index'), false);
-        $response->assertSee(route('admin.crm.leads.index'), false);
-        $response->assertSee(route('admin.commercial.activities.index'), false);
+        $response->assertSee('module-workspace-switcher--primary', false);
+        $response->assertSee('module-workspace-switcher--secondary', false);
+        $response->assertSee(__('Customers'), false);
+        $response->assertSee(__('Leads'), false);
+        $response->assertSee(route('admin.crm.customers.index', ['embedded' => '1']), false);
     }
 
-    public function test_point_of_sale_section_lists_pos_features(): void
+    public function test_point_of_sale_section_lists_pos_tabs(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['pos.view']);
 
@@ -69,10 +64,10 @@ class CommercialWorkspaceRestructureTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(__('Counter Sales'), false);
-        $response->assertSee(route('admin.commercial.pos.dashboard'), false);
+        $response->assertSee(route('admin.commercial.pos.dashboard', ['embedded' => '1']), false);
     }
 
-    public function test_user_without_pos_permission_cannot_see_pos_workspace_card(): void
+    public function test_user_without_pos_permission_cannot_see_pos_workspace_tab(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
             'crm.activities.view', 'crm.customers.view',
@@ -80,7 +75,7 @@ class CommercialWorkspaceRestructureTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.commercial'));
+        $response = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'crm']));
 
         $response->assertOk();
         $response->assertSee(__('CRM'), false);

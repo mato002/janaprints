@@ -25,9 +25,11 @@
 
             <div class="public-header__actions">
                 @auth
-                    <a href="{{ url('/dashboard') }}" class="public-header__link hidden text-sm font-medium md:inline">
-                        Dashboard
-                    </a>
+                    @if (auth()->user()->isClientPortalAccount())
+                        <a href="{{ route('client.dashboard') }}" class="public-header__link hidden text-sm font-medium md:inline">
+                            Client Portal
+                        </a>
+                    @endif
                 @else
                     @if (Route::has('client.login'))
                         <a href="{{ route('client.login') }}" class="public-header__link hidden text-sm font-medium md:inline">
@@ -70,7 +72,9 @@
                 <li><a href="{{ $aboutSectionHref }}">About</a></li>
                 <li><a href="{{ $contactSectionHref }}">Contact</a></li>
                 @auth
-                    <li><a href="{{ url('/dashboard') }}">Dashboard</a></li>
+                    @if (auth()->user()->isClientPortalAccount())
+                        <li><a href="{{ route('client.dashboard') }}">Client Portal</a></li>
+                    @endif
                 @else
                     @if (Route::has('client.login'))
                         <li><a href="{{ route('client.login') }}">Client Login</a></li>

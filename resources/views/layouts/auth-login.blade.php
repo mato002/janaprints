@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
 
-    <title>Sign In — {{ config('site.name', 'Jana Prints') }}</title>
+    <title>@yield('page-title', 'Sign In') — {{ config('site.name', 'Jana Prints') }}</title>
 
     <x-site-favicon />
 

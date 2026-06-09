@@ -25,7 +25,6 @@ return [
         'full',
         'status',
         'page',
-        'tab',
         'salesperson_id',
         'quotation_source',
         'lead_source_id',

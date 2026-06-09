@@ -10,7 +10,21 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script>window.__erpRoutes = @json($navRouteUrls ?? []);</script>
+    @php
+        $erpModalFormConfig = [
+            'blockedPathFragments' => [
+                '/commercial/pos/',
+                'counter-sales',
+                '/dashboard',
+                '/login',
+                '/logout',
+            ],
+        ];
+    @endphp
+    <script>
+        window.__erpRoutes = @json($navRouteUrls ?? []);
+        window.__erpModalForm = @json($erpModalFormConfig);
+    </script>
 </head>
 <body
     @class([
@@ -62,8 +76,9 @@
                     fn (array $item) => [
                         'label' => $item['label'],
                         'coming_soon' => (bool) ($item['coming_soon'] ?? false),
+                        'modal' => (bool) ($item['modal'] ?? false),
                         'href' => empty($item['coming_soon']) && ! empty($item['route']) && Route::has($item['route'])
-                            ? route($item['route'])
+                            ? route($item['route'], $item['route_params'] ?? [])
                             : null,
                     ],
                     array_filter(
@@ -111,5 +126,33 @@
             </main>
         </turbo-frame>
     </div>
+
+    <div
+        id="erp-modal-overlay"
+        class="erp-modal-overlay"
+        data-erp-modal-overlay
+        data-turbo-permanent
+        hidden
+        aria-hidden="true"
+    >
+        <div class="erp-modal-overlay__backdrop" data-erp-form-modal-close tabindex="-1" aria-hidden="true"></div>
+        <div class="erp-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="erp-form-modal-title">
+            <div id="erp-form-modal" class="erp-form-modal-host"></div>
+        </div>
+    </div>
+
+    <div
+        id="erp-drawer-overlay"
+        class="erp-drawer-overlay"
+        data-erp-drawer-overlay
+        data-turbo-permanent
+        hidden
+        aria-hidden="true"
+    >
+        <div class="erp-drawer-overlay__backdrop" data-erp-drawer-close tabindex="-1" aria-hidden="true"></div>
+        <turbo-frame id="erp-preview-drawer"></turbo-frame>
+    </div>
+
+    <div id="erp-toast-host" class="erp-toast-host" data-turbo-permanent aria-live="polite" aria-atomic="true"></div>
 </body>
 </html>

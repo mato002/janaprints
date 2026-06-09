@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Crm;
 
 use App\Enums\LeadStatus;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -19,6 +20,7 @@ use App\Support\Crm\LeadConversionService;
 use App\Support\Crm\LeadOperationalGuard;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,7 +28,7 @@ use Illuminate\View\View;
 
 class LeadController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -50,7 +52,7 @@ class LeadController extends Controller
         return view('admin.crm.leads.create', $this->formMeta());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', Lead::class);
 
@@ -67,7 +69,10 @@ class LeadController extends Controller
 
         $this->syncCustomFields($lead, 'lead', $customData, $companyId);
 
-        return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead created.'));
+        return $this->modalOrRedirect(
+            __('Lead created.'),
+            redirect()->route('admin.crm.leads.show', $lead),
+        );
     }
 
     public function show(Lead $lead): View
@@ -94,7 +99,7 @@ class LeadController extends Controller
         return view('admin.crm.leads.edit', array_merge(['lead' => $lead], $this->formMeta($lead)));
     }
 
-    public function update(Request $request, Lead $lead): RedirectResponse
+    public function update(Request $request, Lead $lead): RedirectResponse|Response
     {
         $this->authorize('update', $lead);
 
@@ -103,7 +108,10 @@ class LeadController extends Controller
         $lead->update($data);
         $this->syncCustomFields($lead, 'lead', $customData, $lead->company_id);
 
-        return redirect()->route('admin.crm.leads.show', $lead)->with('status', __('Lead updated.'));
+        return $this->modalOrRedirect(
+            __('Lead updated.'),
+            redirect()->route('admin.crm.leads.show', $lead),
+        );
     }
 
     public function destroy(Lead $lead): RedirectResponse

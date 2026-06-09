@@ -12,12 +12,10 @@
                     <p class="crm-customers__subtitle">{{ __('Customer accounts, contacts, and communication history.') }}</p>
                 </div>
                 @can('create', App\Models\Crm\Customer::class)
-                    <x-admin.crm-btn
-                        variant="primary"
+                    <x-admin.form-modal-link
                         :href="route('admin.crm.customers.create')"
                         class="shrink-0"
-                        data-turbo-frame="erp-main"
-                    >{{ __('Create customer') }}</x-admin.crm-btn>
+                    >{{ __('Create customer') }}</x-admin.form-modal-link>
                 @endcan
             </div>
         </header>
@@ -125,7 +123,7 @@
                                     >{{ __('Start conversation') }}</x-admin.table-row-action>
                                 @endcan
                                 @can('update', $customer)
-                                    <x-admin.table-row-action :href="route('admin.crm.customers.edit', $customer)" data-turbo-frame="erp-main">{{ __('Edit') }}</x-admin.table-row-action>
+                                    <x-admin.table-row-action :href="route('admin.crm.customers.edit', $customer)" data-erp-modal-open>{{ __('Edit') }}</x-admin.table-row-action>
                                 @endcan
                                 @can('deactivate', $customer)
                                     <x-admin.table-row-action
@@ -149,7 +147,7 @@
                             <x-admin.empty-state icon="user-circle" :title="__('No customers yet')" :description="__('Start by adding your first customer account.')">
                                 <x-slot name="action">
                                     @can('create', App\Models\Crm\Customer::class)
-                                        <x-admin.crm-btn variant="primary" :href="route('admin.crm.customers.create')" data-turbo-frame="erp-main">{{ __('Create customer') }}</x-admin.crm-btn>
+                                        <x-admin.form-modal-link :href="route('admin.crm.customers.create')">{{ __('Create customer') }}</x-admin.form-modal-link>
                                     @endcan
                                 </x-slot>
                             </x-admin.empty-state>

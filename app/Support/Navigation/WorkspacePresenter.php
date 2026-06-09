@@ -2,6 +2,7 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Platform\ModalFormRoutes;
 use Illuminate\Support\Facades\Route;
 
 class WorkspacePresenter
@@ -472,6 +473,7 @@ class WorkspacePresenter
             'coming_soon' => $comingSoon,
             'model' => $item['model'] ?? null,
             'visible' => $visible,
+            'modal' => (bool) ($item['modal'] ?? ModalFormRoutes::supports($route)),
         ];
     }
 

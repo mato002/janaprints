@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Production;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModuleWorkspaceDesk;
 use App\Http\Controllers\Controller;
 use App\Support\Navigation\ProductionWorkspacePresenter;
 use Illuminate\Http\Request;
@@ -9,31 +10,23 @@ use Illuminate\View\View;
 
 class ProductionWorkspaceController extends Controller
 {
+    use HandlesModuleWorkspaceDesk;
+
     public function __construct(
         protected ProductionWorkspacePresenter $presenter,
     ) {}
 
-    public function hub(Request $request): View
+    public function hub(Request $request): View|\Illuminate\Http\RedirectResponse
     {
-        $payload = $this->presenter->presentHub();
+        abort_unless($this->presenter->isVisible(), 403);
 
-        abort_if($payload === null, 403);
+        return $this->renderModuleDesk($request, 'production');
+    }
 
-        $cards = collect($payload['groups'])
-            ->flatMap(fn (array $group) => collect($group['items'])->map(fn (array $item) => array_merge($item, [
-                'group_label' => $group['label'],
-                'search_text' => strtolower(implode(' ', array_filter([
-                    $group['label'],
-                    $item['label'],
-                    $item['description'],
-                ]))),
-            ])))
-            ->values()
-            ->all();
+    public function section(Request $request, string $section): View|\Illuminate\Http\RedirectResponse
+    {
+        abort_unless($this->presenter->sectionExists($section), 404);
 
-        return view('admin.production.workspaces.hub', [
-            'workspace' => $payload,
-            'cards' => $cards,
-        ]);
+        return $this->renderModuleDesk($request, 'production', $section);
     }
 }

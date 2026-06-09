@@ -1,7 +1,7 @@
 <x-admin-layout :title="__('Artwork requests')" :breadcrumbs="[['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => __('Requests')]]">
     <x-admin.page-header :title="__('Artwork requests')" :description="__('All design requests for your branch.')">
         @can('create', App\Models\Artwork\ArtworkRequest::class)
-            <a href="{{ route('admin.artwork.create') }}" class="erp-btn-primary">{{ __('New request') }}</a>
+            <x-admin.form-modal-link :href="route('admin.artwork.create')">{{ __('New request') }}</x-admin.form-modal-link>
         @endcan
     </x-admin.page-header>
 
@@ -43,7 +43,7 @@
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.artwork.show', $item)">{{ __('View') }}</x-admin.table-row-action>
                             @can('update', $item)
-                                <x-admin.table-row-action :href="route('admin.artwork.edit', $item)">{{ __('Edit') }}</x-admin.table-row-action>
+                                <x-admin.table-row-action :href="route('admin.artwork.edit', $item)" data-erp-modal-open>{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan
                         </x-admin.table-row-actions>
                     </td>

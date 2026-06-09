@@ -8,6 +8,7 @@ return [
 
     'hub' => [
         [
+            'key' => 'dashboard',
             'label' => 'Dashboard',
             'description' => 'Finance command center with KPIs, activity, and quick actions.',
             'route' => 'admin.accounting.dashboard',

@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Leads')" :description="__('Sales opportunities and pipeline.')">
         <x-slot name="actions">
             @can('create', App\Models\Crm\Lead::class)
-                <a href="{{ route('admin.crm.leads.create') }}" class="erp-btn-primary">{{ __('Create lead') }}</a>
+                <x-admin.form-modal-link :href="route('admin.crm.leads.create')">{{ __('Create lead') }}</x-admin.form-modal-link>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -41,7 +41,7 @@
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.crm.leads.show', $lead)">{{ __('View') }}</x-admin.table-row-action>
                             @can('update', $lead)
-                                <x-admin.table-row-action :href="route('admin.crm.leads.edit', $lead)">{{ __('Edit') }}</x-admin.table-row-action>
+                                <x-admin.table-row-action :href="route('admin.crm.leads.edit', $lead)" data-erp-modal-open>{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan
                             @can('delete', $lead)
                                 <x-admin.table-row-action
@@ -59,7 +59,7 @@
                         <x-admin.empty-state icon="sparkles" :title="__('No leads yet')" :description="__('Track opportunities from first contact to conversion.')">
                             <x-slot name="action">
                                 @can('create', App\Models\Crm\Lead::class)
-                                    <a href="{{ route('admin.crm.leads.create') }}" class="erp-btn-primary">{{ __('Create lead') }}</a>
+                                    <x-admin.form-modal-link :href="route('admin.crm.leads.create')">{{ __('Create lead') }}</x-admin.form-modal-link>
                                 @endcan
                             </x-slot>
                         </x-admin.empty-state>

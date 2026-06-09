@@ -42,48 +42,30 @@ class ProductionHubActivationTest extends TestCase
         }
     }
 
-    public function test_workspace_presenter_marks_production_modules_active_when_routes_exist(): void
+    public function test_workspace_catalog_includes_production_module_routes(): void
     {
-        $user = $this->userWithProductionModules();
-        $this->actingAs($user);
+        $presenter = app(ProductionWorkspacePresenter::class);
+        $routes = collect($presenter->sectionDefinitions())
+            ->flatMap(fn (array $section) => collect($section['groups'] ?? [])
+                ->flatMap(fn (array $group) => $group['items'] ?? []))
+            ->pluck('route')
+            ->filter()
+            ->all();
 
-        $presented = app(ProductionWorkspacePresenter::class)->presentHub();
-        $items = collect($presented['groups'])
-            ->flatMap(fn (array $group) => $group['items'])
-            ->keyBy('label');
-
-        foreach ($this->activatedCards as $label => $routeName) {
-            $item = $items->get($label);
-            $this->assertNotNull($item, "Missing presented item: {$label}");
-            $this->assertFalse($item['comingSoon'], "{$label} should not be coming soon");
-            $this->assertSame(__('Active'), $item['statusLabel']);
-            $this->assertSame('success', $item['statusVariant']);
-            $this->assertSame(route($routeName), $item['href']);
+        foreach ($this->activatedCards as $routeName) {
+            $this->assertContains($routeName, $routes, "Catalog missing route: {$routeName}");
         }
     }
 
-    public function test_production_hub_cards_are_clickable_active_not_coming_soon(): void
+    public function test_production_section_desk_embeds_active_module_content(): void
     {
         $user = $this->userWithProductionModules();
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.production'));
+        $response = $this->actingAs($user)->get(route('admin.workspaces.production.section', ['section' => 'operations', 'tab' => 'job-queue']));
 
         $response->assertOk();
-        $content = $response->getContent();
-
-        foreach ($this->activatedCards as $label => $routeName) {
-            $response->assertSee(route($routeName), false);
-            $this->assertMatchesRegularExpression(
-                '/'.preg_quote($label, '/').'[\s\S]*?'.preg_quote(__('Active'), '/').'/u',
-                $content,
-            );
-            $this->assertDoesNotMatchRegularExpression(
-                '/'.preg_quote($label, '/').'[\s\S]*?aria-disabled="true"/u',
-                $content,
-            );
-        }
-
-        $response->assertDontSee(__('Foundation'), false);
+        $response->assertSee(__('Production Queue'), false);
+        $response->assertSee(route('admin.production.queue.index', ['embedded' => '1']), false);
     }
 
     public function test_search_index_includes_activated_production_module_routes(): void
@@ -116,7 +98,9 @@ class ProductionHubActivationTest extends TestCase
         $user = $this->userWithProductionModules();
         $this->actingAs($user);
 
-        $this->get(route('admin.workspaces.production'))->assertOk();
+        $hub = $this->get(route('admin.workspaces.production'));
+        $hub->assertRedirect();
+        $this->get($hub->headers->get('Location'))->assertOk();
         $this->get(route('admin.production.queue.index'))->assertOk();
         $this->get(route('admin.production.scheduling.index'))->assertOk();
         $this->get(route('admin.production.quality.index'))->assertOk();

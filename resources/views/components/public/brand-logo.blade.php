@@ -27,7 +27,7 @@
 @endphp
 
 <img
-    src="{{ url(config('site.local.logo')) }}"
+    src="{{ $brandingLogoUrl }}"
     alt="{{ $full || $header ? config('site.name') : '' }}"
     {{ $attributes->merge(['class' => $classList]) }}
     @if ($full || $header)

@@ -152,9 +152,11 @@ class ModuleShellPresenter
         }
 
         $module = $this->moduleDefinitions()[$moduleKey];
+        $catalog = $this->loadCatalog($module);
         $sectionRoute = $module['section_route'] ?? null;
+        $primaryHasSection = isset($catalog['sections'][$primary['key'] ?? '']);
 
-        if ($sectionRoute && Route::has($sectionRoute)) {
+        if ($sectionRoute && Route::has($sectionRoute) && $primaryHasSection) {
             $url = route($sectionRoute, ['section' => $primary['key']]);
 
             if ($secondary !== null) {
@@ -162,6 +164,10 @@ class ModuleShellPresenter
             }
 
             return ['url' => $this->navigation->appendPreservedQuery($url) ?? $url];
+        }
+
+        if (! $primaryHasSection) {
+            return null;
         }
 
         $hubRoute = $module['hub_route'] ?? null;
@@ -571,11 +577,21 @@ class ModuleShellPresenter
             return null;
         }
 
+        $catalog = $this->loadCatalog($module) ?? [];
+        $hubKey = $this->hubItemKey($item);
+        $sectionRoute = $module['section_route'] ?? null;
+        $hubRoute = $module['hub_route'] ?? null;
+        $primaryHasSection = isset($catalog['sections'][$hubKey]);
+
+        if ($sectionRoute && $route !== $sectionRoute && ! $primaryHasSection && $hubRoute && Route::has($hubRoute)) {
+            return $this->navigation->appendPreservedQuery(route($hubRoute));
+        }
+
         $params = $item['route_params'] ?? [];
         $url = route($route, $params);
-        $defaultTab = $this->firstSecondaryKey($this->loadCatalog($module) ?? [], $this->hubItemKey($item));
+        $defaultTab = $this->firstSecondaryKey($catalog, $hubKey);
 
-        if ($defaultTab !== null && ($module['section_route'] ?? null) === $route) {
+        if ($defaultTab !== null && $sectionRoute === $route) {
             $url = $this->appendQuery($url, ['tab' => $defaultTab]);
         }
 

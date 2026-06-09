@@ -41,50 +41,36 @@ class ProductionWorkspaceRestructureTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_production_hub_shows_ten_navigation_cards_in_five_groups(): void
+    public function test_production_hub_redirects_to_default_workspace_desk(): void
     {
         $user = $this->userWithFullProductionAccess();
         $this->actingAs($user);
 
         $response = $this->get(route('admin.workspaces.production'));
+
+        $response->assertRedirect();
+        $this->get($response->headers->get('Location'))->assertOk();
+    }
+
+    public function test_operations_section_renders_workspace_switchers(): void
+    {
+        $user = $this->userWithFullProductionAccess();
+        $this->actingAs($user);
+
+        $response = $this->get(route('admin.workspaces.production.section', ['section' => 'operations']));
 
         $response->assertOk();
-        $response->assertSee(__('Operations'), false);
-        $response->assertSee(__('Financial'), false);
-        $response->assertSee(__('Logistics'), false);
-        $response->assertSee(__('Intelligence'), false);
-        $response->assertSee(__('Reporting'), false);
-
-        foreach (array_keys($this->hubCards) as $label) {
-            $needle = str_contains($label, '&')
-                ? explode(' &', $label)[0]
-                : $label;
-            $response->assertSee($needle, false);
-        }
-
-        $response->assertDontSee(__('Dispatch (legacy)'), false);
-        $response->assertDontSee(__('Production Dashboard'), false);
+        $response->assertSee('module-workspace-switcher--primary', false);
+        $response->assertSee(__('Job Cards'), false);
+        $response->assertSee(route('admin.production.job-cards.index', ['embedded' => '1']), false);
     }
 
-    public function test_hub_cards_link_to_feature_routes_not_nested_sections(): void
+    public function test_removed_legacy_dispatch_card_is_not_in_catalog(): void
     {
-        $user = $this->userWithFullProductionAccess();
-        $this->actingAs($user);
-
-        $response = $this->get(route('admin.workspaces.production'));
-
-        foreach ($this->hubCards as $routeName) {
-            $response->assertSee(route($routeName), false);
-        }
-    }
-
-    public function test_removed_legacy_dispatch_card_is_not_in_presenter(): void
-    {
-        $user = $this->userWithFullProductionAccess();
-        $this->actingAs($user);
-
-        $presented = app(ProductionWorkspacePresenter::class)->presentHub();
-        $labels = collect($presented['groups'])->flatMap(fn (array $group) => collect($group['items'])->pluck('label'))->all();
+        $labels = collect(app(ProductionWorkspacePresenter::class)->sectionDefinitions())
+            ->flatMap(fn (array $section) => collect($section['groups'] ?? [])
+                ->flatMap(fn (array $group) => collect($group['items'] ?? [])->pluck('label')))
+            ->all();
 
         $this->assertNotContains('Dispatch (legacy)', $labels);
         $this->assertContains('Dispatch Workspace', $labels);
@@ -92,7 +78,7 @@ class ProductionWorkspaceRestructureTest extends TestCase
         $this->assertContains('Production Command Center', $labels);
     }
 
-    public function test_user_without_dispatch_permission_does_not_see_dispatch_card(): void
+    public function test_user_without_dispatch_permission_does_not_see_dispatch_tab(): void
     {
         $user = $this->userWithPermissions([
             'production.view',
@@ -103,13 +89,13 @@ class ProductionWorkspaceRestructureTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.workspaces.production'))
+            ->get(route('admin.workspaces.production.section', ['section' => 'operations']))
             ->assertOk()
-            ->assertDontSee(__('Dispatch Workspace'), false)
+            ->assertDontSee(__('Dispatch'), false)
             ->assertDontSee(route('admin.workspaces.dispatch'), false);
     }
 
-    public function test_user_without_reports_permission_does_not_see_intelligence_or_reporting_cards(): void
+    public function test_user_without_reports_permission_does_not_see_reports_tab(): void
     {
         $user = $this->userWithPermissions([
             'production.view',
@@ -117,7 +103,7 @@ class ProductionWorkspaceRestructureTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.workspaces.production'))
+            ->get(route('admin.workspaces.production.section', ['section' => 'operations']))
             ->assertOk()
             ->assertDontSee(__('Production 360'), false)
             ->assertDontSee(__('Production Reports'), false);

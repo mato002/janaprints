@@ -7,6 +7,7 @@ use App\Enums\ArtworkPriority;
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\DocumentType;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -21,12 +22,13 @@ use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ArtworkRequestController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -52,7 +54,7 @@ class ArtworkRequestController extends Controller
         ]));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', ArtworkRequest::class);
 
@@ -72,9 +74,10 @@ class ArtworkRequestController extends Controller
 
         $this->syncCustomFields($artworkRequest, 'artwork', $customData, $companyId);
 
-        return redirect()
-            ->route('admin.artwork.show', $artworkRequest)
-            ->with('status', __('Artwork request created.'));
+        return $this->modalOrRedirect(
+            __('Artwork request created.'),
+            redirect()->route('admin.artwork.show', $artworkRequest),
+        );
     }
 
     public function show(ArtworkRequest $artworkRequest): View
@@ -99,7 +102,7 @@ class ArtworkRequestController extends Controller
         ]);
     }
 
-    public function update(Request $httpRequest, ArtworkRequest $artworkRequest): RedirectResponse
+    public function update(Request $httpRequest, ArtworkRequest $artworkRequest): RedirectResponse|Response
     {
         $this->authorize('update', $artworkRequest);
 
@@ -108,9 +111,10 @@ class ArtworkRequestController extends Controller
         $artworkRequest->update($validated);
         $this->syncCustomFields($artworkRequest, 'artwork', $customData, $artworkRequest->company_id);
 
-        return redirect()
-            ->route('admin.artwork.show', $artworkRequest)
-            ->with('status', __('Artwork request updated.'));
+        return $this->modalOrRedirect(
+            __('Artwork request updated.'),
+            redirect()->route('admin.artwork.show', $artworkRequest),
+        );
     }
 
     public function destroy(ArtworkRequest $artworkRequest): RedirectResponse

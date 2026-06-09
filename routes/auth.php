@@ -15,6 +15,13 @@ use Illuminate\Support\Facades\Route;
 | Public registration is disabled. Users are created by administrators only.
 */
 
+Route::prefix('client')->group(function () {
+    Route::get('login', [ClientAuthenticatedSessionController::class, 'create'])
+        ->name('client.login');
+
+    Route::post('login', [ClientAuthenticatedSessionController::class, 'store']);
+});
+
 Route::middleware('guest')->group(function () {
     Route::redirect('login', '/admin/login')->name('login');
 
@@ -23,13 +30,6 @@ Route::middleware('guest')->group(function () {
             ->name('admin.login');
 
         Route::post('login', [AuthenticatedSessionController::class, 'store']);
-    });
-
-    Route::prefix('client')->group(function () {
-        Route::get('login', [ClientAuthenticatedSessionController::class, 'create'])
-            ->name('client.login');
-
-        Route::post('login', [ClientAuthenticatedSessionController::class, 'store']);
     });
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])

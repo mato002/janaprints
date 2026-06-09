@@ -83,17 +83,13 @@ class WorkspaceNavigationTest extends TestCase
         $role->syncPermissions(['quotations.view']);
         $user->assignRole('Company Admin');
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.commercial'));
+        $desk = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'sales']));
 
-        $response->assertOk();
-        $response->assertSee(route('admin.workspaces.commercial.section', ['section' => 'sales']), false);
-        $response->assertDontSee(route('admin.workspaces.commercial.section', ['section' => 'crm']), false);
-
-        $this->actingAs($user)
-            ->get(route('admin.workspaces.commercial.section', ['section' => 'sales']))
-            ->assertOk()
-            ->assertSee(route('admin.quotations.dashboard'), false)
-            ->assertDontSee(route('admin.crm.customers.index'), false);
+        $desk->assertOk();
+        $desk->assertSee(__('Quotations'), false);
+        $desk->assertDontSee(route('admin.workspaces.commercial.section', ['section' => 'crm']), false);
+        $desk->assertSee(route('admin.quotations.dashboard', ['embedded' => '1']), false);
+        $desk->assertDontSee(route('admin.crm.customers.index', ['embedded' => '1']), false);
     }
 
     public function test_active_workspace_route_patterns_include_child_routes(): void

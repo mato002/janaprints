@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('HR Dashboard')" :description="__('Workforce overview across attendance, leave, payroll, documents, performance, training, and exit management.')">
         <x-slot name="actions">
             @can('employees.manage')
-                <a href="{{ route('admin.employees.index') }}" class="erp-btn-secondary">{{ __('Employees') }}</a>
+                <a href="{{ route('admin.employees.index') }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ __('Employees') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -25,7 +25,7 @@
                 @foreach ($overview['alerts'] as $alert)
                     @can($alert['permission'])
                         <li>
-                            <a href="{{ route($alert['route']) }}" class="text-indigo-600 hover:underline">{{ $alert['label'] }}</a>
+                            <a href="{{ route($alert['route']) }}" class="text-indigo-600 hover:underline" data-turbo-frame="erp-main">{{ $alert['label'] }}</a>
                         </li>
                     @endcan
                 @endforeach
@@ -40,7 +40,7 @@
                     <div class="flex items-start justify-between gap-3">
                         <div>
                             <h3 class="text-base font-semibold text-erp-primary">
-                                <a href="{{ route($module['route']) }}" class="hover:underline">{{ $module['label'] }}</a>
+                                <a href="{{ route($module['route']) }}" class="hover:underline" data-turbo-frame="erp-main">{{ $module['label'] }}</a>
                             </h3>
                             <p class="mt-1 text-sm text-slate-500">{{ $module['description'] }}</p>
                         </div>
@@ -53,7 +53,7 @@
                             </div>
                         @endforeach
                     </dl>
-                    <a href="{{ route($module['route']) }}" class="erp-btn-secondary mt-4 inline-block text-xs">{{ __('Open module') }}</a>
+                    <a href="{{ route($module['route']) }}" class="erp-btn-secondary mt-4 inline-block text-xs" data-turbo-frame="erp-main">{{ __('Open module') }}</a>
                 </x-admin.card>
             @endcan
         @endforeach

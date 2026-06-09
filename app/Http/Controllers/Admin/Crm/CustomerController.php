@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Crm;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -16,12 +17,13 @@ use App\Support\Crm\CustomerOperationalGuard;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CustomerController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -45,7 +47,7 @@ class CustomerController extends Controller
         return view('admin.crm.customers.create', $this->formMeta());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', Customer::class);
 
@@ -67,7 +69,10 @@ class CustomerController extends Controller
 
         $this->syncCustomFields($customer, 'customer', $customData, $companyId);
 
-        return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer created.'));
+        return $this->modalOrRedirect(
+            __('Customer created.'),
+            redirect()->route('admin.crm.customers.show', $customer),
+        );
     }
 
     public function show(Request $request, Customer $customer): View
@@ -115,7 +120,7 @@ class CustomerController extends Controller
         ));
     }
 
-    public function update(Request $request, Customer $customer): RedirectResponse
+    public function update(Request $request, Customer $customer): RedirectResponse|Response
     {
         $this->authorize('update', $customer);
 
@@ -125,7 +130,10 @@ class CustomerController extends Controller
         $customer->segments()->sync($data['segment_ids'] ?? []);
         $this->syncCustomFields($customer, 'customer', $customData, $customer->company_id);
 
-        return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer updated.'));
+        return $this->modalOrRedirect(
+            __('Customer updated.'),
+            redirect()->route('admin.crm.customers.show', $customer),
+        );
     }
 
     public function destroy(Customer $customer): RedirectResponse

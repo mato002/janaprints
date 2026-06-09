@@ -16,53 +16,31 @@ class ProductionWorkspacePresenter
     }
 
     /**
-     * @return list<array{label: string, items: list<array<string, mixed>>}>
+     * @return list<array<string, mixed>>
      */
-    public function groupDefinitions(): array
+    public function hubDefinitions(): array
     {
-        return config('production_workspaces.groups', []);
+        return config('production_workspaces.hub', []);
     }
 
     /**
-     * @return array{key: string, title: string, description: string, icon: string, groups: list<array{label: string, items: list<array<string, mixed>>}>}|null
+     * @return array<string, array<string, mixed>>
      */
-    public function presentHub(): ?array
+    public function sectionDefinitions(): array
     {
-        $groups = [];
+        return config('production_workspaces.sections', []);
+    }
 
-        foreach ($this->groupDefinitions() as $group) {
-            $items = $this->filterItems($group['items'] ?? []);
-
-            if ($items === []) {
-                continue;
-            }
-
-            $groups[] = [
-                'label' => $group['label'],
-                'items' => array_map(fn (array $item) => $this->presentItem($item), $items),
-            ];
-        }
-
-        if ($groups === []) {
-            return null;
-        }
-
-        return [
-            'key' => 'production',
-            'title' => __('Production'),
-            'description' => __('Job cards, scheduling, work centers, quality, dispatch, and production intelligence.'),
-            'icon' => 'cog',
-            'groups' => $groups,
-        ];
+    public function sectionExists(string $section): bool
+    {
+        return array_key_exists($section, $this->sectionDefinitions());
     }
 
     public function isVisible(): bool
     {
-        foreach ($this->groupDefinitions() as $group) {
-            foreach ($group['items'] ?? [] as $item) {
-                if ($this->itemIsAccessible($item)) {
-                    return true;
-                }
+        foreach ($this->hubDefinitions() as $item) {
+            if ($this->itemIsAccessible($item)) {
+                return true;
             }
         }
 
@@ -76,11 +54,20 @@ class ProductionWorkspacePresenter
     {
         $routes = [
             'admin.workspaces.production',
+            'admin.workspaces.production.section',
         ];
 
-        foreach ($this->groupDefinitions() as $group) {
-            foreach ($group['items'] ?? [] as $item) {
-                $routes = array_merge($routes, $this->itemRoutePatterns($item));
+        foreach ($this->hubDefinitions() as $item) {
+            $routes = array_merge($routes, $this->itemRoutePatterns($item));
+        }
+
+        foreach ($this->sectionDefinitions() as $section => $definition) {
+            $routes[] = "admin.workspaces.production.section:{$section}";
+
+            foreach ($definition['groups'] ?? [] as $group) {
+                foreach ($group['items'] ?? [] as $item) {
+                    $routes = array_merge($routes, $this->itemRoutePatterns($item));
+                }
             }
         }
 
@@ -95,17 +82,35 @@ class ProductionWorkspacePresenter
         $flat = [];
         $workspaceTitle = __('Production');
 
-        foreach ($this->groupDefinitions() as $group) {
-            $groupLabel = $group['label'] ?? '';
+        foreach ($this->hubDefinitions() as $item) {
+            if (! $this->itemIsAccessible($item)) {
+                continue;
+            }
 
-            foreach ($this->filterItems($group['items'] ?? []) as $item) {
-                $flat[] = [
-                    'label' => $item['label'] ?? '',
-                    'path' => "{$workspaceTitle} › {$groupLabel} › ".($item['label'] ?? ''),
-                    'route' => $item['route'] ?? null,
-                    'route_params' => [],
-                    'coming_soon' => false,
-                ];
+            $flat[] = [
+                'label' => $item['label'] ?? '',
+                'path' => "{$workspaceTitle} › ".($item['label'] ?? ''),
+                'route' => $item['route'] ?? null,
+                'route_params' => $item['route_params'] ?? [],
+                'coming_soon' => false,
+            ];
+        }
+
+        foreach ($this->sectionDefinitions() as $sectionKey => $definition) {
+            $sectionTitle = $definition['title'] ?? $sectionKey;
+
+            foreach ($definition['groups'] ?? [] as $group) {
+                $groupLabel = $group['label'] ?? '';
+
+                foreach ($this->filterItems($group['items'] ?? []) as $item) {
+                    $flat[] = [
+                        'label' => $item['label'] ?? '',
+                        'path' => "{$workspaceTitle} › {$sectionTitle} › {$groupLabel} › ".($item['label'] ?? ''),
+                        'route' => $item['route'] ?? null,
+                        'route_params' => [],
+                        'coming_soon' => false,
+                    ];
+                }
             }
         }
 

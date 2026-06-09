@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BrandingAssetController;
 use App\Http\Controllers\MySessionsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RfqVendorPortalController;
@@ -9,6 +10,10 @@ use App\Http\Controllers\Storefront\PublicQuoteRequestController;
 use App\Http\Controllers\Storefront\RobotsController;
 use App\Http\Controllers\Storefront\SitemapController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/branding/{path}', [BrandingAssetController::class, 'show'])
+    ->where('path', '.*')
+    ->name('branding.asset');
 
 Route::get('/robots.txt', RobotsController::class)->name('storefront.robots');
 Route::get('/sitemap.xml', SitemapController::class)->name('storefront.sitemap');

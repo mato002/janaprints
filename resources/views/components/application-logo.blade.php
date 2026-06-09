@@ -1,5 +1,5 @@
 <img
-    src="{{ url(config('site.local.logo')) }}"
+    src="{{ $brandingLogoUrl }}"
     alt="{{ config('site.name') }}"
     {{ $attributes->merge(['class' => 'h-10 w-auto max-w-[190px] object-contain object-left']) }}
     width="210"

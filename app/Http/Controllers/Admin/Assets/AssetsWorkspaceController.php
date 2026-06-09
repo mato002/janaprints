@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Assets;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModuleWorkspaceDesk;
 use App\Http\Controllers\Controller;
 use App\Support\Navigation\AssetsWorkspacePresenter;
 use Illuminate\Http\Request;
@@ -9,31 +10,21 @@ use Illuminate\View\View;
 
 class AssetsWorkspaceController extends Controller
 {
+    use HandlesModuleWorkspaceDesk;
+
     public function __construct(
         protected AssetsWorkspacePresenter $presenter,
     ) {}
 
-    public function hub(Request $request): View
+    public function hub(Request $request): View|\Illuminate\Http\RedirectResponse
     {
-        $payload = $this->presenter->presentHub();
+        abort_unless($this->presenter->isVisible(), 403);
 
-        abort_if($payload === null, 403);
+        return $this->renderModuleDesk($request, 'assets');
+    }
 
-        $cards = collect($payload['groups'])
-            ->flatMap(fn (array $group) => collect($group['items'])->map(fn (array $item) => array_merge($item, [
-                'group_label' => $group['label'],
-                'search_text' => strtolower(implode(' ', array_filter([
-                    $group['label'],
-                    $item['label'],
-                    $item['description'],
-                ]))),
-            ])))
-            ->values()
-            ->all();
-
-        return view('admin.assets.workspaces.hub', [
-            'workspace' => $payload,
-            'cards' => $cards,
-        ]);
+    public function section(Request $request, string $section): View|\Illuminate\Http\RedirectResponse
+    {
+        return $this->renderModuleDesk($request, 'assets', $section);
     }
 }

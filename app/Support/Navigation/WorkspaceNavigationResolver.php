@@ -180,18 +180,44 @@ class WorkspaceNavigationResolver
         );
     }
 
-    public function appendPreservedQuery(?string $url, ?Request $request = null): ?string
+    /**
+     * @param  list<string>  $exclude
+     */
+    public function appendPreservedQuery(?string $url, ?Request $request = null, array $exclude = []): ?string
     {
         if (! $url) {
             return null;
         }
 
-        $query = $this->filterPreservedQuery($request?->query());
+        $existing = [];
+        $fragment = '';
 
-        if ($query === []) {
-            return $url;
+        if (($hashPos = strpos($url, '#')) !== false) {
+            $fragment = substr($url, $hashPos);
+            $url = substr($url, 0, $hashPos);
         }
 
-        return $url.(str_contains($url, '?') ? '&' : '?').http_build_query($query);
+        if (($queryPos = strpos($url, '?')) !== false) {
+            parse_str(substr($url, $queryPos + 1), $existing);
+            $url = substr($url, 0, $queryPos);
+        }
+
+        $query = $this->filterPreservedQuery($request?->query());
+
+        foreach ($exclude as $key) {
+            unset($query[$key]);
+        }
+
+        foreach (array_keys($existing) as $key) {
+            unset($query[$key]);
+        }
+
+        $merged = array_merge($existing, $query);
+
+        if ($merged === []) {
+            return $url.$fragment;
+        }
+
+        return $url.'?'.http_build_query($merged).$fragment;
     }
 }

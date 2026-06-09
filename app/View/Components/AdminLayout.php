@@ -15,10 +15,18 @@ class AdminLayout extends Component
         public bool $useWorkspaceNavigation = true,
         /** Full-height workspace pages (e.g. Shared Inbox) — minimal chrome, no breadcrumbs. */
         public bool $compactPage = false,
-    ) {}
+        /** Embedded module workspace content — renders inside turbo-frame without app chrome. */
+        public bool $embedded = false,
+    ) {
+        if (! $embedded && request()->query('embedded') === '1') {
+            $this->embedded = true;
+            $this->useWorkspaceNavigation = false;
+            $this->compactPage = false;
+        }
+    }
 
     public function render(): View
     {
-        return view('layouts.admin');
+        return view($this->embedded ? 'layouts.admin-embedded' : 'layouts.admin');
     }
 }

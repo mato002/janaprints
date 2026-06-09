@@ -8,7 +8,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('payroll_payslips', function (Blueprint $table) {
+        if (Schema::hasTable('payroll_payslips') && Schema::hasTable('payroll_payslip_items')) {
+            return;
+        }
+
+        if (! Schema::hasTable('payroll_payslips')) {
+            Schema::create('payroll_payslips', function (Blueprint $table) {
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('payroll_run_id')->constrained()->cascadeOnDelete();
@@ -31,9 +36,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->unique(['payroll_run_id', 'employee_id']);
-        });
+            });
+        }
 
-        Schema::create('payroll_payslip_items', function (Blueprint $table) {
+        if (! Schema::hasTable('payroll_payslip_items')) {
+            Schema::create('payroll_payslip_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('payroll_payslip_id')->constrained()->cascadeOnDelete();
             $table->string('item_type', 20);
@@ -42,7 +49,8 @@ return new class extends Migration
             $table->decimal('amount', 12, 2)->default(0);
             $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();
-        });
+            });
+        }
     }
 
     public function down(): void

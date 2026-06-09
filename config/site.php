@@ -36,6 +36,8 @@ return [
         'sidebar_logo' => '/images/logo-sidebar.png',
     ],
 
+    'branding_company_code' => env('SITE_BRANDING_COMPANY_CODE', 'JANA'),
+
     'analytics' => [
         'google_analytics_id' => env('GOOGLE_ANALYTICS_ID'),
         'google_search_console_verification' => env('GOOGLE_SEARCH_CONSOLE_VERIFICATION'),

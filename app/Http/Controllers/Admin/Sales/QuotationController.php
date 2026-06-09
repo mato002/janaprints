@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Sales;
 use App\Enums\DocumentType;
 use App\Enums\QuotationStatus;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Admin\Sales\Concerns\ManagesQuotationItems;
@@ -27,12 +28,13 @@ use App\Support\QuotationRevisionService;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class QuotationController extends Controller
 {
-    use HandlesFormCustomFields, ManagesQuotationItems, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ManagesQuotationItems, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -90,7 +92,7 @@ class QuotationController extends Controller
         ]));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', Quotation::class);
 
@@ -115,7 +117,10 @@ class QuotationController extends Controller
         $this->syncItems($quotation, $items, $totals);
         QuotationRevisionService::snapshot($quotation);
 
-        return redirect()->route('admin.quotations.show', $quotation)->with('status', __('Quotation created.'));
+        return $this->modalOrRedirect(
+            __('Quotation created.'),
+            redirect()->route('admin.quotations.show', $quotation),
+        );
     }
 
     public function show(Quotation $quotation): View
@@ -143,7 +148,7 @@ class QuotationController extends Controller
         ));
     }
 
-    public function update(Request $request, Quotation $quotation): RedirectResponse
+    public function update(Request $request, Quotation $quotation): RedirectResponse|Response
     {
         $this->authorize('update', $quotation);
 
@@ -161,7 +166,10 @@ class QuotationController extends Controller
         $quotation->refresh();
         QuotationRevisionService::snapshot($quotation);
 
-        return redirect()->route('admin.quotations.show', $quotation)->with('status', __('Quotation updated.'));
+        return $this->modalOrRedirect(
+            __('Quotation updated.'),
+            redirect()->route('admin.quotations.show', $quotation),
+        );
     }
 
     public function destroy(Quotation $quotation): RedirectResponse

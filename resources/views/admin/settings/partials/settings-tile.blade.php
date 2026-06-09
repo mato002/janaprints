@@ -36,6 +36,7 @@
     <a
         href="{{ $href }}"
         data-turbo-action="advance"
+        data-turbo-frame="erp-main"
         {{ $attributes->merge(['class' => "{$shellClasses} {$enabledClasses} {$interactiveClasses}"]) }}
     >
         @include('admin.settings.partials.settings-tile-inner')

@@ -4,6 +4,7 @@ namespace App\Support\Navigation;
 
 use App\Services\Commercial\PublicQuoteRequestCountService;
 use App\Support\Commercial\PublicLeadsDashboardPresenter;
+use App\Support\Platform\ModalFormRoutes;
 use Illuminate\Support\Facades\Route;
 
 class CommercialWorkspacePresenter
@@ -147,6 +148,7 @@ class CommercialWorkspacePresenter
                 'href' => $this->navigation->appendPreservedQuery(route($route, $params)),
                 'hint' => $action['hint'] ?? null,
                 'disabled' => false,
+                'modal' => (bool) ($action['modal'] ?? ModalFormRoutes::supports($route)),
             ];
         }
 

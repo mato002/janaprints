@@ -63,7 +63,7 @@
 
         @if (Route::has('home'))
             <a
-                href="{{ route('home') }}"
+                href="{{ url('/') }}"
                 target="_blank"
                 rel="noopener noreferrer"
                 data-turbo="false"
@@ -72,6 +72,20 @@
             >
                 <x-admin.icon name="external-link" class="h-4 w-4 shrink-0" />
                 <span class="hidden sm:inline">{{ __('Website') }}</span>
+            </a>
+        @endif
+
+        @if (Route::has('client.login'))
+            <a
+                href="{{ route('client.login') }}"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-turbo="false"
+                class="erp-btn erp-btn--secondary erp-btn--sm hidden items-center gap-1.5 lg:inline-flex"
+                title="{{ __('Open client login') }}"
+            >
+                <x-admin.icon name="external-link" class="h-4 w-4 shrink-0" />
+                <span>{{ __('Client Login') }}</span>
             </a>
         @endif
 

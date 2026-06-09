@@ -6,6 +6,661 @@ window.Turbo = Turbo;
 
 Turbo.session.drive = true;
 
+const WORKSPACE_STATE_KEY = 'erp.workspace.tableState';
+
+const erpModalManager = {
+    pendingModalLoad: false,
+    pendingDrawerLoad: false,
+    modalLoadSeq: 0,
+    modalAbortController: null,
+
+    overlay() {
+        return document.getElementById('erp-modal-overlay');
+    },
+
+    drawerOverlay() {
+        return document.getElementById('erp-drawer-overlay');
+    },
+
+    modalFrame() {
+        return document.getElementById('erp-form-modal');
+    },
+
+    drawerFrame() {
+        return document.getElementById('erp-preview-drawer');
+    },
+
+    toastHost() {
+        return document.getElementById('erp-toast-host');
+    },
+
+    openModal(url) {
+        return this.loadForm(url);
+    },
+
+    modalConfig() {
+        return window.__erpModalForm ?? { blockedPathFragments: [] };
+    },
+
+    isModalFormUrl(url) {
+        try {
+            const parsed = new URL(url, window.location.origin);
+
+            if (parsed.origin !== window.location.origin) {
+                return false;
+            }
+
+            const path = parsed.pathname.toLowerCase();
+            const blocked = this.modalConfig().blockedPathFragments ?? [];
+
+            if (blocked.some((fragment) => path.includes(String(fragment).toLowerCase()))) {
+                return false;
+            }
+
+            return /\/(create|edit)(\/|$)/.test(path);
+        } catch {
+            return false;
+        }
+    },
+
+    shouldOpenLinkAsModal(link) {
+        if (! link?.href) {
+            return false;
+        }
+
+        if (link.hasAttribute('data-erp-modal-open') || link.hasAttribute('data-no-modal')) {
+            return false;
+        }
+
+        if (link.getAttribute('target') === '_blank' || link.getAttribute('data-turbo') === 'false') {
+            return false;
+        }
+
+        if (link.closest('#erp-form-modal') || link.closest('[data-turbo-frame="_top"]')) {
+            return false;
+        }
+
+        return this.isModalFormUrl(link.href);
+    },
+
+    prepareModalFormContent(root) {
+        root.querySelectorAll('form').forEach((form) => {
+            form.removeAttribute('data-turbo-frame');
+
+            if (! form.querySelector('[name="_erp_modal"]')) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = '_erp_modal';
+                input.value = '1';
+                form.appendChild(input);
+            }
+        });
+    },
+
+    buildModalPanel(title, bodyHtml) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'erp-form-modal w-full';
+        wrapper.setAttribute('data-erp-form-modal-panel', '');
+
+        const header = document.createElement('div');
+        header.className = 'erp-form-modal__header';
+
+        const heading = document.createElement('h2');
+        heading.id = 'erp-form-modal-title';
+        heading.className = 'erp-form-modal__title';
+        heading.textContent = title || 'Form';
+
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'erp-form-modal__close';
+        closeButton.setAttribute('data-erp-form-modal-close', '');
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.innerHTML = '<svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>';
+
+        header.append(heading, closeButton);
+
+        const body = document.createElement('div');
+        body.className = 'erp-form-modal__body';
+        body.innerHTML = bodyHtml;
+        this.prepareModalFormContent(body);
+
+        wrapper.append(header, body);
+
+        return wrapper;
+    },
+
+    extractModalPanel(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        const nativePanel = doc.querySelector('[data-erp-form-modal-panel]')
+            ?? doc.querySelector('#erp-form-modal [data-erp-form-modal-panel]')
+            ?? doc.querySelector('#erp-form-modal .erp-form-modal')
+            ?? doc.querySelector('.erp-form-modal');
+
+        if (nativePanel) {
+            return nativePanel;
+        }
+
+        const main = doc.querySelector('#erp-main main') ?? doc.querySelector('main');
+        const form = main?.querySelector('form');
+
+        if (! form) {
+            return null;
+        }
+
+        const title = doc.querySelector('#erp-page-title')?.textContent?.trim()
+            ?? doc.querySelector('h1')?.textContent?.trim()
+            ?? doc.title.split('—')[0]?.trim()
+            ?? 'Form';
+
+        const container = form.closest('.bg-white')
+            ?? form.closest('.erp-data-grid')?.parentElement
+            ?? form.closest('[class*="card"]')
+            ?? form.parentElement;
+
+        const bodyHtml = container?.innerHTML ?? form.outerHTML;
+
+        return this.buildModalPanel(title, bodyHtml);
+    },
+
+    abortModalLoad() {
+        if (this.modalAbortController) {
+            this.modalAbortController.abort();
+            this.modalAbortController = null;
+        }
+    },
+
+    renderModalLoading() {
+        const frame = this.modalFrame();
+
+        if (! frame) {
+            return;
+        }
+
+        frame.innerHTML = `
+            <div class="erp-form-modal w-full" data-erp-form-modal-loading>
+                <div class="erp-form-modal__header">
+                    <h2 id="erp-form-modal-title" class="erp-form-modal__title">Loading…</h2>
+                    <button type="button" class="erp-form-modal__close" data-erp-form-modal-close aria-label="Close">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="erp-form-modal__body erp-form-modal__body--loading">
+                    <div class="erp-modal-spinner" role="status" aria-label="Loading form">
+                        <span class="sr-only">Loading form</span>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.showOverlay();
+    },
+
+    async loadForm(url) {
+        const frame = this.modalFrame();
+
+        if (! frame || ! url) {
+            return;
+        }
+
+        this.abortModalLoad();
+        const loadId = ++this.modalLoadSeq;
+        this.modalAbortController = new AbortController();
+        this.pendingModalLoad = true;
+        this.renderModalLoading();
+
+        try {
+            const response = await fetch(url, {
+                signal: this.modalAbortController.signal,
+                headers: {
+                    'Turbo-Frame': 'erp-form-modal',
+                    'Accept': 'text/html, application/xhtml+xml',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (loadId !== this.modalLoadSeq) {
+                return;
+            }
+
+            if (! response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const panel = this.extractModalPanel(await response.text());
+
+            if (! panel) {
+                throw new Error('Modal form markup was not found in the response.');
+            }
+
+            frame.replaceChildren(panel);
+            this.pendingModalLoad = false;
+            this.modalAbortController = null;
+            this.showOverlay();
+
+            await new Promise((resolve) => window.requestAnimationFrame(resolve));
+            Alpine.initTree(frame);
+        } catch (error) {
+            if (error?.name === 'AbortError' || loadId !== this.modalLoadSeq) {
+                return;
+            }
+
+            console.error('erpModalManager.loadForm', error);
+            this.pendingModalLoad = false;
+            this.modalAbortController = null;
+            this.closeModal();
+            this.showToast('Unable to open form. Please try again.', 'error');
+        }
+    },
+
+    closeModal() {
+        this.modalLoadSeq += 1;
+        this.abortModalLoad();
+        this.pendingModalLoad = false;
+
+        const frame = this.modalFrame();
+
+        if (frame) {
+            frame.removeAttribute('src');
+            frame.innerHTML = '';
+        }
+
+        this.hideOverlay();
+    },
+
+    openDrawer(url) {
+        const frame = this.drawerFrame();
+
+        if (! frame || ! url) {
+            return;
+        }
+
+        frame.src = url;
+        this.showDrawer();
+    },
+
+    closeDrawer() {
+        this.pendingDrawerLoad = false;
+
+        const frame = this.drawerFrame();
+
+        if (frame) {
+            frame.removeAttribute('src');
+            frame.innerHTML = '';
+        }
+
+        this.hideDrawer();
+    },
+
+    showOverlay() {
+        const overlay = this.overlay();
+
+        if (overlay) {
+            overlay.hidden = false;
+            overlay.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
+        }
+    },
+
+    hideOverlay() {
+        const overlay = this.overlay();
+
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('overflow-hidden');
+        }
+    },
+
+    showDrawer() {
+        const overlay = this.drawerOverlay();
+
+        if (overlay) {
+            overlay.hidden = false;
+            overlay.setAttribute('aria-hidden', 'false');
+        }
+    },
+
+    hideDrawer() {
+        const overlay = this.drawerOverlay();
+
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.setAttribute('aria-hidden', 'true');
+        }
+    },
+
+    showToast(message, variant = 'success') {
+        const host = this.toastHost();
+
+        if (! host || ! message) {
+            return;
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `erp-toast erp-toast--${variant}`;
+        toast.setAttribute('role', 'status');
+        toast.textContent = message;
+        host.appendChild(toast);
+
+        window.setTimeout(() => {
+            toast.remove();
+        }, 4500);
+    },
+
+    saveWorkspaceState() {
+        const frame = document.getElementById('erp-main');
+
+        if (! frame) {
+            return;
+        }
+
+        const tables = frame.querySelectorAll('[x-data]');
+        const states = [];
+
+        tables.forEach((element) => {
+            const data = element._x_dataStack?.[0];
+
+            if (! data || typeof data.rowVisible !== 'function') {
+                return;
+            }
+
+            states.push({
+                query: data.query ?? '',
+                activeChip: data.activeChip ?? 'all',
+                filterOpen: data.filterOpen ?? false,
+            });
+        });
+
+        sessionStorage.setItem(WORKSPACE_STATE_KEY, JSON.stringify({
+            scrollY: window.scrollY,
+            tables: states,
+        }));
+    },
+
+    restoreWorkspaceState() {
+        const raw = sessionStorage.getItem(WORKSPACE_STATE_KEY);
+
+        if (! raw) {
+            return;
+        }
+
+        sessionStorage.removeItem(WORKSPACE_STATE_KEY);
+
+        let saved;
+
+        try {
+            saved = JSON.parse(raw);
+        } catch {
+            return;
+        }
+
+        const frame = document.getElementById('erp-main');
+
+        if (! frame) {
+            return;
+        }
+
+        const tables = [...frame.querySelectorAll('[x-data]')].filter((element) => {
+            const data = element._x_dataStack?.[0];
+
+            return data && typeof data.rowVisible === 'function';
+        });
+
+        saved.tables?.forEach((state, index) => {
+            const data = tables[index]?._x_dataStack?.[0];
+
+            if (! data) {
+                return;
+            }
+
+            if ('query' in state) {
+                data.query = state.query;
+            }
+
+            if ('activeChip' in state) {
+                data.activeChip = state.activeChip;
+            }
+
+            if ('filterOpen' in state) {
+                data.filterOpen = state.filterOpen;
+            }
+        });
+
+        if (typeof saved.scrollY === 'number') {
+            window.requestAnimationFrame(() => {
+                window.scrollTo(0, saved.scrollY);
+            });
+        }
+    },
+
+    refreshTable() {
+        const frame = document.getElementById('erp-main');
+
+        if (! frame || ! window.Turbo) {
+            return Promise.resolve();
+        }
+
+        this.saveWorkspaceState();
+
+        return window.Turbo.visit(window.location.href, {
+            frame: 'erp-main',
+            action: 'replace',
+        });
+    },
+
+    async submitFormRequest(form) {
+        if (! form) {
+            return;
+        }
+
+        const formData = new FormData(form);
+        const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
+
+        try {
+            const response = await fetch(form.action, {
+                method: method === 'GET' ? 'GET' : 'POST',
+                body: method === 'GET' ? null : formData,
+                headers: {
+                    'Turbo-Frame': 'erp-form-modal',
+                    'Accept': 'text/html, application/xhtml+xml',
+                },
+                credentials: 'same-origin',
+            });
+
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const successMarker = doc.querySelector('[data-erp-modal-success]');
+
+            if (successMarker) {
+                this.handleSuccess({
+                    message: successMarker.dataset.message ?? '',
+                    refresh: successMarker.dataset.refresh !== '0',
+                });
+
+                return;
+            }
+
+            const panel = this.extractModalPanel(html);
+            const frame = this.modalFrame();
+
+            if (panel && frame) {
+                frame.innerHTML = '';
+                frame.append(panel);
+                this.showOverlay();
+                Alpine.initTree(frame);
+
+                return;
+            }
+
+            const requestUrl = new URL(form.action, window.location.origin).href;
+
+            if (response.ok && response.url !== requestUrl) {
+                this.handleSuccess({
+                    message: 'Saved successfully.',
+                    refresh: true,
+                });
+            }
+        } catch (error) {
+            console.error('erpModalManager.submitFormRequest', error);
+            this.showToast('Unable to save form. Please try again.', 'error');
+        }
+    },
+
+    submitForm(form) {
+        if (! form) {
+            return;
+        }
+
+        if (form.closest('#erp-form-modal')) {
+            this.submitFormRequest(form);
+
+            return;
+        }
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            form.submit();
+        }
+    },
+
+    handleSuccess({ message = '', refresh = true } = {}) {
+        this.closeModal();
+
+        if (message) {
+            this.showToast(message);
+        }
+
+        if (refresh) {
+            this.refreshTable().then(() => {
+                this.restoreWorkspaceState();
+            });
+        }
+    },
+
+    handleDocumentClick(event) {
+        const modalLink = event.target.closest('[data-erp-modal-open]');
+
+        if (modalLink?.href) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.loadForm(modalLink.href);
+
+            return;
+        }
+
+        const formLink = event.target.closest('a[href]');
+
+        if (formLink && this.shouldOpenLinkAsModal(formLink)) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.loadForm(formLink.href);
+
+            return;
+        }
+
+        const drawerLink = event.target.closest('a[data-turbo-frame="erp-preview-drawer"]');
+
+        if (drawerLink?.href) {
+            this.pendingDrawerLoad = true;
+            this.showDrawer();
+        }
+
+        const closeTrigger = event.target.closest('[data-erp-form-modal-close]');
+
+        if (closeTrigger) {
+            event.preventDefault();
+            this.closeModal();
+        }
+
+        const drawerClose = event.target.closest('[data-erp-drawer-close]');
+
+        if (drawerClose) {
+            event.preventDefault();
+            this.closeDrawer();
+        }
+    },
+
+    bind() {
+        // Capture phase so we intercept before Turbo frame / drive navigation.
+        document.addEventListener('click', (event) => this.handleDocumentClick(event), true);
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+
+            if (! (form instanceof HTMLFormElement) || ! form.closest('#erp-form-modal')) {
+                return;
+            }
+
+            event.preventDefault();
+            this.submitFormRequest(form);
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            const overlay = this.overlay();
+
+            if (overlay && ! overlay.hidden) {
+                event.preventDefault();
+                this.closeModal();
+            }
+
+            const drawer = this.drawerOverlay();
+
+            if (drawer && ! drawer.hidden) {
+                event.preventDefault();
+                this.closeDrawer();
+            }
+        });
+    },
+
+    initFrame(frame) {
+        if (! frame) {
+            return;
+        }
+
+        if (frame.id === 'erp-form-modal') {
+            const successMarker = frame.querySelector('[data-erp-modal-success]');
+
+            if (successMarker) {
+                this.handleSuccess({
+                    message: successMarker.dataset.message ?? '',
+                    refresh: successMarker.dataset.refresh !== '0',
+                });
+
+                return;
+            }
+
+            if (frame.innerHTML.trim() !== '') {
+                this.pendingModalLoad = false;
+                this.showOverlay();
+                Alpine.initTree(frame);
+            } else if (! this.pendingModalLoad) {
+                this.hideOverlay();
+            }
+        }
+
+        if (frame.id === 'erp-preview-drawer') {
+            if (frame.innerHTML.trim() !== '') {
+                this.pendingDrawerLoad = false;
+                this.showDrawer();
+                Alpine.initTree(frame);
+            } else if (! this.pendingDrawerLoad) {
+                this.hideDrawer();
+            }
+        }
+    },
+};
+
+window.erpModalManager = erpModalManager;
+erpModalManager.bind();
+erpModalManager.hideOverlay();
+erpModalManager.hideDrawer();
+
 const progressBar = () => document.getElementById('turbo-progress');
 
 document.addEventListener('turbo:visit', () => {
@@ -30,6 +685,10 @@ document.addEventListener('turbo:frame-render', (event) => {
 
     if (event.target?.id === 'erp-main') {
         syncShellFromFrame();
+    }
+
+    if (event.target?.id === 'erp-form-modal' || event.target?.id === 'erp-preview-drawer') {
+        erpModalManager.initFrame(event.target);
     }
 });
 
@@ -2314,8 +2973,10 @@ function quickCreateMarkup(items, labels = {}) {
         }
 
         const href = escapeHtml(item.href);
+        const modalAttr = item.modal ? ' data-erp-modal-open' : '';
+        const turboAttr = item.modal ? '' : ' data-turbo-frame="erp-main"';
 
-        return `<a href="${href}" data-turbo-frame="erp-main" class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">${label}</a>`;
+        return `<a href="${href}"${modalAttr}${turboAttr} class="block w-full px-4 py-2 text-start text-sm leading-5 text-gray-700 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition duration-150 ease-in-out">${label}</a>`;
     }).join('');
 
     return `
@@ -2478,6 +3139,80 @@ function refreshFrameAlpine(frame) {
     syncShellFromFrame();
 }
 
+function wireEmbeddedWorkspaceLinks(root) {
+    if (! root) {
+        return;
+    }
+
+    root.querySelectorAll('a[href]').forEach((link) => {
+        if (link.hasAttribute('data-turbo-frame') || link.getAttribute('data-turbo') === 'false') {
+            return;
+        }
+
+        if (link.getAttribute('target') === '_blank') {
+            return;
+        }
+
+        if (link.closest('#erp-form-modal') || link.hasAttribute('data-erp-modal-open') || link.hasAttribute('data-no-modal')) {
+            return;
+        }
+
+        link.setAttribute('data-turbo-frame', 'erp-main');
+    });
+
+    root.querySelectorAll('form[action]').forEach((form) => {
+        if (form.hasAttribute('data-turbo-frame') || form.getAttribute('data-turbo') === 'false') {
+            return;
+        }
+
+        const method = (form.getAttribute('method') ?? 'get').toLowerCase();
+
+        if (method !== 'get') {
+            return;
+        }
+
+        try {
+            const action = new URL(form.getAttribute('action'), window.location.origin);
+
+            if (! action.searchParams.has('embedded')) {
+                action.searchParams.set('embedded', '1');
+                form.setAttribute('action', `${action.pathname}${action.search}`);
+            }
+        } catch {
+            // Keep the original form action when it cannot be parsed.
+        }
+    });
+}
+
+function promoteEmbeddedWorkspaceNavigation(frame, responseUrl = null) {
+    const url = responseUrl || frame?.src || frame?.getAttribute('src');
+
+    if (! url) {
+        return false;
+    }
+
+    try {
+        const target = new URL(url, window.location.origin);
+        target.searchParams.delete('embedded');
+        Turbo.visit(target.toString(), { frame: 'erp-main', action: 'advance' });
+
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+function refreshEmbeddedWorkspaceFrame(frame) {
+    if (! frame) {
+        return;
+    }
+
+    cleanupRowActionMenus(frame);
+    Alpine.destroyTree(frame);
+    Alpine.initTree(frame);
+    wireEmbeddedWorkspaceLinks(frame);
+}
+
 document.addEventListener('turbo:before-cache', () => {
     if (window.__erpOpenRowMenu) {
         window.__erpOpenRowMenu.close();
@@ -2494,6 +3229,50 @@ document.addEventListener('turbo:before-cache', () => {
 document.addEventListener('turbo:frame-load', (event) => {
     if (event.target.id === 'erp-main') {
         refreshFrameAlpine(event.target);
+        erpModalManager.restoreWorkspaceState();
+    }
+
+    if (event.target.id === 'module-workspace-content') {
+        refreshEmbeddedWorkspaceFrame(event.target);
+    }
+
+    if (event.target.id === 'erp-form-modal' || event.target.id === 'erp-preview-drawer') {
+        erpModalManager.initFrame(event.target);
+    }
+});
+
+document.addEventListener('turbo:frame-missing', async (event) => {
+    if (event.target.id === 'module-workspace-content') {
+        event.preventDefault();
+        promoteEmbeddedWorkspaceNavigation(event.target, event.detail?.response?.url);
+
+        return;
+    }
+
+    if (event.target.id !== 'erp-form-modal' && event.target.id !== 'erp-preview-drawer') {
+        return;
+    }
+
+    event.preventDefault();
+
+    const response = event.detail?.response;
+
+    if (! response) {
+        return;
+    }
+
+    try {
+        const html = await response.clone().text();
+        const panel = erpModalManager.extractModalPanel(html);
+
+        if (! panel) {
+            return;
+        }
+
+        event.target.innerHTML = panel.outerHTML;
+        erpModalManager.initFrame(event.target);
+    } catch {
+        // Keep the modal open; Turbo will surface the error elsewhere.
     }
 });
 
@@ -2504,5 +3283,11 @@ document.addEventListener('turbo:load', () => {
         refreshFrameAlpine(frame);
     } else {
         syncShellFromFrame();
+    }
+
+    const workspaceFrame = document.getElementById('module-workspace-content');
+
+    if (workspaceFrame) {
+        wireEmbeddedWorkspaceLinks(workspaceFrame);
     }
 });

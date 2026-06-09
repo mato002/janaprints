@@ -3,7 +3,7 @@
 ])
 
 @php
-    $iconUrl = $url ?: url(config('site.local.logo'));
+    $iconUrl = $url ?? ($brandingFaviconUrl ?? url(config('site.local.favicon', config('site.local.logo'))));
 @endphp
 
 <link rel="icon" href="{{ $iconUrl }}" type="image/png">

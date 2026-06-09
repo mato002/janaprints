@@ -10,6 +10,8 @@
                 @foreach ($quickActions as $action)
                     @if (! empty($action['disabled']) || empty($action['href']))
                         <span class="erp-btn-secondary cursor-not-allowed opacity-60" title="{{ $action['hint'] ?? __('Coming soon') }}">{{ $action['label'] }}</span>
+                    @elseif (! empty($action['modal']))
+                        <x-admin.form-modal-link :href="$action['href']" variant="secondary">{{ $action['label'] }}</x-admin.form-modal-link>
                     @else
                         <a href="{{ $action['href'] }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ $action['label'] }}</a>
                     @endif

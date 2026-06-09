@@ -1,8 +1,12 @@
-<x-admin-layout :title="__('Create lead')" :breadcrumbs="[['label' => __('Leads'), 'url' => route('admin.crm.leads.index')], ['label' => __('Create')]]">
-    <div class="bg-white shadow rounded-lg p-6 max-w-4xl">
-        <form method="POST" action="{{ route('admin.crm.leads.store') }}" data-turbo-frame="_top">@csrf
-            @include('admin.crm.leads.form', ['lead' => null])
-            <div class="mt-6"><x-primary-button>{{ __('Create') }}</x-primary-button></div>
-        </form>
-    </div>
-</x-admin-layout>
+<x-admin.modal-form
+    :title="__('Create lead')"
+    :breadcrumbs="[['label' => __('Leads'), 'url' => route('admin.crm.leads.index')], ['label' => __('Create')]]"
+    maxWidth="4xl"
+>
+    <x-admin.form-shell :action="route('admin.crm.leads.store')">
+        @include('admin.crm.leads.form', ['lead' => null])
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Create') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

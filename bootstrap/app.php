@@ -35,6 +35,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 ? route('admin.login')
                 : route('client.login');
         });
+
+        $middleware->redirectUsersTo(function (Request $request) {
+            if ($request->user()?->isClientPortalAccount()) {
+                return route('client.dashboard');
+            }
+
+            return route('admin.dashboard');
+        });
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('commercial:expire-report-exports')->daily();

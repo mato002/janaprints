@@ -2,17 +2,25 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModuleWorkspaceDesk;
 use App\Http\Controllers\Controller;
+use App\Support\Navigation\ModuleShellPresenter;
 use App\Support\Navigation\WorkspacePresenter;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class WorkspaceController extends Controller
 {
-    public function show(Request $request, string $workspace, WorkspacePresenter $presenter): View
+    use HandlesModuleWorkspaceDesk;
+
+    public function show(Request $request, string $workspace, WorkspacePresenter $presenter): View|\Illuminate\Http\RedirectResponse
     {
         abort_unless($presenter->exists($workspace), 404);
         abort_unless($presenter->isVisible($workspace), 403);
+
+        if (array_key_exists($workspace, app(ModuleShellPresenter::class)->moduleDefinitions())) {
+            return $this->renderModuleDesk($request, $workspace);
+        }
 
         $payload = $presenter->present($workspace);
 
@@ -32,5 +40,12 @@ class WorkspaceController extends Controller
                 ->values()
                 ->all(),
         ]);
+    }
+
+    public function section(Request $request, string $workspace, string $section): View|\Illuminate\Http\RedirectResponse
+    {
+        abort_unless(app(ModuleShellPresenter::class)->moduleDefinitions()[$workspace] ?? false, 404);
+
+        return $this->renderModuleDesk($request, $workspace, $section);
     }
 }

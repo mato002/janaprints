@@ -43,21 +43,17 @@ class ReportsIntelligenceActivationTest extends TestCase
         }
     }
 
-    public function test_reports_workspace_cards_link_to_active_pages(): void
+    public function test_reports_workspace_desk_embeds_active_report_content(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['reports.view', 'kpi.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.reports'));
+        $response = $this->actingAs($user)->get(route('admin.workspaces.reports.section', ['section' => 'executive']));
 
         $response->assertOk();
-        $response->assertSee(__('Active'), false);
-        $response->assertDontSee(__('Coming Soon'), false);
-
-        foreach ($this->reportRoutes as $routeName) {
-            $response->assertSee(route($routeName), false);
-        }
+        $response->assertSee('module-workspace-switcher--primary', false);
+        $response->assertSee(route('admin.reports.executive', ['embedded' => '1']), false);
     }
 
     #[DataProvider('reportPageProvider')]

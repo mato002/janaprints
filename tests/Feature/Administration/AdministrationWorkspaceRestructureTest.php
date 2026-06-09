@@ -23,23 +23,14 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_administration_hub_shows_workspace_cards(): void
+    public function test_administration_hub_redirects_to_default_workspace_desk(): void
     {
         $user = $this->companyAdmin();
 
         $response = $this->actingAs($user)->get(route('admin.workspaces.administration'));
 
-        $response->assertOk();
-        $response->assertSeeText(__('Security & Access'));
-        $response->assertSeeText(__('Organization'));
-        $response->assertSeeText(__('Configuration'));
-        $response->assertSeeText(__('Workflow & Governance'));
-        $response->assertSeeText(__('Integrations'));
-        $response->assertSeeText(__('System Operations'));
-        $response->assertSeeText(__('Website Content'));
-        $response->assertDontSee('User accounts, branches, and role assignment', false);
-        $response->assertDontSee(__('Access Control'), false);
-        $response->assertDontSee(__('Settings Hub'), false);
+        $response->assertRedirect();
+        $this->actingAs($user)->get($response->headers->get('Location'))->assertOk();
     }
 
     public function test_security_access_section_lists_identity_features(): void

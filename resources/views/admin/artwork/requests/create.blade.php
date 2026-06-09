@@ -1,11 +1,12 @@
-<x-admin-layout :title="__('New artwork request')" :breadcrumbs="[['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => __('New')]]">
-    <x-admin.page-header :title="__('New artwork request')" />
-
-    <x-admin.card>
-        <form method="POST" action="{{ route('admin.artwork.store') }}" class="space-y-4 max-w-xl">
-            @csrf
-            @include('admin.artwork.requests.partials.form')
+<x-admin.modal-form
+    :title="__('New artwork request')"
+    :breadcrumbs="[['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => __('New')]]"
+    maxWidth="2xl"
+>
+    <x-admin.form-shell :action="route('admin.artwork.store')" class="space-y-4">
+        @include('admin.artwork.requests.partials.form')
+        <x-admin.form-modal-actions>
             <button type="submit" class="erp-btn-primary">{{ __('Create request') }}</button>
-        </form>
-    </x-admin.card>
-</x-admin-layout>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

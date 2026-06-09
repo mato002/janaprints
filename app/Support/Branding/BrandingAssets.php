@@ -52,8 +52,88 @@ class BrandingAssets
             return null;
         }
 
-        return Storage::disk(self::DISK)->url($path);
+        // Always serve through Laravel so branding works even when public/storage
+        // is not reachable from the web server document root (common on cPanel).
+        return url('/branding/'.ltrim($path, '/'));
     }
+
+    /**
+     * @return array{brandingLogoUrl: string, brandingSidebarLogoUrl: string, brandingFaviconUrl: string}
+     */
+    public function presentation(): array
+    {
+        if ($this->presentationCache !== null) {
+            return $this->presentationCache;
+        }
+
+        $company = $this->resolveCompany();
+        $siteLogoUrl = url(config('site.local.logo'));
+        $siteSidebarLogoUrl = url(config('site.local.sidebar_logo', config('site.local.logo')));
+        $siteFaviconUrl = url(config('site.local.favicon', config('site.local.logo')));
+
+        return $this->presentationCache = [
+            'brandingLogoUrl' => $this->url($company?->logo) ?? $siteLogoUrl,
+            'brandingSidebarLogoUrl' => $this->url($company?->logo) ?? $siteSidebarLogoUrl,
+            'brandingFaviconUrl' => $this->url($company?->favicon_path) ?? $siteFaviconUrl,
+        ];
+    }
+
+    public function logoUrl(): string
+    {
+        return $this->presentation()['brandingLogoUrl'];
+    }
+
+    public function faviconUrl(): string
+    {
+        return $this->presentation()['brandingFaviconUrl'];
+    }
+
+    public function resolveCompany(): ?Company
+    {
+        if ($this->resolvedCompany !== null) {
+            return $this->resolvedCompany;
+        }
+
+        if (app()->bound(\App\Support\TenantContext::class)) {
+            $company = tenant()->company;
+            if ($company) {
+                return $this->resolvedCompany = $company;
+            }
+        }
+
+        $user = auth()->user();
+        if ($user?->company) {
+            return $this->resolvedCompany = $user->company;
+        }
+
+        return $this->resolvedCompany = $this->defaultCompany();
+    }
+
+    protected function defaultCompany(): ?Company
+    {
+        static $company = null;
+        static $loaded = false;
+
+        if ($loaded) {
+            return $company;
+        }
+
+        $loaded = true;
+        $code = config('site.branding_company_code', 'JANA');
+
+        $company = Company::query()
+            ->where('code', $code)
+            ->where('is_active', true)
+            ->first()
+            ?? Company::query()->where('is_active', true)->orderBy('name')->first();
+
+        return $company;
+    }
+
+    protected ?Company $resolvedCompany = null;
+
+    /** @var array{brandingLogoUrl: string, brandingSidebarLogoUrl: string, brandingFaviconUrl: string}|null */
+    protected ?array $presentationCache = null;
 
     public function delete(?string $path): void
     {

@@ -2,7 +2,7 @@
     <div class="flex flex-wrap items-center gap-2">
         <x-admin.enum-status-badge :status="$header['status']->value" />
         @can('update', $customer)
-            <a href="{{ route('admin.crm.customers.edit', $customer) }}" class="erp-btn-secondary text-sm">{{ __('Edit customer') }}</a>
+            <x-admin.form-modal-link :href="route('admin.crm.customers.edit', $customer)" variant="secondary" class="text-sm">{{ __('Edit customer') }}</x-admin.form-modal-link>
         @endcan
     </div>
 </x-admin.page-header>
