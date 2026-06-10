@@ -70,11 +70,18 @@
                         </td>
                         <td class="py-2">
                             @if ($canManage)
+                                @php
+                                    $visibilityLocked = ($field['required'] && ! ($field['registry_required'] ?? false)) || ($field['registry_required'] ?? false);
+                                    $visibilityValue = $field['hidden'] ? 'hidden' : 'visible';
+                                @endphp
+                                @if ($visibilityLocked)
+                                    <input type="hidden" name="forms[{{ $form['form_key'] }}][fields][{{ $field['field_key'] }}][visibility]" value="{{ $visibilityValue }}">
+                                @endif
                                 <select
                                     name="forms[{{ $form['form_key'] }}][fields][{{ $field['field_key'] }}][visibility]"
                                     class="erp-select form-field-visibility w-full min-w-[7rem] max-w-[9rem]"
                                     data-registry-required="{{ ($field['registry_required'] ?? false) ? '1' : '0' }}"
-                                    @disabled(($field['required'] && ! ($field['registry_required'] ?? false)) || ($field['registry_required'] ?? false))
+                                    @disabled($visibilityLocked)
                                 >
                                     <option value="visible" @selected($field['visible'])>{{ __('Visible') }}</option>
                                     <option value="hidden" @selected($field['hidden'])>{{ __('Hidden') }}</option>
@@ -89,6 +96,9 @@
                         </td>
                         <td class="py-2">
                             @if ($canManage)
+                                @if ($field['registry_required'] ?? false)
+                                    <input type="hidden" name="forms[{{ $form['form_key'] }}][fields][{{ $field['field_key'] }}][requirement]" value="required">
+                                @endif
                                 <select
                                     name="forms[{{ $form['form_key'] }}][fields][{{ $field['field_key'] }}][requirement]"
                                     class="erp-select form-field-requirement w-full min-w-[7rem] max-w-[9rem]"
@@ -177,35 +187,14 @@
             <p class="text-xs text-slate-500">
                 {{ __('Built-in fields are system-defined. Custom fields are stored for your tenant.') }}
             </p>
-            <x-primary-button>{{ __('Save form settings') }}</x-primary-button>
+            <x-primary-button
+                type="button"
+                data-erp-form-settings-save
+                data-saving-label="{{ __('Saving…') }}"
+            >
+                {{ __('Save form settings') }}
+            </x-primary-button>
         </div>
     @endif
 </x-admin.card>
 
-@if ($canManage)
-    <script>
-        document.getElementById('form-panel-{{ $form['form_key'] }}')?.addEventListener('change', (event) => {
-            const requirementSelect = event.target.closest('.form-field-requirement');
-            if (! requirementSelect || requirementSelect.dataset.registryRequired === '1') {
-                return;
-            }
-
-            const row = requirementSelect.closest('tr');
-            const visibilitySelect = row?.querySelector('.form-field-visibility');
-            const visibilityHint = row?.querySelector('.form-field-visibility-hint');
-
-            if (! visibilitySelect || visibilitySelect.dataset.registryRequired === '1') {
-                return;
-            }
-
-            if (requirementSelect.value === 'required') {
-                visibilitySelect.value = 'visible';
-                visibilitySelect.disabled = true;
-                visibilityHint?.classList.remove('hidden');
-            } else {
-                visibilitySelect.disabled = false;
-                visibilityHint?.classList.add('hidden');
-            }
-        });
-    </script>
-@endif

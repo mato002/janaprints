@@ -60,9 +60,9 @@ class WarehouseController extends Controller
         $this->authorize('create', Warehouse::class);
 
         ['companyId' => $companyId, 'branchId' => $tenantBranchId] = $this->tenantIds();
-        $branchId = (int) ($request->input('branch_id') ?: $tenantBranchId);
 
-        $data = $this->validateWarehouse($request, $companyId, $branchId);
+        $data = $this->validateWarehouse($request, $companyId, $tenantBranchId);
+        $branchId = $data['branch_id'] ?? $tenantBranchId;
         [$data, $customData] = $this->partitionCustomFields('warehouse.create', $data, $companyId, $branchId);
 
         $warehouse = Warehouse::query()->create([
@@ -167,54 +167,42 @@ class WarehouseController extends Controller
     {
         $formKey = $warehouse ? 'warehouse.edit' : 'warehouse.create';
 
-        $rules = $this->formSettings->mergeValidationRules($formKey, [
+        $effectiveBranchId = $this->formSettings->isVisible($formKey, 'branch_id', $companyId, $branchId)
+            ? (int) $request->input('branch_id')
+            : ($warehouse?->branch_id ?? $branchId);
+
+        $validated = $this->formSettings->validateRequest($request, $formKey, [
             'code' => [
-                'required',
                 'string',
                 'max:50',
                 Rule::unique('warehouses', 'code')
                     ->where('company_id', $companyId)
-                    ->where('branch_id', $branchId)
+                    ->where('branch_id', $effectiveBranchId)
                     ->ignore($warehouse),
             ],
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['string', 'max:255'],
             'branch_id' => [Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)],
             'location' => ['string', 'max:255'],
             'notes' => ['string'],
             'description' => ['string'],
             'is_active' => ['boolean'],
-        ], $companyId, $branchId);
-
-        $rules['code'] = [
-            'required',
-            'string',
-            'max:50',
-            Rule::unique('warehouses', 'code')
-                ->where('company_id', $companyId)
-                ->where('branch_id', $branchId)
-                ->ignore($warehouse),
-        ];
-        $rules['name'] = ['required', 'string', 'max:255'];
-        $rules['branch_id'] = ['required', Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)];
-
-        $validated = $request->validate($rules);
+        ], $companyId, $branchId, serverProvidedFields: ['branch_id']);
         $descriptionParts = [];
 
         if (filled($validated['location'] ?? null)) {
             $descriptionParts[] = __('Location: :location', ['location' => $validated['location']]);
         }
 
-        if (filled($validated['notes'] ?? null)) {
-            $descriptionParts[] = __('Notes: :notes', ['notes' => $validated['notes']]);
-        }
+        $notes = $validated['notes'] ?? $validated['description'] ?? null;
 
-        if (filled($validated['description'] ?? null)) {
-            $descriptionParts[] = $validated['description'];
+        if (filled($notes)) {
+            $descriptionParts[] = __('Notes: :notes', ['notes' => $notes]);
         }
 
         $validated['description'] = implode("\n\n", $descriptionParts);
+        $validated['branch_id'] = $effectiveBranchId;
 
-        return collect($validated)->only(['code', 'name', 'description', 'is_active'])->all();
+        return collect($validated)->only(['code', 'name', 'description', 'is_active', 'branch_id'])->all();
     }
 
     /**
@@ -227,7 +215,7 @@ class WarehouseController extends Controller
             : $this->tenantIds();
 
         return [
-            'formFields' => $this->requiredSafeFields($this->formSettings->resolvedFields($formKey, $companyId, $branchId, $warehouse)),
+            'formFields' => $this->formSettings->resolvedFields($formKey, $companyId, $branchId, $warehouse),
             'branches' => Branch::query()
                 ->where('company_id', $companyId)
                 ->where('is_active', true)
@@ -235,33 +223,6 @@ class WarehouseController extends Controller
                 ->get(),
             'selectedBranchId' => $branchId,
         ];
-    }
-
-    protected function requiredSafeFields(array $fields): array
-    {
-        foreach (['code' => __('Warehouse Code'), 'name' => __('Warehouse Name'), 'branch_id' => __('Branch')] as $field => $label) {
-            $fields[$field] = [
-                ...($fields[$field] ?? []),
-                'label' => $fields[$field]['label'] ?? $label,
-                'required' => true,
-                'visible' => true,
-                'hidden' => false,
-                'read_only' => false,
-            ];
-        }
-
-        foreach (['location' => __('Location'), 'notes' => __('Notes'), 'is_active' => __('Status')] as $field => $label) {
-            $fields[$field] = [
-                ...($fields[$field] ?? []),
-                'label' => $fields[$field]['label'] ?? $label,
-                'required' => false,
-                'visible' => true,
-                'hidden' => false,
-                'read_only' => false,
-            ];
-        }
-
-        return $fields;
     }
 
     protected function warehouseBalances(Warehouse $warehouse)

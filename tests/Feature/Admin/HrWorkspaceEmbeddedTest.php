@@ -32,13 +32,13 @@ class HrWorkspaceEmbeddedTest extends TestCase
             ->assertSee(route('admin.hr.dashboard', ['embedded' => '1']), false);
     }
 
-    public function test_hr_dashboard_full_page_embedded_query_redirects_to_shell_url(): void
+    public function test_hr_dashboard_full_page_embedded_query_renders_without_redirect(): void
     {
         $user = $this->hrUser();
 
         $this->actingAs($user)
             ->get(route('admin.hr.dashboard', ['embedded' => '1']))
-            ->assertRedirect(route('admin.hr.dashboard'));
+            ->assertOk();
     }
 
     public function test_hr_dashboard_full_page_without_embedded_renders_admin_shell(): void
@@ -64,13 +64,13 @@ class HrWorkspaceEmbeddedTest extends TestCase
             ->assertSee(__('HR Dashboard'));
     }
 
-    public function test_employees_tab_full_page_embedded_query_redirects_to_shell_url(): void
+    public function test_employees_tab_full_page_embedded_query_renders_without_redirect(): void
     {
         $user = $this->hrUser();
 
         $this->actingAs($user)
             ->get(route('admin.employees.index', ['embedded' => '1']))
-            ->assertRedirect(route('admin.employees.index'));
+            ->assertOk();
     }
 
     public function test_employees_tab_embedded_response_includes_workspace_frame_for_turbo_frame_request(): void

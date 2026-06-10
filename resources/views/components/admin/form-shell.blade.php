@@ -22,5 +22,6 @@
     @if (! in_array($httpMethod, ['GET', 'POST'], true))
         @method($method)
     @endif
+    @include('admin.partials.modal-validation-alert')
     {{ $slot }}
 </form>

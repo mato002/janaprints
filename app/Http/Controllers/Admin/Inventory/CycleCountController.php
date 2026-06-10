@@ -65,14 +65,14 @@ class CycleCountController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
-        $data = $request->validate($this->formSettings->mergeValidationRules('cycle_count_schedule.create', [
+        $data = $this->formSettings->validateRequest($request, 'cycle_count_schedule.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
-            'frequency' => ['required', Rule::enum(CycleCountFrequency::class)],
-            'next_count_date' => ['required', 'date'],
-            'inventory_category_id' => ['nullable', Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)],
-            'responsible_user_id' => ['required', Rule::exists('users', 'id')->where('company_id', $companyId)],
-            'notes' => ['nullable', 'string', 'max:2000'],
-        ], $companyId, $branchId));
+            'frequency' => [Rule::enum(CycleCountFrequency::class)],
+            'next_count_date' => ['date'],
+            'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)],
+            'responsible_user_id' => [Rule::exists('users', 'id')->where('company_id', $companyId)],
+            'notes' => ['string', 'max:2000'],
+        ], $companyId, $branchId);
         [$data, $customData] = $this->partitionCustomFields('cycle_count_schedule.create', $data, $companyId, $branchId);
 
         $schedule = CycleCountService::createSchedule(

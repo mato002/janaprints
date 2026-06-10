@@ -1,18 +1,22 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
     ]);
     $hubBackUrl = route('admin.settings.show', ['section' => 'hub'] + $scopeQuery);
+    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout
-    :title="$section === 'hub' ? __('Settings') : $sectionMeta['label']"
-    :breadcrumbs="[
+    :title="$section === 'hub' ? __('System Settings') : $sectionMeta['label']"
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
-        ['label' => __('Settings'), 'url' => $hubBackUrl],
+        ['label' => __('Configuration')],
         ...($section !== 'hub' ? [['label' => $sectionMeta['label']]] : []),
     ]"
+    :use-workspace-navigation="! $embedded"
 >
     @if ($section === 'hub')
         @include('admin.settings.partials.hub-control-center', [
@@ -23,11 +27,13 @@
             'branches' => $branches,
         ])
     @else
-        @include('admin.settings.partials.hub-toolbar', [
-            'title' => $sectionMeta['label'],
-            'description' => $sectionMeta['description'] ?? __('Configure platform behaviour for your organization.'),
-            'backUrl' => $hubBackUrl,
-        ])
+        @unless ($embedded)
+            @include('admin.settings.partials.hub-toolbar', [
+                'title' => $sectionMeta['label'],
+                'description' => $sectionMeta['description'] ?? __('Configure platform behaviour for your organization.'),
+                'backUrl' => $hubBackUrl,
+            ])
+        @endunless
 
         @include('admin.settings.partials.scope-selector', [
             'action' => route('admin.settings.show', $section),

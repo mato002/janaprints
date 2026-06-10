@@ -160,7 +160,7 @@ class CommercialActivityController extends Controller
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
 
-        $data = $request->validate($this->formSettings->mergeValidationRules('activity.create', [
+        $data = $this->formSettings->validateRequest($request, 'activity.create', [
             'customer_id' => ['integer', 'exists:customers,id'],
             'lead_id' => ['integer', 'exists:leads,id'],
             'user_id' => ['integer', 'exists:users,id'],
@@ -169,7 +169,7 @@ class CommercialActivityController extends Controller
             'subject' => ['string', 'max:255'],
             'description' => ['string'],
             'activity_at' => ['date'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId);
 
         if (empty($data['customer_id']) && empty($data['lead_id'])) {
             throw \Illuminate\Validation\ValidationException::withMessages([

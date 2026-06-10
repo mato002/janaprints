@@ -6,6 +6,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
+/**
+ * Modal form success responses for controllers that return explicit modal markers.
+ * Redirect-based successes are also converted globally by HandleModalFormResponse middleware.
+ */
 trait HandlesModalFormResponses
 {
     protected function isModalFormRequest(?Request $request = null): bool

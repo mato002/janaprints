@@ -1,6 +1,9 @@
 @php
     $summary = $controlCenter['summary'];
-    $scopeAction = route('admin.settings.show', 'hub');
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $scopeAction = WorkspaceEmbed::url(route('admin.settings.show', 'hub'));
+    $embedded = WorkspaceEmbed::inWorkspaceContext();
 @endphp
 
 <div
@@ -15,6 +18,9 @@
         <div class="flex flex-wrap items-center gap-2">
             @if ($companies->count() > 1 || $branches->isNotEmpty())
                 <form method="GET" action="{{ $scopeAction }}" class="flex flex-wrap items-center gap-2">
+                    @if ($embedded)
+                        <input type="hidden" name="embedded" value="1">
+                    @endif
                     @if ($companies->count() > 1)
                         <label class="flex items-center gap-1.5 text-[11px] text-erp-primary">
                             <span class="text-slate-500">{{ __('Company') }}</span>

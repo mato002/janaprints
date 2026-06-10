@@ -1,12 +1,12 @@
 <x-admin-layout :title="__('Job Titles')" :breadcrumbs="[['label' => __('Organization')], ['label' => __('Job Titles')]]">
-    <x-admin.page-header :title="__('Job Titles')" :description="__('Standardized position titles and reporting structure for the organization.')">
-        <x-slot name="actions">
-            <a href="{{ route('admin.job-titles.hierarchy') }}" class="erp-btn-secondary">{{ __('Organization chart') }}</a>
+    <x-admin.workspace-content-header :title="__('Job Titles')" :description="__('Standardized position titles and reporting structure for the organization.')">
+        <x-slot:actions>
+            <a href="{{ route('admin.job-titles.hierarchy') }}" class="erp-btn-secondary erp-btn--sm">{{ __('Organization chart') }}</a>
             @can('create', App\Models\JobTitle::class)
-                <a href="{{ route('admin.job-titles.create') }}" class="erp-btn-primary">{{ __('Create job title') }}</a>
+                <a href="{{ route('admin.job-titles.create') }}" class="erp-btn-primary erp-btn--sm">{{ __('Create job title') }}</a>
             @endcan
-        </x-slot>
-    </x-admin.page-header>
+        </x-slot:actions>
+    </x-admin.workspace-content-header>
 
     @if (session('status'))
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>

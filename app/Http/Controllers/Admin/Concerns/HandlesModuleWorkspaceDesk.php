@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Concerns;
 use App\Support\Navigation\ModuleShellPresenter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 trait HandlesModuleWorkspaceDesk
@@ -47,6 +48,6 @@ trait HandlesModuleWorkspaceDesk
             $tab = $tab[0] ?? null;
         }
 
-        return is_string($tab) && $tab !== '' ? $tab : null;
+        return is_string($tab) && $tab !== '' ? Str::slug($tab) : null;
     }
 }

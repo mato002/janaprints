@@ -124,20 +124,20 @@ class InventoryItemController extends Controller
      */
     protected function validateItem(Request $request, int $companyId, int $branchId): array
     {
-        return $request->validate($this->formSettings->mergeValidationRules('inventory_item', [
+        return $this->formSettings->validateRequest($request, 'inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'subcategory_id' => ['nullable', Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'brand_id' => ['nullable', Rule::exists('brands', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'subcategory_id' => [Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'brand_id' => [Rule::exists('brands', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'unit_of_measure_id' => [Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'sku' => ['string', 'max:50'],
-            'item_code' => ['nullable', 'string', 'max:50'],
+            'item_code' => ['string', 'max:50'],
             'item_name' => ['string', 'max:255'],
             'description' => ['string'],
             'reorder_level' => ['numeric', 'min:0'],
             'reorder_quantity' => ['numeric', 'min:0'],
             'standard_cost' => ['numeric', 'min:0'],
             'is_active' => ['boolean'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId);
     }
 
     /**

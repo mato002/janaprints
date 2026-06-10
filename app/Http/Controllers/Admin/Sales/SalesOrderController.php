@@ -48,11 +48,9 @@ class SalesOrderController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
 
-        $validated = $request->validate(
-            $this->formSettings->mergeValidationRules('sales_order', [
-                'quotation_id' => ['exists:quotations,id'],
-            ], $companyId, $branchId),
-        );
+        $validated = $this->formSettings->validateRequest($request, 'sales_order', [
+            'quotation_id' => ['exists:quotations,id'],
+        ], $companyId, $branchId);
 
         $quotation = Quotation::query()->forTenant()->findOrFail($validated['quotation_id']);
         $this->authorize('view', $quotation);

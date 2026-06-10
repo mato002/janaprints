@@ -154,6 +154,8 @@ class CommercialComplaintController extends Controller
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
 
+        $this->formSettings->withoutHiddenInputs($request, 'commercial_complaint.create', $companyId, $branchId);
+
         $rules = $this->formSettings->mergeValidationRules('commercial_complaint.create', [
             'customer_id' => ['exists:customers,id'],
             'subject' => ['string', 'max:255'],

@@ -17,9 +17,7 @@ trait ResolvesSettingsScope
 
         if ($user->hasRole('Super Admin')) {
             $companyId = (int) ($request->input('company_id') ?: tenant()->companyId() ?: $user->company_id);
-            $branchId = $request->has('branch_id')
-                ? ($request->filled('branch_id') ? (int) $request->input('branch_id') : null)
-                : tenant()->branchId();
+            $branchId = $this->resolveSettingsBranchId($request);
 
             abort_unless(Company::query()->whereKey($companyId)->exists(), 422);
 
@@ -36,9 +34,7 @@ trait ResolvesSettingsScope
         $companyId = (int) $user->company_id;
         $branchId = $user->hasRole('Branch Manager')
             ? (int) (tenant()->branchId() ?: $user->default_branch_id)
-            : ($request->has('branch_id')
-                ? ($request->filled('branch_id') ? (int) $request->input('branch_id') : null)
-                : tenant()->branchId());
+            : $this->resolveSettingsBranchId($request);
 
         if ($branchId) {
             abort_unless(
@@ -48,6 +44,21 @@ trait ResolvesSettingsScope
         }
 
         return compact('companyId', 'branchId');
+    }
+
+    protected function resolveSettingsBranchId(Request $request): ?int
+    {
+        if ($request->isMethod('GET')) {
+            return $request->has('branch_id')
+                ? ($request->filled('branch_id') ? (int) $request->input('branch_id') : null)
+                : tenant()->branchId();
+        }
+
+        if ($request->has('branch_id')) {
+            return $request->filled('branch_id') ? (int) $request->input('branch_id') : null;
+        }
+
+        return tenant()->branchId();
     }
 
     protected function companiesForSettingsUser()

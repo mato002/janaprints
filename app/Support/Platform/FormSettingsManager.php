@@ -26,24 +26,22 @@ class FormSettingsManager
 
                 $registryKeys = array_keys($meta['fields']);
                 $registryFields = collect($meta['fields'])
-                    ->map(fn (array $fieldMeta, string $fieldKey) => $this->forms->fieldConfig(
+                    ->map(fn (array $fieldMeta, string $fieldKey) => $this->forms->adminFieldConfig(
                         $formKey,
                         $fieldKey,
                         $companyId,
                         $branchId,
-                        true,
                     ));
 
                 $customFields = collect();
                 if ($formSetting) {
                     $customFields = $formSetting->fields
                         ->whereNotIn('field_key', $registryKeys)
-                        ->map(fn (FormFieldSetting $field) => $this->forms->fieldConfig(
+                        ->map(fn (FormFieldSetting $field) => $this->forms->adminFieldConfig(
                             $formKey,
                             $field->field_key,
                             $companyId,
                             $branchId,
-                            true,
                         ));
                 }
 
@@ -131,6 +129,8 @@ class FormSettingsManager
                 }
             }
         }
+
+        $this->forms->clearResolvedCache();
     }
 
     /**
@@ -166,6 +166,10 @@ class FormSettingsManager
             $defaultValue['custom'] = true;
             $defaultValue['label'] = $fieldInput['label'] ?? $fieldKey;
             $defaultValue['type'] = $fieldInput['type'] ?? 'text';
+        }
+
+        if ($formSetting->branch_id !== null) {
+            $defaultValue['branch_override'] = true;
         }
 
         FormFieldSetting::query()->updateOrCreate(

@@ -9,26 +9,29 @@
     'showContent' => true,
 ])
 
-<div {{ $attributes->merge(['class' => 'module-shell w-full min-w-0 space-y-4']) }}>
-    <x-admin.page-header :title="$title" :description="$description">
+<div
+    x-data="moduleWorkspaceShell()"
+    @module-workspace-search.window="query = $event.detail?.query ?? ''"
+    {{ $attributes->merge(['class' => 'module-shell workspace-content-shell w-full min-w-0 space-y-2']) }}
+>
+    <x-admin.compact-workspace-header :title="$title" :description="$description">
+        @isset($search)
+            <x-slot:search>{{ $search }}</x-slot:search>
+        @endisset
         @isset($actions)
             <x-slot:actions>{{ $actions }}</x-slot:actions>
         @endisset
-    </x-admin.page-header>
-
-    @isset($search)
-        <div class="module-shell__search">{{ $search }}</div>
-    @endisset
+    </x-admin.compact-workspace-header>
 
     @if (count($primaryWorkspaces) > 0)
-        <x-admin.workspace-switcher
+        <x-admin.workspace-tabs
             :workspaces="$primaryWorkspaces"
             :active="$activePrimary"
         />
     @endif
 
     @if (count($secondaryWorkspaces) > 0)
-        <x-admin.secondary-workspace-switcher
+        <x-admin.workspace-sub-tabs
             :workspaces="$secondaryWorkspaces"
             :active="$activeSecondary"
         />
@@ -43,12 +46,12 @@
     @endisset
 
     @if ($showContent)
-        <x-admin.workspace-content :url="$contentUrl">
+        <x-admin.workspace-content-shell :url="$contentUrl">
             @isset($content)
                 {{ $content }}
             @else
                 {{ $slot }}
             @endisset
-        </x-admin.workspace-content>
+        </x-admin.workspace-content-shell>
     @endif
 </div>

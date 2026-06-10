@@ -17,7 +17,7 @@ return [
                 'website' => ['label' => 'Website', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 7],
                 'physical_address' => ['label' => 'Physical address', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 8],
                 'city' => ['label' => 'City', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 9],
-                'credit_limit' => ['label' => 'Credit limit', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 10],
+                'credit_limit' => ['label' => 'Credit limit', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 10, 'default' => 0],
                 'payment_terms' => ['label' => 'Payment terms', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 11],
                 'status' => ['label' => 'Status', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 12],
                 'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 13],
@@ -33,8 +33,8 @@ return [
                 'company_name' => ['label' => 'Company name', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 2],
                 'lead_source_id' => ['label' => 'Source', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 3],
                 'stage_id' => ['label' => 'Stage', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 4],
-                'estimated_value' => ['label' => 'Estimated value', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 5],
-                'probability' => ['label' => 'Probability %', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 6],
+                'estimated_value' => ['label' => 'Estimated value', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 5, 'default' => 0],
+                'probability' => ['label' => 'Probability %', 'type' => 'number', 'required' => false, 'visible' => true, 'sort_order' => 6, 'default' => 0],
                 'status' => ['label' => 'Status', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 7],
                 'assigned_to' => ['label' => 'Assigned to', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 8],
                 'expected_close_date' => ['label' => 'Expected close date', 'type' => 'date', 'required' => false, 'visible' => true, 'sort_order' => 9],
@@ -97,9 +97,9 @@ return [
             'fields' => [
                 'name' => ['label' => 'Warehouse name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
                 'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
-                'branch' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
+                'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
                 'is_active' => ['label' => 'Status', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
-                'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => false, 'sort_order' => 5],
+                'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 5],
                 'manager' => ['label' => 'Manager', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 6],
                 'description' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
             ],
@@ -111,9 +111,9 @@ return [
             'fields' => [
                 'name' => ['label' => 'Warehouse name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
                 'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
-                'branch' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
+                'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
                 'is_active' => ['label' => 'Status', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
-                'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => false, 'sort_order' => 5],
+                'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 5],
                 'manager' => ['label' => 'Manager', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 6],
                 'description' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 7],
             ],
@@ -286,6 +286,15 @@ return [
             ],
         ],
 
+    ],
+
+    'field_aliases' => [
+        'warehouse.create' => [
+            'notes' => 'description',
+        ],
+        'warehouse.edit' => [
+            'notes' => 'description',
+        ],
     ],
 
 ];

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\Platform\SettingsGovernance;
+use App\Support\Navigation\ModuleShellPresenter;
+use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Platform\SettingsControlCenterPresenter;
 use App\Support\Platform\SettingsRegistry;
 use App\Support\Platform\SystemSettingsManager;
@@ -26,6 +28,15 @@ class SettingsController extends Controller
     public function index(): RedirectResponse
     {
         $this->authorize('viewAny', SettingsGovernance::class);
+
+        $deskUrl = app(ModuleShellPresenter::class)->deskUrlForFeatureRoute(
+            'admin.settings.show',
+            ['section' => 'hub'],
+        );
+
+        if ($deskUrl !== null) {
+            return redirect()->to($deskUrl);
+        }
 
         return redirect()->route('admin.settings.show', $this->registry->sectionSlugs()[0]);
     }
@@ -87,11 +98,12 @@ class SettingsController extends Controller
         );
 
         return redirect()
-            ->route('admin.settings.show', [
+            ->route('admin.settings.show', array_filter([
                 'section' => $section,
                 'company_id' => $companyId,
                 'branch_id' => $branchId,
-            ])
+                'embedded' => WorkspaceEmbed::inWorkspaceContext($request) ? '1' : null,
+            ]))
             ->with('status', __('Settings saved.'));
     }
 

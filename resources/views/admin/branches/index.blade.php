@@ -1,11 +1,11 @@
 <x-admin-layout :title="__('Branches')" :breadcrumbs="[['label' => __('Organization')], ['label' => __('Branches')]]">
-    <x-admin.page-header :title="__('Branches')">
-        <x-slot name="actions">
+    <x-admin.workspace-content-header :title="__('Branches')">
+        <x-slot:actions>
             @can('create', App\Models\Branch::class)
-                <a href="{{ route('admin.branches.create') }}" class="erp-btn-primary">{{ __('Create branch') }}</a>
+                <a href="{{ route('admin.branches.create') }}" class="erp-btn-primary erp-btn--sm">{{ __('Create branch') }}</a>
             @endcan
-        </x-slot>
-    </x-admin.page-header>
+        </x-slot:actions>
+    </x-admin.workspace-content-header>
 
     <x-admin.data-table :search-placeholder="__('Search branches…')" export-filename="branches">
         <x-slot name="head">

@@ -1,11 +1,11 @@
 <x-admin-layout :title="__('Companies')" :breadcrumbs="[['label' => __('Organization')], ['label' => __('Companies')]]">
-    <x-admin.page-header :title="__('Companies')" :description="__('Legal entities in your ERP tenant.')">
-        <x-slot name="actions">
+    <x-admin.workspace-content-header :title="__('Companies')" :description="__('Legal entities in your ERP tenant.')">
+        <x-slot:actions>
             @can('create', App\Models\Company::class)
-                <a href="{{ route('admin.companies.create') }}" class="erp-btn-primary">{{ __('Create company') }}</a>
+                <a href="{{ route('admin.companies.create') }}" class="erp-btn-primary erp-btn--sm">{{ __('Create company') }}</a>
             @endcan
-        </x-slot>
-    </x-admin.page-header>
+        </x-slot:actions>
+    </x-admin.workspace-content-header>
 
     <x-admin.data-table :search-placeholder="__('Search companies…')" export-filename="companies">
         <x-slot name="head">

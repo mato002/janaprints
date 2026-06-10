@@ -47,7 +47,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::put('settings/branding', [BrandingSettingsController::class, 'update'])->name('settings.branding.update');
             Route::put('settings/numbering', [NumberingSettingsController::class, 'update'])->name('settings.numbering.update');
             Route::put('settings/approvals', [ApprovalSettingsController::class, 'update'])->name('settings.approvals.update');
+            // Must stay before settings/{section} so PUT /settings/forms hits the forms controller.
             Route::put('settings/forms', [FormSettingsController::class, 'update'])->name('settings.forms.update');
-            Route::put('settings/{section}', [SettingsController::class, 'update'])->name('settings.update');
+            Route::put('settings/{section}', [SettingsController::class, 'update'])
+                ->name('settings.update')
+                ->where('section', '^(?!forms$).*');
         });
     });

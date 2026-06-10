@@ -1,7 +1,7 @@
 import Alpine from 'alpinejs';
 import * as Turbo from '@hotwired/turbo';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import Swal from 'sweetalert2';
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 window.Alpine = Alpine;
 window.Turbo = Turbo;
@@ -88,6 +88,7 @@ const erpModalManager = {
     prepareModalFormContent(root, sourceUrl = null) {
         root.querySelectorAll('form').forEach((form) => {
             form.removeAttribute('data-turbo-frame');
+            form.removeAttribute('data-turbo');
 
             if (! form.querySelector('[name="_erp_modal"]')) {
                 const input = document.createElement('input');
@@ -110,8 +111,79 @@ const erpModalManager = {
     hasValidationErrors(doc) {
         return Boolean(
             doc?.querySelector('[data-erp-validation-errors]')
+            || doc?.querySelector('[data-erp-field-error]')
             || doc?.querySelector('[role="alert"]'),
         );
+    },
+
+    highlightInvalidFields(panel, doc) {
+        if (! panel || ! doc) {
+            return;
+        }
+
+        panel.querySelectorAll('.erp-input--invalid, .erp-select--invalid').forEach((element) => {
+            element.classList.remove('erp-input--invalid', 'erp-select--invalid');
+        });
+
+        const invalidNames = new Set(
+            [...doc.querySelectorAll('[data-erp-field-error]')]
+                .map((element) => element.dataset.erpFieldError)
+                .filter(Boolean),
+        );
+
+        doc.querySelectorAll('input:invalid, select:invalid, textarea:invalid').forEach((element) => {
+            if (element.name) {
+                invalidNames.add(element.name);
+            }
+        });
+
+        invalidNames.forEach((name) => {
+            const field = panel.querySelector(`[name="${CSS.escape(name)}"]`);
+
+            if (! field) {
+                return;
+            }
+
+            if (field.matches('select')) {
+                field.classList.add('erp-select--invalid');
+            } else {
+                field.classList.add('erp-input--invalid');
+            }
+        });
+    },
+
+    ensureValidationSummary(panel, doc) {
+        if (! panel || panel.querySelector('[data-erp-validation-errors]')) {
+            return;
+        }
+
+        const errors = [...doc.querySelectorAll('[data-erp-validation-errors] li, [data-erp-field-error] li')]
+            .map((element) => element.textContent?.trim())
+            .filter(Boolean);
+
+        if (errors.length === 0) {
+            return;
+        }
+
+        const alert = document.createElement('div');
+        alert.className = 'erp-alert erp-alert--danger mb-4';
+        alert.setAttribute('role', 'alert');
+        alert.setAttribute('data-erp-validation-errors', '');
+        alert.innerHTML = `
+            <p class="font-medium">Please correct the highlighted fields.</p>
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+                ${errors.map((error) => `<li>${error}</li>`).join('')}
+            </ul>
+        `;
+
+        const body = panel.querySelector('.erp-form-modal__body') ?? panel;
+        const form = body.querySelector('form');
+
+        if (form) {
+            form.prepend(alert);
+        } else {
+            body.prepend(alert);
+        }
     },
 
     buildModalPanel(title, bodyHtml) {
@@ -510,6 +582,26 @@ const erpModalManager = {
                 return;
             }
 
+            const errorPanel = doc.querySelector('[data-erp-form-modal-panel]')
+                ?? doc.querySelector('#erp-form-modal [data-erp-form-modal-panel]');
+
+            if (! response.ok && errorPanel) {
+                const frame = this.modalFrame();
+
+                if (frame) {
+                    frame.replaceChildren(errorPanel);
+                    this.showOverlay();
+                    Alpine.initTree(frame);
+                }
+
+                const errorMessage = doc.querySelector('[data-erp-validation-errors] p')?.textContent?.trim()
+                    ?? `Unable to save form (${response.status}). Please try again.`;
+
+                this.showToast(errorMessage, 'error');
+
+                return;
+            }
+
             const panel = this.extractModalPanel(html);
             const frame = this.modalFrame();
 
@@ -520,13 +612,23 @@ const erpModalManager = {
                 Alpine.initTree(frame);
 
                 if (this.hasValidationErrors(doc)) {
-                    this.showToast('Please fix the highlighted errors.', 'error');
+                    this.ensureValidationSummary(panel, doc);
+                    this.highlightInvalidFields(panel, doc);
+
+                    const modalError = doc.querySelector('[data-erp-modal-error] p:last-child')?.textContent?.trim()
+                        ?? doc.querySelector('[data-erp-validation-errors] li')?.textContent?.trim();
+
+                    this.showToast(modalError || 'Please correct the highlighted fields.', 'error');
                 }
 
                 return;
             }
 
             if (! response.ok) {
+                console.error('erpModalManager.submitFormRequest', {
+                    status: response.status,
+                    url: form.action,
+                });
                 this.showToast(`Unable to save form (${response.status}). Please try again.`, 'error');
 
                 return;
@@ -766,19 +868,91 @@ function discoveryResolveUrl(entry) {
     return routeName ? `/admin?nav=${encodeURIComponent(routeName)}` : '#';
 }
 
+function discoverySearchUrl() {
+    return window.__erpFeatureDiscovery?.searchUrl ?? '';
+}
+
+function discoveryEntryId(entry) {
+    return typeof entry === 'string' ? entry : entry?.id;
+}
+
+function discoveryNormalizeStoredEntries(entries) {
+    if (! Array.isArray(entries)) {
+        return [];
+    }
+
+    return entries
+        .map((entry) => {
+            if (typeof entry === 'string') {
+                return null;
+            }
+
+            if (! entry?.url) {
+                return null;
+            }
+
+            return {
+                id: entry.id,
+                label: entry.label ?? '',
+                path: entry.path ?? entry.label ?? '',
+                url: entry.url,
+                turbo_frame: entry.turbo_frame ?? 'module-workspace-content',
+            };
+        })
+        .filter(Boolean);
+}
+
+async function discoveryFetchResults(query, moduleKey = null, limit = 24) {
+    const searchUrl = discoverySearchUrl();
+
+    if (! searchUrl || ! String(query ?? '').trim()) {
+        return [];
+    }
+
+    const params = new URLSearchParams({ q: String(query).trim() });
+
+    if (moduleKey) {
+        params.set('module', moduleKey);
+    }
+
+    if (limit !== 24) {
+        params.set('limit', String(limit));
+    }
+
+    const response = await fetch(`${searchUrl}?${params.toString()}`, {
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+    });
+
+    if (! response.ok) {
+        return [];
+    }
+
+    const payload = await response.json();
+
+    return Array.isArray(payload.results) ? payload.results : [];
+}
+
 document.addEventListener('alpine:init', () => {
-    Alpine.data('erpShell', (searchIndex = [], discoveryIndex = []) => ({
+    Alpine.data('erpShell', () => ({
         sidebarCollapsed: localStorage.getItem('erp.sidebarCollapsed') === '1',
         mobileNavOpen: false,
         query: '',
         searchOpen: false,
-        searchIndex: Array.isArray(searchIndex) ? searchIndex : [],
-        discoveryIndex: Array.isArray(discoveryIndex) ? discoveryIndex : [],
-        discoveryFavorites: JSON.parse(localStorage.getItem('erp.discovery.favorites') || '[]'),
-        discoveryRecent: JSON.parse(localStorage.getItem('erp.discovery.recent') || '[]'),
+        sidebarResults: [],
+        sidebarLoading: false,
+        sidebarSearchTimer: null,
+        discoveryFavorites: discoveryNormalizeStoredEntries(JSON.parse(localStorage.getItem('erp.discovery.favorites') || '[]')),
+        discoveryRecent: discoveryNormalizeStoredEntries(JSON.parse(localStorage.getItem('erp.discovery.recent') || '[]')),
         paletteOpen: false,
         paletteQuery: '',
         paletteHighlightIndex: 0,
+        paletteResults: [],
+        paletteLoading: false,
+        paletteSearchTimer: null,
         favorites: JSON.parse(localStorage.getItem('erp.nav.favorites') || '[]'),
 
         init() {
@@ -800,6 +974,11 @@ document.addEventListener('alpine:init', () => {
 
             this.$watch('paletteQuery', () => {
                 this.paletteHighlightIndex = 0;
+                this.schedulePaletteSearch();
+            });
+
+            this.$watch('query', () => {
+                this.scheduleSidebarSearch();
             });
 
             document.addEventListener('erp:page-loaded', () => {
@@ -809,75 +988,92 @@ document.addEventListener('alpine:init', () => {
             this.trackRecentVisit();
         },
 
-        get searchHits() {
-            const tokens = discoveryTokenize(this.query);
+        scheduleSidebarSearch() {
+            clearTimeout(this.sidebarSearchTimer);
 
-            if (tokens.length === 0) {
-                return [];
+            if (! this.query.trim()) {
+                this.sidebarResults = [];
+                this.sidebarLoading = false;
+
+                return;
             }
 
-            const source = this.discoveryIndex.length > 0 ? this.discoveryIndex : this.searchIndex;
+            this.sidebarSearchTimer = setTimeout(() => this.runSidebarSearch(), 150);
+        },
 
-            return source
-                .filter((entry) => discoveryEntryMatches(entry, tokens))
-                .slice(0, 12)
-                .map((entry) => ({
-                    ...entry,
-                    url: discoveryResolveUrl(entry),
-                }));
+        async runSidebarSearch() {
+            const tokens = this.query.trim();
+
+            if (! tokens) {
+                this.sidebarResults = [];
+                this.sidebarLoading = false;
+
+                return;
+            }
+
+            this.sidebarLoading = true;
+
+            try {
+                this.sidebarResults = await discoveryFetchResults(tokens, null, 12);
+            } catch {
+                this.sidebarResults = [];
+            } finally {
+                this.sidebarLoading = false;
+            }
+        },
+
+        schedulePaletteSearch() {
+            clearTimeout(this.paletteSearchTimer);
+
+            if (! this.paletteQuery.trim()) {
+                this.paletteResults = [];
+                this.paletteLoading = false;
+
+                return;
+            }
+
+            this.paletteSearchTimer = setTimeout(() => this.runPaletteSearch(), 150);
+        },
+
+        async runPaletteSearch() {
+            const tokens = this.paletteQuery.trim();
+
+            if (! tokens) {
+                this.paletteResults = [];
+                this.paletteLoading = false;
+
+                return;
+            }
+
+            this.paletteLoading = true;
+
+            try {
+                this.paletteResults = await discoveryFetchResults(tokens, null, 24);
+            } catch {
+                this.paletteResults = [];
+            } finally {
+                this.paletteLoading = false;
+            }
+        },
+
+        get searchHits() {
+            return this.sidebarResults;
         },
 
         get favoriteItems() {
-            const source = this.discoveryIndex.length > 0 ? this.discoveryIndex : this.searchIndex;
-
-            return this.discoveryFavorites
-                .map((id) => source.find((entry) => entry.id === id))
-                .filter((entry) => entry && ! entry.coming_soon && (entry.url || entry.route))
-                .map((entry) => ({
-                    ...entry,
-                    url: discoveryResolveUrl(entry),
-                }));
+            return this.discoveryFavorites;
         },
 
         get favoriteDiscoveryItems() {
-            return this.favoriteItems;
+            return this.discoveryFavorites;
         },
 
         get recentItems() {
-            const source = this.discoveryIndex.length > 0 ? this.discoveryIndex : this.searchIndex;
-            const byId = new Map(source.map((entry) => [entry.id, entry]));
-
-            return this.discoveryRecent
-                .map((recent) => {
-                    const entry = byId.get(recent.id);
-
-                    if (! entry) {
-                        return null;
-                    }
-
-                    return {
-                        ...entry,
-                        url: discoveryResolveUrl(entry),
-                    };
-                })
-                .filter(Boolean)
-                .slice(0, 20);
+            return this.discoveryRecent;
         },
 
         get paletteFlatResults() {
-            const tokens = discoveryTokenize(this.paletteQuery);
-
-            if (tokens.length === 0) {
-                return [];
-            }
-
-            return this.discoveryIndex
-                .filter((entry) => discoveryEntryMatches(entry, tokens))
-                .slice(0, 24)
-                .map((entry) => ({
-                    ...entry,
-                    url: discoveryResolveUrl(entry),
-                }));
+            return this.paletteResults;
         },
 
         get paletteSections() {
@@ -893,7 +1089,7 @@ document.addEventListener('alpine:init', () => {
                 workspaces: [],
             };
 
-            for (const item of this.paletteFlatResults) {
+            for (const item of this.paletteResults) {
                 const key = buckets[item.category] ? item.category : 'features';
                 buckets[key].push(item);
             }
@@ -1007,31 +1203,59 @@ document.addEventListener('alpine:init', () => {
         },
 
         isDiscoveryFavorite(id) {
-            return this.discoveryFavorites.includes(id);
+            return this.discoveryFavorites.some((entry) => discoveryEntryId(entry) === id);
         },
 
-        toggleDiscoveryFavorite(id) {
-            if (this.isDiscoveryFavorite(id)) {
-                this.discoveryFavorites = this.discoveryFavorites.filter((entry) => entry !== id);
-            } else {
-                this.discoveryFavorites = [...this.discoveryFavorites, id].slice(0, 12);
-            }
-        },
+        toggleDiscoveryFavorite(idOrItem) {
+            const id = discoveryEntryId(idOrItem);
+            const item = typeof idOrItem === 'object' && idOrItem !== null
+                ? idOrItem
+                : this.paletteResults.find((entry) => entry.id === id)
+                    ?? this.sidebarResults.find((entry) => entry.id === id);
 
-        recordRecent(item) {
-            if (! item?.id) {
+            if (! id) {
                 return;
             }
 
-            const next = [
+            if (this.isDiscoveryFavorite(id)) {
+                this.discoveryFavorites = this.discoveryFavorites.filter((entry) => discoveryEntryId(entry) !== id);
+
+                return;
+            }
+
+            if (! item?.url) {
+                return;
+            }
+
+            this.discoveryFavorites = [
                 {
                     id: item.id,
-                    visited_at: new Date().toISOString(),
+                    label: item.label,
+                    path: item.path ?? item.label,
+                    url: item.url,
+                    turbo_frame: item.turbo_frame ?? 'module-workspace-content',
                 },
-                ...this.discoveryRecent.filter((entry) => entry.id !== item.id),
-            ].slice(0, 20);
+                ...this.discoveryFavorites,
+            ].slice(0, 12);
+        },
 
-            this.discoveryRecent = next;
+        recordRecent(item) {
+            if (! item?.url) {
+                return;
+            }
+
+            const entry = {
+                id: item.id ?? item.route ?? item.url,
+                label: item.label ?? '',
+                path: item.path ?? item.label ?? '',
+                url: item.url,
+                turbo_frame: item.turbo_frame ?? 'module-workspace-content',
+            };
+
+            this.discoveryRecent = [
+                entry,
+                ...this.discoveryRecent.filter((existing) => discoveryEntryId(existing) !== entry.id),
+            ].slice(0, 20);
         },
 
         trackRecentVisit() {
@@ -1044,25 +1268,16 @@ document.addEventListener('alpine:init', () => {
             const route = meta.dataset.route ?? '';
             const title = meta.dataset.title ?? '';
 
-            if (! route) {
+            if (! route || ! title) {
                 return;
             }
 
-            const match = this.discoveryIndex.find((entry) => entry.route === route);
-
-            if (match) {
-                this.recordRecent(match);
-
-                return;
-            }
-
-            if (title) {
-                const fallback = this.discoveryIndex.find((entry) => entry.label === title);
-
-                if (fallback) {
-                    this.recordRecent(fallback);
-                }
-            }
+            this.recordRecent({
+                id: route,
+                label: title,
+                path: title,
+                url: `${window.location.pathname}${window.location.search}`,
+            });
         },
 
         routeUrl(routeName) {
@@ -1103,30 +1318,86 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('moduleWorkspaceSearch', (featureIndex = []) => ({
+    Alpine.data('moduleWorkspaceSearch', (moduleKey = null) => ({
         query: '',
         open: false,
-        index: Array.isArray(featureIndex) ? featureIndex : [],
+        hits: [],
+        loading: false,
+        searchTimer: null,
+        moduleKey: moduleKey || null,
 
-        get hits() {
-            const tokens = discoveryTokenize(this.query);
+        scheduleSearch() {
+            clearTimeout(this.searchTimer);
+            this.$dispatch('module-workspace-search', { query: this.query });
 
-            if (tokens.length === 0) {
-                return [];
+            if (! this.query.trim()) {
+                this.hits = [];
+                this.loading = false;
+
+                return;
             }
 
-            return this.index
-                .filter((entry) => discoveryEntryMatches(entry, tokens))
-                .slice(0, 16)
-                .map((entry) => ({
-                    ...entry,
-                    url: discoveryResolveUrl(entry),
-                }));
+            this.searchTimer = setTimeout(() => this.runSearch(), 150);
+        },
+
+        async runSearch() {
+            const tokens = this.query.trim();
+
+            if (! tokens) {
+                this.hits = [];
+                this.loading = false;
+
+                return;
+            }
+
+            this.loading = true;
+
+            try {
+                this.hits = await discoveryFetchResults(tokens, this.moduleKey, 16);
+            } catch {
+                this.hits = [];
+            } finally {
+                this.loading = false;
+            }
         },
 
         clear() {
             this.query = '';
+            this.hits = [];
+            this.loading = false;
             this.open = false;
+            this.$dispatch('module-workspace-search', { query: '' });
+        },
+    }));
+
+    Alpine.data('moduleWorkspaceShell', () => ({
+        query: '',
+
+        init() {
+            this.$watch('query', () => this.applyTabFilter());
+            this.applyTabFilter();
+        },
+
+        applyTabFilter() {
+            const tokens = discoveryTokenize(this.query);
+            const tabs = this.$root.querySelectorAll('[data-workspace-tab]');
+
+            tabs.forEach((tab) => {
+                const label = tab.dataset.searchLabel ?? '';
+
+                if (tokens.length === 0) {
+                    tab.removeAttribute('data-workspace-tab-hidden');
+                    return;
+                }
+
+                const matches = tokens.every((token) => label.includes(token));
+
+                if (matches) {
+                    tab.removeAttribute('data-workspace-tab-hidden');
+                } else {
+                    tab.setAttribute('data-workspace-tab-hidden', 'true');
+                }
+            });
         },
     }));
 
@@ -1171,7 +1442,6 @@ document.addEventListener('alpine:init', () => {
         selected: new Set(),
         tableId: config.tableId ?? null,
         exportFilename: config.exportFilename ?? 'export',
-        brandingLogoUrl: config.brandingLogoUrl ?? null,
 
         _tableRevision: 0,
 
@@ -1266,7 +1536,13 @@ document.addEventListener('alpine:init', () => {
                 return 0;
             }
 
-            return [...table.querySelectorAll('tbody tr')].filter((row) => this.isExportableRow(row)).length;
+            return [...table.querySelectorAll('tbody tr')].filter((row) => {
+                if (row.querySelector('[data-empty-state], .erp-empty-state')) {
+                    return false;
+                }
+
+                return row.offsetParent !== null;
+            }).length;
         },
 
         get showNoResults() {
@@ -1351,7 +1627,7 @@ document.addEventListener('alpine:init', () => {
             table.querySelectorAll('tbody tr[data-row-id]').forEach((row) => {
                 const id = row.dataset.rowId;
                 const checkbox = row.querySelector('input[type="checkbox"]');
-                const visible = this.isExportableRow(row);
+                const visible = row.offsetParent !== null;
 
                 if (!visible || !checkbox) {
                     return;
@@ -1370,6 +1646,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         exportTable(format = 'csv') {
+            if (format !== 'csv') {
+                return;
+            }
+
             this.exportOpen = false;
 
             const table = this.tableId
@@ -1414,65 +1694,20 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const suffix = dataRowCount === 0 ? '-headers-only' : '';
-            const baseName = `${this.exportFilename}${suffix}`;
-
-            if (format === 'excel') {
-                let html = '\uFEFF<table border="1"><thead><tr>';
-                html += headers.map((header) => `<th>${this.escapeHtml(header)}</th>`).join('');
-                html += '</tr></thead><tbody>';
-                rows.slice(headers.length ? 1 : 0).forEach((row) => {
-                    html += '<tr>';
-                    html += row.map((cell) => `<td>${this.escapeHtml(cell)}</td>`).join('');
-                    html += '</tr>';
-                });
-                html += '</tbody></table>';
-                this.downloadBlob(new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' }), `${baseName}.xls`);
-
-                return;
-            }
-
-            if (format === 'pdf') {
-                this.exportTablePdf(headers, rows.slice(headers.length ? 1 : 0), baseName);
-
-                return;
-            }
-
             const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-            this.downloadBlob(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' }), `${baseName}.csv`);
-        },
-
-        escapeHtml(value) {
-            return String(value)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        },
-
-        downloadBlob(blob, filename) {
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
             link.href = url;
-            link.download = filename;
-            link.style.display = 'none';
-            link.setAttribute('data-turbo', 'false');
-            (document.body ?? document.documentElement).appendChild(link);
-
-            if (typeof link.click === 'function') {
-                link.click();
-            } else {
-                link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-            }
-
-            window.setTimeout(() => {
-                link.remove();
-                URL.revokeObjectURL(url);
-            }, 100);
+            link.download = `${this.exportFilename}${dataRowCount === 0 ? '-headers-only' : ''}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
         },
 
         isExportableRow(row) {
-            if (! row || row.hidden) {
+            if (row.offsetParent === null || row.hidden) {
                 return false;
             }
 
@@ -1480,75 +1715,7 @@ document.addEventListener('alpine:init', () => {
                 return false;
             }
 
-            if (row.querySelectorAll('td').length === 0) {
-                return false;
-            }
-
-            const style = window.getComputedStyle(row);
-
-            return style.display !== 'none' && style.visibility !== 'hidden';
-        },
-
-        async exportTablePdf(headers, bodyRows, baseName) {
-            const landscape = headers.length > 5;
-            const doc = new jsPDF({
-                orientation: landscape ? 'landscape' : 'portrait',
-                unit: 'pt',
-                format: 'a4',
-            });
-            let startY = 48;
-
-            if (this.brandingLogoUrl) {
-                try {
-                    const logo = await this.loadLogoForPdf(this.brandingLogoUrl);
-                    const maxWidth = 140;
-                    const maxHeight = 48;
-                    const scale = Math.min(maxWidth / logo.width, maxHeight / logo.height, 1);
-                    const width = logo.width * scale;
-                    const height = logo.height * scale;
-                    const pageWidth = doc.internal.pageSize.getWidth();
-
-                    doc.addImage(logo.dataUrl, 'PNG', (pageWidth - width) / 2, 24, width, height);
-                    startY = 24 + height + 22;
-                } catch {
-                    // Continue without logo when it cannot be loaded.
-                }
-            }
-
-            doc.setFontSize(13);
-            doc.text(this.exportFilename, 40, startY);
-            startY += 18;
-
-            autoTable(doc, {
-                startY,
-                head: headers.length ? [headers] : undefined,
-                body: bodyRows,
-                styles: { fontSize: 8, cellPadding: 4 },
-                headStyles: { fillColor: [248, 250, 252], textColor: [30, 41, 59] },
-            });
-
-            doc.save(`${baseName}.pdf`);
-        },
-
-        loadLogoForPdf(url) {
-            return new Promise((resolve, reject) => {
-                const image = new Image();
-                image.crossOrigin = 'anonymous';
-                image.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = image.naturalWidth;
-                    canvas.height = image.naturalHeight;
-                    canvas.getContext('2d').drawImage(image, 0, 0);
-
-                    resolve({
-                        dataUrl: canvas.toDataURL('image/png'),
-                        width: image.naturalWidth,
-                        height: image.naturalHeight,
-                    });
-                };
-                image.onerror = () => reject(new Error('Logo failed to load'));
-                image.src = url;
-            });
+            return true;
         },
 
         exportSelected() {
@@ -3276,49 +3443,6 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('erpIndexFilterForm', () => ({
-        debounceTimer: null,
-
-        init() {
-            this.$el.querySelectorAll('input[type="search"], input[data-erp-auto-search]').forEach((input) => {
-                input.addEventListener('input', () => {
-                    clearTimeout(this.debounceTimer);
-                    this.debounceTimer = setTimeout(() => this.submitForm(), 400);
-                });
-
-                input.addEventListener('keydown', (event) => {
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        clearTimeout(this.debounceTimer);
-                        this.submitForm();
-                    }
-                });
-            });
-        },
-
-        onFieldChange(event) {
-            const element = event.target;
-
-            if (! element?.name) {
-                return;
-            }
-
-            if (element.type === 'checkbox' || element.tagName === 'SELECT' || element.type === 'date' || element.type === 'datetime-local') {
-                this.submitForm();
-            }
-        },
-
-        submitForm() {
-            this.$el.querySelectorAll('input[name="page"]').forEach((input) => input.remove());
-
-            if (typeof this.$el.requestSubmit === 'function') {
-                this.$el.requestSubmit();
-            } else {
-                this.$el.submit();
-            }
-        },
-    }));
-
     Alpine.data('auditLogsWorkspace', (bootstrap = {}) => ({
         showRoute: bootstrap.showRoute ?? '',
         exportRoute: bootstrap.exportRoute ?? '',
@@ -3668,7 +3792,261 @@ function promoteFlashAlertsToToast(root) {
 
         alert.remove();
     });
+
+    root.querySelectorAll('[data-erp-flash-error]').forEach((alert) => {
+        const message = alert.textContent?.trim();
+
+        if (message) {
+            erpModalManager.showToast(message, 'error');
+        }
+
+        alert.remove();
+    });
 }
+
+const FORM_SETTINGS_SCROLL_KEY = 'erp.formSettings.scrollTop';
+
+function saveFormSettingsScrollPosition() {
+    const scrollContainer = shellScrollContainer();
+
+    if (scrollContainer) {
+        sessionStorage.setItem(FORM_SETTINGS_SCROLL_KEY, String(scrollContainer.scrollTop));
+    }
+}
+
+function restoreFormSettingsScrollPosition() {
+    const savedScroll = sessionStorage.getItem(FORM_SETTINGS_SCROLL_KEY);
+
+    if (savedScroll === null) {
+        return false;
+    }
+
+    const scrollContainer = shellScrollContainer();
+
+    if (scrollContainer) {
+        scrollContainer.scrollTop = Number.parseInt(savedScroll, 10) || 0;
+    }
+
+    sessionStorage.removeItem(FORM_SETTINGS_SCROLL_KEY);
+
+    return true;
+}
+
+function setFormSettingsSaveState(form, isSaving) {
+    const button = form?.querySelector('[data-erp-form-settings-save]');
+
+    if (! button) {
+        return;
+    }
+
+    if (isSaving) {
+        if (! button.dataset.defaultLabel) {
+            button.dataset.defaultLabel = button.textContent?.trim() ?? '';
+        }
+
+        button.disabled = true;
+        button.setAttribute('aria-busy', 'true');
+        button.textContent = button.dataset.savingLabel || 'Saving…';
+        button.classList.add('opacity-70', 'pointer-events-none');
+    } else {
+        button.disabled = false;
+        button.removeAttribute('aria-busy');
+
+        if (button.dataset.defaultLabel) {
+            button.textContent = button.dataset.defaultLabel;
+        }
+
+        button.classList.remove('opacity-70', 'pointer-events-none');
+    }
+}
+
+function resolveFormSettingsFrameContext(form) {
+    const workspaceFrame = document.getElementById('module-workspace-content');
+    const inWorkspaceFrame = Boolean(form?.closest('#module-workspace-content') && workspaceFrame);
+
+    return {
+        frameId: inWorkspaceFrame ? 'module-workspace-content' : 'erp-main',
+        targetFrame: inWorkspaceFrame
+            ? workspaceFrame
+            : document.getElementById('erp-main'),
+        embedded: inWorkspaceFrame,
+    };
+}
+
+function extractFormSettingsFrameContent(doc, frameId) {
+    if (! doc) {
+        return null;
+    }
+
+    return doc.querySelector(`turbo-frame#${frameId}`)
+        ?? doc.getElementById(frameId);
+}
+
+function extractFormSettingsFlashMessage(root) {
+    if (! root) {
+        return null;
+    }
+
+    const status = root.querySelector('[data-erp-flash-status]');
+    const error = root.querySelector('[data-erp-flash-error]');
+
+    if (status) {
+        return { message: status.textContent.trim(), variant: 'success' };
+    }
+
+    if (error) {
+        return { message: error.textContent.trim(), variant: 'error' };
+    }
+
+    return null;
+}
+
+function showFormSettingsSweetAlert(message, variant = 'success') {
+    if (! message) {
+        return;
+    }
+
+    Swal.fire({
+        icon: variant === 'error' ? 'error' : 'success',
+        title: variant === 'error' ? 'Unable to save' : 'Saved',
+        text: message,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+    });
+}
+
+function bindFormSettingsForms(root = document) {
+    root.querySelectorAll('form[data-erp-form-settings]').forEach((form) => {
+        if (form.dataset.erpFormSettingsBound === '1') {
+            return;
+        }
+
+        form.dataset.erpFormSettingsBound = '1';
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation();
+
+            if (typeof window.__erpSubmitFormSettings === 'function') {
+                window.__erpSubmitFormSettings(form);
+            }
+        }, true);
+    });
+}
+
+function applyFormSettingsFrameHtml(html, responseUrl = null, turboLocation = null, form = null) {
+    const context = form ? resolveFormSettingsFrameContext(form) : {
+        frameId: 'erp-main',
+        targetFrame: document.getElementById('erp-main'),
+        embedded: false,
+    };
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    let sourceFrame = extractFormSettingsFrameContent(doc, context.frameId);
+    const targetFrame = context.targetFrame;
+
+    if (! sourceFrame) {
+        const alternateFrameId = context.frameId === 'erp-main'
+            ? 'module-workspace-content'
+            : 'erp-main';
+        sourceFrame = extractFormSettingsFrameContent(doc, alternateFrameId);
+    }
+
+    if (! sourceFrame || ! targetFrame) {
+        return false;
+    }
+
+    targetFrame.innerHTML = sourceFrame.innerHTML;
+
+    const nextUrl = turboLocation || responseUrl;
+
+    if (nextUrl && ! context.embedded) {
+        try {
+            window.history.pushState({}, '', new URL(nextUrl, window.location.origin).toString());
+        } catch {
+            // Keep the current URL when the response location cannot be parsed.
+        }
+    }
+
+    if (context.frameId === 'module-workspace-content') {
+        refreshEmbeddedWorkspaceFrame(targetFrame);
+    } else {
+        refreshFrameAlpine(targetFrame);
+        restoreFormSettingsScrollPosition();
+    }
+
+    const flash = extractFormSettingsFlashMessage(targetFrame);
+
+    promoteFlashAlertsToToast(targetFrame);
+    bindFormSettingsForms(targetFrame);
+
+    if (flash) {
+        showFormSettingsSweetAlert(flash.message, flash.variant);
+    } else if (form?.dataset?.erpFormLabel) {
+        showFormSettingsSweetAlert(`${form.dataset.erpFormLabel} settings saved successfully.`, 'success');
+    }
+
+    return true;
+}
+
+window.__erpSubmitFormSettings = async function submitFormSettingsRequest(form) {
+    if (! form) {
+        return;
+    }
+
+    const context = resolveFormSettingsFrameContext(form);
+    const formData = new FormData(form);
+    formData.set('_turbo_frame', '1');
+
+    if (context.embedded) {
+        formData.set('_embedded_workspace', '1');
+    }
+
+    const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
+
+    saveFormSettingsScrollPosition();
+    setFormSettingsSaveState(form, true);
+
+    try {
+        const response = await fetch(form.action, {
+            method: method === 'GET' ? 'GET' : 'POST',
+            body: method === 'GET' ? null : formData,
+            headers: {
+                'Turbo-Frame': context.frameId,
+                'Accept': 'text/html, application/xhtml+xml',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+            redirect: 'follow',
+        });
+
+        const html = await response.text();
+        const turboLocation = response.headers.get('Turbo-Location');
+
+        if (applyFormSettingsFrameHtml(html, response.url, turboLocation, form)) {
+            return;
+        }
+
+        if (! response.ok) {
+            showFormSettingsSweetAlert(`Unable to save form settings (${response.status}). Please try again.`, 'error');
+            sessionStorage.removeItem(FORM_SETTINGS_SCROLL_KEY);
+
+            return;
+        }
+
+        showFormSettingsSweetAlert('Unable to save form settings. Please try again.', 'error');
+        sessionStorage.removeItem(FORM_SETTINGS_SCROLL_KEY);
+    } catch (error) {
+        console.error('submitFormSettingsRequest', error);
+        showFormSettingsSweetAlert('Unable to save form settings. Please try again.', 'error');
+        sessionStorage.removeItem(FORM_SETTINGS_SCROLL_KEY);
+    } finally {
+        setFormSettingsSaveState(form, false);
+    }
+};
 
 function refreshFrameAlpine(frame) {
     if (! frame) {
@@ -3680,6 +4058,86 @@ function refreshFrameAlpine(frame) {
     Alpine.initTree(frame);
     promoteFlashAlertsToToast(frame);
     syncShellFromFrame();
+    bindFormSettingsForms(frame);
+}
+
+function workspaceTabSlug(value) {
+    return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
+    const tabs = clickedTab
+        ? [clickedTab]
+        : document.querySelectorAll('.module-workspace-switcher--secondary [data-workspace-tab][href]');
+
+    if (clickedTab) {
+        const track = clickedTab.closest('[role="tablist"]');
+
+        if (! track) {
+            return;
+        }
+
+        track.querySelectorAll('[data-workspace-tab]').forEach((tab) => {
+            tab.classList.remove('workspace-pill--active');
+            tab.removeAttribute('aria-selected');
+        });
+
+        clickedTab.classList.add('workspace-pill--active');
+        clickedTab.setAttribute('aria-selected', 'true');
+
+        return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const currentTab = workspaceTabSlug(currentUrl.searchParams.get('tab'));
+    const workspaceFrame = document.getElementById('module-workspace-content');
+    const frameSrc = workspaceFrame?.src || workspaceFrame?.getAttribute('src') || '';
+
+    document.querySelectorAll('.module-workspace-switcher--secondary [role="tablist"]').forEach((track) => {
+        let matched = false;
+
+        track.querySelectorAll('[data-workspace-tab][href]').forEach((tab) => {
+            let isActive = false;
+
+            try {
+                const tabKey = workspaceTabSlug(tab.dataset.workspaceTabKey ?? '');
+
+                if (currentTab && tabKey) {
+                    isActive = tabKey === currentTab;
+                } else if (frameSrc) {
+                    const tabUrl = new URL(tab.getAttribute('href'), window.location.origin);
+                    const srcUrl = new URL(frameSrc, window.location.origin);
+                    isActive = tabUrl.pathname === srcUrl.pathname;
+                } else {
+                    const tabUrl = new URL(tab.getAttribute('href'), window.location.origin);
+                    isActive = tabUrl.pathname === currentUrl.pathname
+                        && tabUrl.searchParams.get('embedded') === currentUrl.searchParams.get('embedded');
+                }
+
+                tab.classList.toggle('workspace-pill--active', isActive);
+                tab.toggleAttribute('aria-selected', isActive);
+
+                if (isActive) {
+                    matched = true;
+                }
+            } catch {
+                // Ignore malformed tab hrefs.
+            }
+        });
+
+        if (! matched && ! currentTab && ! frameSrc) {
+            const first = track.querySelector('[data-workspace-tab][href]');
+
+            if (first) {
+                first.classList.add('workspace-pill--active');
+                first.setAttribute('aria-selected', 'true');
+            }
+        }
+    });
 }
 
 function wireEmbeddedWorkspaceLinks(root) {
@@ -3688,11 +4146,7 @@ function wireEmbeddedWorkspaceLinks(root) {
     }
 
     root.querySelectorAll('a[href]').forEach((link) => {
-        if (link.hasAttribute('data-turbo-frame') || link.getAttribute('data-turbo') === 'false') {
-            return;
-        }
-
-        if (link.getAttribute('target') === '_blank') {
+        if (link.getAttribute('data-turbo') === 'false' || link.getAttribute('target') === '_blank') {
             return;
         }
 
@@ -3700,7 +4154,25 @@ function wireEmbeddedWorkspaceLinks(root) {
             return;
         }
 
-        link.setAttribute('data-turbo-frame', 'erp-main');
+        const turboFrame = link.getAttribute('data-turbo-frame');
+        const targetsWorkspaceContent = turboFrame === 'module-workspace-content';
+
+        if (! link.hasAttribute('data-turbo-frame')) {
+            link.setAttribute('data-turbo-frame', 'module-workspace-content');
+        } else if (! targetsWorkspaceContent) {
+            return;
+        }
+
+        try {
+            const url = new URL(link.href, window.location.origin);
+
+            if (! url.searchParams.has('embedded')) {
+                url.searchParams.set('embedded', '1');
+                link.href = `${url.pathname}${url.search}${url.hash}`;
+            }
+        } catch {
+            // Keep the original href when it cannot be parsed.
+        }
     });
 
     root.querySelectorAll('form[action]').forEach((form) => {
@@ -3754,6 +4226,7 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     Alpine.destroyTree(frame);
     Alpine.initTree(frame);
     wireEmbeddedWorkspaceLinks(frame);
+    bindFormSettingsForms(frame);
 }
 
 document.addEventListener('turbo:before-cache', () => {
@@ -3769,20 +4242,63 @@ document.addEventListener('turbo:before-cache', () => {
     }
 });
 
+document.addEventListener('change', (event) => {
+    const requirementSelect = event.target.closest?.('.form-field-requirement');
+
+    if (! requirementSelect || requirementSelect.dataset.registryRequired === '1') {
+        return;
+    }
+
+    const row = requirementSelect.closest('tr');
+    const visibilitySelect = row?.querySelector('.form-field-visibility');
+    const visibilityHint = row?.querySelector('.form-field-visibility-hint');
+
+    if (! visibilitySelect || visibilitySelect.dataset.registryRequired === '1') {
+        return;
+    }
+
+    if (requirementSelect.value === 'required') {
+        visibilitySelect.value = 'visible';
+        visibilitySelect.disabled = true;
+        visibilityHint?.classList.remove('hidden');
+    } else {
+        visibilitySelect.disabled = false;
+        visibilityHint?.classList.add('hidden');
+    }
+});
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+
+    if (! form?.hasAttribute?.('data-erp-form-settings')) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (typeof window.__erpSubmitFormSettings === 'function') {
+        window.__erpSubmitFormSettings(form);
+    }
+}, true);
+
 document.addEventListener('turbo:frame-load', (event) => {
     if (event.target.id === 'erp-main') {
         const scrollContainer = shellScrollContainer();
 
-        if (scrollContainer) {
+        if (scrollContainer && ! restoreFormSettingsScrollPosition()) {
             scrollContainer.scrollTop = 0;
         }
 
         refreshFrameAlpine(event.target);
         erpModalManager.restoreWorkspaceState();
+        syncSecondaryWorkspaceTabActiveState();
+        bindFormSettingsForms(event.target);
     }
 
     if (event.target.id === 'module-workspace-content') {
         refreshEmbeddedWorkspaceFrame(event.target);
+        syncSecondaryWorkspaceTabActiveState();
     }
 
     if (event.target.id === 'erp-form-modal' || event.target.id === 'erp-preview-drawer') {
@@ -3825,6 +4341,45 @@ document.addEventListener('turbo:frame-missing', async (event) => {
     }
 });
 
+document.addEventListener('click', (event) => {
+    const saveButton = event.target.closest?.('[data-erp-form-settings-save]');
+
+    if (saveButton) {
+        const form = saveButton.closest('form[data-erp-form-settings]');
+
+        if (form) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            if (! saveButton.dataset.defaultLabel) {
+                saveButton.dataset.defaultLabel = saveButton.textContent.trim();
+            }
+
+            saveButton.disabled = true;
+            saveButton.textContent = saveButton.dataset.savingLabel || 'Saving…';
+
+            if (typeof window.__erpSubmitFormSettings === 'function') {
+                window.__erpSubmitFormSettings(form).finally(() => {
+                    saveButton.disabled = false;
+                    saveButton.textContent = saveButton.dataset.defaultLabel || 'Save form settings';
+                });
+            } else {
+                saveButton.disabled = false;
+                saveButton.textContent = saveButton.dataset.defaultLabel || 'Save form settings';
+                window.alert('Unable to save form settings. Please refresh the page and try again.');
+            }
+        }
+
+        return;
+    }
+
+    const tab = event.target.closest?.('.module-workspace-switcher--secondary [data-workspace-tab][href]');
+
+    if (tab) {
+        syncSecondaryWorkspaceTabActiveState(tab);
+    }
+}, true);
+
 document.addEventListener('turbo:load', () => {
     const frame = document.getElementById('erp-main');
 
@@ -3838,5 +4393,9 @@ document.addEventListener('turbo:load', () => {
 
     if (workspaceFrame) {
         wireEmbeddedWorkspaceLinks(workspaceFrame);
+        bindFormSettingsForms(workspaceFrame);
     }
+
+    bindFormSettingsForms(document.getElementById('erp-main'));
+    syncSecondaryWorkspaceTabActiveState();
 });

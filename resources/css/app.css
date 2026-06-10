@@ -260,25 +260,89 @@
         @apply text-slate-700 hover:bg-slate-50;
     }
 
-    .module-shell {
+    .module-shell,
+    .workspace-content-shell {
         @apply w-full min-w-0;
     }
 
-    .module-workspace-switcher {
+    .compact-workspace-header__row {
+        @apply flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between;
+    }
+
+    .compact-workspace-header__title-group {
+        @apply flex min-w-0 flex-col gap-0 sm:flex-row sm:items-baseline sm:gap-2;
+    }
+
+    .compact-workspace-header__title {
+        @apply text-base font-semibold leading-tight text-erp-primary sm:text-lg;
+    }
+
+    .compact-workspace-header__description {
+        @apply text-xs text-slate-500 sm:text-sm;
+    }
+
+    .compact-workspace-header__search {
+        @apply w-full sm:w-auto;
+    }
+
+    .module-workspace-search__input-wrap {
+        @apply w-full;
+    }
+
+    .module-workspace-switcher,
+    .workspace-pill-tabs {
         @apply w-full min-w-0;
     }
 
-    .module-workspace-switcher__track {
-        @apply flex gap-2 overflow-x-auto pb-1;
+    .module-workspace-switcher__track,
+    .workspace-pill-tabs__track {
+        @apply flex gap-1.5 overflow-x-auto pb-0.5;
+        -webkit-overflow-scrolling: touch;
         scrollbar-width: thin;
     }
 
-    .module-workspace-switcher--secondary .module-workspace-switcher__track {
-        @apply gap-1 border-b border-erp-border pb-0;
+    .module-workspace-switcher--secondary .module-workspace-switcher__track,
+    .workspace-pill-tabs.module-workspace-switcher--secondary .workspace-pill-tabs__track {
+        @apply gap-1;
     }
 
+    .workspace-pill {
+        @apply inline-flex shrink-0 items-center gap-1 rounded-full border border-erp-border bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-erp-accent/40 hover:bg-erp-page hover:text-erp-primary;
+    }
+
+    .workspace-pill--primary.workspace-pill--active {
+        @apply border-erp-accent bg-erp-accent text-white shadow-sm hover:border-erp-accent hover:bg-erp-accent hover:text-white;
+    }
+
+    .workspace-pill--secondary {
+        @apply rounded-md border-transparent bg-transparent px-2 py-1 text-xs;
+    }
+
+    .workspace-pill--secondary.workspace-pill--active {
+        @apply border-erp-accent/20 bg-erp-accent/10 font-semibold text-erp-accent;
+    }
+
+    .workspace-pill--disabled {
+        @apply cursor-not-allowed opacity-50;
+    }
+
+    .workspace-pill__badge,
+    .module-workspace-chip__badge,
+    .module-workspace-tab__badge {
+        @apply rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold;
+    }
+
+    .workspace-pill--secondary .workspace-pill__badge {
+        @apply bg-erp-accent/15 text-erp-accent;
+    }
+
+    .workspace-pill[data-workspace-tab-hidden] {
+        @apply hidden;
+    }
+
+    /* Legacy chip/tab classes kept for backward compatibility */
     .module-workspace-chip {
-        @apply inline-flex shrink-0 items-center gap-2 rounded-lg border border-erp-border bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-erp-accent/40 hover:bg-erp-page;
+        @apply inline-flex shrink-0 items-center gap-2 rounded-full border border-erp-border bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:border-erp-accent/40 hover:bg-erp-page;
     }
 
     .module-workspace-chip--active {
@@ -290,20 +354,15 @@
     }
 
     .module-workspace-chip__icon {
-        @apply h-4 w-4 shrink-0;
-    }
-
-    .module-workspace-chip__badge,
-    .module-workspace-tab__badge {
-        @apply rounded-full bg-white/20 px-1.5 py-0.5 text-[10px] font-bold;
+        @apply h-3.5 w-3.5 shrink-0;
     }
 
     .module-workspace-tab {
-        @apply inline-flex shrink-0 items-center gap-1.5 border-b-2 border-transparent px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-erp-primary;
+        @apply inline-flex shrink-0 items-center gap-1.5 rounded-md border-transparent px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:text-erp-primary;
     }
 
     .module-workspace-tab--active {
-        @apply border-erp-accent text-erp-accent;
+        @apply bg-erp-accent/10 font-semibold text-erp-accent;
     }
 
     .module-workspace-tab--disabled {
@@ -315,7 +374,23 @@
     }
 
     .module-workspace-content__loading {
-        @apply rounded-lg border border-erp-border bg-white p-6;
+        @apply rounded-lg border border-erp-border bg-white p-3;
+    }
+
+    .module-workspace-content__skeleton-bar {
+        @apply mb-2 h-6 w-40;
+    }
+
+    .module-workspace-content__skeleton-panel {
+        @apply h-24 w-full;
+    }
+
+    .module-workspace-embedded {
+        @apply w-full min-w-0;
+    }
+
+    .module-workspace-embedded > :first-child:not([class*='mb-']) {
+        margin-top: 0;
     }
 
     .module-workspace-card {
@@ -351,6 +426,11 @@
     .erp-form-field textarea[readonly],
     .erp-form-field select[disabled] {
         @apply bg-erp-readonly;
+    }
+
+    .erp-input--invalid,
+    .erp-select--invalid {
+        @apply border-red-500 ring-1 ring-red-500/30;
     }
 
     /* Sidebar navigation */

@@ -1,24 +1,30 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
     ]);
-    $hubBackUrl = route('admin.workspaces.administration.section', ['section' => 'configuration']);
+    $hubBackUrl = route('admin.workspaces.administration.section', ['section' => 'configuration', 'tab' => 'document-types']);
+    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout
     :title="__('Document Types')"
-    :breadcrumbs="[
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
-        ['label' => __('Configuration'), 'url' => $hubBackUrl],
+        ['label' => __('Configuration')],
         ['label' => __('Document Types')],
     ]"
+    :use-workspace-navigation="! $embedded"
 >
-    @include('admin.settings.partials.hub-toolbar', [
-        'title' => __('Document Types'),
-        'description' => __('Central registry for ERP document classification, numbering, approvals, and retention.'),
-        'backUrl' => $hubBackUrl,
-    ])
+    @unless ($embedded)
+        @include('admin.settings.partials.hub-toolbar', [
+            'title' => __('Document Types'),
+            'description' => __('Central registry for ERP document classification, numbering, approvals, and retention.'),
+            'backUrl' => $hubBackUrl,
+        ])
+    @endunless
 
     @include('admin.settings.partials.scope-selector', [
         'action' => route('admin.settings.document-types.index'),

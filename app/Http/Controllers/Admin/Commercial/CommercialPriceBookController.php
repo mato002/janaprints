@@ -179,7 +179,11 @@ class CommercialPriceBookController extends Controller
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
 
-        return $request->validate($this->formSettings->mergeValidationRules('commercial_price_book.create', [
+        $serverProvidedFields = $this->formSettings->isVisible('commercial_price_book.create', 'branch_id', $companyId, $branchId)
+            ? []
+            : ['branch_id'];
+
+        return $this->formSettings->validateRequest($request, 'commercial_price_book.create', [
             'name' => ['string', 'max:120'],
             'code' => [
                 'string', 'max:40',
@@ -194,7 +198,7 @@ class CommercialPriceBookController extends Controller
             'starts_at' => ['date'],
             'ends_at' => ['date', 'after_or_equal:starts_at'],
             'is_default' => ['sometimes', 'boolean'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId, $serverProvidedFields);
     }
 
     /**

@@ -32,6 +32,7 @@ return [
         'quote' => ['quotes', 'quotation', 'quotations', 'estimate'],
         'report' => ['reports', 'analytics', 'intelligence', 'dashboard', 'statement'],
         'setting' => ['settings', 'configuration', 'config', 'preferences'],
+        'user' => ['users', 'accounts', 'identity'],
         'employee' => ['employees', 'staff', 'hr', 'workforce'],
         'asset' => ['assets', 'fixed-asset', 'depreciation'],
         'ledger' => ['gl', 'general-ledger', 'journal', 'journals'],

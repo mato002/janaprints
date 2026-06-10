@@ -19,18 +19,19 @@
 
 @if ($canManage)
     <form
-        method="POST"
-        action="{{ route('admin.settings.forms.update', $scopeQuery) }}"
-        data-turbo-frame="erp-main"
-        data-turbo-action="advance"
+        method="post"
+        action="{{ route('admin.settings.forms.update') }}"
+        data-turbo="false"
+        data-erp-form-settings
+        data-erp-form-key="{{ $form['form_key'] }}"
+        data-erp-form-label="{{ $form['label'] }}"
     >
         @csrf
         @method('PUT')
         <input type="hidden" name="company_id" value="{{ $companyId }}">
         <input type="hidden" name="return_form" value="{{ $form['form_key'] }}">
-        @if ($branchId)
-            <input type="hidden" name="branch_id" value="{{ $branchId }}">
-        @endif
+        <input type="hidden" name="form" value="{{ $form['form_key'] }}">
+        <input type="hidden" name="branch_id" value="{{ $branchId ?? '' }}">
 @endif
 
 @include('admin.settings.forms.partials.workspace-panel', [
@@ -41,4 +42,6 @@
 
 @if ($canManage)
     </form>
+
+    @include('admin.settings.forms.partials.form-settings-submit-script', ['formKey' => $form['form_key']])
 @endif

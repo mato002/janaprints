@@ -11,11 +11,11 @@
             class="module-workspace-content__frame"
             data-turbo-action="advance"
             data-turbo-cache="false"
-            loading="lazy"
+            loading="eager"
         >
             <div class="module-workspace-content__loading" aria-live="polite">
-                <div class="erp-skeleton h-8 w-48 mb-4"></div>
-                <div class="erp-skeleton h-32 w-full"></div>
+                <div class="erp-skeleton module-workspace-content__skeleton-bar"></div>
+                <div class="erp-skeleton module-workspace-content__skeleton-panel"></div>
             </div>
         </turbo-frame>
     @else

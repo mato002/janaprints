@@ -1,51 +1,55 @@
-<x-admin-layout :title="__('New job card')" :breadcrumbs="[
-    ['label' => __('Production'), 'url' => route('admin.workspaces.production')],
-    ['label' => __('Job Cards'), 'url' => route('admin.production.job-cards.index')],
-    ['label' => __('New')],
-]">
-    <x-admin.page-header :title="__('New job card')" :description="__('From confirmed sales order with approved artwork.')" />
+<x-admin.modal-form
+    :title="__('New job card')"
+    :breadcrumbs="[
+        ['label' => __('Job Cards'), 'url' => route('admin.production.job-cards.index')],
+        ['label' => __('New')],
+    ]"
+    maxWidth="xl"
+>
+    <x-admin.form-shell :action="route('admin.production.job-cards.store')">
+        <div class="erp-form-grid">
+            <x-admin.select name="sales_order_id" :label="__('Sales order')" :required="true" :colSpan="2">
+                <option value="">{{ __('Select sales order') }}</option>
+                @foreach ($eligibleOrders as $order)
+                    <option value="{{ $order->id }}" @selected(old('sales_order_id') == $order->id)>
+                        {{ $order->order_number }} — {{ $order->customer?->company_name }}
+                    </option>
+                @endforeach
+            </x-admin.select>
 
-    <x-admin.card>
-        <form method="POST" action="{{ route('admin.production.job-cards.store') }}" class="space-y-4 max-w-xl">
-            @csrf
-            <div>
-                <label class="erp-label">{{ __('Sales order') }}</label>
-                <select name="sales_order_id" class="erp-input w-full" required>
-                    <option value="">{{ __('Select sales order') }}</option>
-                    @foreach ($eligibleOrders as $order)
-                        <option value="{{ $order->id }}" @selected(old('sales_order_id') == $order->id)>
-                            {{ $order->order_number }} — {{ $order->customer?->company_name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Production type') }}</label>
-                <select name="production_type" class="erp-input w-full" required>
-                    @foreach ($productionTypes as $type)
-                        <option value="{{ $type->value }}" @selected(old('production_type', 'mixed') === $type->value)>{{ ucfirst(str_replace('_', ' ', $type->value)) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label">{{ __('Priority') }}</label>
-                <select name="priority" class="erp-input w-full" required>
-                    @foreach ($priorities as $priority)
-                        <option value="{{ $priority->value }}" @selected(old('priority', 'normal') === $priority->value)>{{ ucfirst($priority->value) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="erp-label">{{ __('Planned start') }}</label>
-                    <input type="date" name="planned_start_date" class="erp-input w-full" value="{{ old('planned_start_date') }}">
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Planned end') }}</label>
-                    <input type="date" name="planned_end_date" class="erp-input w-full" value="{{ old('planned_end_date') }}">
-                </div>
-            </div>
-            <button type="submit" class="erp-btn-primary" @disabled($eligibleOrders->isEmpty())>{{ __('Create job card') }}</button>
-        </form>
-    </x-admin.card>
-</x-admin-layout>
+            <x-admin.select name="production_type" :label="__('Production type')" :required="true">
+                @foreach ($productionTypes as $type)
+                    <option value="{{ $type->value }}" @selected(old('production_type', 'mixed') === $type->value)>
+                        {{ ucfirst(str_replace('_', ' ', $type->value)) }}
+                    </option>
+                @endforeach
+            </x-admin.select>
+
+            <x-admin.select name="priority" :label="__('Priority')" :required="true">
+                @foreach ($priorities as $priority)
+                    <option value="{{ $priority->value }}" @selected(old('priority', 'normal') === $priority->value)>
+                        {{ ucfirst($priority->value) }}
+                    </option>
+                @endforeach
+            </x-admin.select>
+
+            <x-admin.input
+                name="planned_start_date"
+                type="date"
+                :label="__('Planned start')"
+                :value="old('planned_start_date')"
+            />
+
+            <x-admin.input
+                name="planned_end_date"
+                type="date"
+                :label="__('Planned end')"
+                :value="old('planned_end_date')"
+            />
+        </div>
+
+        <x-admin.form-actions>
+            <x-primary-button :disabled="$eligibleOrders->isEmpty()">{{ __('Create job card') }}</x-primary-button>
+        </x-admin.form-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

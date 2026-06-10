@@ -19,7 +19,6 @@
     },
     "dependencies": {
         "@hotwired/turbo": "^8.0.23",
-        "jspdf": "^4.2.1",
-        "jspdf-autotable": "^5.0.8"
+        "sweetalert2": "^11.26.25"
     }
 }

@@ -11,6 +11,7 @@ use App\Support\Platform\SettingsRegistry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -25,13 +26,19 @@ class FormSettingsController extends Controller
         protected FormsControlCenterPresenter $controlCenter,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|Response
     {
         $this->authorize('viewAny', SettingsGovernance::class);
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->resolveSettingsScope($request);
 
         $forms = $this->manager->rows($companyId, $branchId);
+        $canManage = auth()->user()->can('settings.manage')
+            || auth()->user()->can('update', new SettingsGovernance());
+
+        if ($this->isEmbeddedTurboFrameRequest($request)) {
+            return $this->embeddedIndexResponse($request, $companyId, $branchId, $forms, $canManage);
+        }
 
         return view('admin.settings.forms.index', [
             'sections' => $this->registry->sections(),
@@ -41,8 +48,7 @@ class FormSettingsController extends Controller
             'branchId' => $branchId,
             'companies' => $this->companiesForSettingsUser(),
             'branches' => $this->branchesForSettingsCompany($companyId),
-            'canManage' => auth()->user()->can('settings.manage')
-                || auth()->user()->can('update', new SettingsGovernance()),
+            'canManage' => $canManage,
         ]);
     }
 
@@ -76,18 +82,66 @@ class FormSettingsController extends Controller
                 'forms.*.remove_fields.*' => ['nullable', 'string', 'max:64'],
             ])->validate();
         } catch (ValidationException $exception) {
-            throw $exception->redirectTo(route('admin.settings.forms.index', $redirectParams));
+            $errorMessage = __('Unable to save form settings. Please review the highlighted fields.');
+
+            if ($this->isTurboFrameRequest($request) && $returnForm) {
+                return $this->frameResponse(
+                    $companyId,
+                    $branchId,
+                    $returnForm,
+                    '',
+                    $redirectParams,
+                    $exception->validator->errors(),
+                    $errorMessage,
+                    $request,
+                );
+            }
+
+            return redirect()
+                ->route('admin.settings.forms.index', $redirectParams)
+                ->withErrors($exception->validator)
+                ->withInput()
+                ->with('error', $errorMessage);
         }
 
         $returnForm = $this->resolveReturnFormKey($request, $validated['forms']);
 
-        $this->manager->save($companyId, $branchId, $validated['forms']);
+        try {
+            $this->manager->save($companyId, $branchId, $validated['forms']);
+        } catch (\Throwable $exception) {
+            Log::error('Form settings save failed', [
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
+                'form' => $returnForm,
+                'message' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
+            ]);
 
-        $statusMessage = __('Form settings updated.');
-        $redirectParams = $this->redirectParams($companyId, $branchId, $returnForm);
+            $errorMessage = __('Unable to save form settings. Please try again.');
 
-        if ($request->header('Turbo-Frame') === 'erp-main' && $returnForm) {
-            return $this->frameResponse($companyId, $branchId, $returnForm, $statusMessage, $redirectParams);
+            if ($this->isTurboFrameRequest($request) && $returnForm) {
+                return $this->frameResponse(
+                    $companyId,
+                    $branchId,
+                    $returnForm,
+                    '',
+                    $redirectParams,
+                    null,
+                    $errorMessage,
+                    $request,
+                );
+            }
+
+            return redirect()
+                ->route('admin.settings.forms.index', $redirectParams)
+                ->with('error', $errorMessage);
+        }
+
+        $statusMessage = $this->successMessage($returnForm, $companyId, $branchId);
+        $redirectParams = $this->redirectParams($companyId, $branchId, $returnForm, $this->isEmbeddedTurboFrameRequest($request));
+
+        if ($returnForm && $this->isTurboFrameRequest($request)) {
+            return $this->frameResponse($companyId, $branchId, $returnForm, $statusMessage, $redirectParams, null, null, $request);
         }
 
         return redirect()
@@ -101,6 +155,14 @@ class FormSettingsController extends Controller
     protected function resolveReturnFormKey(Request $request, ?array $validatedForms = null): ?string
     {
         $returnForm = trim((string) $request->input('return_form', ''));
+
+        if ($returnForm === '') {
+            $returnForm = trim((string) $request->input('form', ''));
+        }
+
+        if ($returnForm === '') {
+            $returnForm = trim((string) $request->query('form', ''));
+        }
 
         if ($returnForm !== '') {
             return $returnForm;
@@ -120,13 +182,90 @@ class FormSettingsController extends Controller
     /**
      * @return array<string, int|string>
      */
-    protected function redirectParams(int $companyId, ?int $branchId, ?string $returnForm): array
+    protected function redirectParams(int $companyId, ?int $branchId, ?string $returnForm, bool $embedded = false): array
     {
         return array_filter([
             'company_id' => $companyId,
             'branch_id' => $branchId,
             'form' => $returnForm,
+            'embedded' => $embedded ? '1' : null,
         ], fn ($value) => $value !== null && $value !== '');
+    }
+
+    protected function isTurboFrameRequest(Request $request): bool
+    {
+        return in_array($request->header('Turbo-Frame'), ['erp-main', 'module-workspace-content'], true)
+            || $request->boolean('_turbo_frame');
+    }
+
+    protected function isEmbeddedTurboFrameRequest(Request $request): bool
+    {
+        return $request->header('Turbo-Frame') === 'module-workspace-content'
+            || ($request->boolean('_turbo_frame') && $request->boolean('_embedded_workspace'));
+    }
+
+    protected function successMessage(?string $returnForm, int $companyId, ?int $branchId): string
+    {
+        if ($returnForm === null || $returnForm === '') {
+            return __('Form settings saved successfully.');
+        }
+
+        $forms = $this->manager->rows($companyId, $branchId);
+        $activeForm = $forms->first(fn (array $form) => $form['form_key'] === $returnForm);
+
+        if ($activeForm) {
+            return __(':form form settings saved successfully.', ['form' => __($activeForm['label'])]);
+        }
+
+        return __('Form settings saved successfully.');
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $forms
+     */
+    protected function embeddedIndexResponse(
+        Request $request,
+        int $companyId,
+        ?int $branchId,
+        $forms,
+        bool $canManage,
+    ): Response {
+        $scopeQuery = array_filter([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+        ]);
+
+        $activeFormKey = trim((string) $request->query('form', ''));
+        $activeForm = $activeFormKey !== ''
+            ? $forms->first(fn (array $form) => $form['form_key'] === $activeFormKey)
+            : null;
+
+        if ($activeForm) {
+            return response()->view('admin.settings.forms.embedded-frame', [
+                'title' => $activeForm['label'],
+                'activeForm' => $activeForm,
+                'activeFormKey' => $activeFormKey,
+                'companyId' => $companyId,
+                'branchId' => $branchId,
+                'companies' => $this->companiesForSettingsUser(),
+                'branches' => $this->branchesForSettingsCompany($companyId),
+                'canManage' => $canManage,
+                'scopeQuery' => $scopeQuery,
+                'statusMessage' => session('status'),
+                'errorMessage' => session('error'),
+                'validationErrors' => session('errors'),
+            ]);
+        }
+
+        return response()->view('admin.settings.forms.embedded-landing', [
+            'controlCenter' => $this->controlCenter->hub($companyId, $branchId, $forms),
+            'companyId' => $companyId,
+            'branchId' => $branchId,
+            'companies' => $this->companiesForSettingsUser(),
+            'branches' => $this->branchesForSettingsCompany($companyId),
+            'canManage' => $canManage,
+            'scopeQuery' => $scopeQuery,
+        ]);
     }
 
     protected function frameResponse(
@@ -135,7 +274,12 @@ class FormSettingsController extends Controller
         string $returnForm,
         string $statusMessage,
         array $redirectParams = [],
+        ?\Illuminate\Support\MessageBag $errors = null,
+        ?string $errorMessage = null,
+        ?Request $request = null,
     ): Response {
+        $request ??= request();
+        $embedded = $this->isEmbeddedTurboFrameRequest($request);
         $forms = $this->manager->rows($companyId, $branchId);
         $activeForm = $forms->first(fn (array $form) => $form['form_key'] === $returnForm);
 
@@ -148,23 +292,31 @@ class FormSettingsController extends Controller
 
         $redirectParams = $redirectParams !== []
             ? $redirectParams
-            : $this->redirectParams($companyId, $branchId, $returnForm);
+            : $this->redirectParams($companyId, $branchId, $returnForm, $embedded);
+
+        $viewData = [
+            'title' => $activeForm['label'],
+            'activeForm' => $activeForm,
+            'activeFormKey' => $returnForm,
+            'companyId' => $companyId,
+            'branchId' => $branchId,
+            'companies' => $this->companiesForSettingsUser(),
+            'branches' => $this->branchesForSettingsCompany($companyId),
+            'canManage' => auth()->user()->can('settings.manage')
+                || auth()->user()->can('update', new SettingsGovernance()),
+            'scopeQuery' => $scopeQuery,
+            'hubBackUrl' => route('admin.settings.show', ['section' => 'hub'] + $scopeQuery),
+            'statusMessage' => $statusMessage,
+            'errorMessage' => $errorMessage,
+            'validationErrors' => $errors,
+        ];
+
+        $view = $embedded
+            ? 'admin.settings.forms.embedded-frame'
+            : 'admin.settings.forms.frame';
 
         return response()
-            ->view('admin.settings.forms.frame', [
-                'title' => $activeForm['label'],
-                'activeForm' => $activeForm,
-                'activeFormKey' => $returnForm,
-                'companyId' => $companyId,
-                'branchId' => $branchId,
-                'companies' => $this->companiesForSettingsUser(),
-                'branches' => $this->branchesForSettingsCompany($companyId),
-                'canManage' => auth()->user()->can('settings.manage')
-                    || auth()->user()->can('update', new SettingsGovernance()),
-                'scopeQuery' => $scopeQuery,
-                'hubBackUrl' => route('admin.settings.show', ['section' => 'hub'] + $scopeQuery),
-                'statusMessage' => $statusMessage,
-            ])
+            ->view($view, $viewData)
             ->header('Turbo-Location', route('admin.settings.forms.index', $redirectParams));
     }
 }

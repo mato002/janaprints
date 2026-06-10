@@ -5,8 +5,15 @@
     </div>
 @endif
 
+@if (session('error'))
+    <div class="mb-4 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-erp-danger" role="alert" data-erp-flash-error>
+        <x-admin.icon name="exclamation" class="w-5 h-5 shrink-0" />
+        <span>{{ session('error') }}</span>
+    </div>
+@endif
+
 @if ($errors->any())
-    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-erp-danger" role="alert">
+    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-erp-danger" role="alert" data-erp-validation-errors>
         <p class="font-medium">{{ __('Please fix the following:') }}</p>
         <ul class="mt-2 list-disc space-y-1 pl-5">
             @foreach ($errors->all() as $error)

@@ -119,21 +119,13 @@ class StockIssueController extends Controller
      */
     protected function validateHeader(Request $request, int $companyId, int $branchId): array
     {
-        $rules = $this->formSettings->mergeValidationRules('stock_issue.create', [
+        return $this->formSettings->validateRequest($request, 'stock_issue.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
             'to_warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
             'destination' => [Rule::enum(StockIssueDestination::class)],
             'issue_date' => ['date'],
             'notes' => ['string'],
         ], $companyId, $branchId);
-
-        $rules['warehouse_id'] = ['required', Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)];
-        $rules['destination'] = ['required', Rule::enum(StockIssueDestination::class)];
-        $rules['issue_date'] = ['required', 'date'];
-        $rules['to_warehouse_id'] = ['nullable', Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)];
-        $rules['notes'] = ['nullable', 'string'];
-
-        return $request->validate($rules);
     }
 
     /**
@@ -203,45 +195,8 @@ class StockIssueController extends Controller
             'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
             'destinations' => StockIssueDestination::cases(),
-            'formFields' => $this->requiredSafeFields($this->formSettings->resolvedFields('stock_issue.create', $companyId, $branchId)),
+            'formFields' => $this->formSettings->resolvedFields('stock_issue.create', $companyId, $branchId),
         ];
-    }
-
-    protected function requiredSafeFields(array $fields): array
-    {
-        foreach ([
-            'warehouse_id' => __('Source Warehouse'),
-            'destination' => __('Reason / Destination'),
-            'issue_date' => __('Issue Date'),
-        ] as $field => $label) {
-            $fields[$field] = [
-                ...($fields[$field] ?? []),
-                'label' => $fields[$field]['label'] ?? $label,
-                'required' => true,
-                'visible' => true,
-                'hidden' => false,
-                'read_only' => false,
-            ];
-        }
-
-        foreach ([
-            'to_warehouse_id' => __('Destination Warehouse'),
-            'notes' => __('Notes'),
-            'inventory_item_id' => __('Item'),
-            'quantity' => __('Quantity'),
-            'unit_cost' => __('Unit Cost'),
-        ] as $field => $label) {
-            $fields[$field] = [
-                ...($fields[$field] ?? []),
-                'label' => $fields[$field]['label'] ?? $label,
-                'required' => false,
-                'visible' => true,
-                'hidden' => false,
-                'read_only' => false,
-            ];
-        }
-
-        return $fields;
     }
 
     protected function assertCanUseDestination(StockIssueDestination $destination): void

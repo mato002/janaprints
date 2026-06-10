@@ -1,10 +1,12 @@
-<x-admin-layout :title="__('New Ticket')" :breadcrumbs="[['label' => __('Support Tickets'), 'url' => route('admin.commercial.support-tickets.index')], ['label' => __('Create')]]">
-    <x-admin.page-header :title="__('New support ticket')" />
-    <x-admin.card>
-        <form method="POST" action="{{ route('admin.commercial.support-tickets.store') }}" class="space-y-4 p-4">
-            @csrf
-            @include('admin.commercial.support-tickets.form')
-            <button type="submit" class="erp-btn-primary">{{ __('Create ticket') }}</button>
-        </form>
-    </x-admin.card>
-</x-admin-layout>
+<x-admin.modal-form
+    :title="__('New support ticket')"
+    :breadcrumbs="[['label' => __('Support Tickets'), 'url' => route('admin.commercial.support-tickets.index')], ['label' => __('Create')]]"
+    maxWidth="3xl"
+>
+    <x-admin.form-shell :action="route('admin.commercial.support-tickets.store')">
+        @include('admin.commercial.support-tickets.form')
+        <x-admin.form-actions>
+            <x-primary-button>{{ __('Create ticket') }}</x-primary-button>
+        </x-admin.form-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

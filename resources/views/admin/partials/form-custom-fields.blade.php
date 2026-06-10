@@ -31,6 +31,7 @@
                             @required($required)
                             @readonly($readOnly)
                         >{{ $value }}</textarea>
+                        <x-admin.field-error :name="$fieldKey" />
                     </div>
                 @elseif (($field['type'] ?? 'text') === 'checkbox')
                     <div class="flex items-center gap-2">
@@ -50,6 +51,7 @@
                             @disabled($readOnly)
                         >
                         <x-input-label :for="$inputId" :value="__($field['label'])" class="!mb-0" />
+                        <x-admin.field-error :name="$fieldKey" />
                     </div>
                 @else
                     <div class="erp-form-field">
@@ -68,6 +70,7 @@
                             :required="$required"
                             :readonly="$readOnly"
                         />
+                        <x-admin.field-error :name="$fieldKey" />
                     </div>
                 @endif
             @endforeach

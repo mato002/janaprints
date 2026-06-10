@@ -191,7 +191,7 @@ class LeadController extends Controller
         $companyId = $lead?->company_id ?? tenant()->companyId() ?? auth()->user()->company_id;
         $branchId = $lead?->branch_id ?? tenant()->branchId();
 
-        $rules = $this->formSettings->mergeValidationRules('lead', [
+        return $this->formSettings->validateRequest($request, 'lead', [
             'lead_source_id' => [Rule::exists('lead_sources', 'id')->where('company_id', $companyId)],
             'assigned_to' => ['exists:users,id'],
             'customer_id' => [Rule::exists('customers', 'id')->where('company_id', $companyId)],
@@ -207,9 +207,7 @@ class LeadController extends Controller
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],
             'branch_id' => ['sometimes', 'exists:branches,id'],
-        ], $companyId, $branchId);
-
-        return $request->validate($rules);
+        ], $companyId, $branchId, serverProvidedFields: ['company_id', 'branch_id']);
     }
 
     protected function formMeta(?Lead $lead = null): array

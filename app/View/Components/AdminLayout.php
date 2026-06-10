@@ -15,18 +15,18 @@ class AdminLayout extends Component
         public bool $useWorkspaceNavigation = true,
         /** Full-height workspace pages (e.g. Shared Inbox) — minimal chrome, no breadcrumbs. */
         public bool $compactPage = false,
+        /** Compact module workspace desk — reduced chrome padding and header height. */
+        public bool $compactWorkspace = false,
         /** Embedded module workspace content — renders inside turbo-frame without app chrome. */
         public bool $embedded = false,
     ) {
-        if (! $embedded && request()->query('embedded') === '1') {
-            // Embedded pages are turbo-frame fragments; only strip the admin shell
-            // when the workspace frame is loading content (not on direct browser visits).
-            $this->embedded = request()->header('Turbo-Frame') === 'module-workspace-content';
-
-            if ($this->embedded) {
-                $this->useWorkspaceNavigation = false;
-                $this->compactPage = false;
-            }
+        if (
+            ! $embedded
+            && request()->header('Turbo-Frame') === 'module-workspace-content'
+        ) {
+            $this->embedded = true;
+            $this->useWorkspaceNavigation = false;
+            $this->compactPage = false;
         }
     }
 

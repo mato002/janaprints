@@ -13,6 +13,7 @@ use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\PlatformConfigurationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -28,14 +29,79 @@ class FormGovernanceTest extends TestCase
         $this->seed(PlatformConfigurationSeeder::class);
     }
 
+    public function test_company_wide_phone_visibility_persists_in_admin_rows(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('admin.settings.forms.update'), [
+                'company_id' => $company->id,
+                'branch_id' => '',
+                'return_form' => 'customer',
+                'forms' => [
+                    'customer' => [
+                        'is_active' => '1',
+                        'fields' => [
+                            'phone' => [
+                                'visibility' => 'hidden',
+                                'requirement' => 'optional',
+                                'read_only' => '0',
+                                'default_value' => '',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $rows = app(FormSettingsManager::class)->rows($company->id, null);
+        $customer = $rows->first(fn (array $form) => $form['form_key'] === 'customer');
+        $phone = collect($customer['fields'])->firstWhere('field_key', 'phone');
+
+        $this->assertTrue($phone['hidden']);
+        $this->assertFalse($phone['visible']);
+    }
+
+    public function test_global_search_form_controls_opens_workspace_desk(): void
+    {
+        $user = $this->userWithPermissions(['settings.view']);
+        $this->actingAs($user);
+
+        $match = collect(app(\App\Support\Discovery\FeatureRegistry::class)->search('form controls'))
+            ->first(fn (array $entry) => $entry['label'] === 'Form Controls');
+
+        $this->assertNotNull($match);
+        $this->assertStringContainsString('/admin/workspaces/administration/configuration', $match['url']);
+        $this->assertStringContainsString('tab=form-controls', $match['url']);
+
+        $this->withHeader('Turbo-Frame', 'erp-main')
+            ->get($match['url'])
+            ->assertOk()
+            ->assertSee(__('Form Controls'))
+            ->assertSee('id="module-workspace-content"', false);
+    }
+
+    public function test_embedded_forms_index_redirects_to_workspace_desk(): void
+    {
+        $user = $this->userWithPermissions(['settings.view']);
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.settings.forms.index', ['embedded' => '1', 'q' => 'form control']));
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('/admin/workspaces/administration/configuration', $response->headers->get('Location'));
+        $this->assertStringContainsString('tab=form-controls', $response->headers->get('Location'));
+        $this->assertStringContainsString('q=form', $response->headers->get('Location'));
+    }
+
     public function test_forms_admin_page_is_accessible(): void
     {
         $user = $this->userWithPermissions(['settings.view']);
 
         $this->actingAs($user)
-            ->get(route('admin.settings.forms.index'))
+            ->getEmbeddedFormsIndex()
             ->assertOk()
-            ->assertSee(__('Forms Control Center'))
             ->assertSee(__('Total Forms'))
             ->assertSee(__('Configuration Health'))
             ->assertSee(__('Recently Modified'))
@@ -45,7 +111,7 @@ class FormGovernanceTest extends TestCase
             ->assertSee(__('Customers'));
 
         $this->actingAs($user)
-            ->get(route('admin.settings.forms.index', ['form' => 'customer']))
+            ->getEmbeddedFormsIndex(['form' => 'customer'])
             ->assertOk()
             ->assertSee(__('KRA PIN'));
     }
@@ -66,7 +132,7 @@ class FormGovernanceTest extends TestCase
         $user = $this->userWithPermissions(['settings.view']);
 
         $this->actingAs($user)
-            ->get(route('admin.settings.forms.index', ['form' => 'customer']))
+            ->getEmbeddedFormsIndex(['form' => 'customer'])
             ->assertOk()
             ->assertSee(__('View only'))
             ->assertDontSee(__('Save form settings'));
@@ -78,7 +144,7 @@ class FormGovernanceTest extends TestCase
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
 
         $this->actingAs($user)
-            ->get(route('admin.settings.forms.index', ['form' => 'customer', 'company_id' => $company->id]))
+            ->getEmbeddedFormsIndex(['form' => 'customer', 'company_id' => $company->id])
             ->assertOk()
             ->assertSee(__('Add custom field'))
             ->assertSee('id="add-custom-field"', false);
@@ -136,7 +202,8 @@ class FormGovernanceTest extends TestCase
                 'company_id' => $company->id,
                 'branch_id' => $branch->id,
                 'form' => 'customer',
-            ]));
+            ]))
+            ->assertSessionHas('error', __('Unable to save form settings. Please review the highlighted fields.'));
     }
 
     public function test_form_settings_update_returns_turbo_frame_response(): void
@@ -171,13 +238,232 @@ class FormGovernanceTest extends TestCase
             ], ['Turbo-Frame' => 'erp-main'])
             ->assertOk()
             ->assertSee('data-erp-flash-status', false)
-            ->assertSee(__('Form settings updated.'))
+            ->assertSee(__(':form form settings saved successfully.', ['form' => __('Customers')]))
             ->assertSee('id="erp-main"', false)
             ->assertSee(__('KRA PIN'));
 
         $forms = app(FormSettingsService::class);
 
         $this->assertFalse($forms->isVisible('customer', 'email', $company->id, $branch->id));
+    }
+
+    public function test_embedded_form_settings_update_returns_module_workspace_frame(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('admin.settings.forms.update'), [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'return_form' => 'lead',
+                '_turbo_frame' => '1',
+                '_embedded_workspace' => '1',
+                'forms' => [
+                    'lead' => [
+                        'is_active' => '1',
+                        'fields' => [
+                            'company_name' => [
+                                'visibility' => 'hidden',
+                                'requirement' => 'optional',
+                                'read_only' => '0',
+                                'default_value' => '',
+                            ],
+                        ],
+                    ],
+                ],
+            ], ['Turbo-Frame' => 'module-workspace-content'])
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false)
+            ->assertSee('data-erp-flash-status', false)
+            ->assertSee('value="hidden" selected', false);
+
+        $forms = app(FormSettingsService::class);
+
+        $this->assertFalse($forms->isVisible('lead', 'company_name', $company->id, $branch->id));
+
+        $rows = app(FormSettingsManager::class)->rows($company->id, $branch->id);
+        $lead = $rows->first(fn (array $form) => $form['form_key'] === 'lead');
+        $companyName = collect($lead['fields'])->firstWhere('field_key', 'company_name');
+
+        $this->assertFalse($companyName['visible']);
+        $this->assertTrue($companyName['hidden']);
+    }
+
+    public function test_lead_visibility_change_persists_via_http_update(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('admin.settings.forms.update'), [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'return_form' => 'lead',
+                'forms' => [
+                    'lead' => [
+                        'is_active' => '1',
+                        'fields' => [
+                            'notes' => [
+                                'visibility' => 'hidden',
+                                'requirement' => 'optional',
+                                'read_only' => '0',
+                                'default_value' => '',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.forms.index', [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'lead',
+            ]));
+
+        $forms = app(FormSettingsService::class);
+
+        $this->assertFalse($forms->isVisible('lead', 'notes', $company->id, $branch->id));
+
+        $rows = app(FormSettingsManager::class)->rows($company->id, $branch->id);
+        $lead = $rows->first(fn (array $form) => $form['form_key'] === 'lead');
+        $notes = collect($lead['fields'])->firstWhere('field_key', 'notes');
+
+        $this->assertFalse($notes['visible']);
+        $this->assertTrue($notes['hidden']);
+
+        $this->actingAs($user)
+            ->getEmbeddedFormsIndex([
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'lead',
+            ])
+            ->assertOk()
+            ->assertSee('name="forms[lead][fields][notes][visibility]"', false)
+            ->assertSee('value="hidden" selected', false);
+    }
+
+    public function test_resolved_field_cache_clears_after_update(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $this->assertTrue($forms->isVisible('lead', 'notes', $company->id));
+
+        app(FormSettingsManager::class)->save($company->id, null, [
+            'lead' => [
+                'is_active' => '1',
+                'fields' => [
+                    'notes' => [
+                        'visibility' => 'hidden',
+                        'requirement' => 'optional',
+                        'read_only' => '0',
+                        'default_value' => '',
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->assertFalse($forms->isVisible('lead', 'notes', $company->id));
+    }
+
+    public function test_branch_phone_visibility_save_redirects_back_to_active_form(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $this->actingAs($user)
+            ->put(route('admin.settings.forms.update', [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'customer',
+            ]), [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'return_form' => 'customer',
+                'forms' => [
+                    'customer' => [
+                        'is_active' => '1',
+                        'fields' => [
+                            'phone' => [
+                                'visibility' => 'visible',
+                                'requirement' => 'optional',
+                                'read_only' => '0',
+                                'default_value' => '',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.forms.index', [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'customer',
+            ]))
+            ->assertSessionHas('status', __(':form form settings saved successfully.', ['form' => __('Customers')]));
+
+        $forms = app(FormSettingsService::class);
+
+        $this->assertTrue($forms->isVisible('customer', 'phone', $company->id, $branch->id));
+
+        $this->actingAs($user)
+            ->getEmbeddedFormsIndex([
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'form' => 'customer',
+            ])
+            ->assertOk()
+            ->assertSee(__('Customers'))
+            ->assertSee('name="forms[customer][fields][phone][visibility]"', false)
+            ->assertSee('value="visible" selected', false);
+    }
+
+    public function test_hidden_optional_field_can_be_made_visible_and_persists(): void
+    {
+        $user = $this->userWithPermissions(['settings.view', 'settings.manage']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $this->assertFalse($forms->isVisible('customer', 'website', $company->id));
+
+        $this->actingAs($user)
+            ->put(route('admin.settings.forms.update'), [
+                'company_id' => $company->id,
+                'return_form' => 'customer',
+                'forms' => [
+                    'customer' => [
+                        'is_active' => '1',
+                        'fields' => [
+                            'website' => [
+                                'visibility' => 'visible',
+                                'requirement' => 'optional',
+                                'read_only' => '0',
+                                'default_value' => '',
+                            ],
+                        ],
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('admin.settings.forms.index', [
+                'company_id' => $company->id,
+                'branch_id' => $user->default_branch_id,
+                'form' => 'customer',
+            ]))
+            ->assertSessionHas('status', __(':form form settings saved successfully.', ['form' => __('Customers')]));
+
+        $this->assertTrue($forms->isVisible('customer', 'website', $company->id));
+
+        $this->actingAs($user)
+            ->getEmbeddedFormsIndex([
+                'company_id' => $company->id,
+                'form' => 'customer',
+            ])
+            ->assertOk()
+            ->assertSee(__('Customers'))
+            ->assertSee('name="forms[customer][fields][website][visibility]"', false)
+            ->assertSee('value="visible" selected', false);
     }
 
     public function test_company_admin_can_save_form_field_settings(): void
@@ -188,6 +474,7 @@ class FormGovernanceTest extends TestCase
         $this->actingAs($user)
             ->put(route('admin.settings.forms.update'), [
                 'company_id' => $company->id,
+                'return_form' => 'customer',
                 'forms' => [
                     'customer' => [
                         'is_active' => '1',
@@ -206,7 +493,8 @@ class FormGovernanceTest extends TestCase
                 'company_id' => $company->id,
                 'branch_id' => $user->default_branch_id,
                 'form' => 'customer',
-            ]));
+            ]))
+            ->assertSessionHas('status', __(':form form settings saved successfully.', ['form' => __('Customers')]));
 
         $forms = app(FormSettingsService::class);
 
@@ -250,6 +538,31 @@ class FormGovernanceTest extends TestCase
 
         $this->assertFalse($forms->isVisible('customer', 'website', $company->id, $branch->id));
         $this->assertTrue($forms->fieldConfig('customer', 'website', $company->id, $branch->id)['inherits_company']);
+    }
+
+    public function test_apply_defaults_normalizes_empty_optional_number_fields(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $customer = $forms->applyDefaults('customer', [
+            'company_name' => 'Test Co',
+            'customer_type' => 'corporate',
+            'status' => 'active',
+            'credit_limit' => null,
+        ], $company->id);
+
+        $this->assertSame(0, $customer['credit_limit']);
+
+        $lead = $forms->applyDefaults('lead', [
+            'lead_name' => 'Test Lead',
+            'status' => 'open',
+            'estimated_value' => '',
+            'probability' => null,
+        ], $company->id);
+
+        $this->assertSame(0, $lead['estimated_value']);
+        $this->assertSame(0, $lead['probability']);
     }
 
     public function test_apply_defaults_fills_configured_values(): void
@@ -414,6 +727,68 @@ class FormGovernanceTest extends TestCase
             ->first();
 
         $this->assertNull($branchForm);
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    protected function getEmbeddedFormsIndex(array $params = [])
+    {
+        $response = $this->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.settings.forms.index', ['embedded' => '1'] + $params));
+
+        $this->withoutHeader('Turbo-Frame');
+
+        return $response;
+    }
+
+    public function test_warehouse_visible_fields_are_not_prohibited_and_hidden_branch_is_server_provided(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $this->assertFalse($forms->isVisible('warehouse.create', 'branch_id', $company->id, $branch->id));
+        $this->assertTrue($forms->isVisible('warehouse.create', 'location', $company->id, $branch->id));
+
+        $rules = $forms->mergeValidationRules('warehouse.create', [
+            'branch_id' => ['exists:branches,id'],
+            'location' => ['string', 'max:255'],
+            'name' => ['string', 'max:255'],
+            'code' => ['string', 'max:50'],
+        ], $company->id, $branch->id, serverProvidedFields: ['branch_id']);
+
+        $this->assertArrayNotHasKey('branch_id', $rules);
+        $this->assertNotSame(['prohibited'], $rules['location']);
+    }
+
+    public function test_notes_alias_resolves_description_field_config(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $description = $forms->fieldConfig('warehouse.create', 'description', $company->id);
+        $notes = $forms->fieldConfig('warehouse.create', 'notes', $company->id);
+
+        $this->assertTrue($notes['visible']);
+        $this->assertSame($description['visible'], $notes['visible']);
+        $this->assertSame($description['required'], $notes['required']);
+    }
+
+    public function test_without_hidden_inputs_strips_hidden_request_fields(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $request = Request::create('/', 'POST', [
+            'company_name' => 'Acme',
+            'website' => 'https://acme.test',
+        ]);
+
+        $forms->withoutHiddenInputs($request, 'customer', $company->id);
+
+        $this->assertSame('Acme', $request->input('company_name'));
+        $this->assertNull($request->input('website'));
     }
 
     /**

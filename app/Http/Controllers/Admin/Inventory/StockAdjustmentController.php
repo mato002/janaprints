@@ -53,11 +53,12 @@ class StockAdjustmentController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
-        $header = $request->validate($this->formSettings->mergeValidationRules('stock_adjustment.create', [
+        $header = $this->formSettings->validateRequest($request, 'stock_adjustment.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
             'adjustment_date' => ['date'],
             'reason' => ['string', 'max:2000'],
-        ], $companyId, $branchId));
+            'notes' => ['string'],
+        ], $companyId, $branchId);
         [$header, $customData] = $this->partitionCustomFields('stock_adjustment.create', $header, $companyId, $branchId);
 
         $lines = $request->validate([

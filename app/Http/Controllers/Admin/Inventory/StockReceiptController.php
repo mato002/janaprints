@@ -101,12 +101,12 @@ class StockReceiptController extends Controller
      */
     protected function validateHeader(Request $request, int $companyId, int $branchId): array
     {
-        return $request->validate($this->formSettings->mergeValidationRules('stock_receipt.create', [
+        return $this->formSettings->validateRequest($request, 'stock_receipt.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
             'source' => [Rule::enum(StockReceiptSource::class)],
             'receipt_date' => ['date'],
             'notes' => ['string'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId);
     }
 
     /**

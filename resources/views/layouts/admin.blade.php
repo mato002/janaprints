@@ -24,13 +24,14 @@
     <script>
         window.__erpRoutes = @json($navRouteUrls ?? []);
         window.__erpModalForm = @json($erpModalFormConfig);
+        window.__erpFeatureDiscovery = @json(['searchUrl' => $featureDiscoverySearchUrl ?? '']);
     </script>
 </head>
 <body
     @class([
         'font-sans antialiased bg-erp-page text-erp-primary overflow-hidden',
     ])
-    x-data="erpShell(@js($navSearchIndex ?? []), @js($featureDiscoveryIndex ?? []))"
+    x-data="erpShell()"
     @keydown.escape.window="if (paletteOpen) { closePalette(); } else { closeMobileNav(); }"
     @close-nav.window="closeMobileNav()"
 >
@@ -98,10 +99,11 @@
             <main @class([
                 'flex min-h-0 flex-1 flex-col',
                 'overflow-hidden p-2' => $compactPage,
-                'p-4 sm:p-6 lg:p-8' => ! $compactPage,
+                'p-3 sm:p-4' => ! $compactPage && $compactWorkspace,
+                'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
             ])>
                 @unless ($compactPage)
-                    @include('admin.partials.breadcrumbs')
+                    @include('admin.partials.breadcrumbs', ['compact' => $compactWorkspace])
                 @endunless
                 @if (! $compactPage)
                     @include('admin.partials.alerts')

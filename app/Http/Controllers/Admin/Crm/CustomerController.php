@@ -217,7 +217,7 @@ class CustomerController extends Controller
         $companyId ??= $customer?->company_id ?? tenant()->companyId();
         $branchId ??= $customer?->branch_id ?? tenant()->branchId();
 
-        $rules = $this->formSettings->mergeValidationRules('customer', [
+        return $this->formSettings->validateRequest($request, 'customer', [
             'customer_type' => [Rule::enum(CustomerType::class)],
             'company_name' => ['string', 'max:255'],
             'contact_person' => ['string', 'max:255'],
@@ -237,9 +237,7 @@ class CustomerController extends Controller
             'segment_ids.*' => ['exists:customer_segments,id'],
             'company_id' => ['sometimes', 'exists:companies,id'],
             'branch_id' => ['sometimes', 'exists:branches,id'],
-        ], $companyId, $branchId);
-
-        return $request->validate($rules);
+        ], $companyId, $branchId, serverProvidedFields: ['company_id', 'branch_id']);
     }
 
     protected function formMeta(?Customer $customer = null): array

@@ -1,5 +1,5 @@
-<x-admin-layout :title="$shell['title']">
-    <x-admin.module-shell
+<x-admin-layout :title="$shell['title']" :compact-workspace="true">
+    <x-admin.workspace-shell
         :title="$shell['title']"
         :description="$shell['description']"
         :primary-workspaces="$shell['primary_workspaces']"
@@ -9,9 +9,9 @@
         :content-url="$shell['content_url']"
     >
         <x-slot:search>
-            <x-admin.module-workspace-search
+            <x-admin.workspace-search-bar
                 :module-title="$shell['title']"
-                :feature-index="$shell['feature_index'] ?? []"
+                :module-key="$moduleKey"
             />
         </x-slot:search>
         @if (empty($shell['content_url']) && empty($shell['secondary_workspaces']))
@@ -27,5 +27,5 @@
                 :description="$shell['active_secondary']['description'] ?? __('This workspace is not available yet.')"
             />
         @endif
-    </x-admin.module-shell>
+    </x-admin.workspace-shell>
 </x-admin-layout>

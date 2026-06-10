@@ -1,14 +1,18 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $registry = app(\App\Support\MasterData\MasterDataRegistry::class);
+    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout
     :title="__('Master Data')"
-    :breadcrumbs="[
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
-        ['label' => __('Configuration'), 'url' => route('admin.workspaces.administration.section', ['section' => 'configuration'])],
+        ['label' => __('Configuration')],
         ['label' => __('Master Data')],
     ]"
+    :use-workspace-navigation="! $embedded"
 >
     <x-admin.page-header
         :title="__('Master Data Center')"

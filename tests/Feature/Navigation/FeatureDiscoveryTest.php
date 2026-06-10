@@ -37,6 +37,9 @@ class FeatureDiscoveryTest extends TestCase
         $this->assertStringContainsString('Configuration', $formControls['path']);
         $this->assertSame('admin.settings.forms.index', $formControls['route']);
         $this->assertNotEmpty($formControls['url']);
+        $this->assertStringContainsString('/admin/workspaces/administration/configuration', $formControls['url']);
+        $this->assertStringContainsString('tab=form-controls', $formControls['url']);
+        $this->assertSame('erp-main', $formControls['turbo_frame']);
         $this->assertContains('form', $formControls['keywords']);
     }
 
@@ -71,6 +74,30 @@ class FeatureDiscoveryTest extends TestCase
         );
     }
 
+    public function test_feature_discovery_search_endpoint_returns_matches(): void
+    {
+        $this->actingAs($this->companyAdmin());
+
+        $response = $this->getJson(route('admin.feature-discovery.search', ['q' => 'form controls']));
+
+        $response->assertOk();
+        $response->assertJsonStructure(['results' => [['id', 'label', 'path', 'url']]]);
+        $this->assertTrue(
+            collect($response->json('results'))->contains(fn (array $entry) => $entry['label'] === 'Form Controls'),
+        );
+    }
+
+    public function test_module_desk_does_not_inline_feature_index(): void
+    {
+        $response = $this->actingAs($this->companyAdmin())
+            ->get(route('admin.workspaces.administration.section', ['section' => 'configuration']));
+
+        $response->assertOk();
+        $response->assertSee('module-workspace-search', false);
+        $response->assertDontSee('"search_text"', false);
+        $response->assertDontSee('"path_segments"', false);
+    }
+
     public function test_command_palette_is_rendered_in_admin_layout(): void
     {
         $response = $this->actingAs($this->companyAdmin())->get(route('admin.dashboard'));
@@ -78,7 +105,7 @@ class FeatureDiscoveryTest extends TestCase
         $response->assertOk();
         $response->assertSee('id="erp-command-palette-input"', false);
         $response->assertSee(__('Search customers, jobs, reports, settings, features…'), false);
-        $response->assertSee('Form Controls', false);
+        $response->assertDontSee('"search_text"', false);
     }
 
     public function test_module_desk_renders_workspace_search(): void

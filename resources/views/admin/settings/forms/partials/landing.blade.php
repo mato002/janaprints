@@ -1,7 +1,10 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $summary = $controlCenter['summary'];
     $health = $controlCenter['health'];
     $auditRoute = Route::has('admin.security.audit.index') ? route('admin.security.audit.index') : null;
+    $turboFrame = WorkspaceEmbed::turboFrame();
 @endphp
 
 <div
@@ -226,7 +229,8 @@
                                 @foreach ($controlCenter['recently_modified'] as $item)
                                     <li>
                                         <a
-                                            href="{{ $item['href'] }}"
+                                            href="{{ WorkspaceEmbed::url($item['href']) }}"
+                                            data-turbo-frame="{{ $turboFrame }}"
                                             data-turbo-action="advance"
                                             class="group block rounded-lg border border-transparent px-2 py-1.5 transition-colors hover:border-erp-border hover:bg-erp-page/50"
                                         >

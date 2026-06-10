@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\FeatureDiscoveryController;
 use App\Http\Controllers\Admin\JobTitleController;
 use App\Http\Controllers\Admin\Governance\ApprovalChainsController;
 use App\Http\Controllers\Admin\Operations\DataRetentionController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Admin\Operations\BackupManagementController;
 use App\Http\Controllers\Admin\Operations\AuditLogsController;
 use App\Http\Controllers\Admin\Operations\BackgroundJobsController;
 use App\Http\Controllers\Admin\Operations\SystemHealthController;
+use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
 use App\Http\Controllers\Admin\UserController;
@@ -34,6 +36,9 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
     ->name('admin.')
     ->group(function () {
         Route::get('/', DashboardController::class)->name('dashboard');
+
+        Route::get('feature-discovery/search', [FeatureDiscoveryController::class, 'search'])
+            ->name('feature-discovery.search');
 
         Route::get('workspaces/accounting', [AccountingWorkspaceController::class, 'hub'])
             ->name('workspaces.accounting');

@@ -1,3 +1,8 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+@endphp
+
+@if (! WorkspaceEmbed::inWorkspaceContext())
 <nav class="erp-card mb-4 flex flex-wrap gap-2 p-2">
     @foreach ([
         ['route' => 'admin.communications.whatsapp.inbox', 'label' => __('Inbox')],
@@ -19,3 +24,4 @@
         @endif
     @endforeach
 </nav>
+@endif

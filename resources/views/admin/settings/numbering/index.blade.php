@@ -1,24 +1,30 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
     ]);
     $hubBackUrl = route('admin.settings.show', ['section' => 'hub'] + $scopeQuery);
+    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout
-    :title="__('Numbering')"
-    :breadcrumbs="[
+    :title="__('Number Series')"
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
-        ['label' => __('Settings'), 'url' => $hubBackUrl],
-        ['label' => __('Numbering')],
+        ['label' => __('Configuration')],
+        ['label' => __('Number Series')],
     ]"
+    :use-workspace-navigation="! $embedded"
 >
-    @include('admin.settings.partials.hub-toolbar', [
-        'title' => __('Document Numbering'),
-        'description' => __('Configure prefixes, padding, and next numbers for each document type.'),
-        'backUrl' => $hubBackUrl,
-    ])
+    @unless ($embedded)
+        @include('admin.settings.partials.hub-toolbar', [
+            'title' => __('Document Numbering'),
+            'description' => __('Configure prefixes, padding, and next numbers for each document type.'),
+            'backUrl' => $hubBackUrl,
+        ])
+    @endunless
 
     @include('admin.settings.partials.scope-selector', [
         'action' => route('admin.settings.numbering.index'),

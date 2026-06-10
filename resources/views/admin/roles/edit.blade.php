@@ -1,25 +1,22 @@
-<x-admin-layout
+<x-admin.modal-form
     :title="__('Edit role')"
     :breadcrumbs="[
-        ['label' => __('Administration')],
-        ['label' => __('Access Control'), 'url' => route('admin.access-control.index')],
         ['label' => __('Roles'), 'url' => route('admin.access-control.roles')],
-        ['label' => $role->name, 'url' => route('admin.roles.show', $role)],
-        ['label' => __('Rename')],
+        ['label' => $role->name],
     ]"
+    maxWidth="lg"
 >
-    <x-admin.card class="max-w-md">
-        <form method="POST" action="{{ route('admin.roles.update', $role) }}">
-            @csrf @method('PUT')
-            <x-input-label for="name" :value="__('Role name')" />
-            <x-text-input id="name" name="name" class="mt-1 block w-full mb-4" :value="old('name', $role->name)" required />
+    <x-admin.form-shell :action="route('admin.roles.update', $role)" method="PUT">
+        <x-admin.input
+            name="name"
+            :label="__('Role name')"
+            :value="old('name', $role->name)"
+            :required="true"
+            :colSpan="2"
+        />
+
+        <x-admin.form-actions>
             <x-primary-button>{{ __('Update') }}</x-primary-button>
-        </form>
-        @can('delete', $role)
-            <form method="POST" action="{{ route('admin.roles.destroy', $role) }}" class="mt-6 border-t border-erp-border pt-6" onsubmit="return confirm('{{ __('Delete this role?') }}')">
-                @csrf @method('DELETE')
-                <button type="submit" class="text-sm font-medium text-red-600 hover:underline">{{ __('Delete role') }}</button>
-            </form>
-        @endcan
-    </x-admin.card>
-</x-admin-layout>
+        </x-admin.form-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

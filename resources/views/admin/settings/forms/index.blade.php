@@ -1,4 +1,6 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
@@ -8,16 +10,17 @@
     $activeForm = $activeFormKey
         ? $forms->first(fn (array $form) => $form['form_key'] === $activeFormKey)
         : null;
+    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout
-    :title="$activeForm ? $activeForm['label'] : __('Forms')"
-    :breadcrumbs="[
+    :title="$activeForm ? $activeForm['label'] : __('Form Controls')"
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
-        ['label' => __('Settings'), 'url' => $hubBackUrl],
-        ['label' => __('Forms'), 'url' => route('admin.settings.forms.index', $scopeQuery)],
+        ['label' => __('Configuration')],
         ...($activeForm ? [['label' => $activeForm['label']]] : []),
     ]"
+    :use-workspace-navigation="! $embedded"
 >
     @if ($activeForm)
         @include('admin.settings.partials.scope-selector', [
@@ -27,7 +30,10 @@
             'companies' => $companies,
             'branches' => $branches,
             'compact' => true,
+            'activeFormKey' => $activeFormKey,
         ])
+
+        @include('admin.partials.alerts')
 
         @include('admin.settings.forms.partials.workspace', [
             'form' => $activeForm,
@@ -36,11 +42,13 @@
             'branchId' => $branchId,
         ])
     @else
-        @include('admin.settings.partials.hub-toolbar', [
-            'title' => __('Forms Control Center'),
-            'description' => __('Govern field visibility, requirements, read-only state, and defaults across every module form.'),
-            'backUrl' => $hubBackUrl,
-        ])
+        @unless ($embedded)
+            @include('admin.settings.partials.hub-toolbar', [
+                'title' => __('Forms Control Center'),
+                'description' => __('Govern field visibility, requirements, read-only state, and defaults across every module form.'),
+                'backUrl' => $hubBackUrl,
+            ])
+        @endunless
 
         @include('admin.settings.partials.scope-selector', [
             'action' => route('admin.settings.forms.index'),

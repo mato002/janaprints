@@ -72,7 +72,8 @@
         </div>
 
         <div x-show="searchOpen && query.trim()" x-cloak class="max-h-48 overflow-y-auto rounded-lg border border-white/10 bg-erp-primary/90 shadow-lg">
-            <template x-for="hit in searchHits" :key="hit.path">
+            <p x-show="sidebarLoading" class="px-3 py-3 text-center text-xs text-slate-400">{{ __('Searching…') }}</p>
+            <template x-for="hit in searchHits" :key="hit.id">
                 <a
                     x-show="! hit.coming_soon"
                     :href="hit.url"

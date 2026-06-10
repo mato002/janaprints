@@ -31,13 +31,13 @@ class AccountingWorkspaceEmbeddedTest extends TestCase
             ->assertSee(route('admin.accounting.dashboard', ['embedded' => '1']), false);
     }
 
-    public function test_accounting_dashboard_full_page_embedded_query_redirects_to_shell_url(): void
+    public function test_accounting_dashboard_full_page_embedded_query_renders_without_redirect(): void
     {
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
             ->get(route('admin.accounting.dashboard', ['embedded' => '1']))
-            ->assertRedirect(route('admin.accounting.dashboard'));
+            ->assertOk();
     }
 
     public function test_accounting_dashboard_embedded_response_includes_workspace_frame_for_turbo_frame_request(): void

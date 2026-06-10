@@ -63,12 +63,12 @@ class StoreTransferController extends Controller
         abort_unless(auth()->user()?->can('inventory.transfer'), 403);
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
-        $header = $request->validate($this->formSettings->mergeValidationRules('store_transfer.create', [
+        $header = $this->formSettings->validateRequest($request, 'store_transfer.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
             'to_warehouse_id' => ['different:warehouse_id', Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
             'issue_date' => ['date'],
             'notes' => ['string'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId);
         [$header, $customData] = $this->partitionCustomFields('store_transfer.create', $header, $companyId, $branchId);
 
         $lines = $this->validateLines($request, $companyId, $branchId);

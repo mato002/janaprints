@@ -53,14 +53,14 @@ class StockCountController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
-        $header = $request->validate($this->formSettings->mergeValidationRules('stock_count.create', [
+        $header = $this->formSettings->validateRequest($request, 'stock_count.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
-            'count_type' => ['required', Rule::enum(StockCountType::class)],
-            'count_date' => ['required', 'date'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-            'item_ids' => ['nullable', 'array'],
+            'count_type' => [Rule::enum(StockCountType::class)],
+            'count_date' => ['date'],
+            'notes' => ['string', 'max:2000'],
+            'item_ids' => ['array'],
             'item_ids.*' => [Rule::exists('inventory_items', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId);
         [$header, $customData] = $this->partitionCustomFields('stock_count.create', $header, $companyId, $branchId);
 
         $count = StockCountService::create(

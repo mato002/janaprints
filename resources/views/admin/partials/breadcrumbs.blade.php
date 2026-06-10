@@ -1,9 +1,13 @@
 @if (! empty($workspaceNavigation))
-    @include('admin.partials.workspace-back')
+    @include('admin.partials.workspace-back', ['compact' => ! empty($compact)])
 @endif
 
 @if (! empty($breadcrumbs))
-    <nav class="mb-4 text-sm text-slate-500" aria-label="{{ __('Breadcrumb') }}">
+    <nav @class([
+        'text-slate-500',
+        'mb-2 text-xs' => ! empty($compact),
+        'mb-4 text-sm' => empty($compact),
+    ]) aria-label="{{ __('Breadcrumb') }}">
         <ol class="flex flex-wrap items-center gap-1.5">
             <li>
                 <a href="{{ route('admin.dashboard') }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="font-medium transition-colors hover:text-erp-accent">{{ __('Dashboard') }}</a>

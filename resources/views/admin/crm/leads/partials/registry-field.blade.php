@@ -34,6 +34,7 @@
                     <option value="{{ $source->id }}" @selected((string) $value === (string) $source->id)>{{ $source->name }}</option>
                 @endforeach
             </select>
+            <x-admin.field-error :name="$fieldKey" />
             @break
 
         @case('stage_id')
@@ -49,6 +50,7 @@
                     <option value="{{ $stage->id }}" @selected((string) $value === (string) $stage->id)>{{ $stage->name }}</option>
                 @endforeach
             </select>
+            <x-admin.field-error :name="$fieldKey" />
             @break
 
         @case('status')
@@ -64,6 +66,7 @@
                     <option value="{{ $status->value }}" @selected((string) $value === (string) $status->value)>{{ $status->name }}</option>
                 @endforeach
             </select>
+            <x-admin.field-error :name="$fieldKey" />
             @break
 
         @case('assigned_to')
@@ -80,6 +83,7 @@
                     <option value="{{ $user->id }}" @selected((string) $value === (string) $user->id)>{{ $user->name }}</option>
                 @endforeach
             </select>
+            <x-admin.field-error :name="$fieldKey" />
             @break
 
         @case('notes')
@@ -92,6 +96,7 @@
                 @required($required)
                 @readonly($readOnly)
             >{{ $value }}</textarea>
+            <x-admin.field-error :name="$fieldKey" />
             @break
 
         @default
@@ -138,5 +143,6 @@
                     :readonly="$readOnly"
                 />
             @endif
+            <x-admin.field-error :name="$fieldKey" />
     @endswitch
 </div>

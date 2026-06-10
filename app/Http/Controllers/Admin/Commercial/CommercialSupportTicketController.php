@@ -177,6 +177,8 @@ class CommercialSupportTicketController extends Controller
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
 
+        $this->formSettings->withoutHiddenInputs($request, 'commercial_support_ticket.create', $companyId, $branchId);
+
         $rules = $this->formSettings->mergeValidationRules('commercial_support_ticket.create', [
             'customer_id' => ['exists:customers,id'],
             'subject' => ['string', 'max:255'],

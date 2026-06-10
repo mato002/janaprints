@@ -44,12 +44,12 @@ class WarehouseManagerController extends Controller
     {
         $this->authorize('manage', $warehouse);
 
-        $validated = $request->validate($this->formSettings->mergeValidationRules('warehouse.manager_assignment', [
+        $validated = $this->formSettings->validateRequest($request, 'warehouse.manager_assignment', [
             'manager_ids' => ['array'],
             'manager_ids.*' => [
                 Rule::exists('users', 'id')->where('company_id', $warehouse->company_id),
             ],
-        ], $warehouse->company_id, $warehouse->branch_id));
+        ], $warehouse->company_id, $warehouse->branch_id);
 
         $sync = collect($validated['manager_ids'] ?? [])
             ->mapWithKeys(fn ($userId) => [(int) $userId => ['is_manager' => true]])

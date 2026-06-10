@@ -1,4 +1,6 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
@@ -8,16 +10,17 @@
     $activeRule = $activeRuleKey
         ? $rows->first(fn (array $row) => $row['rule_type'] === $activeRuleKey)
         : null;
+    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout
-    :title="$activeRule ? $activeRule['label'] : __('Approvals')"
-    :breadcrumbs="[
+    :title="$activeRule ? $activeRule['label'] : __('Approval Rules')"
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
-        ['label' => __('Settings'), 'url' => $hubBackUrl],
-        ['label' => __('Approvals'), 'url' => route('admin.settings.approvals.index', $scopeQuery)],
+        ['label' => __('Workflow & Governance')],
         ...($activeRule ? [['label' => $activeRule['label']]] : []),
     ]"
+    :use-workspace-navigation="! $embedded"
 >
     @if ($activeRule)
         @include('admin.settings.partials.scope-selector', [
@@ -37,11 +40,13 @@
             'permissions' => $permissions,
         ])
     @else
-        @include('admin.settings.partials.hub-toolbar', [
-            'title' => __('Approval Rules'),
-            'description' => __('Choose a rule type to configure amount and discount thresholds, approver roles, and permissions.'),
-            'backUrl' => $hubBackUrl,
-        ])
+        @unless ($embedded)
+            @include('admin.settings.partials.hub-toolbar', [
+                'title' => __('Approval Rules'),
+                'description' => __('Choose a rule type to configure amount and discount thresholds, approver roles, and permissions.'),
+                'backUrl' => $hubBackUrl,
+            ])
+        @endunless
 
         @include('admin.settings.partials.scope-selector', [
             'action' => route('admin.settings.approvals.index'),

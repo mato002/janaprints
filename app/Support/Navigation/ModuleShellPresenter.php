@@ -188,6 +188,84 @@ class ModuleShellPresenter
     }
 
     /**
+     * Resolve the module desk URL for a feature route registered in a workspace catalog.
+     *
+     * @param  array<string, mixed>  $routeParams
+     */
+    public function deskUrlForFeatureRoute(string $routeName, array $routeParams = []): ?string
+    {
+        foreach ($this->moduleDefinitions() as $moduleKey => $module) {
+            $catalog = $this->loadCatalog($module);
+
+            if ($catalog === null) {
+                continue;
+            }
+
+            foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
+                foreach ($section['groups'] ?? [] as $group) {
+                    foreach ($group['items'] ?? [] as $item) {
+                        if (! $this->featureRouteMatchesItem($routeName, $routeParams, $item)) {
+                            continue;
+                        }
+
+                        return $this->buildDeskUrl(
+                            $moduleKey,
+                            $module,
+                            $sectionKey,
+                            $this->itemKey($item),
+                        );
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $module
+     */
+    public function buildDeskUrl(string $moduleKey, array $module, string $sectionKey, ?string $tabKey = null): ?string
+    {
+        $sectionRoute = $module['section_route'] ?? null;
+
+        if (! $sectionRoute || ! Route::has($sectionRoute)) {
+            return null;
+        }
+
+        $url = route($sectionRoute, ['section' => $sectionKey]);
+
+        if ($tabKey !== null && $tabKey !== '') {
+            $url = $this->appendQuery($url, ['tab' => $tabKey]);
+        }
+
+        return $this->navigation->appendPreservedQuery($url);
+    }
+
+    /**
+     * @param  array<string, mixed>  $routeParams
+     * @param  array<string, mixed>  $item
+     */
+    protected function featureRouteMatchesItem(string $routeName, array $routeParams, array $item): bool
+    {
+        $itemRoute = $item['route'] ?? null;
+
+        if ($itemRoute !== $routeName || ! Route::has($itemRoute)) {
+            return false;
+        }
+
+        $itemParams = $item['route_params'] ?? [];
+
+        foreach ($itemParams as $key => $expected) {
+            if (($routeParams[$key] ?? null) != $expected) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * @return array{module: string, primary: string, tab: string}|null
      */
     public function resolveFromRoute(?string $routeName, ?Request $request = null): ?array
@@ -369,7 +447,6 @@ class ModuleShellPresenter
             'secondary_workspaces' => $secondaryWorkspaces,
             'active_secondary' => $activeSecondary,
             'content_url' => $contentUrl,
-            'feature_index' => app(\App\Support\Discovery\FeatureRegistry::class)->index($moduleKey),
             'hub_route' => $module['hub_route'] ?? null,
             'section_route' => $module['section_route'] ?? null,
         ];
@@ -407,7 +484,13 @@ class ModuleShellPresenter
             }
 
             $key = $this->hubItemKey($item);
-            $href = $this->resolvePrimaryHref($module, $item);
+            $deskHref = $this->resolvePrimaryHref($module, $item);
+            $hasSecondaryTabs = $this->sectionHasSecondaryTabs($catalog, $key);
+            $contentHref = $hasSecondaryTabs
+                ? null
+                : $this->resolvePrimaryContentUrl($catalog, ['key' => $key], $module);
+            $href = $contentHref ?? $deskHref;
+            $turboFrame = ($hasSecondaryTabs || $contentHref === null) ? 'erp-main' : 'module-workspace-content';
 
             $workspaces[] = [
                 'key' => $key,
@@ -415,6 +498,7 @@ class ModuleShellPresenter
                 'description' => $item['description'] ?? '',
                 'icon' => $item['icon'] ?? 'home',
                 'href' => $href,
+                'turbo_frame' => $turboFrame,
                 'badge' => $item['badge'] ?? null,
                 'active' => false,
             ];
@@ -461,11 +545,9 @@ class ModuleShellPresenter
                     'key' => $key,
                     'label' => $item['label'] ?? '',
                     'description' => $item['description'] ?? '',
-                    'icon' => $item['icon'] ?? 'home',
                     'href' => $href,
+                    'turbo_frame' => 'module-workspace-content',
                     'badge' => $item['count'] ?? null,
-                    'route' => $item['route'] ?? null,
-                    'route_params' => $item['route_params'] ?? [],
                     'coming_soon' => (bool) ($item['coming_soon'] ?? false),
                     'active' => false,
                 ];
@@ -506,9 +588,17 @@ class ModuleShellPresenter
             return null;
         }
 
-        if ($tabKey !== null) {
+        if ($tabKey !== null && $tabKey !== '') {
+            $normalized = Str::slug($tabKey);
+
             foreach ($secondaryWorkspaces as $workspace) {
-                if (($workspace['key'] ?? '') === $tabKey) {
+                $key = (string) ($workspace['key'] ?? '');
+
+                if (
+                    $key === $tabKey
+                    || $key === $normalized
+                    || Str::slug((string) ($workspace['label'] ?? '')) === $normalized
+                ) {
                     return array_merge($workspace, ['active' => true]);
                 }
             }
@@ -554,23 +644,11 @@ class ModuleShellPresenter
      */
     protected function resolveContentUrl(?array $activeSecondary): ?string
     {
-        if ($activeSecondary === null) {
+        if ($activeSecondary === null || ! empty($activeSecondary['coming_soon'])) {
             return null;
         }
 
-        if (! empty($activeSecondary['coming_soon'])) {
-            return null;
-        }
-
-        $route = $activeSecondary['route'] ?? null;
-
-        if (! $route || ! Route::has($route)) {
-            return $activeSecondary['href'] ?? null;
-        }
-
-        $url = route($route, $activeSecondary['route_params'] ?? []);
-
-        return $this->navigation->appendPreservedQuery($this->appendQuery($url, ['embedded' => '1']));
+        return $activeSecondary['href'] ?? null;
     }
 
     /**
@@ -621,28 +699,64 @@ class ModuleShellPresenter
     }
 
     /**
-     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $routeParams
      */
-    protected function resolveSecondaryHref(array $item, string $primaryKey, ?array $module = null): ?string
+    public function embeddedFeatureUrl(?string $route, array $routeParams = []): ?string
     {
-        $sectionRoute = $module['section_route'] ?? null;
-
-        if ($sectionRoute && Route::has($sectionRoute)) {
-            $url = $this->appendQuery(
-                route($sectionRoute, ['section' => $primaryKey]),
-                ['tab' => $this->itemKey($item)],
-            );
-
-            return $this->navigation->appendPreservedQuery($url);
-        }
-
-        $route = $item['route'] ?? null;
-
         if (! $route || ! Route::has($route)) {
             return null;
         }
 
-        return $this->navigation->appendPreservedQuery(route($route, $item['route_params'] ?? []));
+        $url = route($route, $routeParams);
+
+        return $this->navigation->appendPreservedQuery($this->appendQuery($url, ['embedded' => '1']));
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    protected function resolveSecondaryHref(array $item, string $primaryKey, ?array $module = null): ?string
+    {
+        return $this->embeddedFeatureUrl(
+            $item['route'] ?? null,
+            $item['route_params'] ?? [],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $module
+     */
+    public function firstSecondaryKeyForSection(array $module, string $primaryKey): ?string
+    {
+        $catalog = $this->loadCatalog($module);
+
+        if ($catalog === null) {
+            return null;
+        }
+
+        return $this->firstSecondaryKey($catalog, $primaryKey);
+    }
+
+    /**
+     * @param  array<string, mixed>  $catalog
+     */
+    protected function sectionHasSecondaryTabs(array $catalog, string $primaryKey): bool
+    {
+        $section = $catalog['sections'][$primaryKey] ?? null;
+
+        if ($section === null) {
+            return false;
+        }
+
+        foreach ($section['groups'] ?? [] as $group) {
+            foreach ($group['items'] ?? [] as $item) {
+                if ($this->itemIsAccessible($item, includeComingSoon: false)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

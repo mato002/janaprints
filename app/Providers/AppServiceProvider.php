@@ -420,12 +420,8 @@ class AppServiceProvider extends ServiceProvider
                 function () use ($presenter) {
                     $navItems = $this->filterNavigation(config('navigation'));
 
-                    $featureRegistry = app(\App\Support\Discovery\FeatureRegistry::class);
-
                     return [
                         'navItems' => $navItems,
-                        'navSearchIndex' => $presenter->flattenForSearch(),
-                        'featureDiscoveryIndex' => $featureRegistry->index(),
                         'navRouteUrls' => static::buildNavRouteUrls($navItems, $presenter),
                     ];
                 },
@@ -442,9 +438,8 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with([
                 'navItems' => $navItems,
-                'navSearchIndex' => $navigation['navSearchIndex'],
-                'featureDiscoveryIndex' => $navigation['featureDiscoveryIndex'],
                 'navRouteUrls' => $navigation['navRouteUrls'],
+                'featureDiscoverySearchUrl' => route('admin.feature-discovery.search'),
             ]);
         });
 
@@ -554,42 +549,58 @@ class AppServiceProvider extends ServiceProvider
      */
     public static function buildNavRouteUrls(array $items, ?WorkspacePresenter $presenter = null): array
     {
-        $presenter ??= app(WorkspacePresenter::class);
         $map = [];
 
-        foreach ($presenter->flattenForSearch() as $entry) {
-            $route = $entry['route'] ?? null;
-
-            if ($entry['coming_soon'] || ! $route || isset($map[$route]) || ! Route::has($route)) {
-                continue;
-            }
-
-            $params = $entry['route_params'] ?? [];
-            $map[$route] = route($route, $params);
-        }
-
-        foreach (app(\App\Support\Discovery\FeatureRegistry::class)->index() as $entry) {
-            $route = $entry['route'] ?? null;
-
-            if ($entry['coming_soon'] || ! $route || isset($map[$route]) || ! Route::has($route)) {
-                continue;
-            }
-
-            $params = $entry['route_params'] ?? [];
-            $map[$route] = route($route, $params);
+        foreach (static::flattenNavForSearch($items) as $entry) {
+            static::rememberNavRouteUrl($map, $entry);
         }
 
         foreach ($items as $item) {
-            $route = $item['route'] ?? null;
-
-            if (! $route || isset($map[$route]) || ! Route::has($route)) {
-                continue;
-            }
-
-            $map[$route] = route($route);
+            static::rememberNavRouteUrl($map, [
+                'route' => $item['route'] ?? null,
+                'route_params' => $item['route_params'] ?? [],
+                'coming_soon' => (bool) ($item['coming_soon'] ?? false),
+            ]);
         }
 
         return $map;
+    }
+
+    /**
+     * @param  array<string, string>  $map
+     * @param  array<string, mixed>  $entry
+     */
+    protected static function rememberNavRouteUrl(array &$map, array $entry): void
+    {
+        $route = $entry['route'] ?? null;
+
+        if (($entry['coming_soon'] ?? false) || ! $route || ! Route::has($route)) {
+            return;
+        }
+
+        $params = $entry['route_params'] ?? [];
+        $url = static::safeRouteUrl($route, $params);
+
+        if ($url === null) {
+            return;
+        }
+
+        $key = $params === [] ? $route : $route.'|'.md5(json_encode($params));
+
+        if (! isset($map[$route])) {
+            $map[$route] = $url;
+        }
+
+        $map[$key] = $url;
+    }
+
+    protected static function safeRouteUrl(string $route, array $params = []): ?string
+    {
+        try {
+            return route($route, $params);
+        } catch (\Illuminate\Routing\Exceptions\UrlGenerationException) {
+            return null;
+        }
     }
 
     /**

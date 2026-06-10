@@ -104,6 +104,10 @@
                 </section>
             </template>
 
+            <template x-if="paletteQuery.trim() !== '' && paletteLoading">
+                <p class="px-4 py-8 text-center text-sm text-slate-500">{{ __('Searching…') }}</p>
+            </template>
+
             <template x-for="section in paletteSections" :key="section.key">
                 <section class="px-2 pb-2">
                     <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-500" x-text="section.label"></p>
@@ -143,7 +147,7 @@
             </template>
 
             <p
-                x-show="paletteQuery.trim() !== '' && paletteFlatResults.length === 0"
+                x-show="paletteQuery.trim() !== '' && ! paletteLoading && paletteFlatResults.length === 0"
                 class="px-4 py-8 text-center text-sm text-slate-500"
             >
                 {{ __('No features found. Try a different keyword.') }}

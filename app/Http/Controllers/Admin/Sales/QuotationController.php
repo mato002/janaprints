@@ -306,7 +306,7 @@ class QuotationController extends Controller
         $companyId = $quotation?->company_id ?? tenant()->companyId() ?? auth()->user()->company_id;
         $branchId = $quotation?->branch_id ?? tenant()->branchId();
 
-        $rules = $this->formSettings->mergeValidationRules('quotation', [
+        $data = $this->formSettings->validateRequest($request, 'quotation', [
             'customer_id' => [Rule::exists('customers', 'id')->where('company_id', $companyId)],
             'lead_id' => [Rule::exists('leads', 'id')->where('company_id', $companyId)],
             'quotation_date' => ['date'],
@@ -315,9 +315,7 @@ class QuotationController extends Controller
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],
             'branch_id' => ['sometimes', 'exists:branches,id'],
-        ], $companyId, $branchId);
-
-        $data = $request->validate($rules);
+        ], $companyId, $branchId, serverProvidedFields: ['company_id', 'branch_id']);
 
         return $this->formSettings->applyDefaults('quotation', $data, $companyId, $branchId);
     }

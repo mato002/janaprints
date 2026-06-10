@@ -170,7 +170,7 @@ class AccountingWorkspacePresenter
                         'label' => $item['label'] ?? '',
                         'path' => "{$workspaceTitle} › {$sectionTitle} › {$groupLabel} › ".($item['label'] ?? ''),
                         'route' => $item['route'] ?? null,
-                        'route_params' => [],
+                        'route_params' => $item['route_params'] ?? [],
                         'coming_soon' => false,
                     ];
                 }

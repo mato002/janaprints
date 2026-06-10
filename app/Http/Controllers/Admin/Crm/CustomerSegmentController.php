@@ -50,8 +50,8 @@ class CustomerSegmentController extends Controller
 
         $branchId = tenant()->branchId();
 
-        $data = $request->validate($this->formSettings->mergeValidationRules('segment.create', [
-            'company_id' => ['required', 'exists:companies,id'],
+        $data = $this->formSettings->validateRequest($request, 'segment.create', [
+            'company_id' => ['exists:companies,id'],
             'name' => ['string', 'max:255'],
             'code' => [
                 'string', 'max:50',
@@ -59,7 +59,7 @@ class CustomerSegmentController extends Controller
             ],
             'description' => ['string'],
             'is_active' => ['boolean'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId, serverProvidedFields: ['company_id']);
 
         CustomerSegment::query()->create([
             ...$data,
@@ -84,7 +84,7 @@ class CustomerSegmentController extends Controller
     {
         $this->authorize('update', $segment);
 
-        $data = $request->validate($this->formSettings->mergeValidationRules('segment.create', [
+        $data = $this->formSettings->validateRequest($request, 'segment.create', [
             'name' => ['string', 'max:255'],
             'code' => [
                 'string', 'max:50',
@@ -92,7 +92,7 @@ class CustomerSegmentController extends Controller
             ],
             'description' => ['string'],
             'is_active' => ['boolean'],
-        ], $segment->company_id, tenant()->branchId()));
+        ], $segment->company_id, tenant()->branchId());
 
         $segment->update([
             ...$data,

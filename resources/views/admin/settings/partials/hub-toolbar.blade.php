@@ -5,9 +5,15 @@
     'backLabel' => __('Settings'),
 ])
 
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $embedded = WorkspaceEmbed::isEmbedded();
+@endphp
+
 <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
-        @if ($backUrl)
+        @if ($backUrl && ! $embedded)
             <a
                 href="{{ $backUrl }}"
                 data-turbo-action="advance"

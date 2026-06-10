@@ -1,10 +1,12 @@
-<x-admin-layout :title="__('Log Complaint')" :breadcrumbs="[['label' => __('Complaints'), 'url' => route('admin.commercial.complaints.index')], ['label' => __('Create')]]">
-    <x-admin.page-header :title="__('Log complaint')" />
-    <x-admin.card>
-        <form method="POST" action="{{ route('admin.commercial.complaints.store') }}" class="space-y-4 p-4">
-            @csrf
-            @include('admin.commercial.complaints.form')
-            <button type="submit" class="erp-btn-primary">{{ __('Save complaint') }}</button>
-        </form>
-    </x-admin.card>
-</x-admin-layout>
+<x-admin.modal-form
+    :title="__('Log complaint')"
+    :breadcrumbs="[['label' => __('Complaints'), 'url' => route('admin.commercial.complaints.index')], ['label' => __('Create')]]"
+    maxWidth="3xl"
+>
+    <x-admin.form-shell :action="route('admin.commercial.complaints.store')">
+        @include('admin.commercial.complaints.form')
+        <x-admin.form-actions>
+            <x-primary-button>{{ __('Save complaint') }}</x-primary-button>
+        </x-admin.form-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

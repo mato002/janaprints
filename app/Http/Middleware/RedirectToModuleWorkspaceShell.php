@@ -1,0 +1,94 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Support\Navigation\ModuleShellPresenter;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class RedirectToModuleWorkspaceShell
+{
+    public function __construct(
+        protected ModuleShellPresenter $shell,
+    ) {}
+
+    public function handle(Request $request, Closure $next): Response
+    {
+        if (! $request->is('admin') && ! $request->is('admin/*')) {
+            return $next($request);
+        }
+
+        if (! $request->isMethod('GET') || $request->expectsJson()) {
+            return $next($request);
+        }
+
+        // Allow embedded content loads inside the module workspace frame only.
+        if ($request->header('Turbo-Frame') === 'module-workspace-content') {
+            return $next($request);
+        }
+
+        $routeName = $request->route()?->getName();
+
+        if (! $routeName || $this->isDetailRoute($routeName)) {
+            return $next($request);
+        }
+
+        $deskUrl = $this->shell->deskUrlForFeatureRoute(
+            $routeName,
+            $this->routeParameters($request),
+        );
+
+        if ($deskUrl === null) {
+            return $next($request);
+        }
+
+        $query = $request->query();
+
+        unset($query['embedded']);
+
+        if ($query !== []) {
+            $existing = [];
+
+            if (($queryPos = strpos($deskUrl, '?')) !== false) {
+                parse_str(substr($deskUrl, $queryPos + 1), $existing);
+                $deskUrl = substr($deskUrl, 0, $queryPos);
+            }
+
+            $query = array_diff_key($query, $existing);
+
+            if ($query !== []) {
+                $deskUrl .= (str_contains($deskUrl, '?') ? '&' : '?').http_build_query($query);
+            }
+        }
+
+        return redirect()->to($deskUrl);
+    }
+
+    protected function isDetailRoute(string $routeName): bool
+    {
+        foreach (['.create', '.edit', '.show'] as $suffix) {
+            if (str_ends_with($routeName, $suffix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function routeParameters(Request $request): array
+    {
+        $parameters = [];
+
+        foreach ($request->route()?->parameters() ?? [] as $key => $value) {
+            if (is_scalar($value) || $value === null) {
+                $parameters[$key] = $value;
+            }
+        }
+
+        return $parameters;
+    }
+}

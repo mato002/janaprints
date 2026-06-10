@@ -54,7 +54,7 @@ class AdministrationWorkspaceRestructureTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.workspaces.administration.section', ['section' => 'configuration']));
 
         $response->assertOk();
-        $response->assertSee(route('admin.settings.index'), false);
+        $response->assertSee(route('admin.settings.show', ['section' => 'hub']), false);
         $response->assertSee(route('admin.settings.numbering.index'), false);
         $response->assertSee(route('admin.settings.forms.index'), false);
         $response->assertSee(route('admin.settings.document-types.index'), false);

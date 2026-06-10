@@ -41,6 +41,7 @@ return [
 
     'cache' => [
         'navigation' => (int) env('PLATFORM_CACHE_NAVIGATION_TTL', 300),
+        'feature_discovery' => (int) env('PLATFORM_CACHE_FEATURE_DISCOVERY_TTL', 300),
         'permissions' => (int) env('PLATFORM_CACHE_PERMISSIONS_TTL', 600),
         'dashboard' => (int) env('PLATFORM_CACHE_DASHBOARD_TTL', 60),
         'assets_dashboard' => (int) env('PLATFORM_CACHE_ASSETS_DASHBOARD_TTL', 60),

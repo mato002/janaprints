@@ -60,6 +60,35 @@ class FeatureRegistry
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function searchForClient(string $query, ?string $moduleKey = null, int $limit = 24): array
+    {
+        return array_map(
+            fn (array $entry) => $this->serializeForClient($entry),
+            array_slice($this->search($query, $moduleKey), 0, $limit),
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array<string, mixed>
+     */
+    public function serializeForClient(array $entry): array
+    {
+        return [
+            'id' => $entry['id'],
+            'label' => $entry['label'],
+            'description' => $entry['description'] ?? '',
+            'path' => $entry['path'],
+            'url' => $entry['url'],
+            'turbo_frame' => $entry['turbo_frame'] ?? 'module-workspace-content',
+            'category' => $entry['category'] ?? 'features',
+            'coming_soon' => (bool) ($entry['coming_soon'] ?? false),
+        ];
+    }
+
+    /**
      * @param  array<string, mixed>  $module
      * @param  array<string, mixed>  $catalog
      * @return list<array<string, mixed>>
@@ -75,6 +104,7 @@ class FeatureRegistry
 
             $workspaceLabel = (string) ($hubItem['label'] ?? '');
             $segments = [$moduleTitle, $workspaceLabel];
+            $sectionKey = (string) ($hubItem['route_params']['section'] ?? '');
 
             $entries[] = $this->makeEntry(
                 moduleKey: $moduleKey,
@@ -85,6 +115,8 @@ class FeatureRegistry
                 item: $hubItem,
                 pathSegments: $segments,
                 category: 'workspaces',
+                moduleConfig: $module,
+                sectionKey: $sectionKey !== '' ? $sectionKey : null,
             );
         }
 
@@ -119,6 +151,8 @@ class FeatureRegistry
                         item: $item,
                         pathSegments: $segments,
                         category: $this->resolveCategory($item, $moduleKey),
+                        moduleConfig: $module,
+                        sectionKey: $sectionKey,
                     );
                 }
             }
@@ -168,15 +202,46 @@ class FeatureRegistry
         array $item,
         array $pathSegments,
         string $category,
+        ?array $moduleConfig = null,
+        ?string $sectionKey = null,
     ): array {
         $label = (string) ($item['label'] ?? '');
         $description = (string) ($item['description'] ?? '');
         $route = $item['route'] ?? null;
         $routeParams = $item['route_params'] ?? [];
-        $url = null;
+        $deskUrl = null;
+        $embeddedUrl = null;
+        $turboFrame = 'module-workspace-content';
+
+        if ($moduleConfig !== null && $sectionKey !== null && empty($item['coming_soon'])) {
+            $tabKey = $category === 'workspaces'
+                ? $this->moduleShell->firstSecondaryKeyForSection($moduleConfig, $sectionKey)
+                : $this->itemKey($item);
+
+            $deskUrl = $this->moduleShell->buildDeskUrl(
+                $moduleKey,
+                $moduleConfig,
+                $sectionKey,
+                $tabKey,
+            );
+        }
 
         if ($route && Route::has($route) && empty($item['coming_soon'])) {
-            $url = $this->navigation->appendPreservedQuery(route($route, $routeParams));
+            $embeddedUrl = $this->moduleShell->embeddedFeatureUrl($route, $routeParams);
+        }
+
+        if ($category === 'workspaces') {
+            $url = $deskUrl;
+            $turboFrame = 'erp-main';
+        } else {
+            $url = $deskUrl ?? $embeddedUrl;
+            $turboFrame = $deskUrl !== null ? 'erp-main' : 'module-workspace-content';
+        }
+
+        if ($url === null && $route && Route::has($route) && empty($item['coming_soon'])) {
+            $url = $category === 'workspaces'
+                ? $this->navigation->appendPreservedQuery(route($route, $routeParams))
+                : $embeddedUrl;
         }
 
         $keywords = $this->buildKeywords($label, $description, $pathSegments, $item);
@@ -200,6 +265,7 @@ class FeatureRegistry
             'search_text' => implode(' ', $keywords),
             'icon' => $item['icon'] ?? 'home',
             'url' => $url,
+            'turbo_frame' => $turboFrame,
             'coming_soon' => (bool) ($item['coming_soon'] ?? false),
         ];
     }
@@ -375,6 +441,18 @@ class FeatureRegistry
         }
 
         return $user->can($permission);
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    protected function itemKey(array $item): string
+    {
+        if (! empty($item['key'])) {
+            return (string) $item['key'];
+        }
+
+        return \Illuminate\Support\Str::slug($item['label'] ?? 'item');
     }
 
 }

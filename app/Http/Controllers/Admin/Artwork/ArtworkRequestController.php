@@ -224,7 +224,7 @@ class ArtworkRequestController extends Controller
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId);
 
-        return $request->validate($this->formSettings->mergeValidationRules('artwork', [
+        return $this->formSettings->validateRequest($request, 'artwork', [
             'customer_id' => [$customerRule],
             'quotation_id' => [$quotationRule],
             'title' => ['string', 'max:255'],
@@ -232,7 +232,7 @@ class ArtworkRequestController extends Controller
             'priority' => [Rule::enum(ArtworkPriority::class)],
             'due_date' => ['date'],
             'assigned_designer_id' => ['exists:users,id'],
-        ], $companyId, $branchId));
+        ], $companyId, $branchId);
     }
 
     /**
