@@ -1,7 +1,14 @@
 <x-admin-layout :title="__('Posting templates')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Posting templates')]]">
     <x-admin.page-header :title="__('Posting templates')" :description="__('Reusable debit/credit line definitions for automated journals.')" />
 
-    <x-admin.data-table :search-placeholder="__('Search templates…')">
+    <x-admin.data-table
+        :search-placeholder="__('Search templates…')"
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'posting-templates']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="posting-templates"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Code') }}</th>

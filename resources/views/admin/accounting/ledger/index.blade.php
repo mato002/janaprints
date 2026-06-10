@@ -20,7 +20,13 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.data-table>
+    <x-admin.data-table
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'ledger-entries']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="general-ledger-inquiry"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Date') }}</th>

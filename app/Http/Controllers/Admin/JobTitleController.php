@@ -3,20 +3,24 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\JobTitleLevel;
+use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\JobTitle;
+use App\Support\Export\TabularExportWriter;
 use App\Support\Organization\JobTitleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class JobTitleController extends Controller
 {
+    use ExportsTabularIndex;
     use ScopesToTenant;
 
     public function __construct(
@@ -31,6 +35,27 @@ class JobTitleController extends Controller
         $titles = $this->jobTitles->titlesForCompany($companyId);
 
         return view('admin.job-titles.index', compact('titles'));
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', JobTitle::class);
+
+        $companyId = (int) (tenant()->companyId() ?? auth()->user()->company_id);
+        $titles = $this->jobTitles->titlesForCompany($companyId);
+
+        $headers = [__('Code'), __('Title'), __('Department'), __('Level'), __('Reports To'), __('Employees'), __('Status')];
+        $rows = $titles->map(fn (JobTitle $jobTitle) => [
+            $jobTitle->code,
+            $jobTitle->title,
+            $jobTitle->department?->name ?? '—',
+            $jobTitle->level->label(),
+            $jobTitle->reportsTo?->title ?? '—',
+            (string) ($jobTitle->employees_count ?? 0),
+            $jobTitle->is_active ? __('Active') : __('Inactive'),
+        ])->all();
+
+        return $this->downloadTabularExport($writer, $format, 'job-titles', $headers, $rows, __('Job Titles'));
     }
 
     public function hierarchy(): View

@@ -1,7 +1,14 @@
 <x-admin-layout :title="__('Customer invoices')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Invoices')]]">
     <x-admin.page-header :title="__('Customer invoices')" :description="__('Draft, approve, and post invoices to accounts receivable.')" />
 
-    <x-admin.data-table :search-placeholder="__('Search invoices…')">
+    <x-admin.data-table
+        :search-placeholder="__('Search invoices…')"
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'customer-invoices']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="customer-invoices"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Number') }}</th>

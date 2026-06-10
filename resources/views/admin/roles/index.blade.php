@@ -19,6 +19,13 @@
             @can('create', Spatie\Permission\Models\Role::class)
                 <a href="{{ route('admin.roles.create') }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="erp-btn-primary !px-3 !py-1.5 text-sm">{{ __('Create role') }}</a>
             @endcan
+            @can('viewAny', Spatie\Permission\Models\Role::class)
+                <x-admin.export-dropdown
+                    export-route="admin.roles.export"
+                    :export-query="request()->query()"
+                    :format-in-path="true"
+                />
+            @endcan
         </div>
 
         <div class="role-governance-panel mb-3 rounded-lg border border-erp-border bg-erp-page/60 px-4 py-2.5">

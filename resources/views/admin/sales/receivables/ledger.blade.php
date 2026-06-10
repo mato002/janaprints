@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Customer ledger')" />
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="route('admin.sales.receivables.ledger')" :reset-url="route('admin.sales.receivables.ledger')">
+        <x-admin.index-toolbar :action="route('admin.receivables.ledger')" :reset-url="route('admin.receivables.ledger')">
             <select name="customer_id" class="erp-toolbar-select min-w-[12rem]" aria-label="{{ __('Customer') }}">
                 <option value="">{{ __('Select customer') }}</option>
                 @foreach ($customers as $c)
@@ -11,6 +11,13 @@
             </select>
             <input type="date" name="from_date" value="{{ request('from_date') }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
             <input type="date" name="to_date" value="{{ request('to_date') }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">
+
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => 'ar-ledger',
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
         </x-admin.index-toolbar>
     </x-admin.card>
 

@@ -1,8 +1,11 @@
 <x-admin-layout :title="__('Tax Codes')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Tax Codes')]]">
     <x-admin.page-header :title="__('Tax Codes')" :description="__('Rates are effective-dated; documents resolve codes via tax rules.')">
-        @can('create', \App\Models\Tax\TaxCode::class)
-            <a href="{{ route('admin.tax.codes.create') }}" class="erp-btn-primary">{{ __('New tax code') }}</a>
-        @endcan
+        <x-slot name="actions">
+            @can('create', \App\Models\Tax\TaxCode::class)
+                <a href="{{ route('admin.tax.codes.create') }}" class="erp-btn-primary">{{ __('New tax code') }}</a>
+            @endcan
+            @include('admin.accounting.partials.listing-export-dropdown', ['listing' => 'tax-codes'])
+        </x-slot>
     </x-admin.page-header>
 
     <x-admin.card>

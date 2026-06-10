@@ -79,7 +79,14 @@
             </x-admin.index-toolbar>
         </x-admin.card>
 
-        <x-admin.data-table :search-placeholder="__('Search jobs…')" export-filename="background-jobs">
+        <x-admin.data-table
+            :search-placeholder="__('Search jobs…')"
+            export-filename="background-jobs"
+            export-route="admin.administration.exports"
+            :export-route-params="['listing' => 'background-jobs']"
+            :export-query="request()->query()"
+            :format-in-path="true"
+        >
             <x-slot name="head">
                 <tr>
                     <th scope="col">{{ __('Job ID') }}</th>

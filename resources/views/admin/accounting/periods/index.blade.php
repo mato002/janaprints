@@ -17,7 +17,14 @@
         </x-admin.card>
     @endif
 
-    <x-admin.data-table :search-placeholder="__('Search fiscal years…')" export-filename="fiscal-years">
+    <x-admin.data-table
+        :search-placeholder="__('Search fiscal years…')"
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'fiscal-years']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="fiscal-years"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Fiscal year') }}</th>

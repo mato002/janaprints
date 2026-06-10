@@ -7,6 +7,7 @@
         'filters' => $filters,
         'periods' => $periods,
         'customPeriodLabel' => __('Custom'),
+        'exportListing' => 'profit-and-loss',
     ])
 
     <div class="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">

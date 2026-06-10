@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search supplier quotations…')" export-filename="supplier-quotations">
+    <x-admin.data-table
+        :search-placeholder="__('Search supplier quotations…')"
+        export-route="admin.procurement.exports"
+        :export-route-params="['listing' => 'supplier-quotations']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="supplier-quotations"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Number') }}</th>

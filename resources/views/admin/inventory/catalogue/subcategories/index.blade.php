@@ -1,6 +1,13 @@
 <x-admin-layout :title="__('Subcategories')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Subcategories')]]">
     <x-admin.page-header :title="__('Subcategories')"><x-slot name="actions">@if (auth()->user()?->can('catalogue.create'))<a href="{{ route('admin.inventory.catalogue.subcategories.create') }}" class="erp-btn-primary">{{ __('New Subcategory') }}</a>@endif</x-slot></x-admin.page-header>
-    <x-admin.data-table :search-placeholder="__('Search subcategories...')" export-filename="catalogue-subcategories">
+    <x-admin.data-table
+        :search-placeholder="__('Search subcategories...')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'subcategories']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="catalogue-subcategories"
+    >
         <x-slot name="head"><tr><th>{{ __('Subcategory') }}</th><th>{{ __('Category') }}</th><th>{{ __('Items') }}</th><th class="erp-table-actions-col">{{ __('Actions') }}</th></tr></x-slot>
         <x-slot name="body">
             @forelse ($subcategories as $subcategory)

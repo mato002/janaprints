@@ -54,7 +54,8 @@ class CustomerExportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.crm.customers.index'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.crm.customers.index', ['embedded' => '1']))
             ->assertOk()
             ->assertSee('customers/export/csv', false)
             ->assertSee('customers/export/excel', false)

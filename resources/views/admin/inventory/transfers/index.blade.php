@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search transfers...')" export-filename="store-transfers">
+    <x-admin.data-table
+        :search-placeholder="__('Search transfers...')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'transfers']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="store-transfers"
+    >
         <x-slot name="filters">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
                 <label class="text-xs font-medium text-slate-600">

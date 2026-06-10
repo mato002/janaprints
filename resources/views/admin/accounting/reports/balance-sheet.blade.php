@@ -6,6 +6,7 @@
         'resetUrl' => route('admin.accounting.reports.balance-sheet'),
         'filters' => $filters,
         'periods' => $periods,
+        'exportListing' => 'balance-sheet',
     ])
 
     <div class="mb-4 grid grid-cols-2 gap-3">

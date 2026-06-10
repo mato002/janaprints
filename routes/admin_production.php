@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:production.view')->group(function () {
             Route::get('job-cards', [ProductionJobCardController::class, 'index'])->name('job-cards.index');
+            Route::get('job-cards/export', [ProductionJobCardController::class, 'export'])->name('job-cards.export');
         });
 
         Route::middleware('permission:production.work-centers.view')->group(function () {

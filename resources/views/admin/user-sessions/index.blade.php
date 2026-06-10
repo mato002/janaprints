@@ -33,6 +33,10 @@
     <x-admin.data-table
         :search-placeholder="__('Search sessions…')"
         export-filename="user-sessions"
+        export-route="admin.administration.exports"
+        :export-route-params="['listing' => 'user-sessions']"
+        :export-query="request()->query()"
+        :format-in-path="true"
         :chips="[
             ['id' => 'all', 'label' => __('All')],
             ['id' => 'active', 'label' => __('Active')],

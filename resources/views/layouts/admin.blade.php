@@ -25,6 +25,7 @@
         window.__erpRoutes = @json($navRouteUrls ?? []);
         window.__erpModalForm = @json($erpModalFormConfig);
         window.__erpFeatureDiscovery = @json(['searchUrl' => $featureDiscoverySearchUrl ?? '']);
+        window.__erpTableExportUrl = @json(route('admin.exports.table'));
     </script>
 </head>
 <body

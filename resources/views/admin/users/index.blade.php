@@ -16,6 +16,9 @@
 
     <x-admin.data-table
         :search-placeholder="__('Search users…')"
+        export-route="admin.users.export"
+        :export-query="request()->query()"
+        :format-in-path="true"
         export-filename="users"
         :chips="[
             ['id' => 'all', 'label' => __('All')],

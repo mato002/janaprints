@@ -50,6 +50,49 @@ class ProductionJobCardIndexService
 
     public function paginatedIndex(Request $request): LengthAwarePaginator
     {
+        return $this->indexQuery($request)->paginate(15)->withQueryString();
+    }
+
+    /**
+     * @return Collection<int, ProductionJobCard>
+     */
+    public function exportIndex(Request $request): Collection
+    {
+        return $this->indexQuery($request)->limit(5000)->get();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function exportHeaders(): array
+    {
+        return array_column($this->registerColumns(), 'label');
+    }
+
+    /**
+     * @return list<string|int|float|null>
+     */
+    public function exportRow(ProductionJobCard $jobCard, ?User $user = null): array
+    {
+        $presented = $this->presentRow($jobCard, $user);
+
+        return array_map(function (array $column) use ($presented) {
+            $key = $column['key'];
+
+            if ($key === 'status') {
+                return $presented['badge']['label'] ?? '';
+            }
+
+            if ($key === 'priority') {
+                return str_replace('_', ' ', ucfirst((string) ($presented['priority'] ?? '')));
+            }
+
+            return $presented[$key] ?? '';
+        }, $this->registerColumns());
+    }
+
+    protected function indexQuery(Request $request): Builder
+    {
         $query = ProductionJobCard::query()
             ->forTenant()
             ->with([
@@ -71,7 +114,7 @@ class ProductionJobCardIndexService
         $this->applyFilters($query, $request);
         $this->applySort($query, $request);
 
-        return $query->paginate(15)->withQueryString();
+        return $query;
     }
 
     /**

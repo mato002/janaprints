@@ -1,3 +1,5 @@
+@props(['exportListing' => null])
+
 <x-admin.card :padding="false" class="mb-4">
     <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
         <select name="tax_period_id" class="erp-toolbar-select" aria-label="{{ __('Tax period') }}">
@@ -10,5 +12,14 @@
         </select>
         <input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" name="to_date" value="{{ $filters['to_date'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">
+
+        @if ($exportListing)
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => $exportListing,
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
+        @endif
     </x-admin.index-toolbar>
 </x-admin.card>

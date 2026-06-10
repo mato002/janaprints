@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search journals…')">
+    <x-admin.data-table
+        :search-placeholder="__('Search journals…')"
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'journals']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="journals"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Number') }}</th>

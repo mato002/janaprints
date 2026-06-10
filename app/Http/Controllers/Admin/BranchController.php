@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BranchController extends Controller
 {
+    use ExportsTabularIndex;
     use ScopesToTenant;
 
     public function index(): View
@@ -24,6 +28,24 @@ class BranchController extends Controller
         )->latest()->paginate(15);
 
         return view('admin.branches.index', compact('branches'));
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', Branch::class);
+
+        $branches = $this->scopeToTenant(
+            Branch::query()->with('company')
+        )->latest()->get();
+
+        $headers = [__('Branch'), __('Code'), __('Company')];
+        $rows = $branches->map(fn (Branch $branch) => [
+            $branch->name,
+            $branch->code,
+            $branch->company?->name ?? '',
+        ])->all();
+
+        return $this->downloadTabularExport($writer, $format, 'branches', $headers, $rows, __('Branches'));
     }
 
     public function create(): View

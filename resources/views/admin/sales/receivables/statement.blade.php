@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Customer statement')" />
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="route('admin.sales.receivables.statement')" :reset-url="route('admin.sales.receivables.statement')">
+        <x-admin.index-toolbar :action="route('admin.receivables.statement')" :reset-url="route('admin.receivables.statement')">
             <select name="customer_id" class="erp-toolbar-select min-w-[12rem]" aria-label="{{ __('Customer') }}" required>
                 @foreach ($customers as $c)
                     <option value="{{ $c->id }}" @selected(request('customer_id') == $c->id)>{{ $c->company_name }}</option>
@@ -10,6 +10,13 @@
             </select>
             <input type="date" name="from_date" value="{{ request('from_date', now()->startOfMonth()->toDateString()) }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}" required>
             <input type="date" name="to_date" value="{{ request('to_date', now()->toDateString()) }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}" required>
+
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => 'ar-statement',
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
         </x-admin.index-toolbar>
     </x-admin.card>
 

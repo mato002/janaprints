@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search vendors…')" export-filename="vendors">
+    <x-admin.data-table
+        :search-placeholder="__('Search vendors…')"
+        export-route="admin.procurement.exports"
+        :export-route-params="['listing' => 'vendors']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="vendors"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Vendor') }}</th>

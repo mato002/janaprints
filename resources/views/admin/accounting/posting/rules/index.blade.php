@@ -124,7 +124,16 @@
         </form>
 
         {{-- Grid --}}
-        <x-admin.data-table :searchable="false" :filterable="false" :export-filename="'posting-rules'" class="erp-table--grid">
+        <x-admin.data-table
+            :searchable="false"
+            :filterable="false"
+            export-route="admin.accounting.exports"
+            :export-route-params="['listing' => 'posting-rules']"
+            :export-query="request()->query()"
+            :format-in-path="true"
+            :export-filename="'posting-rules'"
+            class="erp-table--grid"
+        >
             <x-slot name="head">
                 <tr>
                     <th scope="col">{{ __('Event / Rule') }}</th>

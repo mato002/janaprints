@@ -16,7 +16,15 @@
         </div>
     @endif
 
-    <x-admin.data-table :search-placeholder="__('Search email settings...')" export-filename="email-settings" :chips="[['id' => 'all', 'label' => __('All')], ['id' => 'active', 'label' => __('Active')]]">
+    <x-admin.data-table
+        :search-placeholder="__('Search email settings...')"
+        export-filename="email-settings"
+        export-route="admin.administration.exports"
+        :export-route-params="['listing' => 'email-providers']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        :chips="[['id' => 'all', 'label' => __('All')], ['id' => 'active', 'label' => __('Active')]]"
+    >
         <x-slot name="filters">
             <form method="GET" class="flex flex-wrap gap-2">
                 <select name="provider" class="erp-select text-sm" onchange="this.form.submit()">

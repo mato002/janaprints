@@ -1,5 +1,9 @@
 <x-admin-layout :title="__('Tax Returns')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Tax Returns')]]">
-    <x-admin.page-header :title="__('Tax Returns')" />
+    <x-admin.page-header :title="__('Tax Returns')">
+        <x-slot name="actions">
+            @include('admin.accounting.partials.listing-export-dropdown', ['listing' => 'tax-returns'])
+        </x-slot>
+    </x-admin.page-header>
 
     <x-admin.card>
         <table class="w-full text-sm">

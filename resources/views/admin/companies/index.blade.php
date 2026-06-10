@@ -7,7 +7,13 @@
         </x-slot:actions>
     </x-admin.workspace-content-header>
 
-    <x-admin.data-table :search-placeholder="__('Search companies…')" export-filename="companies">
+    <x-admin.data-table
+        :search-placeholder="__('Search companies…')"
+        export-route="admin.companies.export"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="companies"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Name') }}</th>

@@ -31,6 +31,8 @@
         :searchable="false"
         :filterable="false"
         export-filename="job-cards-register"
+        export-route="admin.production.job-cards.export"
+        :export-query="collect($filters)->filter(fn ($value) => filled($value) && $value !== false)->all()"
         :selectable="count($bulkActions) > 0"
         table-id="job-cards-register"
         class="min-w-0"

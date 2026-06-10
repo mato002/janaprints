@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search webhooks...')" export-filename="webhooks">
+    <x-admin.data-table
+        :search-placeholder="__('Search webhooks...')"
+        export-filename="webhooks"
+        export-route="admin.administration.exports"
+        :export-route-params="['listing' => 'webhooks']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+    >
         <x-slot name="head">
             <th>{{ __('Name') }}</th>
             <th>{{ __('Endpoint') }}</th>

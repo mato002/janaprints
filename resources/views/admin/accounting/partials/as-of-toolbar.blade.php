@@ -7,6 +7,7 @@
     'periodLabel' => null,
     'nonePeriodLabel' => null,
     'submitLabel' => null,
+    'exportListing' => null,
 ])
 
 @php
@@ -27,5 +28,14 @@
             </select>
         @endif
         {{ $slot ?? '' }}
+
+        @if ($exportListing)
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => $exportListing,
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
+        @endif
     </x-admin.index-toolbar>
 </x-admin.card>

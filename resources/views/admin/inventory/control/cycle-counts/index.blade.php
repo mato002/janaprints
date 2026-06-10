@@ -25,7 +25,14 @@
         </x-admin.card>
     @endif
 
-    <x-admin.data-table :search-placeholder="__('Search schedules…')" export-filename="cycle-count-schedules">
+    <x-admin.data-table
+        :search-placeholder="__('Search schedules…')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'cycle-counts']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="cycle-count-schedules"
+    >
         <x-slot name="head">
             <tr>
                 <th>{{ __('Warehouse') }}</th>

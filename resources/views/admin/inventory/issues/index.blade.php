@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search issues…')" export-filename="stock-issues">
+    <x-admin.data-table
+        :search-placeholder="__('Search issues…')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'stock-issues']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="stock-issues"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Issue') }}</th>

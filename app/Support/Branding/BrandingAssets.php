@@ -91,10 +91,15 @@ class BrandingAssets
 
     public function logoDataUri(): ?string
     {
+        if ($this->logoDataUriResolved) {
+            return $this->logoDataUriCache;
+        }
+
+        $this->logoDataUriResolved = true;
         $company = $this->resolveCompany();
 
         if ($company?->logo && Storage::disk(self::DISK)->exists($company->logo)) {
-            return $this->storagePathToDataUri($company->logo);
+            return $this->logoDataUriCache = $this->storagePathToDataUri($company->logo);
         }
 
         $siteLogo = config('site.local.logo');
@@ -103,11 +108,11 @@ class BrandingAssets
             $publicPath = public_path(ltrim($siteLogo, '/'));
 
             if (is_file($publicPath)) {
-                return $this->filePathToDataUri($publicPath);
+                return $this->logoDataUriCache = $this->filePathToDataUri($publicPath);
             }
         }
 
-        return null;
+        return $this->logoDataUriCache = null;
     }
 
     protected function storagePathToDataUri(string $path): string
@@ -176,6 +181,10 @@ class BrandingAssets
 
     /** @var array{brandingLogoUrl: string, brandingSidebarLogoUrl: string, brandingFaviconUrl: string}|null */
     protected ?array $presentationCache = null;
+
+    protected ?string $logoDataUriCache = null;
+
+    protected bool $logoDataUriResolved = false;
 
     public function delete(?string $path): void
     {

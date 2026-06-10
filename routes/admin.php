@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\Operations\SystemHealthController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\TenantContextController;
+use App\Http\Controllers\Admin\TableExportController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserSessionController;
 use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
@@ -36,6 +37,8 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
     ->name('admin.')
     ->group(function () {
         Route::get('/', DashboardController::class)->name('dashboard');
+
+        Route::post('exports/table', TableExportController::class)->name('exports.table');
 
         Route::get('feature-discovery/search', [FeatureDiscoveryController::class, 'search'])
             ->name('feature-discovery.search');
@@ -96,6 +99,9 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
 
         Route::middleware('permission:users.view')->group(function () {
             Route::get('users', [UserController::class, 'index'])->name('users.index');
+            Route::get('users/export/{format}', [UserController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('users.export');
         });
 
         Route::middleware('permission:users.create')->group(function () {
@@ -116,6 +122,9 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
 
         Route::middleware('permission:roles.view')->group(function () {
             Route::get('access-control/roles', [RoleController::class, 'index'])->name('access-control.roles');
+            Route::get('roles/export/{format}', [RoleController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('roles.export');
             Route::get('roles', fn () => redirect()->route('admin.access-control.roles'))->name('roles.index');
             Route::get('access-control/matrix', [PermissionController::class, 'index'])->name('access-control.matrix');
             Route::get('permissions', fn () => redirect()->route('admin.access-control.matrix'))->name('permissions.index');
@@ -267,23 +276,38 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         });
 
         Route::middleware('permission:companies.manage')->group(function () {
+            Route::get('companies/export/{format}', [CompanyController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('companies.export');
             Route::resource('companies', CompanyController::class)->except(['show']);
         });
 
         Route::middleware('permission:branches.manage')->group(function () {
+            Route::get('branches/export/{format}', [BranchController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('branches.export');
             Route::resource('branches', BranchController::class)->except(['show']);
         });
 
         Route::middleware('permission:departments.manage')->group(function () {
+            Route::get('departments/export/{format}', [DepartmentController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('departments.export');
             Route::resource('departments', DepartmentController::class)->except(['show']);
         });
 
         Route::middleware('permission:employees.manage')->group(function () {
+            Route::get('employees/export/{format}', [EmployeeController::class, 'export'])
+                ->where('format', 'csv|excel|pdf')
+                ->name('employees.export');
             Route::resource('employees', EmployeeController::class)->except(['show']);
         });
 
         Route::prefix('job-titles')->name('job-titles.')->group(function () {
             Route::middleware('permission:organization.job_titles.view')->group(function () {
+                Route::get('export/{format}', [JobTitleController::class, 'export'])
+                    ->where('format', 'csv|excel|pdf')
+                    ->name('export');
                 Route::get('/', [JobTitleController::class, 'index'])->name('index');
                 Route::get('hierarchy', [JobTitleController::class, 'hierarchy'])->name('hierarchy');
             });
@@ -331,5 +355,6 @@ require __DIR__.'/admin_communications_inbox.php';
 require __DIR__.'/admin_hr.php';
 require __DIR__.'/admin_reports.php';
 require __DIR__.'/admin_integrations.php';
+require __DIR__.'/admin_administration.php';
 require __DIR__.'/admin_public_leads.php';
 require __DIR__.'/admin_website.php';

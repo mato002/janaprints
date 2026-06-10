@@ -5,7 +5,14 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search adjustments…')" export-filename="stock-adjustments">
+    <x-admin.data-table
+        :search-placeholder="__('Search adjustments…')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'adjustments']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="stock-adjustments"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Adjustment') }}</th>

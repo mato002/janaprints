@@ -4,7 +4,13 @@
             <x-slot name="actions"><a href="{{ route('admin.payables.payments.create') }}" class="erp-btn-primary">{{ __('New payment') }}</a></x-slot>
         @endcan
     </x-admin.page-header>
-    <x-admin.data-table>
+    <x-admin.data-table
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'supplier-payments']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="supplier-payments"
+    >
         <x-slot name="head"><tr><th>{{ __('Number') }}</th><th>{{ __('Supplier') }}</th><th>{{ __('Date') }}</th><th>{{ __('Amount') }}</th><th>{{ __('Status') }}</th></tr></x-slot>
         <x-slot name="body">
             @forelse ($payments as $payment)

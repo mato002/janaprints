@@ -8,7 +8,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search inventory...')" export-filename="inventory-items">
+    <x-admin.data-table
+        :search-placeholder="__('Search inventory...')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'items']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="inventory-items"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Item') }}</th>

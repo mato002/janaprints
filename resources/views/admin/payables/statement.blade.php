@@ -10,6 +10,13 @@
             </select>
             <input type="date" name="from_date" value="{{ request('from_date') }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}" required>
             <input type="date" name="to_date" value="{{ request('to_date') }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}" required>
+
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => 'ap-statement',
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
         </x-admin.index-toolbar>
     </x-admin.card>
 

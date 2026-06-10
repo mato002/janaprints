@@ -5,7 +5,13 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.data-table>
+    <x-admin.data-table
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'customer-payments']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="customer-payments"
+    >
         <x-slot name="head">
             <tr>
                 <th>{{ __('Number') }}</th>

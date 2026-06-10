@@ -10,13 +10,16 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserController extends Controller
 {
@@ -38,6 +41,48 @@ class UserController extends Controller
             ->pluck('last_login_at', 'user_id');
 
         return view('admin.users.index', compact('users', 'lastLogins'));
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', User::class);
+
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            abort(404);
+        }
+
+        $users = $this->scopeToTenant(
+            User::query()->with(['company', 'defaultBranch', 'roles'])
+        )->latest()->get();
+
+        $lastLogins = ActivityLog::query()
+            ->whereIn('user_id', $users->pluck('id'))
+            ->where('action', 'login')
+            ->selectRaw('user_id, MAX(created_at) as last_login_at')
+            ->groupBy('user_id')
+            ->pluck('last_login_at', 'user_id');
+
+        $headers = [__('Name'), __('Email'), __('Role'), __('Branch'), __('Status'), __('Last login')];
+        $rows = $users->map(function (User $user) use ($lastLogins) {
+            $lastLogin = $lastLogins[$user->id] ?? null;
+
+            return [
+                $user->name,
+                $user->email,
+                $user->getRoleNames()->first() ?? '',
+                $user->defaultBranch?->name ?? '',
+                $user->is_active ? __('Active') : __('Inactive'),
+                $lastLogin ? Carbon::parse($lastLogin)->format('Y-m-d H:i') : '',
+            ];
+        })->all();
+
+        return $writer->download(
+            $format,
+            'users-'.now()->format('Y-m-d'),
+            $headers,
+            $rows,
+            __('Users'),
+        );
     }
 
     public function create(): View

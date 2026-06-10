@@ -11,7 +11,7 @@
         <details class="relative">
             <summary class="erp-btn-secondary cursor-pointer text-xs list-none">{{ __('Schedule Export') }}</summary>
             <div class="absolute right-0 z-10 mt-2 w-64 rounded-lg border border-erp-border bg-white p-3 shadow-lg">
-                <form method="POST" action="{{ route('admin.reports.production.export', $filters) }}" class="space-y-3">
+                <form method="POST" action="{{ route('admin.reports.production.export', $filters) }}" class="space-y-3" data-turbo="false" target="_top">
                     @csrf
                     <input type="hidden" name="schedule" value="1">
                     <div>

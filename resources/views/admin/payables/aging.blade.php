@@ -4,6 +4,13 @@
     <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="route('admin.payables.aging')" :reset-url="route('admin.payables.aging')">
             <input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-toolbar-input" aria-label="{{ __('As of date') }}">
+
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => 'ap-aging',
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
         </x-admin.index-toolbar>
     </x-admin.card>
 

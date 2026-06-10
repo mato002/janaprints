@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search categories...')" export-filename="catalogue-categories">
+    <x-admin.data-table
+        :search-placeholder="__('Search categories...')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'categories']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="catalogue-categories"
+    >
         <x-slot name="head">
             <tr>
                 <th>{{ __('Category') }}</th>

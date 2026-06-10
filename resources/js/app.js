@@ -902,6 +902,94 @@ function discoveryNormalizeStoredEntries(entries) {
         .filter(Boolean);
 }
 
+function parseExportFilename(contentDisposition, fallback = 'export') {
+    if (! contentDisposition) {
+        return fallback;
+    }
+
+    const utf8Match = /filename\*=UTF-8''([^;]+)/i.exec(contentDisposition);
+
+    if (utf8Match?.[1]) {
+        try {
+            return decodeURIComponent(utf8Match[1]);
+        } catch {
+            // Fall through to the basic filename parser.
+        }
+    }
+
+    const basicMatch = /filename="?([^";]+)"?/i.exec(contentDisposition);
+
+    return basicMatch?.[1] ?? fallback;
+}
+
+async function triggerBlobDownload(blob, filename) {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = filename;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+}
+
+window.erpExport = {
+    csrfToken() {
+        return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+    },
+
+    exportHeaders() {
+        return {
+            Accept: 'application/octet-stream, application/pdf, text/csv, application/vnd.ms-excel, */*',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': this.csrfToken(),
+        };
+    },
+
+    async downloadResponse(response, fallbackFilename = 'export') {
+        if (! response.ok) {
+            throw new Error(`Export failed (${response.status})`);
+        }
+
+        const blob = await response.blob();
+        const filename = parseExportFilename(response.headers.get('Content-Disposition'), fallbackFilename);
+        await triggerBlobDownload(blob, filename);
+    },
+
+    async downloadUrl(url, fallbackFilename = 'export') {
+        const response = await fetch(url, {
+            credentials: 'same-origin',
+            headers: this.exportHeaders(),
+        });
+
+        await this.downloadResponse(response, fallbackFilename);
+    },
+
+    async downloadFormPost(url, fields, fallbackFilename = 'export') {
+        const body = new FormData();
+
+        Object.entries(fields).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+                body.append(key, value);
+            }
+        });
+
+        if (! body.has('_token')) {
+            body.append('_token', this.csrfToken());
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body,
+            credentials: 'same-origin',
+            headers: this.exportHeaders(),
+        });
+
+        await this.downloadResponse(response, fallbackFilename);
+    },
+};
+
 async function discoveryFetchResults(query, moduleKey = null, limit = 24) {
     const searchUrl = discoverySearchUrl();
 
@@ -1428,6 +1516,47 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('erpExportDropdown', () => ({
+        exportOpen: false,
+        exporting: false,
+
+        async downloadUrl(url, fallbackFilename = 'export') {
+            if (this.exporting) {
+                return;
+            }
+
+            this.exporting = true;
+            this.exportOpen = false;
+
+            try {
+                await window.erpExport.downloadUrl(url, fallbackFilename);
+            } catch (error) {
+                console.error('erpExportDropdown.downloadUrl', error);
+                window.alert('Export failed. Please try again.');
+            } finally {
+                this.exporting = false;
+            }
+        },
+
+        async submitPost(action, fields, fallbackFilename = 'export') {
+            if (this.exporting) {
+                return;
+            }
+
+            this.exporting = true;
+            this.exportOpen = false;
+
+            try {
+                await window.erpExport.downloadFormPost(action, fields, fallbackFilename);
+            } catch (error) {
+                console.error('erpExportDropdown.submitPost', error);
+                window.alert('Export failed. Please try again.');
+            } finally {
+                this.exporting = false;
+            }
+        },
+    }));
+
     Alpine.data('erpDataTable', (config = {}) => ({
         query: '',
         debouncedQuery: '',
@@ -1438,10 +1567,12 @@ document.addEventListener('alpine:init', () => {
         pageSize: Number(localStorage.getItem(`erp.table.${config.tableId ?? 'default'}.pageSize`) || 25),
         currentPage: 1,
         exportOpen: false,
+        exportLoading: false,
         selectable: config.selectable ?? false,
         selected: new Set(),
         tableId: config.tableId ?? null,
         exportFilename: config.exportFilename ?? 'export',
+        tableExportUrl: config.tableExportUrl ?? window.__erpTableExportUrl ?? null,
 
         _tableRevision: 0,
 
@@ -1536,13 +1667,7 @@ document.addEventListener('alpine:init', () => {
                 return 0;
             }
 
-            return [...table.querySelectorAll('tbody tr')].filter((row) => {
-                if (row.querySelector('[data-empty-state], .erp-empty-state')) {
-                    return false;
-                }
-
-                return row.offsetParent !== null;
-            }).length;
+            return [...table.querySelectorAll('tbody tr')].filter((row) => this.isExportableRow(row)).length;
         },
 
         get showNoResults() {
@@ -1627,7 +1752,7 @@ document.addEventListener('alpine:init', () => {
             table.querySelectorAll('tbody tr[data-row-id]').forEach((row) => {
                 const id = row.dataset.rowId;
                 const checkbox = row.querySelector('input[type="checkbox"]');
-                const visible = row.offsetParent !== null;
+                const visible = this.isExportableRow(row);
 
                 if (!visible || !checkbox) {
                     return;
@@ -1646,7 +1771,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         exportTable(format = 'csv') {
-            if (format !== 'csv') {
+            if (this.exportLoading) {
                 return;
             }
 
@@ -1660,17 +1785,12 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const rows = [];
             const headers = [...table.querySelectorAll('thead th')]
                 .filter((th) => !th.classList.contains('erp-table-checkbox-col'))
                 .filter((th) => !th.classList.contains('erp-table-actions-col'))
                 .map((th) => th.textContent.trim());
 
-            if (headers.length) {
-                rows.push(headers);
-            }
-
-            let dataRowCount = 0;
+            const rows = [];
 
             table.querySelectorAll('tbody tr').forEach((row) => {
                 if (!this.isExportableRow(row)) {
@@ -1684,30 +1804,48 @@ document.addEventListener('alpine:init', () => {
 
                 if (cells.length) {
                     rows.push(cells);
-                    dataRowCount += 1;
                 }
             });
 
-            if (rows.length === 0 || (rows.length === 1 && headers.length > 0 && dataRowCount === 0)) {
+            if (rows.length === 0 && headers.length === 0) {
                 window.alert(this.$el?.dataset?.exportEmptyMessage ?? 'No rows to export.');
 
                 return;
             }
 
-            const csv = rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-            const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.href = url;
-            link.download = `${this.exportFilename}${dataRowCount === 0 ? '-headers-only' : ''}.csv`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            URL.revokeObjectURL(url);
+            const exportUrl = this.tableExportUrl ?? window.__erpTableExportUrl ?? null;
+
+            if (!exportUrl) {
+                window.alert('Export is not configured for this table.');
+
+                return;
+            }
+
+            this.submitTableExport(exportUrl, format, headers, rows);
+        },
+
+        async submitTableExport(exportUrl, format, headers, rows) {
+            this.exportLoading = true;
+
+            try {
+                await window.erpExport.downloadFormPost(exportUrl, {
+                    _token: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                    format,
+                    basename: this.exportFilename,
+                    title: this.exportFilename,
+                    headers: JSON.stringify(headers),
+                    rows: JSON.stringify(rows),
+                }, this.exportFilename);
+            } catch (error) {
+                console.error('erpDataTable.submitTableExport', error);
+                window.alert('Export failed. Please try again.');
+            } finally {
+                this.exportLoading = false;
+            }
         },
 
         isExportableRow(row) {
-            if (row.offsetParent === null || row.hidden) {
+            if (! row || row.hidden) {
                 return false;
             }
 
@@ -1715,7 +1853,13 @@ document.addEventListener('alpine:init', () => {
                 return false;
             }
 
-            return true;
+            if (row.querySelectorAll('td').length === 0) {
+                return false;
+            }
+
+            const style = window.getComputedStyle(row);
+
+            return style.display !== 'none' && style.visibility !== 'hidden';
         },
 
         exportSelected() {

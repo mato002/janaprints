@@ -7,7 +7,14 @@
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search purchase orders…')" export-filename="purchase-orders">
+    <x-admin.data-table
+        :search-placeholder="__('Search purchase orders…')"
+        export-route="admin.procurement.exports"
+        :export-route-params="['listing' => 'purchase-orders']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="purchase-orders"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('PO Number') }}</th>

@@ -8,6 +8,13 @@
                     <option value="{{ $v->id }}" @selected($vendorId == $v->id)>{{ $v->vendor_name }}</option>
                 @endforeach
             </select>
+
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => 'ap-ledger',
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
         </x-admin.index-toolbar>
     </x-admin.card>
 

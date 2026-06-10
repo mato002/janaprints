@@ -15,7 +15,14 @@
         <x-admin.stat-card :label="__('Provider health')" :value="$stats?->health_status ?? __('Unknown')" />
     </section>
 
-    <x-admin.data-table :search-placeholder="__('Search SMS settings...')" export-filename="sms-settings">
+    <x-admin.data-table
+        :search-placeholder="__('Search SMS settings...')"
+        export-filename="sms-settings"
+        export-route="admin.administration.exports"
+        :export-route-params="['listing' => 'sms-providers']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+    >
         <x-slot name="head">
             <th>{{ __('Provider') }}</th>
             <th>{{ __('Sender ID') }}</th>

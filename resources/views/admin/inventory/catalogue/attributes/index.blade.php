@@ -1,6 +1,13 @@
 <x-admin-layout :title="__('Attributes')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Attributes')]]">
     <x-admin.page-header :title="__('Attributes')"><x-slot name="actions">@if (auth()->user()?->can('catalogue.create'))<a href="{{ route('admin.inventory.catalogue.attributes.create') }}" class="erp-btn-primary">{{ __('New Attribute') }}</a>@endif</x-slot></x-admin.page-header>
-    <x-admin.data-table :search-placeholder="__('Search attributes...')" export-filename="catalogue-attributes">
+    <x-admin.data-table
+        :search-placeholder="__('Search attributes...')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'attributes']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="catalogue-attributes"
+    >
         <x-slot name="head"><tr><th>{{ __('Attribute') }}</th><th>{{ __('Category') }}</th><th>{{ __('Type') }}</th><th>{{ __('Options') }}</th><th class="erp-table-actions-col">{{ __('Actions') }}</th></tr></x-slot>
         <x-slot name="body">
             @forelse ($attributes as $attribute)

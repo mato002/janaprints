@@ -1,7 +1,14 @@
 <x-admin-layout :title="__('Movements')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Inventory'), 'url' => route('admin.inventory.dashboard')], ['label' => __('Stock Movements')]]">
     <x-admin.page-header :title="__('Inventory movements')" :description="__('Audit trail — source of stock truth.')" />
 
-    <x-admin.data-table :search-placeholder="__('Search movements…')" export-filename="inventory-movements">
+    <x-admin.data-table
+        :search-placeholder="__('Search movements…')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'movements']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="inventory-movements"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Date') }}</th>

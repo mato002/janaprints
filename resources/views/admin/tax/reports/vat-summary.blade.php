@@ -1,7 +1,7 @@
 <x-admin-layout :title="__('VAT Summary')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('VAT Summary')]]">
     <x-admin.page-header :title="__('VAT Summary')" :description="__('From posted tax ledger transactions')" />
 
-    @include('admin.tax.partials.report-filters')
+    @include('admin.tax.partials.report-filters', ['exportListing' => 'vat-summary'])
 
     <div class="mb-4 grid grid-cols-4 gap-3">
         <x-admin.kpi-widget :label="__('Output VAT')" :value="number_format($report['output_vat'], 2)" />

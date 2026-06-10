@@ -12,7 +12,14 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.data-table :search-placeholder="__('Search counts…')" export-filename="stock-counts">
+    <x-admin.data-table
+        :search-placeholder="__('Search counts…')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'stock-counts']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="stock-counts"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Count') }}</th>

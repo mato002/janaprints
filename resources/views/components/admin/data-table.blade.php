@@ -43,6 +43,7 @@
         'tableId' => $tableId,
         'hasClientExport' => $hasClientExport,
         'brandingLogoUrl' => app(\App\Support\Branding\BrandingAssets::class)->logoUrl(),
+        'tableExportUrl' => route('admin.exports.table'),
     ];
 @endphp
 
@@ -136,12 +137,26 @@
                                 />
                             @else
                                 <div class="relative" @click.outside="exportOpen = false">
-                                    <button type="button" class="erp-btn-secondary py-2 text-sm" @click.stop="exportOpen = !exportOpen">
-                                        <x-admin.icon name="download" class="h-4 w-4" />
-                                        {{ __('Export') }}
+                                    <button
+                                        type="button"
+                                        class="erp-btn-secondary py-2 text-sm"
+                                        :disabled="exportLoading"
+                                        @click.stop="!exportLoading && (exportOpen = !exportOpen)"
+                                    >
+                                        <span x-show="!exportLoading" class="inline-flex items-center gap-2">
+                                            <x-admin.icon name="download" class="h-4 w-4" />
+                                            {{ __('Export') }}
+                                        </span>
+                                        <span x-show="exportLoading" x-cloak class="inline-flex items-center gap-2">
+                                            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                            </svg>
+                                            {{ __('Exporting…') }}
+                                        </span>
                                     </button>
                                     <div
-                                        x-show="exportOpen"
+                                        x-show="exportOpen && !exportLoading"
                                         x-cloak
                                         class="absolute end-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
                                     >

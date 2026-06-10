@@ -59,6 +59,41 @@ class JobCardsCommandCenterTest extends TestCase
             ->assertDontSee(__('Bottleneck'), false);
     }
 
+    public function test_job_cards_register_includes_server_export_links(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
+        $this->createJobCard($salesOrder, $user);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.production.job-cards.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee(__('Export CSV'), false)
+            ->assertSee(__('Export Excel'), false)
+            ->assertSee(__('Export PDF'), false)
+            ->assertSee('erpExportDropdown()', false);
+    }
+
+    public function test_job_cards_export_downloads_csv_with_filters(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.production.job-cards.export', [
+                'format' => 'csv',
+                'search' => $jobCard->job_card_number,
+            ]))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+
+        $this->assertStringContainsString($jobCard->job_card_number, $response->streamedContent());
+    }
+
     public function test_register_payload_excludes_command_center_data(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);

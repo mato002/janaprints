@@ -77,6 +77,18 @@ class BackupManagementService
     }
 
     /**
+     * @param  array<string, mixed>  $filters
+     * @return Collection<int, SystemBackup>
+     */
+    public function allFiltered(array $filters = []): Collection
+    {
+        return $this->filteredQuery($filters)
+            ->orderByDesc('backup_created_at')
+            ->limit(5000)
+            ->get();
+    }
+
+    /**
      * @return array<string, int>
      */
     public function summaryMetrics(): array

@@ -18,12 +18,14 @@ use App\Services\Production\JobProductionControlService;
 use App\Services\Production\ProductionJobCardIndexService;
 use App\Enums\WorkflowRuleTrigger;
 use App\Support\Governance\WorkflowRulesService;
+use App\Support\Export\TabularExportWriter;
 use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionJobCardController extends Controller
 {
@@ -34,6 +36,28 @@ class ProductionJobCardController extends Controller
         $this->authorize('viewAny', ProductionJobCard::class);
 
         return view('admin.production.job-cards.index', $index->build($request));
+    }
+
+    public function export(Request $request, ProductionJobCardIndexService $index, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', ProductionJobCard::class);
+
+        $format = $request->input('format', 'csv');
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
+
+        $rows = $index->exportIndex($request)->map(
+            fn (ProductionJobCard $jobCard) => $index->exportRow($jobCard),
+        );
+
+        return $writer->download(
+            $format,
+            'job-cards-register-'.now()->format('Y-m-d'),
+            $index->exportHeaders(),
+            $rows,
+            __('Job Cards'),
+        );
     }
 
     public function create(): View

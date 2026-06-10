@@ -11,12 +11,17 @@ use App\Http\Controllers\Admin\Procurement\SupplierQuotationController;
 use App\Http\Controllers\Admin\Procurement\VendorComparisonController;
 use App\Http\Controllers\Admin\Procurement\VendorContactController;
 use App\Http\Controllers\Admin\Procurement\VendorController;
+use App\Http\Controllers\Admin\Export\SupplyChainListingExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin/procurement')
     ->name('admin.procurement.')
     ->group(function () {
+        Route::get('exports/{listing}/{format}', [SupplyChainListingExportController::class, 'procurement'])
+            ->where('format', 'csv|excel|pdf')
+            ->name('exports');
+
         Route::get('/', ProcurementDashboardController::class)
             ->middleware('permission:procurement.vendors.view')
             ->name('dashboard');

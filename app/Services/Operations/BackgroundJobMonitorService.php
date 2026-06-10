@@ -24,6 +24,18 @@ class BackgroundJobMonitorService
     /**
      * @param  array<string, mixed>  $filters
      */
+    /**
+     * @param  array<string, mixed>  $filters
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function allFiltered(array $filters = []): Collection
+    {
+        return $this->collectRows($filters);
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
     public function paginate(array $filters = [], int $perPage = 25): LengthAwarePaginator
     {
         $rows = $this->collectRows($filters);

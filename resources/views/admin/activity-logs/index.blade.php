@@ -11,7 +11,14 @@
         :description="__('Audit trail of user and system actions across the ERP platform.')"
     />
 
-    <x-admin.data-table :search-placeholder="__('Search activity logs…')" export-filename="activity-logs">
+    <x-admin.data-table
+        :search-placeholder="__('Search activity logs…')"
+        export-filename="activity-logs"
+        export-route="admin.administration.exports"
+        :export-route-params="['listing' => 'activity-logs']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('When') }}</th>

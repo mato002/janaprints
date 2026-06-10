@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Department;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DepartmentController extends Controller
 {
+    use ExportsTabularIndex;
     use ScopesToTenant;
 
     public function index(): View
@@ -24,6 +28,24 @@ class DepartmentController extends Controller
         )->latest()->paginate(15);
 
         return view('admin.departments.index', compact('departments'));
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', Department::class);
+
+        $departments = $this->scopeToTenant(
+            Department::query()->with('company')
+        )->latest()->get();
+
+        $headers = [__('Department'), __('Code'), __('Company')];
+        $rows = $departments->map(fn (Department $department) => [
+            $department->name,
+            $department->code,
+            $department->company?->name ?? '',
+        ])->all();
+
+        return $this->downloadTabularExport($writer, $format, 'departments', $headers, $rows, __('Departments'));
     }
 
     public function create(): View

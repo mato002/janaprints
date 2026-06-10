@@ -26,9 +26,18 @@
 
     if ($canExport && filled($exportRoute)) {
         foreach ($formats as $format) {
+            $params = array_merge($routeParams, $query);
+
+            if ($formatInPath) {
+                $params['format'] = $format;
+            } else {
+                unset($params['format']);
+                $params['format'] = $format;
+            }
+
             $availableFormats[$format] = [
                 'type' => 'url',
-                'url' => route($exportRoute, array_merge($routeParams, $query, ['format' => $format])),
+                'url' => route($exportRoute, $params),
             ];
         }
     } else {
@@ -61,13 +70,27 @@
 @elseif ($availableFormats === [])
     {{ $slot ?? '' }}
 @else
-    <div class="relative" x-data="{ exportOpen: false }" @click.outside="exportOpen = false">
-        <button type="button" class="erp-btn-secondary py-2 text-sm" @click.stop="exportOpen = !exportOpen">
-            <x-admin.icon name="download" class="h-4 w-4" />
-            {{ __('Export') }}
+    <div class="relative" x-data="erpExportDropdown()" @click.outside="exportOpen = false">
+        <button
+            type="button"
+            class="erp-btn-secondary py-2 text-sm"
+            :disabled="exporting"
+            @click.stop="!exporting && (exportOpen = !exportOpen)"
+        >
+            <span x-show="!exporting" class="inline-flex items-center gap-2">
+                <x-admin.icon name="download" class="h-4 w-4" />
+                {{ __('Export') }}
+            </span>
+            <span x-show="exporting" x-cloak class="inline-flex items-center gap-2">
+                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                {{ __('Exporting…') }}
+            </span>
         </button>
         <div
-            x-show="exportOpen"
+            x-show="exportOpen && !exporting"
             x-cloak
             class="absolute end-0 z-20 mt-1 min-w-[10rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
         >
@@ -75,27 +98,17 @@
                 @continue(! isset($availableFormats[$format]))
                 @php $config = $availableFormats[$format]; @endphp
                 @if ($config['type'] === 'url')
-                    <a
-                        href="{{ $config['url'] }}"
-                        data-turbo="false"
-                        data-turbo-frame="_top"
-                        target="_top"
+                    <button
+                        type="button"
                         class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
-                        @click="exportOpen = false"
-                    >{{ $formatLabels[$format] }}</a>
+                        @click.prevent="downloadUrl(@js($config['url']), @js($formatLabels[$format]))"
+                    >{{ $formatLabels[$format] }}</button>
                 @else
-                    <form method="POST" action="{{ $config['action'] }}" class="contents" data-turbo="false" target="_top">
-                        @csrf
-                        <input type="hidden" name="format" value="{{ $format }}">
-                        @foreach ($postFields as $name => $value)
-                            <input type="hidden" name="{{ $name }}" value="{{ $value }}">
-                        @endforeach
-                        <button
-                            type="submit"
-                            class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
-                            @click="exportOpen = false"
-                        >{{ $formatLabels[$format] }}</button>
-                    </form>
+                    <button
+                        type="button"
+                        class="flex w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-erp-page"
+                        @click.prevent="submitPost(@js($config['action']), @js(array_merge(['_token' => csrf_token(), 'format' => $format], $postFields)), @js($formatLabels[$format]))"
+                    >{{ $formatLabels[$format] }}</button>
                 @endif
             @endforeach
             {{ $slot ?? '' }}

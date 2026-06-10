@@ -1,7 +1,14 @@
 <x-admin-layout :title="__('Store Balances')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Management'), 'url' => route('admin.inventory.store.dashboard')], ['label' => __('Store Balances')]]">
     <x-admin.page-header :title="__('Store Balances')" :description="__('View stock position by item, warehouse, and branch.')" />
 
-    <x-admin.data-table :search-placeholder="__('Search store balances...')" export-filename="store-balances">
+    <x-admin.data-table
+        :search-placeholder="__('Search store balances...')"
+        export-route="admin.inventory.exports"
+        :export-route-params="['listing' => 'store-balances']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="store-balances"
+    >
         <x-slot name="filters">
             <div class="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-4">
                 <label class="text-xs font-medium text-slate-600">

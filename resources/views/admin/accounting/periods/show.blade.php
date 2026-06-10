@@ -84,7 +84,14 @@
         </x-admin.card>
     @endif
 
-    <x-admin.data-table :search-placeholder="__('Search periods…')">
+    <x-admin.data-table
+        :search-placeholder="__('Search periods…')"
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'accounting-periods']"
+        :export-query="['fiscal_year_id' => $fiscalYear->id]"
+        :format-in-path="true"
+        export-filename="accounting-periods"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">#</th>

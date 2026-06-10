@@ -2,20 +2,24 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AccessControl\PermissionCatalog;
 use App\Support\AccessControl\RoleDeactivationRegistry;
 use App\Support\AccessControl\RoleGovernancePresenter;
 use App\Support\ActivityLogger;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class RoleController extends Controller
 {
+    use ExportsTabularIndex;
     public function __construct(
         protected PermissionCatalog $catalog,
         protected RoleGovernancePresenter $governance,
@@ -41,6 +45,35 @@ class RoleController extends Controller
             'insights' => $this->governance->governanceInsights(),
             'profiles' => $this->governance->profilesForPage($roles, $usersByRole),
         ]);
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', Role::class);
+
+        $roles = Role::query()
+            ->where('guard_name', 'web')
+            ->withCount(['permissions', 'users'])
+            ->orderBy('name')
+            ->get();
+
+        $usersByRole = $this->governance->usersGroupedByRole($roles->pluck('id')->all());
+
+        $headers = [__('Role'), __('Category'), __('Users assigned'), __('Permissions'), __('Modules'), __('Status')];
+        $rows = $roles->map(function (Role $role) use ($usersByRole) {
+            $profile = $this->governance->profile($role, $usersByRole->get($role->id, collect()));
+
+            return [
+                $profile['name'],
+                $profile['category']['label'],
+                (string) $profile['users_count'],
+                (string) $profile['permissions_count'],
+                $profile['modules_display'],
+                $profile['health']['label'],
+            ];
+        })->all();
+
+        return $this->downloadTabularExport($writer, $format, 'roles', $headers, $rows, __('Roles'));
     }
 
     public function create(): View

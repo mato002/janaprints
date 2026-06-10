@@ -1,0 +1,66 @@
+<?php
+
+namespace Tests\Feature\Inventory;
+
+use App\Models\Branch;
+use App\Models\Company;
+use App\Models\Inventory\InventoryItem;
+use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class SupplyChainExportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesAndPermissionsSeeder::class);
+    }
+
+    public function test_inventory_items_export_supports_csv_excel_and_pdf(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext(['catalogue.view']);
+
+        InventoryItem::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
+        foreach (['csv', 'excel', 'pdf'] as $format) {
+            $response = $this->actingAs($user)
+                ->get(route('admin.inventory.exports', ['listing' => 'items', 'format' => $format]));
+
+            $response->assertOk()->assertHeader('content-disposition');
+
+            if ($format === 'pdf') {
+                $response->assertHeader('content-type', 'application/pdf');
+                $this->assertStringStartsWith('%PDF', $response->streamedContent());
+            }
+        }
+    }
+
+    /**
+     * @return array{0: Company, 1: Branch, 2: User}
+     */
+    protected function tenantContext(array $permissions): array
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::factory()->create(['company_id' => $company->id]);
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        Role::findByName('Company Admin', 'web')->syncPermissions($permissions);
+        $user->assignRole('Company Admin');
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        return [$company, $branch, $user];
+    }
+}

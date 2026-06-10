@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
+use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
@@ -11,14 +12,17 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobTitle;
+use App\Support\Export\TabularExportWriter;
 use App\Support\Organization\JobTitleService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EmployeeController extends Controller
 {
+    use ExportsTabularIndex;
     use ScopesToTenant;
 
     public function index(): View
@@ -30,6 +34,24 @@ class EmployeeController extends Controller
         )->latest()->paginate(15);
 
         return view('admin.employees.index', compact('employees'));
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', Employee::class);
+
+        $employees = $this->scopeToTenant(
+            Employee::query()->with(['branch'])
+        )->latest()->get();
+
+        $headers = [__('Employee'), __('Employee number'), __('Branch')];
+        $rows = $employees->map(fn (Employee $employee) => [
+            $employee->full_name,
+            $employee->employee_number,
+            $employee->branch?->name ?? '',
+        ])->all();
+
+        return $this->downloadTabularExport($writer, $format, 'employees', $headers, $rows, __('Employees'));
     }
 
     public function create(): View

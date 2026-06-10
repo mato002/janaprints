@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Accounts receivable aging')" :description="__('As of :date', ['date' => $report['as_of_date']])" />
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="route('admin.sales.receivables.aging')" :reset-url="route('admin.sales.receivables.aging')">
+        <x-admin.index-toolbar :action="route('admin.receivables.aging')" :reset-url="route('admin.receivables.aging')">
             <input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-toolbar-input" aria-label="{{ __('As of date') }}">
             <select name="customer_id" class="erp-toolbar-select" aria-label="{{ __('Customer') }}">
                 <option value="">{{ __('All customers') }}</option>
@@ -10,6 +10,13 @@
                     <option value="{{ $c->id }}" @selected(request('customer_id') == $c->id)>{{ $c->company_name }}</option>
                 @endforeach
             </select>
+
+            <x-slot name="export">
+                @include('admin.accounting.partials.listing-export-dropdown', [
+                    'listing' => 'ar-aging',
+                    'exportQuery' => request()->query(),
+                ])
+            </x-slot>
         </x-admin.index-toolbar>
     </x-admin.card>
 

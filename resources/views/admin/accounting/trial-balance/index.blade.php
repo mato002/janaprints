@@ -9,6 +9,7 @@
         'showZeroCheckbox' => true,
         'full' => $full,
         'customPeriodLabel' => __('All posted'),
+        'exportListing' => 'trial-balance',
     ])
 
     <x-admin.trial-balance-enterprise :report="$report" table-mode="standard" />

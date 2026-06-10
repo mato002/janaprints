@@ -62,7 +62,14 @@
             </x-admin.index-toolbar>
         </x-admin.card>
 
-        <x-admin.data-table :search-placeholder="__('Search backups…')" export-filename="backups">
+        <x-admin.data-table
+            :search-placeholder="__('Search backups…')"
+            export-filename="backups"
+            export-route="admin.administration.exports"
+            :export-route-params="['listing' => 'backups']"
+            :export-query="request()->query()"
+            :format-in-path="true"
+        >
             <x-slot name="head">
                 <tr>
                     <th scope="col">{{ __('Backup Name') }}</th>

@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Support\Branding\BrandingAssets;
+use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CompanyController extends Controller
 {
+    use ExportsTabularIndex;
     use ScopesToTenant;
 
     public function __construct(
@@ -26,6 +30,22 @@ class CompanyController extends Controller
         $companies = $this->scopeToTenant(Company::query())->latest()->paginate(15);
 
         return view('admin.companies.index', compact('companies'));
+    }
+
+    public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
+    {
+        $this->authorize('viewAny', Company::class);
+
+        $companies = $this->scopeToTenant(Company::query())->latest()->get();
+
+        $headers = [__('Name'), __('Code'), __('Status')];
+        $rows = $companies->map(fn (Company $company) => [
+            $company->name,
+            $company->code,
+            $company->is_active ? __('Active') : __('Inactive'),
+        ])->all();
+
+        return $this->downloadTabularExport($writer, $format, 'companies', $headers, $rows, __('Companies'));
     }
 
     public function create(): View

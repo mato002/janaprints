@@ -11,12 +11,17 @@ use App\Http\Controllers\Admin\Accounting\JournalController;
 use App\Http\Controllers\Admin\Accounting\PostingRuleController;
 use App\Http\Controllers\Admin\Accounting\PostingTemplateController;
 use App\Http\Controllers\Admin\Accounting\TrialBalanceController;
+use App\Http\Controllers\Admin\Export\AccountingListingExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin/accounting')
     ->name('admin.accounting.')
     ->group(function () {
+        Route::get('exports/{listing}/{format}', [AccountingListingExportController::class, 'download'])
+            ->where('format', 'csv|excel|pdf')
+            ->name('exports');
+
         Route::middleware('permission:accounting.dashboard.view')->group(function () {
             Route::get('dashboard', AccountingDashboardController::class)->name('dashboard');
         });

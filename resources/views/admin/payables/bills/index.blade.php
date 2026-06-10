@@ -7,7 +7,13 @@
         @endcan
     </x-admin.page-header>
 
-    <x-admin.data-table>
+    <x-admin.data-table
+        export-route="admin.accounting.exports"
+        :export-route-params="['listing' => 'supplier-bills']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="supplier-bills"
+    >
         <x-slot name="head">
             <tr>
                 <th>{{ __('Number') }}</th>

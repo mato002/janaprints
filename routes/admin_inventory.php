@@ -26,12 +26,17 @@ use App\Http\Controllers\Admin\Inventory\StockCountController;
 use App\Http\Controllers\Admin\Inventory\CycleCountController;
 use App\Http\Controllers\Admin\Inventory\InventoryVarianceController;
 use App\Http\Controllers\Admin\Inventory\InventoryReconciliationController;
+use App\Http\Controllers\Admin\Export\SupplyChainListingExportController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin/inventory')
     ->name('admin.inventory.')
     ->group(function () {
+        Route::get('exports/{listing}/{format}', [SupplyChainListingExportController::class, 'inventory'])
+            ->where('format', 'csv|excel|pdf')
+            ->name('exports');
+
         Route::get('/', InventoryDashboardController::class)
             ->middleware('permission:inventory.view')
             ->name('dashboard');

@@ -8,6 +8,7 @@
         'periods' => $periods,
         'showZeroCheckbox' => true,
         'full' => $full,
+        'exportListing' => 'trial-balance',
     ])
 
     <x-admin.trial-balance-enterprise :report="$report" table-mode="extended" />

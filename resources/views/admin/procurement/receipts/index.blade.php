@@ -1,7 +1,14 @@
 <x-admin-layout :title="__('Goods Receipts')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Goods Receipts')]]">
     <x-admin.page-header :title="__('Goods Receipts')" />
 
-    <x-admin.data-table :search-placeholder="__('Search goods receipts…')" export-filename="goods-receipts">
+    <x-admin.data-table
+        :search-placeholder="__('Search goods receipts…')"
+        export-route="admin.procurement.exports"
+        :export-route-params="['listing' => 'goods-receipts']"
+        :export-query="request()->query()"
+        :format-in-path="true"
+        export-filename="goods-receipts"
+    >
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Number') }}</th>
