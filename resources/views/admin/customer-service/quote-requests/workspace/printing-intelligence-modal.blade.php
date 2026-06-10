@@ -46,8 +46,66 @@
                 </template>
 
                 <template x-if="piSummary">
-                    <div class="space-y-5">
-                        <section class="qr-360__pi-section">
+                    <div class="qr-360__pi-tabbed">
+                        <nav class="qr-360__pi-tabs" aria-label="{{ __('Printing Intelligence analysis sections') }}" role="tablist">
+                            <button
+                                type="button"
+                                role="tab"
+                                class="qr-360__pi-tab"
+                                :class="piActiveTab === 'overview' && 'qr-360__pi-tab--active'"
+                                :aria-selected="piActiveTab === 'overview'"
+                                @click="setPiTab('overview')"
+                            >
+                                {{ __('Overview') }}
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                class="qr-360__pi-tab"
+                                :class="piActiveTab === 'colour' && 'qr-360__pi-tab--active'"
+                                :aria-selected="piActiveTab === 'colour'"
+                                @click="setPiTab('colour')"
+                            >
+                                {{ __('Colour analysis') }}
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                class="qr-360__pi-tab"
+                                :class="piActiveTab === 'ink' && 'qr-360__pi-tab--active'"
+                                :aria-selected="piActiveTab === 'ink'"
+                                @click="setPiTab('ink')"
+                            >
+                                {{ __('Ink estimate') }}
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                class="qr-360__pi-tab"
+                                :class="piActiveTab === 'production' && 'qr-360__pi-tab--active'"
+                                :aria-selected="piActiveTab === 'production'"
+                                @click="setPiTab('production')"
+                            >
+                                {{ __('Production') }}
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                class="qr-360__pi-tab"
+                                :class="piActiveTab === 'quotation' && 'qr-360__pi-tab--active'"
+                                :aria-selected="piActiveTab === 'quotation'"
+                                @click="setPiTab('quotation')"
+                            >
+                                {{ __('Quotation') }}
+                            </button>
+                        </nav>
+
+                        <div class="qr-360__pi-tab-panels">
+                        <section
+                            x-show="piActiveTab === 'overview'"
+                            role="tabpanel"
+                            class="qr-360__pi-tab-panel qr-360__pi-section"
+                        >
                             <h4 class="qr-360__pi-section-title">{{ __('File info') }}</h4>
                             <dl class="qr-360__pi-grid">
                                 <div>
@@ -101,7 +159,12 @@
                             </dl>
                         </section>
 
-                        <section class="qr-360__pi-section">
+                        <section
+                            x-show="piActiveTab === 'colour'"
+                            x-cloak
+                            role="tabpanel"
+                            class="qr-360__pi-tab-panel qr-360__pi-section"
+                        >
                             <h4 class="qr-360__pi-section-title">{{ __('Colour analysis') }}</h4>
                             <template x-if="(piSummary.detected_colours ?? piSummary.dominant_colours)?.length">
                                 <div class="mb-4">
@@ -137,10 +200,8 @@
                                     </ul>
                                 </div>
                             </template>
-                        </section>
 
-                        <section class="qr-360__pi-section">
-                            <h4 class="qr-360__pi-section-title">{{ __('Ink coverage summary') }}</h4>
+                            <h4 class="qr-360__pi-section-title mt-5">{{ __('Ink coverage summary') }}</h4>
                             <dl class="qr-360__pi-grid mb-4">
                                 <div>
                                     <dt>{{ __('Total CMYK coverage') }}</dt>
@@ -224,7 +285,12 @@
                             </div>
                         </section>
 
-                        <section class="qr-360__pi-section">
+                        <section
+                            x-show="piActiveTab === 'ink'"
+                            x-cloak
+                            role="tabpanel"
+                            class="qr-360__pi-tab-panel qr-360__pi-section"
+                        >
                             <div class="qr-360__pi-section-head">
                                 <h4 class="qr-360__pi-section-title">{{ __('Ink estimate') }}</h4>
                                 <template x-if="piSummary.ink_estimate">
@@ -287,7 +353,12 @@
                             </template>
                         </section>
 
-                        <section class="qr-360__pi-section">
+                        <section
+                            x-show="piActiveTab === 'production'"
+                            x-cloak
+                            role="tabpanel"
+                            class="qr-360__pi-tab-panel qr-360__pi-section"
+                        >
                             <h4 class="qr-360__pi-section-title">{{ __('Production estimate') }}</h4>
                             <template x-if="piSummary.production_estimate">
                                 <dl class="qr-360__pi-grid">
@@ -346,7 +417,12 @@
                             </template>
                         </section>
 
-                        <section class="qr-360__pi-section">
+                        <section
+                            x-show="piActiveTab === 'quotation'"
+                            x-cloak
+                            role="tabpanel"
+                            class="qr-360__pi-tab-panel qr-360__pi-section"
+                        >
                             <h4 class="qr-360__pi-section-title">{{ __('Quotation recommendation') }}</h4>
                             <template x-if="piSummary.quotation_estimate">
                                 <div>
@@ -416,6 +492,7 @@
                                 <p class="text-sm text-slate-500">{{ __('No quotation recommendation yet. Run quotation estimation.') }}</p>
                             </template>
                         </section>
+                        </div>
                     </div>
                 </template>
 

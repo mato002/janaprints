@@ -4297,8 +4297,37 @@ document.addEventListener('alpine:init', () => {
         piRunUrl: config.runUrl ?? '',
         piRerunUrl: config.rerunUrl ?? '',
         piCsrf: config.csrf ?? '',
+        piActiveTab: 'overview',
         piShowCmykBreakdown: true,
         piShowInkCmykMl: false,
+
+        setPiTab(tab) {
+            this.piActiveTab = tab;
+        },
+
+        resolvePiTabFromAction(action = '') {
+            if (action.includes('/colour')) {
+                return 'colour';
+            }
+
+            if (action.includes('/ink')) {
+                return 'ink';
+            }
+
+            if (action.includes('/production')) {
+                return 'production';
+            }
+
+            if (action.includes('/quotation')) {
+                return 'quotation';
+            }
+
+            if (action.includes('/metadata')) {
+                return 'overview';
+            }
+
+            return 'overview';
+        },
 
         async openPiModal() {
             this.piAnalysisOpen = true;
@@ -4357,6 +4386,7 @@ document.addEventListener('alpine:init', () => {
                 this.piSummary = data.summary ?? null;
                 this.piWarnings = data.warnings ?? [];
                 this.piStatusMessage = data.message ?? null;
+                this.piActiveTab = this.resolvePiTabFromAction(form.action);
             } catch (error) {
                 this.piWarnings = [error?.message || 'Unable to run analysis.'];
             } finally {
