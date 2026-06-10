@@ -7,7 +7,9 @@ use App\Enums\ArtworkAnalysisStatus;
 use App\Enums\ColourAnalysisStatus;
 use App\Enums\CoverageClass;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Artwork\ArtworkFile;
 use App\Models\Production\ProductionJobCard;
+use App\Models\PublicQuoteRequest;
 use App\Models\Sales\Quotation;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -26,6 +28,10 @@ class PrintArtworkAnalysis extends Model
         'branch_id',
         'quotation_id',
         'production_job_card_id',
+        'public_quote_request_id',
+        'artwork_file_id',
+        'source_file_model',
+        'source_file_id',
         'uploaded_by',
         'original_filename',
         'stored_filename',
@@ -116,6 +122,16 @@ class PrintArtworkAnalysis extends Model
     public function productionJobCard(): BelongsTo
     {
         return $this->belongsTo(ProductionJobCard::class);
+    }
+
+    public function publicQuoteRequest(): BelongsTo
+    {
+        return $this->belongsTo(PublicQuoteRequest::class);
+    }
+
+    public function artworkFile(): BelongsTo
+    {
+        return $this->belongsTo(ArtworkFile::class);
     }
 
     public function uploadedBy(): BelongsTo

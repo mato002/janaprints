@@ -6,6 +6,7 @@ use App\Enums\PublicQuoteRequestPriority;
 use App\Enums\PublicQuoteRequestStatus;
 use App\Models\PublicQuoteRequest;
 use App\Models\User;
+use App\Services\PrintingIntelligence\QrArtworkAnalysisBridgeService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
@@ -40,6 +41,7 @@ class PublicQuoteRequestWorkspacePresenter
             'next_action' => $this->nextAction($quoteRequest, $primaryArtwork),
             'conversion' => $this->conversionTracker($quoteRequest),
             'assignable_users' => $this->assignableUsers(),
+            'printing_intelligence' => $this->printingIntelligence($quoteRequest),
         ];
     }
 
@@ -100,6 +102,9 @@ class PublicQuoteRequestWorkspacePresenter
 
         $extension = strtolower(pathinfo($quoteRequest->artwork_path, PATHINFO_EXTENSION));
 
+        $bridge = app(QrArtworkAnalysisBridgeService::class);
+        $piSupported = $bridge->isSupportedArtwork($quoteRequest);
+
         return [[
             'id' => 'primary',
             'name' => $quoteRequest->artwork_original_name ?? basename($quoteRequest->artwork_path),
@@ -110,7 +115,23 @@ class PublicQuoteRequestWorkspacePresenter
             'is_pdf' => $extension === 'pdf',
             'size' => Storage::disk($disk)->size($quoteRequest->artwork_path),
             'uploaded_at' => $quoteRequest->created_at,
+            'pi_supported' => $piSupported,
         ]];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function printingIntelligence(PublicQuoteRequest $quoteRequest): array
+    {
+        $bridge = app(QrArtworkAnalysisBridgeService::class);
+        $analysis = $bridge->findLinkedAnalysis($quoteRequest);
+
+        return [
+            'supported' => $bridge->isSupportedArtwork($quoteRequest),
+            'summary' => $analysis ? $bridge->buildSummary($analysis) : null,
+            'artwork_file_id' => 'primary',
+        ];
     }
 
     /**

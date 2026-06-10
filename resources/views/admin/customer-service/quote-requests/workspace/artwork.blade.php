@@ -8,6 +8,31 @@
         <h2 class="qr-360__card-title">{{ __('Artwork Review') }}</h2>
         @if ($active)
             <div class="flex flex-wrap gap-2">
+                @can('printing.artwork.analyze')
+                    @if ($active['pi_supported'] ?? false)
+                        <button
+                            type="button"
+                            class="crm-360__btn crm-360__btn--outline crm-360__btn--sm"
+                            x-show="piSummary"
+                            x-cloak
+                            @click="openPiModal()"
+                        >
+                            {{ __('View Analysis') }}
+                        </button>
+                        <form
+                            method="POST"
+                            class="inline"
+                            :action="piSummary ? piRerunUrl : piRunUrl"
+                            @submit.prevent="submitPiForm($event)"
+                        >
+                            @csrf
+                            <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm" :disabled="piAnalysisLoading">
+                                <span x-show="! piSummary">{{ __('Run Printing Intelligence Analysis') }}</span>
+                                <span x-show="piSummary" x-cloak>{{ __('Re-run Analysis') }}</span>
+                            </button>
+                        </form>
+                    @endif
+                @endcan
                 <button type="button" class="crm-360__btn crm-360__btn--ghost crm-360__btn--sm" @click="artworkOpen = true">{{ __('Expand') }}</button>
                 <a href="{{ $active['download_url'] }}" class="crm-360__btn crm-360__btn--outline crm-360__btn--sm">{{ __('Download') }}</a>
             </div>

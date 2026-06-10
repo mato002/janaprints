@@ -77,6 +77,12 @@ return [
 
     'pixel_sampling_max_pixels' => 500000,
 
+    'dominant_colours_min_percent' => 0.1,
+
+    'dominant_colours_max_count' => 0,
+
+    'colour_bucket_divisor' => 32,
+
     'ghostscript_enabled' => true,
 
     'ghostscript_binary' => env('GHOSTSCRIPT_BINARY', 'gs'),

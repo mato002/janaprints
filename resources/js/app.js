@@ -4283,6 +4283,87 @@ document.addEventListener('alpine:init', () => {
             this.report = null;
         },
     }));
+
+    Alpine.data('qr360PrintingIntelligence', (config = {}) => ({
+        artworkOpen: false,
+        activeArtwork: config.activeArtwork ?? 'primary',
+        timelineOpen: true,
+        piAnalysisOpen: false,
+        piAnalysisLoading: false,
+        piSummary: config.summary ?? null,
+        piWarnings: [],
+        piStatusMessage: null,
+        piModalUrl: config.modalUrl ?? '',
+        piRunUrl: config.runUrl ?? '',
+        piRerunUrl: config.rerunUrl ?? '',
+        piCsrf: config.csrf ?? '',
+        piShowCmykBreakdown: true,
+        piShowInkCmykMl: false,
+
+        async openPiModal() {
+            this.piAnalysisOpen = true;
+
+            if (! this.piSummary) {
+                await this.refreshPiSummary();
+            }
+        },
+
+        async refreshPiSummary() {
+            if (! this.piModalUrl) {
+                return;
+            }
+
+            const response = await fetch(this.piModalUrl, {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (! response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            this.piSummary = data.summary ?? null;
+        },
+
+        async submitPiForm(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            this.piAnalysisOpen = true;
+            this.piAnalysisLoading = true;
+            this.piStatusMessage = null;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (! response.ok) {
+                    const message = data.message || data.error || 'Analysis request failed.';
+
+                    throw new Error(message);
+                }
+
+                this.piSummary = data.summary ?? null;
+                this.piWarnings = data.warnings ?? [];
+                this.piStatusMessage = data.message ?? null;
+            } catch (error) {
+                this.piWarnings = [error?.message || 'Unable to run analysis.'];
+            } finally {
+                this.piAnalysisLoading = false;
+            }
+        },
+    }));
 });
 
 Alpine.start();

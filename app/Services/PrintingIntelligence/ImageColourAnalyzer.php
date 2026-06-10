@@ -2,6 +2,7 @@
 
 namespace App\Services\PrintingIntelligence;
 
+use App\Support\PrintingIntelligence\CmykAreaComposition;
 use App\Support\PrintingIntelligence\CoverageClassifier;
 
 class ImageColourAnalyzer
@@ -54,7 +55,9 @@ class ImageColourAnalyzer
         $transparentCount = 0;
         $inkedCount = 0;
         $sumC = $sumM = $sumY = $sumK = 0.0;
+        $areaC = $areaM = $areaY = $areaK = 0.0;
         $colourBuckets = [];
+        $bucketDivisor = max(1, (int) config('printing_intelligence.colour_bucket_divisor', 32));
 
         for ($y = 0; $y < $height; $y += $stride) {
             for ($x = 0; $x < $width; $x += $stride) {
@@ -85,7 +88,20 @@ class ImageColourAnalyzer
                 $sumY += $cmyk['y'];
                 $sumK += $cmyk['k'];
 
-                $bucketKey = sprintf('%02d-%02d-%02d', intdiv($r, 32), intdiv($g, 32), intdiv($b, 32));
+                $inkTotal = $cmyk['c'] + $cmyk['m'] + $cmyk['y'] + $cmyk['k'];
+                if ($inkTotal > 0) {
+                    $areaC += $cmyk['c'] / $inkTotal;
+                    $areaM += $cmyk['m'] / $inkTotal;
+                    $areaY += $cmyk['y'] / $inkTotal;
+                    $areaK += $cmyk['k'] / $inkTotal;
+                }
+
+                $bucketKey = sprintf(
+                    '%02d-%02d-%02d',
+                    intdiv($r, $bucketDivisor),
+                    intdiv($g, $bucketDivisor),
+                    intdiv($b, $bucketDivisor),
+                );
                 $colourBuckets[$bucketKey] = ($colourBuckets[$bucketKey] ?? 0) + 1;
             }
         }
@@ -110,7 +126,17 @@ class ImageColourAnalyzer
 
         $cmykCoverage = round((($cyan + $magenta + $yellow + $black) / 4), 3);
         $averageInkDensity = $cmykCoverage;
-        $dominantColours = $this->dominantColoursFromBuckets($colourBuckets, $sampled);
+
+        $pixelShare = 100 / $sampled;
+        $channelAreaComposition = CmykAreaComposition::rebalanceToHundred([
+            'cyan' => $areaC * $pixelShare,
+            'magenta' => $areaM * $pixelShare,
+            'yellow' => $areaY * $pixelShare,
+            'black' => $areaK * $pixelShare,
+            'white' => $whitePercent,
+            'transparent' => $transparentPercent,
+        ]);
+        $dominantColours = $this->detectedColoursFromBuckets($colourBuckets, $sampled, $bucketDivisor);
         $hasTransparency = $hasTransparencyHint ?? ($transparentPercent > 0);
 
         $warnings = [];
@@ -144,6 +170,8 @@ class ImageColourAnalyzer
                 'stride' => $stride,
                 'width_px' => $width,
                 'height_px' => $height,
+                'bucket_divisor' => $bucketDivisor,
+                'channel_area_composition' => $channelAreaComposition,
             ],
         ]);
 
@@ -152,6 +180,7 @@ class ImageColourAnalyzer
             'pages' => [$page],
             'aggregate' => array_merge($metrics, [
                 'dominant_colours' => $dominantColours,
+                'channel_area_composition' => $channelAreaComposition,
                 'coverage_class' => $classification['coverage_class']->value,
                 'heavy_coverage_score' => $classification['heavy_coverage_score'],
             ]),
@@ -160,6 +189,9 @@ class ImageColourAnalyzer
                 'analyzer' => 'image',
                 'sampled_pixels' => $sampled,
                 'stride' => $stride,
+                'bucket_divisor' => $bucketDivisor,
+                'channel_area_composition' => $channelAreaComposition,
+                'detected_colour_count' => count($dominantColours),
             ],
         ];
     }
@@ -195,24 +227,38 @@ class ImageColourAnalyzer
      * @param  array<string, int>  $buckets
      * @return list<array{hex: string, percent: float, rgb: array{r: int, g: int, b: int}}>
      */
-    protected function dominantColoursFromBuckets(array $buckets, int $sampled): array
+    protected function detectedColoursFromBuckets(array $buckets, int $sampled, int $bucketDivisor): array
     {
         arsort($buckets);
-        $dominant = [];
 
-        foreach (array_slice($buckets, 0, 5, true) as $key => $count) {
+        $minPercent = (float) config('printing_intelligence.dominant_colours_min_percent', 0.1);
+        $maxCount = (int) config('printing_intelligence.dominant_colours_max_count', 0);
+        $colours = [];
+
+        foreach ($buckets as $key => $count) {
+            $percent = round(($count / max(1, $sampled)) * 100, 2);
+
+            if ($percent < $minPercent) {
+                continue;
+            }
+
             [$ri, $gi, $bi] = array_map('intval', explode('-', $key));
-            $r = min(255, $ri * 32 + 16);
-            $g = min(255, $gi * 32 + 16);
-            $b = min(255, $bi * 32 + 16);
-            $dominant[] = [
+            $midpoint = (int) round($bucketDivisor / 2);
+            $r = min(255, $ri * $bucketDivisor + $midpoint);
+            $g = min(255, $gi * $bucketDivisor + $midpoint);
+            $b = min(255, $bi * $bucketDivisor + $midpoint);
+            $colours[] = [
                 'hex' => sprintf('#%02X%02X%02X', $r, $g, $b),
-                'percent' => round(($count / max(1, $sampled)) * 100, 2),
+                'percent' => $percent,
                 'rgb' => ['r' => $r, 'g' => $g, 'b' => $b],
             ];
+
+            if ($maxCount > 0 && count($colours) >= $maxCount) {
+                break;
+            }
         }
 
-        return $dominant;
+        return $colours;
     }
 
     /**

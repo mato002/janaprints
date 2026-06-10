@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CustomerService\PublicContactMessageController;
 use App\Http\Controllers\Admin\CustomerService\PublicQuoteRequestController;
+use App\Http\Controllers\Admin\CustomerService\QrArtworkAnalysisController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
@@ -17,6 +18,39 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 ->name('public-quote-requests.artwork');
             Route::get('public-quote-requests/{publicQuoteRequest}/artwork/preview', [PublicQuoteRequestController::class, 'previewArtwork'])
                 ->name('public-quote-requests.artwork-preview');
+
+            Route::get('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/modal', [QrArtworkAnalysisController::class, 'showModal'])
+                ->middleware('permission:printing.intelligence.view')
+                ->name('public-quote-requests.printing-analysis.modal');
+        });
+
+        Route::middleware('permission:printing.artwork.analyze')->group(function () {
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis', [QrArtworkAnalysisController::class, 'run'])
+                ->name('public-quote-requests.printing-analysis.run');
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/rerun', [QrArtworkAnalysisController::class, 'rerun'])
+                ->name('public-quote-requests.printing-analysis.rerun');
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/metadata', [QrArtworkAnalysisController::class, 'runMetadata'])
+                ->name('public-quote-requests.printing-analysis.metadata');
+        });
+
+        Route::middleware('permission:printing.artwork.colour-analyze')->group(function () {
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/colour', [QrArtworkAnalysisController::class, 'runColour'])
+                ->name('public-quote-requests.printing-analysis.colour');
+        });
+
+        Route::middleware('permission:printing.artwork.estimate-ink')->group(function () {
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/ink', [QrArtworkAnalysisController::class, 'runInk'])
+                ->name('public-quote-requests.printing-analysis.ink');
+        });
+
+        Route::middleware('permission:printing.artwork.estimate-production')->group(function () {
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/production', [QrArtworkAnalysisController::class, 'runProduction'])
+                ->name('public-quote-requests.printing-analysis.production');
+        });
+
+        Route::middleware('permission:printing.quotation.estimate')->group(function () {
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/quotation', [QrArtworkAnalysisController::class, 'runQuotationEstimate'])
+                ->name('public-quote-requests.printing-analysis.quotation');
         });
 
         Route::middleware('permission:public_leads.quote_requests.manage')->group(function () {

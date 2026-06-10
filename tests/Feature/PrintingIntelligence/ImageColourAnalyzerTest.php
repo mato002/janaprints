@@ -79,4 +79,48 @@ class ImageColourAnalyzerTest extends TestCase
         $this->assertGreaterThan(0, $cmyk['m']);
         $this->assertGreaterThan(0, $cmyk['y']);
     }
+
+    public function test_channel_area_composition_totals_one_hundred(): void
+    {
+        $path = $this->createPng(200, 0, 0);
+        $result = app(ImageColourAnalyzer::class)->analyze($path, 300);
+
+        $composition = $result['aggregate']['channel_area_composition'];
+
+        $this->assertSame(100.0, $composition['total']);
+        $this->assertEqualsWithDelta(
+            100,
+            $composition['cyan']
+            + $composition['magenta']
+            + $composition['yellow']
+            + $composition['black']
+            + $composition['white']
+            + $composition['transparent'],
+            0.05,
+        );
+
+        unlink($path);
+    }
+
+    public function test_detects_all_significant_colours_in_multi_colour_image(): void
+    {
+        $image = imagecreatetruecolor(120, 40);
+        $red = imagecolorallocate($image, 220, 0, 0);
+        $green = imagecolorallocate($image, 0, 180, 0);
+        $blue = imagecolorallocate($image, 0, 0, 220);
+        imagefilledrectangle($image, 0, 0, 39, 39, $red);
+        imagefilledrectangle($image, 40, 0, 79, 39, $green);
+        imagefilledrectangle($image, 80, 0, 119, 39, $blue);
+        $path = tempnam(sys_get_temp_dir(), 'pi2multi');
+        imagepng($image, $path);
+        imagedestroy($image);
+
+        $result = app(ImageColourAnalyzer::class)->analyze($path, 300);
+        $colours = $result['aggregate']['dominant_colours'];
+
+        $this->assertGreaterThanOrEqual(3, count($colours));
+        $this->assertEqualsWithDelta(100, collect($colours)->sum('percent'), 1.0);
+
+        unlink($path);
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PublicQuoteRequestPriority;
 use App\Enums\PublicQuoteRequestStatus;
+use App\Models\PrintingIntelligence\PrintArtworkAnalysis;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -33,6 +34,11 @@ class PublicQuoteRequest extends Model
         'message',
         'artwork_path',
         'artwork_original_name',
+        'company_id',
+        'branch_id',
+        'lead_id',
+        'quotation_id',
+        'artwork_request_id',
         'status',
         'priority',
         'expected_value',
@@ -81,6 +87,11 @@ class PublicQuoteRequest extends Model
     public function notes(): HasMany
     {
         return $this->hasMany(PublicQuoteRequestNote::class)->latest();
+    }
+
+    public function printArtworkAnalyses(): HasMany
+    {
+        return $this->hasMany(PrintArtworkAnalysis::class)->latest('id');
     }
 
     public function reference(): string

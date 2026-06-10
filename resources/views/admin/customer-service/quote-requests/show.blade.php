@@ -7,13 +7,20 @@
         ['label' => $workspace['reference']],
     ]"
 >
+    @php
+        $artworkFileId = $workspace['printing_intelligence']['artwork_file_id'] ?? 'primary';
+    @endphp
+
     <div
         class="qr-360"
-        x-data="{
-            artworkOpen: false,
+        x-data="qr360PrintingIntelligence({
+            summary: @js($workspace['printing_intelligence']['summary'] ?? null),
+            modalUrl: @js(route('admin.public-quote-requests.printing-analysis.modal', [$quoteRequest, $artworkFileId])),
+            runUrl: @js(route('admin.public-quote-requests.printing-analysis.run', [$quoteRequest, $artworkFileId])),
+            rerunUrl: @js(route('admin.public-quote-requests.printing-analysis.rerun', [$quoteRequest, $artworkFileId])),
+            csrf: @js(csrf_token()),
             activeArtwork: @js($workspace['artwork_files'][0]['id'] ?? 'primary'),
-            timelineOpen: true,
-        }"
+        })"
     >
         @include('admin.customer-service.quote-requests.workspace.header')
 
@@ -22,6 +29,7 @@
                 @include('admin.customer-service.quote-requests.workspace.next-action')
                 @include('admin.customer-service.quote-requests.workspace.snapshot')
                 @include('admin.customer-service.quote-requests.workspace.artwork')
+                @include('admin.customer-service.quote-requests.workspace.printing-intelligence-panel')
                 @include('admin.customer-service.quote-requests.workspace.action-bar')
                 @include('admin.customer-service.quote-requests.workspace.sales-review')
                 @include('admin.customer-service.quote-requests.workspace.timeline')
@@ -35,5 +43,6 @@
         </div>
 
         @include('admin.customer-service.quote-requests.workspace.artwork-modal')
+        @include('admin.customer-service.quote-requests.workspace.printing-intelligence-modal')
     </div>
 </x-admin-layout>

@@ -2,6 +2,7 @@
 
 namespace App\Services\PrintingIntelligence;
 
+use App\Support\PrintingIntelligence\CmykAreaComposition;
 use App\Support\PrintingIntelligence\CoverageClassifier;
 use Symfony\Component\Process\Process;
 
@@ -123,6 +124,16 @@ class PdfColourAnalyzer
             $black = round((float) $matches[5] * 100, 3);
             $cmykCoverage = round(($cyan + $magenta + $yellow + $black) / 4, 3);
             $rgbCoverage = $cmykCoverage;
+            $inkedArea = min(100, $cyan + $magenta + $yellow + $black);
+            $whiteArea = round(max(0, 100 - $inkedArea), 3);
+            $channelAreaComposition = CmykAreaComposition::fromChannelCoverage(
+                $cyan,
+                $magenta,
+                $yellow,
+                $black,
+                $whiteArea,
+                0.0,
+            );
 
             $metrics = [
                 'page_number' => (int) $matches[1],
@@ -132,9 +143,10 @@ class PdfColourAnalyzer
                 'black_coverage_percent' => $black,
                 'cmyk_coverage_percent' => $cmykCoverage,
                 'rgb_coverage_percent' => $rgbCoverage,
-                'white_area_percent' => round(max(0, 100 - $cmykCoverage), 3),
+                'white_area_percent' => $whiteArea,
                 'transparent_area_percent' => 0.0,
                 'average_ink_density_percent' => $cmykCoverage,
+                'channel_area_composition' => $channelAreaComposition,
             ];
 
             $classification = $this->classifier->classify($metrics);
@@ -142,7 +154,10 @@ class PdfColourAnalyzer
             $pages[] = array_merge($metrics, [
                 'dominant_colours' => [],
                 'coverage_class' => $classification['coverage_class']->value,
-                'colour_analysis_raw' => ['source_line' => $line],
+                'colour_analysis_raw' => [
+                    'source_line' => $line,
+                    'channel_area_composition' => $channelAreaComposition,
+                ],
             ]);
         }
 
@@ -179,6 +194,15 @@ class PdfColourAnalyzer
         foreach ($keys as $key) {
             $aggregate[$key] = round(collect($pages)->avg($key) ?? 0, 3);
         }
+
+        $aggregate['channel_area_composition'] = CmykAreaComposition::fromChannelCoverage(
+            (float) ($aggregate['cyan_coverage_percent'] ?? 0),
+            (float) ($aggregate['magenta_coverage_percent'] ?? 0),
+            (float) ($aggregate['yellow_coverage_percent'] ?? 0),
+            (float) ($aggregate['black_coverage_percent'] ?? 0),
+            (float) ($aggregate['white_area_percent'] ?? 0),
+            (float) ($aggregate['transparent_area_percent'] ?? 0),
+        );
 
         return $aggregate;
     }

@@ -137,7 +137,9 @@ class ColourAnalysisService
             'coverage_class' => $aggregate['coverage_class'] ?? CoverageClass::Unknown->value,
             'dominant_colours' => $aggregate['dominant_colours'] ?? $analysis->dominant_colours,
             'colour_analysis_warnings' => $result['warnings'] ?? [],
-            'colour_analysis_raw' => $result['raw'] ?? [],
+            'colour_analysis_raw' => array_merge($result['raw'] ?? [], [
+                'channel_area_composition' => $aggregate['channel_area_composition'] ?? null,
+            ]),
             'colour_analyzed_at' => now(),
         ]);
 
