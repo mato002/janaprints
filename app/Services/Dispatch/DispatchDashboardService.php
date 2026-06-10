@@ -32,6 +32,8 @@ class DispatchDashboardService
                 ->whereDate('delivered_at', now()->toDateString())
                 ->count(),
             'invoice_ready' => (clone $notes)->where('invoice_ready', true)->count(),
+            'ownership' => app(\App\Services\Dispatch\DispatchInventoryReportService::class)
+                ->ownershipSummary($companyId, $branchId),
             'recent_notes' => (clone $notes)
                 ->with(['customer:id,company_name', 'productionJobCard:id,job_card_number'])
                 ->latest('updated_at')

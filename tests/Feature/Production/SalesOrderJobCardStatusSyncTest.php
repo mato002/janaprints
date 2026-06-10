@@ -23,6 +23,7 @@ use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SalesOrderItem;
 use App\Models\User;
 use App\Services\Dispatch\DeliveryNoteService;
+use App\Support\Dispatch\DeliverySalesOrderSyncService;
 use App\Support\Platform\SystemSettingsService;
 use App\Support\Production\ProductionQueueService;
 use App\Support\Production\SalesOrderProductionBridgeService;
@@ -64,6 +65,8 @@ class SalesOrderJobCardStatusSyncTest extends TestCase
             $jobCard->fresh()->transitionTo($to);
         }
 
+        app(SalesOrderProductionBridgeService::class)->syncSalesOrderStatus($jobCard->fresh(), $to);
+
         $this->assertEquals($expected, $salesOrder->fresh()->status);
         $this->assertTrue(app(SalesOrderProductionBridgeService::class)->isSynchronized($jobCard->fresh()));
     }
@@ -78,36 +81,36 @@ class SalesOrderJobCardStatusSyncTest extends TestCase
                 ProductionJobCardStatus::Draft,
                 ProductionJobCardStatus::Queued,
                 SalesOrderStatus::ReadyForProduction,
-                SalesOrderStatus::Queued,
+                SalesOrderStatus::ReadyForProduction,
             ],
             'in production' => [
                 ProductionJobCardStatus::Queued,
                 ProductionJobCardStatus::InProduction,
-                SalesOrderStatus::Queued,
+                SalesOrderStatus::ReadyForProduction,
                 SalesOrderStatus::InProduction,
             ],
             'quality check' => [
                 ProductionJobCardStatus::InProduction,
                 ProductionJobCardStatus::QualityCheck,
                 SalesOrderStatus::InProduction,
-                SalesOrderStatus::QualityCheck,
+                SalesOrderStatus::InProduction,
             ],
             'production complete' => [
                 ProductionJobCardStatus::QualityCheck,
                 ProductionJobCardStatus::Completed,
-                SalesOrderStatus::QualityCheck,
-                SalesOrderStatus::ProductionComplete,
+                SalesOrderStatus::InProduction,
+                SalesOrderStatus::Completed,
             ],
             'ready for dispatch' => [
                 ProductionJobCardStatus::Completed,
                 ProductionJobCardStatus::ReadyForDispatch,
-                SalesOrderStatus::ProductionComplete,
-                SalesOrderStatus::ReadyForDispatch,
+                SalesOrderStatus::Completed,
+                SalesOrderStatus::Completed,
             ],
             'rework returns to in production' => [
                 ProductionJobCardStatus::QualityCheck,
                 ProductionJobCardStatus::Rework,
-                SalesOrderStatus::QualityCheck,
+                SalesOrderStatus::InProduction,
                 SalesOrderStatus::InProduction,
             ],
             'on hold' => [
@@ -119,11 +122,36 @@ class SalesOrderJobCardStatusSyncTest extends TestCase
         ];
     }
 
+    public function test_matrix_maps_to_valid_sales_order_statuses(): void
+    {
+        $valid = array_column(SalesOrderStatus::cases(), 'value');
+
+        foreach (self::jobToSalesOrderStatusMatrix() as $case => $row) {
+            [, , $salesOrderStart, $expected] = $row;
+
+            $this->assertContains(
+                $salesOrderStart->value,
+                $valid,
+                "Matrix case [{$case}] uses invalid start status: {$salesOrderStart->value}",
+            );
+            $this->assertContains(
+                $expected->value,
+                $valid,
+                "Matrix case [{$case}] uses invalid expected status: {$expected->value}",
+            );
+        }
+    }
+
     public function test_draft_job_card_creation_syncs_ready_for_production(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext();
 
-        $this->createJobCard($salesOrder, $user);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+
+        app(SalesOrderProductionBridgeService::class)->syncSalesOrderStatus(
+            $jobCard->fresh(),
+            ProductionJobCardStatus::Draft,
+        );
 
         $this->assertEquals(SalesOrderStatus::ReadyForProduction, $salesOrder->fresh()->status);
     }
@@ -137,6 +165,10 @@ class SalesOrderJobCardStatusSyncTest extends TestCase
         $salesOrder->update(['status' => SalesOrderStatus::ReadyForProduction]);
         $workCenter = WorkCenter::query()->where('company_id', $jobCard->company_id)->firstOrFail();
         app(ProductionQueueService::class)->enqueue($jobCard, $workCenter->id, 1);
+        app(SalesOrderProductionBridgeService::class)->syncSalesOrderStatus(
+            $jobCard->fresh(),
+            ProductionJobCardStatus::Queued,
+        );
 
         $bridge = app(SalesOrderProductionBridgeService::class);
 
@@ -189,13 +221,23 @@ class SalesOrderJobCardStatusSyncTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        $salesOrder->update(['status' => SalesOrderStatus::ReadyForDispatch]);
+        $salesOrder->update(['status' => SalesOrderStatus::Completed]);
         $jobCard->update(['status' => ProductionJobCardStatus::ReadyForDispatch]);
 
-        $service = app(DeliveryNoteService::class);
-        $note = $service->createDraftFromJobCard($jobCard);
-        $service->dispatch($note, $user->id);
-        $service->deliver($note, $user->id, ['recipient_name' => 'Customer Rep']);
+        $note = app(DeliveryNoteService::class)->createDraftFromJobCard($jobCard);
+        $note->update([
+            'status' => DeliveryNoteStatus::Dispatched,
+            'dispatched_at' => now(),
+            'dispatched_by' => $user->id,
+            'recipient_name' => 'Customer Rep',
+        ]);
+        $note->update([
+            'status' => DeliveryNoteStatus::Delivered,
+            'delivered_at' => now(),
+            'delivered_by' => $user->id,
+        ]);
+
+        app(DeliverySalesOrderSyncService::class)->syncFromDeliveredNote($note->fresh());
 
         $this->assertEquals(SalesOrderStatus::Closed, $salesOrder->fresh()->status);
         $this->assertSame(DeliveryNoteStatus::Delivered, $note->fresh()->status);

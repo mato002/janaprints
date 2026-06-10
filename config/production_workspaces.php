@@ -51,6 +51,14 @@ return [
             'icon' => 'chart-pie',
             'active_routes' => ['admin.workspaces.production.section:reports', 'admin.reports.production', 'admin.reports.production360', 'admin.production.costing.*'],
         ],
+        [
+            'label' => 'Printing Intelligence',
+            'description' => 'Cost bridge for materials, machines, ink, and quotation intelligence.',
+            'route' => 'admin.workspaces.printing-intelligence',
+            'permission' => 'printing.intelligence.view',
+            'icon' => 'color-swatch',
+            'cross_workspace' => true,
+        ],
     ],
 
     'sections' => [

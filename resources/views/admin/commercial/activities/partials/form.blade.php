@@ -5,26 +5,40 @@
 
 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     @if (($fields['customer_id']['visible'] ?? true))
-        <div>
-            <label class="text-sm font-medium text-slate-700">{{ $fields['customer_id']['label'] ?? __('Customer') }}</label>
-            <select name="customer_id" class="erp-input mt-1 w-full" @required($fields['customer_id']['required'] ?? false) @disabled($fields['customer_id']['read_only'] ?? false)>
-                <option value="">{{ __('— None —') }}</option>
-                @foreach ($customers as $customer)
-                    <option value="{{ $customer->id }}" @selected(old('customer_id', $presetCustomerId ?? $activity?->customer_id) == $customer->id)>{{ $customer->company_name }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-admin.lookup-select
+            name="customer_id"
+            :label="$fields['customer_id']['label'] ?? __('Customer')"
+            :options="$customers"
+            :value="old('customer_id', $presetCustomerId ?? $activity?->customer_id)"
+            :required="($fields['customer_id']['required'] ?? false)"
+            :readonly="($fields['customer_id']['read_only'] ?? false)"
+            create-route="admin.crm.customers.quick-create"
+            refresh-route="admin.lookups.customers"
+            permission="crm.customers.create"
+            :modal-title="__('Create customer')"
+            option-label-key="company_name"
+            option-value-key="id"
+            select-class="erp-input mt-1 w-full"
+            :placeholder="__('— None —')"
+        />
     @endif
     @if (($fields['lead_id']['visible'] ?? true))
-        <div>
-            <label class="text-sm font-medium text-slate-700">{{ $fields['lead_id']['label'] ?? __('Lead') }}</label>
-            <select name="lead_id" class="erp-input mt-1 w-full" @required($fields['lead_id']['required'] ?? false) @disabled($fields['lead_id']['read_only'] ?? false)>
-                <option value="">{{ __('— None —') }}</option>
-                @foreach ($leads as $lead)
-                    <option value="{{ $lead->id }}" @selected(old('lead_id', $presetLeadId ?? $activity?->lead_id) == $lead->id)>{{ $lead->lead_name }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-admin.lookup-select
+            name="lead_id"
+            :label="$fields['lead_id']['label'] ?? __('Lead')"
+            :options="$leads"
+            :value="old('lead_id', $presetLeadId ?? $activity?->lead_id)"
+            :required="($fields['lead_id']['required'] ?? false)"
+            :readonly="($fields['lead_id']['read_only'] ?? false)"
+            create-route="admin.crm.leads.quick-create"
+            refresh-route="admin.lookups.leads"
+            permission="crm.leads.create"
+            :modal-title="__('Create lead')"
+            option-label-key="lead_name"
+            option-value-key="id"
+            select-class="erp-input mt-1 w-full"
+            :placeholder="__('— None —')"
+        />
     @endif
     @if (($fields['activity_type']['visible'] ?? true))
         <div>
@@ -37,14 +51,12 @@
         </div>
     @endif
     @if (($fields['status']['visible'] ?? true))
-        <div>
-            <label class="text-sm font-medium text-slate-700">{{ $fields['status']['label'] ?? __('Status') }}</label>
-            <select name="status" class="erp-input mt-1 w-full" @required($fields['status']['required'] ?? true) @disabled($fields['status']['read_only'] ?? false)>
-                @foreach ($activityStatuses as $status)
-                    <option value="{{ $status->value }}" @selected(old('status', $activity?->status?->value ?? 'completed') === $status->value)>{{ ucfirst($status->value) }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-admin.form-status-select
+            form-key="activity.create"
+            :field="$fields['status']"
+            :value="$activity?->status ?? ($fields['status']['default'] ?? 'completed')"
+            :model="$activity"
+        />
     @endif
     @if (($fields['user_id']['visible'] ?? true))
         <div>
@@ -75,4 +87,4 @@
         </div>
     @endif
 </div>
-@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $activity ?? null])
+@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $activity ?? null, 'formKey' => 'activity.create'])

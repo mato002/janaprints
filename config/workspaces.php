@@ -35,6 +35,15 @@ return [
         'groups' => [],
     ],
 
+    'printing-intelligence' => [
+        'title' => 'Printing Intelligence',
+        'description' => 'Trusted cost bridge for materials, machines, ink, quotations, and production reality.',
+        'icon' => 'color-swatch',
+        'managed_by' => 'printing_intelligence_workspaces',
+        'quick_create' => [],
+        'groups' => [],
+    ],
+
     'dispatch' => [
         'title' => 'Dispatch',
         'description' => 'Delivery notes, dispatch lifecycle, and outbound delivery truth.',

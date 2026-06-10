@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
+use App\Models\Inventory\InventoryVarianceReasonCode;
 use App\Models\Inventory\StockCount;
 use App\Models\Inventory\Warehouse;
 use App\Support\Export\TabularExportWriter;
@@ -95,7 +96,19 @@ class StockCountController extends Controller
 
         $stockCount->load(['warehouse', 'items.inventoryItem']);
 
-        return view('admin.inventory.control.stock-counts.worksheet', ['count' => $stockCount]);
+        ['companyId' => $companyId] = $this->tenantIds();
+
+        $reasonCodes = InventoryVarianceReasonCode::query()
+            ->forTenant()
+            ->where('company_id', $companyId)
+            ->active()
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.inventory.control.stock-counts.worksheet', [
+            'count' => $stockCount,
+            'reasonCodes' => $reasonCodes,
+        ]);
     }
 
     public function updateWorksheet(Request $request, StockCount $stockCount): RedirectResponse
@@ -106,6 +119,7 @@ class StockCountController extends Controller
             'items' => ['required', 'array', 'min:1'],
             'items.*.inventory_item_id' => ['required', 'integer'],
             'items.*.counted_quantity' => ['required', 'numeric', 'min:0'],
+            'items.*.inventory_variance_reason_code_id' => ['nullable', 'integer'],
             'items.*.reason' => ['nullable', 'string', 'max:500'],
             'items.*.notes' => ['nullable', 'string', 'max:2000'],
         ])['items'];

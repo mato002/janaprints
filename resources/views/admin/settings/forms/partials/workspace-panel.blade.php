@@ -165,6 +165,11 @@
         </table>
     </div>
 
+    @include('admin.settings.forms.partials.status-options-panel', [
+        'form' => $form,
+        'canManage' => $canManage,
+    ])
+
     @if ($canManage)
         <details class="group border-t border-erp-border bg-violet-50/40">
             <summary class="cursor-pointer list-none px-4 py-2 text-sm font-medium text-erp-primary hover:bg-violet-50/80 sm:px-5 [&::-webkit-details-marker]:hidden">

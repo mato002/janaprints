@@ -40,6 +40,12 @@ class MachineProfile extends Model
         'shift_capacity',
         'monthly_capacity',
         'current_utilization',
+        'cost_per_hour',
+        'power_rating_kw',
+        'average_setup_minutes',
+        'maintenance_cost_factor',
+        'target_output_per_hour',
+        'cost_notes',
     ];
 
     protected function casts(): array
@@ -56,6 +62,10 @@ class MachineProfile extends Model
             'shift_capacity' => 'decimal:2',
             'monthly_capacity' => 'decimal:2',
             'current_utilization' => 'decimal:2',
+            'cost_per_hour' => 'decimal:2',
+            'power_rating_kw' => 'decimal:2',
+            'maintenance_cost_factor' => 'decimal:3',
+            'target_output_per_hour' => 'decimal:2',
         ];
     }
 

@@ -18,7 +18,7 @@
     >
         @if ($can_create ?? false)
             <x-slot name="actions">
-                <a href="{{ route('admin.assets.create') }}" class="erp-btn-primary">{{ __('Register Asset') }}</a>
+                <a href="{{ route('admin.assets.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register Asset') }}</a>
             </x-slot>
         @endif
     </x-admin.page-header>

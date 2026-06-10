@@ -455,6 +455,17 @@ return [
                         ['label' => 'Manage costing', 'permission' => 'production.costing.manage'],
                     ],
                 ],
+                'outputs' => [
+                    'label' => 'Production Outputs',
+                    'permissions' => [
+                        'view' => 'production.outputs.view',
+                        'create' => 'production.outputs.create',
+                    ],
+                    'extra' => [
+                        ['label' => 'Post completion', 'permission' => 'production.outputs.post'],
+                        ['label' => 'Manual unit cost', 'permission' => 'production.outputs.manual-cost'],
+                    ],
+                ],
                 'workspaces' => [
                     'label' => 'Production Workspaces',
                     'permissions' => [],
@@ -495,6 +506,9 @@ return [
                         'edit' => 'catalogue.edit',
                         'delete' => 'catalogue.delete',
                     ],
+                    'extra' => [
+                        ['label' => 'Manage classification', 'permission' => 'inventory.classification.manage'],
+                    ],
                 ],
                 'stores' => [
                     'label' => 'Stores',
@@ -507,24 +521,144 @@ return [
                     'extra' => [
                         ['label' => 'Receive', 'permission' => 'inventory.receive'],
                         ['label' => 'Issue', 'permission' => 'inventory.issue'],
-                        ['label' => 'Adjust', 'permission' => 'inventory.adjust'],
-                        ['label' => 'Transfer', 'permission' => 'inventory.transfer'],
-                    ],
-                ],
-                'stock' => [
-                    'label' => 'Inventory',
-                    'permissions' => [
-                        'view' => 'inventory.view',
-                        'create' => 'inventory.create',
-                        'edit' => 'inventory.edit',
-                        'delete' => 'inventory.delete',
-                    ],
-                    'extra' => [
-                        ['label' => 'Receive', 'permission' => 'inventory.receive'],
-                        ['label' => 'Issue', 'permission' => 'inventory.issue'],
+                        ['label' => 'Production issue override', 'permission' => 'inventory.issue.production.override'],
                         ['label' => 'Adjust', 'permission' => 'inventory.adjust'],
                         ['label' => 'Transfer', 'permission' => 'inventory.transfer'],
                         ['label' => 'Valuation', 'permission' => 'inventory.valuation.view'],
+                    ],
+                ],
+                'stock_counts' => [
+                    'label' => 'Stock Counts',
+                    'permissions' => [
+                        'view' => 'inventory.count.view',
+                        'create' => 'inventory.count.create',
+                        'edit' => 'inventory.count.edit',
+                    ],
+                    'extra' => [
+                        ['label' => 'Submit', 'permission' => 'inventory.count.submit'],
+                        ['label' => 'Approve', 'permission' => 'inventory.count.approve'],
+                        ['label' => 'Post', 'permission' => 'inventory.count.post'],
+                    ],
+                ],
+                'cycle_counts' => [
+                    'label' => 'Cycle Counts',
+                    'permissions' => [
+                        'view' => 'inventory.cycle.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage', 'permission' => 'inventory.cycle.manage'],
+                    ],
+                ],
+                'variances' => [
+                    'label' => 'Variance Reports',
+                    'permissions' => [
+                        'view' => 'inventory.variance.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Export', 'permission' => 'inventory.variance.export'],
+                    ],
+                ],
+                'variance_reasons' => [
+                    'label' => 'Variance Reason Codes',
+                    'permissions' => [
+                        'view' => 'inventory.variance-reasons.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage', 'permission' => 'inventory.variance-reasons.manage'],
+                    ],
+                ],
+                'virtual_locations' => [
+                    'label' => 'Virtual Locations',
+                    'permissions' => [
+                        'view' => 'inventory.virtual-locations.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Manage', 'permission' => 'inventory.virtual-locations.manage'],
+                    ],
+                ],
+                'reconciliations' => [
+                    'label' => 'Reconciliations',
+                    'permissions' => [
+                        'view' => 'inventory.reconcile.view',
+                        'approve' => 'inventory.reconcile.approve',
+                        'post' => 'inventory.reconcile.post',
+                    ],
+                ],
+                'intelligence' => [
+                    'label' => 'Inventory Intelligence',
+                    'permissions' => [
+                        'view' => 'inventory.intelligence.view',
+                        'generate' => 'inventory.intelligence.generate',
+                        'configure' => 'inventory.intelligence.configure',
+                    ],
+                ],
+            ],
+        ],
+
+        'printing_intelligence' => [
+            'label' => 'Printing Intelligence',
+            'entities' => [
+                'workspace' => [
+                    'label' => 'Printing Intelligence',
+                    'permissions' => [
+                        'view' => 'printing.intelligence.view',
+                        'configure' => 'printing.intelligence.configure',
+                    ],
+                ],
+                'artwork_analysis' => [
+                    'label' => 'Artwork Analysis',
+                    'permissions' => [
+                        'analyze' => 'printing.artwork.analyze',
+                        'colour_analyze' => 'printing.artwork.colour-analyze',
+                        'estimate_ink' => 'printing.artwork.estimate-ink',
+                        'estimate_production' => 'printing.artwork.estimate-production',
+                    ],
+                ],
+                'quotation_intelligence' => [
+                    'label' => 'Quotation Intelligence',
+                    'permissions' => [
+                        'estimate' => 'printing.quotation.estimate',
+                        'apply_estimate' => 'printing.quotation.apply-estimate',
+                    ],
+                ],
+                'estimate_actual_learning' => [
+                    'label' => 'Estimate vs Actual Learning',
+                    'permissions' => [
+                        'view' => 'printing.estimate-actual.view',
+                        'compare' => 'printing.estimate-actual.compare',
+                        'analytics' => 'printing.estimate-actual.analytics',
+                    ],
+                ],
+                'calibration_governance' => [
+                    'label' => 'Cost Accuracy Governance',
+                    'permissions' => [
+                        'view' => 'printing.calibration.view',
+                        'review' => 'printing.calibration.review',
+                        'approve' => 'printing.calibration.approve',
+                        'manage' => 'printing.calibration.manage',
+                    ],
+                ],
+                'profitability_intelligence' => [
+                    'label' => 'Production Profitability',
+                    'permissions' => [
+                        'view' => 'printing.profitability.view',
+                        'analytics' => 'printing.profitability.analytics',
+                        'generate' => 'printing.profitability.generate',
+                    ],
+                ],
+                'executive_intelligence' => [
+                    'label' => 'Executive Intelligence',
+                    'permissions' => [
+                        'view' => 'printing.executive.view',
+                        'forecast' => 'printing.executive.forecast',
+                        'analytics' => 'printing.executive.analytics',
+                    ],
+                ],
+                'ink_profiles' => [
+                    'label' => 'Ink Profiles',
+                    'permissions' => [
+                        'view' => 'printing.ink-profiles.view',
+                        'manage' => 'printing.ink-profiles.manage',
                     ],
                 ],
             ],

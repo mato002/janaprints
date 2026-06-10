@@ -2,9 +2,13 @@
 
 namespace App\Support;
 
+use App\Enums\InventoryStockRole;
+use App\Enums\VirtualWarehouseRole;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventoryMovement;
 use App\Models\Inventory\InventoryReorderAlert;
+use App\Models\Inventory\Warehouse;
+use App\Services\Inventory\VirtualWarehouseResolverService;
 use App\Support\Platform\PlatformCacheService;
 use App\Support\Platform\SystemSettingsService;
 use Illuminate\Support\Collection;
@@ -118,6 +122,8 @@ class InventoryStockService
                     'company_id' => $item->company_id,
                     'branch_id' => $item->branch_id,
                     'inventory_item_id' => $item->id,
+                    'warehouse_id' => null,
+                    'alert_type' => config('inventory_intelligence.reorder_alert_type', 'reorder_level'),
                 ],
                 [
                     'current_quantity' => $balance,
@@ -133,5 +139,120 @@ class InventoryStockService
                 ->where('branch_id', $item->branch_id)
                 ->update(['is_resolved' => true]);
         }
+    }
+
+    public static function getBalanceByVirtualRole(
+        int $inventoryItemId,
+        int $companyId,
+        VirtualWarehouseRole|string $virtualRole,
+    ): float {
+        $warehouse = app(VirtualWarehouseResolverService::class)->resolveByRole($companyId, $virtualRole);
+
+        if ($warehouse === null) {
+            return 0.0;
+        }
+
+        return self::balance($inventoryItemId, $warehouse->id);
+    }
+
+    /**
+     * @return Collection<int, array{item: InventoryItem, balance: float}>
+     */
+    public static function getCompanyStockByRole(int $companyId, InventoryStockRole|string $stockRole): Collection
+    {
+        $roleValue = $stockRole instanceof InventoryStockRole ? $stockRole->value : $stockRole;
+
+        return InventoryItem::query()
+            ->where('company_id', $companyId)
+            ->where('stock_role', $roleValue)
+            ->where('is_active', true)
+            ->get()
+            ->map(function (InventoryItem $item) {
+                $balance = self::branchBalance($item->id, $item->company_id, $item->branch_id);
+
+                return [
+                    'item' => $item,
+                    'balance' => $balance,
+                ];
+            })
+            ->filter(fn (array $row) => abs($row['balance']) >= 0.001)
+            ->values();
+    }
+
+    /**
+     * @return list<array{
+     *     role: VirtualWarehouseRole,
+     *     warehouse: Warehouse|null,
+     *     item_count: int,
+     *     total_value: float,
+     *     last_movement_at: \Illuminate\Support\Carbon|null,
+     *     empty_message: string|null
+     * }>
+     */
+    public static function getVirtualWarehouseBalances(int $companyId): array
+    {
+        $resolver = app(VirtualWarehouseResolverService::class);
+        $resolver->ensureDefaults($companyId);
+
+        $rows = [];
+
+        foreach (VirtualWarehouseRole::seededRoles() as $role) {
+            $warehouse = $resolver->resolveByRole($companyId, $role);
+
+            if ($warehouse === null) {
+                $rows[] = [
+                    'role' => $role,
+                    'warehouse' => null,
+                    'item_count' => 0,
+                    'total_value' => 0.0,
+                    'last_movement_at' => null,
+                    'empty_message' => $role->emptyStateMessage(),
+                ];
+
+                continue;
+            }
+
+            $stats = self::virtualWarehouseStats($warehouse);
+
+            $rows[] = [
+                'role' => $role,
+                'warehouse' => $warehouse,
+                'item_count' => $stats['item_count'],
+                'total_value' => $stats['total_value'],
+                'last_movement_at' => $stats['last_movement_at'],
+                'empty_message' => $stats['item_count'] === 0 ? $role->emptyStateMessage() : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @return array{item_count: int, total_value: float, last_movement_at: \Illuminate\Support\Carbon|null}
+     */
+    protected static function virtualWarehouseStats(Warehouse $warehouse): array
+    {
+        $aggregates = InventoryMovement::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->select([
+                'inventory_item_id',
+                DB::raw('SUM(quantity) as balance'),
+                DB::raw('SUM(quantity * unit_cost) as ledger_value'),
+            ])
+            ->groupBy('inventory_item_id')
+            ->havingRaw('ABS(SUM(quantity)) >= 0.001')
+            ->get();
+
+        $lastMovementAt = InventoryMovement::query()
+            ->where('warehouse_id', $warehouse->id)
+            ->latest('movement_date')
+            ->latest('id')
+            ->value('movement_date');
+
+        return [
+            'item_count' => $aggregates->count(),
+            'total_value' => round((float) $aggregates->sum('ledger_value'), 2),
+            'last_movement_at' => $lastMovementAt,
+        ];
     }
 }

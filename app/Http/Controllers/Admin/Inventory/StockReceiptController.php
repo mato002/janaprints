@@ -101,8 +101,19 @@ class StockReceiptController extends Controller
      */
     protected function validateHeader(Request $request, int $companyId, int $branchId): array
     {
+<<<<<<< Updated upstream
         return $this->formSettings->validateRequest($request, 'stock_receipt.create', [
             'warehouse_id' => [Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)->where('is_active', true)],
+=======
+        return $request->validate($this->formSettings->mergeValidationRules('stock_receipt.create', [
+            'warehouse_id' => [
+                Rule::exists('warehouses', 'id')
+                    ->where('company_id', $companyId)
+                    ->where('branch_id', $branchId)
+                    ->where('is_active', true)
+                    ->where('is_virtual', false),
+            ],
+>>>>>>> Stashed changes
             'source' => [Rule::enum(StockReceiptSource::class)],
             'receipt_date' => ['date'],
             'notes' => ['string'],
@@ -141,7 +152,7 @@ class StockReceiptController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
         return [
-            'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
+            'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
             'sources' => StockReceiptSource::cases(),
             'formFields' => $this->formSettings->resolvedFields('stock_receipt.create', $companyId, $branchId),

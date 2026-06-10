@@ -54,15 +54,18 @@ class DeliveryNoteController extends Controller
             'deliverer:id,name',
             'activeInvoice',
             'invoicer:id,name',
+            'postedJournal',
         ]);
 
         $invoiceEligibility = $this->invoiceEligibility->check($deliveryNote);
         $partialDelivery = $this->invoiceEligibility->partialDeliverySummary($deliveryNote);
+        $inventoryImpact = app(\App\Services\Dispatch\DispatchInventoryReportService::class)->inventoryImpact($deliveryNote);
 
         return view('admin.dispatch.delivery-notes.show', [
             'note' => $deliveryNote,
             'invoiceEligibility' => $invoiceEligibility,
             'partialDelivery' => $partialDelivery,
+            'inventoryImpact' => $inventoryImpact,
         ]);
     }
 

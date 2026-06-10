@@ -1,4 +1,4 @@
-@props(['fields' => [], 'model' => null])
+@props(['fields' => [], 'model' => null, 'formKey' => null])
 
 @php
     $customFields = collect($fields)->filter(
@@ -33,6 +33,15 @@
                         >{{ $value }}</textarea>
                         <x-admin.field-error :name="$fieldKey" />
                     </div>
+                @elseif (($field['is_status_field'] ?? false) && $formKey)
+                    <x-admin.form-status-select
+                        :form-key="$formKey"
+                        :name="$fieldKey"
+                        :field="$field"
+                        :value="old($fieldKey, $model?->{$fieldKey} ?? ($field['default'] ?? null))"
+                        :model="$model"
+                        select-class="erp-input mt-1 w-full"
+                    />
                 @elseif (($field['type'] ?? 'text') === 'checkbox')
                     <div class="flex items-center gap-2">
                         <input

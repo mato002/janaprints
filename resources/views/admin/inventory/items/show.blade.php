@@ -1,6 +1,9 @@
 <x-admin-layout :title="$item->sku" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Items'), 'url' => route('admin.inventory.items.index')], ['label' => $item->sku]]">
     <x-admin.page-header :title="$item->item_name" :description="$item->sku">
         <x-slot name="actions">
+            @if($item->stock_role)
+                <span class="erp-badge {{ $item->stock_role->badgeClass() }}">{{ $item->stock_role->label() }}</span>
+            @endif
             <span class="erp-badge">{{ __('Stock') }}: {{ number_format($stockBalance, 3) }}</span>
             @can('update', $item)<a href="{{ route('admin.inventory.items.edit', $item) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>@endcan
         </x-slot>
@@ -9,6 +12,7 @@
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <x-admin.card class="xl:col-span-2">
             <dl class="text-sm space-y-2">
+                <div><dt class="text-slate-500">{{ __('Stock role') }}</dt><dd>{{ $item->stock_role?->label() ?? __('-') }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Category') }}</dt><dd>{{ $item->category?->name }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Subcategory') }}</dt><dd>{{ $item->subcategory?->name ?? __('-') }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Brand') }}</dt><dd>{{ $item->brand?->name ?? __('-') }}</dd></div>

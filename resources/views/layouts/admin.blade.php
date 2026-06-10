@@ -141,6 +141,20 @@
     </div>
 
     <div
+        id="erp-lookup-modal-overlay"
+        class="erp-lookup-modal-overlay"
+        data-erp-lookup-modal-overlay
+        data-turbo-permanent
+        hidden
+        aria-hidden="true"
+    >
+        <div class="erp-lookup-modal-overlay__backdrop" data-erp-lookup-modal-close tabindex="-1" aria-hidden="true"></div>
+        <div class="erp-lookup-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="erp-lookup-modal-title">
+            <div id="erp-lookup-modal" class="erp-form-modal-host"></div>
+        </div>
+    </div>
+
+    <div
         id="erp-drawer-overlay"
         class="erp-drawer-overlay"
         data-erp-drawer-overlay

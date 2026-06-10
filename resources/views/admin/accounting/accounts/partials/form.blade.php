@@ -40,13 +40,22 @@
     </div>
 
     <div>
-        <x-input-label for="branch_id" :value="__('Branch scope')" />
-        <select name="branch_id" id="branch_id" class="erp-input mt-1 w-full">
-            <option value="">{{ __('Company-wide (all branches)') }}</option>
-            @foreach ($branches as $branch)
-                <option value="{{ $branch->id }}" @selected(old('branch_id', $account?->branch_id) == $branch->id)>{{ $branch->name }}</option>
-            @endforeach
-        </select>
+        <x-admin.lookup-select
+            id="branch_id"
+            name="branch_id"
+            :label="__('Branch scope')"
+            :options="$branches"
+            :value="old('branch_id', $account?->branch_id)"
+            create-route="admin.branches.quick-create"
+            refresh-route="admin.lookups.branches"
+            permission="branches.manage"
+            :modal-title="__('Create branch')"
+            option-label-key="name"
+            option-value-key="id"
+            select-class="erp-input mt-1 w-full"
+            :empty-option="true"
+            :empty-label="__('Company-wide (all branches)')"
+        />
         <p class="mt-1 text-[11px] text-slate-500">{{ __('Leave empty for accounts shared across all branches.') }}</p>
     </div>
 

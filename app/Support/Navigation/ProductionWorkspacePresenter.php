@@ -155,6 +155,10 @@ class ProductionWorkspacePresenter
      */
     protected function itemRoutePatterns(array $item): array
     {
+        if (! empty($item['cross_workspace'])) {
+            return $item['active_routes'] ?? [];
+        }
+
         $routes = [];
 
         if (! empty($item['route']) && Route::has($item['route'])) {

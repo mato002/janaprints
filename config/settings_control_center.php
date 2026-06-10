@@ -205,7 +205,7 @@ return [
                     'description' => 'Warehouse locations, bins, and storage structure.',
                     'icon' => 'archive',
                     'keywords' => ['warehouse', 'storage', 'location', 'bin'],
-                    'coming_soon' => true,
+                    'link' => ['type' => 'route', 'name' => 'admin.inventory.warehouses.index'],
                 ],
                 [
                     'id' => 'inventory-categories',
@@ -213,7 +213,7 @@ return [
                     'description' => 'Material groups, product families, and stock classification.',
                     'icon' => 'view-grid',
                     'keywords' => ['category', 'classification', 'material', 'product group'],
-                    'coming_soon' => true,
+                    'link' => ['type' => 'route', 'name' => 'admin.inventory.catalogue.categories.index'],
                 ],
                 [
                     'id' => 'units-of-measure',
@@ -221,7 +221,7 @@ return [
                     'description' => 'Stock units, conversions, and packaging definitions.',
                     'icon' => 'switch-horizontal',
                     'keywords' => ['unit', 'measure', 'uom', 'conversion', 'packaging'],
-                    'coming_soon' => true,
+                    'link' => ['type' => 'route', 'name' => 'admin.master-data.index'],
                 ],
                 [
                     'id' => 'stock-policies',

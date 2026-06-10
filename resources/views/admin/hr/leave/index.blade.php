@@ -3,7 +3,7 @@
         <x-slot name="actions">
             <a href="{{ route('admin.hr.leave.dashboard') }}" data-turbo-frame="erp-main" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
             @can('create', App\Models\Hr\LeaveRequest::class)
-                <a href="{{ route('admin.hr.leave.create') }}" data-turbo-frame="erp-main" class="erp-btn-primary">{{ __('Apply for leave') }}</a>
+                <a href="{{ route('admin.hr.leave.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Apply for leave') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

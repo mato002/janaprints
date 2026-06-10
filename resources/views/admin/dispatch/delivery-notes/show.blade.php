@@ -110,6 +110,50 @@
         </x-admin.card>
     @endif
 
+    <x-admin.card class="mb-6">
+        <h3 class="mb-3 text-sm font-semibold">{{ __('Inventory impact') }}</h3>
+        <dl class="mb-4 grid gap-2 text-sm sm:grid-cols-2">
+            <div><dt class="text-slate-500">{{ __('FG source') }}</dt><dd>{{ $inventoryImpact['finished_goods_warehouse']?->name ?? '—' }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Transit location') }}</dt><dd>{{ $inventoryImpact['transit_warehouse']?->name ?? '—' }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Total inventory cost') }}</dt><dd class="tabular-nums">{{ number_format($inventoryImpact['total_cost'] ?? 0, 2) }}</dd></div>
+            <div><dt class="text-slate-500">{{ __('Accounting posted') }}</dt><dd>{{ $inventoryImpact['posted_journal'] ? __('Yes') : __('No') }}</dd></div>
+        </dl>
+        @if ($inventoryImpact['posted_journal'] ?? null)
+            <p class="mb-3 text-sm">{{ __('Journal') }}: <span class="font-mono">{{ $inventoryImpact['posted_journal']->reference ?? $inventoryImpact['posted_journal']->journal_number }}</span></p>
+        @endif
+        <table class="min-w-full text-sm">
+            <thead class="bg-slate-50">
+                <tr>
+                    <th class="px-3 py-2 text-left">{{ __('Item') }}</th>
+                    <th class="px-3 py-2 text-right">{{ __('Qty') }}</th>
+                    <th class="px-3 py-2 text-right">{{ __('Unit cost') }}</th>
+                    <th class="px-3 py-2 text-right">{{ __('Total') }}</th>
+                    <th class="px-3 py-2 text-left">{{ __('Transit status') }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @foreach ($inventoryImpact['lines'] ?? [] as $row)
+                    @php $line = $row['line']; @endphp
+                    <tr>
+                        <td class="px-3 py-2">{{ $line->inventoryItem?->sku ?? $line->description }}</td>
+                        <td class="px-3 py-2 text-right font-mono">{{ $line->quantity }}</td>
+                        <td class="px-3 py-2 text-right font-mono">{{ number_format((float) ($line->unit_cost ?? 0), 4) }}</td>
+                        <td class="px-3 py-2 text-right font-mono">{{ number_format((float) ($line->total_cost ?? 0), 2) }}</td>
+                        <td class="px-3 py-2">
+                            @if ($row['delivered'] ?? false)
+                                {{ __('Delivered / COGS') }}
+                            @elseif ($row['dispatched'] ?? false)
+                                {{ __('In transit') }}
+                            @else
+                                {{ __('Pending dispatch') }}
+                            @endif
+                        </td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </x-admin.card>
+
     <x-admin.card>
         <h3 class="mb-3 text-sm font-semibold">{{ __('Line items') }}</h3>
         <table class="min-w-full text-sm">

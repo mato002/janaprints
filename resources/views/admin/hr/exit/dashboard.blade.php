@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Exit Management')" :description="__('Employee offboarding, clearance, and final dues settlement.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\EmployeeExit::class)
-                <a href="{{ route('admin.hr.exit.create') }}" class="erp-btn-primary">{{ __('Initiate exit') }}</a>
+                <a href="{{ route('admin.hr.exit.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Initiate exit') }}</a>
             @endcan
             <a href="{{ route('admin.hr.exit.index') }}" class="erp-btn-secondary">{{ __('All exits') }}</a>
         </x-slot>

@@ -4,12 +4,14 @@ namespace App\Http\Controllers\Admin\Sales;
 
 use App\Enums\DocumentType;
 use App\Enums\QuotationStatus;
+use App\Http\Controllers\Controller;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Admin\Sales\Concerns\ManagesQuotationItems;
-use App\Http\Controllers\Controller;
+use App\Models\PrintingIntelligence\PrintArtworkAnalysis;
+use App\Models\PrintingIntelligence\PrintQuotationEstimate;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
@@ -133,7 +135,23 @@ class QuotationController extends Controller
             'salesOrder', 'conversion',
         ]);
 
-        return view('admin.sales.quotations.show', compact('quotation'));
+        $linkedArtworkAnalysis = PrintArtworkAnalysis::query()
+            ->where('quotation_id', $quotation->id)
+            ->latest('id')
+            ->first();
+
+        $appliedQuotationEstimate = PrintQuotationEstimate::query()
+            ->where('quotation_id', $quotation->id)
+            ->where('estimation_status', 'applied_to_quotation')
+            ->latest('applied_at')
+            ->with('appliedByUser')
+            ->first();
+
+        return view('admin.sales.quotations.show', compact(
+            'quotation',
+            'linkedArtworkAnalysis',
+            'appliedQuotationEstimate',
+        ));
     }
 
     public function edit(Quotation $quotation): View

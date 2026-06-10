@@ -37,7 +37,9 @@ class SecurityAuditService
     ): SecurityAuditEvent {
         $request ??= request();
         $parsed = $this->userAgentParser->parse($request->userAgent());
-        $actor = $userId ? User::query()->find($userId) : auth()->user();
+        $actor = $userId !== null
+            ? User::query()->find($userId)
+            : (auth()->check() ? auth()->user() : null);
         $resolvedModule = $module ?? $this->resolveModule($action, $subject);
         $resolvedEntity = $entity ?? $this->resolveEntity($subject);
         $resolvedRisk = $risk ?? $this->resolveRiskLevel($action, $resolvedModule);
@@ -46,7 +48,7 @@ class SecurityAuditService
         return SecurityAuditEvent::query()->create([
             'company_id' => $actor?->company_id ?? $subject?->company_id ?? null,
             'branch_id' => $actor?->default_branch_id ?? $subject?->branch_id ?? null,
-            'user_id' => $userId ?? auth()->id(),
+            'user_id' => $actor?->getKey(),
             'module' => $resolvedModule,
             'entity' => $resolvedEntity,
             'action' => $action,

@@ -2,29 +2,66 @@
 @php($fields = $formFields ?? [])
 
 @if(($fields['inventory_category_id']['visible'] ?? true))
-<div><label class="erp-label">{{ __('Category') }}</label>
-    <select name="inventory_category_id" class="erp-input w-full" @required($fields['inventory_category_id']['required'] ?? true) @disabled($fields['inventory_category_id']['read_only'] ?? false)>
-        @foreach ($categories as $c)<option value="{{ $c->id }}" @selected(old('inventory_category_id', $m?->inventory_category_id) == $c->id)>{{ $c->name }}</option>@endforeach
-    </select></div>
+<x-admin.lookup-select
+    name="inventory_category_id"
+    :label="__('Category')"
+    :options="$categories"
+    :value="old('inventory_category_id', $m?->inventory_category_id)"
+    :required="($fields['inventory_category_id']['required'] ?? true)"
+    :readonly="($fields['inventory_category_id']['read_only'] ?? false)"
+    create-route="admin.inventory.catalogue.categories.quick-create"
+    refresh-route="admin.lookups.categories"
+    permission="catalogue.create"
+    :modal-title="__('Create category')"
+    select-class="erp-input w-full"
+    :empty-option="false"
+/>
 @endif
 
-<div><label class="erp-label">{{ __('Subcategory') }}</label>
-    <select name="subcategory_id" class="erp-input w-full">
-        <option value="">{{ __('None') }}</option>
-        @foreach ($subcategories as $s)<option value="{{ $s->id }}" @selected(old('subcategory_id', $m?->subcategory_id) == $s->id)>{{ $s->category?->name }} / {{ $s->name }}</option>@endforeach
-    </select></div>
+@php($subcategoryOptions = $subcategories->map(fn ($s) => ['value' => $s->id, 'label' => trim(($s->category?->name ? $s->category->name.' / ' : '').$s->name)])->values())
 
-<div><label class="erp-label">{{ __('Brand') }}</label>
-    <select name="brand_id" class="erp-input w-full">
-        <option value="">{{ __('Generic / none') }}</option>
-        @foreach ($brands as $b)<option value="{{ $b->id }}" @selected(old('brand_id', $m?->brand_id) == $b->id)>{{ $b->name }}</option>@endforeach
-    </select></div>
+<x-admin.lookup-select
+    name="subcategory_id"
+    :label="__('Subcategory')"
+    :options="$subcategoryOptions"
+    :value="old('subcategory_id', $m?->subcategory_id)"
+    create-route="admin.inventory.catalogue.subcategories.quick-create"
+    refresh-route="admin.lookups.subcategories"
+    permission="catalogue.create"
+    :modal-title="__('Create subcategory')"
+    option-label-key="label"
+    option-value-key="value"
+    select-class="erp-input w-full"
+/>
+
+<x-admin.lookup-select
+    name="brand_id"
+    :label="__('Brand')"
+    :options="$brands"
+    :value="old('brand_id', $m?->brand_id)"
+    create-route="admin.inventory.catalogue.brands.quick-create"
+    refresh-route="admin.lookups.brands"
+    permission="catalogue.create"
+    :modal-title="__('Create brand')"
+    :placeholder="__('Generic / none')"
+    select-class="erp-input w-full"
+/>
 
 @if(($fields['unit_of_measure_id']['visible'] ?? true))
-<div><label class="erp-label">{{ __('Unit') }}</label>
-    <select name="unit_of_measure_id" class="erp-input w-full" @required($fields['unit_of_measure_id']['required'] ?? true) @disabled($fields['unit_of_measure_id']['read_only'] ?? false)>
-        @foreach ($units as $u)<option value="{{ $u->id }}" @selected(old('unit_of_measure_id', $m?->unit_of_measure_id) == $u->id)>{{ $u->name }}</option>@endforeach
-    </select></div>
+<x-admin.lookup-select
+    name="unit_of_measure_id"
+    :label="__('Unit')"
+    :options="$units"
+    :value="old('unit_of_measure_id', $m?->unit_of_measure_id)"
+    :required="($fields['unit_of_measure_id']['required'] ?? true)"
+    :readonly="($fields['unit_of_measure_id']['read_only'] ?? false)"
+    create-route="admin.inventory.catalogue.uoms.quick-create"
+    refresh-route="admin.lookups.uoms"
+    permission="catalogue.create"
+    :modal-title="__('Create unit of measure')"
+    select-class="erp-input w-full"
+    :empty-option="false"
+/>
 @endif
 
 <div><label class="erp-label">{{ __('Item code') }}</label><input name="item_code" class="erp-input w-full" value="{{ old('item_code', $m?->item_code) }}"></div>
@@ -65,6 +102,15 @@
     </div>
 </div>
 @endif
+
+<div>
+    <label class="erp-label">{{ __('Stock role') }}</label>
+    <select name="stock_role" class="erp-select w-full" required>
+        @foreach ($stockRoles as $role)
+            <option value="{{ $role->value }}" @selected(old('stock_role', $m?->stock_role?->value ?? 'raw_material') === $role->value)>{{ $role->label() }}</option>
+        @endforeach
+    </select>
+</div>
 
 @if(($fields['reorder_level']['visible'] ?? true) || ($fields['reorder_quantity']['visible'] ?? true) || ($fields['standard_cost']['visible'] ?? true))
 <div class="grid grid-cols-3 gap-4">

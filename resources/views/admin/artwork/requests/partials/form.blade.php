@@ -2,31 +2,42 @@
 @php($model = $request ?? null)
 
 @if(($fields['customer_id']['visible'] ?? true))
-<div>
-    <label class="erp-label">{{ __('Customer') }}</label>
-    <select name="customer_id" class="erp-input w-full" @required($fields['customer_id']['required'] ?? true) @disabled($fields['customer_id']['read_only'] ?? false)>
-        <option value="">{{ __('Select customer') }}</option>
-        @foreach ($customers as $customer)
-            <option value="{{ $customer->id }}" @selected(old('customer_id', $model?->customer_id) == $customer->id)>
-                {{ $customer->company_name }} ({{ $customer->customer_code }})
-            </option>
-        @endforeach
-    </select>
-</div>
+<x-admin.lookup-select
+    name="customer_id"
+    :label="__('Customer')"
+    :options="$customers"
+    :value="old('customer_id', $model?->customer_id)"
+    :required="($fields['customer_id']['required'] ?? true)"
+    :readonly="($fields['customer_id']['read_only'] ?? false)"
+    create-route="admin.crm.customers.quick-create"
+    refresh-route="admin.lookups.customers"
+    permission="crm.customers.create"
+    :modal-title="__('Create customer')"
+    option-label-key="company_name"
+    option-value-key="id"
+    select-class="erp-input w-full"
+    :placeholder="__('Select customer')"
+/>
 @endif
 
 @if(($fields['quotation_id']['visible'] ?? true))
-<div>
-    <label class="erp-label">{{ __('Quotation') }}</label>
-    <select name="quotation_id" class="erp-input w-full" @required($fields['quotation_id']['required'] ?? false) @disabled($fields['quotation_id']['read_only'] ?? false)>
-        <option value="">{{ __('None') }}</option>
-        @foreach ($quotations as $quotation)
-            <option value="{{ $quotation->id }}" @selected(old('quotation_id', $model?->quotation_id) == $quotation->id)>
-                {{ $quotation->quotation_number }}
-            </option>
-        @endforeach
-    </select>
-</div>
+<x-admin.lookup-select
+    name="quotation_id"
+    :label="__('Quotation')"
+    :options="$quotations"
+    :value="old('quotation_id', $model?->quotation_id)"
+    :required="($fields['quotation_id']['required'] ?? false)"
+    :readonly="($fields['quotation_id']['read_only'] ?? false)"
+    create-route="admin.quotations.quick-create"
+    refresh-route="admin.lookups.quotations"
+    permission="quotations.create"
+    :modal-title="__('Create quotation')"
+    option-label-key="quotation_number"
+    option-value-key="id"
+    select-class="erp-input w-full"
+    scope-customer-field="customer_id"
+    :placeholder="__('None')"
+/>
 @endif
 
 @if(($fields['title']['visible'] ?? true))

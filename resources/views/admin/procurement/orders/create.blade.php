@@ -4,14 +4,20 @@
         <form method="POST" action="{{ route('admin.procurement.orders.store') }}" class="space-y-6">
             @csrf
             <div class="erp-form-grid">
-                <div>
-                    <x-input-label for="vendor_id" :value="__('Vendor')" />
-                    <select id="vendor_id" name="vendor_id" class="erp-select mt-1 w-full" required>
-                        @foreach ($vendors as $vendor)
-                            <option value="{{ $vendor->id }}">{{ $vendor->vendor_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
+                <x-admin.lookup-select
+                    name="vendor_id"
+                    :label="__('Vendor')"
+                    :options="$vendors"
+                    :value="old('vendor_id')"
+                    :required="true"
+                    create-route="admin.procurement.vendors.quick-create"
+                    refresh-route="admin.lookups.vendors"
+                    permission="procurement.vendors.create"
+                    :modal-title="__('Create vendor')"
+                    option-label-key="vendor_name"
+                    select-class="erp-select mt-1 w-full"
+                    :empty-option="false"
+                />
                 <div>
                     <x-input-label for="order_date" :value="__('Order date')" />
                     <x-text-input id="order_date" name="order_date" type="date" class="mt-1 block w-full" value="{{ old('order_date', now()->toDateString()) }}" required />

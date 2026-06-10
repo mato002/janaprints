@@ -65,6 +65,7 @@ return [
     'workspace_sources' => [
         'commercial_workspaces',
         'production_workspaces',
+        'printing_intelligence_workspaces',
         'supply_chain_workspaces',
         'accounting_workspaces',
         'hr_workspaces',

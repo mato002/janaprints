@@ -32,6 +32,7 @@
                 @foreach ($users as $user)
                     <option value="{{ $user->id }}" @selected(($filters['user_id'] ?? '') == $user->id)>{{ $user->name }}</option>
                 @endforeach
+<<<<<<< Updated upstream
             </x-admin.filter-pill-select>
             <x-admin.filter-pill-date name="date_from" :label="__('From date')" :value="$filters['date_from'] ?? ''" />
             <x-admin.filter-pill-date name="date_to" :label="__('To date')" :value="$filters['date_to'] ?? ''" />
@@ -42,6 +43,26 @@
                 @endforeach
             </x-admin.filter-pill-select>
         </x-admin.index-toolbar>
+=======
+            </select>
+            <x-admin.form-status-select
+                form-key="activity.create"
+                name="status"
+                :field="['label' => __('Status'), 'required' => false]"
+                :value="$filters['status'] ?? null"
+                select-class="erp-input text-sm"
+                :allow-empty="true"
+                :empty-label="__('All statuses')"
+                :show-label="false"
+            />
+            <input type="date" name="date_from" class="erp-input text-sm" value="{{ $filters['date_from'] ?? '' }}" placeholder="{{ __('From') }}">
+            <input type="date" name="date_to" class="erp-input text-sm" value="{{ $filters['date_to'] ?? '' }}" placeholder="{{ __('To') }}">
+            <div class="flex gap-2 md:col-span-4 lg:col-span-7">
+                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
+                <a href="{{ route('admin.commercial.activities.index') }}" class="erp-btn-secondary">{{ __('Reset') }}</a>
+            </div>
+        </form>
+>>>>>>> Stashed changes
     </x-admin.card>
 
     <x-admin.card>

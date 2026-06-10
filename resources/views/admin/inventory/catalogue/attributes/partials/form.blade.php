@@ -1,6 +1,19 @@
 @php($m = $attribute ?? null)
 <div class="erp-form-grid">
-    <div><label class="erp-label">{{ __('Category') }}</label><select name="inventory_category_id" class="erp-select w-full"><option value="">{{ __('Reusable across categories') }}</option>@foreach ($categories as $category)<option value="{{ $category->id }}" @selected(old('inventory_category_id', $m?->inventory_category_id) == $category->id)>{{ $category->name }}</option>@endforeach</select></div>
+    <x-admin.lookup-select
+        name="inventory_category_id"
+        :label="__('Category')"
+        :options="$categories"
+        :value="old('inventory_category_id', $m?->inventory_category_id)"
+        create-route="admin.inventory.catalogue.categories.quick-create"
+        refresh-route="admin.lookups.categories"
+        permission="catalogue.create"
+        :modal-title="__('Create category')"
+        option-label-key="name"
+        option-value-key="id"
+        select-class="erp-select w-full"
+        :empty-label="__('Reusable across categories')"
+    />
     <div><label class="erp-label">{{ __('Code') }}</label><input name="code" class="erp-input w-full" value="{{ old('code', $m?->code) }}" required></div>
     <div><label class="erp-label">{{ __('Name') }}</label><input name="name" class="erp-input w-full" value="{{ old('name', $m?->name) }}" required></div>
     <div><label class="erp-label">{{ __('Data type') }}</label><select name="data_type" class="erp-select w-full" required>@foreach (['text' => 'Text', 'number' => 'Number', 'select' => 'Select'] as $value => $label)<option value="{{ $value }}" @selected(old('data_type', $m?->data_type ?? 'text') === $value)>{{ __($label) }}</option>@endforeach</select></div>

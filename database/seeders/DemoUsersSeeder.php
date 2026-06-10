@@ -11,7 +11,6 @@ use App\Models\Employee;
 use App\Models\JobTitle;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DemoUsersSeeder extends Seeder
 {
@@ -108,7 +107,7 @@ class DemoUsersSeeder extends Seeder
                 ['email' => $seedUser['email']],
                 [
                     'name' => $name,
-                    'password' => Hash::make($password),
+                    'password' => $password,
                     'company_id' => $company->id,
                     'default_branch_id' => $branch->id,
                     'employee_id' => $employee->id,

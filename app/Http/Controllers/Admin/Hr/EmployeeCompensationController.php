@@ -43,14 +43,11 @@ class EmployeeCompensationController extends Controller
 
         $companyId = tenant()->companyId() ?? $request->user()->company_id;
 
-        return view('admin.hr.compensation.form', [
-            'employee' => null,
-            'compensation' => null,
+        return view('admin.hr.compensation.create', [
             'employees' => Employee::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('employee_number')->get(),
             'templates' => CompensationSalaryTemplate::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(),
             'paymentFrequencies' => PaymentFrequency::cases(),
             'payrollGroups' => PayrollGroup::cases(),
-            'action' => route('admin.hr.compensation.store'),
         ]);
     }
 

@@ -187,7 +187,8 @@ class PlatformArchitectureTest extends TestCase
         $user->load('roles');
 
         $roleKey = $user->roles->pluck('name')->sort()->implode('|');
-        $cacheKey = "{$user->id}:{$company->id}:{$branch->id}:{$roleKey}";
+        $navVersion = (int) config('platform.navigation_cache_version', 2);
+        $cacheKey = "{$navVersion}:{$user->id}:{$company->id}:{$branch->id}:{$roleKey}";
 
         app(\App\Support\Platform\PlatformCacheService::class)->forget('navigation', $cacheKey);
 

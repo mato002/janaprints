@@ -1,0 +1,77 @@
+<?php
+
+namespace Tests\Feature\PrintingIntelligence;
+
+use App\Enums\ProfitabilitySnapshotType;
+use App\Models\Branch;
+use App\Models\Company;
+use App\Models\PrintingIntelligence\PrintProfitabilitySnapshot;
+use App\Models\User;
+use Database\Seeders\OrganizationFoundationSeeder;
+use Database\Seeders\RolesAndPermissionsSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class ProfitabilityWorkspaceTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(OrganizationFoundationSeeder::class);
+    }
+
+    public function test_workspace_loads_with_permission(): void
+    {
+        [$company, $branch, $user] = $this->userWith(['printing.profitability.view']);
+
+        PrintProfitabilitySnapshot::query()->create([
+            'company_id' => $company->id,
+            'snapshot_type' => ProfitabilitySnapshotType::Job,
+            'revenue' => 5000,
+            'total_cost' => 3000,
+            'gross_profit' => 2000,
+            'gross_margin_percent' => 40,
+            'snapshot_date' => now()->toDateString(),
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
+            ->get(route('admin.printing-intelligence.production-profitability'))
+            ->assertOk()
+            ->assertSee(__('Production Profitability'))
+            ->assertSee(__('Total Revenue'));
+    }
+
+    public function test_permissions_enforced(): void
+    {
+        [$company, $branch, $user] = $this->userWith(['printing.intelligence.view']);
+
+        $this->actingAs($user)
+            ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
+            ->get(route('admin.printing-intelligence.production-profitability'))
+            ->assertForbidden();
+    }
+
+    /**
+     * @param  list<string>  $permissions
+     * @return array{0: Company, 1: Branch, 2: User}
+     */
+    protected function userWith(array $permissions): array
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->firstOrFail();
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+        ]);
+        Role::findByName('Storekeeper', 'web')->syncPermissions($permissions);
+        $user->assignRole('Storekeeper');
+
+        return [$company, $branch, $user];
+    }
+}

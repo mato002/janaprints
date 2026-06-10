@@ -10,6 +10,7 @@ class FormSettingsManager
 {
     public function __construct(
         protected FormSettingsService $forms,
+        protected FormStatusOptionService $statusOptions,
     ) {}
 
     /**
@@ -45,17 +46,35 @@ class FormSettingsManager
                         ));
                 }
 
+                $fields = $registryFields
+                    ->concat($customFields)
+                    ->sortBy('sort_order')
+                    ->values()
+                    ->all();
+
                 return [
                     'form_key' => $formKey,
                     'label' => $meta['label'],
                     'description' => $meta['description'],
                     'is_active' => (bool) ($formSetting?->is_active ?? true),
                     'inherits_company' => $branchId && ! $formSetting && $companyForm,
-                    'fields' => $registryFields
-                        ->concat($customFields)
-                        ->sortBy('sort_order')
-                        ->values()
-                        ->all(),
+                    'fields' => $fields,
+                    'has_status_options' => $this->statusOptions->formHasConfigurableStatus($formKey)
+                        && collect($fields)->contains(fn (array $field) => $field['is_status_field'] ?? false),
+                    'status_options' => $this->statusOptions->formHasConfigurableStatus($formKey)
+                        ? $this->statusOptions
+                            ->optionsFor($formKey, $companyId, $branchId, false)
+                            ->map(fn ($option) => [
+                                'id' => $option->id,
+                                'value' => $option->value,
+                                'label' => $option->label,
+                                'sort_order' => $option->sort_order,
+                                'is_active' => $option->is_active,
+                                'is_system' => $option->is_system,
+                            ])
+                            ->values()
+                            ->all()
+                        : [],
                 ];
             })
             ->values();
@@ -127,6 +146,15 @@ class FormSettingsManager
                         true,
                     );
                 }
+            }
+
+            if (! empty($input['status_options']) && is_array($input['status_options'])) {
+                $this->statusOptions->syncOptions(
+                    $formKey,
+                    $companyId,
+                    $branchId,
+                    array_values($input['status_options']),
+                );
             }
         }
 

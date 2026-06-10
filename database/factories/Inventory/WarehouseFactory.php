@@ -22,6 +22,17 @@ class WarehouseFactory extends Factory
             'code' => strtoupper(fake()->unique()->lexify('???')),
             'name' => fake()->words(2, true),
             'is_active' => true,
+            'is_virtual' => false,
         ];
+    }
+
+    public function virtual(): static
+    {
+        return $this->state(fn () => [
+            'is_virtual' => true,
+            'virtual_role' => \App\Enums\VirtualWarehouseRole::Wip,
+            'code' => 'VIRTUAL-WIP',
+            'name' => 'Work In Progress (Virtual)',
+        ]);
     }
 }

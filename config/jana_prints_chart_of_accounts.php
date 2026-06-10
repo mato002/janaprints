@@ -23,6 +23,7 @@ return [
         ['type' => 'asset', 'kind' => 'account', 'code' => '1410', 'name' => 'Raw Materials', 'parent_code' => '1400', 'postable' => true, 'sort' => 41],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1420', 'name' => 'Work In Progress', 'parent_code' => '1400', 'postable' => true, 'sort' => 42],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1430', 'name' => 'Finished Goods', 'parent_code' => '1400', 'postable' => true, 'sort' => 43],
+        ['type' => 'asset', 'kind' => 'account', 'code' => '1440', 'name' => 'Inventory In Transit', 'parent_code' => '1400', 'postable' => true, 'sort' => 44],
         ['type' => 'asset', 'kind' => 'group', 'code' => '1500', 'name' => 'Fixed Assets', 'parent_code' => '1000', 'sort' => 50],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1510', 'name' => 'Computers', 'parent_code' => '1500', 'postable' => true, 'sort' => 51],
         ['type' => 'asset', 'kind' => 'account', 'code' => '1520', 'name' => 'Printers', 'parent_code' => '1500', 'postable' => true, 'sort' => 52],
@@ -69,6 +70,7 @@ return [
         ['type' => 'cost_of_sales', 'kind' => 'account', 'code' => '5200', 'name' => 'Ink Consumption', 'parent_code' => '5000', 'postable' => true, 'sort' => 30],
         ['type' => 'cost_of_sales', 'kind' => 'account', 'code' => '5300', 'name' => 'Lamination Materials', 'parent_code' => '5000', 'postable' => true, 'sort' => 40],
         ['type' => 'cost_of_sales', 'kind' => 'account', 'code' => '5400', 'name' => 'Outsourced Printing', 'parent_code' => '5000', 'postable' => true, 'sort' => 50],
+        ['type' => 'cost_of_sales', 'kind' => 'account', 'code' => '5450', 'name' => 'Cost of Goods Sold', 'parent_code' => '5000', 'postable' => true, 'sort' => 55],
         ['type' => 'cost_of_sales', 'kind' => 'account', 'code' => '5500', 'name' => 'Direct Labour', 'parent_code' => '5000', 'postable' => true, 'sort' => 60],
 
         // —— Operating expenses ——

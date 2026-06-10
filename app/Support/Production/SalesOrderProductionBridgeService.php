@@ -52,12 +52,12 @@ class SalesOrderProductionBridgeService
     {
         return match ($jobCardStatus) {
             ProductionJobCardStatus::Draft => SalesOrderStatus::ReadyForProduction,
-            ProductionJobCardStatus::Queued => SalesOrderStatus::Queued,
+            ProductionJobCardStatus::Queued => SalesOrderStatus::ReadyForProduction,
             ProductionJobCardStatus::InProduction => SalesOrderStatus::InProduction,
-            ProductionJobCardStatus::QualityCheck => SalesOrderStatus::QualityCheck,
+            ProductionJobCardStatus::QualityCheck => SalesOrderStatus::InProduction,
             ProductionJobCardStatus::Rework => SalesOrderStatus::InProduction,
-            ProductionJobCardStatus::Completed => SalesOrderStatus::ProductionComplete,
-            ProductionJobCardStatus::ReadyForDispatch => SalesOrderStatus::ReadyForDispatch,
+            ProductionJobCardStatus::Completed => SalesOrderStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch => SalesOrderStatus::Completed,
             ProductionJobCardStatus::OnHold => SalesOrderStatus::OnHold,
             ProductionJobCardStatus::Cancelled => SalesOrderStatus::Cancelled,
             default => null,
@@ -172,11 +172,8 @@ class SalesOrderProductionBridgeService
     {
         return [
             SalesOrderStatus::ReadyForProduction,
-            SalesOrderStatus::Queued,
             SalesOrderStatus::InProduction,
-            SalesOrderStatus::QualityCheck,
-            SalesOrderStatus::ProductionComplete,
-            SalesOrderStatus::ReadyForDispatch,
+            SalesOrderStatus::Completed,
             SalesOrderStatus::Delivered,
         ];
     }
@@ -190,14 +187,10 @@ class SalesOrderProductionBridgeService
             SalesOrderStatus::Draft->value => 0,
             SalesOrderStatus::Confirmed->value => 1,
             SalesOrderStatus::ReadyForProduction->value => 2,
-            SalesOrderStatus::Queued->value => 3,
-            SalesOrderStatus::InProduction->value => 4,
-            SalesOrderStatus::QualityCheck->value => 5,
-            SalesOrderStatus::ProductionComplete->value => 6,
-            SalesOrderStatus::ReadyForDispatch->value => 7,
-            SalesOrderStatus::Completed->value => 6,
-            SalesOrderStatus::Delivered->value => 8,
-            SalesOrderStatus::Closed->value => 9,
+            SalesOrderStatus::InProduction->value => 3,
+            SalesOrderStatus::Completed->value => 4,
+            SalesOrderStatus::Delivered->value => 5,
+            SalesOrderStatus::Closed->value => 6,
             SalesOrderStatus::OnHold->value => -1,
             SalesOrderStatus::Cancelled->value => -1,
         ];

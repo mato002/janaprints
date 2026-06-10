@@ -19,6 +19,7 @@ use App\Models\Production\QualityCheck;
 use App\Models\Assets\MachineProfile;
 use App\Models\Production\WorkCenter;
 use App\Services\Assets\MachineJobAssignmentService;
+use App\Services\Production\ProductionCompletionService;
 use Illuminate\Support\Facades\Schema;
 
 class Job360WorkspaceService
@@ -40,6 +41,8 @@ class Job360WorkspaceService
 
     public const TAB_QUALITY = 'quality';
 
+    public const TAB_OUTPUTS = 'outputs';
+
     public const TAB_DISPATCH = 'dispatch';
 
     public const TAB_TIMELINE = 'timeline';
@@ -51,6 +54,7 @@ class Job360WorkspaceService
         self::TAB_ARTWORK,
         self::TAB_OPERATIONS,
         self::TAB_MATERIALS,
+        self::TAB_OUTPUTS,
         self::TAB_QUALITY,
         self::TAB_DISPATCH,
         self::TAB_TIMELINE,
@@ -106,6 +110,7 @@ class Job360WorkspaceService
                 QualityCheckResult::ReworkRequired,
             ]),
             'materialConsumptions',
+            'productionOutputs',
         ]);
     }
 
@@ -233,6 +238,7 @@ class Job360WorkspaceService
             self::TAB_ARTWORK => __('Artwork'),
             self::TAB_OPERATIONS => __('Operations'),
             self::TAB_MATERIALS => __('Materials'),
+            self::TAB_OUTPUTS => __('Finished goods'),
             self::TAB_QUALITY => __('Quality Control'),
             self::TAB_DISPATCH => __('Dispatch'),
             self::TAB_TIMELINE => __('Timeline'),
@@ -252,6 +258,7 @@ class Job360WorkspaceService
             self::TAB_ARTWORK => $this->artworkTab($jobCard),
             self::TAB_OPERATIONS => $this->operationsTab($jobCard),
             self::TAB_MATERIALS => $this->materialsTab($jobCard),
+            self::TAB_OUTPUTS => $this->outputsTab($jobCard),
             self::TAB_QUALITY => $this->qualityTab($jobCard),
             self::TAB_DISPATCH => $this->dispatchTab($jobCard),
             self::TAB_TIMELINE => array_merge(
@@ -272,7 +279,17 @@ class Job360WorkspaceService
      */
     protected function overviewTab(ProductionJobCard $jobCard): array
     {
+        $completion = app(ProductionCompletionService::class)->eligibility($jobCard);
+
         return [
+            'completion' => $completion,
+            'finished_items' => InventoryItem::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
+                ->where('is_active', true)
+                ->orderBy('item_name')
+                ->get(['id', 'sku', 'item_name']),
             'summary' => [
                 'production_type' => $jobCard->production_type->value,
                 'priority' => $jobCard->priority->value,
@@ -496,6 +513,29 @@ class Job360WorkspaceService
             'can_queue' => auth()->user()?->can('create', [ProductionQueue::class, $jobCard]) ?? false,
             'queues' => $jobCard->queues,
             'controls' => $this->controls,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function outputsTab(ProductionJobCard $jobCard): array
+    {
+        $outputs = $jobCard->productionOutputs()
+            ->with(['finishedItem:id,sku,item_name', 'finishedWarehouse:id,code,name', 'completedByUser:id,name', 'postedJournal:id,reference'])
+            ->paginate(25, pageName: 'outputs_page');
+
+        return [
+            'outputs' => $outputs,
+            'completion' => app(ProductionCompletionService::class)->eligibility($jobCard),
+            'finished_items' => InventoryItem::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
+                ->where('is_active', true)
+                ->orderBy('item_name')
+                ->get(['id', 'sku', 'item_name']),
+            'virtual_locations_url' => route('admin.inventory.virtual-locations.index'),
         ];
     }
 

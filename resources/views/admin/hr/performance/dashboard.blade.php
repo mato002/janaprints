@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Performance Management')" :description="__('Employee KPIs, appraisals, and performance ratings.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\PerformanceReview::class)
-                <a href="{{ route('admin.hr.performance.create') }}" class="erp-btn-primary">{{ __('New appraisal') }}</a>
+                <a href="{{ route('admin.hr.performance.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New appraisal') }}</a>
             @endcan
             <a href="{{ route('admin.hr.performance.index') }}" class="erp-btn-secondary">{{ __('All reviews') }}</a>
         </x-slot>

@@ -23,6 +23,7 @@ use App\Models\Platform\NumberingSequence;
 use App\Models\Platform\SystemSetting;
 use App\Support\Platform\DocumentTypesManager;
 use App\Support\Platform\FormSettingsManager;
+use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 
@@ -129,7 +130,12 @@ class PlatformConfigurationSeeder extends Seeder
     protected function seedFormSettings(int $companyId): void
     {
         $manager = app(FormSettingsManager::class);
+        $statusOptions = app(FormStatusOptionService::class);
         $manager->ensureForms($companyId, null);
+
+        foreach ($statusOptions->formsWithConfigurableStatus() as $formKey) {
+            $statusOptions->ensureDefaults($formKey, $companyId, null);
+        }
 
         $manager->save($companyId, null, [
             'customer' => [

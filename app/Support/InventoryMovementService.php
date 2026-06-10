@@ -97,6 +97,9 @@ class InventoryMovementService
         return in_array($type, [
             InventoryMovementType::Receipt,
             InventoryMovementType::TransferIn,
+            InventoryMovementType::FinishedGoodsReceipt,
+            InventoryMovementType::ProductionOutput,
+            InventoryMovementType::DispatchToTransit,
         ], true);
     }
 
@@ -106,6 +109,8 @@ class InventoryMovementService
             InventoryMovementType::Issue,
             InventoryMovementType::TransferOut,
             InventoryMovementType::ProductionConsumption,
+            InventoryMovementType::DispatchToTransit,
+            InventoryMovementType::DeliveryCogs,
         ], true);
     }
 }

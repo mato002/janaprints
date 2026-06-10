@@ -3,6 +3,7 @@
 namespace App\Models\Dispatch;
 
 use App\Enums\Dispatch\DeliveryNoteStatus;
+use App\Models\Accounting\Journal;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Crm\Customer;
 use App\Models\Production\ProductionJobCard;
@@ -36,6 +37,7 @@ class DeliveryNote extends Model
         'dispatched_at',
         'delivered_by',
         'delivered_at',
+        'posted_journal_id',
         'invoice_ready',
         'invoiced_by',
         'invoiced_at',
@@ -97,6 +99,11 @@ class DeliveryNote extends Model
     public function deliverer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'delivered_by');
+    }
+
+    public function postedJournal(): BelongsTo
+    {
+        return $this->belongsTo(Journal::class, 'posted_journal_id');
     }
 
     /**

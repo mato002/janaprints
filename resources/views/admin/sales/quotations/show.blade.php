@@ -13,6 +13,8 @@
         <x-admin.kpi-widget :label="__('Total')" :value="$quotation->currency.' '.number_format($quotation->total_amount, 2)" icon="calculator" />
     </div>
 
+    @include('admin.sales.quotations.partials.printing-intelligence-estimate')
+
     <x-admin.card class="mb-6">
         <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
         <div class="flex flex-wrap gap-2">

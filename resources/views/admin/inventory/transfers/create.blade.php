@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 @php($fields = $formFields ?? [])
 <x-admin.modal-form
     :title="__('Create transfer')"
@@ -61,5 +62,26 @@
         <x-admin.form-actions>
             <x-primary-button>{{ __('Create transfer') }}</x-primary-button>
         </x-admin.form-actions>
+=======
+<x-admin.modal-form
+    :title="__('Create transfer')"
+    :breadcrumbs="[
+        ['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')],
+        ['label' => __('Store Management'), 'url' => route('admin.inventory.store.dashboard')],
+        ['label' => __('Store Transfers'), 'url' => route('admin.inventory.transfers.index')],
+        ['label' => __('Create')],
+    ]"
+    maxWidth="5xl"
+>
+    <x-admin.form-shell :action="route('admin.inventory.transfers.store')">
+        @include('admin.inventory.transfers.partials.form', [
+            'formFields' => $formFields ?? [],
+            'warehouses' => $warehouses,
+            'items' => $items,
+        ])
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Create transfer') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+>>>>>>> Stashed changes
     </x-admin.form-shell>
 </x-admin.modal-form>

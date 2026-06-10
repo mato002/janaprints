@@ -19,6 +19,7 @@ use App\Services\Crm\LeadQuotationService;
 use App\Support\Crm\LeadConversionService;
 use App\Support\Crm\LeadOperationalGuard;
 use App\Support\Platform\FormSettingsService;
+use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
@@ -32,6 +33,7 @@ class LeadController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected FormStatusOptionService $statusOptions,
     ) {}
 
     public function index(): View
@@ -203,7 +205,7 @@ class LeadController extends Controller
             'estimated_value' => ['numeric', 'min:0'],
             'probability' => ['integer', 'min:0', 'max:100'],
             'expected_close_date' => ['date'],
-            'status' => [Rule::enum(LeadStatus::class)],
+            'status' => $this->statusOptions->validationRules('lead', $companyId, $branchId),
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],
             'branch_id' => ['sometimes', 'exists:branches,id'],
@@ -226,7 +228,6 @@ class LeadController extends Controller
             'stages' => LeadStage::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('sort_order')->get(),
             'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(),
             'users' => User::query()->when(! auth()->user()->hasRole('Super Admin'), fn ($q) => $q->where('company_id', $companyId))->get(),
-            'statuses' => LeadStatus::cases(),
         ];
     }
 }

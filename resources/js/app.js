@@ -59,6 +59,10 @@ const erpModalManager = {
                 return false;
             }
 
+            if (path.includes('/quick-create')) {
+                return false;
+            }
+
             return /\/(create|edit)(\/|$)/.test(path);
         } catch {
             return false;
@@ -83,6 +87,34 @@ const erpModalManager = {
         }
 
         return this.isModalFormUrl(link.href);
+    },
+
+    shouldOpenFormModal(link) {
+        if (! link?.href) {
+            return false;
+        }
+
+        if (link.hasAttribute('data-no-modal')) {
+            return false;
+        }
+
+        if (link.getAttribute('target') === '_blank') {
+            return false;
+        }
+
+        if (link.closest('#erp-form-modal') || link.closest('#erp-lookup-modal-overlay')) {
+            return false;
+        }
+
+        if (link.hasAttribute('data-erp-modal-open')) {
+            return true;
+        }
+
+        if (link.getAttribute('data-turbo') === 'false') {
+            return false;
+        }
+
+        return this.shouldOpenLinkAsModal(link);
     },
 
     prepareModalFormContent(root, sourceUrl = null) {
@@ -346,6 +378,10 @@ const erpModalManager = {
     },
 
     closeModal() {
+        if (this.isLookupOverlayOpen()) {
+            return;
+        }
+
         this.modalLoadSeq += 1;
         this.abortModalLoad();
         this.pendingModalLoad = false;
@@ -677,23 +713,25 @@ const erpModalManager = {
         }
     },
 
+    isLookupOverlayOpen() {
+        const lookupOverlay = document.getElementById('erp-lookup-modal-overlay');
+
+        return Boolean(lookupOverlay && ! lookupOverlay.hidden);
+    },
+
     handleDocumentClick(event) {
-        const modalLink = event.target.closest('[data-erp-modal-open]');
-
-        if (modalLink?.href) {
-            event.preventDefault();
-            event.stopPropagation();
-            this.loadForm(modalLink.href);
-
-            return;
+        if (this.isLookupOverlayOpen()) {
+            if (event.target.closest('#erp-lookup-modal-overlay')) {
+                return;
+            }
         }
 
-        const formLink = event.target.closest('a[href]');
+        const modalLink = event.target.closest('a[href]');
 
-        if (formLink && this.shouldOpenLinkAsModal(formLink)) {
+        if (modalLink && this.shouldOpenFormModal(modalLink)) {
             event.preventDefault();
-            event.stopPropagation();
-            this.loadForm(formLink.href);
+            event.stopImmediatePropagation();
+            this.loadForm(modalLink.href);
 
             return;
         }
@@ -709,7 +747,11 @@ const erpModalManager = {
 
         if (closeTrigger) {
             event.preventDefault();
-            this.closeModal();
+            event.stopPropagation();
+
+            if (! this.isLookupOverlayOpen()) {
+                this.closeModal();
+            }
         }
 
         const drawerClose = event.target.closest('[data-erp-drawer-close]');
@@ -720,8 +762,92 @@ const erpModalManager = {
         }
     },
 
+    interceptModalNavigation(url) {
+        if (! url || ! this.isModalFormUrl(url)) {
+            return false;
+        }
+
+        this.loadForm(url);
+
+        return true;
+    },
+
+    isPrefetchFetch(event) {
+        const headers = event.detail?.fetchOptions?.headers;
+
+        if (! headers) {
+            return false;
+        }
+
+        const purpose = typeof headers.get === 'function'
+            ? headers.get('X-Sec-Purpose')
+            : headers['X-Sec-Purpose'];
+
+        return purpose === 'prefetch';
+    },
+
     bind() {
-        // Capture phase so we intercept before Turbo frame / drive navigation.
+        document.addEventListener('turbo:before-prefetch', (event) => {
+            const link = event.target?.closest?.('a[href]');
+
+            if (link && this.shouldOpenFormModal(link)) {
+                event.preventDefault();
+            }
+        });
+
+        document.addEventListener('turbo:before-visit', (event) => {
+            const url = event.detail?.url?.toString();
+
+            if (! url || event.detail?.action === 'restore') {
+                return;
+            }
+
+            if (this.isModalFormUrl(url)) {
+                event.preventDefault();
+                this.loadForm(url);
+            }
+        });
+
+        document.addEventListener('turbo:before-fetch-request', (event) => {
+            if (this.isPrefetchFetch(event)) {
+                return;
+            }
+
+            const url = event.detail?.url?.toString();
+            const frame = event.target;
+
+            if (! url || ! (frame instanceof Element)) {
+                return;
+            }
+
+            const frameId = frame.id ?? '';
+            const modalFrames = ['erp-form-modal', 'erp-preview-drawer', 'erp-lookup-modal'];
+
+            if (modalFrames.includes(frameId)) {
+                return;
+            }
+
+            if (this.isModalFormUrl(url)) {
+                event.preventDefault();
+                this.loadForm(url);
+            }
+        });
+
+        document.addEventListener('turbo:click', (event) => {
+            const { url, originalEvent } = event.detail ?? {};
+            const link = originalEvent?.target?.closest?.('a[href]');
+
+            if (! url || ! link || ! this.shouldOpenFormModal(link)) {
+                return;
+            }
+
+            event.preventDefault();
+            originalEvent?.preventDefault?.();
+            originalEvent?.stopImmediatePropagation?.();
+            this.loadForm(url);
+        });
+
+        // Capture phase for drawer/modal chrome controls and non-Turbo links.
         document.addEventListener('click', (event) => this.handleDocumentClick(event), true);
 
         document.addEventListener('submit', (event) => {
@@ -742,6 +868,12 @@ const erpModalManager = {
 
         document.addEventListener('keydown', (event) => {
             if (event.key !== 'Escape') {
+                return;
+            }
+
+            const lookupOverlay = document.getElementById('erp-lookup-modal-overlay');
+
+            if (lookupOverlay && ! lookupOverlay.hidden) {
                 return;
             }
 
@@ -803,6 +935,350 @@ window.erpModalManager = erpModalManager;
 erpModalManager.bind();
 erpModalManager.hideOverlay();
 erpModalManager.hideDrawer();
+
+const erpLookupManager = {
+    pendingLoad: false,
+    loadSeq: 0,
+    abortController: null,
+    onSuccess: null,
+    suppressBackdropCloseUntil: 0,
+    /** @type {{ panelHTML: string, onSuccess: (() => void)|null }[]} */
+    stack: [],
+
+    overlay() {
+        return document.getElementById('erp-lookup-modal-overlay');
+    },
+
+    frame() {
+        return document.getElementById('erp-lookup-modal');
+    },
+
+    abortLoad() {
+        if (this.abortController) {
+            this.abortController.abort();
+            this.abortController = null;
+        }
+    },
+
+    renderLoading(title = 'Loading…') {
+        const frame = this.frame();
+
+        if (! frame) {
+            return;
+        }
+
+        frame.innerHTML = `
+            <div class="erp-form-modal erp-lookup-modal erp-lookup-modal--w-4xl mx-auto w-full shrink-0" data-erp-lookup-modal-loading>
+                <div class="erp-form-modal__header">
+                    <h2 id="erp-lookup-modal-title" class="erp-form-modal__title">${title}</h2>
+                    <button type="button" class="erp-form-modal__close" data-erp-lookup-modal-close aria-label="Close">
+                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+                <div class="erp-form-modal__body erp-form-modal__body--loading">
+                    <div class="erp-modal-spinner" role="status" aria-label="Loading form"><span class="sr-only">Loading form</span></div>
+                </div>
+            </div>
+        `;
+
+        this.showOverlay();
+    },
+
+    extractPanel(html) {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        return doc.querySelector('[data-erp-lookup-modal-panel]')
+            ?? doc.querySelector('.erp-lookup-modal');
+    },
+
+    pushStack() {
+        const frame = this.frame();
+
+        if (! frame || this.pendingLoad) {
+            return;
+        }
+
+        const html = frame.innerHTML.trim();
+
+        if (html === '' || frame.querySelector('[data-erp-lookup-modal-loading]')) {
+            return;
+        }
+
+        this.stack.push({
+            panelHTML: html,
+            onSuccess: this.onSuccess,
+        });
+    },
+
+    restoreStackedPanel(entry) {
+        const frame = this.frame();
+
+        if (! frame || ! entry) {
+            return;
+        }
+
+        frame.innerHTML = entry.panelHTML;
+        this.onSuccess = entry.onSuccess ?? null;
+        this.pendingLoad = false;
+        this.showOverlay();
+        Alpine.initTree(frame);
+    },
+
+    async open(url, { onSuccess = null, title = 'Loading…' } = {}) {
+        const frame = this.frame();
+
+        if (! frame || ! url) {
+            return;
+        }
+
+        this.pushStack();
+        this.onSuccess = onSuccess;
+        this.abortLoad();
+        const loadId = ++this.loadSeq;
+        this.abortController = new AbortController();
+        this.pendingLoad = true;
+        this.suppressBackdropCloseUntil = Date.now() + 400;
+        this.renderLoading(title);
+
+        try {
+            const response = await fetch(url, {
+                signal: this.abortController.signal,
+                headers: {
+                    'Accept': 'text/html, application/xhtml+xml',
+                    'X-Erp-Lookup-Create': '1',
+                },
+                credentials: 'same-origin',
+            });
+
+            if (loadId !== this.loadSeq) {
+                return;
+            }
+
+            if (! response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const panel = this.extractPanel(await response.text());
+
+            if (! panel) {
+                throw new Error('Lookup form markup was not found in the response.');
+            }
+
+            frame.replaceChildren(panel);
+            this.pendingLoad = false;
+            this.abortController = null;
+            this.showOverlay();
+            await new Promise((resolve) => window.requestAnimationFrame(resolve));
+            Alpine.initTree(frame);
+        } catch (error) {
+            if (error?.name === 'AbortError' || loadId !== this.loadSeq) {
+                return;
+            }
+
+            console.error('erpLookupManager.open', error);
+            this.pendingLoad = false;
+            this.abortController = null;
+            this.close();
+            erpModalManager.showToast('Unable to open quick create form. Please try again.', 'error');
+        }
+    },
+
+    close() {
+        if (this.stack.length > 0) {
+            this.loadSeq += 1;
+            this.abortLoad();
+            this.pendingLoad = false;
+            this.restoreStackedPanel(this.stack.pop());
+
+            return;
+        }
+
+        this.loadSeq += 1;
+        this.abortLoad();
+        this.pendingLoad = false;
+        this.onSuccess = null;
+        this.stack = [];
+
+        const frame = this.frame();
+
+        if (frame) {
+            frame.innerHTML = '';
+        }
+
+        this.hideOverlay();
+    },
+
+    showOverlay() {
+        const overlay = this.overlay();
+
+        if (overlay) {
+            overlay.hidden = false;
+            overlay.setAttribute('aria-hidden', 'false');
+            overlay.classList.add('erp-lookup-modal-overlay--open');
+            document.body.classList.add('overflow-hidden');
+        }
+    },
+
+    hideOverlay() {
+        const overlay = this.overlay();
+
+        if (overlay) {
+            overlay.hidden = true;
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.classList.remove('erp-lookup-modal-overlay--open');
+
+            const formOverlay = document.getElementById('erp-modal-overlay');
+
+            if (! formOverlay || formOverlay.hidden) {
+                document.body.classList.remove('overflow-hidden');
+            }
+        }
+    },
+
+    async submitForm(form) {
+        if (! form) {
+            return;
+        }
+
+        const formData = new FormData(form);
+        const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
+
+        try {
+            const response = await fetch(form.action, {
+                method: method === 'GET' ? 'GET' : 'POST',
+                body: method === 'GET' ? null : formData,
+                headers: {
+                    'Accept': 'application/json, text/html',
+                    'X-Erp-Lookup-Create': '1',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            });
+
+            const contentType = response.headers.get('content-type') ?? '';
+
+            if (contentType.includes('application/json')) {
+                const payload = await response.json();
+
+                if (! response.ok) {
+                    throw new Error(payload.message ?? 'Unable to save record.');
+                }
+
+                this.handleSuccess(payload);
+
+                return;
+            }
+
+            const html = await response.text();
+            const panel = this.extractPanel(html);
+            const frame = this.frame();
+
+            if (panel && frame) {
+                frame.replaceChildren(panel);
+                this.showOverlay();
+                Alpine.initTree(frame);
+
+                return;
+            }
+
+            if (response.ok) {
+                this.handleSuccess({ message: 'Saved successfully.' });
+            }
+        } catch (error) {
+            console.error('erpLookupManager.submitForm', error);
+            erpModalManager.showToast('Unable to save record. Please try again.', 'error');
+        }
+    },
+
+    handleSuccess(payload = {}) {
+        const callback = this.onSuccess;
+        const message = payload.message ?? '';
+
+        if (typeof callback === 'function') {
+            callback({
+                id: payload.id ?? payload.value,
+                value: payload.value ?? payload.id,
+                label: payload.label ?? '',
+            });
+        }
+
+        if (this.stack.length > 0) {
+            this.loadSeq += 1;
+            this.abortLoad();
+            this.pendingLoad = false;
+            this.restoreStackedPanel(this.stack.pop());
+        } else {
+            this.loadSeq += 1;
+            this.abortLoad();
+            this.pendingLoad = false;
+            this.onSuccess = null;
+            this.stack = [];
+
+            const frame = this.frame();
+
+            if (frame) {
+                frame.innerHTML = '';
+            }
+
+            this.hideOverlay();
+        }
+
+        if (message) {
+            erpModalManager.showToast(message);
+        }
+    },
+
+    bind() {
+        document.addEventListener('click', (event) => {
+            const closeTrigger = event.target.closest('[data-erp-lookup-modal-close]');
+
+            if (closeTrigger) {
+                if (Date.now() < this.suppressBackdropCloseUntil) {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                this.close();
+
+                return;
+            }
+        }, true);
+
+        document.addEventListener('submit', (event) => {
+            const form = event.target;
+
+            if (! (form instanceof HTMLFormElement) || ! form.matches('[data-erp-lookup-form]')) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            this.submitForm(form);
+        }, true);
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') {
+                return;
+            }
+
+            const overlay = this.overlay();
+
+            if (overlay && ! overlay.hidden) {
+                event.preventDefault();
+                event.stopPropagation();
+                this.close();
+            }
+        }, true);
+    },
+};
+
+window.erpLookupManager = erpLookupManager;
+erpLookupManager.bind();
+erpLookupManager.hideOverlay();
 
 const progressBar = () => document.getElementById('turbo-progress');
 
@@ -1025,7 +1501,161 @@ async function discoveryFetchResults(query, moduleKey = null, limit = 24) {
 }
 
 document.addEventListener('alpine:init', () => {
-    Alpine.data('erpShell', () => ({
+    Alpine.data('erpLookupCreate', (config = {}) => ({
+        name: config.name ?? '',
+        selected: config.selected ?? '',
+        options: Array.isArray(config.options) ? config.options : [],
+        createUrl: config.createUrl ?? null,
+        refreshUrl: config.refreshUrl ?? null,
+        modalTitle: config.modalTitle ?? 'Create',
+        scopeCompanyField: config.scopeCompanyField ?? null,
+        scopeBranchField: config.scopeBranchField ?? null,
+        scopeCustomerField: config.scopeCustomerField ?? null,
+        scopeFormKey: config.scopeFormKey ?? null,
+
+        init() {
+            this.syncSelectOptions();
+            this.$watch('options', () => this.syncSelectOptions());
+            this.$watch('selected', () => this.syncSelectOptions());
+        },
+
+        syncSelectOptions() {
+            const select = this.$root.querySelector('select');
+
+            if (! select) {
+                return;
+            }
+
+            const current = this.selected ?? '';
+            const emptyOption = select.dataset.emptyOption !== '0';
+            select.innerHTML = '';
+
+            if (emptyOption) {
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = select.dataset.placeholder || 'Select';
+                select.appendChild(placeholder);
+            }
+
+            this.options.forEach((option) => {
+                const node = document.createElement('option');
+                node.value = String(option.value);
+                node.textContent = option.label;
+                select.appendChild(node);
+            });
+
+            select.value = current;
+            this.selected = select.value;
+        },
+
+        scopeParams() {
+            const params = new URLSearchParams();
+            const rootForm = this.$root.closest('form');
+
+            if (this.scopeCompanyField && rootForm) {
+                const companyField = rootForm.querySelector(`[name="${this.scopeCompanyField}"]`);
+
+                if (companyField?.value) {
+                    params.set('company_id', companyField.value);
+                }
+            }
+
+            if (this.scopeBranchField && rootForm) {
+                const branchField = rootForm.querySelector(`[name="${this.scopeBranchField}"]`);
+
+                if (branchField?.value) {
+                    params.set('branch_id', branchField.value);
+                }
+            }
+
+            if (this.scopeCustomerField && rootForm) {
+                const customerField = rootForm.querySelector(`[name="${this.scopeCustomerField}"]`);
+
+                if (customerField?.value) {
+                    params.set('customer_id', customerField.value);
+                }
+            }
+
+            if (this.scopeFormKey) {
+                params.set('form_key', this.scopeFormKey);
+            }
+
+            return params;
+        },
+
+        scopedUrl(baseUrl) {
+            if (! baseUrl) {
+                return '';
+            }
+
+            try {
+                const url = new URL(baseUrl, window.location.origin);
+
+                this.scopeParams().forEach((value, key) => {
+                    if (value !== '') {
+                        url.searchParams.set(key, value);
+                    }
+                });
+
+                return `${url.pathname}${url.search}`;
+            } catch (error) {
+                console.error('erpLookupCreate.scopedUrl', error);
+
+                const query = this.scopeParams().toString();
+
+                return query ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${query}` : baseUrl;
+            }
+        },
+
+        async refreshOptions(selectValue = null) {
+            if (! this.refreshUrl) {
+                return;
+            }
+
+            try {
+                const response = await fetch(this.scopedUrl(this.refreshUrl), {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                this.options = await response.json();
+
+                if (selectValue !== null && selectValue !== undefined && selectValue !== '') {
+                    this.selected = String(selectValue);
+                }
+            } catch (error) {
+                console.error('erpLookupCreate.refreshOptions', error);
+            }
+        },
+
+        openCreate(event) {
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+
+            if (! this.createUrl || ! window.erpLookupManager) {
+                return;
+            }
+
+            const url = this.scopedUrl(this.createUrl);
+
+            window.erpLookupManager.open(url, {
+                title: this.modalTitle,
+                onSuccess: async (record) => {
+                    await this.refreshOptions(record.value);
+                    this.selected = String(record.value ?? '');
+                },
+            });
+        },
+    }));
+
+    Alpine.data('erpShell', (searchIndex = [], discoveryIndex = []) => ({
         sidebarCollapsed: localStorage.getItem('erp.sidebarCollapsed') === '1',
         mobileNavOpen: false,
         query: '',

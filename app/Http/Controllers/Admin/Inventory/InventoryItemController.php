@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Inventory;
 
+use App\Enums\InventoryStockRole;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
@@ -31,15 +32,27 @@ class InventoryItemController extends Controller
         protected ItemAttributeService $itemAttributes,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', InventoryItem::class);
 
-        $items = $this->scopeToTenant(
-            InventoryItem::query()->with(['category', 'subcategory', 'brand', 'unitOfMeasure', 'images'])
-        )->orderBy('item_name')->paginate(15);
+        $stockRole = $request->string('stock_role')->toString() ?: null;
 
-        return view('admin.inventory.items.index', compact('items'));
+        $query = $this->scopeToTenant(
+            InventoryItem::query()->with(['category', 'subcategory', 'brand', 'unitOfMeasure', 'images'])
+        )->orderBy('item_name');
+
+        if ($stockRole !== null && $stockRole !== '' && $stockRole !== 'all') {
+            $query->where('stock_role', $stockRole);
+        }
+
+        $items = $query->paginate(15)->withQueryString();
+
+        return view('admin.inventory.items.index', [
+            'items' => $items,
+            'stockRole' => $stockRole ?? 'all',
+            'stockRoles' => InventoryStockRole::cases(),
+        ]);
     }
 
     public function create(): View
@@ -137,6 +150,7 @@ class InventoryItemController extends Controller
             'reorder_quantity' => ['numeric', 'min:0'],
             'standard_cost' => ['numeric', 'min:0'],
             'is_active' => ['boolean'],
+            'stock_role' => ['required', Rule::enum(InventoryStockRole::class)],
         ], $companyId, $branchId);
     }
 
@@ -154,6 +168,7 @@ class InventoryItemController extends Controller
             'brands' => Brand::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->orderBy('name')->get(),
+            'stockRoles' => InventoryStockRole::cases(),
         ];
     }
 

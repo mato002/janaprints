@@ -20,7 +20,7 @@ class InventoryMovement extends Model
     protected $fillable = [
         'company_id', 'branch_id', 'inventory_item_id', 'warehouse_id',
         'movement_type', 'quantity', 'unit_cost', 'reference_type', 'reference_id',
-        'movement_date', 'created_by',
+        'lifecycle_receipt_key', 'movement_date', 'created_by',
     ];
 
     protected function casts(): array

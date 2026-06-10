@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\Crm\CustomerNoteController;
 use App\Http\Controllers\Admin\Crm\CustomerSegmentController;
 use App\Http\Controllers\Admin\Crm\LeadController;
 use App\Http\Controllers\Admin\Crm\LeadFollowUpController;
+use App\Http\Controllers\Admin\QuickCreateLookupController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
@@ -29,8 +30,12 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:crm.customers.create')->group(function () {
             Route::get('customers/create', [CustomerController::class, 'create'])->name('customers.create');
+            Route::get('customers/quick-create', [QuickCreateLookupController::class, 'createCustomer'])->name('customers.quick-create');
+            Route::post('customers/quick-create', [QuickCreateLookupController::class, 'storeCustomer'])->name('customers.quick-store');
             Route::post('customers', [CustomerController::class, 'store'])->name('customers.store');
             Route::get('segments/create', [CustomerSegmentController::class, 'create'])->name('segments.create');
+            Route::get('segments/quick-create', [QuickCreateLookupController::class, 'createSegment'])->name('segments.quick-create');
+            Route::post('segments/quick-create', [QuickCreateLookupController::class, 'storeSegment'])->name('segments.quick-store');
             Route::post('segments', [CustomerSegmentController::class, 'store'])->name('segments.store');
         });
 
@@ -63,6 +68,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:crm.leads.create')->group(function () {
             Route::get('leads/create', [LeadController::class, 'create'])->name('leads.create');
+            Route::get('leads/quick-create', [QuickCreateLookupController::class, 'createLead'])->name('leads.quick-create');
+            Route::post('leads/quick-create', [QuickCreateLookupController::class, 'storeLead'])->name('leads.quick-store');
+            Route::get('lead-sources/quick-create', [QuickCreateLookupController::class, 'createLeadSource'])->name('lead-sources.quick-create');
+            Route::post('lead-sources/quick-create', [QuickCreateLookupController::class, 'storeLeadSource'])->name('lead-sources.quick-store');
             Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
         });
 

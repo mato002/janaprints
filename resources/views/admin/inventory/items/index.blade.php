@@ -8,6 +8,7 @@
         </x-slot>
     </x-admin.page-header>
 
+<<<<<<< Updated upstream
     <x-admin.data-table
         :search-placeholder="__('Search inventory...')"
         export-route="admin.inventory.exports"
@@ -16,9 +17,25 @@
         :format-in-path="true"
         export-filename="inventory-items"
     >
+=======
+    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
+        <div>
+            <label class="erp-label">{{ __('Stock role') }}</label>
+            <select name="stock_role" class="erp-select" onchange="this.form.submit()">
+                <option value="all" @selected(($stockRole ?? 'all') === 'all')>{{ __('All roles') }}</option>
+                @foreach ($stockRoles as $role)
+                    <option value="{{ $role->value }}" @selected(($stockRole ?? 'all') === $role->value)>{{ $role->label() }}</option>
+                @endforeach
+            </select>
+        </div>
+    </form>
+
+    <x-admin.data-table :search-placeholder="__('Search inventory...')" export-filename="inventory-items">
+>>>>>>> Stashed changes
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Item') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Role') }}</th>
                 <th scope="col" class="hidden md:table-cell">{{ __('Category') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Brand') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Image') }}</th>
@@ -32,6 +49,11 @@
                     <td>
                         <div class="font-medium">{{ $item->item_name }}</div>
                         <div class="font-mono text-[11px] text-slate-500">{{ $item->sku }}</div>
+                    </td>
+                    <td class="hidden md:table-cell">
+                        @if($item->stock_role)
+                            <span class="erp-badge {{ $item->stock_role->badgeClass() }}">{{ $item->stock_role->label() }}</span>
+                        @endif
                     </td>
                     <td class="hidden md:table-cell">{{ $item->category?->name ?? '-' }} @if($item->subcategory)<span class="block text-xs text-slate-500">{{ $item->subcategory->name }}</span>@endif</td>
                     <td class="hidden lg:table-cell">{{ $item->brand?->name ?? '-' }}</td>
@@ -47,7 +69,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6"><x-admin.empty-state icon="cube" :title="__('No items yet')" /></td></tr>
+                <tr><td colspan="7"><x-admin.empty-state icon="cube" :title="__('No items yet')" /></td></tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$items" /></x-slot>

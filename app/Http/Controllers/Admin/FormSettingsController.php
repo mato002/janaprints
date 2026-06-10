@@ -80,6 +80,11 @@ class FormSettingsController extends Controller
                 'forms.*.add_field.requirement' => ['nullable', 'in:required,optional'],
                 'forms.*.remove_fields' => ['nullable', 'array'],
                 'forms.*.remove_fields.*' => ['nullable', 'string', 'max:64'],
+                'forms.*.status_options' => ['nullable', 'array'],
+                'forms.*.status_options.*.value' => ['nullable', 'string', 'max:60'],
+                'forms.*.status_options.*.label' => ['nullable', 'string', 'max:120'],
+                'forms.*.status_options.*.is_active' => ['nullable', 'in:0,1,true,false'],
+                'forms.*.status_options.*.remove' => ['nullable', 'in:0,1,true,false'],
             ])->validate();
         } catch (ValidationException $exception) {
             $errorMessage = __('Unable to save form settings. Please review the highlighted fields.');

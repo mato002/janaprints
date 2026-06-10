@@ -6,7 +6,11 @@
     $artwork = $tabData['artwork'] ?? null;
 @endphp
 
-@include('admin.production.job-cards.workspace.partials.workflow', ['jobCard' => $jobCard])
+@include('admin.production.job-cards.workspace.partials.workflow', [
+    'jobCard' => $jobCard,
+    'completion' => $tabData['completion'] ?? ['eligible' => false, 'blockers' => []],
+    'finishedItems' => $tabData['finished_items'] ?? collect(),
+])
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
     <x-admin.card class="lg:col-span-1">

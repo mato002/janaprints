@@ -24,6 +24,13 @@ use App\Models\Sales\SalesOrderItem;
 use App\Models\User;
 use App\Services\Crm\CustomerTimelineService;
 use App\Services\Dispatch\DeliveryNoteService;
+use Database\Seeders\InventoryVirtualWarehouseSeeder;
+use Database\Seeders\JanaPrintsAccountingPeriodsSeeder;
+use Database\Seeders\JanaPrintsChartOfAccountsSeeder;
+use Database\Seeders\JanaPrintsPostingEngineSeeder;
+use Database\Seeders\InventoryFoundationSeeder;
+use Database\Seeders\GlAccountTypeSeeder;
+use Tests\Feature\Dispatch\Concerns\InteractsWithDispatchInventory;
 use App\Services\Production\JobProductionControlService;
 use App\Services\Production\JobTimelineService;
 use App\Support\Platform\NumberGenerator;
@@ -38,6 +45,7 @@ use Tests\TestCase;
 
 class DeliveryFoundationTest extends TestCase
 {
+    use InteractsWithDispatchInventory;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -47,6 +55,12 @@ class DeliveryFoundationTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
         $this->seed(PlatformConfigurationSeeder::class);
         $this->seed(ProductionFoundationSeeder::class);
+        $this->seed(InventoryFoundationSeeder::class);
+        $this->seed(InventoryVirtualWarehouseSeeder::class);
+        $this->seed(GlAccountTypeSeeder::class);
+        $this->seed(JanaPrintsChartOfAccountsSeeder::class);
+        $this->seed(JanaPrintsAccountingPeriodsSeeder::class);
+        $this->seed(JanaPrintsPostingEngineSeeder::class);
     }
 
     public function test_delivery_note_number_uses_dn_prefix(): void
@@ -79,10 +93,9 @@ class DeliveryFoundationTest extends TestCase
 
     public function test_dispatch_and_deliver_lifecycle(): void
     {
-        [, , , $user, $job] = $this->readyJobContext();
+        [$note, , $user] = $this->prepareDraftNoteWithFg();
         $service = app(DeliveryNoteService::class);
 
-        $note = $service->createDraftFromJobCard($job);
         $service->dispatch($note, $user->id);
         $note->refresh();
         $this->assertSame(DeliveryNoteStatus::Dispatched, $note->status);
@@ -92,6 +105,7 @@ class DeliveryFoundationTest extends TestCase
         $this->assertSame(DeliveryNoteStatus::Delivered, $note->status);
         $this->assertTrue($note->invoice_ready);
         $this->assertTrue($note->isInvoiceable());
+        $this->assertNotNull($note->posted_journal_id);
 
         $this->expectException(ValidationException::class);
         $service->updateDraft($note, ['recipient_name' => 'Changed']);
@@ -109,9 +123,9 @@ class DeliveryFoundationTest extends TestCase
 
     public function test_customer_timeline_includes_delivery_note_events(): void
     {
-        [, , $customer, $user, $job] = $this->readyJobContext();
+        [$note, , $user] = $this->prepareDraftNoteWithFg();
         $service = app(DeliveryNoteService::class);
-        $note = $service->createDraftFromJobCard($job);
+        $customer = $note->customer;
         $service->dispatch($note, $user->id);
         $service->deliver($note, $user->id);
 
@@ -125,8 +139,7 @@ class DeliveryFoundationTest extends TestCase
 
     public function test_job_timeline_includes_delivery_events(): void
     {
-        [, , , $user, $job] = $this->readyJobContext();
-        $note = app(DeliveryNoteService::class)->createDraftFromJobCard($job);
+        [$note, , $user, $job] = $this->prepareDraftNoteWithFg();
         app(DeliveryNoteService::class)->dispatch($note, $user->id);
 
         $payload = app(JobTimelineService::class)->paginate($job, JobTimelineService::FILTER_DISPATCH);

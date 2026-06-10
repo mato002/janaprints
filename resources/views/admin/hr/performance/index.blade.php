@@ -3,7 +3,7 @@
         <x-slot name="actions">
             <a href="{{ route('admin.hr.performance.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
             @can('create', App\Models\Hr\PerformanceReview::class)
-                <a href="{{ route('admin.hr.performance.create') }}" class="erp-btn-primary">{{ __('New appraisal') }}</a>
+                <a href="{{ route('admin.hr.performance.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New appraisal') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

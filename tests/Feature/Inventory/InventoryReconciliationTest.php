@@ -15,6 +15,7 @@ use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\Warehouse;
 use App\Models\Platform\NumberingSequence;
 use App\Models\User;
+use App\Support\Accounting\InventoryAccountingPostingService;
 use App\Support\Inventory\InventoryReconciliationService;
 use App\Support\Inventory\StockCountService;
 use App\Support\StockReceiptService;
@@ -43,6 +44,11 @@ class InventoryReconciliationTest extends TestCase
         $this->seed(JanaPrintsChartOfAccountsSeeder::class);
         $this->seed(JanaPrintsAccountingPeriodsSeeder::class);
         $this->seed(JanaPrintsPostingEngineSeeder::class);
+
+        $this->mock(InventoryAccountingPostingService::class, function ($mock): void {
+            $mock->shouldReceive('postStockReceipt')->andReturn(null);
+            $mock->shouldReceive('postStockAdjustment')->andReturn(null);
+        });
     }
 
     public function test_pending_variances_visible_after_approval(): void
@@ -62,6 +68,7 @@ class InventoryReconciliationTest extends TestCase
         StockCountService::updateCountedQuantities($count, [[
             'inventory_item_id' => $item->id,
             'counted_quantity' => 38,
+            'reason' => 'Cycle count adjustment',
         ]], $user->id);
         StockCountService::submit($count->fresh(), $user->id);
         StockCountService::approve($count->fresh(), $user->id);
@@ -91,6 +98,7 @@ class InventoryReconciliationTest extends TestCase
         StockCountService::updateCountedQuantities($count, [[
             'inventory_item_id' => $item->id,
             'counted_quantity' => 38,
+            'reason' => 'Cycle count adjustment',
         ]], $user->id);
         StockCountService::submit($count->fresh(), $user->id);
         StockCountService::approve($count->fresh(), $user->id);
@@ -120,6 +128,7 @@ class InventoryReconciliationTest extends TestCase
         StockCountService::updateCountedQuantities($count, [[
             'inventory_item_id' => $item->id,
             'counted_quantity' => 38,
+            'reason' => 'Cycle count adjustment',
         ]], $user->id);
         StockCountService::submit($count->fresh(), $user->id);
         StockCountService::approve($count->fresh(), $user->id);
@@ -147,7 +156,7 @@ class InventoryReconciliationTest extends TestCase
         ]);
         Role::findByName('Storekeeper', 'web')->syncPermissions([
             'inventory.count.view', 'inventory.count.create', 'inventory.count.edit',
-            'inventory.count.submit', 'inventory.count.approve',
+            'inventory.count.submit', 'inventory.count.approve', 'inventory.count.post',
             'inventory.reconcile.view', 'inventory.reconcile.approve', 'inventory.reconcile.post',
             'inventory.receive', 'inventory.adjust',
         ]);

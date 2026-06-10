@@ -14,6 +14,7 @@ use App\Models\Crm\Customer;
 use App\Models\Inventory\InventoryItem;
 use App\Support\Commercial\CommercialPriceBookService;
 use App\Support\Platform\FormSettingsService;
+use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,6 +27,7 @@ class CommercialPriceBookController extends Controller
     public function __construct(
         protected CommercialPriceBookService $priceBooks,
         protected FormSettingsService $formSettings,
+        protected FormStatusOptionService $statusOptions,
     ) {}
 
     public function index(Request $request): View
@@ -194,7 +196,7 @@ class CommercialPriceBookController extends Controller
             'description' => ['string', 'max:2000'],
             'currency' => ['string', 'size:3'],
             'branch_id' => ['exists:branches,id'],
-            'status' => [Rule::enum(CommercialPriceBookStatus::class)],
+            'status' => $this->statusOptions->validationRules('commercial_price_book.create', $companyId, $branchId, false),
             'starts_at' => ['date'],
             'ends_at' => ['date', 'after_or_equal:starts_at'],
             'is_default' => ['sometimes', 'boolean'],

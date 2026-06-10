@@ -10,7 +10,6 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class BootstrapAdminSeeder extends Seeder
 {
@@ -57,11 +56,12 @@ class BootstrapAdminSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
-                'password' => Hash::make($password),
+                'password' => $password,
                 'company_id' => $company->id,
                 'default_branch_id' => $branch->id,
                 'employee_id' => $employee->id,
                 'email_verified_at' => now(),
+                'is_active' => true,
             ],
         );
 

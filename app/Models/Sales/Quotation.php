@@ -26,6 +26,9 @@ class Quotation extends Model
         'company_id', 'branch_id', 'customer_id', 'lead_id', 'quotation_number',
         'quotation_date', 'valid_until', 'currency', 'subtotal', 'tax_amount',
         'discount_amount', 'total_amount', 'status', 'revision_number',
+        'estimated_material_cost', 'estimated_ink_cost', 'estimated_machine_cost',
+        'estimated_labour_cost', 'estimated_overhead_cost', 'estimated_total_cost',
+        'estimated_margin_percent', 'recommended_price', 'confidence_score', 'estimation_version',
         'prepared_by', 'approved_by', 'approved_at', 'notes',
     ];
 
@@ -40,6 +43,15 @@ class Quotation extends Model
             'tax_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
+            'estimated_material_cost' => 'decimal:2',
+            'estimated_ink_cost' => 'decimal:2',
+            'estimated_machine_cost' => 'decimal:2',
+            'estimated_labour_cost' => 'decimal:2',
+            'estimated_overhead_cost' => 'decimal:2',
+            'estimated_total_cost' => 'decimal:2',
+            'estimated_margin_percent' => 'decimal:2',
+            'recommended_price' => 'decimal:2',
+            'confidence_score' => 'decimal:2',
         ];
     }
 

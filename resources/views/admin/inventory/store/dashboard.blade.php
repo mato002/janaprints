@@ -8,7 +8,7 @@
                 <a href="{{ route('admin.inventory.issues.create') }}" class="erp-btn-secondary">{{ __('New Stock Issue') }}</a>
             @endif
             @if (auth()->user()?->can('inventory.transfer'))
-                <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-secondary">{{ __('Transfer stock') }}</a>
+                <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('Transfer stock') }}</a>
             @endif
             <a href="{{ route('admin.inventory.store.balances') }}" class="erp-btn-secondary">{{ __('Store balances') }}</a>
         </x-slot>

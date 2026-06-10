@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Training & Development')" :description="__('Training programs, certifications, hours, and skills matrix.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\EmployeeTrainingAssignment::class)
-                <a href="{{ route('admin.hr.training.assignments.create') }}" class="erp-btn-primary">{{ __('Assign training') }}</a>
+                <a href="{{ route('admin.hr.training.assignments.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Assign training') }}</a>
             @endcan
             <a href="{{ route('admin.hr.training.assignments.index') }}" class="erp-btn-secondary">{{ __('All assignments') }}</a>
             <a href="{{ route('admin.hr.training.skills-matrix') }}" class="erp-btn-secondary">{{ __('Skills matrix') }}</a>

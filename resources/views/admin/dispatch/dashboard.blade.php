@@ -22,7 +22,19 @@
         @endforeach
     </div>
 
-    <div class="mt-6 grid gap-4 lg:grid-cols-2">
+    <div class="mb-6 grid gap-4 lg:grid-cols-3">
+        <x-admin.card>
+            <h3 class="mb-2 text-sm font-semibold">{{ __('Inventory ownership') }}</h3>
+            <dl class="space-y-2 text-sm">
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Finished goods (est.)') }}</dt><dd class="tabular-nums">{{ number_format($d['ownership']['finished_goods'] ?? 0, 2) }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('In transit (est.)') }}</dt><dd class="tabular-nums">{{ number_format($d['ownership']['in_transit'] ?? 0, 2) }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Delivered COGS') }}</dt><dd class="tabular-nums">{{ number_format($d['ownership']['delivered_value'] ?? 0, 2) }}</dd></div>
+            </dl>
+            <div class="mt-3 flex flex-wrap gap-2">
+                <a href="{{ route('admin.dispatch.reports.transit-inventory') }}" class="erp-link text-sm">{{ __('Transit inventory') }}</a>
+                <a href="{{ route('admin.dispatch.reports.cogs-postings') }}" class="erp-link text-sm">{{ __('COGS postings') }}</a>
+            </div>
+        </x-admin.card>
         <x-admin.card>
             <h3 class="mb-3 text-sm font-semibold">{{ __('Invoice readiness (Phase 3F)') }}</h3>
             <p class="text-sm text-slate-600">{{ __('Delivered notes marked invoice-ready: :count', ['count' => $d['invoice_ready']]) }}</p>

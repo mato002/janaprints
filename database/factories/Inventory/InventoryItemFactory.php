@@ -2,6 +2,7 @@
 
 namespace Database\Factories\Inventory;
 
+use App\Enums\InventoryStockRole;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Inventory\InventoryCategory;
@@ -36,6 +37,7 @@ class InventoryItemFactory extends Factory
             'reorder_quantity' => 50,
             'standard_cost' => fake()->randomFloat(2, 10, 500),
             'is_active' => true,
+            'stock_role' => InventoryStockRole::RawMaterial,
         ];
     }
 }

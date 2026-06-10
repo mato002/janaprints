@@ -21,6 +21,7 @@
         />
     @endif
 
+<<<<<<< Updated upstream
     @if (($fields['branch_id']['visible'] ?? false))
         <x-admin.form-field
             name="branch_id"
@@ -34,6 +35,26 @@
                 @endforeach
             </select>
         </x-admin.form-field>
+=======
+    @if (($fields['branch']['visible'] ?? true))
+        <x-admin.lookup-select
+            id="branch_id"
+            name="branch_id"
+            :label="$fields['branch']['label'] ?? __('Branch')"
+            :options="$branches"
+            :value="old('branch_id', $warehouse?->branch_id ?? $selectedBranchId)"
+            :required="($fields['branch']['required'] ?? false)"
+            :readonly="($fields['branch']['read_only'] ?? false)"
+            create-route="admin.branches.quick-create"
+            refresh-route="admin.lookups.branches"
+            permission="branches.manage"
+            :modal-title="__('Create branch')"
+            option-label-key="name"
+            option-value-key="id"
+            select-class="erp-select mt-1"
+            :empty-option="false"
+        />
+>>>>>>> Stashed changes
     @endif
 
     @if (($fields['location']['visible'] ?? true))

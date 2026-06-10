@@ -2,6 +2,7 @@
 
 namespace App\Models\Crm;
 
+use App\Casts\FlexibleEnumCast;
 use App\Enums\ActivityStatus;
 use App\Enums\ActivityType;
 use App\Models\Concerns\BelongsToTenant;
@@ -26,7 +27,7 @@ class CustomerActivity extends Model
     {
         return [
             'activity_type' => ActivityType::class,
-            'status' => ActivityStatus::class,
+            'status' => FlexibleEnumCast::class.':'.ActivityStatus::class,
             'activity_at' => 'datetime',
         ];
     }

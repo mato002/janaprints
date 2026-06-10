@@ -1,6 +1,7 @@
 @php($fields = $formFields ?? [])
 <div class="erp-form-grid max-w-5xl">
     @if (($fields['warehouse_id']['visible'] ?? true))
+<<<<<<< Updated upstream
         <x-admin.form-field
             name="warehouse_id"
             :label="$fields['warehouse_id']['label'] ?? __('Warehouse')"
@@ -13,6 +14,23 @@
                 @endforeach
             </select>
         </x-admin.form-field>
+=======
+        <x-admin.lookup-select
+            name="warehouse_id"
+            :label="$fields['warehouse_id']['label'] ?? __('Warehouse')"
+            :options="$warehouses"
+            :value="old('warehouse_id', $selectedWarehouseId ?? null)"
+            :required="($fields['warehouse_id']['required'] ?? true)"
+            :readonly="($fields['warehouse_id']['read_only'] ?? false)"
+            create-route="admin.inventory.warehouses.quick-create"
+            refresh-route="admin.lookups.warehouses"
+            permission="inventory.create"
+            :modal-title="__('Create warehouse')"
+            option-label-key="name"
+            select-class="erp-input w-full"
+            :empty-option="false"
+        />
+>>>>>>> Stashed changes
     @endif
 
     @if ($type === 'receipt')
@@ -58,6 +76,7 @@
             />
         @endif
         @if (($fields['to_warehouse_id']['visible'] ?? true))
+<<<<<<< Updated upstream
             <x-admin.form-field
                 name="to_warehouse_id"
                 :label="$fields['to_warehouse_id']['label'] ?? __('To warehouse (transfer)')"
@@ -70,6 +89,23 @@
                     @endforeach
                 </select>
             </x-admin.form-field>
+=======
+            <x-admin.lookup-select
+                name="to_warehouse_id"
+                :label="$fields['to_warehouse_id']['label'] ?? __('To warehouse (transfer)')"
+                :options="$warehouses"
+                :value="old('to_warehouse_id')"
+                :required="($fields['to_warehouse_id']['required'] ?? false)"
+                :readonly="($fields['to_warehouse_id']['read_only'] ?? false)"
+                create-route="admin.inventory.warehouses.quick-create"
+                refresh-route="admin.lookups.warehouses"
+                permission="inventory.create"
+                :modal-title="__('Create warehouse')"
+                option-label-key="name"
+                select-class="erp-input w-full"
+                :placeholder="__('N/A')"
+            />
+>>>>>>> Stashed changes
         @endif
     @else
         @if (($fields['adjustment_date']['visible'] ?? true))
@@ -104,5 +140,24 @@
         />
     </div>
 @endif
+<<<<<<< Updated upstream
 
+=======
+@if ($type === 'issue' && ! empty($productionGovernance))
+    <div class="mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p class="font-semibold">{{ $productionGovernance['heading'] ?? __('Production consumption governance') }}</p>
+        <p class="mt-1">{{ $productionGovernance['message'] ?? '' }}</p>
+        <p class="mt-1 text-amber-800">{{ $productionGovernance['guidance'] ?? '' }}</p>
+    </div>
+    @if ($productionGovernance['production_destination_allowed'] ?? false)
+        <div class="mt-4 max-w-3xl">
+            <label class="erp-label">{{ __('Production override reason') }}</label>
+            <textarea name="production_override_reason" class="erp-input w-full" rows="2">{{ old('production_override_reason') }}</textarea>
+            @error('production_override_reason')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+    @endif
+@endif
+>>>>>>> Stashed changes
 @include('admin.partials.form-custom-fields', ['fields' => $formFields ?? []])

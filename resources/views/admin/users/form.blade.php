@@ -25,23 +25,27 @@
                 @endif
                 @if (auth()->user()->hasRole('Super Admin'))
                     <div class="erp-form-field">
-                        <x-input-label for="company_id" :value="__('Company')" :required="true" />
-                        <select id="company_id" name="company_id" class="erp-select mt-1" required>
-                            @foreach ($companies as $company)
-                                <option value="{{ $company->id }}" @selected(old('company_id', $user?->company_id) == $company->id)>{{ $company->name }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.lookup-company-select :companies="$companies" :value="old('company_id', $user?->company_id)" />
                     </div>
                 @else
                     <input type="hidden" name="company_id" value="{{ auth()->user()->company_id }}">
                 @endif
                 <div class="erp-form-field">
-                    <x-input-label for="default_branch_id" :value="__('Default branch')" :required="true" />
-                    <select id="default_branch_id" name="default_branch_id" class="erp-select mt-1" required>
-                        @foreach ($branches as $branch)
-                            <option value="{{ $branch->id }}" @selected(old('default_branch_id', $user?->default_branch_id) == $branch->id)>{{ $branch->name }}</option>
-                        @endforeach
-                    </select>
+                    <x-admin.lookup-select
+                        name="default_branch_id"
+                        :label="__('Default branch')"
+                        :options="$branches"
+                        :value="old('default_branch_id', $user?->default_branch_id)"
+                        :required="true"
+                        create-route="admin.branches.quick-create"
+                        refresh-route="admin.lookups.branches"
+                        permission="branches.manage"
+                        :modal-title="__('Create branch')"
+                        option-label-key="name"
+                        select-class="erp-select mt-1"
+                        scope-company-field="company_id"
+                        :empty-option="false"
+                    />
                 </div>
                 <div class="erp-form-field">
                     <x-input-label for="employee_id" :value="__('Linked employee')" />

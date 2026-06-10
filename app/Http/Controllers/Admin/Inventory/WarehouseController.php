@@ -19,6 +19,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class WarehouseController extends Controller
@@ -34,7 +35,7 @@ class WarehouseController extends Controller
         $this->authorize('viewAny', Warehouse::class);
 
         $warehouses = $this->scopeToTenant(
-            Warehouse::query()->with(['branch', 'managers'])->withCount('managers')
+            Warehouse::query()->physical()->with(['branch', 'managers'])->withCount('managers')
         )->orderBy('name')->paginate(config('platform.pagination.default', 15));
 
         $branches = Branch::query()
@@ -107,6 +108,13 @@ class WarehouseController extends Controller
 
         $data = $this->validateWarehouse($request, $warehouse->company_id, $warehouse->branch_id, $warehouse);
         [$data, $customData] = $this->partitionCustomFields('warehouse.edit', $data, $warehouse->company_id, $warehouse->branch_id);
+
+        if ($warehouse->is_virtual) {
+            return back()->withErrors([
+                'warehouse' => __('Virtual warehouses are managed from Virtual Locations.'),
+            ]);
+        }
+
         $warehouse->update($data);
         $this->syncCustomFields($warehouse, 'warehouse.edit', $customData, $warehouse->company_id);
 
@@ -134,6 +142,14 @@ class WarehouseController extends Controller
     public function destroy(Warehouse $warehouse): RedirectResponse
     {
         $this->authorize('delete', $warehouse);
+
+        if ($warehouse->is_virtual) {
+            try {
+                \App\Support\Inventory\VirtualWarehouseGuard::assertDeletable($warehouse);
+            } catch (ValidationException $e) {
+                return back()->withErrors($e->errors());
+            }
+        }
 
         if ($this->hasOperationalHistory($warehouse)) {
             return back()->withErrors([

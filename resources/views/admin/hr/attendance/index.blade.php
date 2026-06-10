@@ -3,7 +3,7 @@
         <x-slot name="actions">
             <a href="{{ route('admin.hr.attendance.dashboard', $filters) }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
             @can('create', App\Models\Hr\AttendanceRecord::class)
-                <a href="{{ route('admin.hr.attendance.create') }}" class="erp-btn-primary">{{ __('Manual attendance') }}</a>
+                <a href="{{ route('admin.hr.attendance.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Manual attendance') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

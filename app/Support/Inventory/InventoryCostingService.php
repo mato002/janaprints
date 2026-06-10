@@ -248,6 +248,9 @@ class InventoryCostingService
         return in_array($movement->movement_type, [
             InventoryMovementType::Receipt,
             InventoryMovementType::TransferIn,
+            InventoryMovementType::FinishedGoodsReceipt,
+            InventoryMovementType::ProductionOutput,
+            InventoryMovementType::DispatchToTransit,
         ], true) && (float) $movement->quantity > 0;
     }
 
@@ -257,6 +260,8 @@ class InventoryCostingService
             InventoryMovementType::Issue,
             InventoryMovementType::TransferOut,
             InventoryMovementType::ProductionConsumption,
+            InventoryMovementType::DispatchToTransit,
+            InventoryMovementType::DeliveryCogs,
         ], true);
     }
 }

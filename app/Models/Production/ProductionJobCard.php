@@ -92,6 +92,18 @@ class ProductionJobCard extends Model
         return $this->hasMany(\App\Models\Inventory\ProductionMaterialConsumption::class);
     }
 
+    public function productionOutputs(): HasMany
+    {
+        return $this->hasMany(ProductionOutput::class)->latest('completed_at');
+    }
+
+    public function postedProductionOutputs(): HasMany
+    {
+        return $this->hasMany(ProductionOutput::class)
+            ->where('completion_status', \App\Enums\ProductionOutputStatus::Posted)
+            ->latest('completed_at');
+    }
+
     public function deliveryNotes(): HasMany
     {
         return $this->hasMany(\App\Models\Dispatch\DeliveryNote::class, 'production_job_card_id');

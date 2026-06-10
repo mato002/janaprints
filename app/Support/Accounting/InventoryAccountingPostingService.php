@@ -6,12 +6,15 @@ use App\Enums\PostingEventCode;
 use App\Enums\StockIssueDestination;
 use App\Enums\StockReceiptSource;
 use App\Models\Accounting\Journal;
+use App\Models\Dispatch\DeliveryNote;
 use App\Models\Inventory\ProductionMaterialConsumption;
 use App\Models\Inventory\StockAdjustment;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Procurement\GoodsReceipt;
+use App\Models\Production\ProductionOutput;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class InventoryAccountingPostingService
 {
@@ -86,6 +89,12 @@ class InventoryAccountingPostingService
             return null;
         }
 
+        // Phase I4.1: production stock issues are operational/reservation only.
+        // WIP accounting (Dr WIP / Cr Raw Materials) is exclusive to ProductionMaterialConsumptionService.
+        if ($issue->destination === StockIssueDestination::Production) {
+            return null;
+        }
+
         $issue->load('items');
         $total = $this->lineTotal($issue->items);
 
@@ -94,7 +103,6 @@ class InventoryAccountingPostingService
         }
 
         $event = match ($issue->destination) {
-            StockIssueDestination::Production => PostingEventCode::InventoryIssuePosted,
             StockIssueDestination::InternalUse,
             StockIssueDestination::Damage => PostingEventCode::InventoryConsumptionPosted,
         };
@@ -119,6 +127,8 @@ class InventoryAccountingPostingService
 
     public function postMaterialConsumption(ProductionMaterialConsumption $consumption, int $userId): ?Journal
     {
+        // Sole source of Dr WIP / Cr Raw Materials for production jobs (Phase I4.1).
+        // Stock issues to production do not post WIP accounting.
         $total = round((float) $consumption->quantity * (float) $consumption->unit_cost, 2);
 
         if ($total <= 0) {
@@ -139,6 +149,102 @@ class InventoryAccountingPostingService
         );
 
         $consumption->update(['posted_journal_id' => $journal->id]);
+
+        return $journal;
+    }
+
+    public function postProductionCompletion(ProductionOutput $output, int $userId): Journal
+    {
+        $output->loadMissing('jobCard');
+
+        $total = round((float) $output->total_cost, 2);
+
+        if ($total <= 0) {
+            throw ValidationException::withMessages([
+                'total_cost' => __('Production completion total cost must be greater than zero.'),
+            ]);
+        }
+
+        $existing = $this->posting->findPostedJournal(new \App\Support\Accounting\Dto\PostingContext(
+            companyId: $output->company_id,
+            userId: $userId,
+            event: PostingEventCode::ProductionCompletionPosted,
+            sourceType: 'production_output',
+            sourceId: $output->id,
+            journalDate: $output->completed_at?->toDateString() ?? now()->toDateString(),
+            branchId: $output->branch_id,
+        ));
+
+        if ($existing) {
+            $output->update(['posted_journal_id' => $existing->id]);
+
+            return $existing;
+        }
+
+        $journal = $this->posting->postEvent(
+            PostingEventCode::ProductionCompletionPosted,
+            $output->company_id,
+            $userId,
+            'production_output',
+            $output->id,
+            now()->toDateString(),
+            ['total_amount' => $total],
+            $output->branch_id,
+            reference: $output->jobCard?->job_card_number ?? __('Output #:id', ['id' => $output->id]),
+            description: __('Production completion to finished goods'),
+        );
+
+        $output->update(['posted_journal_id' => $journal->id]);
+
+        return $journal;
+    }
+
+    public function postDeliveryCogs(DeliveryNote $note, int $userId): Journal
+    {
+        $note->loadMissing('items');
+
+        $total = round($note->items->sum(fn ($line) => (float) ($line->total_cost ?? 0)), 2);
+
+        if ($total <= 0) {
+            $total = round($note->items->sum(fn ($line) => (float) $line->quantity * (float) $line->unit_cost), 2);
+        }
+
+        if ($total <= 0) {
+            throw ValidationException::withMessages([
+                'total_cost' => __('Delivery COGS total must be greater than zero.'),
+            ]);
+        }
+
+        $existing = $this->posting->findPostedJournal(new \App\Support\Accounting\Dto\PostingContext(
+            companyId: $note->company_id,
+            userId: $userId,
+            event: PostingEventCode::DeliveryCogsPosted,
+            sourceType: 'delivery_note',
+            sourceId: $note->id,
+            journalDate: $note->delivered_at?->toDateString() ?? now()->toDateString(),
+            branchId: $note->branch_id,
+        ));
+
+        if ($existing) {
+            $note->update(['posted_journal_id' => $existing->id]);
+
+            return $existing;
+        }
+
+        $journal = $this->posting->postEvent(
+            PostingEventCode::DeliveryCogsPosted,
+            $note->company_id,
+            $userId,
+            'delivery_note',
+            $note->id,
+            now()->toDateString(),
+            ['total_amount' => $total],
+            $note->branch_id,
+            reference: $note->delivery_note_number,
+            description: __('Delivery COGS — :number', ['number' => $note->delivery_note_number]),
+        );
+
+        $note->update(['posted_journal_id' => $journal->id]);
 
         return $journal;
     }

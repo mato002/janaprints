@@ -9,7 +9,8 @@ class StockCountItem extends Model
 {
     protected $fillable = [
         'stock_count_id', 'inventory_item_id', 'system_quantity', 'counted_quantity',
-        'variance_quantity', 'system_unit_cost', 'variance_value', 'reason', 'notes',
+        'variance_quantity', 'system_unit_cost', 'variance_value',
+        'inventory_variance_reason_code_id', 'reason', 'notes',
     ];
 
     protected function casts(): array
@@ -31,5 +32,10 @@ class StockCountItem extends Model
     public function inventoryItem(): BelongsTo
     {
         return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function varianceReasonCode(): BelongsTo
+    {
+        return $this->belongsTo(InventoryVarianceReasonCode::class, 'inventory_variance_reason_code_id');
     }
 }

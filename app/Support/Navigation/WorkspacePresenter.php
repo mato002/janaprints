@@ -12,6 +12,7 @@ class WorkspacePresenter
         protected ?SupplyChainWorkspacePresenter $supplyChain = null,
         protected ?CommercialWorkspacePresenter $commercial = null,
         protected ?ProductionWorkspacePresenter $production = null,
+        protected ?PrintingIntelligenceWorkspacePresenter $printingIntelligence = null,
         protected ?AdministrationWorkspacePresenter $administration = null,
         protected ?AssetsWorkspacePresenter $assets = null,
         protected ?WorkspaceNavigationResolver $navigation = null,
@@ -20,6 +21,7 @@ class WorkspacePresenter
         $this->supplyChain ??= app(SupplyChainWorkspacePresenter::class);
         $this->commercial ??= app(CommercialWorkspacePresenter::class);
         $this->production ??= app(ProductionWorkspacePresenter::class);
+        $this->printingIntelligence ??= app(PrintingIntelligenceWorkspacePresenter::class);
         $this->administration ??= app(AdministrationWorkspacePresenter::class);
         $this->assets ??= app(AssetsWorkspacePresenter::class);
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
@@ -90,6 +92,10 @@ class WorkspacePresenter
             return $this->production->isVisible();
         }
 
+        if ($key === 'printing-intelligence') {
+            return $this->printingIntelligence->isVisible();
+        }
+
         if ($key === 'administration') {
             return $this->administration->isVisible();
         }
@@ -147,6 +153,10 @@ class WorkspacePresenter
 
         if ($key === 'production') {
             return $this->production->collectActiveRoutes();
+        }
+
+        if ($key === 'printing-intelligence') {
+            return $this->printingIntelligence->collectActiveRoutes();
         }
 
         if ($key === 'administration') {
@@ -213,6 +223,12 @@ class WorkspacePresenter
 
             if ($key === 'production') {
                 $flat = array_merge($flat, $this->production->flattenForSearch());
+
+                continue;
+            }
+
+            if ($key === 'printing-intelligence') {
+                $flat = array_merge($flat, $this->printingIntelligence->flattenForSearch());
 
                 continue;
             }

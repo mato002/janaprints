@@ -3,7 +3,7 @@
         <x-slot name="actions">
             <a href="{{ route('admin.hr.exit.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
             @can('create', App\Models\Hr\EmployeeExit::class)
-                <a href="{{ route('admin.hr.exit.create') }}" class="erp-btn-primary">{{ __('Initiate exit') }}</a>
+                <a href="{{ route('admin.hr.exit.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Initiate exit') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

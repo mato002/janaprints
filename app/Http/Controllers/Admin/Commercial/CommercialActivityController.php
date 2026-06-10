@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Commercial;
 
-use App\Enums\ActivityStatus;
 use App\Enums\ActivityType;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
@@ -12,6 +11,7 @@ use App\Models\Crm\CustomerActivity;
 use App\Models\Crm\Lead;
 use App\Models\User;
 use App\Support\Platform\FormSettingsService;
+use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,6 +23,7 @@ class CommercialActivityController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected FormStatusOptionService $statusOptions,
     ) {}
 
     public function index(Request $request): View
@@ -133,7 +134,6 @@ class CommercialActivityController extends Controller
             'leads' => Lead::query()->forTenant()->orderBy('lead_name')->get(['id', 'lead_name']),
             'users' => $this->assignableUsers(),
             'activityTypes' => ActivityType::cases(),
-            'activityStatuses' => ActivityStatus::cases(),
             'presetCustomerId' => $request->integer('customer_id') ?: $activity?->customer_id,
             'presetLeadId' => $request->integer('lead_id') ?: $activity?->lead_id,
         ];
@@ -165,7 +165,7 @@ class CommercialActivityController extends Controller
             'lead_id' => ['integer', 'exists:leads,id'],
             'user_id' => ['integer', 'exists:users,id'],
             'activity_type' => [Rule::enum(ActivityType::class)],
-            'status' => [Rule::enum(ActivityStatus::class)],
+            'status' => $this->statusOptions->validationRules('activity.create', $companyId, $branchId, false),
             'subject' => ['string', 'max:255'],
             'description' => ['string'],
             'activity_at' => ['date'],

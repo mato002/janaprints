@@ -1,4 +1,17 @@
-<x-admin-layout :title="__('New Price List')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Price Lists'), 'url' => route('admin.inventory.catalogue.price-lists.index')], ['label' => __('Create')]]">
-    <x-admin.page-header :title="__('New Price List')" />
-    <x-admin.card><form method="POST" action="{{ route('admin.inventory.catalogue.price-lists.store') }}" class="space-y-4">@csrf @include('admin.inventory.catalogue.price-lists.partials.form')<button class="erp-btn-primary">{{ __('Save') }}</button></form></x-admin.card>
-</x-admin-layout>
+<x-admin.modal-form
+    :title="__('New price list')"
+    :breadcrumbs="[
+        ['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')],
+        ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')],
+        ['label' => __('Price Lists'), 'url' => route('admin.inventory.catalogue.price-lists.index')],
+        ['label' => __('Create')],
+    ]"
+    maxWidth="4xl"
+>
+    <x-admin.form-shell :action="route('admin.inventory.catalogue.price-lists.store')">
+        @include('admin.inventory.catalogue.price-lists.partials.form')
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Save') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

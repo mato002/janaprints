@@ -56,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->command('commercial:expire-report-exports')->daily();
         $schedule->command('governance:process-escalations')->everyFifteenMinutes();
+        $schedule->command('inventory:velocity:snapshot --all-windows')->dailyAt('02:30');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

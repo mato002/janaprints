@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\Inventory\InventoryItemImageController;
 use App\Http\Controllers\Admin\Inventory\InventoryReportController;
 use App\Http\Controllers\Admin\Inventory\InventoryItemController;
 use App\Http\Controllers\Admin\Inventory\InventoryMovementController;
+use App\Http\Controllers\Admin\Inventory\VirtualLocationController;
 use App\Http\Controllers\Admin\Inventory\InventorySubcategoryController;
 use App\Http\Controllers\Admin\Inventory\ItemAttributeController;
 use App\Http\Controllers\Admin\Inventory\PriceListController;
@@ -26,6 +27,8 @@ use App\Http\Controllers\Admin\Inventory\StockCountController;
 use App\Http\Controllers\Admin\Inventory\CycleCountController;
 use App\Http\Controllers\Admin\Inventory\InventoryVarianceController;
 use App\Http\Controllers\Admin\Inventory\InventoryReconciliationController;
+use App\Http\Controllers\Admin\Inventory\InventoryIntelligenceController;
+use App\Http\Controllers\Admin\Inventory\InventoryVarianceReasonCodeController;
 use App\Http\Controllers\Admin\Export\SupplyChainListingExportController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +43,21 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::get('/', InventoryDashboardController::class)
             ->middleware('permission:inventory.view')
             ->name('dashboard');
+
+        Route::middleware('permission:inventory.intelligence.view')->prefix('intelligence')->name('intelligence.')->group(function () {
+            Route::get('/', [InventoryIntelligenceController::class, 'overview'])->name('overview');
+            Route::get('stockout-risk', [InventoryIntelligenceController::class, 'stockoutRisk'])->name('stockout-risk');
+            Route::get('dead-stock', [InventoryIntelligenceController::class, 'deadStock'])->name('dead-stock');
+            Route::get('fast-movers', [InventoryIntelligenceController::class, 'fastMovers'])->name('fast-movers');
+            Route::get('slow-movers', [InventoryIntelligenceController::class, 'slowMovers'])->name('slow-movers');
+            Route::get('warehouse-velocity', [InventoryIntelligenceController::class, 'warehouseVelocity'])->name('warehouse-velocity');
+            Route::get('settings', [InventoryIntelligenceController::class, 'settings'])
+                ->middleware('permission:inventory.intelligence.configure')
+                ->name('settings');
+            Route::post('generate', [InventoryIntelligenceController::class, 'generate'])
+                ->middleware('permission:inventory.intelligence.generate')
+                ->name('generate');
+        });
 
         Route::middleware('permission:inventory.view')->group(function () {
             Route::get('store', StoreDashboardController::class)->name('store.dashboard');
@@ -218,9 +236,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:inventory.variance.view')->group(function () {
             Route::get('variances', [InventoryVarianceController::class, 'index'])->name('variances.index');
-            Route::get('variances/export/{format}', [InventoryVarianceController::class, 'export'])
-                ->where('format', 'csv|excel|pdf')
-                ->name('variances.export');
+        });
+
+        Route::middleware('permission:inventory.variance.export')->group(function () {
+            Route::get('variances/export', [InventoryVarianceController::class, 'export'])->name('variances.export');
+            Route::get('variances/export-pdf', [InventoryVarianceController::class, 'exportPdf'])->name('variances.export-pdf');
         });
 
         Route::middleware('permission:inventory.reconcile.view')->group(function () {
@@ -234,6 +254,25 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:inventory.reconcile.post')->group(function () {
             Route::post('reconciliations/{reconciliation}/post', [InventoryReconciliationController::class, 'post'])->whereNumber('reconciliation')->name('reconciliations.post');
+        });
+
+        Route::middleware('permission:inventory.variance-reasons.view')->group(function () {
+            Route::get('variance-reason-codes', [InventoryVarianceReasonCodeController::class, 'index'])->name('variance-reason-codes.index');
+        });
+
+        Route::middleware('permission:inventory.variance-reasons.manage')->group(function () {
+            Route::get('variance-reason-codes/create', [InventoryVarianceReasonCodeController::class, 'create'])->name('variance-reason-codes.create');
+            Route::post('variance-reason-codes', [InventoryVarianceReasonCodeController::class, 'store'])->name('variance-reason-codes.store');
+            Route::get('variance-reason-codes/{varianceReasonCode}/edit', [InventoryVarianceReasonCodeController::class, 'edit'])->whereNumber('varianceReasonCode')->name('variance-reason-codes.edit');
+            Route::put('variance-reason-codes/{varianceReasonCode}', [InventoryVarianceReasonCodeController::class, 'update'])->whereNumber('varianceReasonCode')->name('variance-reason-codes.update');
+        });
+
+        Route::middleware('permission:inventory.virtual-locations.view')->group(function () {
+            Route::get('virtual-locations', [VirtualLocationController::class, 'index'])->name('virtual-locations.index');
+        });
+
+        Route::middleware('permission:inventory.virtual-locations.manage')->group(function () {
+            Route::post('virtual-locations/ensure-defaults', [VirtualLocationController::class, 'ensureDefaults'])->name('virtual-locations.ensure-defaults');
         });
 
         Route::middleware([\App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])->group(function () {

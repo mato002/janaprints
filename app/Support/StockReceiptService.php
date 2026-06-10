@@ -31,6 +31,8 @@ class StockReceiptService
             ]);
         }
 
+        \App\Support\Inventory\VirtualWarehouseGuard::assertDirectReceiptAllowed($receipt->warehouse);
+
         return DB::transaction(function () use ($receipt, $userId) {
             $receipt->load('items.inventoryItem');
 

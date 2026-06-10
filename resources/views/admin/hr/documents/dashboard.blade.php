@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Document Center')" :description="__('Employee contracts, IDs, statutory records, and HR files.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\EmployeeDocument::class)
-                <a href="{{ route('admin.hr.documents.create') }}" class="erp-btn-primary">{{ __('Upload document') }}</a>
+                <a href="{{ route('admin.hr.documents.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Upload document') }}</a>
             @endcan
             <a href="{{ route('admin.hr.documents.index') }}" class="erp-btn-secondary">{{ __('All documents') }}</a>
         </x-slot>

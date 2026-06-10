@@ -3,7 +3,7 @@
         <x-slot name="actions">
             <a href="{{ route('admin.hr.attendance.index', $filters) }}" class="erp-btn-secondary">{{ __('Attendance register') }}</a>
             @can('create', App\Models\Hr\AttendanceRecord::class)
-                <a href="{{ route('admin.hr.attendance.create') }}" class="erp-btn-secondary">{{ __('Manual attendance') }}</a>
+                <a href="{{ route('admin.hr.attendance.create') }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('Manual attendance') }}</a>
             @endcan
             @can('viewAny', App\Models\Hr\Shift::class)
                 <a href="{{ route('admin.hr.shifts.index') }}" class="erp-btn-secondary">{{ __('Shifts') }}</a>

@@ -116,7 +116,7 @@ class StockCountService
     }
 
     /**
-     * @param  list<array{inventory_item_id: int, counted_quantity: float, reason?: string|null, notes?: string|null}>  $lines
+     * @param  list<array{inventory_item_id: int, counted_quantity: float, inventory_variance_reason_code_id?: int|null, reason?: string|null, notes?: string|null}>  $lines
      */
     public static function updateCountedQuantities(StockCount $count, array $lines, int $userId): StockCount
     {
@@ -143,10 +143,21 @@ class StockCountService
             $variance = $counted - (float) $item->system_quantity;
             $varianceValue = $variance * (float) $item->system_unit_cost;
 
+            $reasonCodeId = array_key_exists('inventory_variance_reason_code_id', $line)
+                ? ($line['inventory_variance_reason_code_id'] !== null && $line['inventory_variance_reason_code_id'] !== ''
+                    ? (int) $line['inventory_variance_reason_code_id']
+                    : null)
+                : $item->inventory_variance_reason_code_id;
+
+            if ($reasonCodeId !== null) {
+                VarianceReconciliationGuard::resolveReasonCode($reasonCodeId, (int) $count->company_id);
+            }
+
             $item->update([
                 'counted_quantity' => $counted,
                 'variance_quantity' => $variance,
                 'variance_value' => $varianceValue,
+                'inventory_variance_reason_code_id' => $reasonCodeId,
                 'reason' => $line['reason'] ?? $item->reason,
                 'notes' => $line['notes'] ?? $item->notes,
             ]);
@@ -197,6 +208,9 @@ class StockCountService
         }
 
         return DB::transaction(function () use ($count, $userId) {
+            $count->load(['items.inventoryItem', 'items.varianceReasonCode']);
+            VarianceReconciliationGuard::assertStockCountExplained($count);
+
             $count->update([
                 'status' => StockCountStatus::Approved,
                 'approved_by' => $userId,

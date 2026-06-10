@@ -2,7 +2,11 @@
     <x-admin.workspace-content-header :title="__('Employees')">
         <x-slot:actions>
             @can('create', App\Models\Employee::class)
+<<<<<<< Updated upstream
                 <a href="{{ route('admin.employees.create') }}" class="erp-btn-primary erp-btn--sm">{{ __('Create employee') }}</a>
+=======
+                <a href="{{ route('admin.employees.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create employee') }}</a>
+>>>>>>> Stashed changes
             @endcan
         </x-slot:actions>
     </x-admin.workspace-content-header>

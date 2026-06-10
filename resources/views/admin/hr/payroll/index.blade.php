@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Payroll Runs')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\PayrollRun::class)
-                <a href="{{ route('admin.hr.payroll.create') }}" class="erp-btn-primary">{{ __('New run') }}</a>
+                <a href="{{ route('admin.hr.payroll.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New run') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>

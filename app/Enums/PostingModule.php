@@ -7,6 +7,7 @@ enum PostingModule: string
     case Inventory = 'inventory';
     case Procurement = 'procurement';
     case Production = 'production';
+    case Dispatch = 'dispatch';
     case Sales = 'sales';
     case Invoice = 'invoice';
     case Payment = 'payment';
@@ -21,6 +22,7 @@ enum PostingModule: string
             self::Inventory => __('Inventory'),
             self::Procurement => __('Procurement'),
             self::Production => __('Production'),
+            self::Dispatch => __('Dispatch'),
             self::Sales => __('Sales'),
             self::Invoice => __('Invoices'),
             self::Payment => __('Payments'),

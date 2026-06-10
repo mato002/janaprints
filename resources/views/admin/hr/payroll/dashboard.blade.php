@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Payroll')" :description="__('Payroll processing from attendance and leave through to payslips and accounting.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\PayrollRun::class)
-                <a href="{{ route('admin.hr.payroll.create') }}" class="erp-btn-primary">{{ __('New payroll run') }}</a>
+                <a href="{{ route('admin.hr.payroll.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New payroll run') }}</a>
             @endcan
             <a href="{{ route('admin.hr.payroll.index') }}" class="erp-btn-secondary">{{ __('All runs') }}</a>
         </x-slot>

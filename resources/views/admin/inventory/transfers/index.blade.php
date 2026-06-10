@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Store Transfers')" :description="__('Move stock between warehouses using controlled inventory movements.')">
         <x-slot name="actions">
             @if (auth()->user()?->can('inventory.transfer'))
-                <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-primary">{{ __('New transfer') }}</a>
+                <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New transfer') }}</a>
             @endif
         </x-slot>
     </x-admin.page-header>

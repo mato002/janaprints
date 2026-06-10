@@ -2,6 +2,7 @@
 
 namespace App\Models\Commercial;
 
+use App\Casts\FlexibleEnumCast;
 use App\Enums\CommercialPriceBookStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
@@ -23,7 +24,7 @@ class CommercialPriceBook extends Model
     protected function casts(): array
     {
         return [
-            'status' => CommercialPriceBookStatus::class,
+            'status' => FlexibleEnumCast::class.':'.CommercialPriceBookStatus::class,
             'starts_at' => 'datetime',
             'ends_at' => 'datetime',
             'is_default' => 'boolean',

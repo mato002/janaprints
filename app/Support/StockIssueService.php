@@ -92,6 +92,7 @@ class StockIssueService
                 'posted_at' => now(),
             ]);
 
+            // Production destination: operational issue only — WIP accounting is posted via job consumption (Phase I4.1).
             app(InventoryAccountingPostingService::class)->postStockIssue($issue, $userId);
 
             return $issue->fresh(['items', 'warehouse']);

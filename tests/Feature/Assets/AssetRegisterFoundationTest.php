@@ -59,6 +59,30 @@ class AssetRegisterFoundationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_asset_create_renders_modal_panel(): void
+    {
+        $user = $this->companyAdmin();
+        $this->makeCategory();
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.assets.create'))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee(__('Register asset'), false);
+    }
+
+    public function test_asset_register_index_links_open_create_in_modal(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.assets.index'))
+            ->assertOk()
+            ->assertSee('data-erp-modal-open', false)
+            ->assertSee(route('admin.assets.create'), false);
+    }
+
     public function test_asset_creation_and_numbering(): void
     {
         $user = $this->companyAdmin();

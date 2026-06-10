@@ -15,6 +15,7 @@ use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerSegment;
 use App\Support\Crm\CustomerOperationalGuard;
 use App\Support\Platform\FormSettingsService;
+use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -28,6 +29,7 @@ class CustomerController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected FormStatusOptionService $statusOptions,
     ) {}
 
     public function index(): View
@@ -231,7 +233,7 @@ class CustomerController extends Controller
             'website' => ['string', 'max:255'],
             'credit_limit' => ['numeric', 'min:0'],
             'payment_terms' => ['string', 'max:100'],
-            'status' => [Rule::enum(CustomerStatus::class)],
+            'status' => $this->statusOptions->validationRules('customer', $companyId, $branchId),
             'notes' => ['string'],
             'segment_ids' => ['array'],
             'segment_ids.*' => ['exists:customer_segments,id'],
@@ -254,7 +256,6 @@ class CustomerController extends Controller
             'branches' => Branch::query()->where('company_id', $companyId)->where('is_active', true)->get(),
             'segments' => CustomerSegment::query()->where('company_id', $companyId)->where('is_active', true)->get(),
             'types' => CustomerType::cases(),
-            'statuses' => CustomerStatus::cases(),
         ];
     }
 }

@@ -21,7 +21,7 @@
             <a href="{{ route('admin.inventory.items.create') }}" class="erp-btn-primary">{{ __('New item') }}</a>
         @endcan
         @if (auth()->user()?->can('inventory.transfer'))
-            <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-secondary">{{ __('Transfer stock') }}</a>
+            <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('Transfer stock') }}</a>
         @endif
         @can('create', App\Models\Inventory\StockReceipt::class)
             <a href="{{ route('admin.inventory.receipts.create') }}" class="erp-btn-secondary">{{ __('Stock receipt') }}</a>

@@ -314,7 +314,7 @@ class FormSettingsService
             $required = (bool) ($registry['required'] ?? false);
             $visible = $required || (bool) ($registry['visible'] ?? true);
 
-            return [
+            return $this->annotateStatusField([
                 'field_key' => $fieldKey,
                 'label' => $registry['label'] ?? $fieldKey,
                 'type' => $registry['type'] ?? 'text',
@@ -327,7 +327,7 @@ class FormSettingsService
                 'inherits_company' => false,
                 'registry_required' => $required,
                 'is_custom' => false,
-            ];
+            ], $formKey, $fieldKey);
         }
 
         return $this->buildFieldConfigFromSource(

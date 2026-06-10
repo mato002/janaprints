@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\Dispatch\DispatchInventoryReportController;
 use App\Http\Controllers\Admin\Dispatch\DeliveryCalendarController;
 use App\Http\Controllers\Admin\Dispatch\DeliveryNoteController;
 use App\Http\Controllers\Admin\Dispatch\DispatchDashboardController;
@@ -17,6 +18,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('calendar', DeliveryCalendarController::class)->name('calendar');
             Route::get('delivery-notes', [DeliveryNoteController::class, 'index'])->name('delivery-notes.index');
             Route::get('delivery-notes/{deliveryNote}', [DeliveryNoteController::class, 'show'])->name('delivery-notes.show');
+            Route::get('reports/transit-inventory', [DispatchInventoryReportController::class, 'transit'])->name('reports.transit-inventory');
+            Route::get('reports/cogs-postings', [DispatchInventoryReportController::class, 'cogs'])->name('reports.cogs-postings');
         });
 
         Route::middleware('permission:dispatch.create')->group(function () {

@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
 use App\Http\Controllers\Admin\Administration\AdministrationWorkspaceController;
 use App\Http\Controllers\Admin\Commercial\CommercialWorkspaceController;
 use App\Http\Controllers\Admin\Assets\AssetsWorkspaceController;
+use App\Http\Controllers\Admin\PrintingIntelligence\PrintingIntelligenceWorkspaceController;
 use App\Http\Controllers\Admin\Production\ProductionWorkspaceController;
 use App\Http\Controllers\Admin\SupplyChain\SupplyChainWorkspaceController;
 use App\Http\Controllers\Admin\WorkspaceController;
@@ -66,6 +67,9 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         Route::get('workspaces/production/{section}', [ProductionWorkspaceController::class, 'section'])
             ->where('section', 'operations|planning|quality|dispatch|reports')
             ->name('workspaces.production.section');
+
+        Route::get('workspaces/printing-intelligence', [PrintingIntelligenceWorkspaceController::class, 'hub'])
+            ->name('workspaces.printing-intelligence');
 
         Route::get('workspaces/assets', [AssetsWorkspaceController::class, 'hub'])
             ->name('workspaces.assets');
@@ -339,6 +343,7 @@ require __DIR__.'/admin_payables.php';
 require __DIR__.'/admin_production.php';
 require __DIR__.'/admin_dispatch.php';
 require __DIR__.'/admin_inventory.php';
+require __DIR__.'/admin_printing_intelligence.php';
 require __DIR__.'/admin_procurement.php';
 require __DIR__.'/admin_assets.php';
 require __DIR__.'/admin_accounting.php';
@@ -357,4 +362,5 @@ require __DIR__.'/admin_reports.php';
 require __DIR__.'/admin_integrations.php';
 require __DIR__.'/admin_administration.php';
 require __DIR__.'/admin_public_leads.php';
+require __DIR__.'/admin_lookups.php';
 require __DIR__.'/admin_website.php';

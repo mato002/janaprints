@@ -41,18 +41,18 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:procurement.vendors.view')->group(function () {
-            Route::get('vendors/{vendor}', [VendorController::class, 'show'])->name('vendors.show');
+            Route::get('vendors/{vendor}', [VendorController::class, 'show'])->whereNumber('vendor')->name('vendors.show');
         });
 
         Route::middleware('permission:procurement.vendors.edit')->group(function () {
-            Route::get('vendors/{vendor}/edit', [VendorController::class, 'edit'])->name('vendors.edit');
-            Route::put('vendors/{vendor}', [VendorController::class, 'update'])->name('vendors.update');
-            Route::post('vendors/{vendor}/contacts', [VendorContactController::class, 'store'])->name('vendors.contacts.store');
-            Route::delete('vendors/{vendor}/contacts/{contact}', [VendorContactController::class, 'destroy'])->name('vendors.contacts.destroy');
+            Route::get('vendors/{vendor}/edit', [VendorController::class, 'edit'])->whereNumber('vendor')->name('vendors.edit');
+            Route::put('vendors/{vendor}', [VendorController::class, 'update'])->whereNumber('vendor')->name('vendors.update');
+            Route::post('vendors/{vendor}/contacts', [VendorContactController::class, 'store'])->whereNumber('vendor')->name('vendors.contacts.store');
+            Route::delete('vendors/{vendor}/contacts/{contact}', [VendorContactController::class, 'destroy'])->whereNumber('vendor')->name('vendors.contacts.destroy');
         });
 
         Route::middleware('permission:procurement.vendors.delete')->group(function () {
-            Route::delete('vendors/{vendor}', [VendorController::class, 'destroy'])->name('vendors.destroy');
+            Route::delete('vendors/{vendor}', [VendorController::class, 'destroy'])->whereNumber('vendor')->name('vendors.destroy');
         });
 
         Route::middleware('permission:procurement.requests.create')->group(function () {

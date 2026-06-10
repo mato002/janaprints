@@ -4,15 +4,23 @@
 @endphp
 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     @if (($fields['customer_id']['visible'] ?? true))
-        <div class="md:col-span-2">
-            <label class="erp-label">{{ $fields['customer_id']['label'] ?? __('Customer') }}</label>
-            <select name="customer_id" class="erp-input w-full" @required($fields['customer_id']['required'] ?? false) @disabled($fields['customer_id']['read_only'] ?? false)>
-                <option value="">{{ __('No customer linked') }}</option>
-                @foreach ($customers as $customer)
-                    <option value="{{ $customer->id }}" @selected(old('customer_id', $record?->customer_id) == $customer->id)>{{ $customer->company_name }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-admin.lookup-select
+            name="customer_id"
+            :label="$fields['customer_id']['label'] ?? __('Customer')"
+            :options="$customers"
+            :value="old('customer_id', $record?->customer_id)"
+            :required="($fields['customer_id']['required'] ?? false)"
+            :readonly="($fields['customer_id']['read_only'] ?? false)"
+            create-route="admin.crm.customers.quick-create"
+            refresh-route="admin.lookups.customers"
+            permission="crm.customers.create"
+            :modal-title="__('Create customer')"
+            option-label-key="company_name"
+            option-value-key="id"
+            select-class="erp-input w-full"
+            :placeholder="__('No customer linked')"
+            class="md:col-span-2"
+        />
     @endif
     @if (($fields['subject']['visible'] ?? true))
         <div class="md:col-span-2">

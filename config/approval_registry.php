@@ -44,6 +44,14 @@ return [
             'example_tiers' => [100000, 250000, 500000],
         ],
 
+        'calibration_rule_approval' => [
+            'label' => 'Cost Calibration Approval',
+            'description' => 'Require approval before activating Printing Intelligence calibration rule changes.',
+            'metric' => 'percent',
+            'default_permission' => 'printing.calibration.approve',
+            'example_tiers' => [5, 10, 15],
+        ],
+
     ],
 
 ];

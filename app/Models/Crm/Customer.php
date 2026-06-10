@@ -2,6 +2,7 @@
 
 namespace App\Models\Crm;
 
+use App\Casts\FlexibleEnumCast;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Models\Branch;
@@ -32,7 +33,7 @@ class Customer extends Model
     {
         return [
             'customer_type' => CustomerType::class,
-            'status' => CustomerStatus::class,
+            'status' => FlexibleEnumCast::class.':'.CustomerStatus::class,
             'credit_limit' => 'decimal:2',
         ];
     }

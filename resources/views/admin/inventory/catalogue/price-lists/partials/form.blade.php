@@ -16,7 +16,7 @@
                     <option value="">{{ __('Select item') }}</option>
                     @foreach ($items as $item)<option value="{{ $item->id }}" @selected(old("items.$i.inventory_item_id", $line?->inventory_item_id) == $item->id)>{{ $item->sku }} - {{ $item->item_name }}</option>@endforeach
                 </select>
-                <input type="number" step="0.01" min="0" name="items[{{ $i }}][price_override]" class="erp-input w-full" placeholder="{{ __('Price override') }}" value="{{ old(\"items.$i.price_override\", $line?->price_override) }}">
+                <input type="number" step="0.01" min="0" name="items[{{ $i }}][price_override]" class="erp-input w-full" placeholder="{{ __('Price override') }}" value="{{ old('items.'.$i.'.price_override', $line?->price_override) }}">
             </div>
         @endfor
     </div>

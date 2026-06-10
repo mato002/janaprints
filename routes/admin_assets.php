@@ -45,12 +45,19 @@ Route::middleware(['auth', 'verified', 'tenant'])
             ->middleware('permission:assets.view')
             ->name('dashboard');
 
+        Route::middleware('permission:assets.create')->group(function () {
+            Route::get('register/create', [FixedAssetController::class, 'create'])->name('create');
+            Route::post('register', [FixedAssetController::class, 'store'])->name('store');
+        });
+
         Route::middleware('permission:assets.view')->group(function () {
             Route::get('register', [FixedAssetController::class, 'index'])->name('index');
             Route::get('register/export/{format}', AssetExportController::class)
                 ->where('format', 'csv|excel|pdf')
                 ->name('export');
-            Route::get('register/{asset}', [FixedAssetController::class, 'show'])->name('show');
+            Route::get('register/{asset}', [FixedAssetController::class, 'show'])
+                ->whereNumber('asset')
+                ->name('show');
             Route::get('register/{asset}/360', [Asset360Controller::class, 'show'])
                 ->middleware('permission:assets.360.view')
                 ->name('360.show');
@@ -61,11 +68,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('documents/{document}/archive', [AssetDocumentController::class, 'archive'])->name('documents.archive');
 
             Route::get('categories', [AssetCategoryController::class, 'index'])->name('categories.index');
-        });
-
-        Route::middleware('permission:assets.create')->group(function () {
-            Route::get('register/create', [FixedAssetController::class, 'create'])->name('create');
-            Route::post('register', [FixedAssetController::class, 'store'])->name('store');
         });
 
         Route::middleware('permission:assets.edit')->group(function () {

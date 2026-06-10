@@ -11,6 +11,16 @@ use Illuminate\Validation\ValidationException;
 
 class ProductionMaterialConsumptionService
 {
+    /**
+     * Records raw material consumption for a production job.
+     *
+     * This is the sole accounting source for Dr WIP / Cr Raw Materials.
+     * Stock issues to production do not post WIP journals (Phase I4.1).
+     *
+     * Inventory lifecycle: reduces physical raw material stock only (WIP is GL-only).
+     *
+     * @see config('inventory_lifecycle')
+     */
     public static function consume(
         ProductionJobCard $jobCard,
         InventoryItem $item,

@@ -13,4 +13,5 @@ enum ApprovalRuleType: string
     case AssetWriteOffApproval = 'asset_write_off_approval';
     case AssetDisposalApproval = 'asset_disposal_approval';
     case AssetCapitalizationApproval = 'asset_capitalization_approval';
+    case CalibrationRuleApproval = 'calibration_rule_approval';
 }

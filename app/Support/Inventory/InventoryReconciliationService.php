@@ -22,12 +22,15 @@ class InventoryReconciliationService
         }
 
         $count = $reconciliation->stockCount;
+        $count->load(['items.inventoryItem', 'items.varianceReasonCode']);
 
         if ($count->status !== StockCountStatus::Approved) {
             throw ValidationException::withMessages([
                 'stock_count' => __('Stock count must be approved before reconciliation.'),
             ]);
         }
+
+        VarianceReconciliationGuard::assertStockCountExplained($count);
 
         $reconciliation->update([
             'status' => InventoryReconciliationStatus::Approved,
@@ -55,12 +58,15 @@ class InventoryReconciliationService
         }
 
         $count = $reconciliation->stockCount;
+        $count->load(['items.inventoryItem', 'items.varianceReasonCode']);
 
         if ($count->status !== StockCountStatus::Approved) {
             throw ValidationException::withMessages([
                 'stock_count' => __('Stock count must be approved before posting.'),
             ]);
         }
+
+        VarianceReconciliationGuard::assertStockCountExplained($count);
 
         if ($count->stock_adjustment_id) {
             throw ValidationException::withMessages([

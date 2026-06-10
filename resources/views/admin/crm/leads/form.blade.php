@@ -15,5 +15,5 @@
         ])
     @endforeach
 
-    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $lead ?? null])
+    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $lead ?? null, 'formKey' => 'lead'])
 </div>

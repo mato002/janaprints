@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Production\CostingReportController;
 use App\Http\Controllers\Admin\Production\JobCostingController;
 use App\Http\Controllers\Admin\Production\ProductionDashboardController;
+use App\Http\Controllers\Admin\Production\ProductionOutputController;
 use App\Http\Controllers\Admin\Production\ProductionJobCardController;
 use App\Http\Controllers\Admin\Production\ProductionOperationController;
 use App\Http\Controllers\Admin\Production\ProductionQualityController;
@@ -50,6 +51,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:production.view')->group(function () {
             Route::get('job-cards/{jobCard}', [ProductionJobCardController::class, 'show'])->name('job-cards.show');
+            Route::get('outputs', [ProductionOutputController::class, 'index'])->name('outputs.index');
+        });
+
+        Route::middleware('permission:production.outputs.post')->group(function () {
+            Route::post('job-cards/{jobCard}/outputs', [ProductionOutputController::class, 'store'])->name('job-cards.outputs.store');
         });
 
         Route::middleware('permission:production.costing.view')->group(function () {

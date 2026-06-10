@@ -24,6 +24,13 @@ return [
         'icon' => 'cog',
     ],
     [
+        'label' => 'Printing Intelligence',
+        'route' => 'admin.workspaces.printing-intelligence',
+        'workspace' => 'printing-intelligence',
+        'permission' => null,
+        'icon' => 'color-swatch',
+    ],
+    [
         'label' => 'Supply Chain',
         'route' => 'admin.workspaces.supply-chain',
         'workspace' => 'supply-chain',

@@ -7,7 +7,9 @@ use App\Enums\DocumentType;
 use App\Enums\ProductionJobCardStatus;
 use App\Models\Dispatch\DeliveryNote;
 use App\Models\Dispatch\DeliveryNoteItem;
+use App\Enums\ProductionOutputStatus;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionOutput;
 use App\Models\Sales\SalesOrderItem;
 use App\Services\Production\JobProductionControlService;
 use App\Support\Platform\NumberGenerator;
@@ -19,6 +21,7 @@ class DeliveryNoteService
     public function __construct(
         protected NumberGenerator $numberGenerator,
         protected JobProductionControlService $productionControl,
+        protected DispatchInventoryService $dispatchInventory,
     ) {}
 
     public function generateDeliveryNoteNumber(int $companyId, ?int $branchId = null): string
@@ -109,39 +112,51 @@ class DeliveryNoteService
             ]);
         }
 
-        $note->update([
-            'status' => DeliveryNoteStatus::Dispatched,
-            'dispatched_by' => $userId,
-            'dispatched_at' => now(),
-            'dispatch_notes' => $dispatchNotes ?? $note->dispatch_notes,
-        ]);
+        return DB::transaction(function () use ($note, $userId, $dispatchNotes) {
+            $this->dispatchInventory->dispatch($note, $userId);
 
-        return $note->fresh(['items', 'customer', 'productionJobCard', 'dispatcher']);
+            $note->update([
+                'status' => DeliveryNoteStatus::Dispatched,
+                'dispatched_by' => $userId,
+                'dispatched_at' => now(),
+                'dispatch_notes' => $dispatchNotes ?? $note->dispatch_notes,
+            ]);
+
+            return $note->fresh(['items', 'items.inventoryItem', 'customer', 'productionJobCard', 'dispatcher']);
+        });
     }
 
     public function deliver(DeliveryNote $note, int $userId, array $attributes = []): DeliveryNote
     {
         $this->assertStatus($note, DeliveryNoteStatus::Dispatched);
 
-        $note->update([
-            'status' => DeliveryNoteStatus::Delivered,
-            'delivered_by' => $userId,
-            'delivered_at' => now(),
-            'recipient_name' => $attributes['recipient_name'] ?? $note->recipient_name,
-            'recipient_phone' => $attributes['recipient_phone'] ?? $note->recipient_phone,
-            'recipient_signature' => $attributes['recipient_signature'] ?? $note->recipient_signature,
-            'delivery_notes' => $attributes['delivery_notes'] ?? $note->delivery_notes,
-            'invoice_ready' => true,
-        ]);
+        return DB::transaction(function () use ($note, $userId, $attributes) {
+            $this->dispatchInventory->confirmDelivery($note, $userId);
 
-        return $note->fresh(['items', 'customer', 'productionJobCard', 'deliverer']);
+            $note->update([
+                'status' => DeliveryNoteStatus::Delivered,
+                'delivered_by' => $userId,
+                'delivered_at' => now(),
+                'recipient_name' => $attributes['recipient_name'] ?? $note->recipient_name,
+                'recipient_phone' => $attributes['recipient_phone'] ?? $note->recipient_phone,
+                'recipient_signature' => $attributes['recipient_signature'] ?? $note->recipient_signature,
+                'delivery_notes' => $attributes['delivery_notes'] ?? $note->delivery_notes,
+                'invoice_ready' => true,
+            ]);
+
+            return $note->fresh(['items', 'items.inventoryItem', 'postedJournal', 'customer', 'productionJobCard', 'deliverer']);
+        });
     }
 
     public function cancel(DeliveryNote $note, ?string $reason = null): DeliveryNote
     {
         if (! $note->status->canCancel()) {
+            $message = in_array($note->status, [DeliveryNoteStatus::Dispatched, DeliveryNoteStatus::Delivered], true)
+                ? __('Dispatched delivery notes cannot be cancelled. Create a return or reversal workflow if required.')
+                : __('This delivery note cannot be cancelled.');
+
             throw ValidationException::withMessages([
-                'status' => __('This delivery note cannot be cancelled.'),
+                'status' => $message,
             ]);
         }
 
@@ -186,6 +201,10 @@ class DeliveryNoteService
                 'quantity' => $item['quantity'] ?? 1,
                 'unit' => $item['unit'] ?? 'pcs',
                 'sales_order_item_id' => $item['sales_order_item_id'] ?? null,
+                'inventory_item_id' => $item['inventory_item_id'] ?? null,
+                'production_output_id' => $item['production_output_id'] ?? null,
+                'unit_cost' => $item['unit_cost'] ?? null,
+                'total_cost' => $item['total_cost'] ?? null,
             ]);
         }
     }
@@ -195,6 +214,27 @@ class DeliveryNoteService
      */
     protected function defaultItemsFromJob(ProductionJobCard $jobCard): array
     {
+        $outputs = ProductionOutput::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->where('completion_status', ProductionOutputStatus::Posted)
+            ->with('finishedItem:id,item_name,sku')
+            ->orderBy('id')
+            ->get();
+
+        if ($outputs->isNotEmpty()) {
+            return $outputs->map(fn (ProductionOutput $output) => [
+                'description' => $output->finishedItem
+                    ? ($output->finishedItem->sku.' — '.$output->finishedItem->item_name)
+                    : __('Finished goods output #:id', ['id' => $output->id]),
+                'quantity' => (float) $output->quantity_completed,
+                'unit' => 'pcs',
+                'inventory_item_id' => $output->finished_inventory_item_id,
+                'production_output_id' => $output->id,
+                'unit_cost' => $output->unit_cost,
+                'total_cost' => $output->total_cost,
+            ])->all();
+        }
+
         if (! $jobCard->sales_order_id) {
             return [
                 [

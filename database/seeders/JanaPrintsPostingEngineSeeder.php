@@ -129,6 +129,15 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                 ],
                 'events' => [PostingEventCode::ProductionCompletionPosted],
             ],
+            'delivery_cogs' => [
+                'module' => PostingModule::Dispatch,
+                'name' => 'Delivery COGS',
+                'lines' => [
+                    ['debit', 'cogs', PostingAmountSource::TotalAmount],
+                    ['credit', 'finished_goods', PostingAmountSource::TotalAmount],
+                ],
+                'events' => [PostingEventCode::DeliveryCogsPosted],
+            ],
             'sales_revenue' => [
                 'module' => PostingModule::Sales,
                 'name' => 'Sales revenue recognition',
@@ -236,7 +245,7 @@ class JanaPrintsPostingEngineSeeder extends Seeder
         ];
 
         foreach ($definitions as $code => $def) {
-            $template = PostingTemplate::query()->firstOrCreate(
+            $template = PostingTemplate::query()->updateOrCreate(
                 ['company_id' => $companyId, 'code' => $code],
                 [
                     'name' => $def['name'],
@@ -249,8 +258,10 @@ class JanaPrintsPostingEngineSeeder extends Seeder
 
             if ($template->wasRecentlyCreated) {
                 if (($def['lines'] ?? null) === 'payment_received_split') {
+                    if (! $template->lines()->exists()) {
                     $this->seedPaymentReceivedTemplateLines($template->id);
-                } else {
+                    }
+            } elseif (! $template->lines()->exists()) {
                     foreach ($def['lines'] as $index => [$side, $accountKey, $amountSource]) {
                         PostingTemplateLine::query()->create([
                             'posting_template_id' => $template->id,
@@ -270,10 +281,10 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                     [
                         'company_id' => $companyId,
                         'event_code' => $event->value,
+                        'posting_template_id' => $template->id,
                     ],
                     [
                         'module' => $event->module(),
-                        'posting_template_id' => $template->id,
                         'name' => $event->label(),
                         'description' => __('Auto-posting rule for :event', ['event' => $event->label()]),
                         'priority' => 100,

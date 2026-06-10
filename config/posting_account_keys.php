@@ -8,6 +8,8 @@ return [
     'raw_materials' => ['default_code' => '1410', 'label' => 'Raw Materials'],
     'wip' => ['default_code' => '1420', 'label' => 'Work In Progress'],
     'finished_goods' => ['default_code' => '1430', 'label' => 'Finished Goods'],
+    'inventory_in_transit' => ['default_code' => '1440', 'label' => 'Inventory In Transit'],
+    'cogs' => ['default_code' => '5450', 'label' => 'Cost of Goods Sold'],
     'cash' => ['default_code' => '1110', 'label' => 'Petty Cash'],
     'cash_till' => ['default_code' => '1120', 'label' => 'Cash Till'],
     'bank' => ['default_code' => '1210', 'label' => 'Equity Bank'],

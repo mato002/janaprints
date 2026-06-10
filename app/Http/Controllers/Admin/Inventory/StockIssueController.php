@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\Warehouse;
+use App\Support\Inventory\ProductionConsumptionGovernance;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockIssueService;
@@ -27,6 +28,7 @@ class StockIssueController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected ProductionConsumptionGovernance $productionGovernance,
     ) {}
 
     public function index(): View
@@ -54,7 +56,7 @@ class StockIssueController extends Controller
         }
 
         return view('admin.inventory.issues.create', [
-            ...$this->formMeta(),
+            ...$this->formMeta($selectedWarehouseId),
             'selectedWarehouseId' => $selectedWarehouseId,
         ]);
     }
@@ -66,7 +68,25 @@ class StockIssueController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
         $header = $this->validateHeader($request, $companyId, $branchId);
         [$header, $customData] = $this->partitionCustomFields('stock_issue.create', $header, $companyId, $branchId);
-        $this->assertCanUseDestination(StockIssueDestination::from($header['destination']));
+        $destination = StockIssueDestination::from($header['destination']);
+        $this->productionGovernance->assertCanUseDestination(
+            $request->user(),
+            $destination,
+            (int) $header['warehouse_id'],
+            $request->input('production_override_reason'),
+        );
+
+        $allowedDestinations = array_map(
+            fn (StockIssueDestination $allowed) => $allowed->value,
+            $this->productionGovernance->allowedDestinationsFor($request->user(), (int) $header['warehouse_id']),
+        );
+
+        if (! in_array($destination->value, $allowedDestinations, true)) {
+            throw ValidationException::withMessages([
+                'destination' => $this->productionGovernance->blockedMessage(),
+            ]);
+        }
+
         if (($header['destination'] ?? null) === StockIssueDestination::Transfer->value && (int) $header['warehouse_id'] === (int) ($header['to_warehouse_id'] ?? 0)) {
             throw ValidationException::withMessages([
                 'to_warehouse_id' => __('Transfer destination must be different from the source warehouse.'),
@@ -88,6 +108,14 @@ class StockIssueController extends Controller
         }
 
         $this->syncCustomFields($issue, 'stock_issue.create', $customData, $companyId);
+
+        if ($destination === StockIssueDestination::Production && filled($request->input('production_override_reason'))) {
+            $this->productionGovernance->applyOverrideMetadata(
+                $issue,
+                $request->user(),
+                (string) $request->input('production_override_reason'),
+            );
+        }
 
         return redirect()->route('admin.inventory.issues.show', $issue)->with('status', __('Issue created.'));
     }
@@ -187,13 +215,22 @@ class StockIssueController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function formMeta(): array
+    protected function formMeta(?int $warehouseId = null): array
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
+        $user = auth()->user();
+        $destinations = $this->productionGovernance->allowedDestinationsFor($user, $warehouseId);
+        $productionAllowed = in_array(StockIssueDestination::Production, $destinations, true);
 
         return [
-            'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
+            'warehouses' => Warehouse::query()
+                ->forTenant()
+                ->where('is_active', true)
+                ->where('is_virtual', false)
+                ->orderBy('name')
+                ->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
+<<<<<<< Updated upstream
             'destinations' => StockIssueDestination::cases(),
             'formFields' => $this->formSettings->resolvedFields('stock_issue.create', $companyId, $branchId),
         ];
@@ -211,4 +248,54 @@ class StockIssueController extends Controller
 
         abort_unless($user?->can('inventory.issue'), 403);
     }
+=======
+            'destinations' => $destinations,
+            'productionGovernance' => [
+                'heading' => __('Production consumption governance'),
+                'message' => $this->productionGovernance->blockedMessage(),
+                'guidance' => $this->productionGovernance->redirectGuidance(),
+                'production_destination_allowed' => $productionAllowed,
+            ],
+            'formFields' => $this->requiredSafeFields($this->formSettings->resolvedFields('stock_issue.create', $companyId, $branchId)),
+        ];
+    }
+
+    protected function requiredSafeFields(array $fields): array
+    {
+        foreach ([
+            'warehouse_id' => __('Source Warehouse'),
+            'destination' => __('Reason / Destination'),
+            'issue_date' => __('Issue Date'),
+        ] as $field => $label) {
+            $fields[$field] = [
+                ...($fields[$field] ?? []),
+                'label' => $fields[$field]['label'] ?? $label,
+                'required' => true,
+                'visible' => true,
+                'hidden' => false,
+                'read_only' => false,
+            ];
+        }
+
+        foreach ([
+            'to_warehouse_id' => __('Destination Warehouse'),
+            'notes' => __('Notes'),
+            'inventory_item_id' => __('Item'),
+            'quantity' => __('Quantity'),
+            'unit_cost' => __('Unit Cost'),
+        ] as $field => $label) {
+            $fields[$field] = [
+                ...($fields[$field] ?? []),
+                'label' => $fields[$field]['label'] ?? $label,
+                'required' => false,
+                'visible' => true,
+                'hidden' => false,
+                'read_only' => false,
+            ];
+        }
+
+        return $fields;
+    }
+
+>>>>>>> Stashed changes
 }

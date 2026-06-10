@@ -249,6 +249,49 @@ class ProductionConsumptionGovernanceTest extends TestCase
             ->assertDontSee('value="production"', false);
     }
 
+    public function test_create_form_shows_production_destination_for_authorized_manager(): void
+    {
+        [$company, $branch, $user, , $warehouse] = $this->inventoryContext([
+            'inventory.view', 'inventory.issue', 'inventory.issue.production.override',
+        ]);
+
+        $this->assignWarehouseManager($warehouse, $user);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.inventory.issues.create', ['warehouse_id' => $warehouse->id]))
+            ->assertOk()
+            ->assertSee(__('Production consumption governance'), false)
+            ->assertSee('value="production"', false)
+            ->assertSee(__('Production override reason'), false);
+    }
+
+    public function test_store_rejects_unauthorized_production_destination_submission(): void
+    {
+        [$company, $branch, $user, $item, $warehouse] = $this->inventoryContext([
+            'inventory.view', 'inventory.issue',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->post(route('admin.inventory.issues.store'), [
+                'warehouse_id' => $warehouse->id,
+                'destination' => StockIssueDestination::Production->value,
+                'issue_date' => now()->toDateString(),
+                'production_override_reason' => 'Attempted bypass',
+                'items' => [
+                    ['inventory_item_id' => $item->id, 'quantity' => 1, 'unit_cost' => 10],
+                ],
+            ])
+            ->assertSessionHasErrors('destination');
+
+        $this->assertDatabaseMissing('stock_issues', [
+            'warehouse_id' => $warehouse->id,
+            'destination' => StockIssueDestination::Production->value,
+        ]);
+    }
+
     /**
      * @param  list<string>  $permissions
      * @return array{0: Company, 1: Branch, 2: User, 3: InventoryItem, 4: Warehouse}

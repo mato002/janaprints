@@ -2,6 +2,7 @@
 
 namespace App\Models\Crm;
 
+use App\Casts\FlexibleEnumCast;
 use App\Enums\LeadStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
@@ -26,7 +27,7 @@ class Lead extends Model
     protected function casts(): array
     {
         return [
-            'status' => LeadStatus::class,
+            'status' => FlexibleEnumCast::class.':'.LeadStatus::class,
             'estimated_value' => 'decimal:2',
             'expected_close_date' => 'date',
         ];

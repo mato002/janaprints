@@ -15,6 +15,8 @@ enum PostingEventCode: string
     case ProductionMaterialConsumptionPosted = 'production.material_consumption.posted';
     case ProductionCompletionPosted = 'production.completion.posted';
 
+    case DeliveryCogsPosted = 'dispatch.delivery.cogs.posted';
+
     case SalesOrderConfirmed = 'sales.order.confirmed';
     case SalesRevenueRecognized = 'sales.revenue.recognized';
 
@@ -57,6 +59,8 @@ enum PostingEventCode: string
             self::ProductionMaterialConsumptionPosted,
             self::ProductionCompletionPosted => PostingModule::Production,
 
+            self::DeliveryCogsPosted => PostingModule::Dispatch,
+
             self::SalesOrderConfirmed,
             self::SalesRevenueRecognized => PostingModule::Sales,
 
@@ -98,6 +102,7 @@ enum PostingEventCode: string
             self::ProcurementInvoiceReceived => __('Supplier invoice received'),
             self::ProductionMaterialConsumptionPosted => __('Production material consumption'),
             self::ProductionCompletionPosted => __('Production completion'),
+            self::DeliveryCogsPosted => __('Delivery COGS'),
             self::SalesOrderConfirmed => __('Sales order confirmed'),
             self::SalesRevenueRecognized => __('Sales revenue recognized'),
             self::InvoicePosted => __('Customer invoice posted'),

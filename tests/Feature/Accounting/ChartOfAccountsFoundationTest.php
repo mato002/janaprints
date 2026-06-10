@@ -120,6 +120,21 @@ class ChartOfAccountsFoundationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_create_account_form_has_branch_plus_button(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->firstOrFail();
+        $user = $this->userWithRole('Company Admin', $company, $branch);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.accounting.accounts.create'))
+            ->assertOk()
+            ->assertSee('erp-lookup-select__add', false)
+            ->assertSee('erpLookupCreate', false);
+    }
+
     public function test_user_can_create_child_account(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

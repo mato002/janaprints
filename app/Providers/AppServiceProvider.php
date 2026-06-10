@@ -223,6 +223,11 @@ class AppServiceProvider extends ServiceProvider
         ArtworkVersion::class => ArtworkVersionPolicy::class,
         SalesOrder::class => SalesOrderPolicy::class,
         ProductionJobCard::class => ProductionJobCardPolicy::class,
+        \App\Models\PrintingIntelligence\PrintEstimateActualComparison::class => \App\Policies\PrintingIntelligence\PrintEstimateActualComparisonPolicy::class,
+        \App\Models\PrintingIntelligence\PrintCalibrationRule::class => \App\Policies\PrintingIntelligence\PrintCalibrationRulePolicy::class,
+        \App\Models\PrintingIntelligence\PrintInkProfile::class => \App\Policies\PrintingIntelligence\PrintInkProfilePolicy::class,
+        \App\Models\PrintingIntelligence\PrintProfitabilitySnapshot::class => \App\Policies\PrintingIntelligence\PrintProfitabilitySnapshotPolicy::class,
+        \App\Models\PrintingIntelligence\PrintForecastSnapshot::class => \App\Policies\PrintingIntelligence\PrintForecastSnapshotPolicy::class,
         ProductionQueue::class => ProductionQueuePolicy::class,
         QualityCheck::class => QualityCheckPolicy::class,
         WorkCenter::class => WorkCenterPolicy::class,
@@ -423,9 +428,12 @@ class AppServiceProvider extends ServiceProvider
             $companyId = tenant()->companyId() ?? $user?->company_id ?? 'none';
             $branchId = tenant()->branchId() ?? $user?->default_branch_id ?? 'none';
             $roleKey = $user?->roles->pluck('name')->sort()->implode('|') ?? 'guest';
-            $cacheKey = "{$user?->id}:{$companyId}:{$branchId}:{$roleKey}";
+            $navVersion = (int) config('platform.navigation_cache_version', 2);
+            $cacheKey = "{$navVersion}:{$user?->id}:{$companyId}:{$branchId}:{$roleKey}";
 
             $presenter = app(WorkspacePresenter::class);
+            $navItems = $this->filterNavigation(config('navigation'));
+
             $navigation = app(PlatformCacheService::class)->remember(
                 'navigation',
                 $cacheKey,
@@ -440,7 +448,7 @@ class AppServiceProvider extends ServiceProvider
             );
 
             $quoteCounts = app(\App\Services\Commercial\PublicQuoteRequestCountService::class);
-            $navItems = collect($navigation['navItems'])->map(function (array $item) use ($quoteCounts) {
+            $navItems = collect($navItems)->map(function (array $item) use ($quoteCounts) {
                 if (($item['workspace'] ?? null) === 'commercial' && $quoteCounts->canView()) {
                     $item['badge_count'] = $quoteCounts->pendingCount();
                 }
@@ -514,6 +522,10 @@ class AppServiceProvider extends ServiceProvider
         foreach ($items as $item) {
             if (! empty($item['workspace'])) {
                 if (! $presenter->isVisible($item['workspace'])) {
+                    continue;
+                }
+
+                if (! empty($item['permission']) && ! $this->userCanNavPermission($item['permission'])) {
                     continue;
                 }
 

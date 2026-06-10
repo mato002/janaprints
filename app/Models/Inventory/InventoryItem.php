@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventory;
 
+use App\Enums\InventoryStockRole;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
 use Database\Factories\Inventory\InventoryItemFactory;
@@ -21,7 +22,7 @@ class InventoryItem extends Model
         'company_id', 'branch_id', 'inventory_category_id', 'subcategory_id',
         'brand_id', 'unit_of_measure_id', 'sku', 'item_code', 'item_name',
         'description', 'reorder_level', 'reorder_quantity', 'standard_cost',
-        'is_active',
+        'is_active', 'stock_role',
     ];
 
     protected function casts(): array
@@ -31,6 +32,7 @@ class InventoryItem extends Model
             'reorder_quantity' => 'decimal:3',
             'standard_cost' => 'decimal:2',
             'is_active' => 'boolean',
+            'stock_role' => InventoryStockRole::class,
         ];
     }
 

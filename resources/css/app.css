@@ -3575,6 +3575,68 @@
         @apply h-10 w-10 animate-spin rounded-full border-4 border-erp-border border-t-erp-accent;
     }
 
+    .erp-lookup-modal-overlay {
+        @apply fixed inset-0 z-[70] overflow-y-auto p-4 sm:p-6;
+        display: none;
+    }
+
+    .erp-lookup-modal-overlay:not([hidden]),
+    .erp-lookup-modal-overlay.erp-lookup-modal-overlay--open {
+        @apply flex items-start justify-center sm:items-center;
+    }
+
+    .erp-lookup-modal-overlay.erp-lookup-modal-overlay--open {
+        display: flex;
+    }
+
+    .erp-lookup-modal-overlay__backdrop {
+        @apply fixed inset-0 bg-erp-primary/60 backdrop-blur-[1px];
+    }
+
+    .erp-lookup-modal-overlay__panel {
+        @apply relative z-10 mx-auto flex w-full max-h-[calc(100vh-2rem)] justify-center overflow-y-auto;
+    }
+
+    .erp-lookup-modal-overlay__panel > .erp-form-modal-host {
+        @apply flex w-full min-w-0 justify-center;
+    }
+
+    .erp-lookup-modal-overlay__panel .erp-lookup-modal {
+        @apply mx-auto w-full shrink-0;
+    }
+
+    .erp-lookup-modal--w-md {
+        @apply max-w-md;
+    }
+
+    .erp-lookup-modal--w-2xl {
+        @apply max-w-2xl;
+    }
+
+    .erp-lookup-modal--w-3xl {
+        @apply max-w-3xl;
+    }
+
+    .erp-lookup-modal--w-4xl {
+        @apply max-w-4xl;
+    }
+
+    .erp-lookup-modal--w-5xl {
+        @apply max-w-5xl;
+    }
+
+    .erp-lookup-select__row {
+        @apply min-h-[2.5rem];
+    }
+
+    .erp-lookup-select__add {
+        @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-erp-accent bg-white text-lg font-semibold leading-none text-erp-accent transition hover:bg-erp-accent hover:text-white focus:outline-none focus:ring-2 focus:ring-erp-accent focus:ring-offset-1;
+    }
+
+    .erp-lookup-select__add:disabled {
+        @apply cursor-not-allowed opacity-50;
+    }
+
     .erp-drawer-overlay {
         @apply fixed inset-0 z-[55];
         display: none;

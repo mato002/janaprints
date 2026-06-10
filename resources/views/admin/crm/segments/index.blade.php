@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Customer segments')" :description="__('Group customers for campaigns and pricing.')">
         <x-slot name="actions">
             @can('create', App\Models\Crm\Customer::class)
-                <a href="{{ route('admin.crm.segments.create') }}" class="erp-btn-primary">{{ __('Create segment') }}</a>
+                <x-admin.form-modal-link :href="route('admin.crm.segments.create')">{{ __('Create segment') }}</x-admin.form-modal-link>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -34,7 +34,7 @@
                         <x-admin.empty-state icon="tag" :title="__('No segments yet')" :description="__('Create segments to organize your customer base.')">
                             <x-slot name="action">
                                 @can('create', App\Models\Crm\Customer::class)
-                                    <a href="{{ route('admin.crm.segments.create') }}" class="erp-btn-primary">{{ __('Create segment') }}</a>
+                                    <x-admin.form-modal-link :href="route('admin.crm.segments.create')" class="erp-btn-primary">{{ __('Create segment') }}</x-admin.form-modal-link>
                                 @endcan
                             </x-slot>
                         </x-admin.empty-state>

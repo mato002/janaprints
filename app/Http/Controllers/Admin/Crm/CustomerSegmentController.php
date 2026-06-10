@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Crm;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -9,12 +10,13 @@ use App\Models\Crm\CustomerSegment;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CustomerSegmentController extends Controller
 {
-    use ScopesToTenant;
+    use HandlesModalFormResponses, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -36,7 +38,7 @@ class CustomerSegmentController extends Controller
         return view('admin.crm.segments.create', $this->formMeta());
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', CustomerSegment::class);
 
@@ -67,7 +69,10 @@ class CustomerSegmentController extends Controller
             'is_active' => $request->boolean('is_active', true),
         ]);
 
-        return redirect()->route('admin.crm.segments.index')->with('status', __('Segment created.'));
+        return $this->modalOrRedirect(
+            __('Segment created.'),
+            redirect()->route('admin.crm.segments.index')->with('status', __('Segment created.')),
+        );
     }
 
     public function edit(CustomerSegment $segment): View

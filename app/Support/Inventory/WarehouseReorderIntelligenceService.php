@@ -61,6 +61,7 @@ class WarehouseReorderIntelligenceService
             ->where('branch_id', $item->branch_id)
             ->where('inventory_item_id', $item->id)
             ->where('warehouse_id', $warehouse->id)
+            ->where('alert_type', config('inventory_intelligence.reorder_alert_type', 'reorder_level'))
             ->first();
 
         if ($balance <= $minLevel) {
@@ -72,6 +73,7 @@ class WarehouseReorderIntelligenceService
                     'branch_id' => $item->branch_id,
                     'inventory_item_id' => $item->id,
                     'warehouse_id' => $warehouse->id,
+                    'alert_type' => config('inventory_intelligence.reorder_alert_type', 'reorder_level'),
                 ],
                 [
                     'current_quantity' => $balance,

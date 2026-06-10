@@ -31,7 +31,7 @@ enum DeliveryNoteStatus: string
 
     public function canCancel(): bool
     {
-        return in_array($this, [self::Draft, self::Dispatched], true);
+        return $this === self::Draft;
     }
 
     public function label(): string

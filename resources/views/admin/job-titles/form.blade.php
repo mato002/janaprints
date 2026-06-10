@@ -2,22 +2,26 @@
     <div class="bg-white shadow rounded-lg p-6 max-w-3xl">
         <form method="POST" action="{{ $action }}">@csrf @if($method !== 'POST') @method($method) @endif
             @if (auth()->user()->hasRole('Super Admin'))
-                <div class="mb-4"><x-input-label for="company_id" :value="__('Company')" />
-                    <select name="company_id" class="erp-select mt-1 w-full" required>
-                        @foreach ($companies as $c)<option value="{{ $c->id }}" @selected(old('company_id', $jobTitle?->company_id) == $c->id)>{{ $c->name }}</option>@endforeach
-                    </select></div>
+                <x-admin.lookup-company-select :companies="$companies" :value="old('company_id', $jobTitle?->company_id)" class="mb-4" />
             @else<input type="hidden" name="company_id" value="{{ auth()->user()->company_id }}">@endif
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><x-input-label for="code" :value="__('Code')" /><x-text-input id="code" name="code" class="block mt-1 w-full" :value="old('code', $jobTitle?->code)" required /></div>
                 <div><x-input-label for="title" :value="__('Title')" /><x-text-input id="title" name="title" class="block mt-1 w-full" :value="old('title', $jobTitle?->title)" required /></div>
-                <div><x-input-label for="department_id" :value="__('Department')" />
-                    <select name="department_id" class="erp-select mt-1 w-full">
-                        <option value="">{{ __('None') }}</option>
-                        @foreach ($departments as $department)
-                            <option value="{{ $department->id }}" @selected(old('department_id', $jobTitle?->department_id) == $department->id)>{{ $department->name }}</option>
-                        @endforeach
-                    </select></div>
+                <x-admin.lookup-select
+                    name="department_id"
+                    :label="__('Department')"
+                    :options="$departments"
+                    :value="old('department_id', $jobTitle?->department_id)"
+                    create-route="admin.departments.quick-create"
+                    refresh-route="admin.lookups.departments"
+                    permission="departments.manage"
+                    :modal-title="__('Create department')"
+                    option-label-key="name"
+                    select-class="erp-select mt-1 w-full"
+                    scope-company-field="company_id"
+                    :placeholder="__('None')"
+                />
                 <div><x-input-label for="level" :value="__('Level')" />
                     <select name="level" class="erp-select mt-1 w-full" required>
                         @foreach ($levels as $level)

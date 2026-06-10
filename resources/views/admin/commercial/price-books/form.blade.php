@@ -28,25 +28,31 @@
         </div>
     @endif
     @if (($fields['branch_id']['visible'] ?? true))
-        <div>
-            <label class="erp-label">{{ $fields['branch_id']['label'] ?? __('Branch') }}</label>
-            <select name="branch_id" class="erp-input w-full" @required($fields['branch_id']['required'] ?? false) @disabled($fields['branch_id']['read_only'] ?? false)>
-                <option value="">{{ __('Company-wide') }}</option>
-                @foreach ($branches as $branch)
-                    <option value="{{ $branch->id }}" @selected(old('branch_id', $book?->branch_id) == $branch->id)>{{ $branch->name }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-admin.lookup-select
+            name="branch_id"
+            :label="$fields['branch_id']['label'] ?? __('Branch')"
+            :options="$branches"
+            :value="old('branch_id', $book?->branch_id)"
+            :required="($fields['branch_id']['required'] ?? false)"
+            :readonly="($fields['branch_id']['read_only'] ?? false)"
+            create-route="admin.branches.quick-create"
+            refresh-route="admin.lookups.branches"
+            permission="branches.manage"
+            :modal-title="__('Create branch')"
+            option-label-key="name"
+            option-value-key="id"
+            select-class="erp-input w-full"
+            :empty-label="__('Company-wide')"
+        />
     @endif
     @if (($fields['status']['visible'] ?? true))
-        <div>
-            <label class="erp-label">{{ $fields['status']['label'] ?? __('Status') }}</label>
-            <select name="status" class="erp-input w-full" @required($fields['status']['required'] ?? true) @disabled($fields['status']['read_only'] ?? false)>
-                @foreach (App\Enums\CommercialPriceBookStatus::cases() as $status)
-                    <option value="{{ $status->value }}" @selected(old('status', $book?->status?->value ?? 'active') === $status->value)>{{ $status->label() }}</option>
-                @endforeach
-            </select>
-        </div>
+        <x-admin.form-status-select
+            form-key="commercial_price_book.create"
+            :field="$fields['status']"
+            :value="$book?->status ?? ($fields['status']['default'] ?? 'active')"
+            :model="$book"
+            select-class="erp-input w-full"
+        />
     @endif
     @if (($fields['starts_at']['visible'] ?? true))
         <div>
@@ -69,4 +75,4 @@
         </div>
     @endif
 </div>
-@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $book ?? null])
+@include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $book ?? null, 'formKey' => 'commercial_price_book.create'])

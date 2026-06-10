@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Compensation Center')" :description="__('Configure employee pay packages between workforce records and payroll processing.')">
         <x-slot name="actions">
             @can('create', App\Models\Hr\EmployeeCompensation::class)
-                <a href="{{ route('admin.hr.compensation.create') }}" class="erp-btn-primary">{{ __('New compensation') }}</a>
+                <a href="{{ route('admin.hr.compensation.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New compensation') }}</a>
             @endcan
             <a href="{{ route('admin.hr.compensation.register') }}" class="erp-btn-secondary">{{ __('Employee register') }}</a>
         </x-slot>
