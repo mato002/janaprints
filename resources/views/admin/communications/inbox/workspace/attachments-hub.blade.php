@@ -18,7 +18,7 @@
     <p class="mb-2 text-[11px] text-slate-500">{{ __('Grouped by date — tap to jump to that message in the chat.') }}</p>
 
     @can('attachments', App\Models\Communications\Inbox\CommunicationConversation::class)
-        <form method="POST" action="{{ route('admin.communications.inbox.attachments.store', $active) }}" enctype="multipart/form-data" class="mb-3 flex gap-1" data-turbo-frame="erp-main">
+        <form method="POST" action="{{ route('admin.communications.inbox.attachments.store', $active) }}" enctype="multipart/form-data" class="mb-3 flex gap-1" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf
             <input type="file" name="file" class="erp-input min-w-0 flex-1 text-[10px]" accept="image/*,.pdf">
             <button type="submit" class="erp-btn erp-btn--secondary erp-btn--xs shrink-0">{{ __('Upload') }}</button>
@@ -57,7 +57,7 @@
                     <x-admin.crm-btn type="button" variant="ghost" size="xs" @click="$dispatch('open-chat-item', '{{ $item['dom_id'] }}')">{{ __('View in chat') }}</x-admin.crm-btn>
                     <x-admin.crm-btn variant="outline" size="xs" :href="$item['download_url']">{{ __('Download') }}</x-admin.crm-btn>
                     @can('attachments', App\Models\Communications\Inbox\CommunicationConversation::class)
-                        <form method="POST" action="{{ route('admin.communications.inbox.attachments.destroy', [$active, $item['id']]) }}" class="inline" data-turbo-frame="erp-main" onsubmit="return confirm(@js(__('Remove this file?')))">
+                        <form method="POST" action="{{ route('admin.communications.inbox.attachments.destroy', [$active, $item['id']]) }}" class="inline" data-turbo-frame="{{ $inboxTurboFrame }}" onsubmit="return confirm(@js(__('Remove this file?')))">
                             @csrf @method('DELETE')
                             <button type="submit" class="text-red-600 hover:underline">{{ __('Delete') }}</button>
                         </form>

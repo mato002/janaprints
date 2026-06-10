@@ -1,6 +1,6 @@
 @can('viewAny', App\Models\Communications\Inbox\CommunicationConversation::class)
     <div class="space-y-1.5">
-        <form method="GET" class="flex gap-1" data-turbo-frame="erp-main">
+        <form method="GET" class="flex gap-1" data-turbo-frame="{{ $inboxTurboFrame }}">
             @foreach (request()->except(['pick_q', 'page']) as $key => $value)
                 @if (is_scalar($value) && $value !== '')
                     <input type="hidden" name="{{ $key }}" value="{{ $value }}">
@@ -11,7 +11,7 @@
             <button type="submit" class="erp-btn erp-btn--secondary erp-btn--xs shrink-0">{{ __('Find') }}</button>
         </form>
 
-        <form method="POST" action="{{ route('admin.communications.inbox.start') }}" class="flex gap-1" data-turbo-frame="erp-main">
+        <form method="POST" action="{{ route('admin.communications.inbox.start') }}" class="flex gap-1" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf
             <select name="customer_id" class="erp-input min-w-0 flex-1 text-xs" required>
                 <option value="">{{ __('Select customer…') }}</option>

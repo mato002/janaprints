@@ -28,12 +28,40 @@ class InboxCom8aTest extends TestCase
         [$user, $conversation] = $this->seedConversation();
 
         $this->actingAs($user)
-            ->get(route('admin.communications.inbox.index', ['conversation' => $conversation->id]))
+            ->get(route('admin.communications.inbox.index', [
+                'conversation' => $conversation->id,
+                'embedded' => '1',
+            ]), ['Turbo-Frame' => 'module-workspace-content'])
             ->assertOk()
             ->assertSee(__('Message'))
             ->assertSee(__('Customer profile (360)'))
             ->assertSee(__('Insights'))
             ->assertSee(__('New conversation'));
+    }
+
+    public function test_embedded_inbox_conversation_links_target_workspace_frame(): void
+    {
+        [$user, $conversation] = $this->seedConversation();
+
+        $this->actingAs($user)
+            ->get(route('admin.communications.inbox.index', ['embedded' => '1']), [
+                'Turbo-Frame' => 'module-workspace-content',
+            ])
+            ->assertOk()
+            ->assertSee('data-turbo-frame="module-workspace-content"', false)
+            ->assertSee('embedded=1', false)
+            ->assertSee('conversation='.$conversation->id, false);
+
+        $this->actingAs($user)
+            ->get(route('admin.communications.inbox.index', [
+                'embedded' => '1',
+                'conversation' => $conversation->id,
+            ]), [
+                'Turbo-Frame' => 'module-workspace-content',
+            ])
+            ->assertOk()
+            ->assertSee('shared-inbox__thread', false)
+            ->assertDontSee(__('Select a conversation'));
     }
 
     public function test_executive_view_requires_executive_permission(): void
@@ -86,7 +114,9 @@ class InboxCom8aTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.communications.inbox.index'))
+            ->get(route('admin.communications.inbox.index', ['embedded' => '1']), [
+                'Turbo-Frame' => 'module-workspace-content',
+            ])
             ->assertOk()
             ->assertSee(__('New conversation'))
             ->assertSee(__('Open'));

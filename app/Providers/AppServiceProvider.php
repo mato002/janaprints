@@ -128,6 +128,7 @@ use App\Policies\BackgroundJobsPolicy;
 use App\Policies\SystemHealthPolicy;
 use App\Policies\UserSessionPolicy;
 use App\Models\SecurityAuditEvent;
+use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Navigation\WorkspacePresenter;
 use App\View\Composers\WorkspaceNavigationComposer;
 use App\Support\AccessControl\PermissionCatalog;
@@ -394,6 +395,17 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Lockout::class, [LogAuthenticationActivity::class, 'handleLockout']);
 
         View::composer('layouts.admin', WorkspaceNavigationComposer::class);
+
+        View::composer([
+            'admin.communications.inbox.*',
+            'admin.communications.inbox.*.*',
+            'admin.communications.inbox.*.*.*',
+        ], function ($view) {
+            $view->with([
+                'inboxTurboFrame' => WorkspaceEmbed::turboFrame(),
+                'inboxEmbedUrl' => static fn (?string $url): ?string => WorkspaceEmbed::url($url),
+            ]);
+        });
 
         View::composer('*', BrandingViewComposer::class);
 

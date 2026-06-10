@@ -14,7 +14,7 @@
         'escalated' => __('Escalated'),
         'overdue' => __('Overdue'),
     ];
-    $chipQuery = fn (string $view) => route('admin.communications.inbox.index', array_merge(
+    $chipQuery = fn (string $view) => $inboxEmbedUrl(route('admin.communications.inbox.index', array_merge(
         request()->except(['page']),
         array_filter([
             'view' => $view,
@@ -23,7 +23,7 @@
             'tag' => $filters['tag'] ?? null,
             'conversation' => $active?->id,
         ], fn ($v) => $v !== null && $v !== '')
-    ));
+    )));
 @endphp
 
 <aside class="shared-inbox__list-panel flex h-full min-h-0 w-full flex-col overflow-hidden">
@@ -35,7 +35,7 @@
             <button type="button" class="font-semibold text-indigo-700 hover:underline" @click="newConvoOpen = true">+ {{ __('New conversation') }}</button>
         </div>
 
-        <form method="GET" class="space-y-0" data-turbo-frame="erp-main">
+        <form method="GET" class="space-y-0" data-turbo-frame="{{ $inboxTurboFrame }}">
             @if ($active)<input type="hidden" name="conversation" value="{{ $active->id }}">@endif
             <input type="hidden" name="view" value="{{ $currentView }}">
             @if (! empty($filters['status']))<input type="hidden" name="status" value="{{ $filters['status'] }}">@endif
@@ -59,7 +59,7 @@
             @foreach ($viewChips as $key => $label)
                 <a
                     href="{{ $chipQuery($key) }}"
-                    data-turbo-frame="erp-main"
+                    data-turbo-frame="{{ $inboxTurboFrame }}"
                     class="shared-inbox__chip {{ $currentView === $key ? 'shared-inbox__chip--active' : '' }}"
                 >{{ $label }}</a>
             @endforeach
@@ -67,13 +67,13 @@
 
         <details class="shared-inbox__more-filters">
             <summary class="cursor-pointer font-medium hover:text-slate-700">{{ __('More filters') }}</summary>
-            <form method="GET" class="mt-2 space-y-2" data-turbo-frame="erp-main">
+            <form method="GET" class="mt-2 space-y-2" data-turbo-frame="{{ $inboxTurboFrame }}">
                 @if ($active)<input type="hidden" name="conversation" value="{{ $active->id }}">@endif
                 @if (! empty($filters['q']))<input type="hidden" name="q" value="{{ $filters['q'] }}">@endif
                 <input type="hidden" name="view" value="{{ $currentView }}">
                 <div class="flex flex-wrap gap-1">
                     @foreach ($extraViews as $key => $label)
-                        <a href="{{ $chipQuery($key) }}" data-turbo-frame="erp-main" class="shared-inbox__chip {{ $currentView === $key ? 'shared-inbox__chip--active' : '' }}">{{ $label }}</a>
+                        <a href="{{ $chipQuery($key) }}" data-turbo-frame="{{ $inboxTurboFrame }}" class="shared-inbox__chip {{ $currentView === $key ? 'shared-inbox__chip--active' : '' }}">{{ $label }}</a>
                     @endforeach
                 </div>
                 <select name="status" class="erp-input w-full text-xs" onchange="this.form.submit()">
@@ -99,8 +99,8 @@
                     : ($conv->last_activity_at?->format('d/m') ?? '');
             @endphp
             <a
-                href="{{ route('admin.communications.inbox.index', array_merge(request()->query(), ['conversation' => $conv->id])) }}"
-                data-turbo-frame="erp-main"
+                href="{{ $inboxEmbedUrl(route('admin.communications.inbox.index', array_merge(request()->query(), ['conversation' => $conv->id]))) }}"
+                data-turbo-frame="{{ $inboxTurboFrame }}"
                 class="shared-inbox__conv-row {{ $isActive ? 'shared-inbox__conv-row--active' : '' }}"
             >
                 <div class="shared-inbox__avatar">{{ $initial }}</div>

@@ -78,16 +78,16 @@
                                 @endif
                                 @if ($isImage)
                                     <button type="button" class="block w-full px-3 py-1.5 text-left hover:bg-slate-50" @click="openLightbox(@js($event['file_url']))">{{ __('View') }}</button>
-                                    <a href="{{ $event['download_url'] }}" class="block px-3 py-1.5 hover:bg-slate-50" data-turbo-frame="erp-main">{{ __('Download') }}</a>
+                                    <a href="{{ $event['download_url'] }}" class="block px-3 py-1.5 hover:bg-slate-50" data-turbo-frame="{{ $inboxTurboFrame }}">{{ __('Download') }}</a>
                                 @endif
                                 @if ($canDelete && $isAttachment)
-                                    <form method="POST" action="{{ route('admin.communications.inbox.attachments.destroy', [$active, $event['attachment_id']]) }}" data-turbo-frame="erp-main" onsubmit="return confirm(@js(__('Remove this file from the chat?')))">
+                                    <form method="POST" action="{{ route('admin.communications.inbox.attachments.destroy', [$active, $event['attachment_id']]) }}" data-turbo-frame="{{ $inboxTurboFrame }}" onsubmit="return confirm(@js(__('Remove this file from the chat?')))">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="block w-full px-3 py-1.5 text-left text-red-600 hover:bg-red-50">{{ __('Delete') }}</button>
                                     </form>
                                 @endif
                                 @if ($canDelete && ! $isAttachment && ! empty($event['message_id']))
-                                    <form method="POST" action="{{ route('admin.communications.inbox.messages.destroy', [$active, $event['message_id']]) }}" data-turbo-frame="erp-main" onsubmit="return confirm(@js(__('Delete this message?')))">
+                                    <form method="POST" action="{{ route('admin.communications.inbox.messages.destroy', [$active, $event['message_id']]) }}" data-turbo-frame="{{ $inboxTurboFrame }}" onsubmit="return confirm(@js(__('Delete this message?')))">
                                         @csrf @method('DELETE')
                                         <button type="submit" class="block w-full px-3 py-1.5 text-left text-red-600 hover:bg-red-50">{{ __('Delete') }}</button>
                                     </form>

@@ -1,5 +1,5 @@
 @can('notes', App\Models\Communications\Inbox\CommunicationConversation::class)
-    <form method="POST" action="{{ route('admin.communications.inbox.notes.store', $active) }}" class="mb-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3">
+    <form method="POST" action="{{ route('admin.communications.inbox.notes.store', $active) }}" class="mb-4 space-y-2 rounded-lg border border-amber-200 bg-amber-50/50 p-3" data-turbo-frame="{{ $inboxTurboFrame }}">
         @csrf
         @if ($channelFilter)<input type="hidden" name="channel" value="{{ $channelFilter }}">@endif
         <p class="text-[10px] font-semibold uppercase text-amber-800">{{ __('Staff only — customer never sees this') }}</p>

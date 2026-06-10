@@ -1,6 +1,6 @@
 <div class="rounded border border-erp-border/60 bg-white p-2">
     <h4 class="text-xs font-semibold uppercase text-slate-600">{{ __('Conversation tags') }}</h4>
-    <form method="POST" action="{{ route('admin.communications.inbox.tags.update', $active) }}" class="mt-2 space-y-2" data-turbo-frame="erp-main">
+    <form method="POST" action="{{ route('admin.communications.inbox.tags.update', $active) }}" class="mt-2 space-y-2" data-turbo-frame="{{ $inboxTurboFrame }}">
         @csrf
         @if ($channelFilter)<input type="hidden" name="channel" value="{{ $channelFilter }}">@endif
         <input type="text" name="tags" value="{{ implode(', ', $active->tags ?? []) }}" class="erp-input w-full text-xs" placeholder="{{ __('urgent, vip, artwork') }}">

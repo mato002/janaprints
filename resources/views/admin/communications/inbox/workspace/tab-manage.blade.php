@@ -14,7 +14,7 @@
 <div class="mt-3 rounded-lg border border-erp-border bg-white p-2">
     @include('admin.communications.inbox.partials.assignment-bar')
     @can('assign', App\Models\Communications\Inbox\CommunicationConversation::class)
-        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="mt-2 flex gap-1">
+        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="mt-2 flex gap-1" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf
             <input type="hidden" name="action" value="add_watcher">
             <select name="watcher_user_id" class="erp-input flex-1 text-xs">

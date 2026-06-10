@@ -4159,6 +4159,18 @@ function wireEmbeddedWorkspaceLinks(root) {
 
         if (! link.hasAttribute('data-turbo-frame')) {
             link.setAttribute('data-turbo-frame', 'module-workspace-content');
+        } else if (turboFrame === 'erp-main') {
+            try {
+                const inboxUrl = new URL(link.href, window.location.origin);
+
+                if (! inboxUrl.pathname.includes('/admin/communications/inbox')) {
+                    return;
+                }
+
+                link.setAttribute('data-turbo-frame', 'module-workspace-content');
+            } catch {
+                return;
+            }
         } else if (! targetsWorkspaceContent) {
             return;
         }
@@ -4176,8 +4188,28 @@ function wireEmbeddedWorkspaceLinks(root) {
     });
 
     root.querySelectorAll('form[action]').forEach((form) => {
-        if (form.hasAttribute('data-turbo-frame') || form.getAttribute('data-turbo') === 'false') {
+        if (form.getAttribute('data-turbo') === 'false') {
             return;
+        }
+
+        const turboFrame = form.getAttribute('data-turbo-frame');
+
+        if (turboFrame === 'erp-main') {
+            try {
+                const inboxAction = new URL(form.getAttribute('action'), window.location.origin);
+
+                if (! inboxAction.pathname.includes('/admin/communications/inbox')) {
+                    return;
+                }
+
+                form.setAttribute('data-turbo-frame', 'module-workspace-content');
+            } catch {
+                return;
+            }
+        } else if (turboFrame && turboFrame !== 'module-workspace-content') {
+            return;
+        } else if (! turboFrame) {
+            form.setAttribute('data-turbo-frame', 'module-workspace-content');
         }
 
         const method = (form.getAttribute('method') ?? 'get').toLowerCase();

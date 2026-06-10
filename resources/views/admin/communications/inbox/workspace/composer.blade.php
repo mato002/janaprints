@@ -34,7 +34,7 @@
             action="{{ route('admin.communications.inbox.attachments.store', $active) }}"
             enctype="multipart/form-data"
             class="hidden"
-            data-turbo-frame="erp-main"
+            data-turbo-frame="{{ $inboxTurboFrame }}"
             x-ref="uploadForm"
         >
             @csrf
@@ -45,7 +45,7 @@
     @endcan
 
     @can('reply', App\Models\Communications\Inbox\CommunicationConversation::class)
-        <form method="POST" action="{{ route('admin.communications.inbox.reply', $active) }}" class="shared-inbox__composer-inner" data-turbo-frame="erp-main">
+        <form method="POST" action="{{ route('admin.communications.inbox.reply', $active) }}" class="shared-inbox__composer-inner" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf
             <input type="hidden" name="channel" :value="sendChannel">
 

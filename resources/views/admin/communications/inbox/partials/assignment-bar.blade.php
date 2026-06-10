@@ -8,7 +8,7 @@
 </div>
 @can('assign', App\Models\Communications\Inbox\CommunicationConversation::class)
     <div class="mt-2 flex flex-wrap gap-2">
-        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="flex flex-wrap gap-1 items-center">
+        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="flex flex-wrap gap-1 items-center" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf
             <input type="hidden" name="action" value="assign">
             <select name="assigned_user_id" class="erp-input text-xs">
@@ -19,12 +19,12 @@
             </select>
             <button type="submit" class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Assign') }}</button>
         </form>
-        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="inline">@csrf<input type="hidden" name="action" value="take"><button class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Take') }}</button></form>
-        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="inline">@csrf<input type="hidden" name="action" value="release"><button class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Release') }}</button></form>
+        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="inline" data-turbo-frame="{{ $inboxTurboFrame }}">@csrf<input type="hidden" name="action" value="take"><button class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Take') }}</button></form>
+        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="inline" data-turbo-frame="{{ $inboxTurboFrame }}">@csrf<input type="hidden" name="action" value="release"><button class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Release') }}</button></form>
         @can('escalate', App\Models\Communications\Inbox\CommunicationConversation::class)
-            <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="inline" id="inbox-escalate">@csrf<input type="hidden" name="action" value="escalate"><button class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Escalate') }}</button></form>
+            <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="inline" id="inbox-escalate" data-turbo-frame="{{ $inboxTurboFrame }}">@csrf<input type="hidden" name="action" value="escalate"><button class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Escalate') }}</button></form>
         @endcan
-        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="flex gap-1">
+        <form method="POST" action="{{ route('admin.communications.inbox.assign', $active) }}" class="flex gap-1" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf<input type="hidden" name="action" value="assign_department">
             <select name="assigned_department_id" class="erp-input text-xs">
                 <option value="">{{ __('Department…') }}</option>
@@ -34,7 +34,7 @@
             </select>
             <button type="submit" class="erp-btn erp-btn--secondary erp-btn--xs">{{ __('Set') }}</button>
         </form>
-        <form method="POST" action="{{ route('admin.communications.inbox.status', $active) }}" class="flex gap-1">
+        <form method="POST" action="{{ route('admin.communications.inbox.status', $active) }}" class="flex gap-1" data-turbo-frame="{{ $inboxTurboFrame }}">
             @csrf
             <select name="status" class="erp-input text-xs" onchange="this.form.submit()">
                 @foreach (\App\Enums\InboxConversationStatus::cases() as $st)
