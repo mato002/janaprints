@@ -22,7 +22,8 @@
                 :alt="$project['alt']"
                 fallback="cards"
                 class="public-masonry-item__image"
-                width="800"
+                width="480"
+                sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"
                 itemprop="image"
             />
 
@@ -31,9 +32,6 @@
                     <span class="public-masonry-item__category public-portfolio-card__category public-portfolio-card__category--overlay" itemprop="genre">
                         {{ $project['category_label'] }}
                     </span>
-                    <h3 class="public-masonry-item__title public-portfolio-card__title public-portfolio-card__title--overlay" itemprop="name">
-                        {{ $project['title'] }}
-                    </h3>
                 </div>
             </div>
         </div>

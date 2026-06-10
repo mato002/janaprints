@@ -1,23 +1,23 @@
 {{-- Shared project detail modal for gallery / portfolio grids --}}
-<div class="public-portfolio-modal" data-portfolio-modal hidden aria-hidden="true">
-    <div class="public-portfolio-modal__backdrop" data-portfolio-close></div>
+<div class="public-portfolio-modal gallery-preview-modal" data-portfolio-modal hidden aria-hidden="true">
+    <div class="public-portfolio-modal__backdrop gallery-preview-modal__backdrop" data-portfolio-close></div>
     <div
-        class="public-portfolio-modal__dialog"
+        class="public-portfolio-modal__dialog gallery-preview-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="portfolio-modal-title"
     >
-        <button type="button" class="public-portfolio-modal__close" data-portfolio-close aria-label="Close project details">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <button type="button" class="public-portfolio-modal__close gallery-preview-close" data-portfolio-close aria-label="Close gallery preview">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
 
-        <div class="public-portfolio-modal__layout">
-            <div class="public-portfolio-modal__media">
-                <img src="" alt="" data-portfolio-modal-image loading="lazy">
+        <div class="public-portfolio-modal__layout gallery-preview-dialog__body">
+            <div class="public-portfolio-modal__media gallery-preview-media">
+                <img class="gallery-preview-media__image" src="" alt="" data-portfolio-modal-image loading="lazy">
             </div>
-            <div class="public-portfolio-modal__content">
+            <div class="public-portfolio-modal__content gallery-preview-details">
                 <div class="public-portfolio-modal__intro">
                     <span class="public-portfolio-modal__category" data-portfolio-modal-category></span>
                     <h3 id="portfolio-modal-title" class="public-portfolio-modal__title" data-portfolio-modal-title></h3>

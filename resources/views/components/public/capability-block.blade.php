@@ -13,23 +13,24 @@
     data-animate="fade-up"
 >
     <div class="public-container">
-        <div class="public-capability__grid">
+        <div class="public-capability__grid capability-mobile-card">
             {{-- Visual --}}
-            <div class="public-capability__visual" data-animate="{{ $reversed ? 'fade-left' : 'fade-right' }}">
+            <div class="public-capability__visual capability-image-wrap" data-animate="{{ $reversed ? 'fade-left' : 'fade-right' }}">
                 <div class="public-capability__visual-frame">
                     <x-public.media-image
                         :src="$capability['image']"
                         :alt="$capability['alt']"
                         fallback="stationery"
-                        class="aspect-[4/3] w-full object-cover"
+                        class="public-capability__image aspect-[4/3] w-full object-cover"
                     />
+                    <div class="capability-image-fade" aria-hidden="true"></div>
                     <div class="public-capability__visual-accent bg-gradient-to-br {{ $capability['accent'] }}"></div>
                 </div>
                 <span class="public-capability__number">{{ $capability['number'] }}</span>
             </div>
 
             {{-- Content --}}
-            <div class="public-capability__content">
+            <div class="public-capability__content capability-content">
                 <span class="public-capability__badge bg-gradient-to-r {{ $capability['accent'] }}">
                     Capability {{ $capability['number'] }}
                 </span>

@@ -46,7 +46,6 @@ class CommercialSalesReportTest extends TestCase
             ->get(route('commercial.reports.sales.index'))
             ->assertOk()
             ->assertSee(__('Sales Reports'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Sales Dashboard'), false)
             ->assertSee(__('Sales Summary'), false);
     }

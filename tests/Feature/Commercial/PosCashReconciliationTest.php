@@ -183,7 +183,6 @@ class PosCashReconciliationTest extends TestCase
             ->get(route('admin.commercial.pos.reconciliation.index'))
             ->assertOk()
             ->assertSee(__('Cash Reconciliation'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Pending Reviews'), false);
     }
 

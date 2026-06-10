@@ -50,7 +50,6 @@ class CommercialConversionReportTest extends TestCase
             ->get(route('commercial.reports.conversion.index'))
             ->assertOk()
             ->assertSee(__('Conversion Reports'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Conversion Dashboard'), false)
             ->assertSee(__('Full Commercial Funnel'), false);
     }

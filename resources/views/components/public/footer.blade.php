@@ -13,13 +13,13 @@
     <div class="public-footer__ambient" aria-hidden="true"></div>
 
     <div class="public-container public-section--compact">
-        <div class="grid gap-10 lg:grid-cols-12 lg:gap-12">
+        <div class="public-footer__grid grid gap-10 lg:grid-cols-12 lg:gap-12">
             {{-- Brand --}}
-            <div class="lg:col-span-4">
-                <div class="mb-5">
+            <div class="public-footer__brand lg:col-span-4">
+                <div class="public-footer__logo-wrap mb-5">
                     <x-public.brand-logo full size="lg" />
                 </div>
-                <p class="max-w-sm text-sm leading-relaxed">{{ $footer['tagline'] }}</p>
+                <p class="public-footer__description max-w-sm text-sm leading-relaxed">{{ $footer['tagline'] }}</p>
 
                 <div class="public-footer__badges">
                     @foreach ($footer['trust_badges'] as $badge)
@@ -39,7 +39,7 @@
             </nav>
 
             {{-- Contact --}}
-            <div class="lg:col-span-3" itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
+            <div class="public-footer__contact-block lg:col-span-3" itemprop="address" itemscope itemtype="https://schema.org/PostalAddress">
                 <h3 class="public-footer__heading">Contact</h3>
                 <ul class="public-footer__contact">
                     <li>
@@ -59,7 +59,7 @@
             </div>
 
             {{-- Social --}}
-            <div class="lg:col-span-3">
+            <div class="public-footer__social-block lg:col-span-3">
                 <h3 class="public-footer__heading">Follow Us</h3>
                 <ul class="public-footer__social">
                     @foreach ($footer['social'] as $social)
@@ -84,7 +84,7 @@
                     @endforeach
                 </ul>
 
-                <div class="mt-6 flex flex-wrap gap-3">
+                <div class="public-footer__quick-actions mt-6 flex flex-wrap gap-3">
                     <a href="{{ $whatsappUrl }}" target="_blank" rel="noopener noreferrer" class="public-footer__quick-link">
                         WhatsApp
                     </a>
@@ -92,18 +92,12 @@
                         Call Us
                     </a>
                 </div>
-
-                @if (Route::has('login'))
-                    <div class="mt-6 border-t border-white/10 pt-6">
-                        <a href="{{ route('client.login') }}" class="text-sm font-medium text-white transition-colors hover:text-brand-cyan">Client Login &rarr;</a>
-                    </div>
-                @endif
             </div>
         </div>
 
         <div class="public-divider mt-12 opacity-20"></div>
 
-        <div class="mt-8 flex flex-col items-center justify-between gap-4 text-xs sm:flex-row">
+        <div class="public-footer__bottom mt-8 flex flex-col items-center justify-between gap-4 text-xs sm:flex-row">
             <p>&copy; {{ date('Y') }} {{ $site['name'] }}. All rights reserved.</p>
             <p class="text-white/40">{{ $site['tagline'] }} — Nairobi, Kenya</p>
         </div>

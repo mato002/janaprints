@@ -23,7 +23,7 @@
             </div>
 
             <div class="public-inside-jana-block__content">
-                <x-public.badge variant="navy" class="mb-4">Inside Jana Prints</x-public.badge>
+                <x-public.badge variant="navy" class="public-inside-jana-block__badge mb-4">Inside Jana Prints</x-public.badge>
                 <h3 class="public-inside-jana-block__title">{{ $block['title'] }}</h3>
                 <p class="public-inside-jana-block__desc">{{ $block['description'] }}</p>
 

@@ -1,12 +1,6 @@
 <x-admin-layout :title="$title">
     <x-admin.page-header :title="$title" :description="$description" />
 
-    @include('admin.commercial.reports.sales.partials.readiness-table', [
-        'readiness' => $readiness,
-        'report_ready' => $framework_ready,
-        'context' => __('commercial report exports'),
-    ])
-
     <x-admin.card>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">

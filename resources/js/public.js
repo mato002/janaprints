@@ -902,7 +902,7 @@ function initPortfolioModal() {
             modal.classList.add('is-open');
         });
 
-        modal.querySelector('[data-portfolio-close]')?.focus();
+        modal.querySelector('.gallery-preview-close')?.focus();
     };
 
     const close = () => {

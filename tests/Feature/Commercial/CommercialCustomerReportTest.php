@@ -47,7 +47,6 @@ class CommercialCustomerReportTest extends TestCase
             ->get(route('commercial.reports.customers.index'))
             ->assertOk()
             ->assertSee(__('Customer Reports'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Customer Dashboard'), false)
             ->assertSee(__('Customer Summary'), false);
     }

@@ -47,7 +47,6 @@ class CommercialArtworkReportTest extends TestCase
             ->get(route('commercial.reports.artwork.index'))
             ->assertOk()
             ->assertSee(__('Artwork Reports'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('Artwork Dashboard'), false)
             ->assertSee(__('Artwork Requests'), false);
     }

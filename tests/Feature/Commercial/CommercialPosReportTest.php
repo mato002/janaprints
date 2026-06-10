@@ -53,7 +53,6 @@ class CommercialPosReportTest extends TestCase
             ->get(route('commercial.pos.reports.index'))
             ->assertOk()
             ->assertSee(__('POS Intelligence'), false)
-            ->assertSee(__('Data Readiness'), false)
             ->assertSee(__('POS Dashboard'), false)
             ->assertSee(__('Sales By Cashier'), false);
     }

@@ -5,11 +5,13 @@
         badge="Gallery"
         :breadcrumbs="$breadcrumbs"
         :wide="true"
+        compact
     />
 
     <x-public.portfolio-section
         :full-page="true"
         :show-gallery-cta="false"
+        compact
         heading="Print & Branding Projects"
         intro="Browse print, branding, packaging and large-format work by category."
     />

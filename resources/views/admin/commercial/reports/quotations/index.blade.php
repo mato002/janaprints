@@ -10,8 +10,6 @@
 
     @include('admin.commercial.reports.partials.export-status')
 
-    @include('admin.commercial.reports.sales.partials.readiness-table', ['readiness' => $readiness, 'report_ready' => $report_ready])
-
     @include('admin.commercial.reports.quotations.partials.filters', [
         'filters' => $filters,
         'branches' => $branches,

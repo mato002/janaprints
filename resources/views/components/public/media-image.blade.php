@@ -5,6 +5,7 @@
     'class' => '',
     'width' => null,
     'height' => null,
+    'sizes' => null,
 ])
 
 @php
@@ -22,6 +23,7 @@
     alt="{{ $alt }}"
     @if ($width) width="{{ $width }}" @endif
     @if ($height) height="{{ $height }}" @endif
+    @if ($sizes) sizes="{{ $sizes }}" @endif
     loading="lazy"
     decoding="async"
     data-public-media-image
