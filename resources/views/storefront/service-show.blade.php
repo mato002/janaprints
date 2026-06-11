@@ -11,9 +11,10 @@
             <div class="grid gap-10 lg:grid-cols-2">
                 <div data-animate="fade-up">
                     <x-public.media-image
+                        :slot-key="'services.'.$service['slug']"
                         :src="$service['image']"
                         :alt="$service['alt']"
-                        fallback="stationery"
+                        fallback-key="stationery"
                         class="aspect-[4/3] w-full rounded-brand-xl object-cover"
                         width="800"
                         height="600"

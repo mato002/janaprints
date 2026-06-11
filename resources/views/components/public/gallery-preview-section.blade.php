@@ -3,7 +3,7 @@
     $projects = $galleryService->homepageItems(6);
 @endphp
 
-<section id="recent-work" class="public-gallery-preview public-section bg-white" data-reveal-section aria-label="Recent work gallery preview">
+<section id="recent-work" class="public-gallery-preview public-section bg-white" data-testid="homepage-gallery-preview" data-reveal-section aria-label="Recent work gallery preview">
     <div class="public-container public-container--wide">
         <div class="public-portfolio-header" data-animate="fade-up">
             <div class="public-portfolio-header__content">

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Storefront;
 
 use App\Http\Controllers\Controller;
+use App\Services\Website\WebsiteMediaResolver;
 use App\Support\Storefront\SeoMeta;
 use App\Support\Storefront\StorefrontCatalog;
 use App\Support\Storefront\StorefrontUrls;
@@ -138,7 +139,7 @@ class PageController extends Controller
         ];
 
         $seo = SeoMeta::forPage('gallery', [
-            'og_image' => asset('images/storefront/gallery/print-production.jpg'),
+            'og_image' => app(WebsiteMediaResolver::class)->resolvePath('gallery.og_image'),
         ], [
             StructuredDataBuilder::localBusiness(),
             StructuredDataBuilder::breadcrumbs($breadcrumbs),

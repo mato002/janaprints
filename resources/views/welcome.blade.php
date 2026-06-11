@@ -1,7 +1,7 @@
 <x-layouts.public :seo="$seo">
 
     {{-- Hero --}}
-    <section class="public-hero" data-reveal-section aria-label="Hero">
+    <section class="public-hero" data-testid="homepage-hero" data-reveal-section aria-label="Hero">
         <div class="public-hero__bg"></div>
 
         <div class="public-hero__glow-layer opacity-50" data-parallax="0.4">

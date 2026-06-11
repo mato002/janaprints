@@ -2,7 +2,7 @@
     $blocks = config('inside_jana.blocks');
 @endphp
 
-<section id="inside-jana" class="public-inside-jana" data-reveal-section aria-label="Inside Jana Prints">
+<section id="inside-jana" class="public-inside-jana" data-testid="homepage-inside-jana" data-reveal-section aria-label="Inside Jana Prints">
     <div class="public-inside-jana__header public-section bg-brand-navy relative overflow-hidden">
         <div class="absolute inset-0 opacity-25" data-parallax="0.15">
             <div class="absolute left-0 top-0 h-64 w-64 rounded-full bg-brand-cyan blur-[100px]"></div>

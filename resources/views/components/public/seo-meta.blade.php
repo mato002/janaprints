@@ -10,8 +10,8 @@
 ])
 
 @php
-    $site = config('site');
-    $seoDefaults = $site['seo'];
+    $site = $websiteSite ?? config('site');
+    $seoDefaults = $websiteSeo ?? ($site['seo'] ?? config('site.seo', []));
 
     if ($seo instanceof \App\Support\Storefront\SeoMeta) {
         $pageTitle = $seo->title;
@@ -29,9 +29,13 @@
         $pageDescription = $metaDescription ?? $seoDefaults['description'];
         $pageUrl = $canonical ?? url()->current();
         $pageRobots = $robots ?? 'index, follow';
+        $settingsOgPath = $seoDefaults['og_image'] ?? null;
+        $defaultOgPath = $settingsOgPath
+            ? (str_starts_with((string) $settingsOgPath, 'http') ? $settingsOgPath : url($settingsOgPath))
+            : url(app(\App\Services\Website\WebsiteMediaResolver::class)->resolvePath('seo.og_image'));
         $resolvedOgImage = $ogImage
             ? (str_starts_with((string) $ogImage, 'http') ? $ogImage : url($ogImage))
-            : url($seoDefaults['og_image']);
+            : $defaultOgPath;
         $resolvedOgType = $ogType ?? 'website';
         $twitterTitle = $pageTitle;
         $twitterDescription = $pageDescription;

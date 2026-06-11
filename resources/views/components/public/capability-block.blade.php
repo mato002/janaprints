@@ -18,9 +18,10 @@
             <div class="public-capability__visual capability-image-wrap" data-animate="{{ $reversed ? 'fade-left' : 'fade-right' }}">
                 <div class="public-capability__visual-frame">
                     <x-public.media-image
+                        :slot-key="'services.'.$capability['slug']"
                         :src="$capability['image']"
                         :alt="$capability['alt']"
-                        fallback="stationery"
+                        fallback-key="stationery"
                         class="public-capability__image aspect-[4/3] w-full object-cover"
                     />
                     <div class="capability-image-fade" aria-hidden="true"></div>

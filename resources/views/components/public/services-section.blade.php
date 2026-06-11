@@ -3,7 +3,7 @@
     $trustPoints = config('capabilities.trust_points');
 @endphp
 
-<section id="services" class="public-services" data-reveal-section aria-label="Services and capabilities">
+<section id="services" class="public-services" data-testid="homepage-capabilities" data-reveal-section aria-label="Services and capabilities">
     {{-- Section header --}}
     <div class="public-services__header public-section public-section--muted public-dot-pattern">
         <div class="public-container">

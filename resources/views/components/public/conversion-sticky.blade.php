@@ -1,7 +1,6 @@
 @php
-    $contact = config('conversion.contact');
-    $whatsapp = config('conversion.whatsapp');
-    $whatsappUrl = 'https://wa.me/' . $whatsapp['number'] . '?text=' . rawurlencode($whatsapp['message']);
+    $contact = $websiteContact ?? config('conversion.contact');
+    $whatsappUrl = $websiteWhatsappUrl ?? app(\App\Support\Website\PublicWebsiteContent::class)->whatsappUrl();
 @endphp
 
 {{-- Sticky conversion elements (site-wide) --}}

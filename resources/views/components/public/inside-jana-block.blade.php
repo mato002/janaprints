@@ -13,9 +13,10 @@
             <div class="public-inside-jana-block__visual" data-animate="{{ $reversed ? 'fade-left' : 'fade-right' }}">
                 <div class="public-inside-jana-block__frame">
                     <x-public.media-image
+                        :slot-key="'inside_jana.'.$block['slug']"
                         :src="$block['image']"
                         :alt="$block['alt']"
-                        fallback="production_floor"
+                        fallback-key="production_floor"
                         class="aspect-[4/3] w-full object-cover"
                     />
                     <div class="public-inside-jana-block__accent bg-gradient-to-br {{ $block['accent'] }}"></div>

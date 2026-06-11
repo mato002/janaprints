@@ -1,8 +1,16 @@
 @php
     $team = config('facility.team');
+    $teamSlots = [
+        'team.management',
+        'team.design',
+        'team.production',
+        'team.quality',
+        'team.support',
+        'team.dispatch',
+    ];
 @endphp
 
-<section id="team" class="public-team-showcase public-section bg-white relative overflow-hidden" data-reveal-section aria-label="The people behind every project">
+<section id="team" class="public-team-showcase public-section bg-white relative overflow-hidden" data-testid="homepage-team" data-reveal-section aria-label="The people behind every project">
     <div class="public-team-showcase__glow" aria-hidden="true"></div>
     <div class="public-team-showcase__accent-line" aria-hidden="true" data-team-accent-line></div>
 
@@ -29,9 +37,10 @@
                 >
                     <div class="public-team-card__photo">
                         <x-public.media-image
+                            :slot-key="$teamSlots[$index] ?? null"
                             :src="$member['photo']"
                             :alt="$member['alt']"
-                            fallback="team"
+                            fallback-key="team"
                             class="h-full w-full object-cover"
                             width="600"
                             height="450"

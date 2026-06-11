@@ -12,9 +12,10 @@
                 @foreach ($products as $product)
                     <article class="public-card public-card--soft overflow-hidden" data-animate="fade-up">
                         <x-public.media-image
+                            :slot-key="'products.'.$product['slug']"
                             :src="$product['image']"
                             :alt="$product['alt']"
-                            fallback="stationery"
+                            fallback-key="stationery"
                             class="aspect-[16/10] w-full object-cover"
                             width="640"
                             height="400"

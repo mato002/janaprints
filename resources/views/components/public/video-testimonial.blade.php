@@ -1,11 +1,12 @@
-@props(['video'])
+@props(['video', 'slotKey' => null, 'slot_key' => null])
 
 <article class="public-video-testimonial" data-animate="fade-up">
     <button type="button" class="public-video-testimonial__trigger" aria-label="Play video testimonial from {{ $video['role'] }} (coming soon)">
         <x-public.media-image
+            :slot-key="$slot_key ?? $slotKey"
             :src="$video['thumbnail']"
             :alt="$video['alt']"
-            fallback="corporate"
+            fallback-key="corporate"
             class="h-full w-full object-cover"
         />
         <span class="public-video-testimonial__overlay"></span>

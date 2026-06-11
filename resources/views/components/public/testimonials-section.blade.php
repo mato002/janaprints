@@ -3,9 +3,21 @@
     $videos = config('testimonials.videos');
     $stories = config('testimonials.success_stories');
     $trustCategories = config('testimonials.trust_categories');
+    $featuredSlots = [
+        'testimonial.featured.sarah',
+        'testimonial.featured.james',
+        'testimonial.featured.grace',
+        'testimonial.featured.david',
+    ];
+    $videoSlots = [
+        'testimonial.video.school',
+        'testimonial.video.ngo',
+        'testimonial.video.corporate',
+        'testimonial.video.retail',
+    ];
 @endphp
 
-<section id="testimonials" class="public-testimonials public-section bg-white" data-reveal-section aria-label="Testimonials">
+<section id="testimonials" class="public-testimonials public-section bg-white" data-testid="homepage-testimonials" data-reveal-section aria-label="Testimonials">
     <div class="public-container">
 
         {{-- Header --}}
@@ -27,6 +39,7 @@
             @foreach ($featured as $index => $item)
                 <x-public.featured-testimonial
                     :testimonial="$item"
+                    :slot-key="$featuredSlots[$index] ?? null"
                     data-animate="fade-up"
                     :data-animate-delay="min($index + 1, 4)"
                 />
@@ -39,8 +52,8 @@
                 Customer Stories
             </h3>
             <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                @foreach ($videos as $video)
-                    <x-public.video-testimonial :video="$video" />
+                @foreach ($videos as $index => $video)
+                    <x-public.video-testimonial :video="$video" :slot-key="$videoSlots[$index] ?? null" />
                 @endforeach
             </div>
         </div>

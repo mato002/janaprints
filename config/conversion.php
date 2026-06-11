@@ -29,6 +29,7 @@ return [
         ),
         'map_url' => 'https://www.google.com/maps/search/?api=1&query=Industrial+Area+Nairobi+Kenya',
         'map_placeholder' => 'Industrial Area, Nairobi, Kenya',
+        'map_enabled' => true,
     ],
 
     'inquiry_types' => [

@@ -39,10 +39,17 @@ class WebsiteGalleryController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $orderedIds = WebsiteGalleryItem::query()
+            ->orderBy('sort_order')
+            ->orderByDesc('created_at')
+            ->pluck('id')
+            ->all();
+
         return view('admin.website.gallery.index', [
             'items' => $items,
             'filters' => $request->only(['q', 'category', 'published']),
             'categories' => WebsiteGalleryCategory::options(),
+            'orderedIds' => $orderedIds,
         ]);
     }
 
@@ -119,6 +126,53 @@ class WebsiteGalleryController extends Controller
             ->with('status', __('Gallery item deleted.'));
     }
 
+    public function move(Request $request, WebsiteGalleryItem $websiteGalleryItem): RedirectResponse
+    {
+        $this->authorize('update', $websiteGalleryItem);
+
+        $direction = $request->validate([
+            'direction' => ['required', 'in:up,down'],
+        ])['direction'];
+
+        $neighborQuery = WebsiteGalleryItem::query();
+
+        if ($direction === 'up') {
+            $neighbor = $neighborQuery
+                ->where(function ($query) use ($websiteGalleryItem) {
+                    $query->where('sort_order', '<', $websiteGalleryItem->sort_order)
+                        ->orWhere(function ($inner) use ($websiteGalleryItem) {
+                            $inner->where('sort_order', $websiteGalleryItem->sort_order)
+                                ->where('created_at', '>', $websiteGalleryItem->created_at);
+                        });
+                })
+                ->orderByDesc('sort_order')
+                ->orderBy('created_at')
+                ->first();
+        } else {
+            $neighbor = $neighborQuery
+                ->where(function ($query) use ($websiteGalleryItem) {
+                    $query->where('sort_order', '>', $websiteGalleryItem->sort_order)
+                        ->orWhere(function ($inner) use ($websiteGalleryItem) {
+                            $inner->where('sort_order', $websiteGalleryItem->sort_order)
+                                ->where('created_at', '<', $websiteGalleryItem->created_at);
+                        });
+                })
+                ->orderBy('sort_order')
+                ->orderByDesc('created_at')
+                ->first();
+        }
+
+        if ($neighbor) {
+            $currentOrder = $websiteGalleryItem->sort_order;
+            $websiteGalleryItem->update(['sort_order' => $neighbor->sort_order, 'updated_by' => auth()->id()]);
+            $neighbor->update(['sort_order' => $currentOrder, 'updated_by' => auth()->id()]);
+        }
+
+        return redirect()
+            ->route('admin.website.gallery.index', $request->only(['q', 'category', 'published', 'page']))
+            ->with('status', __('Gallery order updated.'));
+    }
+
     public function reorder(Request $request): RedirectResponse
     {
         $this->authorize('update', WebsiteGalleryItem::class);
@@ -163,9 +217,24 @@ class WebsiteGalleryController extends Controller
         $data = $request->validate($rules);
 
         $data['is_featured'] = $request->boolean('is_featured');
-        $data['is_published'] = $request->boolean('is_published');
+        $data['is_published'] = $this->resolvePublishedState($request, $item);
         $data['sort_order'] = (int) ($data['sort_order'] ?? 0);
 
         return $data;
+    }
+
+    protected function resolvePublishedState(Request $request, ?WebsiteGalleryItem $item = null): bool
+    {
+        $user = $request->user();
+
+        if ($item && $user->can('publish', $item)) {
+            return $request->boolean('is_published');
+        }
+
+        if (! $item && $user->can('website.gallery.publish')) {
+            return $request->boolean('is_published');
+        }
+
+        return $item?->is_published ?? false;
     }
 }

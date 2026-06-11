@@ -477,6 +477,14 @@
         @apply border-erp-accent bg-erp-accent text-white;
     }
 
+    [data-settings-tab-trigger][data-settings-tab-active] {
+        @apply border-erp-primary bg-erp-primary text-white;
+    }
+
+    [data-settings-tab-trigger][data-settings-tab-active]:hover {
+        @apply border-erp-accent bg-erp-accent text-white;
+    }
+
     .erp-filter-pill-field {
         @apply max-w-[11rem];
     }

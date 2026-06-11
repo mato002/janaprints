@@ -12,9 +12,10 @@
                 @foreach ($capabilities as $capability)
                     <article class="public-card public-card--soft overflow-hidden" data-animate="fade-up">
                         <x-public.media-image
+                            :slot-key="'services.'.$capability['slug']"
                             :src="$capability['image']"
                             :alt="$capability['alt']"
-                            fallback="stationery"
+                            fallback-key="stationery"
                             class="aspect-[16/10] w-full object-cover"
                             width="640"
                             height="400"

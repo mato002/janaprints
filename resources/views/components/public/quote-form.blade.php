@@ -5,6 +5,7 @@
 <section
     id="quote-form"
     class="public-quote-section public-section public-dot-pattern"
+    data-testid="homepage-quote-form"
     data-reveal-section
     aria-label="Request a quote"
 >

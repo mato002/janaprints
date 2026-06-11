@@ -189,30 +189,57 @@ class WebsiteGalleryTest extends TestCase
         $response = $this->get(route('home'));
 
         $response->assertOk();
-        $response->assertSee('public-hero-proof', false);
-        $response->assertDontSee('Scroll to Explore', false);
-        $response->assertSee('Everything You Need To Print, Brand &amp; Grow', false);
-        $response->assertSee('Recent Work Delivered', false);
-        $response->assertSee('View Full Gallery', false);
-        $response->assertSee('How Jana Prints Delivers', false);
-        $response->assertSee('Inside Jana Prints', false);
-        $response->assertSee('Finishing, Packaging &amp; Dispatch', false);
-        $response->assertSee('The People Behind Every Project', false);
-        $response->assertSee('Design Team', false);
-        $response->assertSee('The Jana Prints Quality Promise', false);
+        $response->assertSee('data-testid="homepage-hero"', false);
+        $response->assertSee('data-testid="homepage-gallery-preview"', false);
         $response->assertSee('data-portfolio-item', false);
+        $response->assertSee('data-testid="homepage-quote-form"', false);
+        $response->assertSee('data-testid="homepage-contact"', false);
+        $response->assertSee('data-testid="homepage-location"', false);
         $response->assertDontSee('Production Capabilities', false);
         $response->assertDontSee('Trusted By Businesses Across Kenya', false);
         $response->assertDontSee('Why Businesses Choose Jana Prints', false);
 
         $content = $response->getContent();
-        preg_match_all('/<section id="(services|recent-work|workflow|inside-jana|team|testimonials|quote-form|contact|location)"/', $content, $sectionMatches);
+        preg_match_all('/data-testid="(homepage-[^"]+)"/', $content, $sectionMatches);
 
-        $this->assertSame(
-            ['services', 'recent-work', 'workflow', 'inside-jana', 'team', 'testimonials', 'quote-form', 'contact', 'location'],
-            $sectionMatches[1]
+        $expectedOrder = [
+            'homepage-hero',
+            'homepage-capabilities',
+            'homepage-gallery-preview',
+            'homepage-process',
+            'homepage-inside-jana',
+            'homepage-team',
+            'homepage-quality',
+            'homepage-testimonials',
+            'homepage-final-cta',
+            'homepage-quote-form',
+            'homepage-contact',
+            'homepage-location',
+            'homepage-footer',
+        ];
+
+        $this->assertSame($expectedOrder, $sectionMatches[1]);
+
+        $this->assertLessThan(
+            strpos($content, 'data-testid="homepage-gallery-preview"'),
+            strpos($content, 'data-testid="homepage-capabilities"'),
         );
-        $this->assertStringContainsString('The Jana Prints Quality Promise', $content);
+        $this->assertLessThan(
+            strpos($content, 'data-testid="homepage-inside-jana"'),
+            strpos($content, 'data-testid="homepage-gallery-preview"'),
+        );
+        $this->assertLessThan(
+            strpos($content, 'data-testid="homepage-testimonials"'),
+            strpos($content, 'data-testid="homepage-quality"'),
+        );
+        $this->assertLessThan(
+            strpos($content, 'data-testid="homepage-contact"'),
+            strpos($content, 'data-testid="homepage-testimonials"'),
+        );
+        $this->assertLessThan(
+            strpos($content, 'data-testid="homepage-footer"'),
+            strpos($content, 'data-testid="homepage-location"'),
+        );
     }
 
     public function test_homepage_uses_wide_layout_containers(): void

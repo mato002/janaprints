@@ -22,7 +22,7 @@ class SeoMeta
 
     public function ogImageUrl(): string
     {
-        $image = $this->ogImage ?? config('site.seo.og_image');
+        $image = $this->ogImage ?? app(\App\Services\Website\WebsiteMediaResolver::class)->resolvePath('seo.og_image');
 
         return str_starts_with((string) $image, 'http')
             ? (string) $image
@@ -41,7 +41,7 @@ class SeoMeta
 
     public function twitterImageUrl(): string
     {
-        $image = $this->twitterImage ?? $this->ogImage ?? config('site.seo.og_image');
+        $image = $this->twitterImage ?? $this->ogImage ?? app(\App\Services\Website\WebsiteMediaResolver::class)->resolvePath('seo.og_image');
 
         return str_starts_with((string) $image, 'http')
             ? (string) $image

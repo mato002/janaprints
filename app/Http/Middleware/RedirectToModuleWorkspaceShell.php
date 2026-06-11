@@ -30,7 +30,7 @@ class RedirectToModuleWorkspaceShell
 
         $routeName = $request->route()?->getName();
 
-        if (! $routeName || $this->isDetailRoute($routeName)) {
+        if (! $routeName || $this->isDetailRoute($routeName) || $this->isWorkspaceShellRoute($routeName)) {
             return $next($request);
         }
 
@@ -67,13 +67,26 @@ class RedirectToModuleWorkspaceShell
 
     protected function isDetailRoute(string $routeName): bool
     {
-        foreach (['.create', '.edit', '.show'] as $suffix) {
+        foreach (['.create', '.edit', '.show', '.footer-contact', '.seo-global'] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    protected function isWorkspaceShellRoute(string $routeName): bool
+    {
+        if (! str_starts_with($routeName, 'admin.workspaces.')) {
+            return false;
+        }
+
+        if (str_ends_with($routeName, '.section')) {
+            return true;
+        }
+
+        return (bool) preg_match('/^admin\.workspaces\.[a-z0-9-]+$/', $routeName);
     }
 
     /**

@@ -5,6 +5,8 @@
 
 @php
     $images = config('public-images');
+    $resolver = app(\App\Services\Website\WebsiteMediaResolver::class);
+    $defaultImage = $resolver->resolvePath('default');
     $cards = [
         ['type' => 'business-cards', 'key' => 'cards', 'label' => 'Business Cards', 'alt' => 'Premium business cards'],
         ['type' => 'brochures', 'key' => 'brochure', 'label' => 'Brochures', 'alt' => 'Professional brochures'],
@@ -33,13 +35,13 @@
         @foreach ($stripCards as $index => $card)
             <figure class="public-hero-strip__item">
                 <img
-                    src="{{ $images[$card['key']] ?? $images['default'] }}"
+                    src="{{ $resolver->resolvePath($card['key']) }}"
                     alt=""
                     loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                     decoding="async"
                     width="160"
                     height="120"
-                    onerror="if(!this.dataset.fallbackApplied){this.dataset.fallbackApplied='1';this.src='{{ $images['default'] }}';}"
+                    onerror="if(!this.dataset.fallbackApplied){this.dataset.fallbackApplied='1';this.src='{{ $defaultImage }}';}"
                 >
                 @if ($showLabel)
                     <figcaption>{{ $card['label'] }}</figcaption>
@@ -60,14 +62,14 @@
             data-image-type="{{ $card['type'] }}"
         >
             <img
-                src="{{ $images[$card['key']] ?? $images['default'] }}"
-                alt="{{ $card['alt'] }}"
+                src="{{ $resolver->resolvePath($card['key']) }}"
+                alt="{{ $resolver->resolveAlt($card['key']) ?: $card['alt'] }}"
                 loading="{{ $index === 0 ? 'eager' : 'lazy' }}"
                 decoding="async"
                 @if ($index === 0) fetchpriority="high" @endif
                 width="600"
                 height="450"
-                onerror="if(!this.dataset.fallbackApplied){this.dataset.fallbackApplied='1';this.src='{{ $images['default'] }}';}"
+                onerror="if(!this.dataset.fallbackApplied){this.dataset.fallbackApplied='1';this.src='{{ $defaultImage }}';}"
             >
             @if ($showLabel)
                 <figcaption class="public-hero-showcase__label">{{ $card['label'] }}</figcaption>

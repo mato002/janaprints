@@ -1,10 +1,9 @@
 @php
     $finalCta = config('conversion.final_cta');
-    $whatsapp = config('conversion.whatsapp');
-    $whatsappUrl = 'https://wa.me/' . $whatsapp['number'] . '?text=' . rawurlencode($whatsapp['message']);
+    $whatsappUrl = $websiteWhatsappUrl ?? app(\App\Support\Website\PublicWebsiteContent::class)->whatsappUrl();
 @endphp
 
-<section id="get-started" class="public-final-cta" data-reveal-section aria-label="Start your next print project">
+<section id="get-started" class="public-final-cta" data-testid="homepage-final-cta" data-reveal-section aria-label="Start your next print project">
     <div class="public-final-cta__bg" aria-hidden="true"></div>
     <div class="public-container public-section relative">
         <div class="public-final-cta__content" data-animate="fade-up">

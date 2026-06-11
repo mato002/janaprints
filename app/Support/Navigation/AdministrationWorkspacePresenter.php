@@ -2,14 +2,17 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Website\WebsiteContentWorkspacePresenter;
 use Illuminate\Support\Facades\Route;
 
 class AdministrationWorkspacePresenter
 {
     public function __construct(
         protected ?WorkspaceNavigationResolver $navigation = null,
+        protected ?WebsiteContentWorkspacePresenter $websiteContent = null,
     ) {
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
+        $this->websiteContent ??= app(WebsiteContentWorkspacePresenter::class);
     }
 
     /**
@@ -269,17 +272,34 @@ class AdministrationWorkspacePresenter
     {
         $comingSoon = (bool) ($item['coming_soon'] ?? false);
         $href = $comingSoon ? null : $this->resolveHref($item);
+        $stats = $this->websiteContentStatsForItem($item);
 
         return [
             'id' => md5(($item['label'] ?? '').($item['route'] ?? 'soon')),
+            'key' => $item['key'] ?? null,
             'label' => $item['label'] ?? '',
             'description' => $item['description'] ?? '',
             'icon' => $item['icon'] ?? 'home',
             'href' => $href,
             'comingSoon' => $comingSoon || $href === null,
-            'statusLabel' => $comingSoon || $href === null ? __('Coming Soon') : __('Active'),
-            'statusVariant' => $comingSoon || $href === null ? 'neutral' : 'success',
+            'statusLabel' => $stats['statusLabel'] ?? ($comingSoon || $href === null ? __('Coming Soon') : __('Active')),
+            'statusVariant' => $stats['statusVariant'] ?? ($comingSoon || $href === null ? 'neutral' : 'success'),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array{statusLabel?: string, statusVariant?: string}
+     */
+    protected function websiteContentStatsForItem(array $item): array
+    {
+        $key = $item['key'] ?? null;
+
+        if ($key === null) {
+            return [];
+        }
+
+        return $this->websiteContent->cardStats()[$key] ?? [];
     }
 
     /**

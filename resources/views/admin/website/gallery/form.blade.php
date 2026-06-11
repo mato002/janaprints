@@ -11,6 +11,8 @@
         ['label' => $isEdit ? __('Edit') : __('Create')],
     ]"
 >
+    @include('admin.website.partials.role-guidance', ['context' => 'gallery'])
+
     <x-admin.page-header
         :title="$isEdit ? __('Edit Gallery Item') : __('Add Gallery Item')"
         :description="__('Upload project imagery and details for the public storefront gallery.')"
@@ -87,14 +89,24 @@
             </div>
 
             <div class="flex flex-col gap-3">
-                <label class="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="is_featured" value="1" class="rounded border-slate-300" @checked(old('is_featured', $item->is_featured))>
-                    {{ __('Featured on homepage') }}
-                </label>
-                <label class="inline-flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="is_published" value="1" class="rounded border-slate-300" @checked(old('is_published', $item->is_published ?? true))>
-                    {{ __('Published on public site') }}
-                </label>
+                @can('update', $item)
+                    <label class="inline-flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="is_featured" value="1" class="rounded border-slate-300" @checked(old('is_featured', $item->is_featured))>
+                        {{ __('Featured on homepage') }}
+                    </label>
+                @endcan
+                @if (auth()->user()->can('website.gallery.publish'))
+                    <label class="inline-flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="is_published" value="1" class="rounded border-slate-300" @checked(old('is_published', $item->is_published ?? true))>
+                        {{ __('Published on public site') }}
+                    </label>
+                @else
+                    <input type="hidden" name="is_published" value="{{ old('is_published', $item->is_published ?? false) ? '1' : '0' }}">
+                    <p class="text-xs text-slate-500">
+                        {{ $item->is_published ? __('Published on public site') : __('Hidden from public site') }}
+                        — {{ __('Publish permission required to change visibility.') }}
+                    </p>
+                @endif
             </div>
 
             <div class="lg:col-span-2">

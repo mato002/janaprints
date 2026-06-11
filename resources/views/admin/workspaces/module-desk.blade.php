@@ -1,4 +1,8 @@
 <x-admin-layout :title="$shell['title']" :compact-workspace="true">
+    @if (! empty($showWebsiteCmsSupport))
+        @include('admin.website.partials.cms-support-panel')
+    @endif
+
     <x-admin.workspace-shell
         :title="$shell['title']"
         :description="$shell['description']"

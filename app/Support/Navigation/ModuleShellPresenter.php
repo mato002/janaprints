@@ -154,7 +154,8 @@ class ModuleShellPresenter
         $module = $this->moduleDefinitions()[$moduleKey];
         $catalog = $this->loadCatalog($module);
         $sectionRoute = $module['section_route'] ?? null;
-        $primaryHasSection = isset($catalog['sections'][$primary['key'] ?? '']);
+        $primaryHasSection = isset($catalog['sections'][$primary['key'] ?? ''])
+            || (($module['type'] ?? '') === 'grouped' && $this->groupedSectionExists($catalog, $primary['key'] ?? ''));
 
         if ($sectionRoute && Route::has($sectionRoute) && $primaryHasSection) {
             $url = route($sectionRoute, ['section' => $primary['key']]);
@@ -201,25 +202,107 @@ class ModuleShellPresenter
                 continue;
             }
 
-            foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
-                foreach ($section['groups'] ?? [] as $group) {
-                    foreach ($group['items'] ?? [] as $item) {
-                        if (! $this->featureRouteMatchesItem($routeName, $routeParams, $item)) {
-                            continue;
-                        }
+            $url = $this->deskUrlForFeatureRouteInCatalog($moduleKey, $module, $catalog, $routeName, $routeParams);
 
-                        return $this->buildDeskUrl(
-                            $moduleKey,
-                            $module,
-                            $sectionKey,
-                            $this->itemKey($item),
-                        );
+            if ($url !== null) {
+                return $url;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $module
+     * @param  array<string, mixed>  $catalog
+     * @param  array<string, mixed>  $routeParams
+     */
+    protected function deskUrlForFeatureRouteInCatalog(
+        string $moduleKey,
+        array $module,
+        array $catalog,
+        string $routeName,
+        array $routeParams,
+    ): ?string {
+        if (($module['type'] ?? '') === 'grouped') {
+            foreach ($catalog['groups'] ?? [] as $group) {
+                $sectionKey = $this->groupKey($group);
+
+                foreach ($group['items'] ?? [] as $item) {
+                    if ($this->shouldSkipCrossModuleWorkspaceItem($module, $item)) {
+                        continue;
                     }
+
+                    if (! $this->featureRouteMatchesItem($routeName, $routeParams, $item)) {
+                        continue;
+                    }
+
+                    return $this->buildDeskUrl(
+                        $moduleKey,
+                        $module,
+                        $sectionKey,
+                        $this->itemKey($item),
+                    );
+                }
+            }
+
+            return null;
+        }
+
+        foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
+            foreach ($section['groups'] ?? [] as $group) {
+                foreach ($group['items'] ?? [] as $item) {
+                    if ($this->shouldSkipCrossModuleWorkspaceItem($module, $item)) {
+                        continue;
+                    }
+
+                    if (! $this->featureRouteMatchesItem($routeName, $routeParams, $item)) {
+                        continue;
+                    }
+
+                    return $this->buildDeskUrl(
+                        $moduleKey,
+                        $module,
+                        $sectionKey,
+                        $this->itemKey($item),
+                    );
                 }
             }
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $module
+     * @param  array<string, mixed>  $item
+     */
+    protected function shouldSkipCrossModuleWorkspaceItem(array $module, array $item): bool
+    {
+        $itemRoute = $item['route'] ?? null;
+
+        if (! is_string($itemRoute) || ! str_starts_with($itemRoute, 'admin.workspaces.')) {
+            return false;
+        }
+
+        $hubRoute = $module['hub_route'] ?? null;
+        $sectionRoute = $module['section_route'] ?? null;
+
+        return $itemRoute !== $hubRoute && $itemRoute !== $sectionRoute;
+    }
+
+    /**
+     * @param  array<string, mixed>  $catalog
+     */
+    protected function groupedSectionExists(array $catalog, string $sectionKey): bool
+    {
+        foreach ($catalog['groups'] ?? [] as $group) {
+            if ($this->groupKey($group) === $sectionKey) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

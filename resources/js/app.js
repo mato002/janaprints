@@ -1500,6 +1500,434 @@ async function discoveryFetchResults(query, moduleKey = null, limit = 24) {
     return Array.isArray(payload.results) ? payload.results : [];
 }
 
+function ensureIndexFilterFormContext(form) {
+    if (! form) {
+        return;
+    }
+
+    const workspaceFrame = document.getElementById('module-workspace-content');
+    const inWorkspaceFrame = Boolean(form.closest('#module-workspace-content') && workspaceFrame);
+
+    if (! inWorkspaceFrame) {
+        return;
+    }
+
+    form.setAttribute('data-turbo-frame', 'module-workspace-content');
+
+    try {
+        const action = new URL(form.getAttribute('action'), window.location.origin);
+
+        if (! action.searchParams.has('embedded')) {
+            action.searchParams.set('embedded', '1');
+            form.setAttribute('action', `${action.pathname}${action.search}`);
+        }
+    } catch {
+        // Keep the original form action when it cannot be parsed.
+    }
+}
+
+const indexFilterFormControllers = new WeakMap();
+let indexFilterFormListenersBound = false;
+
+function createIndexFilterFormController(form) {
+    return {
+        form,
+        debounceTimer: null,
+
+        setFilterValue(name, value) {
+            const field = this.form.elements[name];
+
+            if (field) {
+                field.value = value ?? '';
+            }
+        },
+
+        resetFilterFormAction() {
+            try {
+                const action = new URL(this.form.getAttribute('action') ?? window.location.href, window.location.origin);
+                const embedded = action.searchParams.get('embedded') === '1';
+                action.search = embedded ? 'embedded=1' : '';
+
+                this.form.setAttribute('action', `${action.pathname}${action.search ? `?${action.search}` : ''}`);
+            } catch {
+                // Keep the original form action when it cannot be parsed.
+            }
+
+            ensureIndexFilterFormContext(this.form);
+        },
+
+        submitFilterForm() {
+            ensureIndexFilterFormContext(this.form);
+
+            const temporarilyDisabled = [];
+            this.form.querySelectorAll('input[type="hidden"][name]').forEach((field) => {
+                if (field.value === '') {
+                    field.disabled = true;
+                    temporarilyDisabled.push(field);
+                } else {
+                    field.disabled = false;
+                }
+            });
+
+            if (typeof this.form.requestSubmit === 'function') {
+                this.form.requestSubmit();
+            } else {
+                this.form.submit();
+            }
+
+            setTimeout(() => {
+                temporarilyDisabled.forEach((field) => {
+                    field.disabled = false;
+                });
+            }, 0);
+        },
+
+        resetFilters() {
+            this.form.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
+                field.disabled = false;
+
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    field.checked = false;
+
+                    return;
+                }
+
+                if (field.tagName === 'SELECT') {
+                    field.selectedIndex = 0;
+
+                    return;
+                }
+
+                field.value = '';
+            });
+
+            this.resetFilterFormAction();
+            this.submitFilterForm();
+        },
+
+        onFieldChange(event) {
+            const target = event.target;
+
+            if (! target?.name || target.hasAttribute('data-erp-auto-search')) {
+                return;
+            }
+
+            if (target.tagName === 'SELECT' || target.type === 'date' || target.type === 'number') {
+                this.submitFilterForm();
+            }
+        },
+    };
+}
+
+function getIndexFilterFormController(form) {
+    if (! (form instanceof HTMLFormElement)) {
+        return null;
+    }
+
+    if (! indexFilterFormControllers.has(form)) {
+        indexFilterFormControllers.set(form, createIndexFilterFormController(form));
+    }
+
+    return indexFilterFormControllers.get(form);
+}
+
+function bindIndexFilterForms(root = document) {
+    root.querySelectorAll('form.erp-index-toolbar-form').forEach((form) => {
+        ensureIndexFilterFormContext(form);
+        getIndexFilterFormController(form);
+    });
+}
+
+function bindIndexFilterFormListeners() {
+    if (indexFilterFormListenersBound) {
+        return;
+    }
+
+    indexFilterFormListenersBound = true;
+
+    document.addEventListener('click', (event) => {
+        const pill = event.target.closest('[data-erp-filter-pill]');
+
+        if (pill) {
+            const form = pill.closest('form.erp-index-toolbar-form');
+
+            if (! form) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+
+            const controller = getIndexFilterFormController(form);
+            controller.setFilterValue(
+                pill.dataset.erpFilterParam ?? '',
+                pill.dataset.erpFilterValue ?? '',
+            );
+            controller.submitFilterForm();
+
+            return;
+        }
+
+        const resetButton = event.target.closest('[data-erp-filter-reset]');
+
+        if (resetButton) {
+            const form = resetButton.closest('form.erp-index-toolbar-form');
+
+            if (! form) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            getIndexFilterFormController(form).resetFilters();
+        }
+    }, true);
+
+    document.addEventListener('change', (event) => {
+        const form = event.target?.closest?.('form.erp-index-toolbar-form');
+
+        if (! form) {
+            return;
+        }
+
+        getIndexFilterFormController(form).onFieldChange(event);
+    }, true);
+
+    document.addEventListener('input', (event) => {
+        if (! event.target?.hasAttribute?.('data-erp-auto-search')) {
+            return;
+        }
+
+        const form = event.target.closest('form.erp-index-toolbar-form');
+
+        if (! form) {
+            return;
+        }
+
+        const controller = getIndexFilterFormController(form);
+        clearTimeout(controller.debounceTimer);
+        controller.debounceTimer = setTimeout(() => controller.submitFilterForm(), 300);
+    }, true);
+}
+
+function ensureWebsiteSettingsFormContext(form) {
+    if (! form) {
+        return;
+    }
+
+    const inWorkspaceFrame = Boolean(form.closest('#module-workspace-content'));
+
+    if (! inWorkspaceFrame) {
+        return;
+    }
+
+    form.setAttribute('data-turbo-frame', 'module-workspace-content');
+}
+
+function nextJsonSettingsRowIndex(list) {
+    let maxIndex = -1;
+
+    list.querySelectorAll('[data-json-row] input[name]').forEach((input) => {
+        const match = input.name.match(/\[(\d+)\]/);
+
+        if (match) {
+            maxIndex = Math.max(maxIndex, Number.parseInt(match[1], 10));
+        }
+    });
+
+    return maxIndex + 1;
+}
+
+function appendJsonSettingsRow(editor) {
+    const field = editor.dataset.jsonField;
+    const list = editor.querySelector('[data-json-rows-list]');
+
+    if (! field || ! list) {
+        return;
+    }
+
+    editor.querySelector('[data-json-rows-empty]')?.remove();
+
+    const index = nextJsonSettingsRowIndex(list);
+    const row = document.createElement('div');
+    row.className = 'flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3';
+    row.dataset.jsonRow = '';
+    const isNav = field === 'footer_nav';
+
+    if (isNav) {
+        row.innerHTML = `
+            <input type="text" name="${field}[${index}][label]" class="erp-input min-w-[8rem] flex-1" placeholder="Link label" required>
+            <input type="text" name="${field}[${index}][href]" class="erp-input min-w-[12rem] flex-[2]" placeholder="URL or path" required>
+            <button type="button" class="erp-btn-secondary text-xs" data-json-row-remove>Remove</button>
+        `;
+    } else {
+        row.innerHTML = `
+            <input type="text" name="${field}[${index}]" class="erp-input flex-1" placeholder="Badge label" required>
+            <button type="button" class="erp-btn-secondary text-xs" data-json-row-remove>Remove</button>
+        `;
+    }
+
+    list.appendChild(row);
+}
+
+let websiteSettingsListenersBound = false;
+
+function bindWebsiteSettingsListeners() {
+    if (websiteSettingsListenersBound) {
+        return;
+    }
+
+    websiteSettingsListenersBound = true;
+
+    document.addEventListener('click', (event) => {
+        const tabTrigger = event.target.closest('[data-settings-tab-trigger]');
+
+        if (tabTrigger) {
+            const form = tabTrigger.closest('[data-settings-tabs]');
+
+            if (! form) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const tab = tabTrigger.getAttribute('data-settings-tab-trigger');
+
+            form.querySelectorAll('[data-settings-tab-trigger]').forEach((button) => {
+                button.removeAttribute('data-settings-tab-active');
+            });
+            tabTrigger.setAttribute('data-settings-tab-active', '');
+
+            form.querySelectorAll('[data-settings-tab-panel]').forEach((panel) => {
+                panel.hidden = panel.getAttribute('data-settings-tab-panel') !== tab;
+            });
+
+            return;
+        }
+
+        const addButton = event.target.closest('[data-json-row-add]');
+
+        if (addButton) {
+            const editor = addButton.closest('[data-json-rows-editor]');
+
+            if (! editor) {
+                return;
+            }
+
+            event.preventDefault();
+            appendJsonSettingsRow(editor);
+
+            return;
+        }
+
+        const removeButton = event.target.closest('[data-json-row-remove]');
+
+        if (removeButton) {
+            const row = removeButton.closest('[data-json-row]');
+            const editor = removeButton.closest('[data-json-rows-editor]');
+            const list = editor?.querySelector('[data-json-rows-list]');
+
+            if (! row || ! list) {
+                return;
+            }
+
+            event.preventDefault();
+            row.remove();
+
+            if (list.querySelectorAll('[data-json-row]').length === 0) {
+                const empty = document.createElement('p');
+                empty.className = 'text-xs text-slate-500';
+                empty.dataset.jsonRowsEmpty = '';
+                empty.textContent = list.dataset.emptyLabel || 'No rows yet. Add one below.';
+                list.appendChild(empty);
+            }
+
+            return;
+        }
+
+        const resetTrigger = event.target.closest('[data-website-settings-reset-trigger]');
+
+        if (resetTrigger) {
+            const resetUrl = resetTrigger.dataset.resetUrl;
+            const confirmMessage = resetTrigger.dataset.resetConfirm || 'Reset this setting to the config fallback?';
+
+            if (! resetUrl) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (! window.confirm(confirmMessage)) {
+                return;
+            }
+
+            const resetForm = document.createElement('form');
+            resetForm.method = 'POST';
+            resetForm.action = resetUrl;
+            resetForm.hidden = true;
+            resetForm.dataset.websiteSettingsReset = '';
+
+            const inWorkspace = Boolean(resetTrigger.closest('#module-workspace-content'));
+            resetForm.dataset.turboFrame = inWorkspace ? 'module-workspace-content' : 'erp-main';
+
+            if (inWorkspace) {
+                try {
+                    const url = new URL(resetUrl, window.location.origin);
+
+                    if (! url.searchParams.has('embedded')) {
+                        url.searchParams.set('embedded', '1');
+                        resetForm.action = `${url.pathname}${url.search}`;
+                    }
+                } catch {
+                    // Keep the original reset URL when it cannot be parsed.
+                }
+            }
+
+            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                ?? resetTrigger.closest('form')?.querySelector('input[name="_token"]')?.value;
+
+            if (csrf) {
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '_token';
+                tokenInput.value = csrf;
+                resetForm.appendChild(tokenInput);
+            }
+
+            document.body.appendChild(resetForm);
+            resetForm.requestSubmit();
+            resetForm.remove();
+        }
+    }, true);
+
+    document.addEventListener('input', (event) => {
+        if (! event.target?.hasAttribute?.('data-settings-search')) {
+            return;
+        }
+
+        const settingsSearch = event.target;
+        const scope = settingsSearch.closest('form') ?? settingsSearch.closest('.module-workspace-embedded') ?? document;
+        const needle = settingsSearch.value.trim().toLowerCase();
+
+        scope.querySelectorAll('[data-settings-field], [data-json-rows-editor]').forEach((field) => {
+            const label = field.dataset.settingsLabel || '';
+            const key = field.dataset.settingsKey || field.dataset.jsonField || '';
+            const haystack = `${label} ${key}`.toLowerCase();
+            field.style.display = needle === '' || haystack.includes(needle) ? '' : 'none';
+        });
+    }, true);
+}
+
+function bindWebsiteSettingsForms(root = document) {
+    root.querySelectorAll('[data-website-settings-form]').forEach((form) => {
+        ensureWebsiteSettingsFormContext(form);
+    });
+}
+
+bindWebsiteSettingsListeners();
+
+bindIndexFilterFormListeners();
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('erpLookupCreate', (config = {}) => ({
         name: config.name ?? '',
@@ -2610,6 +3038,28 @@ document.addEventListener('alpine:init', () => {
             }
 
             return this.matches(searchText);
+        },
+    }));
+
+    Alpine.data('erpIndexFilterForm', () => ({
+        init() {
+            bindIndexFilterForms(this.$el);
+        },
+
+        onFieldChange(event) {
+            getIndexFilterFormController(this.$el)?.onFieldChange(event);
+        },
+
+        resetFilters() {
+            getIndexFilterFormController(this.$el)?.resetFilters();
+        },
+
+        setFilterValue(name, value) {
+            getIndexFilterFormController(this.$el)?.setFilterValue(name, value);
+        },
+
+        submitFilterForm() {
+            getIndexFilterFormController(this.$el)?.submitFilterForm();
         },
     }));
 
@@ -4944,6 +5394,8 @@ function refreshFrameAlpine(frame) {
     promoteFlashAlertsToToast(frame);
     syncShellFromFrame();
     bindFormSettingsForms(frame);
+    bindIndexFilterForms(frame);
+    bindWebsiteSettingsForms(frame);
 }
 
 function workspaceTabSlug(value) {
@@ -5045,16 +5497,20 @@ function wireEmbeddedWorkspaceLinks(root) {
         if (! link.hasAttribute('data-turbo-frame')) {
             link.setAttribute('data-turbo-frame', 'module-workspace-content');
         } else if (turboFrame === 'erp-main') {
-            try {
-                const inboxUrl = new URL(link.href, window.location.origin);
+            if (link.closest('#module-workspace-content')) {
+                link.setAttribute('data-turbo-frame', 'module-workspace-content');
+            } else {
+                try {
+                    const inboxUrl = new URL(link.href, window.location.origin);
 
-                if (! inboxUrl.pathname.includes('/admin/communications/inbox')) {
+                    if (! inboxUrl.pathname.includes('/admin/communications/inbox')) {
+                        return;
+                    }
+
+                    link.setAttribute('data-turbo-frame', 'module-workspace-content');
+                } catch {
                     return;
                 }
-
-                link.setAttribute('data-turbo-frame', 'module-workspace-content');
-            } catch {
-                return;
             }
         } else if (! targetsWorkspaceContent) {
             return;
@@ -5080,16 +5536,20 @@ function wireEmbeddedWorkspaceLinks(root) {
         const turboFrame = form.getAttribute('data-turbo-frame');
 
         if (turboFrame === 'erp-main') {
-            try {
-                const inboxAction = new URL(form.getAttribute('action'), window.location.origin);
+            if (form.closest('#module-workspace-content')) {
+                form.setAttribute('data-turbo-frame', 'module-workspace-content');
+            } else {
+                try {
+                    const inboxAction = new URL(form.getAttribute('action'), window.location.origin);
 
-                if (! inboxAction.pathname.includes('/admin/communications/inbox')) {
+                    if (! inboxAction.pathname.includes('/admin/communications/inbox')) {
+                        return;
+                    }
+
+                    form.setAttribute('data-turbo-frame', 'module-workspace-content');
+                } catch {
                     return;
                 }
-
-                form.setAttribute('data-turbo-frame', 'module-workspace-content');
-            } catch {
-                return;
             }
         } else if (turboFrame && turboFrame !== 'module-workspace-content') {
             return;
@@ -5144,6 +5604,8 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     Alpine.initTree(frame);
     wireEmbeddedWorkspaceLinks(frame);
     bindFormSettingsForms(frame);
+    bindIndexFilterForms(frame);
+    bindWebsiteSettingsForms(frame);
 }
 
 document.addEventListener('turbo:before-cache', () => {
@@ -5311,8 +5773,12 @@ document.addEventListener('turbo:load', () => {
     if (workspaceFrame) {
         wireEmbeddedWorkspaceLinks(workspaceFrame);
         bindFormSettingsForms(workspaceFrame);
+        bindIndexFilterForms(workspaceFrame);
+        bindWebsiteSettingsForms(workspaceFrame);
     }
 
     bindFormSettingsForms(document.getElementById('erp-main'));
+    bindIndexFilterForms(document);
+    bindWebsiteSettingsForms(document);
     syncSecondaryWorkspaceTabActiveState();
 });

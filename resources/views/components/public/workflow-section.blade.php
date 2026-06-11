@@ -3,7 +3,7 @@
     $techniques = config('facility.capabilities');
 @endphp
 
-<section id="workflow" class="public-workflow public-section public-section--muted public-dot-pattern" data-reveal-section aria-label="How Jana Prints delivers">
+<section id="workflow" class="public-workflow public-section public-section--muted public-dot-pattern" data-testid="homepage-process" data-reveal-section aria-label="How Jana Prints delivers">
     <div class="public-container">
         <div class="mx-auto max-w-3xl text-center" data-animate="fade-up">
             <x-public.badge variant="navy" class="mb-5">Production Workflow</x-public.badge>

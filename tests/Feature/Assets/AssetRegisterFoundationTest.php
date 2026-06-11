@@ -31,6 +31,7 @@ class AssetRegisterFoundationTest extends TestCase
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
+            ->followingRedirects()
             ->get(route('admin.workspaces.assets'))
             ->assertOk()
             ->assertSee(__('Asset Register'), false)

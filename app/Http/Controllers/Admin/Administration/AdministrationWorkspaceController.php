@@ -27,6 +27,10 @@ class AdministrationWorkspaceController extends Controller
     {
         abort_unless($this->presenter->sectionExists($section), 404);
 
-        return $this->renderModuleDesk($request, 'administration', $section);
+        $extras = $section === 'website-content'
+            ? ['showWebsiteCmsSupport' => true]
+            : [];
+
+        return $this->renderModuleDesk($request, 'administration', $section, null, $extras);
     }
 }

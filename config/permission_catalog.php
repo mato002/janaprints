@@ -54,6 +54,22 @@ return [
                         'approve' => 'website.gallery.publish',
                     ],
                 ],
+                'website_media' => [
+                    'label' => 'Website Media Library',
+                    'permissions' => [
+                        'view' => 'website.media.view',
+                        'create' => 'website.media.create',
+                        'edit' => 'website.media.edit',
+                        'delete' => 'website.media.delete',
+                    ],
+                ],
+                'website_settings' => [
+                    'label' => 'Website Settings',
+                    'permissions' => [
+                        'view' => 'website.settings.view',
+                        'edit' => 'website.settings.edit',
+                    ],
+                ],
                 'system_health' => [
                     'label' => 'System Health',
                     'permissions' => [

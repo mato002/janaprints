@@ -10,9 +10,10 @@
         <div class="public-container">
             <div class="grid gap-10 lg:grid-cols-2">
                 <x-public.media-image
+                    :slot-key="'products.'.$product['slug']"
                     :src="$product['image']"
                     :alt="$product['alt']"
-                    fallback="stationery"
+                    fallback-key="stationery"
                     class="aspect-[4/3] w-full rounded-brand-xl object-cover"
                     width="800"
                     height="600"

@@ -20,7 +20,7 @@
             <x-public.media-image
                 :src="$project['image']"
                 :alt="$project['alt']"
-                fallback="cards"
+                fallback-key="cards"
                 class="public-masonry-item__image"
                 width="480"
                 sizes="(max-width: 480px) 45vw, (max-width: 640px) 33vw, (max-width: 1024px) 25vw, 20vw"

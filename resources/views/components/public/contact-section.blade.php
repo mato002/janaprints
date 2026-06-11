@@ -1,7 +1,7 @@
 @php
-    $contact = config('conversion.contact');
-    $whatsapp = config('conversion.whatsapp');
-    $whatsappUrl = 'https://wa.me/' . $whatsapp['number'] . '?text=' . rawurlencode($whatsapp['message']);
+    $contact = $websiteContact ?? config('conversion.contact');
+    $whatsapp = $websiteWhatsapp ?? config('conversion.whatsapp');
+    $whatsappUrl = $websiteWhatsappUrl ?? app(\App\Support\Website\PublicWebsiteContent::class)->whatsappUrl();
 
     $detailItems = [
         [
@@ -35,7 +35,7 @@
     ];
 @endphp
 
-<section id="contact" class="public-contact-section public-section bg-white" data-reveal-section aria-label="Contact Jana Prints">
+<section id="contact" class="public-contact-section public-section bg-white" data-testid="homepage-contact" data-reveal-section aria-label="Contact Jana Prints">
     <div class="public-container">
         <div class="public-contact-section__intro" data-animate="fade-up">
             <x-public.section-heading

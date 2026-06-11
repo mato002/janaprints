@@ -8,35 +8,61 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $assetColumns = function (Blueprint $table): void {
-            $table->boolean('capitalization_required')->default(false)->after('asset_category_id');
-            $table->unsignedSmallInteger('asset_useful_life')->nullable()->after('capitalization_required');
-            $table->string('asset_depreciation_method', 50)->nullable()->after('asset_useful_life');
+        $addAssetColumns = function (string $tableName, Blueprint $table): void {
+            if (! Schema::hasColumn($tableName, 'capitalization_required')) {
+                $table->boolean('capitalization_required')->default(false)->after('asset_category_id');
+            }
+            if (! Schema::hasColumn($tableName, 'asset_useful_life')) {
+                $table->unsignedSmallInteger('asset_useful_life')->nullable()->after('capitalization_required');
+            }
+            if (! Schema::hasColumn($tableName, 'asset_depreciation_method')) {
+                $table->string('asset_depreciation_method', 50)->nullable()->after('asset_useful_life');
+            }
         };
 
-        Schema::table('purchase_request_items', function (Blueprint $table) use ($assetColumns) {
-            $assetColumns($table);
-        });
+        if (Schema::hasTable('purchase_request_items')) {
+            Schema::table('purchase_request_items', function (Blueprint $table) use ($addAssetColumns) {
+                $addAssetColumns('purchase_request_items', $table);
+            });
+        }
 
-        Schema::table('rfq_items', function (Blueprint $table) use ($assetColumns) {
-            $table->string('item_classification', 30)->default('inventory_item')->after('inventory_item_id');
-            $table->foreignId('asset_category_id')->nullable()->after('item_classification')->constrained('asset_categories')->nullOnDelete();
-            $assetColumns($table);
-        });
+        if (Schema::hasTable('rfq_items')) {
+            Schema::table('rfq_items', function (Blueprint $table) use ($addAssetColumns) {
+                if (! Schema::hasColumn('rfq_items', 'item_classification')) {
+                    $table->string('item_classification', 30)->default('inventory_item')->after('inventory_item_id');
+                }
+                if (! Schema::hasColumn('rfq_items', 'asset_category_id')) {
+                    $table->foreignId('asset_category_id')->nullable()->after('item_classification')->constrained('asset_categories')->nullOnDelete();
+                }
+                $addAssetColumns('rfq_items', $table);
+            });
+        }
 
-        Schema::table('purchase_order_items', function (Blueprint $table) use ($assetColumns) {
-            $assetColumns($table);
-        });
+        if (Schema::hasTable('purchase_order_items')) {
+            Schema::table('purchase_order_items', function (Blueprint $table) use ($addAssetColumns) {
+                $addAssetColumns('purchase_order_items', $table);
+            });
+        }
 
-        Schema::table('goods_receipt_items', function (Blueprint $table) use ($assetColumns) {
-            $assetColumns($table);
-        });
+        if (Schema::hasTable('goods_receipt_items')) {
+            Schema::table('goods_receipt_items', function (Blueprint $table) use ($addAssetColumns) {
+                $addAssetColumns('goods_receipt_items', $table);
+            });
+        }
 
-        Schema::table('asset_capitalization_candidates', function (Blueprint $table) {
-            $table->boolean('capitalization_required')->default(true)->after('asset_category_id');
-            $table->unsignedSmallInteger('asset_useful_life')->nullable()->after('capitalization_required');
-            $table->string('asset_depreciation_method', 50)->nullable()->after('asset_useful_life');
-        });
+        if (Schema::hasTable('asset_capitalization_candidates')) {
+            Schema::table('asset_capitalization_candidates', function (Blueprint $table) {
+                if (! Schema::hasColumn('asset_capitalization_candidates', 'capitalization_required')) {
+                    $table->boolean('capitalization_required')->default(true)->after('asset_category_id');
+                }
+                if (! Schema::hasColumn('asset_capitalization_candidates', 'asset_useful_life')) {
+                    $table->unsignedSmallInteger('asset_useful_life')->nullable()->after('capitalization_required');
+                }
+                if (! Schema::hasColumn('asset_capitalization_candidates', 'asset_depreciation_method')) {
+                    $table->string('asset_depreciation_method', 50)->nullable()->after('asset_useful_life');
+                }
+            });
+        }
     }
 
     public function down(): void

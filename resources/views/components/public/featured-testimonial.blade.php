@@ -1,11 +1,12 @@
-@props(['testimonial'])
+@props(['testimonial', 'slotKey' => null, 'slot_key' => null])
 
 <article {{ $attributes->merge(['class' => 'public-testimonial-card']) }}>
     <div class="public-testimonial-card__thumb">
         <x-public.media-image
+            :slot-key="$slot_key ?? $slotKey"
             :src="$testimonial['photo']"
             :alt="$testimonial['alt']"
-            fallback="cards"
+            fallback-key="cards"
             width="120"
             height="80"
             class="h-full w-full object-cover"

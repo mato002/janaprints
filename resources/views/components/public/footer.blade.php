@@ -1,12 +1,11 @@
 @php
-    $site = config('site');
-    $contact = config('conversion.contact');
-    $footer = config('site.footer');
-    $whatsapp = config('conversion.whatsapp');
-    $whatsappUrl = 'https://wa.me/' . $whatsapp['number'] . '?text=' . rawurlencode($whatsapp['message']);
+    $site = $websiteSite ?? config('site');
+    $contact = $websiteContact ?? config('conversion.contact');
+    $footer = $websiteFooter ?? config('site.footer');
+    $whatsappUrl = $websiteWhatsappUrl ?? app(\App\Support\Website\PublicWebsiteContent::class)->whatsappUrl();
 @endphp
 
-<footer class="public-footer" itemscope itemtype="https://schema.org/Organization">
+<footer class="public-footer" data-testid="homepage-footer" itemscope itemtype="https://schema.org/Organization">
     <meta itemprop="name" content="{{ $site['name'] }}">
     <meta itemprop="url" content="{{ $site['url'] }}">
 
@@ -98,8 +97,8 @@
         <div class="public-divider mt-12 opacity-20"></div>
 
         <div class="public-footer__bottom mt-8 flex flex-col items-center justify-between gap-4 text-xs sm:flex-row">
-            <p>&copy; {{ date('Y') }} {{ $site['name'] }}. All rights reserved.</p>
-            <p class="text-white/40">{{ $site['tagline'] }} — Nairobi, Kenya</p>
+            <p>{{ $websiteFooterCopyright ?? ('© '.date('Y').' '.$site['name'].'. All rights reserved.') }}</p>
+            <p class="text-white/40">{{ $site['tagline'] }}@if (! empty($footer['location_suffix'])) — {{ $footer['location_suffix'] }}@endif</p>
         </div>
     </div>
 </footer>

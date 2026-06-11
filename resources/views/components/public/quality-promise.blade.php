@@ -1,8 +1,16 @@
 @php
     $promise = config('facility.quality_promise');
+    $qualitySlots = [
+        'quality.artwork',
+        'quality.prepress',
+        'quality.color',
+        'quality.finishing',
+        'quality.packaging',
+        'quality.delivery',
+    ];
 @endphp
 
-<div class="public-quality-promise public-section public-section--muted public-dot-pattern" data-quality-promise>
+<div class="public-quality-promise public-section public-section--muted public-dot-pattern" data-testid="homepage-quality" data-quality-promise>
     <div class="public-container">
         <div class="mx-auto max-w-3xl text-center" data-animate="fade-up">
             <x-public.badge variant="magenta" class="mb-5">Quality Promise</x-public.badge>
@@ -39,9 +47,10 @@
                     <div class="public-quality-spine__card">
                         <div class="public-quality-spine__thumb">
                             <x-public.media-image
+                                :slot-key="$qualitySlots[$index] ?? null"
                                 :src="$step['image']"
                                 :alt="$step['alt']"
-                                fallback="quality"
+                                fallback-key="quality"
                                 class="h-full w-full object-cover"
                                 width="120"
                                 height="120"

@@ -154,6 +154,7 @@ use App\Support\Platform\NumberingSequenceManager;
 use App\Support\Platform\NumberingService;
 use App\Support\Branding\BrandingAssets;
 use App\View\Composers\BrandingViewComposer;
+use App\View\Composers\PublicWebsiteContentComposer;
 use App\Support\Dashboard\ExecutiveDashboardPresenter;
 use App\Support\Platform\PlatformCacheService;
 use App\Support\Platform\SettingsRegistry;
@@ -294,12 +295,20 @@ class AppServiceProvider extends ServiceProvider
             \App\Models\PublicQuoteRequest::class => \App\Policies\PublicQuoteRequestPolicy::class,
         \App\Models\PublicContactMessage::class => \App\Policies\PublicContactMessagePolicy::class,
         \App\Models\WebsiteGalleryItem::class => \App\Policies\WebsiteGalleryItemPolicy::class,
+        \App\Models\WebsiteMediaItem::class => \App\Policies\WebsiteMediaItemPolicy::class,
+        \App\Models\WebsiteSetting::class => \App\Policies\WebsiteSettingPolicy::class,
     ];
     }
 
     public function register(): void
     {
         $this->app->singleton(BrandingAssets::class);
+        $this->app->singleton(\App\Support\Website\WebsiteMediaRegistry::class);
+        $this->app->singleton(\App\Services\Website\WebsiteMediaResolver::class);
+        $this->app->singleton(\App\Services\Website\WebsiteSettingsService::class);
+        $this->app->singleton(\App\Support\Website\PublicWebsiteContent::class);
+        $this->app->singleton(\App\Support\Website\WebsiteContentBaselineBuilder::class);
+        $this->app->singleton(\App\Services\Website\WebsiteContentBaselineService::class);
         $this->app->singleton(NumberGenerator::class);
         $this->app->singleton(NumberingSequenceManager::class);
         $this->app->singleton(NumberingService::class);
@@ -413,6 +422,18 @@ class AppServiceProvider extends ServiceProvider
         });
 
         View::composer('*', BrandingViewComposer::class);
+
+        View::composer([
+            'components.layouts.public',
+            'components.public.footer',
+            'components.public.contact-section',
+            'components.public.contact-map',
+            'components.public.contact-map-section',
+            'components.public.seo-meta',
+            'components.public.conversion-sticky',
+            'components.public.conversion-exit-intent',
+            'components.public.final-cta-section',
+        ], PublicWebsiteContentComposer::class);
 
         View::composer(['layouts.admin', 'layouts.admin.partials.sidebar', 'layouts.admin.partials.topbar'], function ($view) {
             $assets = app(BrandingAssets::class);

@@ -6,6 +6,8 @@
         ['label' => __('Gallery')],
     ]"
 >
+    @include('admin.website.partials.role-guidance', ['context' => 'gallery'])
+
     <x-admin.page-header
         :title="__('Website Gallery')"
         :description="__('Manage published portfolio items shown on the public storefront.')"
@@ -46,7 +48,7 @@
             <table class="erp-table w-full text-sm">
                 <thead>
                     <tr>
-                        <th class="w-14">{{ __('Order') }}</th>
+                        <th class="w-14" title="{{ __('Lower numbers appear first. Edit an item to change sort order.') }}">{{ __('Order') }}</th>
                         <th class="w-24">{{ __('Preview') }}</th>
                         <th>{{ __('Title') }}</th>
                         <th>{{ __('Category') }}</th>
@@ -57,8 +59,43 @@
                 </thead>
                 <tbody>
                     @forelse ($items as $item)
+                        @php
+                            $position = array_search($item->id, $orderedIds, true);
+                            $canMoveUp = $position !== false && $position > 0;
+                            $canMoveDown = $position !== false && $position < count($orderedIds) - 1;
+                        @endphp
                         <tr class="align-middle">
-                            <td class="whitespace-nowrap tabular-nums text-slate-500">{{ $item->sort_order }}</td>
+                            <td class="whitespace-nowrap tabular-nums text-slate-500">
+                                <div>{{ $item->sort_order }}</div>
+                                @can('update', $item)
+                                    <div class="mt-1 flex gap-1">
+                                        @if ($canMoveUp)
+                                            <form method="POST" action="{{ route('admin.website.gallery.move', $item) }}">
+                                                @csrf
+                                                <input type="hidden" name="direction" value="up">
+                                                @foreach ($filters as $filterKey => $filterValue)
+                                                    @if ($filterValue !== null && $filterValue !== '')
+                                                        <input type="hidden" name="{{ $filterKey }}" value="{{ $filterValue }}">
+                                                    @endif
+                                                @endforeach
+                                                <button type="submit" class="text-[10px] text-slate-500 hover:text-slate-800" title="{{ __('Move up') }}">↑</button>
+                                            </form>
+                                        @endif
+                                        @if ($canMoveDown)
+                                            <form method="POST" action="{{ route('admin.website.gallery.move', $item) }}">
+                                                @csrf
+                                                <input type="hidden" name="direction" value="down">
+                                                @foreach ($filters as $filterKey => $filterValue)
+                                                    @if ($filterValue !== null && $filterValue !== '')
+                                                        <input type="hidden" name="{{ $filterKey }}" value="{{ $filterValue }}">
+                                                    @endif
+                                                @endforeach
+                                                <button type="submit" class="text-[10px] text-slate-500 hover:text-slate-800" title="{{ __('Move down') }}">↓</button>
+                                            </form>
+                                        @endif
+                                    </div>
+                                @endcan
+                            </td>
                             <td>
                                 <a
                                     href="{{ route('admin.website.gallery.edit', $item) }}"

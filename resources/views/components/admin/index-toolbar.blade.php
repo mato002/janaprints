@@ -13,8 +13,6 @@
 <form
     method="{{ $method }}"
     action="{{ $action }}"
-    x-data="erpIndexFilterForm()"
-    @change="onFieldChange($event)"
     {{ $attributes->merge(['class' => 'erp-index-toolbar-form']) }}
     @if ($turboFrame) data-turbo-frame="{{ $turboFrame }}" @endif
 >
@@ -36,12 +34,12 @@
 
                 {{ $slot }}
 
-                @if ($showReset && filled($resetUrl))
-                    <a
-                        href="{{ $resetUrl }}"
+                @if ($showReset)
+                    <button
+                        type="button"
+                        data-erp-filter-reset
                         class="erp-btn-ghost shrink-0 py-1 text-xs text-slate-500"
-                        @if ($turboFrame) data-turbo-frame="{{ $turboFrame }}" @endif
-                    >{{ __('Reset') }}</a>
+                    >{{ __('Reset') }}</button>
                 @endif
             </div>
 
