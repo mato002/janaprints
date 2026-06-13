@@ -106,4 +106,15 @@ class CustomerLedgerService
             'total_credits' => round($totalCredits, 2),
         ];
     }
+
+    public function closingBalance(int $customerId, ?string $asOfDate = null): float
+    {
+        $filters = ['customer_id' => $customerId];
+
+        if ($asOfDate !== null) {
+            $filters['to_date'] = $asOfDate;
+        }
+
+        return $this->build($filters)['closing_balance'];
+    }
 }

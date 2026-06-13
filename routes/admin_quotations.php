@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Sales\QuotationAttachmentController;
 use App\Http\Controllers\Admin\Sales\QuotationController;
 use App\Http\Controllers\Admin\Sales\QuotationDashboardController;
+use App\Http\Controllers\Admin\Sales\QuotationDocumentController;
 use App\Http\Controllers\Admin\Sales\QuotationNoteController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +26,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:quotations.view')->group(function () {
             Route::get('list/{quotation}', [QuotationController::class, 'show'])->name('show');
+            Route::get('list/{quotation}/document', [QuotationDocumentController::class, 'show'])->name('document');
+            Route::get('list/{quotation}/document/pdf', [QuotationDocumentController::class, 'pdf'])->name('document.pdf');
         });
 
         Route::middleware('permission:quotations.edit')->group(function () {

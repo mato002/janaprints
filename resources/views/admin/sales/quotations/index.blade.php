@@ -33,7 +33,9 @@
                     $chip = strtolower($quotation->status->value);
                 @endphp
                 <tr x-show="rowVisible(@js($search), @js($chip))">
-                    <td class="font-medium">{{ $quotation->quotation_number }}</td>
+                    <td class="font-medium">
+                        <a href="{{ route('admin.quotations.show', $quotation) }}" class="text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ $quotation->quotation_number }}</a>
+                    </td>
                     <td>{{ $quotation->customer?->company_name ?? '—' }}</td>
                     <td class="hidden md:table-cell">{{ $quotation->quotation_date->format('Y-m-d') }}</td>
                     <td class="tabular-nums">{{ $quotation->currency }} {{ number_format($quotation->total_amount, 2) }}</td>

@@ -3,14 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Sales\CustomerPayment;
-use App\Support\Sales\CustomerPaymentReceiptService;
+use App\Support\Documents\ReceiptDocumentService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class CustomerPaymentReceiptPublicController extends Controller
 {
     public function __construct(
-        protected CustomerPaymentReceiptService $receipts,
+        protected ReceiptDocumentService $documents,
     ) {}
 
     public function show(Request $request, CustomerPayment $payment): View
@@ -19,9 +19,8 @@ class CustomerPaymentReceiptPublicController extends Controller
             abort(403);
         }
 
-        $payment->load(['customer', 'allocations.invoice', 'branch', 'company']);
-        $receipt = $this->receipts->build($payment);
+        $document = $this->documents->build($payment, includeInternalMeta: false);
 
-        return view('public.payment-receipt', compact('payment', 'receipt'));
+        return view('documents.receipt.public', compact('document'));
     }
 }

@@ -53,4 +53,30 @@ class CustomerPaymentPolicy
             && $this->sameTenant($user, $payment)
             && $payment->status === CustomerPaymentStatus::Draft;
     }
+
+    public function viewReceipt(User $user, CustomerPayment $payment): bool
+    {
+        return $user->can('payments.receipt.view')
+            && $this->sameTenant($user, $payment)
+            && $payment->status === CustomerPaymentStatus::Posted;
+    }
+
+    public function downloadReceiptPdf(User $user, CustomerPayment $payment): bool
+    {
+        return $this->viewReceipt($user, $payment);
+    }
+
+    public function emailReceipt(User $user, CustomerPayment $payment): bool
+    {
+        return $user->can('payments.receipt.email')
+            && $this->sameTenant($user, $payment)
+            && $payment->status === CustomerPaymentStatus::Posted;
+    }
+
+    public function smsReceipt(User $user, CustomerPayment $payment): bool
+    {
+        return $user->can('payments.receipt.sms')
+            && $this->sameTenant($user, $payment)
+            && $payment->status === CustomerPaymentStatus::Posted;
+    }
 }

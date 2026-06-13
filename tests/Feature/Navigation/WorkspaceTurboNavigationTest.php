@@ -2,8 +2,14 @@
 
 namespace Tests\Feature\Navigation;
 
+use App\Enums\CustomerInvoiceStatus;
+use App\Enums\CustomerStatus;
+use App\Enums\QuotationStatus;
 use App\Models\Branch;
 use App\Models\Company;
+use App\Models\Crm\Customer;
+use App\Models\Sales\CustomerInvoice;
+use App\Models\Sales\Quotation;
 use App\Models\User;
 use App\Support\Discovery\FeatureRegistry;
 use Database\Seeders\OrganizationFoundationSeeder;
@@ -178,6 +184,80 @@ class WorkspaceTurboNavigationTest extends TestCase
             '/module-workspace-switcher--primary[^>]*>.*?data-turbo-frame="erp-main"/s',
             $html,
         );
+    }
+
+    public function test_invoice_show_renders_full_shell_when_requested_via_workspace_frame(): void
+    {
+        $user = $this->companyAdmin();
+        $invoice = $this->makeInvoice($user);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.invoices.show', $invoice))
+            ->assertOk()
+            ->assertSee('id="erp-sidebar"', false)
+            ->assertDontSee('id="module-workspace-content"', false);
+    }
+
+    public function test_quotation_show_renders_full_shell_when_requested_via_workspace_frame(): void
+    {
+        $user = $this->companyAdmin();
+        $quotation = $this->makeQuotation($user);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.quotations.show', $quotation))
+            ->assertOk()
+            ->assertSee('id="erp-sidebar"', false)
+            ->assertDontSee('id="module-workspace-content"', false);
+    }
+
+    protected function makeInvoice(User $user): CustomerInvoice
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => CustomerStatus::Active,
+        ]);
+
+        return CustomerInvoice::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'invoice_number' => 'INV-NAV-'.fake()->unique()->numerify('####'),
+            'invoice_date' => now()->toDateString(),
+            'due_date' => now()->addDays(14)->toDateString(),
+            'currency' => 'KES',
+            'status' => CustomerInvoiceStatus::Posted,
+            'subtotal' => 1000,
+            'tax_amount' => 160,
+            'discount_amount' => 0,
+            'total_amount' => 1160,
+            'amount_paid' => 0,
+            'balance_due' => 1160,
+            'created_by' => $user->id,
+        ]);
+    }
+
+    protected function makeQuotation(User $user): Quotation
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => CustomerStatus::Active,
+        ]);
+
+        return Quotation::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'status' => QuotationStatus::Draft,
+            'prepared_by' => $user->id,
+        ]);
     }
 
     protected function companyAdmin(): User

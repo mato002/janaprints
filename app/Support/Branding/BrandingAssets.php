@@ -115,6 +115,21 @@ class BrandingAssets
         return $this->logoDataUriCache = null;
     }
 
+    public function documentsLogoDataUri(): ?string
+    {
+        $documentsLogo = config('documents.logo_path', '/images/jp-documents-logo.png');
+
+        if (is_string($documentsLogo) && $documentsLogo !== '') {
+            $publicPath = public_path(ltrim($documentsLogo, '/'));
+
+            if (is_file($publicPath)) {
+                return $this->filePathToDataUri($publicPath);
+            }
+        }
+
+        return $this->logoDataUri();
+    }
+
     protected function storagePathToDataUri(string $path): string
     {
         $contents = Storage::disk(self::DISK)->get($path);

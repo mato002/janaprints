@@ -1,10 +1,16 @@
 <x-admin-layout :title="$quotation->quotation_number" :breadcrumbs="[['label' => __('Quotations'), 'url' => route('admin.quotations.index')], ['label' => $quotation->quotation_number]]">
     <x-admin.page-header :title="$quotation->quotation_number" :description="$quotation->customer?->company_name">
-        <span class="erp-badge">{{ str_replace('_', ' ', $quotation->status->value) }}</span>
-        <span class="text-sm text-slate-500">Rev {{ $quotation->revision_number }}</span>
-        @can('update', $quotation)
-            <a href="{{ route('admin.quotations.edit', $quotation) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
-        @endcan
+        <x-slot:actions>
+            <span class="erp-badge">{{ str_replace('_', ' ', $quotation->status->value) }}</span>
+            <span class="text-sm text-slate-500">Rev {{ $quotation->revision_number }}</span>
+            @can('view', $quotation)
+                <a href="{{ route('admin.quotations.document', $quotation) }}" class="erp-btn-secondary">{{ __('View document') }}</a>
+                <a href="{{ route('admin.quotations.document.pdf', $quotation) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Download PDF') }}</a>
+            @endcan
+            @can('update', $quotation)
+                <a href="{{ route('admin.quotations.edit', $quotation) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
+            @endcan
+        </x-slot:actions>
     </x-admin.page-header>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">

@@ -50,6 +50,7 @@ class CustomerInvoiceController extends Controller
             'creator',
             'approver',
             'poster',
+            'paymentAllocations.payment',
         ]);
 
         return view('admin.sales.invoices.show', compact('invoice'));

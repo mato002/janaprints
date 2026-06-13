@@ -19,6 +19,9 @@
             @can('cancel', $payment)
                 <form method="POST" action="{{ route('admin.payments.cancel', $payment) }}">@csrf<button class="erp-btn-secondary text-red-600">{{ __('Cancel') }}</button></form>
             @endcan
+            @can('viewReceipt', $payment)
+                <a href="{{ route('admin.payments.receipt', $payment) }}" class="erp-btn-secondary">{{ __('View receipt') }}</a>
+            @endcan
         </div>
     </x-admin.card>
 

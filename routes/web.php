@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BrandingAssetController;
+use App\Http\Controllers\CustomerPaymentReceiptPublicController;
 use App\Http\Controllers\MySessionsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RfqVendorPortalController;
@@ -40,6 +41,10 @@ Route::post('/quote-request', [PublicQuoteRequestController::class, 'store'])
 Route::post('/contact-message', [PublicContactMessageController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('public.contact-messages.store');
+
+Route::get('/payment-receipt/{payment}', [CustomerPaymentReceiptPublicController::class, 'show'])
+    ->middleware('signed')
+    ->name('public.payment-receipt.show');
 
 Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
     Route::get('{token}', [RfqVendorPortalController::class, 'show'])->name('show');

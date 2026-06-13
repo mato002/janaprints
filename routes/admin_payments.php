@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Sales\CustomerPaymentController;
+use App\Http\Controllers\Admin\Sales\CustomerPaymentReceiptController;
 use App\Http\Controllers\Admin\Sales\CustomerReceivablesController;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,19 @@ Route::middleware(['auth', 'verified', 'tenant'])
             ->group(function () {
                 Route::middleware('permission:payments.view')->group(function () {
                     Route::get('/', [CustomerPaymentController::class, 'index'])->name('index');
+                });
+
+                Route::middleware('permission:payments.receipt.view')->group(function () {
+                    Route::get('{payment}/receipt', [CustomerPaymentReceiptController::class, 'show'])->name('receipt');
+                    Route::get('{payment}/receipt/pdf', [CustomerPaymentReceiptController::class, 'pdf'])->name('receipt.pdf');
+                });
+
+                Route::middleware('permission:payments.receipt.email')->group(function () {
+                    Route::post('{payment}/receipt/email', [CustomerPaymentReceiptController::class, 'email'])->name('receipt.email');
+                });
+
+                Route::middleware('permission:payments.receipt.sms')->group(function () {
+                    Route::post('{payment}/receipt/sms', [CustomerPaymentReceiptController::class, 'sms'])->name('receipt.sms');
                 });
 
                 Route::middleware('permission:payments.create')->group(function () {

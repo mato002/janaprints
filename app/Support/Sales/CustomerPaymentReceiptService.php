@@ -16,7 +16,7 @@ use App\Models\Sales\CustomerPayment;
 use App\Support\Communications\CommunicationLogService;
 use App\Support\Communications\Sms\SmsCreditService;
 use App\Support\Communications\Sms\SmsProviderGateway;
-use App\Support\Export\PdfExportService;
+use App\Support\Documents\ReceiptDocumentService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -27,7 +27,6 @@ class CustomerPaymentReceiptService
 {
     public function __construct(
         protected CustomerLedgerService $ledger,
-        protected PdfExportService $pdfExports,
     ) {}
 
     public function assignReceiptNumber(CustomerPayment $payment): CustomerPayment
@@ -50,7 +49,7 @@ class CustomerPaymentReceiptService
     {
         $this->assertReceiptable($payment);
 
-        $payment->loadMissing(['customer', 'allocations.invoice', 'branch', 'company']);
+        $payment->loadMissing(['customer', 'allocations.invoice', 'branch', 'company', 'poster']);
 
         if (! $payment->receipt_number) {
             $payment = $this->assignReceiptNumber($payment);
@@ -62,22 +61,30 @@ class CustomerPaymentReceiptService
             'balance_remaining' => round((float) $allocation->invoice->balance_due, 2),
         ])->values()->all();
 
-        $customerBalanceRemaining = $this->customerBalanceRemaining($payment);
+        $balanceRemaining = $this->customerBalanceRemaining($payment);
+        $amountPaid = round((float) $payment->amount, 2);
+        $balanceBefore = round($balanceRemaining + $amountPaid, 2);
+
+        $customer = $payment->customer;
 
         return [
             'receipt_number' => $payment->receipt_number,
             'payment_number' => $payment->payment_number,
             'payment_date' => $payment->payment_date->toDateString(),
-            'customer_name' => $payment->customer?->company_name ?? __('Unknown'),
-            'customer_code' => $payment->customer?->customer_code,
+            'customer_name' => $customer?->company_name ?? __('Unknown'),
+            'customer_code' => $customer?->customer_code,
+            'customer_contact' => $customer?->email ?? $customer?->phone ?? $customer?->contact_person,
             'payment_method' => $payment->payment_method->label(),
-            'amount' => round((float) $payment->amount, 2),
+            'amount' => $amountPaid,
             'currency' => $payment->currency,
             'allocated_amount' => round((float) $payment->allocated_amount, 2),
             'unallocated_amount' => round((float) $payment->unallocated_amount, 2),
             'is_deposit' => $payment->is_deposit,
             'invoices_settled' => $invoicesSettled,
-            'balance_remaining' => $customerBalanceRemaining,
+            'balance_before' => $balanceBefore,
+            'balance_remaining' => $balanceRemaining,
+            'received_by' => $payment->poster?->name,
+            'notes' => $payment->notes,
             'company_name' => $payment->company?->name ?? config('app.name'),
             'branch_name' => $payment->branch?->name,
             'reference' => $payment->reference ?? $payment->bank_reference ?? $payment->mpesa_reference,
@@ -96,15 +103,7 @@ class CustomerPaymentReceiptService
 
     public function downloadPdf(CustomerPayment $payment): StreamedResponse
     {
-        $receipt = $this->build($payment);
-
-        return $this->pdfExports->downloadHtml(
-            $receipt['receipt_number'],
-            view('admin.sales.payments.receipt-pdf', [
-                'payment' => $payment,
-                'receipt' => $receipt,
-            ])->render(),
-        );
+        return app(ReceiptDocumentService::class)->downloadPdf($payment);
     }
 
     public function sendEmail(CustomerPayment $payment): bool

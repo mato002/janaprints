@@ -24,6 +24,7 @@ class CustomerPayment extends Model
         'branch_id',
         'customer_id',
         'payment_number',
+        'receipt_number',
         'payment_date',
         'payment_method',
         'is_deposit',
@@ -38,6 +39,8 @@ class CustomerPayment extends Model
         'notes',
         'posted_by',
         'posted_at',
+        'receipt_emailed_at',
+        'receipt_sms_sent_at',
         'posted_journal_id',
         'cancelled_by',
         'cancelled_at',
@@ -56,6 +59,8 @@ class CustomerPayment extends Model
             'allocated_amount' => 'decimal:2',
             'unallocated_amount' => 'decimal:2',
             'posted_at' => 'datetime',
+            'receipt_emailed_at' => 'datetime',
+            'receipt_sms_sent_at' => 'datetime',
             'cancelled_at' => 'datetime',
         ];
     }

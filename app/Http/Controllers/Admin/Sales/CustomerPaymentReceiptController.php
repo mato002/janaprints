@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Sales;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sales\CustomerPayment;
+use App\Support\Documents\ReceiptDocumentService;
 use App\Support\Sales\CustomerPaymentReceiptService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -13,23 +14,23 @@ class CustomerPaymentReceiptController extends Controller
 {
     public function __construct(
         protected CustomerPaymentReceiptService $receipts,
+        protected ReceiptDocumentService $documents,
     ) {}
 
     public function show(CustomerPayment $payment): View
     {
         $this->authorize('viewReceipt', $payment);
 
-        $payment->load(['customer', 'allocations.invoice', 'branch', 'company']);
-        $receipt = $this->receipts->build($payment);
+        $document = $this->documents->build($payment);
 
-        return view('admin.sales.payments.receipt', compact('payment', 'receipt'));
+        return view('documents.receipt.show', compact('payment', 'document'));
     }
 
     public function pdf(CustomerPayment $payment): StreamedResponse
     {
         $this->authorize('downloadReceiptPdf', $payment);
 
-        return $this->receipts->downloadPdf($payment);
+        return $this->documents->downloadPdf($payment);
     }
 
     public function email(CustomerPayment $payment): RedirectResponse

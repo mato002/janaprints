@@ -5477,6 +5477,23 @@ function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
     });
 }
 
+function shouldPromoteWorkspaceLinkToMain(href) {
+    if (! href) {
+        return false;
+    }
+
+    try {
+        const path = new URL(href, window.location.origin).pathname;
+
+        return /\/admin\/invoices\/\d+(\/document)?$/.test(path)
+            || /\/admin\/quotations\/list\/\d+(\/document)?$/.test(path)
+            || /\/admin\/payments\/\d+(\/receipt)?$/.test(path)
+            || /\/admin\/sales-orders\/list\/\d+$/.test(path);
+    } catch {
+        return false;
+    }
+}
+
 function wireEmbeddedWorkspaceLinks(root) {
     if (! root) {
         return;
@@ -5492,26 +5509,29 @@ function wireEmbeddedWorkspaceLinks(root) {
         }
 
         const turboFrame = link.getAttribute('data-turbo-frame');
+        const promoteToMain = turboFrame === 'erp-main' || shouldPromoteWorkspaceLinkToMain(link.href);
+
+        if (promoteToMain) {
+            link.setAttribute('data-turbo-frame', 'erp-main');
+
+            try {
+                const url = new URL(link.href, window.location.origin);
+
+                if (url.searchParams.has('embedded')) {
+                    url.searchParams.delete('embedded');
+                    link.href = `${url.pathname}${url.search}${url.hash}`;
+                }
+            } catch {
+                // Keep the original href when it cannot be parsed.
+            }
+
+            return;
+        }
+
         const targetsWorkspaceContent = turboFrame === 'module-workspace-content';
 
         if (! link.hasAttribute('data-turbo-frame')) {
             link.setAttribute('data-turbo-frame', 'module-workspace-content');
-        } else if (turboFrame === 'erp-main') {
-            if (link.closest('#module-workspace-content')) {
-                link.setAttribute('data-turbo-frame', 'module-workspace-content');
-            } else {
-                try {
-                    const inboxUrl = new URL(link.href, window.location.origin);
-
-                    if (! inboxUrl.pathname.includes('/admin/communications/inbox')) {
-                        return;
-                    }
-
-                    link.setAttribute('data-turbo-frame', 'module-workspace-content');
-                } catch {
-                    return;
-                }
-            }
         } else if (! targetsWorkspaceContent) {
             return;
         }
@@ -5536,21 +5556,7 @@ function wireEmbeddedWorkspaceLinks(root) {
         const turboFrame = form.getAttribute('data-turbo-frame');
 
         if (turboFrame === 'erp-main') {
-            if (form.closest('#module-workspace-content')) {
-                form.setAttribute('data-turbo-frame', 'module-workspace-content');
-            } else {
-                try {
-                    const inboxAction = new URL(form.getAttribute('action'), window.location.origin);
-
-                    if (! inboxAction.pathname.includes('/admin/communications/inbox')) {
-                        return;
-                    }
-
-                    form.setAttribute('data-turbo-frame', 'module-workspace-content');
-                } catch {
-                    return;
-                }
-            }
+            return;
         } else if (turboFrame && turboFrame !== 'module-workspace-content') {
             return;
         } else if (! turboFrame) {

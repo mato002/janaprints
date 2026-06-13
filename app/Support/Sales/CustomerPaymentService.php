@@ -24,6 +24,7 @@ class CustomerPaymentService
     public function __construct(
         protected NumberingService $numbering,
         protected AccountingPostingService $posting,
+        protected CustomerPaymentReceiptService $receipts,
     ) {}
 
     /**
@@ -194,6 +195,10 @@ class CustomerPaymentService
             foreach ($payment->allocations as $allocation) {
                 $allocation->invoice->refreshPaymentBalance();
             }
+
+            $payment = $payment->fresh(['postedJournal', 'poster', 'allocations.invoice']);
+
+            $this->receipts->assignReceiptNumber($payment);
 
             return $payment->fresh(['postedJournal', 'poster', 'allocations.invoice']);
         });

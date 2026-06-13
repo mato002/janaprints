@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Sales\CustomerInvoiceController;
+use App\Http\Controllers\Admin\Sales\InvoiceDocumentController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified', 'tenant'])
@@ -19,6 +20,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:invoices.view')->group(function () {
             Route::get('{invoice}', [CustomerInvoiceController::class, 'show'])->name('show');
+            Route::get('{invoice}/document', [InvoiceDocumentController::class, 'show'])->name('document');
+            Route::get('{invoice}/document/pdf', [InvoiceDocumentController::class, 'pdf'])->name('document.pdf');
         });
 
         Route::middleware('permission:invoices.create')->group(function () {

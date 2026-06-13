@@ -250,7 +250,7 @@ class FormSettingsService
             ];
         }
 
-        return $this->buildFieldConfigFromSource($source, $registry, $isCustom, $registryRequired, $inheritsCompany, $fieldKey);
+        return $this->buildFieldConfigFromSource($formKey, $source, $registry, $isCustom, $registryRequired, $inheritsCompany, $fieldKey);
     }
 
     /**
@@ -331,6 +331,7 @@ class FormSettingsService
         }
 
         return $this->buildFieldConfigFromSource(
+            $formKey,
             $source,
             $registry,
             $isCustom,
@@ -384,6 +385,7 @@ class FormSettingsService
      * @return array<string, mixed>
      */
     protected function buildFieldConfigFromSource(
+        string $formKey,
         FormFieldSetting $source,
         array $registry,
         bool $isCustom,
@@ -408,7 +410,7 @@ class FormSettingsService
             $visible = ! $hidden;
         }
 
-        return [
+        return $this->annotateStatusField([
             'field_key' => $fieldKey,
             'label' => $registry['label'] ?? ($meta['label'] ?? $fieldKey),
             'type' => $registry['type'] ?? ($meta['type'] ?? 'text'),
@@ -421,7 +423,25 @@ class FormSettingsService
             'inherits_company' => $inheritsCompany,
             'registry_required' => $registryRequired,
             'is_custom' => $isCustom,
-        ];
+        ], $formKey, $fieldKey);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    protected function annotateStatusField(array $config, string $formKey, string $fieldKey): array
+    {
+        $statusOptions = app(FormStatusOptionService::class);
+
+        if (
+            $statusOptions->formHasConfigurableStatus($formKey)
+            && $statusOptions->isStatusField($fieldKey, $config)
+        ) {
+            $config['is_status_field'] = true;
+        }
+
+        return $config;
     }
 
     protected function branchFieldIsExplicitOverride(FormFieldSetting $branchField): bool

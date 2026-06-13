@@ -1,15 +1,21 @@
 <x-admin-layout :title="$invoice->invoice_number" :breadcrumbs="[['label' => __('Invoices'), 'url' => route('admin.invoices.index')], ['label' => $invoice->invoice_number]]">
     <x-admin.page-header :title="$invoice->invoice_number" :description="$invoice->customer?->company_name">
-        <x-admin.status-badge :variant="match($invoice->status) {
-            App\Enums\CustomerInvoiceStatus::Draft => 'neutral',
-            App\Enums\CustomerInvoiceStatus::Approved => 'info',
-            App\Enums\CustomerInvoiceStatus::Posted => 'success',
-            App\Enums\CustomerInvoiceStatus::Cancelled => 'warning',
-        }">{{ $invoice->status->label() }}</x-admin.status-badge>
-        <span class="erp-badge">{{ $invoice->invoice_type->label() }}</span>
-        @can('update', $invoice)
-            <a href="{{ route('admin.invoices.edit', $invoice) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
-        @endcan
+        <x-slot:actions>
+            <x-admin.status-badge :variant="match($invoice->status) {
+                App\Enums\CustomerInvoiceStatus::Draft => 'neutral',
+                App\Enums\CustomerInvoiceStatus::Approved => 'info',
+                App\Enums\CustomerInvoiceStatus::Posted => 'success',
+                App\Enums\CustomerInvoiceStatus::Cancelled => 'warning',
+            }">{{ $invoice->status->label() }}</x-admin.status-badge>
+            <span class="erp-badge">{{ $invoice->invoice_type->label() }}</span>
+            @can('view', $invoice)
+                <a href="{{ route('admin.invoices.document', $invoice) }}" class="erp-btn-secondary">{{ __('View document') }}</a>
+                <a href="{{ route('admin.invoices.document.pdf', $invoice) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Download PDF') }}</a>
+            @endcan
+            @can('update', $invoice)
+                <a href="{{ route('admin.invoices.edit', $invoice) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
+            @endcan
+        </x-slot:actions>
     </x-admin.page-header>
 
     <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -52,6 +58,29 @@
             <x-admin.kpi-widget :label="__('Paid')" :value="number_format($invoice->amount_paid, 2)" icon="currency-dollar" />
             <x-admin.kpi-widget :label="__('Balance due')" :value="number_format($invoice->balance_due, 2)" icon="scale" />
         </div>
+    @endif
+
+    @php
+        $postedPayments = $invoice->paymentAllocations
+            ->map(fn ($allocation) => $allocation->payment)
+            ->filter(fn ($payment) => $payment && $payment->status === App\Enums\CustomerPaymentStatus::Posted)
+            ->unique('id');
+    @endphp
+    @if ($postedPayments->isNotEmpty())
+        <x-admin.card class="mb-4">
+            <h3 class="font-medium mb-3">{{ __('Payment receipts') }}</h3>
+            <ul class="text-sm space-y-1">
+                @foreach ($postedPayments as $payment)
+                    <li class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('admin.payments.show', $payment) }}" class="font-mono text-erp-accent">{{ $payment->payment_number }}</a>
+                        <span class="text-slate-500">{{ number_format($payment->amount, 2) }}</span>
+                        @can('viewReceipt', $payment)
+                            <a href="{{ route('admin.payments.receipt', $payment) }}" class="text-erp-accent text-xs">{{ __('View receipt') }}</a>
+                        @endcan
+                    </li>
+                @endforeach
+            </ul>
+        </x-admin.card>
     @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">

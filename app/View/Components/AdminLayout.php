@@ -23,11 +23,38 @@ class AdminLayout extends Component
         if (
             ! $embedded
             && request()->header('Turbo-Frame') === 'module-workspace-content'
+            && ! $this->routeShouldPromoteToMainShell()
         ) {
             $this->embedded = true;
             $this->useWorkspaceNavigation = false;
             $this->compactPage = false;
         }
+    }
+
+    protected function routeShouldPromoteToMainShell(): bool
+    {
+        $routeName = request()->route()?->getName();
+
+        if (! $routeName) {
+            return false;
+        }
+
+        foreach (['.create', '.edit', '.show', '.document', '.pdf'] as $suffix) {
+            if (str_ends_with($routeName, $suffix)) {
+                return true;
+            }
+        }
+
+        if (
+            str_ends_with($routeName, '.receipt')
+            && ! str_ends_with($routeName, '.receipt.pdf')
+            && ! str_ends_with($routeName, '.receipt.email')
+            && ! str_ends_with($routeName, '.receipt.sms')
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     public function render(): View

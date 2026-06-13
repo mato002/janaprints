@@ -24,7 +24,7 @@
             @forelse ($invoices as $invoice)
                 <tr x-show="rowVisible(@js(strtolower($invoice->invoice_number.' '.($invoice->customer?->company_name ?? '').' '.$invoice->status->value)))">
                     <td>
-                        <a href="{{ route('admin.invoices.show', $invoice) }}" class="font-mono text-sm text-erp-accent">{{ $invoice->invoice_number }}</a>
+                        <a href="{{ route('admin.invoices.show', $invoice) }}" class="font-mono text-sm text-erp-accent" data-turbo-frame="erp-main" data-turbo-action="advance">{{ $invoice->invoice_number }}</a>
                     </td>
                     <td class="text-sm">{{ $invoice->customer?->company_name }}</td>
                     <td class="text-sm">{{ $invoice->invoice_date->format('Y-m-d') }}</td>
