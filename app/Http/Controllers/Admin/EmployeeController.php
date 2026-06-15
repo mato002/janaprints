@@ -12,8 +12,13 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobTitle;
+use App\Services\EmailIdentity\CorporateEmailGeneratorService;
+use App\Services\EmailIdentity\EmployeeActivationManagementService;
+use App\Services\EmailIdentity\EmployeeActivationRoleResolver;
+use App\Services\EmailIdentity\EmployeeOnboardingService;
 use App\Support\Export\TabularExportWriter;
 use App\Support\Organization\JobTitleService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -30,10 +35,12 @@ class EmployeeController extends Controller
         $this->authorize('viewAny', Employee::class);
 
         $employees = $this->scopeToTenant(
-            Employee::query()->with(['company', 'branch', 'department', 'jobTitle'])
+            Employee::query()->with(['company', 'branch', 'department', 'jobTitle', 'corporateMailbox', 'activations'])
         )->latest()->paginate(15);
 
-        return view('admin.employees.index', compact('employees'));
+        $activationManagement = app(EmployeeActivationManagementService::class);
+
+        return view('admin.employees.index', compact('employees', 'activationManagement'));
     }
 
     public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
@@ -65,10 +72,33 @@ class EmployeeController extends Controller
     {
         $this->authorize('create', Employee::class);
 
-        $employee = Employee::query()->create($this->validateEmployee($request));
-        app(JobTitleService::class)->syncEmployeeDesignation($employee);
+        $data = $this->validateEmployee($request);
+        $personalEmail = $data['email'];
+        $intendedRole = $data['activation_role'] ?? null;
+        unset($data['activation_role']);
 
-        return redirect()->route('admin.employees.index')->with('status', __('Employee created.'));
+        $employee = Employee::query()->create($data);
+        app(JobTitleService::class)->syncEmployeeDesignation($employee);
+        app(EmployeeOnboardingService::class)->ensureOnboarded($employee, $personalEmail, $intendedRole);
+
+        return redirect()->route('admin.employees.index')->with('status', __('Employee created. Onboarding invitation queued.'));
+    }
+
+    public function previewCorporateEmail(Request $request): JsonResponse
+    {
+        $this->authorize('create', Employee::class);
+
+        $validated = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        $email = app(CorporateEmailGeneratorService::class)->preview(
+            $validated['first_name'],
+            $validated['last_name'],
+        );
+
+        return response()->json(['email' => $email]);
     }
 
     public function edit(Employee $employee): View
@@ -83,8 +113,23 @@ class EmployeeController extends Controller
             ? $logService->forEntity('employee', $employee->id, $employee->company_id, 15, \App\Enums\CommunicationLogChannel::Email)
             : collect();
 
+        $employee->load(['corporateMailbox', 'user.roles', 'activations']);
+        $activationManagement = app(EmployeeActivationManagementService::class);
+        $activationStatus = $activationManagement->activationDisplayStatus($employee);
+        $latestActivation = $activationManagement->latestOpenActivation($employee)
+            ?? $employee->activations()->latest('id')->first();
+        $readinessChecks = app(\App\Services\EmailIdentity\EmailIdentityReadinessService::class)
+            ->checks($employee->company_id);
+
         return view('admin.employees.edit', array_merge(
-            ['employee' => $employee, 'communicationTimeline' => $communicationTimeline, 'emailTimeline' => $emailTimeline],
+            [
+                'employee' => $employee,
+                'communicationTimeline' => $communicationTimeline,
+                'emailTimeline' => $emailTimeline,
+                'activationStatus' => $activationStatus,
+                'latestActivation' => $latestActivation,
+                'readinessChecks' => $readinessChecks,
+            ],
             $this->formData($employee),
         ));
     }
@@ -108,13 +153,31 @@ class EmployeeController extends Controller
         return redirect()->route('admin.employees.index')->with('status', __('Employee deleted.'));
     }
 
+    public function resendActivation(Employee $employee): RedirectResponse
+    {
+        $this->authorize('update', $employee);
+
+        app(EmployeeActivationManagementService::class)->resendInvitation($employee);
+
+        return back()->with('status', __('Activation invitation resent.'));
+    }
+
+    public function regenerateActivation(Employee $employee): RedirectResponse
+    {
+        $this->authorize('update', $employee);
+
+        app(EmployeeActivationManagementService::class)->regenerateActivation($employee);
+
+        return back()->with('status', __('Activation link regenerated and invitation queued.'));
+    }
+
     protected function validateEmployee(Request $request, ?Employee $employee = null): array
     {
         $companyId = auth()->user()->hasRole('Super Admin')
             ? $request->input('company_id')
             : auth()->user()->company_id;
 
-        return $request->validate([
+        $rules = [
             'company_id' => ['required', 'exists:companies,id'],
             'branch_id' => [
                 'required',
@@ -137,7 +200,7 @@ class EmployeeController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
             'phone' => ['nullable', 'string', 'max:50'],
-            'email' => ['nullable', 'email'],
+            'email' => [$employee ? 'nullable' : 'required', 'email'],
             'national_id' => ['nullable', 'string', 'max:50'],
             'kra_pin' => ['nullable', 'string', 'max:50'],
             'nhif_number' => ['nullable', 'string', 'max:50'],
@@ -151,7 +214,27 @@ class EmployeeController extends Controller
             'employment_status' => ['required', Rule::enum(EmploymentStatus::class)],
             'photo' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
-        ]);
+        ];
+
+        if ($this->canAssignActivationRole()) {
+            $rules['activation_role'] = [
+                'nullable',
+                'string',
+                Rule::exists('roles', 'name')->where('guard_name', 'web'),
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if ($value === 'Super Admin' && ! auth()->user()?->hasRole('Super Admin')) {
+                        $fail(__('You cannot assign the Super Admin role.'));
+                    }
+                },
+            ];
+        }
+
+        return $request->validate($rules);
+    }
+
+    protected function canAssignActivationRole(): bool
+    {
+        return auth()->user()?->can('roles.edit') ?? false;
     }
 
     protected function formData(?Employee $employee = null): array
@@ -162,6 +245,8 @@ class EmployeeController extends Controller
             ? Company::query()->where('is_active', true)->orderBy('name')->get()
             : Company::query()->where('id', auth()->user()->company_id)->get();
 
+        $roleResolver = app(EmployeeActivationRoleResolver::class);
+
         return [
             'companies' => $companies,
             'branches' => Branch::query()->where('company_id', $companyId)->get(),
@@ -169,6 +254,11 @@ class EmployeeController extends Controller
             'jobTitles' => JobTitle::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('title')->get(),
             'genders' => Gender::cases(),
             'statuses' => EmploymentStatus::cases(),
+            'mailDomain' => config('mailboxes.domain'),
+            'assignableRoles' => $this->canAssignActivationRole()
+                ? $roleResolver->assignableRolesFor()
+                : collect(),
+            'canAssignActivationRole' => $this->canAssignActivationRole(),
         ];
     }
 }

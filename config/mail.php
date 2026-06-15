@@ -49,6 +49,39 @@ return [
             'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
         ],
 
+        /*
+        | Employee onboarding invitations.
+        | Production: cPanel SMTP (info@janaprints.co.ke).
+        | Local testing (EMAIL_LOCAL_TESTING=true): same Gmail SMTP as default mailer.
+        */
+        'onboarding' => filter_var(env('EMAIL_LOCAL_TESTING', false), FILTER_VALIDATE_BOOL)
+            ? [
+                'transport' => 'smtp',
+                'scheme' => env('MAIL_SCHEME'),
+                'url' => env('MAIL_URL'),
+                'host' => env('MAIL_HOST', 'smtp.gmail.com'),
+                'port' => (int) env('MAIL_PORT', 587),
+                'username' => env('MAIL_USERNAME', env('EMAIL_USER')),
+                'password' => env('MAIL_PASSWORD', env('EMAIL_PASS')),
+                'timeout' => null,
+                'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            ]
+            : [
+                'transport' => 'smtp',
+                'scheme' => env('ONBOARDING_MAIL_SCHEME', 'smtps'),
+                'host' => env('ONBOARDING_MAIL_HOST', 'mail.janaprints.co.ke'),
+                'port' => (int) env('ONBOARDING_MAIL_PORT', 465),
+                'username' => env('ONBOARDING_MAIL_USERNAME', env('MAILBOX_INFO')),
+                'password' => env('ONBOARDING_MAIL_PASSWORD'),
+                'timeout' => null,
+                'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+            ],
+
+        'onboarding_log' => [
+            'transport' => 'log',
+            'channel' => env('MAIL_LOG_CHANNEL'),
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

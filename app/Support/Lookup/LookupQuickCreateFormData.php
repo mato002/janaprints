@@ -205,6 +205,11 @@ class LookupQuickCreateFormData
             'jobTitles' => JobTitle::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('title')->get(),
             'genders' => Gender::cases(),
             'statuses' => EmploymentStatus::cases(),
+            'mailDomain' => config('mailboxes.domain'),
+            'assignableRoles' => auth()->user()?->can('roles.edit')
+                ? app(\App\Services\EmailIdentity\EmployeeActivationRoleResolver::class)->assignableRolesFor()
+                : collect(),
+            'canAssignActivationRole' => auth()->user()?->can('roles.edit') ?? false,
         ];
     }
 

@@ -4,6 +4,7 @@ use App\Http\Controllers\BrandingAssetController;
 use App\Http\Controllers\CustomerPaymentReceiptPublicController;
 use App\Http\Controllers\MySessionsController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\EmployeeActivationController;
 use App\Http\Controllers\RfqVendorPortalController;
 use App\Http\Controllers\Storefront\PageController;
 use App\Http\Controllers\Storefront\PublicContactMessageController;
@@ -49,6 +50,11 @@ Route::get('/payment-receipt/{payment}', [CustomerPaymentReceiptPublicController
 Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
     Route::get('{token}', [RfqVendorPortalController::class, 'show'])->name('show');
     Route::post('{token}', [RfqVendorPortalController::class, 'submit'])->name('submit');
+});
+
+Route::prefix('activate')->name('employee.activate.')->group(function () {
+    Route::get('{token}', [EmployeeActivationController::class, 'show'])->name('show');
+    Route::post('{token}', [EmployeeActivationController::class, 'store'])->name('store');
 });
 
 Route::redirect('/dashboard', '/admin')->middleware(['auth', 'admin.auth', 'verified'])->name('dashboard');

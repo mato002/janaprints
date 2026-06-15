@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\EmailIdentity\EmployeeActivationStatus;
 use App\Enums\EmploymentStatus;
 use App\Enums\Gender;
 use App\Models\Concerns\BelongsToCompany;
@@ -35,6 +36,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'employment_status',
     'photo',
     'is_active',
+    'corporate_email',
+    'activation_status',
+    'activation_role',
 ])]
 class Employee extends Model
 {
@@ -47,6 +51,7 @@ class Employee extends Model
             'employment_status' => EmploymentStatus::class,
             'hire_date' => 'date',
             'is_active' => 'boolean',
+            'activation_status' => EmployeeActivationStatus::class,
         ];
     }
 
@@ -137,5 +142,15 @@ class Employee extends Model
     public function user(): HasOne
     {
         return $this->hasOne(User::class);
+    }
+
+    public function corporateMailbox(): HasOne
+    {
+        return $this->hasOne(\App\Models\EmailIdentity\CorporateMailbox::class);
+    }
+
+    public function activations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\EmailIdentity\EmployeeActivation::class);
     }
 }

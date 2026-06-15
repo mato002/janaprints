@@ -21,6 +21,7 @@ use App\Support\Hr\VacancyService;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -137,6 +138,7 @@ class RecruitmentManagementTest extends TestCase
 
     public function test_onboarding_creates_employee(): void
     {
+        Queue::fake();
         $hr = $this->hrUser();
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
         $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
@@ -174,6 +176,7 @@ class RecruitmentManagementTest extends TestCase
             'employee_number' => 'EMP-REC-001',
             'first_name' => 'New',
             'last_name' => 'Hire',
+            'corporate_email' => 'new.hire@janaprints.co.ke',
         ]);
         $this->assertSame(RecruitmentPipelineStage::Hired, $application->fresh()->stage);
     }

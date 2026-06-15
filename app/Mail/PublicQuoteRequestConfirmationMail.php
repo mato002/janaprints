@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesCorporateMailSender;
 use App\Models\PublicQuoteRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -11,14 +12,15 @@ use Illuminate\Queue\SerializesModels;
 
 class PublicQuoteRequestConfirmationMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesCorporateMailSender;
 
     public function __construct(public PublicQuoteRequest $quoteRequest) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'Your Jana Prints Quote Request Has Been Received',
+        return $this->corporateEnvelope(
+            'storefront_quote',
+            'Your Jana Prints Quote Request Has Been Received',
         );
     }
 

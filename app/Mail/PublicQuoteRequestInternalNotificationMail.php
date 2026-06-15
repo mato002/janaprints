@@ -2,6 +2,7 @@
 
 namespace App\Mail;
 
+use App\Mail\Concerns\UsesCorporateMailSender;
 use App\Models\PublicQuoteRequest;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
@@ -13,14 +14,15 @@ use Illuminate\Support\Facades\Storage;
 
 class PublicQuoteRequestInternalNotificationMail extends Mailable
 {
-    use Queueable, SerializesModels;
+    use Queueable, SerializesModels, UsesCorporateMailSender;
 
     public function __construct(public PublicQuoteRequest $quoteRequest) {}
 
     public function envelope(): Envelope
     {
-        return new Envelope(
-            subject: 'New Quote Request Received — '.$this->quoteRequest->name,
+        return $this->corporateEnvelope(
+            'storefront_quote',
+            'New Quote Request Received — '.$this->quoteRequest->name,
         );
     }
 

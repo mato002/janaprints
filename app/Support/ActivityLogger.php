@@ -17,7 +17,7 @@ class ActivityLogger
         ?array $before = null,
     ): ActivityLog {
         $log = ActivityLog::query()->create([
-            'company_id' => auth()->user()?->company_id,
+            'company_id' => auth()->user()?->company_id ?? self::resolveCompanyId($model),
             'user_id' => $userId ?? auth()->id(),
             'action' => $action,
             'model_type' => $model ? $model::class : null,
@@ -37,5 +37,14 @@ class ActivityLogger
         );
 
         return $log;
+    }
+
+    protected static function resolveCompanyId(?Model $model): ?int
+    {
+        if ($model !== null && isset($model->company_id)) {
+            return (int) $model->company_id;
+        }
+
+        return null;
     }
 }

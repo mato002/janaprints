@@ -115,6 +115,7 @@ class JobTitlesOrganizationTest extends TestCase
                 'last_name' => 'Seller',
                 'job_title_id' => $title->id,
                 'employment_status' => 'active',
+                'email' => 'test.seller@example.com',
                 'is_active' => true,
             ])
             ->assertRedirect(route('admin.employees.index'));

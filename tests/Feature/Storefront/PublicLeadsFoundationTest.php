@@ -31,7 +31,10 @@ class PublicLeadsFoundationTest extends TestCase
         parent::setUp();
 
         $this->seed(RolesAndPermissionsSeeder::class);
-        config(['leads.admin_email' => 'leads@janaprints.test']);
+        config([
+            'leads.admin_email' => 'leads@janaprints.test',
+            'mailboxes.department.info' => 'info@janaprints.co.ke',
+        ]);
         Storage::fake('public');
     }
 
@@ -161,7 +164,20 @@ class PublicLeadsFoundationTest extends TestCase
         $this->post(route('public.quote-requests.store'), $this->validQuotePayload());
 
         Mail::assertSent(PublicQuoteRequestConfirmationMail::class, function ($mail) {
-            return $mail->hasTo('guest@example.com');
+            return $mail->hasTo('guest@example.com')
+                && $mail->envelope()->from->address === 'info@janaprints.co.ke';
+        });
+    }
+
+    public function test_storefront_emails_use_info_address_as_sender(): void
+    {
+        Mail::fake();
+
+        $this->post(route('public.contact-messages.store'), $this->validContactPayload());
+
+        Mail::assertSent(PublicContactMessageConfirmationMail::class, function ($mail) {
+            return $mail->envelope()->from->address === 'info@janaprints.co.ke'
+                && $mail->envelope()->replyTo[0]->address === 'info@janaprints.co.ke';
         });
     }
 
@@ -172,7 +188,8 @@ class PublicLeadsFoundationTest extends TestCase
         $this->post(route('public.contact-messages.store'), $this->validContactPayload());
 
         Mail::assertSent(PublicContactMessageConfirmationMail::class, function ($mail) {
-            return $mail->hasTo('guest@example.com');
+            return $mail->hasTo('guest@example.com')
+                && $mail->envelope()->from->address === 'info@janaprints.co.ke';
         });
     }
 

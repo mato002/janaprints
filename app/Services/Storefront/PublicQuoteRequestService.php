@@ -67,8 +67,10 @@ class PublicQuoteRequestService
 
     protected function dispatchEmails(PublicQuoteRequest $quoteRequest): void
     {
+        $mailer = Mail::mailer((string) config('leads.mailer', config('mail.default')));
+
         try {
-            Mail::to($quoteRequest->email)->send(new PublicQuoteRequestConfirmationMail($quoteRequest));
+            $mailer->to($quoteRequest->email)->send(new PublicQuoteRequestConfirmationMail($quoteRequest));
         } catch (\Throwable $e) {
             Log::warning('Failed to send quote request confirmation email.', [
                 'quote_request_id' => $quoteRequest->id,
@@ -83,7 +85,7 @@ class PublicQuoteRequestService
         }
 
         try {
-            Mail::to($adminEmail)->send(new PublicQuoteRequestInternalNotificationMail($quoteRequest));
+            $mailer->to($adminEmail)->send(new PublicQuoteRequestInternalNotificationMail($quoteRequest));
         } catch (\Throwable $e) {
             Log::warning('Failed to send quote request internal notification.', [
                 'quote_request_id' => $quoteRequest->id,

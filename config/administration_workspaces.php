@@ -163,6 +163,7 @@ return [
                 [
                     'label' => 'Integrations',
                     'items' => [
+                        ['label' => 'Email Identity', 'description' => 'Corporate mailboxes, sender addresses, and onboarding readiness.', 'route' => 'admin.email-identity.index', 'permission' => 'integrations.view|employees.manage|integrations.manage', 'icon' => 'inbox', 'active_routes' => ['admin.email-identity.*']],
                         ['label' => 'Email Settings', 'description' => 'SMTP, delivery, and outbound email configuration.', 'route' => 'admin.integrations.email.index', 'permission' => 'integrations.view|integrations.email.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.email.*']],
                         ['label' => 'SMS Settings', 'description' => 'SMS provider credentials and routing.', 'route' => 'admin.integrations.sms.index', 'permission' => 'integrations.view|integrations.sms.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.sms.*']],
                         ['label' => 'API Keys', 'description' => 'Developer keys and programmatic access.', 'route' => 'admin.integrations.api-keys.index', 'permission' => 'integrations.view|integrations.api.manage', 'icon' => 'key', 'active_routes' => ['admin.integrations.api-keys.*']],

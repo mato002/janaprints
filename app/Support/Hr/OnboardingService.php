@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Hr\JobApplication;
 use App\Models\Hr\OnboardingRecord;
 use App\Models\User;
+use App\Services\EmailIdentity\EmployeeOnboardingService;
 use App\Support\Organization\JobTitleService;
 use Illuminate\Validation\ValidationException;
 
@@ -88,6 +89,12 @@ class OnboardingService
         $application = $record->application;
         $candidate = $application->candidate;
 
+        if (! filled($candidate->email)) {
+            throw ValidationException::withMessages([
+                'email' => __('Candidate personal email is required before completing onboarding.'),
+            ]);
+        }
+
         $employee = Employee::query()->create([
             'company_id' => $record->company_id,
             'branch_id' => $record->branch_id,
@@ -104,6 +111,7 @@ class OnboardingService
         ]);
 
         app(JobTitleService::class)->syncEmployeeDesignation($employee);
+        app(EmployeeOnboardingService::class)->ensureOnboarded($employee, (string) $candidate->email);
 
         $record->update([
             'employee_id' => $employee->id,

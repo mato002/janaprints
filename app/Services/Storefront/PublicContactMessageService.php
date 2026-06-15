@@ -29,8 +29,10 @@ class PublicContactMessageService
 
     protected function dispatchEmails(PublicContactMessage $message): void
     {
+        $mailer = Mail::mailer((string) config('leads.mailer', config('mail.default')));
+
         try {
-            Mail::to($message->email)->send(new PublicContactMessageConfirmationMail($message));
+            $mailer->to($message->email)->send(new PublicContactMessageConfirmationMail($message));
         } catch (\Throwable $e) {
             Log::warning('Failed to send contact message confirmation email.', [
                 'contact_message_id' => $message->id,
@@ -45,7 +47,7 @@ class PublicContactMessageService
         }
 
         try {
-            Mail::to($adminEmail)->send(new PublicContactMessageInternalNotificationMail($message));
+            $mailer->to($adminEmail)->send(new PublicContactMessageInternalNotificationMail($message));
         } catch (\Throwable $e) {
             Log::warning('Failed to send contact message internal notification.', [
                 'contact_message_id' => $message->id,

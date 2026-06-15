@@ -304,6 +304,12 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             Route::get('employees/export/{format}', [EmployeeController::class, 'export'])
                 ->where('format', 'csv|excel|pdf')
                 ->name('employees.export');
+            Route::get('employees/preview-corporate-email', [EmployeeController::class, 'previewCorporateEmail'])
+                ->name('employees.preview-corporate-email');
+            Route::post('employees/{employee}/resend-activation', [EmployeeController::class, 'resendActivation'])
+                ->name('employees.resend-activation');
+            Route::post('employees/{employee}/regenerate-activation', [EmployeeController::class, 'regenerateActivation'])
+                ->name('employees.regenerate-activation');
             Route::resource('employees', EmployeeController::class)->except(['show']);
         });
 
@@ -360,6 +366,7 @@ require __DIR__.'/admin_communications_inbox.php';
 require __DIR__.'/admin_hr.php';
 require __DIR__.'/admin_reports.php';
 require __DIR__.'/admin_integrations.php';
+require __DIR__.'/admin_email_identity.php';
 require __DIR__.'/admin_administration.php';
 require __DIR__.'/admin_public_leads.php';
 require __DIR__.'/admin_lookups.php';

@@ -7,6 +7,15 @@
     </div>
 
     @if ($employee && isset($communicationTimeline))
+        @include('admin.employees.partials.email-identity-panel', [
+            'employee' => $employee,
+            'activationStatus' => $activationStatus ?? 'none',
+            'latestActivation' => $latestActivation ?? null,
+            'readinessChecks' => $readinessChecks ?? [],
+        ])
+    @endif
+
+    @if ($employee && isset($communicationTimeline))
         @include('admin.communications.logs.partials.entity-timeline', ['logs' => $communicationTimeline, 'title' => __('Employee communication history')])
     @endif
     @if ($employee && isset($emailTimeline) && $emailTimeline->isNotEmpty())

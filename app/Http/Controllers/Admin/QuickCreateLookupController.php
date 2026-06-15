@@ -36,6 +36,7 @@ use App\Models\Sales\Quotation;
 use App\Support\Catalogue\CatalogueService;
 use App\Support\Catalogue\ItemAttributeService;
 use App\Support\Lookup\LookupQuickCreateFormData;
+use App\Services\EmailIdentity\EmployeeOnboardingService;
 use App\Support\Organization\JobTitleService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\FormStatusOptionService;
@@ -889,7 +890,7 @@ class QuickCreateLookupController extends Controller
                 'last_name' => ['required', 'string', 'max:255'],
                 'gender' => ['nullable', Rule::enum(Gender::class)],
                 'phone' => ['nullable', 'string', 'max:50'],
-                'email' => ['nullable', 'email'],
+                'email' => ['required', 'email'],
                 'job_title_id' => [
                     'nullable',
                     Rule::exists('job_titles', 'id')->where('company_id', $companyId),
@@ -908,6 +909,11 @@ class QuickCreateLookupController extends Controller
         ]);
 
         app(JobTitleService::class)->syncEmployeeDesignation($employee);
+        app(EmployeeOnboardingService::class)->ensureOnboarded(
+            $employee,
+            $validated['email'],
+            $validated['activation_role'] ?? null,
+        );
 
         $label = trim("{$employee->first_name} {$employee->last_name}")." ({$employee->employee_number})";
 
