@@ -46,32 +46,23 @@ class ReceiptDocumentPresenter
                 ['label' => __('Receipt Date'), 'value' => $payment->payment_date?->format('d M Y')],
                 ['label' => __('Payment Method'), 'value' => $receipt['payment_method']],
                 ['label' => __('Payment Reference'), 'value' => $receipt['reference'] ?? null],
+                ['label' => __('Payment number'), 'value' => $receipt['payment_number']],
+                ['label' => __('Received by'), 'value' => $receipt['received_by'] ?? null],
+                ['label' => __('Branch'), 'value' => $receipt['branch_name'] ?? null],
             ]),
             'company' => $this->companyBlock($payment->company),
-            'customer' => $this->customerBlock($payment->customer),
+            'customer' => $this->customerBlock($payment->customer, compact: true),
             'customerLabel' => __('Received From'),
-            'meta' => $this->paymentMeta($payment, $receipt),
+            'meta' => [],
             'summary' => $this->presentSummary($payment, $receipt, $currency, $accountSettled),
             'allocations' => $this->presentAllocations($payment, $currency),
             'totals' => $this->presentTotals($receipt, $currency),
+            'paymentFooter' => $this->paymentFooterBlock(),
             'notesTerms' => [
                 'title' => __('Notes'),
                 'body' => $this->resolveNotesTerms($receipt),
             ],
         ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $receipt
-     * @return list<array{label: string, value: string}>
-     */
-    protected function paymentMeta(CustomerPayment $payment, array $receipt): array
-    {
-        return $this->filterMetaRows([
-            ['label' => __('Payment number'), 'value' => $receipt['payment_number']],
-            ['label' => __('Received by'), 'value' => $receipt['received_by'] ?? null],
-            ['label' => __('Branch'), 'value' => $receipt['branch_name'] ?? null],
-        ]);
     }
 
     /**
@@ -135,10 +126,10 @@ class ReceiptDocumentPresenter
         return [
             'title' => __('Invoices Settled'),
             'columns' => [
-                ['key' => 'invoice_number', 'label' => __('Invoice Number'), 'align' => 'left', 'width' => '28%'],
-                ['key' => 'invoice_date', 'label' => __('Invoice Date'), 'align' => 'left', 'width' => '22%'],
-                ['key' => 'amount_applied', 'label' => __('Amount Applied'), 'align' => 'right', 'width' => '25%'],
-                ['key' => 'balance_remaining', 'label' => __('Balance Remaining'), 'align' => 'right', 'width' => '25%'],
+                ['key' => 'invoice_number', 'label' => __('Invoice No'), 'align' => 'left', 'width' => '24%'],
+                ['key' => 'invoice_date', 'label' => __('Date'), 'align' => 'left', 'width' => '18%'],
+                ['key' => 'amount_applied', 'label' => __('Amount Applied'), 'align' => 'right', 'width' => '29%'],
+                ['key' => 'balance_remaining', 'label' => __('Balance'), 'align' => 'right', 'width' => '29%'],
             ],
             'rows' => $rows,
             'emptyMessage' => __('Payment has not been allocated to a specific invoice.'),
@@ -183,12 +174,7 @@ class ReceiptDocumentPresenter
      */
     protected function resolveNotesTerms(array $receipt): string
     {
-        $parts = array_filter([
-            $receipt['notes'] ?? null,
-            config('documents.terms.receipt_acknowledgement'),
-        ]);
-
-        return implode("\n\n", $parts);
+        return trim((string) ($receipt['notes'] ?? ''));
     }
 
 }

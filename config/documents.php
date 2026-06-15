@@ -24,7 +24,7 @@ return [
 
     'terms' => [
         'quotation' => 'This quotation is valid until the date shown above. Prices exclude delivery unless stated. Acceptance confirms scope and artwork approval.',
-        'invoice' => 'Payment is due by the due date shown above. Please quote the invoice number on all remittances. Late payments may attract interest charges.',
+        'invoice' => 'Payment is due by the due date shown above. Please quote the invoice number on all remittances.',
         'receipt_acknowledgement' => 'We confirm receipt of the above payment. Thank you for your prompt settlement.',
     ],
 

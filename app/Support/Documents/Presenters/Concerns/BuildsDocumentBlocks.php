@@ -30,9 +30,9 @@ trait BuildsDocumentBlocks
     }
 
     /**
-     * @return array{name: ?string, company: ?string, phone: ?string, email: ?string, address: ?string, code: ?string}
+     * @return array{name: ?string, company: ?string, phone: ?string, email: ?string, address: ?string, code: ?string, compact?: bool}
      */
-    protected function customerBlock(?Customer $customer): array
+    protected function customerBlock(?Customer $customer, bool $compact = false): array
     {
         if (! $customer) {
             return [
@@ -42,6 +42,18 @@ trait BuildsDocumentBlocks
                 'email' => null,
                 'address' => null,
                 'code' => null,
+            ];
+        }
+
+        if ($compact) {
+            return [
+                'name' => null,
+                'company' => $customer->company_name ?: $customer->contact_person,
+                'phone' => null,
+                'email' => null,
+                'address' => null,
+                'code' => null,
+                'compact' => true,
             ];
         }
 

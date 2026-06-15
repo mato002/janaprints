@@ -19,4 +19,6 @@
 ])
 
 @include('documents.partials.payment-footer', ['paymentFooter' => $document['paymentFooter'] ?? []])
-@include('documents.partials.footer')
+@if (empty($document['paymentFooter']))
+    @include('documents.partials.footer')
+@endif

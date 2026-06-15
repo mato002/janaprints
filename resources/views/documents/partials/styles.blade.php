@@ -13,12 +13,12 @@
     /* ── Header ── */
     .jp-doc__header {
         width: 100%;
-        margin-bottom: 6mm;
+        margin-bottom: 3mm;
     }
 
     .jp-doc__header-top td {
         vertical-align: middle;
-        padding-bottom: 3mm;
+        padding-bottom: 2mm;
     }
 
     .jp-doc__logo-cell {
@@ -34,14 +34,14 @@
 
     .jp-doc__logo {
         display: block;
-        width: 62mm;
+        width: 48mm;
         height: auto;
         max-width: 100%;
     }
 
     .jp-doc__title {
         color: #1E3A6E;
-        font-size: 22pt;
+        font-size: 20pt;
         font-weight: bold;
         letter-spacing: 0.04em;
         margin: 0;
@@ -57,12 +57,12 @@
     .jp-doc__header-highlight-label {
         color: #64748B;
         font-size: 8pt;
-        margin: 3mm 0 0.5mm;
+        margin: 2mm 0 0.5mm;
     }
 
     .jp-doc__header-highlight-value {
         color: #0F172A;
-        font-size: 13pt;
+        font-size: 12pt;
         font-weight: bold;
         margin: 0;
     }
@@ -73,8 +73,8 @@
     }
 
     .jp-doc__header-address td {
-        padding-top: 1mm;
-        padding-bottom: 4mm;
+        padding-top: 0.5mm;
+        padding-bottom: 2mm;
         border-bottom: 1px solid #E2E8F0;
     }
 
@@ -104,7 +104,7 @@
     /* ── Parties / dates ── */
     .jp-doc__parties {
         width: 100%;
-        margin: 5mm 0;
+        margin: 2mm 0 3mm;
     }
 
     .jp-doc__parties-bill {
@@ -222,14 +222,14 @@
         color: #FFFFFF;
         font-size: 8pt;
         font-weight: bold;
-        padding: 2.8mm 2.5mm;
+        padding: 2mm 2mm;
     }
 
     .jp-doc__items td {
         border-bottom: 1px solid #E2E8F0;
         color: #1E293B;
         font-size: 9pt;
-        padding: 2.8mm 2.5mm;
+        padding: 2mm 2mm;
         vertical-align: top;
     }
 
@@ -256,13 +256,13 @@
     .jp-doc__bottom-notes {
         width: 52%;
         vertical-align: top;
-        padding: 4mm 4mm 0 0;
+        padding: 2.5mm 4mm 0 0;
     }
 
     .jp-doc__bottom-totals {
         width: 48%;
         vertical-align: top;
-        padding: 4mm 0 0 0;
+        padding: 2.5mm 0 0 0;
     }
 
     .jp-doc__notes-title {
@@ -364,8 +364,8 @@
     .jp-doc__payment-footer {
         background: #7B4FD1;
         color: #FFFFFF;
-        margin-top: 8mm;
-        padding: 4mm 5mm;
+        margin-top: 4mm;
+        padding: 3mm 4mm;
         break-inside: avoid;
         page-break-inside: avoid;
     }
@@ -387,11 +387,46 @@
         margin-bottom: 0;
     }
 
+    .jp-doc__payment-footer-table {
+        width: 100%;
+    }
+
+    .jp-doc__payment-footer-left {
+        vertical-align: top;
+        width: 62%;
+        padding-right: 4mm;
+    }
+
+    .jp-doc__payment-footer-right {
+        vertical-align: middle;
+        text-align: right;
+        width: 38%;
+    }
+
+    .jp-doc__payment-footer-right .jp-doc__footer-thanks,
+    .jp-doc__payment-footer-right .jp-doc__footer-system {
+        color: #FFFFFF;
+        margin: 0 0 1.5mm;
+    }
+
+    .jp-doc__payment-footer-right .jp-doc__footer-thanks {
+        font-style: italic;
+    }
+
+    .jp-doc__payment-footer-right .jp-doc__footer-system {
+        color: #E9DFFC;
+        font-size: 7pt;
+    }
+
+    .jp-doc__payment-footer-right .jp-doc__footer-system:last-child {
+        margin-bottom: 0;
+    }
+
     /* ── Document footer ── */
     .jp-doc__footer {
         color: #94A3B8;
         font-size: 8pt;
-        margin-top: 6mm;
+        margin-top: 3mm;
         text-align: center;
     }
 
@@ -408,10 +443,13 @@
     }
 
     .jp-doc__summary,
-    .jp-doc__totals,
     .jp-doc__payment-footer,
-    .jp-doc__footer,
-    .jp-doc__bottom-row {
+    .jp-doc__footer {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .jp-doc__bottom-totals .jp-doc__totals {
         break-inside: avoid;
         page-break-inside: avoid;
     }

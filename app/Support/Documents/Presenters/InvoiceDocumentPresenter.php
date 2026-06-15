@@ -36,12 +36,8 @@ class InvoiceDocumentPresenter
         ]);
 
         $invoiceCustom = $this->customFields->valuesFor($invoice, 'customer_invoice');
-        $salesOrderCustom = $invoice->salesOrder
-            ? $this->customFields->valuesFor($invoice->salesOrder, 'sales_order')
-            : [];
 
         $currency = $invoice->currency ?: 'KES';
-        $deliveryNote = $this->resolveDeliveryNote($invoice);
         $paymentState = $this->paymentState($invoice);
         [$statusLabel, $statusVariant] = $this->statusPresentation($invoice, $paymentState);
 
@@ -71,9 +67,9 @@ class InvoiceDocumentPresenter
                 ['label' => __('Due Date'), 'value' => $invoice->due_date?->format('d M Y')],
             ]),
             'company' => $this->companyBlock($invoice->company),
-            'customer' => $this->customerBlock($invoice->customer),
+            'customer' => $this->customerBlock($invoice->customer, compact: true),
             'customerLabel' => __('Bill To'),
-            'meta' => $this->commercialMeta($invoice, $deliveryNote, $invoiceCustom, $salesOrderCustom),
+            'meta' => [],
             'summary' => $this->presentSummary($invoice, $currency, $paymentState),
             'columns' => $this->itemColumns(),
             'items' => $this->presentItems($invoice, $currency),
@@ -300,12 +296,10 @@ class InvoiceDocumentPresenter
     protected function itemColumns(): array
     {
         return [
-            ['key' => 'index', 'label' => __('No'), 'align' => 'left', 'width' => '5%'],
-            ['key' => 'description', 'label' => __('Item & Description'), 'align' => 'left', 'width' => '34%'],
-            ['key' => 'quantity', 'label' => __('Qty'), 'align' => 'right', 'width' => '10%'],
-            ['key' => 'unit', 'label' => __('Unit'), 'align' => 'left', 'width' => '8%'],
-            ['key' => 'rate', 'label' => __('Rate'), 'align' => 'right', 'width' => '13%'],
-            ['key' => 'tax', 'label' => __('Tax'), 'align' => 'right', 'width' => '10%'],
+            ['key' => 'index', 'label' => __('No'), 'align' => 'left', 'width' => '6%'],
+            ['key' => 'description', 'label' => __('Item & Description'), 'align' => 'left', 'width' => '44%'],
+            ['key' => 'quantity', 'label' => __('Qty'), 'align' => 'right', 'width' => '14%'],
+            ['key' => 'rate', 'label' => __('Rate'), 'align' => 'right', 'width' => '16%'],
             ['key' => 'amount', 'label' => __('Amount'), 'align' => 'right', 'width' => '20%'],
         ];
     }
@@ -321,17 +315,11 @@ class InvoiceDocumentPresenter
                 $description .= ' — '.$line->description;
             }
 
-            $tax = (float) $line->tax_rate > 0
-                ? number_format((float) $line->tax_rate, 2).'%'
-                : '—';
-
             return [
                 'index' => (string) ($index + 1),
                 'description' => $description,
-                'quantity' => number_format((float) $line->quantity, 3),
-                'unit' => __('pcs'),
+                'quantity' => number_format((float) $line->quantity, 0),
                 'rate' => number_format((float) $line->unit_price, 2),
-                'tax' => $tax,
                 'amount' => $this->formatMoney((float) $line->line_total, $currency),
             ];
         })->all();
@@ -389,8 +377,6 @@ class InvoiceDocumentPresenter
     {
         $parts = array_filter([
             $invoice->notes,
-            $invoiceCustom['payment_terms'] ?? null,
-            $invoiceCustom['terms'] ?? null,
             config('documents.terms.invoice'),
         ]);
 

@@ -108,7 +108,8 @@ class ReceiptDocumentTest extends TestCase
             ->assertOk()
             ->assertSee('PAYMENT RECEIPT')
             ->assertSee($payment->receipt_number)
-            ->assertSee('Invoices Settled');
+            ->assertSee('Invoice No')
+            ->assertSee('Payment Details');
     }
 
     public function test_receipt_pdf_download_works(): void
@@ -197,7 +198,7 @@ class ReceiptDocumentTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('admin.payments.receipt', $payment))
             ->assertOk()
-            ->assertSee('Invoices Settled')
+            ->assertSee('Invoice No')
             ->assertSee($this->invoice->invoice_number)
             ->assertSee('Amount Applied');
     }

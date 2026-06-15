@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <title>{{ $document['title'] }} {{ $document['documentNumber'] }}</title>
     @include('documents.partials.styles')
+    @include('documents.partials.pdf-styles')
 </head>
-<body class="jp-doc" style="margin: 15mm 12mm 18mm 12mm;">
-    @include('documents.quotation.content', ['document' => $document])
+<body class="jp-doc jp-doc--pdf">
+    <div class="jp-doc__pdf-body">
+        @include('documents.quotation.content', ['document' => $document])
+    </div>
 </body>
 </html>

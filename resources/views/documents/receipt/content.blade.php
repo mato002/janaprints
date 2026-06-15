@@ -6,8 +6,6 @@
     'dates' => $document['dates'] ?? [],
 ])
 
-@include('documents.partials.commercial-meta', ['meta' => $document['meta'] ?? [], 'stacked' => true])
-
 @include('documents.partials.allocations-table', ['allocations' => $document['allocations'] ?? []])
 
 @include('documents.partials.totals-notes-row', [
@@ -15,4 +13,7 @@
     'totals' => $document['totals'],
 ])
 
-@include('documents.partials.footer')
+@include('documents.partials.payment-footer', ['paymentFooter' => $document['paymentFooter'] ?? []])
+@if (empty($document['paymentFooter']))
+    @include('documents.partials.footer')
+@endif

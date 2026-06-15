@@ -221,7 +221,7 @@ class InvoiceDocumentTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_commercial_references_render_when_relationships_exist(): void
+    public function test_commercial_references_are_omitted_from_printed_invoice(): void
     {
         $salesOrder = SalesOrder::factory()->create([
             'company_id' => $this->company->id,
@@ -251,7 +251,7 @@ class InvoiceDocumentTest extends TestCase
             'artwork_request_id' => $artwork->id,
         ]);
 
-        $deliveryNote = DeliveryNote::query()->create([
+        DeliveryNote::query()->create([
             'company_id' => $this->company->id,
             'branch_id' => $this->branch->id,
             'delivery_note_number' => 'DN-DOC-001',
@@ -272,28 +272,18 @@ class InvoiceDocumentTest extends TestCase
             'jobCard',
         ]));
 
-        $this->assertTrue(
-            collect($document['meta'])->contains(fn (array $row) => $row['label'] === 'Sales Order' && $row['value'] === 'SO-DOC-001')
-        );
-        $this->assertTrue(
-            collect($document['meta'])->contains(fn (array $row) => $row['label'] === 'Job Card' && $row['value'] === 'JC-DOC-001')
-        );
-        $this->assertTrue(
-            collect($document['meta'])->contains(fn (array $row) => $row['label'] === 'Delivery Note' && $row['value'] === 'DN-DOC-001')
-        );
-        $this->assertTrue(
-            collect($document['meta'])->contains(
-                fn (array $row) => $row['label'] === 'Artwork reference' && str_contains($row['value'], 'ART-DOC-001')
-            )
-        );
+        $this->assertSame([], $document['meta']);
+        $this->assertTrue($document['customer']['compact'] ?? false);
 
         $this->actingAs($this->user)
             ->get(route('admin.invoices.document', $invoice))
             ->assertOk()
-            ->assertSee('SO-DOC-001')
-            ->assertSee('JC-DOC-001')
-            ->assertSee('DN-DOC-001')
-            ->assertSee('ART-DOC-001');
+            ->assertSee('Print Client Ltd')
+            ->assertDontSee('SO-DOC-001')
+            ->assertDontSee('JC-DOC-001')
+            ->assertDontSee('DN-DOC-001')
+            ->assertDontSee('ART-DOC-001')
+            ->assertDontSee('In Production');
     }
 
     public function test_payment_details_render_from_config_safely(): void

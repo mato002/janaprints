@@ -5,21 +5,23 @@
             @if (! empty($customer['company']))
                 <p class="jp-doc__party-name">{{ $customer['company'] }}</p>
             @endif
-            @if (! empty($customer['name']))
-                <p class="jp-doc__party-line">{{ $customer['name'] }}</p>
-            @endif
-            @if (! empty($customer['code']))
-                <p class="jp-doc__party-line">{{ __('Code') }}: {{ $customer['code'] }}</p>
-            @endif
-            @if (! empty($customer['phone']))
-                <p class="jp-doc__party-line">{{ $customer['phone'] }}</p>
-            @endif
-            @if (! empty($customer['email']))
-                <p class="jp-doc__party-line">{{ $customer['email'] }}</p>
-            @endif
-            @if (! empty($customer['address']))
-                <p class="jp-doc__party-line">{{ $customer['address'] }}</p>
-            @endif
+            @unless (! empty($customer['compact']))
+                @if (! empty($customer['name']))
+                    <p class="jp-doc__party-line">{{ $customer['name'] }}</p>
+                @endif
+                @if (! empty($customer['code']))
+                    <p class="jp-doc__party-line">{{ __('Code') }}: {{ $customer['code'] }}</p>
+                @endif
+                @if (! empty($customer['phone']))
+                    <p class="jp-doc__party-line">{{ $customer['phone'] }}</p>
+                @endif
+                @if (! empty($customer['email']))
+                    <p class="jp-doc__party-line">{{ $customer['email'] }}</p>
+                @endif
+                @if (! empty($customer['address']))
+                    <p class="jp-doc__party-line">{{ $customer['address'] }}</p>
+                @endif
+            @endunless
             @if (empty($customer['company']) && empty($customer['name']) && empty($customer['phone']) && empty($customer['email']) && empty($customer['address']))
                 <p class="jp-doc__party-line">—</p>
             @endif
