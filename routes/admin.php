@@ -364,3 +364,4 @@ require __DIR__.'/admin_administration.php';
 require __DIR__.'/admin_public_leads.php';
 require __DIR__.'/admin_lookups.php';
 require __DIR__.'/admin_website.php';
+require __DIR__.'/admin_documents.php';

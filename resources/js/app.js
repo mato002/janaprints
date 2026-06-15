@@ -1845,7 +1845,7 @@ function bindWebsiteSettingsListeners() {
             return;
         }
 
-        const resetTrigger = event.target.closest('[data-website-settings-reset-trigger]');
+        const resetTrigger = event.target.closest('[data-website-settings-reset-trigger], [data-document-settings-reset-trigger]');
 
         if (resetTrigger) {
             const resetUrl = resetTrigger.dataset.resetUrl;

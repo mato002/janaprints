@@ -297,6 +297,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\WebsiteGalleryItem::class => \App\Policies\WebsiteGalleryItemPolicy::class,
         \App\Models\WebsiteMediaItem::class => \App\Policies\WebsiteMediaItemPolicy::class,
         \App\Models\WebsiteSetting::class => \App\Policies\WebsiteSettingPolicy::class,
+        \App\Models\DocumentSetting::class => \App\Policies\DocumentSettingPolicy::class,
     ];
     }
 
@@ -306,6 +307,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Support\Website\WebsiteMediaRegistry::class);
         $this->app->singleton(\App\Services\Website\WebsiteMediaResolver::class);
         $this->app->singleton(\App\Services\Website\WebsiteSettingsService::class);
+        $this->app->singleton(\App\Services\Documents\DocumentSettingsService::class);
+        $this->app->singleton(\App\Services\Documents\DocumentContentBaselineService::class);
         $this->app->singleton(\App\Support\Website\PublicWebsiteContent::class);
         $this->app->singleton(\App\Support\Website\WebsiteContentBaselineBuilder::class);
         $this->app->singleton(\App\Services\Website\WebsiteContentBaselineService::class);

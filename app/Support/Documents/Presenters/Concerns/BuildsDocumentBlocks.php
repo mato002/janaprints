@@ -4,10 +4,16 @@ namespace App\Support\Documents\Presenters\Concerns;
 
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Services\Documents\DocumentSettingsService;
 use App\Support\Branding\BrandingAssets;
 
 trait BuildsDocumentBlocks
 {
+    protected function documentSettings(): DocumentSettingsService
+    {
+        return app(DocumentSettingsService::class);
+    }
+
     protected function documentsLogoDataUri(): ?string
     {
         return app(BrandingAssets::class)->documentsLogoDataUri();
@@ -18,7 +24,7 @@ trait BuildsDocumentBlocks
      */
     protected function companyBlock(?Company $company = null): array
     {
-        $config = config('documents.company', []);
+        $config = $this->documentSettings()->company($company?->id);
 
         return [
             'name' => $company?->name ?? ($config['name'] ?? config('app.name')),
@@ -84,9 +90,9 @@ trait BuildsDocumentBlocks
     /**
      * @return list<array{label: string, value: string}>
      */
-    protected function invoicePaymentDetailsBlock(bool $compact = false): array
+    protected function invoicePaymentDetailsBlock(bool $compact = false, ?int $companyId = null): array
     {
-        $payment = config('documents.payment', []);
+        $payment = $this->documentSettings()->payment($companyId);
         $lines = [];
 
         if (! empty($payment['mpesa_paybill'])) {
@@ -144,9 +150,9 @@ trait BuildsDocumentBlocks
     /**
      * @return list<string>
      */
-    protected function paymentFooterBlock(): array
+    protected function paymentFooterBlock(?int $companyId = null): array
     {
-        $payment = config('documents.payment', []);
+        $payment = $this->documentSettings()->payment($companyId);
         $lines = [];
 
         if (! empty($payment['mpesa_paybill'])) {
@@ -179,6 +185,24 @@ trait BuildsDocumentBlocks
         }
 
         return $lines;
+    }
+
+    protected function documentFooterBlock(?int $companyId = null): array
+    {
+        return [
+            'thanks' => $this->documentSettings()->footerThanks($companyId),
+            'system' => $this->documentSettings()->footerSystem($companyId),
+        ];
+    }
+
+    protected function documentTaxLabel(?int $companyId = null): string
+    {
+        return $this->documentSettings()->taxLabel($companyId);
+    }
+
+    protected function documentTerm(string $type, ?int $companyId = null): ?string
+    {
+        return $this->documentSettings()->term($type, $companyId);
     }
 
     /**

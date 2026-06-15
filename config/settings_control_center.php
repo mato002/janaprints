@@ -72,6 +72,15 @@ return [
                     'link' => ['type' => 'route', 'name' => 'admin.settings.branding.edit'],
                     'status' => ['type' => 'branding'],
                 ],
+                [
+                    'id' => 'commercial-documents',
+                    'title' => 'Commercial Documents',
+                    'description' => 'Payment instructions, company details, terms, and footer text on invoices and quotations.',
+                    'icon' => 'document-text',
+                    'keywords' => ['invoice', 'quotation', 'receipt', 'mpesa', 'bank', 'payment', 'footer'],
+                    'link' => ['type' => 'route', 'name' => 'admin.documents.settings.index'],
+                    'status' => ['type' => 'route', 'name' => 'admin.documents.settings.index'],
+                ],
             ],
         ],
 

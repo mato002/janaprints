@@ -74,7 +74,8 @@ class InvoiceDocumentPresenter
             'columns' => $this->itemColumns(),
             'items' => $this->presentItems($invoice, $currency),
             'totals' => $this->presentTotals($invoice, $currency),
-            'paymentFooter' => $this->paymentFooterBlock(),
+            'paymentFooter' => $this->paymentFooterBlock($invoice->company_id),
+            'documentFooter' => $this->documentFooterBlock($invoice->company_id),
             'notesTerms' => [
                 'title' => __('Notes'),
                 'body' => $this->resolveNotesTerms($invoice, $invoiceCustom),
@@ -343,7 +344,7 @@ class InvoiceDocumentPresenter
 
         if ((float) $invoice->tax_amount > 0) {
             $lines[] = [
-                'label' => __('VAT / Tax'),
+                'label' => $this->documentTaxLabel($invoice->company_id),
                 'value' => $this->formatMoney((float) $invoice->tax_amount, $currency),
             ];
         }
@@ -377,7 +378,7 @@ class InvoiceDocumentPresenter
     {
         $parts = array_filter([
             $invoice->notes,
-            config('documents.terms.invoice'),
+            $this->documentTerm('invoice', $invoice->company_id),
         ]);
 
         return implode("\n\n", $parts);

@@ -57,10 +57,11 @@ class ReceiptDocumentPresenter
             'summary' => $this->presentSummary($payment, $receipt, $currency, $accountSettled),
             'allocations' => $this->presentAllocations($payment, $currency),
             'totals' => $this->presentTotals($receipt, $currency),
-            'paymentFooter' => $this->paymentFooterBlock(),
+            'paymentFooter' => $this->paymentFooterBlock($payment->company_id),
+            'documentFooter' => $this->documentFooterBlock($payment->company_id),
             'notesTerms' => [
                 'title' => __('Notes'),
-                'body' => $this->resolveNotesTerms($receipt),
+                'body' => $this->resolveNotesTerms($receipt, $payment->company_id),
             ],
         ];
     }
@@ -172,9 +173,15 @@ class ReceiptDocumentPresenter
     /**
      * @param  array<string, mixed>  $receipt
      */
-    protected function resolveNotesTerms(array $receipt): string
+    protected function resolveNotesTerms(array $receipt, ?int $companyId = null): string
     {
-        return trim((string) ($receipt['notes'] ?? ''));
+        $notes = trim((string) ($receipt['notes'] ?? ''));
+
+        if ($notes !== '') {
+            return $notes;
+        }
+
+        return (string) ($this->documentTerm('receipt', $companyId) ?? '');
     }
 
 }

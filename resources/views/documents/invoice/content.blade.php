@@ -18,7 +18,10 @@
     'totals' => $document['totals'],
 ])
 
-@include('documents.partials.payment-footer', ['paymentFooter' => $document['paymentFooter'] ?? []])
+@include('documents.partials.payment-footer', [
+    'paymentFooter' => $document['paymentFooter'] ?? [],
+    'documentFooter' => $document['documentFooter'] ?? [],
+])
 @if (empty($document['paymentFooter']))
-    @include('documents.partials.footer')
+    @include('documents.partials.footer', ['documentFooter' => $document['documentFooter'] ?? []])
 @endif

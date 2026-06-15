@@ -247,6 +247,23 @@ class DocumentPlatformRemediationTest extends TestCase
         }
     }
 
+    public function test_document_cms_schema_covers_env_backed_settings(): void
+    {
+        $schema = config('document_cms.settings', []);
+
+        foreach ([
+            'company.name',
+            'company.address',
+            'payment.mpesa_paybill',
+            'payment.bank_account',
+            'terms.invoice',
+            'footer.thanks',
+            'labels.tax',
+        ] as $key) {
+            $this->assertArrayHasKey($key, $schema, "Missing document CMS key: {$key}");
+        }
+    }
+
     protected function postFullPayment(): \App\Models\Sales\CustomerPayment
     {
         $payment = app(CustomerPaymentService::class)->create($this->customer, $this->admin->id, [

@@ -67,7 +67,8 @@ class QuotationDocumentPresenter
             ],
             'items' => $this->presentItems($quotation, $currency),
             'totals' => $this->presentTotals($quotation, $currency),
-            'paymentFooter' => $this->paymentFooterBlock(),
+            'paymentFooter' => $this->paymentFooterBlock($quotation->company_id),
+            'documentFooter' => $this->documentFooterBlock($quotation->company_id),
             'notesTerms' => [
                 'title' => __('Notes'),
                 'body' => $this->resolveNotesTerms($quotation, $custom),
@@ -131,7 +132,7 @@ class QuotationDocumentPresenter
 
         if ((float) $quotation->tax_amount > 0) {
             $lines[] = [
-                'label' => __('VAT / Tax'),
+                'label' => $this->documentTaxLabel($quotation->company_id),
                 'value' => $this->formatMoney((float) $quotation->tax_amount, $currency),
             ];
         }
@@ -178,7 +179,7 @@ class QuotationDocumentPresenter
         $parts = array_filter([
             $quotation->notes,
             $custom['terms'] ?? null,
-            config('documents.terms.quotation'),
+            $this->documentTerm('quotation', $quotation->company_id),
         ]);
 
         return implode("\n\n", $parts);

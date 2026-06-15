@@ -70,6 +70,13 @@ return [
                         'edit' => 'website.settings.edit',
                     ],
                 ],
+                'document_settings' => [
+                    'label' => 'Commercial Document Settings',
+                    'permissions' => [
+                        'view' => 'documents.settings.view',
+                        'edit' => 'documents.settings.edit',
+                    ],
+                ],
                 'system_health' => [
                     'label' => 'System Health',
                     'permissions' => [

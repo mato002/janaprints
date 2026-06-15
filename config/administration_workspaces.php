@@ -70,6 +70,15 @@ return [
             'icon' => 'photograph',
             'active_routes' => ['admin.workspaces.administration.section:website-content', 'admin.website.gallery.*', 'admin.website.media.*', 'admin.website.settings.*'],
         ],
+        [
+            'label' => 'Commercial Documents',
+            'description' => 'Branding, payment instructions, terms, and footer text on quotations, invoices, and receipts.',
+            'route' => 'admin.workspaces.administration.section',
+            'route_params' => ['section' => 'commercial-documents'],
+            'permission' => 'documents.settings.view',
+            'icon' => 'document-text',
+            'active_routes' => ['admin.workspaces.administration.section:commercial-documents', 'admin.documents.settings.*'],
+        ],
     ],
 
     'sections' => [
@@ -178,6 +187,29 @@ return [
                         ['label' => 'System Health', 'description' => 'Service status, queues, and performance metrics.', 'route' => 'admin.operations.health.index', 'permission' => 'operations.health.view', 'icon' => 'chip', 'active_routes' => ['admin.operations.health.*']],
                         ['label' => 'Backups', 'description' => 'Database and file backup schedules.', 'route' => 'admin.operations.backups.index', 'permission' => 'operations.backups.view', 'icon' => 'archive', 'active_routes' => ['admin.operations.backups.*']],
                         ['label' => 'Data Retention', 'description' => 'Archive policies and purge rules.', 'route' => 'admin.operations.retention.index', 'permission' => 'operations.retention.view', 'icon' => 'archive', 'active_routes' => ['admin.operations.retention.*']],
+                    ],
+                ],
+            ],
+        ],
+
+        'commercial-documents' => [
+            'title' => 'Commercial Documents',
+            'description' => 'Configure quotation, invoice, and receipt branding without editing environment files.',
+            'icon' => 'document-text',
+            'groups' => [
+                [
+                    'label' => 'Document Branding',
+                    'items' => [
+                        [
+                            'key' => 'document-settings',
+                            'label' => 'Document Settings',
+                            'description' => 'Company details, M-Pesa and bank instructions, terms, footer messages, and tax label.',
+                            'route' => 'admin.documents.settings.index',
+                            'permission' => 'documents.settings.view',
+                            'icon' => 'document-text',
+                            'keywords' => ['invoice', 'quotation', 'receipt', 'payment', 'mpesa', 'bank', 'footer', 'terms'],
+                            'active_routes' => ['admin.documents.settings.index', 'admin.documents.settings.update', 'admin.documents.settings.reset'],
+                        ],
                     ],
                 ],
             ],
