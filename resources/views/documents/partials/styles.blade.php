@@ -370,23 +370,6 @@
         page-break-inside: avoid;
     }
 
-    .jp-doc__payment-footer-title {
-        font-size: 8.5pt;
-        font-weight: bold;
-        margin: 0 0 2mm;
-        text-decoration: underline;
-    }
-
-    .jp-doc__payment-footer-line {
-        font-size: 8pt;
-        line-height: 1.55;
-        margin: 0 0 1.5mm;
-    }
-
-    .jp-doc__payment-footer-line:last-child {
-        margin-bottom: 0;
-    }
-
     .jp-doc__payment-footer-table {
         width: 100%;
     }
@@ -422,6 +405,23 @@
         margin-bottom: 0;
     }
 
+    .jp-doc__payment-footer-title {
+        font-size: 8.5pt;
+        font-weight: bold;
+        margin: 0 0 2mm;
+        text-decoration: underline;
+    }
+
+    .jp-doc__payment-footer-line {
+        font-size: 8pt;
+        line-height: 1.55;
+        margin: 0 0 1.5mm;
+    }
+
+    .jp-doc__payment-footer-line:last-child {
+        margin-bottom: 0;
+    }
+
     /* ── Document footer ── */
     .jp-doc__footer {
         color: #94A3B8;
@@ -454,9 +454,4 @@
         page-break-inside: avoid;
     }
 
-    @media print {
-        .jp-doc-actions {
-            display: none !important;
-        }
-    }
 </style>

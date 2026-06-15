@@ -231,6 +231,22 @@ class DocumentPlatformRemediationTest extends TestCase
         $this->assertStringContainsString('jp-doc__payment-footer', $styles);
     }
 
+    public function test_document_print_styles_hide_admin_shell_and_match_pdf_layout(): void
+    {
+        $printStyles = file_get_contents(resource_path('views/documents/partials/print-styles.blade.php'));
+
+        $this->assertStringContainsString('@media print', $printStyles);
+        $this->assertStringContainsString('visibility: hidden', $printStyles);
+        $this->assertStringContainsString('#invoice-document', $printStyles);
+        $this->assertStringContainsString('padding: 0 6mm 36mm', $printStyles);
+        $this->assertStringContainsString('position: fixed', $printStyles);
+
+        foreach (['invoice/show.blade.php', 'quotation/show.blade.php', 'receipt/show.blade.php'] as $view) {
+            $show = file_get_contents(resource_path('views/documents/'.$view));
+            $this->assertStringContainsString("documents.partials.print-styles", $show);
+        }
+    }
+
     protected function postFullPayment(): \App\Models\Sales\CustomerPayment
     {
         $payment = app(CustomerPaymentService::class)->create($this->customer, $this->admin->id, [
