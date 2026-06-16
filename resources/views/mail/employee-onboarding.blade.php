@@ -1,21 +1,21 @@
 @extends('mail.layouts.jana')
 
 @section('content')
-    <h2 style="margin:0 0 16px;color:#0f1b3d;font-size:20px;">{{ __('Welcome to Jana Prints') }}</h2>
+    <h2 style="margin:0 0 16px;color:#0f1b3d;font-size:20px;">{{ __('Welcome to :company', ['company' => $companyName ?? 'Jana Prints']) }}</h2>
 
     <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
         {{ __('Hello :name,', ['name' => $employeeName]) }}
     </p>
 
     <p style="margin:0 0 16px;color:#334155;font-size:15px;line-height:1.6;">
-        {{ __('Your employee account has been created. Use the details below to activate your corporate email and ERP access.') }}
+        {{ __('Your employee account has been created. Use the button below to set your password and access the ERP.') }}
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
         <tr>
             <td style="padding:16px 20px;">
-                <p style="margin:0 0 8px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">{{ __('Corporate email') }}</p>
-                <p style="margin:0;color:#0f1b3d;font-size:16px;font-weight:600;">{{ $corporateEmail }}</p>
+                <p style="margin:0 0 8px;color:#64748b;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">{{ __('Login email') }}</p>
+                <p style="margin:0;color:#0f1b3d;font-size:16px;font-weight:600;">{{ $loginEmail }}</p>
             </td>
         </tr>
     </table>

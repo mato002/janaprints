@@ -10,8 +10,4 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:integrations.view|employees.manage|integrations.manage')->group(function () {
             Route::get('/', [EmailIdentityController::class, 'index'])->name('index');
         });
-
-        Route::middleware('permission:integrations.manage|employees.manage')->group(function () {
-            Route::post('/test-cpanel', [EmailIdentityController::class, 'testCpanel'])->name('test-cpanel');
-        });
     });

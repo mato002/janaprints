@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Services\EmailIdentity\EmailIdentityAuditService;
 use App\Services\EmailIdentity\EmailSenderResolver;
 use App\Enums\EmailIdentity\MailboxAuditAction;
+use App\Support\Branding\BrandingAssets;
 use Illuminate\Support\Facades\Mail;
 
 class SendEmployeeOnboardingEmailJob extends PlatformJob
@@ -15,7 +16,6 @@ class SendEmployeeOnboardingEmailJob extends PlatformJob
     public function __construct(
         public int $employeeId,
         public string $personalEmail,
-        public string $corporateEmail,
         public string $activationUrl,
         public string $expiresAt,
     ) {
@@ -23,9 +23,9 @@ class SendEmployeeOnboardingEmailJob extends PlatformJob
         $this->useQueue('emails');
     }
 
-    public function handle(EmailIdentityAuditService $audit, EmailSenderResolver $senderResolver): void
+    public function handle(EmailIdentityAuditService $audit, EmailSenderResolver $senderResolver, BrandingAssets $branding): void
     {
-        $employee = Employee::query()->find($this->employeeId);
+        $employee = Employee::query()->with('company')->find($this->employeeId);
 
         if (! $employee) {
             return;
@@ -48,13 +48,15 @@ class SendEmployeeOnboardingEmailJob extends PlatformJob
 
         Mail::mailer($mailer)->to($this->personalEmail)->send(new EmployeeOnboardingMail(
             employeeName: $employee->full_name,
-            corporateEmail: $this->corporateEmail,
+            loginEmail: $this->personalEmail,
             activationUrl: $this->activationUrl,
             expiresAtFormatted: \Illuminate\Support\Carbon::parse($this->expiresAt)->format('F j, Y g:i A'),
             supportEmail: (string) $supportEmail,
             fromAddress: (string) $sender->address,
             fromName: $fromName,
             replyToAddress: (string) ($senderResolver->resolve('support')->address ?: $sender->address),
+            logoDataUri: $branding->documentsLogoDataUri($employee->company),
+            companyName: $employee->company?->name ?? config('app.name'),
         ));
 
         $audit->logForEmployee(MailboxAuditAction::InvitationSent, $employee, [

@@ -5,7 +5,11 @@
             <span class="text-sm text-slate-500">Rev {{ $quotation->revision_number }}</span>
             @can('view', $quotation)
                 <a href="{{ route('admin.quotations.document', $quotation) }}" class="erp-btn-secondary">{{ __('View document') }}</a>
-                <a href="{{ route('admin.quotations.document.pdf', $quotation) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Download PDF') }}</a>
+                <x-documents.pdf-download-button
+                    :url="route('admin.quotations.document.pdf', $quotation)"
+                    :filename="$quotation->quotation_number"
+                    class="erp-btn-secondary"
+                />
             @endcan
             @can('update', $quotation)
                 <a href="{{ route('admin.quotations.edit', $quotation) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>

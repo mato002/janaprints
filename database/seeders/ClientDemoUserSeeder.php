@@ -9,7 +9,6 @@ use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class ClientDemoUserSeeder extends Seeder
 {
@@ -44,7 +43,7 @@ class ClientDemoUserSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
-                'password' => Hash::make($password),
+                'password' => $password,
                 'company_id' => $company->id,
                 'default_branch_id' => $branch->id,
                 'customer_id' => $customer->id,

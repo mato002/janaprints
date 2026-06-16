@@ -1,10 +1,11 @@
-@props(['transparent' => true])
+@props(['transparent' => true, 'portal' => false])
 
 <header
     data-public-header
     @class([
         'public-header',
         'public-header--top' => $transparent,
+        'public-header--portal' => $portal,
     ])
 >
     <div class="public-container public-container--wide">
@@ -24,22 +25,28 @@
             </nav>
 
             <div class="public-header__actions">
-                @auth
-                    @if (auth()->user()->isClientPortalAccount())
-                        <a href="{{ route('client.dashboard') }}" class="public-header__link hidden text-sm font-medium md:inline">
-                            Client Portal
-                        </a>
-                    @endif
+                @if ($portal)
+                    <div class="hidden md:block">
+                        <x-client.profile-menu />
+                    </div>
                 @else
-                    @if (Route::has('client.login'))
-                        <a href="{{ route('client.login') }}" class="public-header__link hidden text-sm font-medium md:inline">
-                            Client Login
-                        </a>
-                    @endif
-                @endauth
+                    @auth
+                        @if (auth()->user()->isClientPortalAccount())
+                            <a href="{{ route('client.dashboard') }}" class="public-header__link hidden text-sm font-medium md:inline">
+                                {{ __('Client Portal') }}
+                            </a>
+                        @endif
+                    @else
+                        @if (Route::has('client.login'))
+                            <a href="{{ route('client.login') }}" class="public-header__link hidden text-sm font-medium md:inline">
+                                {{ __('Client Login') }}
+                            </a>
+                        @endif
+                    @endauth
+                @endif
 
                 <a href="{{ $quoteFormHref }}" class="public-header__quote-btn public-btn--primary public-btn--sm hidden shadow-brand-glow md:inline-flex">
-                    Request Quote
+                    {{ __('Request Quote') }}
                 </a>
 
                 <button
@@ -71,15 +78,33 @@
                 <li><a href="{{ route('storefront.gallery') }}">Gallery</a></li>
                 <li><a href="{{ $aboutSectionHref }}">About</a></li>
                 <li><a href="{{ $contactSectionHref }}">Contact</a></li>
-                @auth
-                    @if (auth()->user()->isClientPortalAccount())
-                        <li><a href="{{ route('client.dashboard') }}">Client Portal</a></li>
-                    @endif
+                @if ($portal)
+                    <li class="public-mobile-nav__divider" aria-hidden="true"></li>
+                    <li class="public-mobile-nav__section-label">{{ __('My account') }}</li>
+                    <li><a href="{{ route('client.dashboard') }}">{{ __('Overview') }}</a></li>
+                    <li><a href="{{ route('client.quotations.index') }}">{{ __('Quotes') }}</a></li>
+                    <li><a href="{{ route('client.orders.index') }}">{{ __('Orders') }}</a></li>
+                    <li><a href="{{ route('client.invoices.index') }}">{{ __('Invoices') }}</a></li>
+                    <li><a href="{{ route('client.payments.index') }}">{{ __('Payments') }}</a></li>
+                    <li><a href="{{ route('client.artwork.index') }}">{{ __('Artwork') }}</a></li>
+                    <li><a href="{{ route('client.account.edit') }}">{{ __('Account settings') }}</a></li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="public-mobile-nav__signout">{{ __('Sign out') }}</button>
+                        </form>
+                    </li>
                 @else
-                    @if (Route::has('client.login'))
-                        <li><a href="{{ route('client.login') }}">Client Login</a></li>
-                    @endif
-                @endauth
+                    @auth
+                        @if (auth()->user()->isClientPortalAccount())
+                            <li><a href="{{ route('client.dashboard') }}">{{ __('Client Portal') }}</a></li>
+                        @endif
+                    @else
+                        @if (Route::has('client.login'))
+                            <li><a href="{{ route('client.login') }}">{{ __('Client Login') }}</a></li>
+                        @endif
+                    @endauth
+                @endif
             </ul>
 
             <div class="public-mobile-nav__cta-wrap">

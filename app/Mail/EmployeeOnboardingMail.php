@@ -15,13 +15,15 @@ class EmployeeOnboardingMail extends Mailable
 
     public function __construct(
         public string $employeeName,
-        public string $corporateEmail,
+        public string $loginEmail,
         public string $activationUrl,
         public string $expiresAtFormatted,
         public string $supportEmail,
         public string $fromAddress,
         public string $fromName,
         public string $replyToAddress,
+        public ?string $logoDataUri = null,
+        public string $companyName = 'Jana Prints',
     ) {}
 
     public function envelope(): Envelope
@@ -31,7 +33,7 @@ class EmployeeOnboardingMail extends Mailable
             replyTo: [
                 new Address($this->replyToAddress, $this->fromName),
             ],
-            subject: __('Welcome to Jana Prints'),
+            subject: __('Welcome to :company', ['company' => $this->companyName]),
         );
     }
 
@@ -40,6 +42,10 @@ class EmployeeOnboardingMail extends Mailable
         return new Content(
             view: 'mail.employee-onboarding',
             text: 'mail.employee-onboarding-text',
+            with: [
+                'logoDataUri' => $this->logoDataUri,
+                'companyName' => $this->companyName,
+            ],
         );
     }
 }

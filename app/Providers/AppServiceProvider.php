@@ -382,6 +382,10 @@ class AppServiceProvider extends ServiceProvider
             return \App\Models\Communications\Inbox\CommunicationConversation::query()->findOrFail($value);
         });
 
+        \Illuminate\Support\Facades\Route::bind('artwork', function (string $value) {
+            return ArtworkRequest::query()->findOrFail($value);
+        });
+
         foreach ($this->policies() as $model => $policy) {
             Gate::policy($model, $policy);
         }
@@ -402,10 +406,14 @@ class AppServiceProvider extends ServiceProvider
 
         $this->assertProductionEnvironmentIsSafe();
 
-        View::share('quoteFormHref', \App\Support\Storefront\StorefrontUrls::quoteForm());
-        View::share('contactSectionHref', \App\Support\Storefront\StorefrontUrls::contactSection());
-        View::share('aboutSectionHref', \App\Support\Storefront\StorefrontUrls::aboutSection());
-        View::share('consultationHref', \App\Support\Storefront\StorefrontUrls::contactSection('consultation'));
+        View::composer('*', function ($view): void {
+            $view->with([
+                'quoteFormHref' => \App\Support\Storefront\StorefrontUrls::quoteForm(),
+                'contactSectionHref' => \App\Support\Storefront\StorefrontUrls::contactSection(),
+                'aboutSectionHref' => \App\Support\Storefront\StorefrontUrls::aboutSection(),
+                'consultationHref' => \App\Support\Storefront\StorefrontUrls::contactSection('consultation'),
+            ]);
+        });
 
         Event::listen(Login::class, [LogAuthenticationActivity::class, 'handleLogin']);
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);

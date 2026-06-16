@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\User;
 
 class Customer extends Model
 {
@@ -76,5 +78,22 @@ class Customer extends Model
     public function segments(): BelongsToMany
     {
         return $this->belongsToMany(CustomerSegment::class, 'customer_segment_customer');
+    }
+
+    public function portalUsers(): HasMany
+    {
+        return $this->hasMany(User::class, 'customer_id')
+            ->whereNull('employee_id');
+    }
+
+    public function portalUser(): HasOne
+    {
+        return $this->hasOne(User::class, 'customer_id')
+            ->whereNull('employee_id');
+    }
+
+    public function hasPortalAccess(): bool
+    {
+        return $this->portalUsers()->exists();
     }
 }

@@ -34,7 +34,7 @@ class SettingsControlCenterPresenterTest extends TestCase
 
         $payload = $presenter->hub($company->id, null);
 
-        $this->assertSame(42, $payload['summary']['total_areas']);
+        $this->assertSame(43, $payload['summary']['total_areas']);
         $this->assertCount(7, $payload['domains']);
         $this->assertSame('Organization', $payload['domains'][0]['label']);
         $this->assertSame('Roles & Access', $payload['domains'][0]['cards'][4]['title']);
@@ -72,7 +72,7 @@ class SettingsControlCenterPresenterTest extends TestCase
 
         $this->assertCount(8, $payload['filters']);
         $this->assertSame('all', $payload['filters'][0]['slug']);
-        $this->assertCount(42, $payload['cards']);
+        $this->assertCount(43, $payload['cards']);
         $this->assertSame('organization', $payload['cards'][0]['domain_slug']);
     }
 }

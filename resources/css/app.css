@@ -3687,6 +3687,10 @@
         @apply bg-sky-100 text-sky-800;
     }
 
+    .crm-customers__portal-badge {
+        @apply inline-flex shrink-0 items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700 ring-1 ring-inset ring-indigo-200;
+    }
+
     .crm-customers__cell-customer {
         @apply min-w-[12rem];
     }

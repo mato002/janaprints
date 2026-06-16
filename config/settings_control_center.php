@@ -433,6 +433,15 @@ return [
                     'keywords' => ['api', 'token', 'developer', 'integration'],
                     'coming_soon' => true,
                 ],
+                [
+                    'id' => 'company-email',
+                    'title' => 'Company Email',
+                    'description' => 'Create and manage company mailboxes through cPanel from the dashboard.',
+                    'icon' => 'inbox',
+                    'keywords' => ['email', 'mailbox', 'cpanel', 'company', 'corporate'],
+                    'link' => ['type' => 'route', 'name' => 'admin.settings.company-email.index'],
+                    'status' => ['type' => 'company_email'],
+                ],
             ],
         ],
 

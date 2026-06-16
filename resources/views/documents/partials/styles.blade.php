@@ -371,6 +371,7 @@
     }
 
     .jp-doc__payment-footer-table {
+        table-layout: fixed;
         width: 100%;
     }
 

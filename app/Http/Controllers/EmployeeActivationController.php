@@ -28,7 +28,7 @@ class EmployeeActivationController extends Controller
         return view('auth.employee-activate', [
             'token' => $token,
             'employeeName' => $activation->employee->full_name,
-            'corporateEmail' => $activation->corporate_email,
+            'loginEmail' => $activation->personal_email,
             'expiresAt' => $activation->expires_at,
         ]);
     }
@@ -63,7 +63,7 @@ class EmployeeActivationController extends Controller
 
             return redirect()
                 ->route('admin.login')
-                ->with('status', __('Your account is activated. Sign in with your corporate email and new password.'));
+                ->with('status', __('Your account is activated. Sign in with your email and new password.'));
         }
     }
 }

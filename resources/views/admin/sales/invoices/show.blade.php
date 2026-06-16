@@ -10,7 +10,11 @@
             <span class="erp-badge">{{ $invoice->invoice_type->label() }}</span>
             @can('view', $invoice)
                 <a href="{{ route('admin.invoices.document', $invoice) }}" class="erp-btn-secondary">{{ __('View document') }}</a>
-                <a href="{{ route('admin.invoices.document.pdf', $invoice) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Download PDF') }}</a>
+                <x-documents.pdf-download-button
+                    :url="route('admin.invoices.document.pdf', $invoice)"
+                    :filename="$invoice->invoice_number"
+                    class="erp-btn-secondary"
+                />
             @endcan
             @can('update', $invoice)
                 <a href="{{ route('admin.invoices.edit', $invoice) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>

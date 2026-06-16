@@ -12,7 +12,7 @@ class StorefrontUrls
             return route('storefront.quote').'#quote-form';
         }
 
-        return '#quote-form';
+        return self::homeUrl().'#quote-form';
     }
 
     public static function contactSection(?string $type = null): string

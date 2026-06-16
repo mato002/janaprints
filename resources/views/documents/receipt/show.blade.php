@@ -6,7 +6,11 @@
     <div class="jp-doc-actions mb-4 flex flex-wrap justify-center gap-2 print:hidden">
         <button type="button" onclick="window.print()" class="erp-btn-primary">{{ __('Print receipt') }}</button>
         @can('downloadReceiptPdf', $payment)
-            <a href="{{ route('admin.payments.receipt.pdf', $payment) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Download PDF') }}</a>
+            <x-documents.pdf-download-button
+                :url="route('admin.payments.receipt.pdf', $payment)"
+                :filename="$payment->receipt_number"
+                class="erp-btn-secondary"
+            />
         @endcan
         @can('emailReceipt', $payment)
             <form method="POST" action="{{ route('admin.payments.receipt.email', $payment) }}">@csrf

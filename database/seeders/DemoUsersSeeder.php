@@ -117,6 +117,11 @@ class DemoUsersSeeder extends Seeder
             );
 
             $user->syncRoles([$seedUser['role']]);
+
+            $employee->update([
+                'activation_role' => $seedUser['role'],
+                'activation_status' => \App\Enums\EmailIdentity\EmployeeActivationStatus::Activated,
+            ]);
         }
     }
 }

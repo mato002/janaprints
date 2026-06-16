@@ -172,6 +172,10 @@ class SettingsControlCenterPresenter
                 $this->companyHasBrandingAssets($companyId) ? 1 : 0,
                 1,
             ),
+            'company_email' => $this->buildStatus(
+                app(\App\Services\EmailIdentity\CpanelApiClient::class)->isConfigured() ? 1 : 0,
+                1,
+            ),
             default => $this->buildStatus(1, 1),
         };
     }

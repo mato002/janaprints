@@ -16,14 +16,14 @@ class EmployeeActivationRoleResolver
     {
         $employee->loadMissing(['jobTitle', 'department']);
 
-        if ($explicitRole && $this->roleExists($explicitRole) && $this->isAssignable($explicitRole)) {
+        if ($explicitRole && $this->roleExists($explicitRole) && $this->canAssignRoleAtActivation($employee, $explicitRole)) {
             return $explicitRole;
         }
 
         $jobTitleCode = $employee->jobTitle?->code;
         if ($jobTitleCode) {
             $mapped = config("employee_onboarding.job_title_role_map.{$jobTitleCode}");
-            if ($this->isValidMappedRole($mapped)) {
+            if ($this->isValidMappedRole($mapped, $employee)) {
                 return $mapped;
             }
         }
@@ -31,13 +31,13 @@ class EmployeeActivationRoleResolver
         $departmentCode = $employee->department?->code;
         if ($departmentCode) {
             $mapped = config("employee_onboarding.department_role_map.{$departmentCode}");
-            if ($this->isValidMappedRole($mapped)) {
+            if ($this->isValidMappedRole($mapped, $employee)) {
                 return $mapped;
             }
         }
 
         $resolved = $this->defaultRoles->resolveDefaultRole();
-        if ($this->isValidMappedRole($resolved)) {
+        if ($this->isValidMappedRole($resolved, $employee)) {
             return $resolved;
         }
 
@@ -68,6 +68,24 @@ class EmployeeActivationRoleResolver
     }
 
     /**
+     * Roles chosen by an admin during employee onboarding must still apply at
+     * activation when the new user is unauthenticated (e.g. Super Admin).
+     */
+    public function canAssignRoleAtActivation(Employee $employee, string $roleName): bool
+    {
+        if ($this->isAssignable($roleName)) {
+            return true;
+        }
+
+        // System role pre-selected by an admin during employee onboarding.
+        if (filled($employee->activation_role) && $employee->activation_role === $roleName) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @return \Illuminate\Support\Collection<int, Role>
      */
     public function assignableRolesFor(?User $user = null): \Illuminate\Support\Collection
@@ -83,8 +101,14 @@ class EmployeeActivationRoleResolver
         return $query->get();
     }
 
-    protected function isValidMappedRole(?string $roleName): bool
+    protected function isValidMappedRole(?string $roleName, ?Employee $employee = null): bool
     {
-        return $this->roleExists($roleName) && $this->isAssignable($roleName);
+        if (! $this->roleExists($roleName)) {
+            return false;
+        }
+
+        return $employee
+            ? $this->canAssignRoleAtActivation($employee, $roleName)
+            : $this->isAssignable($roleName);
     }
 }

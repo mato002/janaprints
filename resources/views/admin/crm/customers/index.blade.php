@@ -94,7 +94,12 @@
                             <div class="flex items-center gap-3">
                                 <div class="crm-customers__avatar" aria-hidden="true">{{ $initial }}</div>
                                 <div class="min-w-0">
-                                    <div class="truncate font-semibold text-slate-900 group-hover:text-indigo-800">{{ $customer->company_name }}</div>
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <div class="truncate font-semibold text-slate-900 group-hover:text-indigo-800">{{ $customer->company_name }}</div>
+                                        @if ($customer->portalUser)
+                                            <span class="crm-customers__portal-badge">{{ __('Portal') }}</span>
+                                        @endif
+                                    </div>
                                     <div class="font-mono text-[11px] text-slate-500">{{ $customer->customer_code }}</div>
                                 </div>
                             </div>

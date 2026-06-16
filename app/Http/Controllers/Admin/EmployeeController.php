@@ -12,13 +12,11 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\JobTitle;
-use App\Services\EmailIdentity\CorporateEmailGeneratorService;
 use App\Services\EmailIdentity\EmployeeActivationManagementService;
 use App\Services\EmailIdentity\EmployeeActivationRoleResolver;
 use App\Services\EmailIdentity\EmployeeOnboardingService;
 use App\Support\Export\TabularExportWriter;
 use App\Support\Organization\JobTitleService;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -35,7 +33,7 @@ class EmployeeController extends Controller
         $this->authorize('viewAny', Employee::class);
 
         $employees = $this->scopeToTenant(
-            Employee::query()->with(['company', 'branch', 'department', 'jobTitle', 'corporateMailbox', 'activations'])
+            Employee::query()->with(['company', 'branch', 'department', 'jobTitle', 'activations', 'user.roles'])
         )->latest()->paginate(15);
 
         $activationManagement = app(EmployeeActivationManagementService::class);
@@ -84,23 +82,6 @@ class EmployeeController extends Controller
         return redirect()->route('admin.employees.index')->with('status', __('Employee created. Onboarding invitation queued.'));
     }
 
-    public function previewCorporateEmail(Request $request): JsonResponse
-    {
-        $this->authorize('create', Employee::class);
-
-        $validated = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-        ]);
-
-        $email = app(CorporateEmailGeneratorService::class)->preview(
-            $validated['first_name'],
-            $validated['last_name'],
-        );
-
-        return response()->json(['email' => $email]);
-    }
-
     public function edit(Employee $employee): View
     {
         $this->authorize('update', $employee);
@@ -113,7 +94,7 @@ class EmployeeController extends Controller
             ? $logService->forEntity('employee', $employee->id, $employee->company_id, 15, \App\Enums\CommunicationLogChannel::Email)
             : collect();
 
-        $employee->load(['corporateMailbox', 'user.roles', 'activations']);
+        $employee->load(['user.roles', 'activations']);
         $activationManagement = app(EmployeeActivationManagementService::class);
         $activationStatus = $activationManagement->activationDisplayStatus($employee);
         $latestActivation = $activationManagement->latestOpenActivation($employee)
@@ -254,7 +235,6 @@ class EmployeeController extends Controller
             'jobTitles' => JobTitle::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('title')->get(),
             'genders' => Gender::cases(),
             'statuses' => EmploymentStatus::cases(),
-            'mailDomain' => config('mailboxes.domain'),
             'assignableRoles' => $this->canAssignActivationRole()
                 ? $roleResolver->assignableRolesFor()
                 : collect(),

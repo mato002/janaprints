@@ -3,6 +3,8 @@
  * Scroll reveals, sticky header, smooth anchors, counters, subtle parallax.
  */
 
+import { initDocumentPdfDownload } from './document-pdf-download';
+
 document.addEventListener('DOMContentLoaded', () => {
     initPageLoader();
     initScrollProgress();
@@ -27,6 +29,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollNav();
     initMobileNav();
     initRevealOnScroll();
+    initClientPasswordToggle();
+    initClientPortal();
+    initDocumentPdfDownload();
 
     requestAnimationFrame(() => {
         document.documentElement.classList.add('public-anim-active');
@@ -1411,5 +1416,131 @@ function initExitIntentStructure() {
         if (event.clientY <= 0 && !shown) {
             open();
         }
+    });
+}
+
+function initClientPortal() {
+    initClientProfileMenu();
+    initClientSidebar();
+}
+
+function initClientProfileMenu() {
+    document.querySelectorAll('[data-client-profile-menu]').forEach((menu) => {
+        const toggle = menu.querySelector('[data-client-profile-toggle]');
+        const dropdown = menu.querySelector('[data-client-profile-dropdown]');
+
+        if (!toggle || !dropdown) {
+            return;
+        }
+
+        const close = () => {
+            dropdown.hidden = true;
+            toggle.setAttribute('aria-expanded', 'false');
+        };
+
+        toggle.addEventListener('click', (event) => {
+            event.stopPropagation();
+            const willOpen = dropdown.hidden;
+            document.querySelectorAll('[data-client-profile-dropdown]').forEach((panel) => {
+                panel.hidden = true;
+            });
+            document.querySelectorAll('[data-client-profile-toggle]').forEach((btn) => {
+                btn.setAttribute('aria-expanded', 'false');
+            });
+
+            if (willOpen) {
+                dropdown.hidden = false;
+                toggle.setAttribute('aria-expanded', 'true');
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            if (!menu.contains(event.target)) {
+                close();
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                close();
+            }
+        });
+    });
+}
+
+function initClientSidebar() {
+    const sidebar = document.querySelector('[data-client-sidebar]');
+    const backdrop = document.querySelector('[data-client-sidebar-backdrop]');
+    const toggles = document.querySelectorAll('[data-client-sidebar-toggle]');
+    const links = document.querySelectorAll('[data-client-sidebar-link]');
+
+    if (!sidebar || !backdrop || toggles.length === 0) {
+        return;
+    }
+
+    const close = () => {
+        sidebar.classList.remove('is-open');
+        backdrop.hidden = true;
+        document.body.classList.remove('client-sidebar-open');
+        toggles.forEach((toggle) => toggle.setAttribute('aria-expanded', 'false'));
+    };
+
+    const open = () => {
+        sidebar.classList.add('is-open');
+        backdrop.hidden = false;
+        document.body.classList.add('client-sidebar-open');
+        toggles.forEach((toggle) => toggle.setAttribute('aria-expanded', 'true'));
+    };
+
+    toggles.forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            if (sidebar.classList.contains('is-open')) {
+                close();
+            } else {
+                open();
+            }
+        });
+    });
+
+    backdrop.addEventListener('click', close);
+
+    links.forEach((link) => {
+        link.addEventListener('click', () => {
+            if (window.matchMedia('(max-width: 1023px)').matches) {
+                close();
+            }
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            close();
+        }
+    });
+}
+
+function initClientPasswordToggle() {
+    document.querySelectorAll('.client-password-wrap').forEach((wrap) => {
+        const toggle = wrap.querySelector('.client-password-toggle');
+        const input = wrap.querySelector('input');
+
+        if (!toggle || !input) {
+            return;
+        }
+
+        const showIcon = toggle.querySelector('[data-show-icon]');
+        const hideIcon = toggle.querySelector('[data-hide-icon]');
+
+        toggle.addEventListener('click', () => {
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            toggle.setAttribute('aria-pressed', String(isHidden));
+            toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+
+            if (showIcon && hideIcon) {
+                showIcon.hidden = isHidden;
+                hideIcon.hidden = !isHidden;
+            }
+        });
     });
 }

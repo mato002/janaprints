@@ -1,10 +1,10 @@
-{{ __('Welcome to Jana Prints') }}
+{{ __('Welcome to :company', ['company' => $companyName ?? 'Jana Prints']) }}
 
 {{ __('Hello :name,', ['name' => $employeeName]) }}
 
 {{ __('Your employee account has been created.') }}
 
-{{ __('Corporate email') }}: {{ $corporateEmail }}
+{{ __('Login email') }}: {{ $loginEmail }}
 
 {{ __('Activate your account') }}: {{ $activationUrl }}
 

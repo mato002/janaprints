@@ -73,3 +73,4 @@ Route::middleware(['auth', 'tenant'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+require __DIR__.'/client.php';

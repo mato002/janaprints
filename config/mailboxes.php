@@ -29,28 +29,19 @@ $productionOnboardingReply = env('ONBOARDING_MAIL_REPLY_TO', env('MAILBOX_INFO',
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Corporate Mail Domain
-    |--------------------------------------------------------------------------
-    |
-    | Corporate email addresses (firstname.lastname@domain) still use this domain
-    | during local testing — only SMTP delivery routes through Gmail.
-    |
-    */
-
-    'domain' => env('MAIL_DOMAIN', 'janaprints.co.ke'),
+    'domain' => env('MAILBOX_DOMAIN', ''),
 
     'department' => $department,
 
     'system' => $system,
 
     'cpanel' => [
-        'host' => env('CPANEL_HOST'),
-        'username' => env('CPANEL_USERNAME'),
-        'api_token' => env('CPANEL_API_TOKEN'),
+        'host' => env('CPANEL_HOST', ''),
+        'username' => env('CPANEL_USERNAME', ''),
+        'api_token' => env('CPANEL_API_TOKEN', ''),
         'port' => (int) env('CPANEL_PORT', 2083),
         'default_quota_mb' => (int) env('CPANEL_MAILBOX_QUOTA_MB', 250),
+        'verify_ssl' => filter_var(env('CPANEL_VERIFY_SSL', true), FILTER_VALIDATE_BOOL),
     ],
 
     'activation' => [
@@ -65,6 +56,13 @@ return [
         'from_address' => $localTesting && filled($localFrom) ? $localFrom : $productionOnboardingFrom,
         'from_name' => env('ONBOARDING_MAIL_FROM_NAME', env('APP_NAME', 'Jana Prints')),
         'reply_to' => $localTesting && filled($localFrom) ? $localFrom : $productionOnboardingReply,
+    ],
+
+    'auth' => [
+        'mailer' => env('AUTH_MAIL_MAILER', env('ONBOARDING_MAIL_MAILER', 'onboarding')),
+        'from_name' => env('AUTH_MAIL_FROM_NAME', env('ONBOARDING_MAIL_FROM_NAME', env('APP_NAME', 'Jana Prints'))),
+        'from_address' => env('AUTH_MAIL_FROM_ADDRESS', env('ONBOARDING_MAIL_FROM_ADDRESS', env('MAILBOX_INFO', 'info@janaprints.co.ke'))),
+        'reply_to' => env('AUTH_MAIL_REPLY_TO', env('ONBOARDING_MAIL_REPLY_TO', env('MAILBOX_SUPPORT', env('MAILBOX_INFO', 'info@janaprints.co.ke')))),
     ],
 
 ];

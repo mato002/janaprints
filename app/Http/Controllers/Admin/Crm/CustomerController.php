@@ -37,7 +37,7 @@ class CustomerController extends Controller
         $this->authorize('viewAny', Customer::class);
 
         $customers = $this->scopeToTenant(
-            Customer::query()->with(['branch', 'segments'])
+            Customer::query()->with(['branch', 'segments', 'portalUser'])
         )->latest()->paginate(15);
 
         return view('admin.crm.customers.index', compact('customers'));
@@ -129,7 +129,7 @@ class CustomerController extends Controller
     {
         $this->authorize('view', $customer);
 
-        $customer->load(['contacts', 'customerNotes.user', 'files.uploader', 'activities.user', 'segments', 'branch']);
+        $customer->load(['contacts', 'customerNotes.user', 'files.uploader', 'activities.user', 'segments', 'branch', 'portalUser.sessions']);
 
         $logService = app(\App\Support\Communications\CommunicationLogService::class);
         $communicationTimeline = auth()->user()->can('communications.logs.view')

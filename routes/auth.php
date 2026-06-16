@@ -20,6 +20,22 @@ Route::prefix('client')->group(function () {
         ->name('client.login');
 
     Route::post('login', [ClientAuthenticatedSessionController::class, 'store']);
+
+    Route::middleware('guest')->group(function () {
+        Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
+            ->name('client.password.request');
+
+        Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+            ->middleware('throttle:6,1')
+            ->name('client.password.email');
+
+        Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
+            ->name('client.password.reset');
+
+        Route::post('reset-password', [NewPasswordController::class, 'store'])
+            ->middleware('throttle:6,1')
+            ->name('client.password.store');
+    });
 });
 
 Route::middleware('guest')->group(function () {
@@ -36,17 +52,15 @@ Route::middleware('guest')->group(function () {
         ->name('password.request');
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
+        ->middleware('throttle:6,1')
         ->name('password.email');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
+        ->middleware('throttle:6,1')
         ->name('password.store');
-});
-
-Route::middleware(['auth', 'client.auth', 'tenant'])->prefix('client')->name('client.')->group(function () {
-    Route::get('/', \App\Http\Controllers\Client\ClientDashboardController::class)->name('dashboard');
 });
 
 Route::middleware('auth')->group(function () {

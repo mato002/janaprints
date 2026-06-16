@@ -329,6 +329,11 @@ class OperationalDemoSeedService
             );
 
             $user->syncRoles([$row['role']]);
+
+            $employee->update([
+                'activation_role' => $row['role'],
+                'activation_status' => \App\Enums\EmailIdentity\EmployeeActivationStatus::Activated,
+            ]);
         }
 
         $ctx->users = User::query()->where('company_id', $ctx->company->id)->get();

@@ -8,26 +8,28 @@ function prefersReducedMotion() {
 }
 
 function initPasswordToggle() {
-    const toggle = document.querySelector('[data-login-password-toggle]');
-    const input = document.querySelector('[data-login-password-input]');
+    document.querySelectorAll('.login-field__input-wrap').forEach((wrap) => {
+        const toggle = wrap.querySelector('[data-login-password-toggle]');
+        const input = wrap.querySelector('[data-login-password-input]');
 
-    if (!toggle || !input) {
-        return;
-    }
-
-    const showLabel = toggle.querySelector('[data-login-password-show]');
-    const hideLabel = toggle.querySelector('[data-login-password-hide]');
-
-    toggle.addEventListener('click', () => {
-        const isHidden = input.type === 'password';
-        input.type = isHidden ? 'text' : 'password';
-        toggle.setAttribute('aria-pressed', String(isHidden));
-        toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
-
-        if (showLabel && hideLabel) {
-            showLabel.hidden = isHidden;
-            hideLabel.hidden = !isHidden;
+        if (!toggle || !input) {
+            return;
         }
+
+        const showLabel = toggle.querySelector('[data-login-password-show]');
+        const hideLabel = toggle.querySelector('[data-login-password-hide]');
+
+        toggle.addEventListener('click', () => {
+            const isHidden = input.type === 'password';
+            input.type = isHidden ? 'text' : 'password';
+            toggle.setAttribute('aria-pressed', String(isHidden));
+            toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+
+            if (showLabel && hideLabel) {
+                showLabel.hidden = isHidden;
+                hideLabel.hidden = !isHidden;
+            }
+        });
     });
 }
 

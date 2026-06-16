@@ -9,6 +9,26 @@
             <div><dt>{{ __('City') }}</dt><dd>{{ $customer->city ?: '—' }}</dd></div>
             <div><dt>{{ __('Credit limit') }}</dt><dd>{{ $customer->credit_limit ? number_format((float) $customer->credit_limit, 2) : '—' }}</dd></div>
         </dl>
+        @if ($customer->portalUser)
+            <div class="mt-4 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-indigo-800">{{ __('Client portal') }}</p>
+                <dl class="crm-360__dl mt-2">
+                    <div><dt>{{ __('Portal user') }}</dt><dd>{{ $customer->portalUser->name }}</dd></div>
+                    <div><dt>{{ __('Login email') }}</dt><dd>{{ $customer->portalUser->email }}</dd></div>
+                    <div>
+                        <dt>{{ __('Portal status') }}</dt>
+                        <dd>{{ $customer->portalUser->is_active ? __('Active') : __('Inactive') }}</dd>
+                    </div>
+                    @php
+                        $lastPortalLogin = $customer->portalUser->sessions->sortByDesc('login_at')->first();
+                    @endphp
+                    <div>
+                        <dt>{{ __('Last portal login') }}</dt>
+                        <dd>{{ $lastPortalLogin?->login_at?->diffForHumans() ?? '—' }}</dd>
+                    </div>
+                </dl>
+            </div>
+        @endif
         @if ($customer->segments->isNotEmpty())
             <p class="mt-2 text-[11px] text-slate-500">
                 {{ __('Segments') }}:

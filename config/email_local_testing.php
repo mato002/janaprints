@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Local email testing mode — route corporate/onboarding mail through Gmail (or any
- * dev SMTP) before cPanel production mail is live.
+ * Local email testing mode — route onboarding mail through Gmail (or any
+ * dev SMTP) before production SMTP is live.
  *
- * Set EMAIL_LOCAL_TESTING=false and restore ONBOARDING_MAIL_* / CPANEL_* for production.
+ * Set EMAIL_LOCAL_TESTING=false and restore ONBOARDING_MAIL_* for production.
  */
 return [
 

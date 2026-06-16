@@ -5,7 +5,11 @@
 
     <div class="jp-doc-actions mb-4 flex flex-wrap gap-2 print:hidden">
         <button type="button" onclick="window.print()" class="erp-btn-primary">{{ __('Print') }}</button>
-        <a href="{{ route('admin.invoices.document.pdf', $invoice) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Download PDF') }}</a>
+        <x-documents.pdf-download-button
+            :url="route('admin.invoices.document.pdf', $invoice)"
+            :filename="$invoice->invoice_number"
+            class="erp-btn-secondary"
+        />
     </div>
 
     <x-admin.card class="mx-auto max-w-4xl print:shadow-none print:border-0" id="invoice-document">

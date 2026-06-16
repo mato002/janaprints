@@ -7,7 +7,6 @@ use App\Models\Integrations\IntegrationSmsSetting;
 class EmailIdentityReadinessService
 {
     public function __construct(
-        protected CpanelMailboxGateway $cpanel,
         protected EmployeeDefaultRoleService $defaultRoles,
         protected EmailSenderResolver $senderResolver,
     ) {}
@@ -39,24 +38,7 @@ class EmailIdentityReadinessService
             );
         }
 
-        $checks = array_merge($checks, [
-            $this->check(
-                'mail_domain',
-                __('Mail domain'),
-                filled(config('mailboxes.domain')),
-                (string) config('mailboxes.domain', '—'),
-            ),
-            $this->check(
-                'cpanel',
-                __('cPanel API'),
-                $localTesting || $this->cpanel->isConfigured(),
-                $localTesting
-                    ? __('Skipped during local testing — mailbox provisioning uses mock mode')
-                    : ($this->cpanel->isConfigured()
-                        ? __('Host and credentials configured')
-                        : __('Mock mode — cPanel credentials not set')),
-                $localTesting ? 'ready' : ($this->cpanel->isConfigured() ? 'ready' : 'missing'),
-            ),
+        return array_merge($checks, [
             $this->check(
                 'mail_from',
                 __('MAIL_FROM address'),
@@ -130,9 +112,21 @@ class EmailIdentityReadinessService
                     ? 'ready'
                     : 'warning',
             ),
+            $this->check(
+                'cpanel_api',
+                __('cPanel API connection'),
+                filled(config('mailboxes.cpanel.host'))
+                    && filled(config('mailboxes.cpanel.username'))
+                    && filled(config('mailboxes.cpanel.api_token'))
+                    && filled(config('mailboxes.domain')),
+                filled(config('mailboxes.cpanel.api_token'))
+                    ? __('API token configured')
+                    : __('Configure CPANEL_* and MAILBOX_DOMAIN variables'),
+                filled(config('mailboxes.cpanel.api_token')) && filled(config('mailboxes.domain'))
+                    ? 'ready'
+                    : 'warning',
+            ),
         ]);
-
-        return $checks;
     }
 
     /**

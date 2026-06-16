@@ -39,7 +39,6 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'employment_status',
     'photo',
     'is_active',
-    'corporate_email',
     'activation_status',
     'activation_role',
 ])]
@@ -145,11 +144,6 @@ class Employee extends Model
     public function user(): HasOne
     {
         return $this->hasOne(User::class);
-    }
-
-    public function corporateMailbox(): HasOne
-    {
-        return $this->hasOne(\App\Models\EmailIdentity\CorporateMailbox::class);
     }
 
     public function activations(): \Illuminate\Database\Eloquent\Relations\HasMany

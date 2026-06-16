@@ -2,6 +2,7 @@ import Alpine from 'alpinejs';
 import * as Turbo from '@hotwired/turbo';
 import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
+import { initDocumentPdfDownload } from './document-pdf-download';
 
 window.Alpine = Alpine;
 window.Turbo = Turbo;
@@ -5697,11 +5698,13 @@ document.addEventListener('turbo:frame-load', (event) => {
         erpModalManager.restoreWorkspaceState();
         syncSecondaryWorkspaceTabActiveState();
         bindFormSettingsForms(event.target);
+        initDocumentPdfDownload(event.target);
     }
 
     if (event.target.id === 'module-workspace-content') {
         refreshEmbeddedWorkspaceFrame(event.target);
         syncSecondaryWorkspaceTabActiveState();
+        initDocumentPdfDownload(event.target);
     }
 
     if (event.target.id === 'erp-form-modal' || event.target.id === 'erp-preview-drawer') {
@@ -5805,52 +5808,5 @@ document.addEventListener('turbo:load', () => {
     bindIndexFilterForms(document);
     bindWebsiteSettingsForms(document);
     syncSecondaryWorkspaceTabActiveState();
-    initCorporateEmailPreview(document);
-});
-
-function slugifyCorporateName(value) {
-    return String(value || '')
-        .toLowerCase()
-        .trim()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '');
-}
-
-function initCorporateEmailPreview(root = document) {
-    const preview = root.querySelector('#corporate-email-preview');
-
-    if (! preview || preview.dataset.wired === '1') {
-        return;
-    }
-
-    preview.dataset.wired = '1';
-
-    const domain = preview.dataset.mailDomain || '';
-    const placeholder = preview.dataset.placeholder || '—';
-    const scope = preview.closest('form') || root;
-    const sources = scope.querySelectorAll('.erp-corporate-email-source');
-
-    const render = () => {
-        const first = slugifyCorporateName(scope.querySelector('#first_name')?.value || '');
-        const last = slugifyCorporateName(scope.querySelector('#last_name')?.value || '');
-        let local = '';
-
-        if (first && last) {
-            local = `${first}.${last}`;
-        } else if (first) {
-            local = first;
-        } else if (last) {
-            local = last;
-        }
-
-        preview.textContent = local && domain ? `${local}@${domain}` : placeholder;
-    };
-
-    sources.forEach((input) => input.addEventListener('input', render));
-    render();
-}
-
-document.addEventListener('turbo:frame-load', (event) => {
-    initCorporateEmailPreview(event.target);
+    initDocumentPdfDownload();
 });

@@ -4,8 +4,6 @@ namespace App\Services\EmailIdentity;
 
 use App\Enums\EmailIdentity\EmployeeActivationStatus;
 use App\Enums\EmailIdentity\MailboxAuditAction;
-use App\Enums\EmailIdentity\MailboxStatus;
-use App\Models\EmailIdentity\CorporateMailbox;
 use App\Models\EmailIdentity\EmployeeActivation;
 use App\Models\Employee;
 use App\Models\User;
@@ -27,7 +25,6 @@ class EmployeeActivationService
         Employee $employee,
         User $user,
         string $personalEmail,
-        string $corporateEmail,
         ?string $intendedRole = null,
     ): array {
         $plainToken = Str::random(64);
@@ -37,8 +34,7 @@ class EmployeeActivationService
             'company_id' => $employee->company_id,
             'employee_id' => $employee->id,
             'user_id' => $user->id,
-            'personal_email' => $personalEmail,
-            'corporate_email' => $corporateEmail,
+            'personal_email' => strtolower(trim($personalEmail)),
             'intended_role' => $intendedRole,
             'token_hash' => hash('sha256', $plainToken),
             'expires_at' => $expiresAt,
@@ -129,10 +125,6 @@ class EmployeeActivationService
                 'activation_status' => EmployeeActivationStatus::Activated,
                 'is_active' => true,
             ]);
-
-            CorporateMailbox::query()
-                ->where('employee_id', $employee->id)
-                ->update(['status' => MailboxStatus::Active->value]);
 
             $activation->update(['activated_at' => now()]);
 

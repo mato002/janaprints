@@ -4421,4 +4421,445 @@
             display: none;
         }
     }
+
+    /* ── Client portal (storefront-aligned) ── */
+    .client-portal-page {
+        @apply bg-brand-off-white text-brand-navy;
+        --client-sidebar-width: 15.5rem;
+    }
+
+    .client-portal-wrap {
+        @apply flex min-h-[calc(100dvh-var(--public-header-height))] min-h-[calc(100svh-var(--public-header-height))];
+        padding-top: var(--public-header-height);
+    }
+
+    .client-sidebar-backdrop {
+        @apply fixed inset-0 z-40 bg-brand-navy/40 lg:hidden;
+        top: var(--public-header-height);
+    }
+
+    .client-sidebar {
+        @apply fixed z-50 flex w-[var(--client-sidebar-width)] -translate-x-full flex-col border-r border-white/10 bg-brand-navy shadow-brand-lg transition-transform duration-300 lg:translate-x-0;
+        top: var(--public-header-height);
+        bottom: 0;
+        left: 0;
+    }
+
+    .client-sidebar.is-open {
+        @apply translate-x-0;
+    }
+
+    .client-sidebar__head {
+        @apply border-b border-white/10 px-4 py-4;
+    }
+
+    .client-sidebar__label {
+        @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-magenta;
+    }
+
+    .client-sidebar__nav {
+        @apply flex flex-1 flex-col gap-1 overflow-y-auto p-3;
+    }
+
+    .client-sidebar__link {
+        @apply relative flex items-center gap-3 rounded-brand-lg px-3 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/5 hover:text-white;
+    }
+
+    .client-sidebar__link.is-active {
+        @apply bg-white/10 font-semibold text-white;
+    }
+
+    .client-sidebar__link.is-active::before {
+        content: '';
+        @apply absolute inset-y-2 left-0 w-1 rounded-full bg-brand-magenta;
+    }
+
+    .client-sidebar__icon {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-brand-md bg-white/10 text-white/80;
+    }
+
+    .client-sidebar__link.is-active .client-sidebar__icon {
+        @apply bg-brand-magenta text-white;
+    }
+
+    .client-portal-main {
+        @apply flex min-h-[calc(100dvh-var(--public-header-height))] min-h-[calc(100svh-var(--public-header-height))] min-w-0 flex-1 flex-col lg:ml-[var(--client-sidebar-width)];
+    }
+
+    .client-mobile-toolbar {
+        @apply sticky z-30 flex items-center gap-3 border-b border-brand-gray-muted bg-white/95 px-4 py-3 shadow-brand-sm backdrop-blur-md;
+        top: var(--public-header-height);
+    }
+
+    .client-mobile-toolbar__menu {
+        @apply inline-flex items-center gap-2 rounded-brand-lg border border-brand-gray-muted px-3 py-2 text-sm font-semibold text-brand-navy transition hover:border-brand-magenta/30 hover:text-brand-magenta;
+    }
+
+    .client-mobile-toolbar__title {
+        @apply min-w-0 flex-1 truncate font-display text-base font-bold text-brand-navy;
+    }
+
+    .client-profile-menu {
+        @apply relative;
+    }
+
+    .client-profile-menu__trigger {
+        @apply inline-flex max-w-[14rem] items-center gap-2 rounded-brand-lg border border-brand-gray-muted bg-white px-2 py-1.5 text-left transition hover:border-brand-magenta/30;
+    }
+
+    .client-profile-menu__avatar {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-magenta text-xs font-bold text-white;
+    }
+
+    .client-profile-menu__trigger-text {
+        @apply hidden min-w-0 sm:block;
+    }
+
+    .client-profile-menu__name {
+        @apply block truncate text-sm font-semibold text-brand-navy;
+    }
+
+    .client-profile-menu__company {
+        @apply block truncate text-xs text-brand-text-muted;
+    }
+
+    .client-profile-menu__chevron {
+        @apply hidden shrink-0 text-brand-text-muted sm:block;
+    }
+
+    .client-profile-menu__dropdown {
+        @apply absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-brand-xl border border-brand-gray-muted bg-white shadow-brand-lg;
+    }
+
+    .client-profile-menu__header {
+        @apply border-b border-brand-gray-muted bg-brand-off-white px-4 py-3;
+    }
+
+    .client-profile-menu__header-name {
+        @apply truncate text-sm font-semibold text-brand-navy;
+    }
+
+    .client-profile-menu__header-company {
+        @apply truncate text-xs text-brand-text-muted;
+    }
+
+    .client-profile-menu__items {
+        @apply p-2;
+    }
+
+    .client-profile-menu__item {
+        @apply flex w-full items-center gap-2 rounded-brand-lg px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-brand-off-white;
+    }
+
+    .client-profile-menu__item--danger {
+        @apply text-red-600 hover:bg-red-50 hover:text-red-700;
+    }
+
+    .client-portal-body {
+        @apply flex flex-1 flex-col py-5 sm:py-8 lg:py-10;
+    }
+
+    body.client-sidebar-open {
+        @apply overflow-hidden;
+    }
+
+    .client-page-head {
+        @apply mb-6 sm:mb-8;
+    }
+
+    .client-page-head__eyebrow {
+        @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-magenta;
+    }
+
+    .client-page-head__title {
+        @apply mt-1 font-display text-2xl font-bold tracking-tight text-brand-navy sm:text-3xl;
+    }
+
+    .client-page-head__subtitle {
+        @apply mt-2 text-sm text-brand-text-secondary sm:text-base;
+    }
+
+    .client-content {
+        @apply min-w-0 flex-1;
+    }
+
+    .client-welcome {
+        @apply relative mb-8 overflow-hidden rounded-brand-xl bg-brand-navy p-6 text-white shadow-brand-md sm:p-8;
+    }
+
+    .client-welcome__bg {
+        @apply absolute inset-0 opacity-100;
+    }
+
+    .client-welcome__inner {
+        @apply relative z-10 max-w-2xl;
+    }
+
+    .client-welcome__badge {
+        @apply mb-4 inline-flex normal-case tracking-normal;
+    }
+
+    .client-welcome__title {
+        @apply font-display text-2xl font-bold sm:text-3xl;
+    }
+
+    .client-welcome__text {
+        @apply mt-3 text-sm leading-relaxed text-white/75 sm:text-base;
+    }
+
+    .client-metrics {
+        @apply mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .client-metric {
+        @apply rounded-brand-xl border border-brand-gray-muted bg-white p-5 shadow-brand-sm transition hover:-translate-y-0.5 hover:border-brand-magenta/20 hover:shadow-brand-md;
+    }
+
+    .client-metric--warning {
+        @apply border-amber-200 bg-amber-50;
+    }
+
+    .client-metric--action {
+        @apply border-brand-magenta/20 bg-brand-magenta/5;
+    }
+
+    .client-metric__icon-wrap {
+        @apply mb-4 inline-flex h-11 w-11 items-center justify-center rounded-brand-lg bg-brand-off-white text-brand-navy;
+    }
+
+    .client-metric--warning .client-metric__icon-wrap {
+        @apply bg-amber-100 text-amber-700;
+    }
+
+    .client-metric--action .client-metric__icon-wrap {
+        @apply bg-brand-magenta/10 text-brand-magenta;
+    }
+
+    .client-metric__label {
+        @apply text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-brand-text-muted;
+    }
+
+    .client-metric__value {
+        @apply mt-2 font-display text-[1.75rem] font-bold leading-none tracking-tight text-brand-navy;
+    }
+
+    .client-grid {
+        @apply grid gap-6 lg:grid-cols-2;
+    }
+
+    .client-panel {
+        @apply rounded-brand-xl border border-brand-gray-muted bg-white p-5 shadow-brand-sm sm:p-6;
+    }
+
+    .client-panel__head {
+        @apply mb-5 flex items-center justify-between gap-3 border-b border-brand-gray-muted pb-4;
+    }
+
+    .client-panel__title-wrap {
+        @apply flex items-center gap-3;
+    }
+
+    .client-panel__icon {
+        @apply inline-flex h-9 w-9 items-center justify-center rounded-brand-md bg-brand-magenta/10 text-brand-magenta;
+    }
+
+    .client-panel__title {
+        @apply font-display text-base font-bold text-brand-navy;
+    }
+
+    .client-panel__link {
+        @apply inline-flex items-center gap-1 text-sm font-semibold text-brand-magenta transition hover:gap-2;
+    }
+
+    .client-list-item {
+        @apply flex flex-wrap items-center gap-2 rounded-brand-lg border border-transparent px-3 py-3 text-sm transition hover:border-brand-gray-muted hover:bg-brand-off-white;
+    }
+
+    .client-list-item__primary {
+        @apply font-semibold text-brand-navy group-hover:text-brand-magenta;
+    }
+
+    .client-list-item__meta {
+        @apply ml-auto text-brand-text-muted;
+    }
+
+    .client-list-item__chevron {
+        @apply ml-1 text-brand-text-muted/40 transition group-hover:translate-x-0.5 group-hover:text-brand-magenta;
+    }
+
+    .client-empty-state {
+        @apply flex flex-col items-center px-4 py-8 text-center;
+    }
+
+    .client-empty-state__icon {
+        @apply mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-brand-off-white text-brand-text-muted;
+    }
+
+    .client-empty-state__message {
+        @apply max-w-xs text-sm leading-relaxed text-brand-text-secondary;
+    }
+
+    .client-empty-state__action {
+        @apply mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-magenta hover:underline;
+    }
+
+    .client-empty {
+        @apply py-6 text-center text-sm text-brand-text-muted;
+    }
+
+    .client-badge {
+        @apply inline-flex rounded-full px-2.5 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-wide;
+    }
+
+    .client-badge--neutral {
+        @apply bg-brand-navy/10 text-brand-navy/70;
+    }
+
+    .client-badge--info {
+        @apply bg-blue-100 text-blue-800;
+    }
+
+    .client-badge--success {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .client-badge--warning {
+        @apply bg-amber-100 text-amber-800;
+    }
+
+    .client-badge--danger {
+        @apply bg-red-100 text-red-800;
+    }
+
+    .client-table-wrap {
+        @apply overflow-x-auto rounded-brand-xl border border-brand-gray-muted bg-white shadow-brand-sm;
+    }
+
+    .client-table {
+        @apply w-full min-w-[640px] text-left text-sm;
+    }
+
+    .client-table thead {
+        @apply border-b border-brand-gray-muted bg-brand-off-white;
+    }
+
+    .client-table th {
+        @apply px-4 py-3.5 text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-brand-text-muted;
+    }
+
+    .client-table td {
+        @apply border-t border-brand-gray-muted/70 px-4 py-3.5 text-brand-navy;
+    }
+
+    .client-table tbody tr {
+        @apply transition hover:bg-brand-off-white/70;
+    }
+
+    .client-link {
+        @apply font-semibold text-brand-magenta hover:underline;
+    }
+
+    .client-detail__meta {
+        @apply mb-6 grid gap-3 rounded-brand-xl border border-brand-gray-muted bg-white p-5 text-sm text-brand-text-secondary shadow-brand-sm sm:grid-cols-2;
+    }
+
+    .client-actions {
+        @apply mb-6 flex flex-wrap gap-3;
+    }
+
+    .client-btn {
+        @apply public-btn public-btn--primary;
+    }
+
+    .client-btn--secondary {
+        @apply public-btn public-btn--ghost;
+    }
+
+    .client-btn--danger {
+        @apply public-btn bg-red-600 text-white hover:bg-red-700;
+    }
+
+    .client-review-box {
+        @apply mt-8 rounded-brand-xl border border-brand-gray-muted bg-brand-off-white p-5 sm:p-6;
+    }
+
+    .client-review-form {
+        @apply mt-4 space-y-4;
+    }
+
+    .client-radio-group {
+        @apply flex flex-wrap gap-4 text-sm;
+    }
+
+    .client-label {
+        @apply mb-1 block text-sm font-semibold text-brand-navy;
+    }
+
+    .client-input {
+        @apply w-full rounded-brand-lg border border-brand-gray-muted bg-white px-3 py-2.5 text-sm text-brand-navy shadow-brand-sm focus:border-brand-magenta focus:outline-none focus:ring-2 focus:ring-brand-magenta/20;
+    }
+
+    .client-input--password {
+        @apply pr-11;
+    }
+
+    .client-password-wrap {
+        @apply relative;
+    }
+
+    .client-password-toggle {
+        @apply absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-brand-text-muted transition hover:bg-brand-off-white hover:text-brand-navy;
+    }
+
+    .client-form {
+        @apply max-w-lg space-y-5 rounded-brand-xl border border-brand-gray-muted bg-white p-6 shadow-brand-sm;
+    }
+
+    .client-form__group {
+        @apply space-y-1;
+    }
+
+    .client-form__section {
+        @apply text-xs font-semibold uppercase tracking-wide text-brand-text-muted;
+    }
+
+    .client-form__hint {
+        @apply mt-1 text-xs text-brand-text-muted;
+    }
+
+    .client-divider {
+        @apply border-brand-gray-muted;
+    }
+
+    .client-alert {
+        @apply mb-6 flex items-start gap-3 rounded-brand-lg px-4 py-3 text-sm;
+    }
+
+    .client-alert--success {
+        @apply border border-emerald-200 bg-emerald-50 text-emerald-900;
+    }
+
+    .client-alert--error {
+        @apply border border-red-200 bg-red-50 text-red-800;
+    }
+
+    .client-lead {
+        @apply mb-6 max-w-3xl text-sm leading-relaxed text-brand-text-secondary sm:text-base;
+    }
+
+    .client-portal-footer {
+        @apply mt-auto shrink-0 border-t border-brand-gray-muted bg-white py-6;
+    }
+
+    .client-portal-footer__inner {
+        @apply flex flex-wrap items-center justify-between gap-3 text-sm text-brand-text-muted;
+    }
+
+    .client-portal-footer__link {
+        @apply font-semibold text-brand-magenta hover:underline;
+    }
+
+    .public-mobile-nav__signout {
+        @apply w-full text-left text-base font-medium text-brand-text-secondary hover:text-brand-magenta;
+    }
 }

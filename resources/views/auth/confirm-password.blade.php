@@ -6,17 +6,14 @@
     <form method="POST" action="{{ route('password.confirm') }}">
         @csrf
 
-        <!-- Password -->
-        <div>
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <x-password-input
+            id="password"
+            name="password"
+            :label="__('Password')"
+            required
+            autofocus
+            autocomplete="current-password"
+        />
 
         <div class="flex justify-end mt-4">
             <x-primary-button>

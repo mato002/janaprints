@@ -148,4 +148,17 @@ return [
         'name' => env('MAIL_FROM_NAME', env('APP_NAME', 'Laravel')),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Auth / Password Reset Mailer
+    |--------------------------------------------------------------------------
+    |
+    | Password reset notifications use the same cPanel SMTP mailer as employee
+    | onboarding (ONBOARDING_MAIL_*). The visible From address is resolved via
+    | config/email_senders.php (password_reset → info mailbox).
+    |
+    */
+
+    'auth_mailer' => env('AUTH_MAIL_MAILER', env('ONBOARDING_MAIL_MAILER', 'onboarding')),
+
 ];

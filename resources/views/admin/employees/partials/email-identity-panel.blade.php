@@ -1,25 +1,16 @@
 @php
     $activationStatus = $activationStatus ?? 'none';
     $latestActivation = $latestActivation ?? null;
-    $mailboxStatus = $employee->corporateMailbox?->status?->value;
     $assignedRole = $employee->user?->getRoleNames()->first();
 @endphp
 
 <div class="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-5">
-    <h3 class="text-sm font-semibold text-gray-900">{{ __('Email identity & activation') }}</h3>
+    <h3 class="text-sm font-semibold text-gray-900">{{ __('Account activation') }}</h3>
 
     <dl class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         <div>
-            <dt class="text-gray-500">{{ __('Corporate email') }}</dt>
-            <dd class="font-medium text-gray-900">{{ $employee->corporate_email ?: '—' }}</dd>
-        </div>
-        <div>
-            <dt class="text-gray-500">{{ __('Personal email') }}</dt>
+            <dt class="text-gray-500">{{ __('Login email') }}</dt>
             <dd class="font-medium text-gray-900">{{ $employee->email ?: '—' }}</dd>
-        </div>
-        <div>
-            <dt class="text-gray-500">{{ __('Mailbox status') }}</dt>
-            <dd class="font-medium text-gray-900">{{ $mailboxStatus ? ucfirst($mailboxStatus) : '—' }}</dd>
         </div>
         <div>
             <dt class="text-gray-500">{{ __('Activation status') }}</dt>
@@ -47,7 +38,7 @@
         </div>
     </dl>
 
-    @if ($employee->activation_status?->value !== 'activated' && filled($employee->corporate_email))
+    @if ($employee->activation_status?->value !== 'activated' && filled($employee->email))
         <div class="mt-4 flex flex-wrap gap-2">
             @if ($activationStatus === 'pending')
                 <form method="POST" action="{{ route('admin.employees.resend-activation', $employee) }}">

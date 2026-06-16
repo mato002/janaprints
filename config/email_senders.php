@@ -15,7 +15,7 @@ return [
 
     'purposes' => [
         'employee_onboarding' => 'hr',
-        'password_reset' => 'noreply',
+        'password_reset' => 'info',
         'invoice' => 'accounts',
         'receipt' => 'accounts',
         'quotation' => 'sales',
@@ -67,7 +67,7 @@ return [
         ],
         'noreply' => [
             'label' => 'No Reply',
-            'recommended_use' => 'Password resets and transactional mail that should not receive replies.',
+            'recommended_use' => 'Legacy transactional mailboxes. Prefer info@ for user-facing auth and onboarding email.',
         ],
     ],
 

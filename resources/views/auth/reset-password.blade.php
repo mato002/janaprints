@@ -1,39 +1,60 @@
-<x-guest-layout>
-    <form method="POST" action="{{ route('password.store') }}">
-        @csrf
+@extends('layouts.auth-login')
 
-        <!-- Password Reset Token -->
-        <input type="hidden" name="token" value="{{ $request->route('token') }}">
+@section('page-title', $portal === 'client' ? __('Set New Client Password') : __('Set New Password'))
 
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+@section('content')
+    <x-auth.login-card
+        :title="__('Choose a new password')"
+        :subtitle="__('Enter your email and a new password below to complete the reset.')"
+    >
+        <form method="POST" action="{{ $portal === 'client' ? route('client.password.store') : route('password.store') }}" class="login-form" novalidate>
+            @csrf
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+            <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+            <div class="login-field">
+                <label for="email" class="login-field__label">{{ __('Email') }}</label>
+                <input
+                    id="email"
+                    type="email"
+                    name="email"
+                    value="{{ old('email', $request->email) }}"
+                    required
+                    autofocus
+                    autocomplete="username"
+                    placeholder="you@company.com"
+                    class="login-field__input @error('email') login-field__input--error @enderror"
+                >
+                @error('email')
+                    <p class="login-field__error" id="email-error">{{ $message }}</p>
+                @enderror
+            </div>
 
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                                type="password"
-                                name="password_confirmation" required autocomplete="new-password" />
+            <x-auth.login-password-field
+                id="password"
+                name="password"
+                :label="__('New password')"
+                :required="true"
+                autocomplete="new-password"
+                :placeholder="__('Enter a new password')"
+            />
 
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
+            <x-auth.login-password-field
+                id="password_confirmation"
+                name="password_confirmation"
+                :label="__('Confirm new password')"
+                :required="true"
+                autocomplete="new-password"
+                :placeholder="__('Confirm your new password')"
+            />
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Reset Password') }}
-            </x-primary-button>
-        </div>
-    </form>
-</x-guest-layout>
+            <button type="submit" class="login-btn login-btn--primary">{{ __('Reset password') }}</button>
+
+            <p class="login-form__footer">
+                <a href="{{ $portal === 'client' ? route('client.login') : route('admin.login') }}" class="login-form__forgot">
+                    {{ __('Back to sign in') }}
+                </a>
+            </p>
+        </form>
+    </x-auth.login-card>
+@endsection

@@ -31,7 +31,6 @@ class EmailCommunicationHardeningTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
 
         config([
-            'mailboxes.domain' => 'janaprints.co.ke',
             'mailboxes.department.hr' => 'hr@janaprints.co.ke',
             'mail.from.address' => 'fallback@janaprints.co.ke',
         ]);
@@ -95,20 +94,19 @@ class EmailCommunicationHardeningTest extends TestCase
             ->assertSee(__('Human Resources'), false);
     }
 
-    public function test_readiness_panel_hides_cpanel_secrets(): void
+    public function test_readiness_panel_shows_onboarding_mailer_status(): void
     {
         config([
-            'mailboxes.cpanel.host' => 'cpanel.example.com',
-            'mailboxes.cpanel.username' => 'janaprints',
-            'mailboxes.cpanel.api_token' => 'super-secret-token-value',
+            'mail.mailers.onboarding.host' => 'mail.janaprints.co.ke',
+            'mail.mailers.onboarding.username' => 'info@janaprints.co.ke',
         ]);
 
         $admin = $this->adminUser();
 
         $this->getEmailIdentityPage($admin)
             ->assertOk()
-            ->assertSee(__('API token configured'), false)
-            ->assertDontSee('super-secret-token-value', false);
+            ->assertSee(__('Onboarding SMTP mailer'), false)
+            ->assertSee('mail.janaprints.co.ke', false);
     }
 
     public function test_sms_skipped_does_not_block_onboarding(): void

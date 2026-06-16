@@ -121,6 +121,9 @@
                             >
                             <label for="remember_me" class="login-remember__label">Remember Me</label>
                         </div>
+                        @if (Route::has('client.password.request'))
+                            <a href="{{ route('client.password.request') }}" class="login-form__forgot">{{ __('Forgot Password') }}</a>
+                        @endif
                     </div>
 
                     <button type="submit" class="login-btn login-btn--primary">Sign In</button>

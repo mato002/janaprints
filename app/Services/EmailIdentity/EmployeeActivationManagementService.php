@@ -8,7 +8,6 @@ use App\Jobs\EmailIdentity\SendEmployeeOnboardingEmailJob;
 use App\Models\EmailIdentity\EmployeeActivation;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class EmployeeActivationManagementService
@@ -76,7 +75,7 @@ class EmployeeActivationManagementService
             ]);
         }
 
-        $personalEmail = (string) ($employee->email ?: $this->latestOpenActivation($employee)?->personal_email);
+        $personalEmail = strtolower(trim((string) ($employee->email ?: $this->latestOpenActivation($employee)?->personal_email)));
 
         if (! filled($personalEmail)) {
             throw ValidationException::withMessages([
@@ -84,9 +83,7 @@ class EmployeeActivationManagementService
             ]);
         }
 
-        $corporateEmail = (string) ($employee->corporate_email ?: $user->email);
-
-        return DB::transaction(function () use ($employee, $user, $personalEmail, $corporateEmail) {
+        return DB::transaction(function () use ($employee, $user, $personalEmail) {
             $activation = $this->latestOpenActivation($employee);
 
             $payload = $activation
@@ -95,7 +92,6 @@ class EmployeeActivationManagementService
                     $employee,
                     $user,
                     $personalEmail,
-                    $corporateEmail,
                     $employee->activation_role,
                 );
 
@@ -106,11 +102,15 @@ class EmployeeActivationManagementService
             );
 
             $employee->update([
+                'email' => $personalEmail,
                 'activation_status' => EmployeeActivationStatus::PendingActivation,
                 'is_active' => false,
             ]);
 
-            $user->update(['is_active' => false]);
+            $user->update([
+                'email' => $personalEmail,
+                'is_active' => false,
+            ]);
 
             $this->audit->logForEmployee(MailboxAuditAction::ActivationRegenerated, $employee, [
                 'activation_id' => $payload['activation']->id,
@@ -139,7 +139,7 @@ class EmployeeActivationManagementService
         $activation = $this->latestOpenActivation($employee);
 
         if (! $activation) {
-            return $employee->corporate_email ? 'pending' : 'none';
+            return filled($employee->email) && $employee->user ? 'pending' : 'none';
         }
 
         return $activation->isExpired() ? 'expired' : 'pending';
@@ -147,9 +147,9 @@ class EmployeeActivationManagementService
 
     protected function assertCanManageActivation(Employee $employee): void
     {
-        if (! filled($employee->corporate_email)) {
+        if (! filled($employee->email)) {
             throw ValidationException::withMessages([
-                'employee' => __('Employee has no corporate email identity yet.'),
+                'employee' => __('Employee personal email is required for activation.'),
             ]);
         }
     }
@@ -159,7 +159,6 @@ class EmployeeActivationManagementService
         SendEmployeeOnboardingEmailJob::dispatch(
             employeeId: $employee->id,
             personalEmail: $activation->personal_email,
-            corporateEmail: $activation->corporate_email,
             activationUrl: $activationUrl,
             expiresAt: $activation->expires_at->format('c'),
         );

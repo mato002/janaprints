@@ -176,7 +176,7 @@ class RecruitmentManagementTest extends TestCase
             'employee_number' => 'EMP-REC-001',
             'first_name' => 'New',
             'last_name' => 'Hire',
-            'corporate_email' => 'new.hire@janaprints.co.ke',
+            'email' => 'new.hire@janaprints.local',
         ]);
         $this->assertSame(RecruitmentPipelineStage::Hired, $application->fresh()->stage);
     }

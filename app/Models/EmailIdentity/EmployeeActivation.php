@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'employee_id',
     'user_id',
     'personal_email',
-    'corporate_email',
     'intended_role',
     'token_hash',
     'expires_at',

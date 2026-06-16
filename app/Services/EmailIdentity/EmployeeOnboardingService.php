@@ -5,7 +5,6 @@ namespace App\Services\EmailIdentity;
 use App\Enums\EmailIdentity\EmployeeActivationStatus;
 use App\Enums\EmailIdentity\MailboxAuditAction;
 use App\Jobs\EmailIdentity\SendEmployeeOnboardingEmailJob;
-use App\Models\EmailIdentity\CorporateMailbox;
 use App\Models\EmailIdentity\EmployeeActivation;
 use App\Models\Employee;
 use App\Models\User;
@@ -16,7 +15,6 @@ use Illuminate\Validation\ValidationException;
 class EmployeeOnboardingService
 {
     public function __construct(
-        protected CorporateMailboxProvisioningService $mailboxProvisioning,
         protected EmployeeActivationService $activationService,
         protected EmployeeActivationManagementService $activationManagement,
         protected EmailIdentityAuditService $audit,
@@ -25,6 +23,8 @@ class EmployeeOnboardingService
 
     public function ensureOnboarded(Employee $employee, string $personalEmail, ?string $intendedRole = null): Employee
     {
+        $personalEmail = strtolower(trim($personalEmail));
+
         if (! filled($personalEmail)) {
             throw ValidationException::withMessages([
                 'email' => __('Personal email is required for employee onboarding.'),
@@ -36,11 +36,11 @@ class EmployeeOnboardingService
             $employee = $employee->fresh();
         }
 
-        if ($employee->activation_status === EmployeeActivationStatus::Activated && filled($employee->corporate_email)) {
+        if ($employee->activation_status === EmployeeActivationStatus::Activated && $employee->user) {
             return $employee;
         }
 
-        if (filled($employee->corporate_email)) {
+        if ($employee->user || $this->activationManagement->latestOpenActivation($employee)) {
             return $this->reconcileExistingIdentity($employee, $personalEmail);
         }
 
@@ -49,22 +49,18 @@ class EmployeeOnboardingService
 
     public function onboardAfterCreate(Employee $employee, string $personalEmail, ?string $intendedRole = null): Employee
     {
+        $personalEmail = strtolower(trim($personalEmail));
+
         if ($intendedRole) {
             $employee->update(['activation_role' => $intendedRole]);
         }
 
         $payload = DB::transaction(function () use ($employee, $personalEmail) {
-            $corporateEmail = $this->mailboxProvisioning->generateForEmployee($employee);
-
             $employee->update([
-                'corporate_email' => $corporateEmail,
+                'email' => $personalEmail,
                 'activation_status' => EmployeeActivationStatus::PendingActivation,
                 'is_active' => false,
             ]);
-
-            if (! CorporateMailbox::query()->where('employee_id', $employee->id)->exists()) {
-                $this->mailboxProvisioning->provisionForEmployee($employee->fresh(), $corporateEmail);
-            }
 
             $user = $employee->user;
 
@@ -74,8 +70,13 @@ class EmployeeOnboardingService
                     'default_branch_id' => $employee->branch_id,
                     'employee_id' => $employee->id,
                     'name' => $employee->full_name,
-                    'email' => $corporateEmail,
+                    'email' => $personalEmail,
                     'password' => Str::password(32),
+                    'is_active' => false,
+                ]);
+            } else {
+                $user->update([
+                    'email' => $personalEmail,
                     'is_active' => false,
                 ]);
             }
@@ -88,14 +89,12 @@ class EmployeeOnboardingService
                     $employee->fresh(),
                     $user,
                     $personalEmail,
-                    $corporateEmail,
                     $employee->activation_role,
                 );
 
             return [
                 'employee' => $employee->fresh(),
                 'personal_email' => $personalEmail,
-                'corporate_email' => $corporateEmail,
                 'activation_url' => $activationPayload['activation_url'],
                 'expires_at' => $activationPayload['activation']->expires_at,
                 'activation' => $activationPayload['activation'],
@@ -105,7 +104,6 @@ class EmployeeOnboardingService
         $this->dispatchOnboardingNotifications(
             $payload['employee'],
             $payload['personal_email'],
-            $payload['corporate_email'],
             $payload['activation_url'],
             $payload['expires_at'],
             $payload['activation'],
@@ -116,6 +114,13 @@ class EmployeeOnboardingService
 
     protected function reconcileExistingIdentity(Employee $employee, string $personalEmail): Employee
     {
+        $personalEmail = strtolower(trim($personalEmail));
+
+        if ($employee->email !== $personalEmail) {
+            $employee->update(['email' => $personalEmail]);
+            $employee->user?->update(['email' => $personalEmail]);
+        }
+
         $openActivation = $this->activationManagement->latestOpenActivation($employee);
 
         if ($openActivation && $openActivation->personal_email !== $personalEmail) {
@@ -138,7 +143,6 @@ class EmployeeOnboardingService
     protected function dispatchOnboardingNotifications(
         Employee $employee,
         string $personalEmail,
-        string $corporateEmail,
         string $activationUrl,
         \DateTimeInterface $expiresAt,
         ?EmployeeActivation $activation = null,
@@ -147,7 +151,6 @@ class EmployeeOnboardingService
             SendEmployeeOnboardingEmailJob::dispatch(
                 employeeId: $employee->id,
                 personalEmail: $personalEmail,
-                corporateEmail: $corporateEmail,
                 activationUrl: $activationUrl,
                 expiresAt: $expiresAt->format('c'),
             );

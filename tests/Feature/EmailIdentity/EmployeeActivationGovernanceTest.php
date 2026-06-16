@@ -8,7 +8,6 @@ use App\Models\ActivityLog;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
-use App\Models\EmailIdentity\CorporateMailbox;
 use App\Models\EmailIdentity\EmployeeActivation;
 use App\Models\Employee;
 use App\Models\JobTitle;
@@ -42,7 +41,6 @@ class EmployeeActivationGovernanceTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
 
         config([
-            'mailboxes.domain' => 'janaprints.co.ke',
             'employee_onboarding.fallback_roles' => ['Staff', 'Viewer'],
         ]);
     }
@@ -72,7 +70,7 @@ class EmployeeActivationGovernanceTest extends TestCase
         $this->assertFalse($user->fresh()->hasRole('Staff'));
     }
 
-    public function test_activation_does_not_assign_super_admin_for_non_super_admin_selection(): void
+    public function test_activation_assigns_super_admin_when_preapproved_on_employee(): void
     {
         [$employee, $user, $plainToken] = $this->pendingActivationFixtures(intendedRole: 'Super Admin');
 
@@ -81,8 +79,7 @@ class EmployeeActivationGovernanceTest extends TestCase
             'password_confirmation' => 'SecurePass123!',
         ])->assertRedirect(route('admin.dashboard'));
 
-        $this->assertFalse($user->fresh()->hasRole('Super Admin'));
-        $this->assertTrue($user->fresh()->hasRole('Staff'));
+        $this->assertTrue($user->fresh()->hasRole('Super Admin'));
     }
 
     public function test_activation_succeeds_without_role_when_fallback_missing_with_audit(): void
@@ -103,7 +100,7 @@ class EmployeeActivationGovernanceTest extends TestCase
         );
     }
 
-    public function test_duplicate_onboarding_does_not_duplicate_mailbox_or_activation(): void
+    public function test_duplicate_onboarding_does_not_duplicate_activation(): void
     {
         Queue::fake();
 
@@ -124,7 +121,7 @@ class EmployeeActivationGovernanceTest extends TestCase
         $service->ensureOnboarded($employee, 'dup.personal@example.com');
         $service->ensureOnboarded($employee->fresh(), 'dup.personal@example.com');
 
-        $this->assertSame(1, CorporateMailbox::query()->where('employee_id', $employee->id)->count());
+        $this->assertSame(1, EmployeeActivation::query()->where('employee_id', $employee->id)->count());
         $this->assertSame(1, EmployeeActivation::query()->where('employee_id', $employee->id)->whereNull('activated_at')->count());
     }
 
@@ -168,7 +165,7 @@ class EmployeeActivationGovernanceTest extends TestCase
         );
     }
 
-    public function test_mailbox_status_appears_on_employee_index(): void
+    public function test_login_email_appears_on_employee_edit(): void
     {
         Queue::fake();
         $admin = $this->employeesAdmin();
@@ -191,7 +188,7 @@ class EmployeeActivationGovernanceTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.employees.edit', $employee))
             ->assertOk()
-            ->assertSee('ui.check@janaprints.co.ke', false);
+            ->assertSee('ui.personal@example.com', false);
     }
 
     public function test_mailbox_address_resolver_returns_configured_addresses(): void
@@ -298,7 +295,7 @@ class EmployeeActivationGovernanceTest extends TestCase
         app(OnboardingService::class)->complete($record->fresh(), $hr);
 
         $employee = Employee::query()->where('employee_number', 'EMP-REC-ONB')->firstOrFail();
-        $this->assertSame('recruit.hire@janaprints.co.ke', $employee->corporate_email);
+        $this->assertSame('recruit.hire@example.com', $employee->email);
         $this->assertSame(EmployeeActivationStatus::PendingActivation, $employee->activation_status);
     }
 
@@ -317,7 +314,6 @@ class EmployeeActivationGovernanceTest extends TestCase
             'first_name' => 'Act',
             'last_name' => 'User',
             'email' => 'act.personal@example.com',
-            'corporate_email' => 'act.user@janaprints.co.ke',
             'employment_status' => 'active',
             'activation_status' => EmployeeActivationStatus::PendingActivation,
             'activation_role' => $intendedRole,
@@ -328,7 +324,7 @@ class EmployeeActivationGovernanceTest extends TestCase
             'company_id' => $company->id,
             'default_branch_id' => $branch->id,
             'employee_id' => $employee->id,
-            'email' => 'act.user@janaprints.co.ke',
+            'email' => 'act.personal@example.com',
             'is_active' => false,
         ]);
 
@@ -336,7 +332,6 @@ class EmployeeActivationGovernanceTest extends TestCase
             $employee,
             $user,
             'act.personal@example.com',
-            'act.user@janaprints.co.ke',
             $intendedRole,
         );
 

@@ -17,8 +17,8 @@
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Employee') }}</th>
-                <th scope="col" class="hidden md:table-cell">{{ __('Corporate email') }}</th>
-                <th scope="col" class="hidden lg:table-cell">{{ __('Mailbox') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Login email') }}</th>
+                <th scope="col" class="hidden lg:table-cell">{{ __('Role') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Activation') }}</th>
                 <th scope="col" class="hidden sm:table-cell">{{ __('Branch') }}</th>
                 <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
@@ -26,14 +26,23 @@
         </x-slot>
         <x-slot name="body">
             @forelse ($employees as $employee)
-                @php($rowActivationStatus = $activationManagement->activationDisplayStatus($employee))
-                <tr x-show="rowVisible(@js(strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->branch->name.' '.($employee->corporate_email ?? ''))))">
+                @php
+                    $rowActivationStatus = $activationManagement->activationDisplayStatus($employee);
+                    $assignedRoles = $employee->user?->roles->pluck('name')->all() ?? [];
+                    $roleLabel = filled($assignedRoles)
+                        ? implode(', ', $assignedRoles)
+                        : ($employee->activation_role
+                            ? $employee->activation_role.' ('.__('pending').')'
+                            : '—');
+                    $rowSearch = strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->branch->name.' '.($employee->email ?? '').' '.$roleLabel);
+                @endphp
+                <tr x-show="rowVisible(@js($rowSearch))">
                     <td>
                         <div class="font-medium text-erp-primary">{{ $employee->full_name }}</div>
                         <div class="font-mono text-[11px] text-slate-500">{{ $employee->employee_number }}</div>
                     </td>
-                    <td class="hidden md:table-cell text-sm text-slate-600">{{ $employee->corporate_email ?: '—' }}</td>
-                    <td class="hidden lg:table-cell text-sm text-slate-600">{{ $employee->corporateMailbox?->status?->name ?? '—' }}</td>
+                    <td class="hidden md:table-cell text-sm text-slate-600">{{ $employee->email ?: '—' }}</td>
+                    <td class="hidden lg:table-cell text-sm text-slate-600">{{ $roleLabel }}</td>
                     <td class="hidden lg:table-cell text-sm text-slate-600">{{ ucfirst($rowActivationStatus) }}</td>
                     <td class="hidden sm:table-cell">{{ $employee->branch->name }}</td>
                     <td class="erp-table-actions-col">
