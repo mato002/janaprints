@@ -4,6 +4,7 @@ namespace App\Support\Hr;
 
 use App\Enums\SkillProficiency;
 use App\Enums\TrainingAssignmentStatus;
+use App\Enums\TrainingProgramStatus;
 use App\Models\Employee;
 use App\Models\Hr\EmployeeSkill;
 use App\Models\Hr\EmployeeTrainingAssignment;
@@ -54,7 +55,7 @@ class TrainingAssignmentService
                 ->get(),
             'programs' => TrainingProgram::query()
                 ->where('company_id', $companyId)
-                ->where('is_active', true)
+                ->assignable()
                 ->orderBy('title')
                 ->get(),
             'statuses' => TrainingAssignmentStatus::cases(),
@@ -75,15 +76,72 @@ class TrainingAssignmentService
                 TrainingAssignmentStatus::Assigned->value,
                 TrainingAssignmentStatus::InProgress->value,
             ])->count(),
+            'in_progress_assignments' => (clone $base)
+                ->where('status', TrainingAssignmentStatus::InProgress->value)
+                ->count(),
             'completed_this_year' => (clone $base)
                 ->where('status', TrainingAssignmentStatus::Completed->value)
                 ->whereYear('completed_at', now()->year)
+                ->count(),
+            'completed_assignments' => (clone $base)
+                ->where('status', TrainingAssignmentStatus::Completed->value)
                 ->count(),
             'total_hours' => round((float) (clone $base)
                 ->where('status', TrainingAssignmentStatus::Completed->value)
                 ->sum('hours_completed'), 1),
             'expiring_certificates' => (clone $base)->expiringCertificates(30)->count(),
         ];
+    }
+
+    /**
+     * @return Collection<int, EmployeeTrainingAssignment>
+     */
+    public function recentCompletions(int $companyId, int $limit = 8): Collection
+    {
+        return EmployeeTrainingAssignment::query()
+            ->forTenant()
+            ->where('company_id', $companyId)
+            ->where('status', TrainingAssignmentStatus::Completed->value)
+            ->with(['employee', 'program'])
+            ->orderByDesc('completed_at')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
+     * @param  array<string, mixed>  $filters
+     */
+    public function paginateCertificates(int $companyId, array $filters = [], int $perPage = 20): LengthAwarePaginator
+    {
+        $query = EmployeeTrainingAssignment::query()
+            ->forTenant()
+            ->where('company_id', $companyId)
+            ->where('status', TrainingAssignmentStatus::Completed->value)
+            ->whereNotNull('certificate_reference')
+            ->with(['employee', 'program']);
+
+        if (! empty($filters['status'])) {
+            match ($filters['status']) {
+                'expired' => $query->whereNotNull('certificate_expires_at')
+                    ->where('certificate_expires_at', '<', now()->toDateString()),
+                'expiring' => $query->expiringCertificates(30),
+                'valid' => $query->where(function ($q) {
+                    $q->whereNull('certificate_expires_at')
+                        ->orWhere('certificate_expires_at', '>', now()->addDays(30)->toDateString());
+                }),
+                default => null,
+            };
+        }
+
+        if (! empty($filters['employee_id'])) {
+            $query->where('employee_id', $filters['employee_id']);
+        }
+
+        if (! empty($filters['program_id'])) {
+            $query->where('training_program_id', $filters['program_id']);
+        }
+
+        return $query->orderByDesc('completed_at')->paginate($perPage)->withQueryString();
     }
 
     /**
@@ -133,6 +191,18 @@ class TrainingAssignmentService
             ->where('company_id', $companyId)
             ->whereKey($data['training_program_id'])
             ->firstOrFail();
+
+        if (! $program->isAssignable()) {
+            throw ValidationException::withMessages([
+                'training_program_id' => __('This program cannot be assigned. Activate it first or choose another program.'),
+            ]);
+        }
+
+        if ($program->status === TrainingProgramStatus::Archived) {
+            throw ValidationException::withMessages([
+                'training_program_id' => __('Archived programs cannot be assigned.'),
+            ]);
+        }
 
         return EmployeeTrainingAssignment::query()->create([
             'company_id' => $companyId,
@@ -196,6 +266,35 @@ class TrainingAssignmentService
 
             return $assignment->fresh(['employee', 'program', 'skills']);
         });
+    }
+
+    public function start(EmployeeTrainingAssignment $assignment): EmployeeTrainingAssignment
+    {
+        if ($assignment->status !== TrainingAssignmentStatus::Assigned) {
+            throw ValidationException::withMessages([
+                'status' => __('Only assigned training can be started.'),
+            ]);
+        }
+
+        $assignment->update(['status' => TrainingAssignmentStatus::InProgress]);
+
+        return $assignment->fresh(['employee', 'program']);
+    }
+
+    public function cancel(EmployeeTrainingAssignment $assignment): EmployeeTrainingAssignment
+    {
+        if (! in_array($assignment->status, [
+            TrainingAssignmentStatus::Assigned,
+            TrainingAssignmentStatus::InProgress,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'status' => __('This training cannot be cancelled.'),
+            ]);
+        }
+
+        $assignment->update(['status' => TrainingAssignmentStatus::Cancelled]);
+
+        return $assignment->fresh(['employee', 'program']);
     }
 
     protected function syncSkillsFromProgram(EmployeeTrainingAssignment $assignment): void

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\Assets\AssetCategoryController;
 use App\Http\Controllers\Admin\Assets\AssetDashboardController;
 use App\Http\Controllers\Admin\Assets\AssetExportController;
 use App\Http\Controllers\Admin\Assets\AssetLifecycleController;
+use App\Http\Controllers\Admin\Assets\FixedAssetAcquisitionController;
 use App\Http\Controllers\Admin\Assets\FixedAssetController;
 use App\Http\Controllers\Admin\Assets\MachineController;
 use App\Http\Controllers\Admin\Assets\MachineDashboardController;
@@ -28,6 +29,7 @@ use App\Http\Controllers\Admin\Assets\DepreciationRunController;
 use App\Http\Controllers\Admin\Assets\FixedAssetFinancialController;
 use App\Http\Controllers\Admin\Assets\AssetAcquisitionDashboardController;
 use App\Http\Controllers\Admin\Assets\AssetCapitalizationController;
+use App\Http\Controllers\Admin\Assets\AssetCapitalizationRecoveryController;
 use App\Http\Controllers\Admin\Assets\AssetCapitalizationReconciliationController;
 use App\Http\Controllers\Admin\Assets\AssetWarrantyController;
 use App\Http\Controllers\Admin\Assets\Asset360Controller;
@@ -45,19 +47,12 @@ Route::middleware(['auth', 'verified', 'tenant'])
             ->middleware('permission:assets.view')
             ->name('dashboard');
 
-        Route::middleware('permission:assets.create')->group(function () {
-            Route::get('register/create', [FixedAssetController::class, 'create'])->name('create');
-            Route::post('register', [FixedAssetController::class, 'store'])->name('store');
-        });
-
         Route::middleware('permission:assets.view')->group(function () {
             Route::get('register', [FixedAssetController::class, 'index'])->name('index');
             Route::get('register/export/{format}', AssetExportController::class)
-                ->where('format', 'csv|excel|pdf')
+                ->where('format', 'csv|excel')
                 ->name('export');
-            Route::get('register/{asset}', [FixedAssetController::class, 'show'])
-                ->whereNumber('asset')
-                ->name('show');
+            Route::get('register/{asset}', [FixedAssetController::class, 'show'])->name('show');
             Route::get('register/{asset}/360', [Asset360Controller::class, 'show'])
                 ->middleware('permission:assets.360.view')
                 ->name('360.show');
@@ -70,9 +65,23 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('categories', [AssetCategoryController::class, 'index'])->name('categories.index');
         });
 
+        Route::middleware('permission:assets.create')->group(function () {
+            Route::get('register/create', [FixedAssetController::class, 'create'])->name('create');
+            Route::post('register', [FixedAssetController::class, 'store'])->name('store');
+        });
+
         Route::middleware('permission:assets.edit')->group(function () {
             Route::get('register/{asset}/edit', [FixedAssetController::class, 'edit'])->name('edit');
             Route::put('register/{asset}', [FixedAssetController::class, 'update'])->name('update');
+        });
+
+        Route::middleware('permission:assets.acquisition.post')->group(function () {
+            Route::post('register/{asset}/acquisition/post', [FixedAssetAcquisitionController::class, 'post'])->name('acquisition.post');
+            Route::post('register/{asset}/acquisition/retry', [FixedAssetAcquisitionController::class, 'retry'])->name('acquisition.retry');
+        });
+
+        Route::middleware('permission:assets.acquisition.view')->group(function () {
+            Route::get('register/{asset}/acquisition/journal', [FixedAssetAcquisitionController::class, 'journal'])->name('acquisition.journal');
         });
 
         Route::middleware('permission:assets.categories.manage')->group(function () {
@@ -168,7 +177,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.return')->group(function () {
-                Route::get('returns/create', [AssetReturnController::class, 'create'])->name('returns.create');
                 Route::post('returns', [AssetReturnController::class, 'store'])->name('returns.store');
             });
 
@@ -196,9 +204,17 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::middleware('permission:assets.acquisition.view')->group(function () {
                 Route::get('/', AssetAcquisitionDashboardController::class)->name('dashboard');
                 Route::get('queue', [AssetCapitalizationController::class, 'index'])->name('queue');
+                Route::get('recovery', [AssetCapitalizationRecoveryController::class, 'index'])->name('recovery.index');
+                Route::get('recovery/{asset}/error', [AssetCapitalizationRecoveryController::class, 'error'])->name('recovery.error');
+                Route::get('recovery/{asset}/audit', [AssetCapitalizationRecoveryController::class, 'audit'])->name('recovery.audit');
                 Route::get('warranties', [AssetWarrantyController::class, 'index'])->name('warranties');
                 Route::get('reconciliation', [AssetCapitalizationReconciliationController::class, 'index'])->name('reconciliation.index');
                 Route::get('reconciliation/{reconciliation}', [AssetCapitalizationReconciliationController::class, 'show'])->name('reconciliation.show');
+            });
+
+            Route::middleware('permission:assets.acquisition.post')->group(function () {
+                Route::post('recovery/{asset}/post', [AssetCapitalizationRecoveryController::class, 'post'])->name('recovery.post');
+                Route::post('recovery/{asset}/retry', [AssetCapitalizationRecoveryController::class, 'retry'])->name('recovery.retry');
             });
 
             Route::middleware('permission:assets.capitalize.approve')->group(function () {
@@ -250,7 +266,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.writeoff.manage')->group(function () {
-                Route::get('write-offs/create', [AssetWriteOffController::class, 'create'])->name('write-offs.create');
                 Route::post('write-offs', [AssetWriteOffController::class, 'store'])->name('write-offs.store');
                 Route::post('write-offs/{writeOff}/approve', [AssetWriteOffController::class, 'approve'])->name('write-offs.approve');
                 Route::post('write-offs/{writeOff}/post', [AssetWriteOffController::class, 'post'])->name('write-offs.post');

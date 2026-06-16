@@ -42,6 +42,8 @@ class WorkspaceNavigationResolver
             'admin.workspaces.supply-chain.section',
             'admin.workspaces.commercial.section',
             'admin.workspaces.administration.section',
+            'admin.workspaces.hr.section',
+            'admin.workspaces.printing-intelligence.section',
         ], true)) {
             $section = $request->route('section');
             $sectionEntry = $this->registry->resolve("{$routeName}:{$section}");

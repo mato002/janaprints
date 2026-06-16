@@ -8,7 +8,6 @@
         </x-slot>
     </x-admin.page-header>
 
-<<<<<<< Updated upstream
     <x-admin.data-table
         :search-placeholder="__('Search inventory...')"
         export-route="admin.inventory.exports"
@@ -17,21 +16,6 @@
         :format-in-path="true"
         export-filename="inventory-items"
     >
-=======
-    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
-        <div>
-            <label class="erp-label">{{ __('Stock role') }}</label>
-            <select name="stock_role" class="erp-select" onchange="this.form.submit()">
-                <option value="all" @selected(($stockRole ?? 'all') === 'all')>{{ __('All roles') }}</option>
-                @foreach ($stockRoles as $role)
-                    <option value="{{ $role->value }}" @selected(($stockRole ?? 'all') === $role->value)>{{ $role->label() }}</option>
-                @endforeach
-            </select>
-        </div>
-    </form>
-
-    <x-admin.data-table :search-placeholder="__('Search inventory...')" export-filename="inventory-items">
->>>>>>> Stashed changes
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Item') }}</th>

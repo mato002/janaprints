@@ -39,6 +39,11 @@ class AdminLayout extends Component
             return false;
         }
 
+        // Settings sections are workspace tab content, not entity detail pages.
+        if ($routeName === 'admin.settings.show') {
+            return false;
+        }
+
         foreach (['.create', '.edit', '.show', '.document', '.pdf'] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;

@@ -28,7 +28,8 @@ class PrintingIntelligenceWorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.overview'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.printing-intelligence.overview', ['embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Printing Intelligence'));
     }
@@ -84,7 +85,8 @@ class PrintingIntelligenceWorkspaceTest extends TestCase
         ] as $route) {
             $this->actingAs($user)
                 ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-                ->get(route($route))
+                ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+                ->get(route($route, ['embedded' => '1']))
                 ->assertOk()
                 ->assertDontSee(__('Coming soon'));
         }
@@ -92,7 +94,8 @@ class PrintingIntelligenceWorkspaceTest extends TestCase
         [, , $estimateActualUser] = $this->userWith(['printing.estimate-actual.view']);
         $this->actingAs($estimateActualUser)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.estimate-vs-actual'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.printing-intelligence.estimate-vs-actual', ['embedded' => '1']))
             ->assertOk();
     }
 
@@ -102,7 +105,8 @@ class PrintingIntelligenceWorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.configuration'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.printing-intelligence.configuration', ['embedded' => '1']))
             ->assertForbidden();
     }
 
@@ -112,7 +116,8 @@ class PrintingIntelligenceWorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.overview'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.printing-intelligence.overview', ['embedded' => '1']))
             ->assertForbidden();
     }
 

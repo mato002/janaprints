@@ -9,6 +9,10 @@ use Illuminate\Support\Str;
 
 class FormsControlCenterPresenter
 {
+    public function __construct(
+        protected FormGovernanceInspector $governanceInspector,
+    ) {}
+
     /**
      * @param  Collection<int, array<string, mixed>>  $forms
      * @return array<string, mixed>
@@ -46,13 +50,16 @@ class FormsControlCenterPresenter
         $health = $this->buildHealth($activeCards);
         $recentlyModified = $this->buildRecentlyModified($activeCards);
 
+        $compliance = $this->governanceInspector->complianceSummary();
+
         return [
-            'summary' => $this->buildSummary($cards, $activeCards, $plannedCards),
+            'summary' => $this->buildSummary($cards, $activeCards, $plannedCards, $compliance),
             'categories' => $categories,
             'cards' => $cards,
             'active_cards' => $activeCards,
             'planned_cards' => $plannedCards,
             'health' => $health,
+            'compliance' => $compliance,
             'recently_modified' => $recentlyModified,
             'export_payload' => $this->buildExportPayload($companyId, $branchId, $activeCards),
             'scope_query' => $scopeQuery,
@@ -282,7 +289,10 @@ class FormsControlCenterPresenter
      * @param  list<array<string, mixed>>  $plannedCards
      * @return array<string, int>
      */
-    protected function buildSummary(array $cards, array $activeCards, array $plannedCards): array
+    /**
+     * @param  array<string, mixed>  $compliance
+     */
+    protected function buildSummary(array $cards, array $activeCards, array $plannedCards, array $compliance): array
     {
         $managedFields = collect($activeCards)->sum(fn (array $card) => $card['metrics']['field_count']);
 
@@ -291,6 +301,10 @@ class FormsControlCenterPresenter
             'active_forms' => count(array_filter($activeCards, fn (array $card) => $card['is_active'])),
             'planned_forms' => count($plannedCards),
             'managed_fields' => $managedFields,
+            'operational_forms' => $compliance['total_forms'] ?? 0,
+            'governed_forms' => $compliance['governed_forms'] ?? 0,
+            'non_governed_forms' => $compliance['non_governed_forms'] ?? 0,
+            'compliance_percent' => $compliance['compliance_percent'] ?? 0,
         ];
     }
 

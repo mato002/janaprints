@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'basic_salary', 'total_allowances', 'gross_pay',
     'paye', 'shif', 'nssf', 'housing_levy', 'other_deductions',
     'total_deductions', 'net_pay',
-    'days_worked', 'leave_days', 'absent_days', 'emailed_at',
+    'days_worked', 'leave_days', 'absent_days', 'emailed_at', 'released_at',
 ])]
 class PayrollPayslip extends Model
 {
@@ -35,6 +35,7 @@ class PayrollPayslip extends Model
             'total_deductions' => 'decimal:2',
             'net_pay' => 'decimal:2',
             'emailed_at' => 'datetime',
+            'released_at' => 'datetime',
         ];
     }
 

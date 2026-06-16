@@ -230,25 +230,6 @@ class StockIssueController extends Controller
                 ->orderBy('name')
                 ->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
-<<<<<<< Updated upstream
-            'destinations' => StockIssueDestination::cases(),
-            'formFields' => $this->formSettings->resolvedFields('stock_issue.create', $companyId, $branchId),
-        ];
-    }
-
-    protected function assertCanUseDestination(StockIssueDestination $destination): void
-    {
-        $user = auth()->user();
-
-        if ($destination === StockIssueDestination::Transfer) {
-            abort_unless($user?->can('inventory.transfer'), 403);
-
-            return;
-        }
-
-        abort_unless($user?->can('inventory.issue'), 403);
-    }
-=======
             'destinations' => $destinations,
             'productionGovernance' => [
                 'heading' => __('Production consumption governance'),
@@ -297,5 +278,16 @@ class StockIssueController extends Controller
         return $fields;
     }
 
->>>>>>> Stashed changes
+    protected function assertCanUseDestination(StockIssueDestination $destination): void
+    {
+        $user = auth()->user();
+
+        if ($destination === StockIssueDestination::Transfer) {
+            abort_unless($user?->can('inventory.transfer'), 403);
+
+            return;
+        }
+
+        abort_unless($user?->can('inventory.issue'), 403);
+    }
 }

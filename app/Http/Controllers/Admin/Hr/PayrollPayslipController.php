@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hr\PayrollPayslip;
 use App\Support\Hr\PayrollPayslipService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollPayslipController extends Controller
@@ -13,6 +14,17 @@ class PayrollPayslipController extends Controller
     public function __construct(
         protected PayrollPayslipService $payslips,
     ) {}
+
+    public function show(PayrollPayslip $payslip): View
+    {
+        $this->authorize('view', $payslip->payrollRun);
+
+        $payslip->load(['employee', 'payrollRun', 'items']);
+
+        return view('admin.hr.payroll.payslip-show', [
+            'payslip' => $payslip,
+        ]);
+    }
 
     public function download(PayrollPayslip $payslip): StreamedResponse
     {
@@ -23,7 +35,7 @@ class PayrollPayslipController extends Controller
 
     public function email(PayrollPayslip $payslip): RedirectResponse
     {
-        $this->authorize('view', $payslip->payrollRun);
+        $this->authorize('process', $payslip->payrollRun);
 
         if (! $this->payslips->email($payslip)) {
             return back()->with('status', __('Employee has no email address on file.'));

@@ -200,6 +200,35 @@ class DocumentTypesGovernanceTest extends TestCase
         $this->assertSame(DocumentTypeStatus::Inactive, $definition->fresh()->status);
     }
 
+    public function test_deactivate_preserves_embedded_workspace_context_on_redirect(): void
+    {
+        $user = $this->userWithPermissions([
+            'configuration.document_types.view',
+            'configuration.document_types.deactivate',
+        ]);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $definition = DocumentTypeDefinition::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->where('code', 'invoice')
+            ->firstOrFail();
+
+        $this->actingAs($user)
+            ->patch(route('admin.settings.document-types.deactivate', ['documentTypeDefinition' => $definition->id]), [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'embedded' => '1',
+            ])
+            ->assertRedirect(route('admin.settings.document-types.index', [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'embedded' => '1',
+            ]))
+            ->assertSessionHas('status');
+    }
+
     public function test_service_resolves_number_series_link(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

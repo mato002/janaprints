@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Training Programs')">
         <x-slot name="actions">
             <a href="{{ route('admin.hr.training.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
-            @can('create', App\Models\Hr\EmployeeTrainingAssignment::class)
+            @can('create', App\Models\Hr\TrainingProgram::class)
                 <a href="{{ route('admin.hr.training.programs.create') }}" class="erp-btn-primary">{{ __('New program') }}</a>
             @endcan
         </x-slot>
@@ -15,25 +15,29 @@
     <x-admin.data-table :search-placeholder="__('Search programs…')" export-filename="training-programs">
         <x-slot name="head">
             <tr>
+                <th>{{ __('Code') }}</th>
                 <th>{{ __('Title') }}</th>
                 <th>{{ __('Type') }}</th>
+                <th>{{ __('Status') }}</th>
                 <th>{{ __('Hours') }}</th>
-                <th>{{ __('Certification') }}</th>
-                <th>{{ __('Skills') }}</th>
+                <th>{{ __('Assignments') }}</th>
             </tr>
         </x-slot>
         <x-slot name="body">
             @forelse ($programs as $program)
                 <tr>
-                    <td class="font-medium">{{ $program->title }}</td>
+                    <td class="text-slate-500">{{ $program->code ?? '—' }}</td>
+                    <td class="font-medium">
+                        <a href="{{ route('admin.hr.training.programs.show', $program) }}" class="text-erp-primary hover:underline">{{ $program->title }}</a>
+                    </td>
                     <td>{{ $program->type->label() }}</td>
+                    <td>{{ $program->status?->label() ?? '—' }}</td>
                     <td>{{ number_format($program->duration_hours, 1) }}</td>
-                    <td>{{ $program->requires_certification ? __('Yes') : __('No') }}</td>
-                    <td>{{ collect($program->skill_tags)->join(', ') ?: '—' }}</td>
+                    <td>{{ $program->assignments_count ?? 0 }}</td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="py-6 text-center text-slate-500">{{ __('No training programs found.') }}</td>
+                    <td colspan="6" class="py-6 text-center text-slate-500">{{ __('No training programs found.') }}</td>
                 </tr>
             @endforelse
         </x-slot>

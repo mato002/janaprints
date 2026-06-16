@@ -94,6 +94,7 @@ return [
         'title' => 'HR',
         'description' => 'Employees, attendance, leave, payroll, and HR records.',
         'icon' => 'identification',
+        'managed_by' => 'hr_workspaces',
         'quick_create' => [
             ['label' => 'Employee', 'route' => 'admin.employees.create', 'permission' => 'employees.manage'],
             ['label' => 'Leave Request', 'route' => 'admin.hr.leave.create', 'permission' => 'hr.leave.create'],
@@ -103,22 +104,7 @@ return [
             ['label' => 'Training', 'route' => 'admin.hr.training.assignments.create', 'permission' => 'hr.training.manage'],
             ['label' => 'Employee Exit', 'route' => 'admin.hr.exit.create', 'permission' => 'hr.exit.manage'],
         ],
-        'groups' => [
-            [
-                'label' => 'People',
-                'items' => [
-                    ['label' => 'HR Dashboard', 'description' => 'Workforce metrics and HR overview.', 'route' => 'admin.hr.dashboard', 'permission' => 'hr.dashboard.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.hr.dashboard']],
-                    ['label' => 'Employees', 'description' => 'Employee records linked to user accounts.', 'route' => 'admin.employees.index', 'permission' => 'employees.manage', 'icon' => 'identification', 'active_routes' => ['admin.employees.*']],
-                    ['label' => 'Attendance', 'description' => 'Time tracking and shift records.', 'route' => 'admin.hr.attendance.dashboard', 'permission' => 'hr.attendance.view', 'icon' => 'clock', 'active_routes' => ['admin.hr.attendance.*', 'admin.hr.shifts.*']],
-                    ['label' => 'Leave', 'description' => 'Leave requests and balances.', 'route' => 'admin.hr.leave.dashboard', 'permission' => 'hr.leave.view', 'icon' => 'calendar', 'active_routes' => ['admin.hr.leave.*']],
-                    ['label' => 'Payroll', 'description' => 'Pay runs, payslips, and deductions.', 'route' => 'admin.hr.payroll.dashboard', 'permission' => 'hr.payroll.view', 'icon' => 'cash', 'active_routes' => ['admin.hr.payroll.*']],
-                    ['label' => 'Performance', 'description' => 'Reviews, goals, and appraisals.', 'route' => 'admin.hr.performance.dashboard', 'permission' => 'hr.performance.view', 'icon' => 'badge-check', 'active_routes' => ['admin.hr.performance.*']],
-                    ['label' => 'Training', 'description' => 'Courses, certifications, and development.', 'route' => 'admin.hr.training.dashboard', 'permission' => 'hr.training.view', 'icon' => 'book-open', 'active_routes' => ['admin.hr.training.*']],
-                    ['label' => 'Documents', 'description' => 'HR document repository.', 'route' => 'admin.hr.documents.dashboard', 'permission' => 'hr.documents.view', 'icon' => 'document-text', 'active_routes' => ['admin.hr.documents.*']],
-                    ['label' => 'Exit Management', 'description' => 'Offboarding and clearance workflows.', 'route' => 'admin.hr.exit.dashboard', 'permission' => 'hr.exit.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.hr.exit.*']],
-                ],
-            ],
-        ],
+        'groups' => [],
     ],
 
     'assets' => [

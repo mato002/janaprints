@@ -36,6 +36,8 @@
         </span>
     </div>
 
+    @include('admin.settings.forms.partials.governance-compliance')
+
     <div class="forms-control-layout">
         {{-- Left category navigation (desktop sidebar / mobile pills) --}}
         <aside class="forms-control-nav" aria-label="{{ __('Form categories') }}">

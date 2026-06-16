@@ -29,22 +29,22 @@ class SettingsController extends Controller
     {
         $this->authorize('viewAny', SettingsGovernance::class);
 
-        $deskUrl = app(ModuleShellPresenter::class)->deskUrlForFeatureRoute(
-            'admin.settings.show',
-            ['section' => 'hub'],
-        );
-
-        if ($deskUrl !== null) {
-            return redirect()->to($deskUrl);
-        }
-
-        return redirect()->route('admin.settings.show', $this->registry->sectionSlugs()[0]);
+        return $this->redirectToWorkspaceDesk(request(), 'admin.settings.show', ['section' => 'hub'])
+            ?? redirect()->route('admin.settings.show', $this->registry->sectionSlugs()[0]);
     }
 
-    public function show(Request $request, string $section): View
+    public function show(Request $request, string $section): View|RedirectResponse
     {
         $this->authorize('viewAny', SettingsGovernance::class);
         $this->assertSection($section);
+
+        if ($section === 'hub') {
+            $deskRedirect = $this->redirectToWorkspaceDesk($request, 'admin.settings.show', ['section' => 'hub']);
+
+            if ($deskRedirect !== null) {
+                return $deskRedirect;
+            }
+        }
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->resolveSettingsScope($request);
 
@@ -110,6 +110,42 @@ class SettingsController extends Controller
     protected function assertSection(string $section): void
     {
         abort_unless($this->registry->hasSection($section), 404);
+    }
+
+    /**
+     * @param  array<string, mixed>  $routeParams
+     */
+    protected function redirectToWorkspaceDesk(Request $request, string $routeName, array $routeParams = []): ?RedirectResponse
+    {
+        if (WorkspaceEmbed::inWorkspaceContext($request)) {
+            return null;
+        }
+
+        $deskUrl = app(ModuleShellPresenter::class)->deskUrlForFeatureRoute($routeName, $routeParams);
+
+        if ($deskUrl === null) {
+            return null;
+        }
+
+        $query = $request->query();
+        unset($query['embedded']);
+
+        if ($query !== []) {
+            $existing = [];
+
+            if (($queryPos = strpos($deskUrl, '?')) !== false) {
+                parse_str(substr($deskUrl, $queryPos + 1), $existing);
+                $deskUrl = substr($deskUrl, 0, $queryPos);
+            }
+
+            $query = array_diff_key($query, $existing);
+
+            if ($query !== []) {
+                $deskUrl .= (str_contains($deskUrl, '?') ? '&' : '?').http_build_query($query);
+            }
+        }
+
+        return redirect()->to($deskUrl);
     }
 
     /**

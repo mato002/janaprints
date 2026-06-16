@@ -194,6 +194,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Hr\EmployeeDocument::class => \App\Policies\EmployeeDocumentPolicy::class,
         \App\Models\Hr\PerformanceReview::class => \App\Policies\PerformanceReviewPolicy::class,
         \App\Models\Hr\EmployeeTrainingAssignment::class => \App\Policies\EmployeeTrainingAssignmentPolicy::class,
+        \App\Models\Hr\TrainingProgram::class => \App\Policies\TrainingProgramPolicy::class,
         \App\Models\Hr\EmployeeExit::class => \App\Policies\EmployeeExitPolicy::class,
         Role::class => RolePolicy::class,
         ActivityLog::class => ActivityLogPolicy::class,

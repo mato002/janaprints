@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\Platform\DocumentTypeDefinition;
 use App\Services\Security\SecurityAuditService;
+use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Platform\DocumentTypesManager;
 use App\Support\Platform\SettingsRegistry;
 use Illuminate\Http\RedirectResponse;
@@ -79,7 +80,7 @@ class DocumentTypesSettingsController extends Controller
         );
 
         return redirect()
-            ->route('admin.settings.document-types.index', $this->scopeParams($companyId, $branchId))
+            ->route('admin.settings.document-types.index', $this->scopeParams($companyId, $branchId, $request))
             ->with('status', __('Document type created.'));
     }
 
@@ -126,7 +127,7 @@ class DocumentTypesSettingsController extends Controller
         );
 
         return redirect()
-            ->route('admin.settings.document-types.index', $this->scopeParams($definition->company_id, $definition->branch_id))
+            ->route('admin.settings.document-types.index', $this->scopeParams($definition->company_id, $definition->branch_id, $request))
             ->with('status', __('Document type updated.'));
     }
 
@@ -145,7 +146,7 @@ class DocumentTypesSettingsController extends Controller
         );
 
         return redirect()
-            ->route('admin.settings.document-types.index', $this->scopeParams($definition->company_id, $definition->branch_id))
+            ->route('admin.settings.document-types.index', $this->scopeParams($definition->company_id, $definition->branch_id, $request))
             ->with('status', __('Document type activated.'));
     }
 
@@ -164,7 +165,7 @@ class DocumentTypesSettingsController extends Controller
         );
 
         return redirect()
-            ->route('admin.settings.document-types.index', $this->scopeParams($definition->company_id, $definition->branch_id))
+            ->route('admin.settings.document-types.index', $this->scopeParams($definition->company_id, $definition->branch_id, $request))
             ->with('status', __('Document type deactivated.'));
     }
 
@@ -227,13 +228,16 @@ class DocumentTypesSettingsController extends Controller
     }
 
     /**
-     * @return array<string, int|null>
+     * @return array<string, int|string|null>
      */
-    protected function scopeParams(int $companyId, ?int $branchId): array
+    protected function scopeParams(int $companyId, ?int $branchId, ?Request $request = null): array
     {
+        $request ??= request();
+
         return array_filter([
             'company_id' => $companyId,
             'branch_id' => $branchId,
-        ]);
+            'embedded' => WorkspaceEmbed::inWorkspaceContext($request) ? '1' : null,
+        ], fn ($value) => $value !== null && $value !== '');
     }
 }

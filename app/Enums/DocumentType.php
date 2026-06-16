@@ -38,6 +38,7 @@ enum DocumentType: string
     case AssetCapitalizationCandidate = 'asset_capitalization_candidate';
     case AssetCapitalizationReconciliation = 'asset_capitalization_reconciliation';
     case Journal = 'journal';
+    case PayrollRun = 'payroll_run';
 
     public function typeCode(): string
     {
@@ -76,6 +77,7 @@ enum DocumentType: string
             self::AssetCapitalizationCandidate => 'CAP',
             self::AssetCapitalizationReconciliation => 'ACR',
             self::Journal => 'JE',
+            self::PayrollRun => 'PR',
         };
     }
 }

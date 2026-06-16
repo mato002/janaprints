@@ -101,7 +101,11 @@ class StockReceiptController extends Controller
      */
     protected function validateHeader(Request $request, int $companyId, int $branchId): array
     {
+<<<<<<< Updated upstream
         return $request->validate($this->formSettings->mergeValidationRules('stock_receipt.create', [
+=======
+        return $this->formSettings->validateRequest($request, 'stock_receipt.create', [
+>>>>>>> Stashed changes
             'warehouse_id' => [
                 Rule::exists('warehouses', 'id')
                     ->where('company_id', $companyId)

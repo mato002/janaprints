@@ -21,7 +21,6 @@
 ])>
     @switch($fieldKey)
         @case('lead_source_id')
-<<<<<<< Updated upstream
             <x-input-label for="{{ $fieldKey }}" :value="$label" :required="$required" />
             <select
                 id="{{ $fieldKey }}"
@@ -36,24 +35,6 @@
                 @endforeach
             </select>
             <x-admin.field-error :name="$fieldKey" />
-=======
-            <x-admin.lookup-select
-                :name="$fieldKey"
-                :label="$label"
-                :options="$sources"
-                :value="$value"
-                :required="$required"
-                :readonly="$readOnly"
-                create-route="admin.crm.lead-sources.quick-create"
-                refresh-route="admin.lookups.lead_sources"
-                permission="crm.leads.create"
-                :modal-title="__('Create lead source')"
-                option-label-key="name"
-                option-value-key="id"
-                select-class="erp-select mt-1 w-full"
-                :empty-label="__('None')"
-            />
->>>>>>> Stashed changes
             @break
 
         @case('stage_id')
@@ -73,7 +54,6 @@
             @break
 
         @case('status')
-<<<<<<< Updated upstream
             <x-input-label for="{{ $fieldKey }}" :value="$label" :required="$required" />
             <select
                 id="{{ $fieldKey }}"
@@ -87,16 +67,6 @@
                 @endforeach
             </select>
             <x-admin.field-error :name="$fieldKey" />
-=======
-            <x-admin.form-status-select
-                form-key="lead"
-                :name="$fieldKey"
-                :field="$field"
-                :value="$lead?->status ?? ($field['default'] ?? null)"
-                :model="$lead"
-                select-class="erp-select mt-1 w-full"
-            />
->>>>>>> Stashed changes
             @break
 
         @case('assigned_to')

@@ -14,6 +14,19 @@ class PrintingIntelligenceWorkspacePresenter
         return config('printing_intelligence_workspaces.hub', []);
     }
 
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function sectionDefinitions(): array
+    {
+        return config('printing_intelligence_workspaces.sections', []);
+    }
+
+    public function sectionExists(string $section): bool
+    {
+        return array_key_exists($section, $this->sectionDefinitions());
+    }
+
     public function isVisible(): bool
     {
         foreach ($this->hubDefinitions() as $item) {

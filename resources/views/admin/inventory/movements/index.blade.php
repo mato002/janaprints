@@ -1,7 +1,6 @@
 <x-admin-layout :title="__('Movements')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Inventory'), 'url' => route('admin.inventory.dashboard')], ['label' => __('Stock Movements')]]">
     <x-admin.page-header :title="__('Inventory movements')" :description="__('Audit trail — source of stock truth.')" />
 
-<<<<<<< Updated upstream
     <x-admin.data-table
         :search-placeholder="__('Search movements…')"
         export-route="admin.inventory.exports"
@@ -10,16 +9,6 @@
         :format-in-path="true"
         export-filename="inventory-movements"
     >
-=======
-    @if ($warehouse)
-        <div class="mb-4 rounded-md border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm text-indigo-900">
-            {{ __('Filtered to warehouse :name (:code)', ['name' => $warehouse->name, 'code' => $warehouse->code]) }}
-            <a href="{{ route('admin.inventory.movements.index') }}" class="erp-link ml-2">{{ __('Clear filter') }}</a>
-        </div>
-    @endif
-
-    <x-admin.data-table :search-placeholder="__('Search movements…')" export-filename="inventory-movements">
->>>>>>> Stashed changes
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Date') }}</th>

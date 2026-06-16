@@ -63,12 +63,13 @@ class PlatformConfigurationSeeder extends Seeder
             'fiscal_year_start_month' => 1,
             'inventory_allow_negative_stock' => false,
             'artwork_requires_customer_approval' => true,
+            'payroll_statutory_rates' => config('payroll_statutory'),
         ];
 
         foreach ($defaults as $key => $value) {
             SystemSetting::query()->updateOrCreate(
                 ['company_id' => $companyId, 'branch_id' => null, 'key' => $key],
-                ['value' => ['data' => $value], 'value_type' => is_bool($value) ? 'boolean' : 'integer'],
+                ['value' => ['data' => $value], 'value_type' => is_bool($value) ? 'boolean' : (is_array($value) ? 'json' : 'integer')],
             );
         }
 
@@ -107,6 +108,7 @@ class PlatformConfigurationSeeder extends Seeder
                 DocumentType::AssetReconciliation => 'ARC-{year}-{number}',
                 DocumentType::AssetCapitalizationCandidate => 'CAP-{year}-{number}',
                 DocumentType::AssetCapitalizationReconciliation => 'ACR-{year}-{number}',
+                DocumentType::PayrollRun => 'PR-{year}-{number}',
                 default => $template,
             };
 

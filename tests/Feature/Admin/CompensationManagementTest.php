@@ -156,7 +156,7 @@ class CompensationManagementTest extends TestCase
             ->assertSee('70,000.00');
     }
 
-    public function test_payroll_validation_blocks_missing_compensation(): void
+    public function test_payroll_generation_records_missing_compensation_warning(): void
     {
         $hr = $this->hrUser();
         $covered = $this->employeeWithCompensation(90000);
@@ -172,8 +172,11 @@ class CompensationManagementTest extends TestCase
         $this->assertFalse($validation['valid']);
         $this->assertGreaterThan(0, $validation['summary']['employees_with_issues']);
 
-        $this->expectException(ValidationException::class);
-        app(PayrollRunService::class)->calculate($run, $hr);
+        app(PayrollRunService::class)->generate($run, $hr);
+        $run->refresh();
+
+        $this->assertSame(PayrollRunStatus::Generated, $run->status);
+        $this->assertTrue($run->has_generation_warnings);
     }
 
     public function test_payroll_runs_when_compensation_valid(): void
@@ -187,10 +190,10 @@ class CompensationManagementTest extends TestCase
             'pay_date' => now()->endOfMonth()->toDateString(),
         ], $hr);
 
-        app(PayrollRunService::class)->calculate($run, $hr);
+        app(PayrollRunService::class)->generate($run, $hr);
         $run->refresh();
 
-        $this->assertSame(PayrollRunStatus::Calculated, $run->status);
+        $this->assertSame(PayrollRunStatus::Generated, $run->status);
     }
 
     public function test_viewer_cannot_access_compensation(): void

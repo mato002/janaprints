@@ -117,6 +117,7 @@ class NumberGenerator
         $format = match ($documentType) {
             DocumentType::FixedAsset => 'AST-{year}-{number}',
             DocumentType::MaintenanceWorkOrder => 'MWO-{year}-{number}',
+            DocumentType::PayrollRun => 'PR-{year}-{number}',
             default => $this->buildTemplate(null, true, true, false),
         };
 

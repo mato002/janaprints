@@ -76,6 +76,9 @@ return [
         // —— Operating expenses ——
         ['type' => 'expense', 'kind' => 'group', 'code' => '6000', 'name' => 'Operating Expenses', 'parent_code' => null, 'sort' => 10],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6100', 'name' => 'Salaries', 'parent_code' => '6000', 'postable' => true, 'sort' => 20],
+        ['type' => 'expense', 'kind' => 'account', 'code' => '6120', 'name' => 'Employer NSSF Expense', 'parent_code' => '6000', 'postable' => true, 'sort' => 22],
+        ['type' => 'expense', 'kind' => 'account', 'code' => '6121', 'name' => 'Employer SHIF Expense', 'parent_code' => '6000', 'postable' => true, 'sort' => 23],
+        ['type' => 'expense', 'kind' => 'account', 'code' => '6122', 'name' => 'Employer Housing Levy Expense', 'parent_code' => '6000', 'postable' => true, 'sort' => 24],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6200', 'name' => 'Rent', 'parent_code' => '6000', 'postable' => true, 'sort' => 30],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6300', 'name' => 'Electricity', 'parent_code' => '6000', 'postable' => true, 'sort' => 40],
         ['type' => 'expense', 'kind' => 'account', 'code' => '6400', 'name' => 'Water', 'parent_code' => '6000', 'postable' => true, 'sort' => 50],
@@ -90,8 +93,8 @@ return [
 
     'expected' => [
         'groups' => 9,
-        'accounts' => 46,
-        'postable_accounts' => 43,
+        'accounts' => 49,
+        'postable_accounts' => 46,
         'header_accounts' => 3,
     ],
 ];

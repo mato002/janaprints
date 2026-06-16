@@ -77,7 +77,7 @@ class PayrollCompensationValidationService
     /**
      * @return list<string>
      */
-    protected function problemsForEmployee(Employee $employee): array
+    public function problemsForEmployee(Employee $employee): array
     {
         $problems = [];
         $compensation = $employee->compensation;
@@ -88,10 +88,18 @@ class PayrollCompensationValidationService
             return $problems;
         }
 
-        if ($compensation->status !== CompensationStatus::Active) {
-            $problems[] = __('Compensation is not active (status: :status)', [
-                'status' => $compensation->status?->label() ?? $compensation->status,
-            ]);
+        if ($compensation->status !== null) {
+            $status = $compensation->status instanceof CompensationStatus
+                ? $compensation->status
+                : CompensationStatus::tryFrom((string) $compensation->status);
+
+            if ($status !== null && $status !== CompensationStatus::Active) {
+                $problems[] = __('Compensation is not active (status: :status)', [
+                    'status' => $status->label(),
+                ]);
+            }
+        } elseif (! $compensation->is_active) {
+            $problems[] = __('Compensation is not active');
         }
 
         if ((float) $compensation->basic_salary <= 0) {

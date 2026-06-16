@@ -3,14 +3,14 @@
 namespace App\Http\Controllers\Admin\Hr;
 
 use App\Http\Controllers\Controller;
-use App\Support\Hr\HrDashboardService;
+use App\Support\Hr\HrDashboardCommandCenterService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class HrDashboardController extends Controller
 {
     public function __construct(
-        protected HrDashboardService $dashboard,
+        protected HrDashboardCommandCenterService $commandCenter,
     ) {}
 
     public function __invoke(Request $request): View
@@ -20,7 +20,7 @@ class HrDashboardController extends Controller
         $companyId = tenant()->companyId() ?? $request->user()->company_id;
 
         return view('admin.hr.dashboard', [
-            'overview' => $this->dashboard->overview($companyId),
+            'dashboard' => $this->commandCenter->build($companyId, $request->user()),
         ]);
     }
 }

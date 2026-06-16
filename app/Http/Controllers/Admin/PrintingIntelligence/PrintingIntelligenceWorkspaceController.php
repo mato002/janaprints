@@ -2,15 +2,32 @@
 
 namespace App\Http\Controllers\Admin\PrintingIntelligence;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModuleWorkspaceDesk;
 use App\Http\Controllers\Controller;
+use App\Support\Navigation\PrintingIntelligenceWorkspacePresenter;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class PrintingIntelligenceWorkspaceController extends Controller
 {
-    public function hub(): RedirectResponse
-    {
-        abort_unless(auth()->user()?->can('printing.intelligence.view'), 403);
+    use HandlesModuleWorkspaceDesk;
 
-        return redirect()->route('admin.printing-intelligence.overview');
+    public function __construct(
+        protected PrintingIntelligenceWorkspacePresenter $presenter,
+    ) {}
+
+    public function hub(Request $request): View|RedirectResponse
+    {
+        abort_unless($this->presenter->isVisible(), 403);
+
+        return $this->renderModuleDesk($request, 'printing-intelligence');
+    }
+
+    public function section(Request $request, string $section): View|RedirectResponse
+    {
+        abort_unless($this->presenter->sectionExists($section), 404);
+
+        return $this->renderModuleDesk($request, 'printing-intelligence', $section);
     }
 }

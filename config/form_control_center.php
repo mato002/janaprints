@@ -60,6 +60,10 @@ return [
         'store_transfer.create' => ['category' => 'supply_chain', 'icon' => 'truck', 'keywords' => ['transfer', 'inter-store']],
         'stock_receipt.create' => ['category' => 'supply_chain', 'icon' => 'archive', 'keywords' => ['receiving', 'grn']],
         'stock_adjustment.create' => ['category' => 'supply_chain', 'icon' => 'refresh', 'keywords' => ['adjustment', 'stocktake']],
+        'stock_count.create' => ['category' => 'supply_chain', 'icon' => 'clipboard-list', 'keywords' => ['stock count', 'physical']],
+        'cycle_count_schedule.create' => ['category' => 'supply_chain', 'icon' => 'calendar', 'keywords' => ['cycle count', 'schedule']],
+
+        'payroll_run.create' => ['category' => 'hr', 'icon' => 'cash', 'keywords' => ['payroll', 'payslip', 'salary']],
     ],
 
     'planned_forms' => [

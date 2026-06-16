@@ -1,12 +1,17 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+    $turboFrame = WorkspaceEmbed::turboFrame();
+@endphp
+
 <x-admin-layout :title="__('Performance Reviews')" :breadcrumbs="[['label' => __('HR'), 'url' => route('admin.workspaces.hr')], ['label' => __('Performance'), 'url' => route('admin.hr.performance.dashboard')], ['label' => __('Reviews')]]">
-    <x-admin.page-header :title="__('Performance Reviews')">
-        <x-slot name="actions">
-            <a href="{{ route('admin.hr.performance.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
+    <x-admin.workspace-content-header :title="__('Performance Reviews')">
+        <x-slot:actions>
+            <a href="{{ WorkspaceEmbed::url(route('admin.hr.performance.dashboard')) }}" class="erp-btn-secondary erp-btn--sm" data-turbo-frame="{{ $turboFrame }}">{{ __('Dashboard') }}</a>
             @can('create', App\Models\Hr\PerformanceReview::class)
                 <a href="{{ route('admin.hr.performance.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New appraisal') }}</a>
             @endcan
-        </x-slot>
-    </x-admin.page-header>
+        </x-slot:actions>
+    </x-admin.workspace-content-header>
 
     @if (session('status'))
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>

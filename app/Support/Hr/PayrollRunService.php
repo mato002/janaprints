@@ -2,11 +2,14 @@
 
 namespace App\Support\Hr;
 
+use App\Enums\EmploymentStatus;
+use App\Enums\DocumentType;
 use App\Enums\PayrollRunStatus;
 use App\Models\Employee;
 use App\Models\Hr\PayrollPayslip;
 use App\Models\Hr\PayrollRun;
 use App\Models\User;
+use App\Support\Platform\NumberGenerator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +20,11 @@ class PayrollRunService
     public function __construct(
         protected PayrollCalculationService $calculator,
         protected PayrollAccountingPostingService $accounting,
+        protected NumberGenerator $numberGenerator,
+        protected PayrollCompensationValidationService $validation,
+        protected PayrollReviewService $review,
+        protected PayrollApprovalWorkflowService $approvalWorkflow,
+        protected PayrollAuditService $audit,
     ) {}
 
     /**
@@ -41,9 +49,13 @@ class PayrollRunService
      */
     public function create(int $companyId, array $data, User $user): PayrollRun
     {
-        $reference = $this->nextReference($companyId);
+        $reference = $this->numberGenerator->generate(
+            DocumentType::PayrollRun,
+            $companyId,
+            isset($data['branch_id']) ? (int) $data['branch_id'] : null,
+        );
 
-        return PayrollRun::query()->create([
+        $run = PayrollRun::query()->create([
             'company_id' => $companyId,
             'branch_id' => $data['branch_id'] ?? null,
             'reference' => $reference,
@@ -53,13 +65,31 @@ class PayrollRunService
             'status' => PayrollRunStatus::Draft,
             'notes' => $data['notes'] ?? null,
         ]);
+
+        $this->audit->logRunCreated($run, $user);
+
+        return $run;
     }
 
-    public function calculate(PayrollRun $run, User $user): PayrollRun
+    public function generate(PayrollRun $run, User $user, bool $confirmRegenerate = false): PayrollRun
     {
-        if (! in_array($run->status, [PayrollRunStatus::Draft, PayrollRunStatus::Calculated], true)) {
+        if ($run->status->isLockedForGeneration()) {
             throw ValidationException::withMessages([
-                'status' => __('This payroll run cannot be recalculated.'),
+                'status' => __('This payroll run cannot be generated in its current status.'),
+            ]);
+        }
+
+        if (! $run->status->canGenerate()) {
+            throw ValidationException::withMessages([
+                'status' => __('This payroll run cannot be generated.'),
+            ]);
+        }
+
+        $hasExistingLines = $run->payslips()->exists();
+
+        if ($hasExistingLines && ! $confirmRegenerate) {
+            throw ValidationException::withMessages([
+                'confirm_regenerate' => __('Payroll lines already exist. Confirm regeneration to replace them.'),
             ]);
         }
 
@@ -68,46 +98,62 @@ class PayrollRunService
 
             $periodStart = Carbon::parse($run->period_start);
             $periodEnd = Carbon::parse($run->period_end);
-
-            $employees = Employee::query()
-                ->where('company_id', $run->company_id)
-                ->where('is_active', true)
-                ->when($run->branch_id, fn ($q) => $q->where('branch_id', $run->branch_id))
-                ->get();
+            $employees = $this->scopedEmployees($run);
 
             $totals = [
                 'gross' => 0, 'deductions' => 0, 'net' => 0,
                 'paye' => 0, 'shif' => 0, 'nssf' => 0, 'housing' => 0,
+                'employer_nssf' => 0, 'employer_shif' => 0, 'employer_housing' => 0,
             ];
+            $warnings = [];
 
             foreach ($employees as $employee) {
+                $problems = $this->validation->problemsForEmployee($employee);
                 $calc = $this->calculator->calculateForEmployee($employee, $periodStart, $periodEnd);
-
-                if ($calc['gross_pay'] <= 0) {
-                    continue;
-                }
 
                 $payslip = PayrollPayslip::query()->create([
                     'company_id' => $run->company_id,
                     'payroll_run_id' => $run->id,
                     'employee_id' => $employee->id,
                     'reference' => $run->reference.'-'.$employee->employee_number,
-                    ...collect($calc)->except('items')->all(),
+                    ...collect($calc)->except(['items', 'employer_nssf', 'employer_shif', 'employer_housing_levy'])->all(),
                 ]);
 
-                $this->calculator->persistPayslipItems($payslip, $calc['items']);
+                if ($calc['items'] !== []) {
+                    $this->calculator->persistPayslipItems($payslip, $calc['items']);
+                }
+
+                if ($problems !== [] || (float) $calc['gross_pay'] <= 0) {
+                    $warnings[] = [
+                        'employee_id' => $employee->id,
+                        'employee_number' => $employee->employee_number,
+                        'employee_name' => $employee->full_name,
+                        'problems' => $problems !== []
+                            ? $problems
+                            : [__('No payable earnings for this period')],
+                    ];
+                }
+
+                if ((float) $calc['gross_pay'] <= 0) {
+                    continue;
+                }
 
                 $totals['gross'] += $calc['gross_pay'];
                 $totals['deductions'] += $calc['total_deductions'];
-                $totals['net'] += $calc['net_pay'];
+                $totals['net'] += max(0, $calc['net_pay']);
                 $totals['paye'] += $calc['paye'];
                 $totals['shif'] += $calc['shif'];
                 $totals['nssf'] += $calc['nssf'];
                 $totals['housing'] += $calc['housing_levy'];
+                $totals['employer_nssf'] += $calc['employer_nssf'];
+                $totals['employer_shif'] += $calc['employer_shif'];
+                $totals['employer_housing'] += $calc['employer_housing_levy'];
             }
 
+            $review = $this->review->review($run->fresh(['payslips.employee']));
+
             $run->update([
-                'status' => PayrollRunStatus::Calculated,
+                'status' => PayrollRunStatus::Generated,
                 'employee_count' => $run->payslips()->count(),
                 'gross_total' => round($totals['gross'], 2),
                 'deductions_total' => round($totals['deductions'], 2),
@@ -116,34 +162,89 @@ class PayrollRunService
                 'shif_total' => round($totals['shif'], 2),
                 'nssf_total' => round($totals['nssf'], 2),
                 'housing_levy_total' => round($totals['housing'], 2),
+                'employer_nssf_total' => round($totals['employer_nssf'], 2),
+                'employer_shif_total' => round($totals['employer_shif'], 2),
+                'employer_housing_levy_total' => round($totals['employer_housing'], 2),
                 'processed_by_user_id' => $user->id,
                 'processed_at' => now(),
+                'generation_warnings' => $warnings,
+                'has_generation_warnings' => $warnings !== [],
+                'review_snapshot' => $review,
+                'has_critical_review_issues' => ! $review['can_submit_for_approval'],
+                'reviewed_by_user_id' => null,
+                'reviewed_at' => null,
+                'submitted_for_approval_by_user_id' => null,
+                'submitted_for_approval_at' => null,
+                'approved_by_user_id' => null,
+                'approved_at' => null,
             ]);
 
-            return $run->fresh(['payslips.employee', 'payslips.items']);
+            $run = $run->fresh(['payslips.employee', 'payslips.items']);
+            $this->audit->logGenerated($run, $user);
+
+            return $run;
         });
     }
 
-    public function approve(PayrollRun $run, User $user): PayrollRun
+    /** @deprecated Use generate() */
+    public function calculate(PayrollRun $run, User $user): PayrollRun
     {
-        if ($run->status !== PayrollRunStatus::Calculated) {
+        return $this->generate($run, $user, $run->payslips()->exists());
+    }
+
+    public function submitForReview(PayrollRun $run, User $user): PayrollRun
+    {
+        if (! $run->status->canSubmitReview()) {
             throw ValidationException::withMessages([
-                'status' => __('Only calculated payroll runs can be approved.'),
+                'status' => __('Only generated payroll runs can be submitted for review.'),
             ]);
         }
 
+        if (! $run->payslips()->exists()) {
+            throw ValidationException::withMessages([
+                'payslips' => __('Generate payroll lines before submitting for review.'),
+            ]);
+        }
+
+        $review = $this->review->review($run);
+
         $run->update([
-            'status' => PayrollRunStatus::Approved,
-            'approved_by_user_id' => $user->id,
-            'approved_at' => now(),
+            'status' => PayrollRunStatus::UnderReview,
+            'reviewed_by_user_id' => $user->id,
+            'reviewed_at' => now(),
+            'review_snapshot' => $review,
+            'has_critical_review_issues' => ! $review['can_submit_for_approval'],
         ]);
+
+        $this->audit->logReviewed($run->fresh(), $user, $review);
 
         return $run->fresh();
     }
 
+    public function submitForApproval(PayrollRun $run, User $user): PayrollRun
+    {
+        if (! $run->status->canSubmitApproval()) {
+            throw ValidationException::withMessages([
+                'status' => __('Only payroll runs under review can be submitted for approval.'),
+            ]);
+        }
+
+        return $this->approvalWorkflow->submitForApproval($run, $user);
+    }
+
+    public function approve(PayrollRun $run, User $user): PayrollRun
+    {
+        return $this->approvalWorkflow->approve($run, $user);
+    }
+
+    public function reject(PayrollRun $run, User $user, ?string $reason = null): PayrollRun
+    {
+        return $this->approvalWorkflow->reject($run, $user, $reason);
+    }
+
     public function post(PayrollRun $run, User $user): PayrollRun
     {
-        if ($run->status !== PayrollRunStatus::Approved) {
+        if (! $run->status->canPost()) {
             throw ValidationException::withMessages([
                 'status' => __('Payroll must be approved before posting.'),
             ]);
@@ -159,16 +260,77 @@ class PayrollRunService
                 'posted_at' => now(),
             ]);
 
-            return $run->fresh(['postedJournal']);
+            $run = $run->fresh(['postedJournal']);
+            $this->audit->logPosted($run, $user);
+
+            return $run;
         });
     }
 
-    protected function nextReference(int $companyId): string
+    public function releasePayslips(PayrollRun $run, User $user): PayrollRun
     {
-        $year = now()->year;
-        $count = PayrollRun::query()->where('company_id', $companyId)->whereYear('created_at', $year)->count() + 1;
+        if (! in_array($run->status, [PayrollRunStatus::Posted, PayrollRunStatus::Paid], true)) {
+            throw ValidationException::withMessages([
+                'status' => __('Payslips can only be released after payroll is posted.'),
+            ]);
+        }
 
-        return sprintf('PR-%s-%04d', $year, $count);
+        $pending = $run->payslips()->whereNull('released_at')->get();
+        $run->payslips()->whereNull('released_at')->update(['released_at' => now()]);
+
+        foreach ($pending as $payslip) {
+            $this->audit->logPayslipReleased($payslip->fresh(), $user);
+        }
+
+        return $run->fresh(['payslips.employee']);
+    }
+
+    public function markPaid(PayrollRun $run, User $user): PayrollRun
+    {
+        if (! $run->status->canMarkPaid()) {
+            throw ValidationException::withMessages([
+                'status' => __('Only posted payroll runs can be marked as paid.'),
+            ]);
+        }
+
+        $run->update([
+            'status' => PayrollRunStatus::Paid,
+            'paid_by_user_id' => $user->id,
+            'paid_at' => now(),
+        ]);
+
+        return $run->fresh();
+    }
+
+    public function cancel(PayrollRun $run, User $user): PayrollRun
+    {
+        if (! $run->status->canCancel()) {
+            throw ValidationException::withMessages([
+                'status' => __('This payroll run cannot be cancelled.'),
+            ]);
+        }
+
+        $run->update([
+            'status' => PayrollRunStatus::Cancelled,
+            'cancelled_by_user_id' => $user->id,
+            'cancelled_at' => now(),
+        ]);
+
+        return $run->fresh();
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, Employee>
+     */
+    public function scopedEmployees(PayrollRun $run)
+    {
+        return Employee::query()
+            ->where('company_id', $run->company_id)
+            ->where('is_active', true)
+            ->where('employment_status', '!=', EmploymentStatus::Terminated->value)
+            ->when($run->branch_id, fn ($q) => $q->where('branch_id', $run->branch_id))
+            ->orderBy('employee_number')
+            ->get();
     }
 
     /**
@@ -179,9 +341,9 @@ class PayrollRunService
         $base = PayrollRun::query()->where('company_id', $companyId);
 
         return [
-            'pending_approval' => (clone $base)->where('status', PayrollRunStatus::Calculated->value)->count(),
+            'pending_approval' => (clone $base)->where('status', PayrollRunStatus::PendingApproval->value)->count(),
             'posted_this_year' => (clone $base)->where('status', PayrollRunStatus::Posted->value)->whereYear('posted_at', now()->year)->count(),
-            'last_net_total' => (clone $base)->where('status', PayrollRunStatus::Posted->value)->orderByDesc('posted_at')->value('net_total') ?? 0,
+            'last_net_total' => (clone $base)->whereIn('status', [PayrollRunStatus::Posted->value, PayrollRunStatus::Paid->value])->orderByDesc('posted_at')->value('net_total') ?? 0,
         ];
     }
 }

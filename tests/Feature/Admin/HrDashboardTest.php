@@ -26,15 +26,17 @@ class HrDashboardTest extends TestCase
     public function test_hr_dashboard_renders_for_hr_user(): void
     {
         $this->actingAs($this->hrUser())
-            ->get(route('admin.hr.dashboard'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.dashboard', ['embedded' => '1']))
             ->assertOk()
-            ->assertSee(__('HR Dashboard'))
-            ->assertSee(__('Attendance'))
-            ->assertSee(__('Leave'))
-            ->assertSee(__('Payroll'))
-            ->assertSee(__('Documents'))
-            ->assertSee(__('Performance'))
-            ->assertSee(__('Training'))
+            ->assertSee(__('HR Command Center'))
+            ->assertSee(__('HR Action Center'))
+            ->assertSee(__('Total Employees'))
+            ->assertSee(__('Pending Leave Approvals'))
+            ->assertSee(__('Attendance Snapshot'))
+            ->assertSee(__('Leave Snapshot'))
+            ->assertSee(__('Payroll Snapshot'))
+            ->assertSee(__('Document Compliance'))
             ->assertSee(__('Exit Management'));
     }
 
@@ -51,16 +53,20 @@ class HrDashboardTest extends TestCase
         $viewer->assignRole(Role::findByName('Viewer', 'web'));
 
         $this->actingAs($viewer)
-            ->get(route('admin.hr.dashboard'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.dashboard', ['embedded' => '1']))
             ->assertForbidden();
     }
 
     public function test_workspace_links_to_hr_dashboard(): void
     {
         $this->actingAs($this->hrUser())
-            ->get(route('admin.workspaces.hr'))
+            ->get(route('admin.workspaces.hr.section', [
+                'section' => 'people',
+                'tab' => 'dashboard',
+            ]))
             ->assertOk()
-            ->assertSee(__('HR Dashboard'));
+            ->assertSee(route('admin.hr.dashboard', ['embedded' => '1']), false);
     }
 
     protected function hrUser(): User

@@ -110,6 +110,15 @@ class ModuleShellPresenter
                 'section_route' => 'admin.workspaces.dispatch.section',
                 'type' => 'sectioned',
             ],
+            'printing-intelligence' => [
+                'config' => 'printing_intelligence_workspaces',
+                'title' => __('Printing Intelligence'),
+                'description' => __('Trusted cost bridge for materials, machines, ink, quotations, and production reality.'),
+                'icon' => 'color-swatch',
+                'hub_route' => 'admin.workspaces.printing-intelligence',
+                'section_route' => 'admin.workspaces.printing-intelligence.section',
+                'type' => 'sectioned',
+            ],
         ];
     }
 
@@ -333,19 +342,19 @@ class ModuleShellPresenter
     {
         $itemRoute = $item['route'] ?? null;
 
-        if ($itemRoute !== $routeName || ! Route::has($itemRoute)) {
-            return false;
-        }
+        if ($itemRoute === $routeName && Route::has($itemRoute)) {
+            $itemParams = $item['route_params'] ?? [];
 
-        $itemParams = $item['route_params'] ?? [];
-
-        foreach ($itemParams as $key => $expected) {
-            if (($routeParams[$key] ?? null) != $expected) {
-                return false;
+            foreach ($itemParams as $key => $expected) {
+                if (($routeParams[$key] ?? null) != $expected) {
+                    return false;
+                }
             }
+
+            return true;
         }
 
-        return true;
+        return $this->routeMatchesItem($routeName, $item, request());
     }
 
     /**

@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\Hr\ShiftController;
 use App\Http\Controllers\Admin\Hr\EmployeeExitController;
 use App\Http\Controllers\Admin\Hr\ExitDashboardController;
 use App\Http\Controllers\Admin\Hr\TrainingAssignmentController;
+use App\Http\Controllers\Admin\Hr\TrainingCalendarController;
+use App\Http\Controllers\Admin\Hr\TrainingCertificatesController;
 use App\Http\Controllers\Admin\Hr\TrainingDashboardController;
 use App\Http\Controllers\Admin\Hr\TrainingProgramController;
 use Illuminate\Support\Facades\Route;
@@ -107,13 +109,18 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.payroll.view')->group(function () {
             Route::get('payroll/runs', [PayrollRunController::class, 'index'])->name('payroll.index');
+            Route::get('payroll/payslips/{payslip}', [PayrollPayslipController::class, 'show'])->name('payroll.payslip.show');
             Route::get('payroll/payslips/{payslip}/download', [PayrollPayslipController::class, 'download'])->name('payroll.payslip.download');
         });
 
         Route::middleware('permission:hr.payroll.process')->group(function () {
             Route::get('payroll/runs/create', [PayrollRunController::class, 'create'])->name('payroll.create');
             Route::post('payroll/runs', [PayrollRunController::class, 'store'])->name('payroll.store');
+            Route::post('payroll/runs/{payrollRun}/generate', [PayrollRunController::class, 'generate'])->name('payroll.generate');
             Route::post('payroll/runs/{payrollRun}/calculate', [PayrollRunController::class, 'calculate'])->name('payroll.calculate');
+            Route::post('payroll/runs/{payrollRun}/submit-review', [PayrollRunController::class, 'submitReview'])->name('payroll.submit-review');
+            Route::post('payroll/runs/{payrollRun}/submit-approval', [PayrollRunController::class, 'submitApproval'])->name('payroll.submit-approval');
+            Route::post('payroll/runs/{payrollRun}/cancel', [PayrollRunController::class, 'cancel'])->name('payroll.cancel');
             Route::post('payroll/payslips/{payslip}/email', [PayrollPayslipController::class, 'email'])->name('payroll.payslip.email');
         });
 
@@ -123,12 +130,19 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
 
         Route::middleware('permission:hr.payroll.approve')->group(function () {
             Route::post('payroll/runs/{payrollRun}/approve', [PayrollRunController::class, 'approve'])->name('payroll.approve');
+            Route::post('payroll/runs/{payrollRun}/reject', [PayrollRunController::class, 'reject'])->name('payroll.reject');
             Route::post('payroll/runs/{payrollRun}/post', [PayrollRunController::class, 'post'])->name('payroll.post');
+            Route::post('payroll/runs/{payrollRun}/release-payslips', [PayrollRunController::class, 'releasePayslips'])->name('payroll.release-payslips');
+            Route::post('payroll/runs/{payrollRun}/mark-paid', [PayrollRunController::class, 'markPaid'])->name('payroll.mark-paid');
         });
 
         Route::get('payroll/runs/{payrollRun}/export', [PayrollRunController::class, 'export'])
             ->middleware('permission:hr.payroll.export')
             ->name('payroll.export');
+
+        Route::get('payroll/runs/{payrollRun}/export-payment', [PayrollRunController::class, 'exportPayment'])
+            ->middleware('permission:hr.payroll.export')
+            ->name('payroll.export-payment');
 
         Route::get('documents', EmployeeDocumentDashboardController::class)
             ->middleware('permission:hr.documents.view')
@@ -182,6 +196,14 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
             ->middleware('permission:hr.training.view')
             ->name('training.dashboard');
 
+        Route::middleware('permission:hr.training.view')->group(function () {
+            Route::get('training/programs', [TrainingProgramController::class, 'index'])->name('training.programs.index');
+            Route::get('training/assignments', [TrainingAssignmentController::class, 'index'])->name('training.assignments.index');
+            Route::get('training/skills-matrix', [TrainingAssignmentController::class, 'skillsMatrix'])->name('training.skills-matrix');
+            Route::get('training/calendar', [TrainingCalendarController::class, 'index'])->name('training.calendar');
+            Route::get('training/certificates', [TrainingCertificatesController::class, 'index'])->name('training.certificates');
+        });
+
         Route::middleware('permission:hr.training.manage')->group(function () {
             Route::get('training/programs/create', [TrainingProgramController::class, 'create'])->name('training.programs.create');
             Route::post('training/programs', [TrainingProgramController::class, 'store'])->name('training.programs.store');
@@ -190,10 +212,22 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:hr.training.view')->group(function () {
-            Route::get('training/programs', [TrainingProgramController::class, 'index'])->name('training.programs.index');
-            Route::get('training/assignments', [TrainingAssignmentController::class, 'index'])->name('training.assignments.index');
-            Route::get('training/skills-matrix', [TrainingAssignmentController::class, 'skillsMatrix'])->name('training.skills-matrix');
+            Route::get('training/programs/{program}', [TrainingProgramController::class, 'show'])->name('training.programs.show');
             Route::get('training/assignments/{employeeTrainingAssignment}', [TrainingAssignmentController::class, 'show'])->name('training.assignments.show');
+        });
+
+        Route::middleware('permission:hr.training.manage')->group(function () {
+            Route::get('training/programs/{program}/edit', [TrainingProgramController::class, 'edit'])->name('training.programs.edit');
+            Route::put('training/programs/{program}', [TrainingProgramController::class, 'update'])->name('training.programs.update');
+            Route::post('training/programs/{program}/activate', [TrainingProgramController::class, 'activate'])->name('training.programs.activate');
+            Route::post('training/programs/{program}/deactivate', [TrainingProgramController::class, 'deactivate'])->name('training.programs.deactivate');
+            Route::post('training/programs/{program}/complete', [TrainingProgramController::class, 'complete'])->name('training.programs.complete');
+            Route::post('training/programs/{program}/reopen', [TrainingProgramController::class, 'reopen'])->name('training.programs.reopen');
+            Route::post('training/programs/{program}/duplicate', [TrainingProgramController::class, 'duplicate'])->name('training.programs.duplicate');
+            Route::post('training/programs/{program}/archive', [TrainingProgramController::class, 'archive'])->name('training.programs.archive');
+            Route::post('training/programs/{program}/evaluate', [TrainingProgramController::class, 'evaluate'])->name('training.programs.evaluate');
+            Route::post('training/assignments/{employeeTrainingAssignment}/start', [TrainingAssignmentController::class, 'start'])->name('training.assignments.start');
+            Route::post('training/assignments/{employeeTrainingAssignment}/cancel', [TrainingAssignmentController::class, 'cancel'])->name('training.assignments.cancel');
         });
 
         Route::post('training/assignments/{employeeTrainingAssignment}/complete', [TrainingAssignmentController::class, 'complete'])

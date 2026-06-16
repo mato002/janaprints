@@ -286,6 +286,18 @@ return [
             ],
         ],
 
+        'payroll_run.create' => [
+            'label' => 'Payroll Runs',
+            'description' => 'New payroll run header fields.',
+            'fields' => [
+                'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 1],
+                'period_start' => ['label' => 'Period start', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 2, 'default' => null],
+                'period_end' => ['label' => 'Period end', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 3, 'default' => null],
+                'pay_date' => ['label' => 'Pay date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 4, 'default' => null],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 5],
+            ],
+        ],
+
     ],
 
     'field_aliases' => [

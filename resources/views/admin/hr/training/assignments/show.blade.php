@@ -43,7 +43,25 @@
     </div>
 
     @can('update', $assignment)
-        @if ($assignment->status->value !== 'completed')
+        @if ($assignment->status === \App\Enums\TrainingAssignmentStatus::Assigned)
+            <x-admin.card class="mt-4" :title="__('Start Training')">
+                <form method="POST" action="{{ route('admin.hr.training.assignments.start', $assignment) }}">
+                    @csrf
+                    <button type="submit" class="erp-btn-primary">{{ __('Start training') }}</button>
+                </form>
+            </x-admin.card>
+        @endif
+
+        @if (in_array($assignment->status, [\App\Enums\TrainingAssignmentStatus::Assigned, \App\Enums\TrainingAssignmentStatus::InProgress]))
+            <x-admin.card class="mt-4" :title="__('Cancel Assignment')">
+                <form method="POST" action="{{ route('admin.hr.training.assignments.cancel', $assignment) }}" onsubmit="return confirm(@js(__('Cancel this training assignment?')))">
+                    @csrf
+                    <button type="submit" class="erp-btn-secondary text-red-600">{{ __('Cancel training') }}</button>
+                </form>
+            </x-admin.card>
+        @endif
+
+        @if ($assignment->status->value !== 'completed' && $assignment->status->value !== 'cancelled')
             <x-admin.card class="mt-4" :title="__('Mark Complete')">
                 <form method="POST" action="{{ route('admin.hr.training.assignments.complete', $assignment) }}" class="max-w-2xl">
                     @csrf

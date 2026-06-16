@@ -59,6 +59,8 @@ class WorkspaceNavigationRegistry
         $this->registerSupplyChain();
         $this->registerCommercial();
         $this->registerAdministration();
+        $this->registerHr();
+        $this->registerPrintingIntelligence();
 
         $this->built = true;
     }
@@ -410,6 +412,156 @@ class WorkspaceNavigationRegistry
         }
     }
 
+    protected function registerHr(): void
+    {
+        $workspaceKey = 'hr';
+        $hubRoute = 'admin.workspaces.hr';
+        $hubTitle = __('HR');
+        $catalog = config('hr_workspaces');
+
+        if (! is_array($catalog)) {
+            return;
+        }
+
+        $this->registerEntry($hubRoute, [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => null,
+            'workspace_title' => $hubTitle,
+            'parent_workspace_title' => null,
+            'parent_route' => null,
+            'parent_route_params' => [],
+            'ancestors' => [],
+        ]);
+
+        $this->registerEntry('admin.workspaces.hr.section', [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => $workspaceKey,
+            'workspace_title' => null,
+            'parent_workspace_title' => $hubTitle,
+            'parent_route' => $hubRoute,
+            'parent_route_params' => [],
+            'ancestors' => [
+                $this->ancestor($hubTitle, $hubRoute),
+            ],
+            'dynamic_section' => true,
+        ]);
+
+        foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
+            $sectionRoute = 'admin.workspaces.hr.section';
+            $sectionTitle = $section['title'] ?? $sectionKey;
+
+            $this->registerEntry("admin.workspaces.hr.section:{$sectionKey}", [
+                'workspace_key' => "{$workspaceKey}:{$sectionKey}",
+                'parent_workspace_key' => $workspaceKey,
+                'workspace_title' => $sectionTitle,
+                'parent_workspace_title' => $hubTitle,
+                'parent_route' => $hubRoute,
+                'parent_route_params' => [],
+                'ancestors' => [
+                    $this->ancestor($hubTitle, $hubRoute),
+                ],
+                'route' => $sectionRoute,
+                'route_params' => ['section' => $sectionKey],
+            ]);
+
+            foreach ($section['groups'] ?? [] as $group) {
+                $groupLabel = $group['label'] ?? '';
+
+                foreach ($group['items'] ?? [] as $item) {
+                    if (! empty($item['coming_soon'])) {
+                        continue;
+                    }
+
+                    $this->registerFeatureItem(
+                        $workspaceKey,
+                        $hubRoute,
+                        $hubTitle,
+                        $groupLabel,
+                        $item,
+                        $sectionKey,
+                        $sectionTitle,
+                        $sectionRoute,
+                    );
+                }
+            }
+        }
+    }
+
+    protected function registerPrintingIntelligence(): void
+    {
+        $workspaceKey = 'printing-intelligence';
+        $hubRoute = 'admin.workspaces.printing-intelligence';
+        $hubTitle = __('Printing Intelligence');
+        $catalog = config('printing_intelligence_workspaces');
+
+        if (! is_array($catalog)) {
+            return;
+        }
+
+        $this->registerEntry($hubRoute, [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => null,
+            'workspace_title' => $hubTitle,
+            'parent_workspace_title' => null,
+            'parent_route' => null,
+            'parent_route_params' => [],
+            'ancestors' => [],
+        ]);
+
+        $this->registerEntry('admin.workspaces.printing-intelligence.section', [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => $workspaceKey,
+            'workspace_title' => null,
+            'parent_workspace_title' => $hubTitle,
+            'parent_route' => $hubRoute,
+            'parent_route_params' => [],
+            'ancestors' => [
+                $this->ancestor($hubTitle, $hubRoute),
+            ],
+            'dynamic_section' => true,
+        ]);
+
+        foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
+            $sectionRoute = 'admin.workspaces.printing-intelligence.section';
+            $sectionTitle = $section['title'] ?? $sectionKey;
+
+            $this->registerEntry("admin.workspaces.printing-intelligence.section:{$sectionKey}", [
+                'workspace_key' => "{$workspaceKey}:{$sectionKey}",
+                'parent_workspace_key' => $workspaceKey,
+                'workspace_title' => $sectionTitle,
+                'parent_workspace_title' => $hubTitle,
+                'parent_route' => $hubRoute,
+                'parent_route_params' => [],
+                'ancestors' => [
+                    $this->ancestor($hubTitle, $hubRoute),
+                ],
+                'route' => $sectionRoute,
+                'route_params' => ['section' => $sectionKey],
+            ]);
+
+            foreach ($section['groups'] ?? [] as $group) {
+                $groupLabel = $group['label'] ?? '';
+
+                foreach ($group['items'] ?? [] as $item) {
+                    if (! empty($item['coming_soon'])) {
+                        continue;
+                    }
+
+                    $this->registerFeatureItem(
+                        $workspaceKey,
+                        $hubRoute,
+                        $hubTitle,
+                        $groupLabel,
+                        $item,
+                        $sectionKey,
+                        $sectionTitle,
+                        $sectionRoute,
+                    );
+                }
+            }
+        }
+    }
+
     /**
      * @param  array<string, mixed>  $item
      */
@@ -442,6 +594,8 @@ class WorkspaceNavigationRegistry
                 'supply-chain' => 'admin.workspaces.supply-chain.section',
                 'commercial' => 'admin.workspaces.commercial.section',
                 'administration' => 'admin.workspaces.administration.section',
+                'hr' => 'admin.workspaces.hr.section',
+                'printing-intelligence' => 'admin.workspaces.printing-intelligence.section',
                 default => 'admin.workspaces.accounting.section',
             };
             $parentParams = ['section' => $sectionKey];

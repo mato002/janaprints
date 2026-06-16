@@ -54,7 +54,8 @@ class SettingsGovernanceTest extends TestCase
         $user = $this->userWithPermissions(['settings.view']);
 
         $response = $this->actingAs($user)
-            ->get(route('admin.settings.show', 'hub'));
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.settings.show', ['section' => 'hub', 'embedded' => '1']));
 
         $response->assertOk()
             ->assertSee(__('Settings Control Center'))
@@ -81,7 +82,8 @@ class SettingsGovernanceTest extends TestCase
         $user = $this->userWithPermissions(['settings.view']);
 
         $this->actingAs($user)
-            ->get(route('admin.settings.show', 'hub'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.settings.show', ['section' => 'hub', 'embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Taxes'))
             ->assertSee(__('Production Workflow'))

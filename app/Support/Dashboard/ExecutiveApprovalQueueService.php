@@ -294,7 +294,7 @@ class ExecutiveApprovalQueueService
                 PayrollRun::query()
                     ->where('company_id', $companyId)
                     ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                    ->where('status', PayrollRunStatus::Calculated)
+                    ->where('status', PayrollRunStatus::PendingApproval)
                     ->with(['processedBy:id,name', 'branch:id,name'])
                     ->orderByDesc('processed_at')
                     ->limit(10)

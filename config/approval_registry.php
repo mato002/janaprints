@@ -52,6 +52,14 @@ return [
             'example_tiers' => [5, 10, 15],
         ],
 
+        'payroll_approval' => [
+            'label' => 'Payroll Approval',
+            'description' => 'Require approval for payroll runs above net pay thresholds.',
+            'metric' => 'amount',
+            'default_permission' => 'hr.payroll.approve',
+            'example_tiers' => [100000, 250000, 500000],
+        ],
+
     ],
 
 ];

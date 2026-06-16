@@ -3,7 +3,6 @@
     $fields = $formFields ?? [];
 @endphp
 
-<<<<<<< Updated upstream
 <div class="erp-form-grid">
     @if (auth()->user()->hasRole('Super Admin') && ! $segment)
         <x-admin.form-field name="company_id" :label="__('Company')" :required="true">
@@ -16,19 +15,6 @@
     @else
         <input type="hidden" name="company_id" value="{{ $segment?->company_id ?? auth()->user()->company_id }}">
     @endif
-=======
-@if (auth()->user()->hasRole('Super Admin') && ! $segment)
-    <div class="mb-4">
-        <x-admin.lookup-company-select
-            :companies="$companies"
-            :value="old('company_id', $companies->first()?->id)"
-            select-class="block mt-1 w-full rounded-md border-gray-300"
-        />
-    </div>
-@else
-    <input type="hidden" name="company_id" value="{{ $segment?->company_id ?? auth()->user()->company_id }}">
-@endif
->>>>>>> Stashed changes
 
     <x-admin.input
         name="name"

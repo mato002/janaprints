@@ -7,6 +7,7 @@
     'visible' => true,
     'readonly' => false,
     'help' => null,
+    'placeholder' => null,
     'colSpan' => 1,
 ])
 
@@ -27,6 +28,7 @@
         :value="$value"
         :required="$required"
         :readonly="$readonly"
+        :placeholder="$placeholder"
         {{ $attributes }}
     />
 </x-admin.form-field>

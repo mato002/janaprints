@@ -4,6 +4,7 @@
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
+        'embedded' => $embedded ? '1' : null,
     ]);
     $hubBackUrl = route('admin.workspaces.administration.section', ['section' => 'configuration', 'tab' => 'document-types']);
     $embedded = WorkspaceEmbed::isEmbedded();
@@ -35,9 +36,7 @@
         'branchEmptyLabel' => __('Company-wide default'),
     ])
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
+    @include('admin.partials.alerts')
 
     <x-admin.card>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -45,7 +44,11 @@
                 {{ __(':count document types registered', ['count' => count($rows)]) }}
             </p>
             @if ($canCreate)
-                <a href="{{ route('admin.settings.document-types.create', $scopeQuery) }}" class="erp-btn erp-btn--primary">
+                <a
+                    href="{{ WorkspaceEmbed::url(route('admin.settings.document-types.create', $scopeQuery)) }}"
+                    @if ($embedded) data-turbo-frame="module-workspace-content" @endif
+                    class="erp-btn erp-btn--primary"
+                >
                     {{ __('Create Document Type') }}
                 </a>
             @endif
@@ -93,22 +96,41 @@
                             <td class="py-3 pl-2 text-right">
                                 <div class="flex justify-end gap-2">
                                     @if ($canEdit)
-                                        <a href="{{ route('admin.settings.document-types.edit', ['documentTypeDefinition' => $row['id']] + $scopeQuery) }}" class="erp-btn erp-btn--ghost erp-btn--sm">
+                                        <a
+                                            href="{{ WorkspaceEmbed::url(route('admin.settings.document-types.edit', ['documentTypeDefinition' => $row['id']] + $scopeQuery)) }}"
+                                            @if ($embedded) data-turbo-frame="module-workspace-content" @endif
+                                            class="erp-btn erp-btn--ghost erp-btn--sm"
+                                        >
                                             {{ __('Edit') }}
                                         </a>
                                     @endif
                                     @if ($row['is_active'] && $canDeactivate)
-                                        <form method="POST" action="{{ route('admin.settings.document-types.deactivate', ['documentTypeDefinition' => $row['id']] + $scopeQuery) }}">
+                                        <form
+                                            method="POST"
+                                            action="{{ WorkspaceEmbed::url(route('admin.settings.document-types.deactivate', ['documentTypeDefinition' => $row['id']] + $scopeQuery)) }}"
+                                            @if ($embedded) data-turbo-frame="module-workspace-content" @endif
+                                            onsubmit="return confirm(@js(__('Deactivate this document type?')))"
+                                        >
                                             @csrf
                                             @method('PATCH')
+                                            @if ($embedded)
+                                                <input type="hidden" name="embedded" value="1">
+                                            @endif
                                             <button type="submit" class="erp-btn erp-btn--ghost erp-btn--sm text-red-600">
                                                 {{ __('Deactivate') }}
                                             </button>
                                         </form>
                                     @elseif (! $row['is_active'] && $canActivate)
-                                        <form method="POST" action="{{ route('admin.settings.document-types.activate', ['documentTypeDefinition' => $row['id']] + $scopeQuery) }}">
+                                        <form
+                                            method="POST"
+                                            action="{{ WorkspaceEmbed::url(route('admin.settings.document-types.activate', ['documentTypeDefinition' => $row['id']] + $scopeQuery)) }}"
+                                            @if ($embedded) data-turbo-frame="module-workspace-content" @endif
+                                        >
                                             @csrf
                                             @method('PATCH')
+                                            @if ($embedded)
+                                                <input type="hidden" name="embedded" value="1">
+                                            @endif
                                             <button type="submit" class="erp-btn erp-btn--ghost erp-btn--sm text-emerald-700">
                                                 {{ __('Activate') }}
                                             </button>

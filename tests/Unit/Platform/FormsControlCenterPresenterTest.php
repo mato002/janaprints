@@ -37,6 +37,9 @@ class FormsControlCenterPresenterTest extends TestCase
         $this->assertGreaterThan(0, $hub['summary']['managed_fields']);
         $this->assertCount(6, $hub['categories']);
         $this->assertArrayHasKey('governance_issues', $hub['health']);
+        $this->assertArrayHasKey('compliance', $hub);
+        $this->assertArrayHasKey('compliance_percent', $hub['summary']);
+        $this->assertArrayHasKey('governed_forms', $hub['summary']);
         $this->assertNotEmpty($hub['export_payload']['forms']);
     }
 }

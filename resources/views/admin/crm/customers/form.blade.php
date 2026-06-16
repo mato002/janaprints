@@ -119,7 +119,6 @@
     @endif
 
     @if(($fields['status']['visible'] ?? true))
-<<<<<<< Updated upstream
     <x-admin.form-field
         name="status"
         :label="__('Status')"
@@ -132,19 +131,9 @@
             @endforeach
         </select>
     </x-admin.form-field>
-=======
-        <x-admin.form-status-select
-            form-key="customer"
-            :field="$fields['status']"
-            :value="$customer?->status ?? ($fields['status']['default'] ?? null)"
-            :model="$customer"
-            select-class="erp-select mt-1"
-        />
->>>>>>> Stashed changes
     @endif
 
     @if (auth()->user()->hasRole('Super Admin') && ! $customer)
-<<<<<<< Updated upstream
         <x-admin.form-field name="company_id" :label="__('Company')" :required="true">
             <select name="company_id" class="erp-select w-full" required>
                 @foreach ($companies as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
@@ -155,22 +144,6 @@
                 @foreach ($branches as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach
             </select>
         </x-admin.form-field>
-=======
-        <x-admin.lookup-company-select :companies="$companies" :value="old('company_id', $companies->first()?->id)" />
-        <x-admin.lookup-select
-            name="branch_id"
-            :label="__('Branch')"
-            :options="$branches"
-            :value="old('branch_id', $branches->first()?->id)"
-            create-route="admin.branches.quick-create"
-            refresh-route="admin.lookups.branches"
-            permission="branches.manage"
-            :modal-title="__('Create branch')"
-            option-label-key="name"
-            option-value-key="id"
-            scope-company-field="company_id"
-        />
->>>>>>> Stashed changes
     @endif
 
     @if(($fields['segment_ids']['visible'] ?? true))
@@ -195,10 +168,6 @@
         :readonly="($fields['notes']['read_only'] ?? false)"
     />
     @endif
-<<<<<<< Updated upstream
 
     @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $customer ?? null])
-=======
-    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $customer ?? null, 'formKey' => 'customer'])
->>>>>>> Stashed changes
 </div>

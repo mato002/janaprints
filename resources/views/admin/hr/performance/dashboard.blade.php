@@ -1,12 +1,17 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+    $turboFrame = WorkspaceEmbed::turboFrame();
+@endphp
+
 <x-admin-layout :title="__('Performance')" :breadcrumbs="[['label' => __('HR'), 'url' => route('admin.workspaces.hr')], ['label' => __('Performance')]]">
-    <x-admin.page-header :title="__('Performance Management')" :description="__('Employee KPIs, appraisals, and performance ratings.')">
-        <x-slot name="actions">
+    <x-admin.workspace-content-header :title="__('Performance Management')" :description="__('Employee KPIs, appraisals, and performance ratings.')">
+        <x-slot:actions>
             @can('create', App\Models\Hr\PerformanceReview::class)
                 <a href="{{ route('admin.hr.performance.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New appraisal') }}</a>
             @endcan
-            <a href="{{ route('admin.hr.performance.index') }}" class="erp-btn-secondary">{{ __('All reviews') }}</a>
-        </x-slot>
-    </x-admin.page-header>
+            <a href="{{ WorkspaceEmbed::url(route('admin.hr.performance.index')) }}" class="erp-btn-secondary erp-btn--sm" data-turbo-frame="{{ $turboFrame }}">{{ __('All reviews') }}</a>
+        </x-slot:actions>
+    </x-admin.workspace-content-header>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         @foreach ([

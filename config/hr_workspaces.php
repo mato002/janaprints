@@ -45,7 +45,7 @@ return [
             'route_params' => ['section' => 'reports'],
             'permission' => 'reports.view|hr.dashboard.view',
             'icon' => 'chart-pie',
-            'active_routes' => ['admin.workspaces.hr.section:reports', 'admin.reports.hr', 'admin.hr.dashboard'],
+            'active_routes' => ['admin.workspaces.hr.section:reports', 'admin.reports.hr'],
         ],
     ],
 

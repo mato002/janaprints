@@ -14,6 +14,7 @@ class HrDashboardService
         protected PerformanceReviewService $performance,
         protected TrainingAssignmentService $training,
         protected EmployeeExitService $exits,
+        protected HrDashboardCommandCenterService $commandCenter,
     ) {}
 
     /**
@@ -21,18 +22,17 @@ class HrDashboardService
      */
     public function overview(int $companyId): array
     {
+        $dashboard = $this->commandCenter->build($companyId);
         $attendance = $this->attendance->dashboardMetrics($companyId);
         $leave = $this->leave->dashboardStats($companyId);
         $payroll = $this->payroll->dashboardStats($companyId);
         $documents = $this->documents->dashboardStats($companyId);
-        $performance = $this->performance->dashboardStats($companyId);
         $training = $this->training->dashboardStats($companyId);
         $exit = $this->exits->dashboardStats($companyId);
 
-        $activeEmployees = Employee::query()
-            ->where('company_id', $companyId)
-            ->where('is_active', true)
-            ->count();
+        $overview = collect($dashboard['overview'])->keyBy('key');
+        $activeEmployees = (int) ($overview['total_employees']['value'] ?? 0);
+        $pendingActions = (int) ($overview['pending_hr_actions']['value'] ?? 0);
 
         return [
             'headline' => [
@@ -41,11 +41,7 @@ class HrDashboardService
                 'attendance_percent' => $attendance['attendance_percent'],
                 'present_today' => $attendance['present_today'],
                 'on_leave_today' => $leave['on_leave_today'],
-                'pending_actions' => $leave['pending']
-                    + $payroll['pending_approval']
-                    + $documents['expiring_soon']
-                    + $training['expiring_certificates']
-                    + $exit['pending_clearance'],
+                'pending_actions' => $pendingActions,
             ],
             'modules' => [
                 [
@@ -140,7 +136,11 @@ class HrDashboardService
                     ],
                 ],
             ],
-            'alerts' => $this->buildAlerts($leave, $payroll, $documents, $training, $exit),
+            'alerts' => collect($dashboard['alerts'] ?? [])->map(fn (array $alert) => [
+                'label' => $alert['message'],
+                'route' => $alert['route'],
+                'permission' => $alert['permission'],
+            ])->all(),
         ];
     }
 

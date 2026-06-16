@@ -19,6 +19,10 @@ return [
             'label' => 'Finance',
             'rule_types' => ['payment_approval'],
         ],
+        'hr' => [
+            'label' => 'Human Resources',
+            'rule_types' => ['payroll_approval'],
+        ],
     ],
 
     'document_types' => [
@@ -28,6 +32,7 @@ return [
         'stock_adjustment' => ['label' => 'Stock Adjustment', 'module' => 'inventory', 'rule_type' => 'stock_adjustment_approval'],
         'purchase_order' => ['label' => 'Purchase Order', 'module' => 'procurement', 'rule_type' => 'procurement_approval'],
         'payment' => ['label' => 'Payment', 'module' => 'finance', 'rule_type' => 'payment_approval'],
+        'payroll_run' => ['label' => 'Payroll Run', 'module' => 'hr', 'rule_type' => 'payroll_approval'],
     ],
 
 ];

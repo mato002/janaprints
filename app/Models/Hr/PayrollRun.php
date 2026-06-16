@@ -18,8 +18,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'company_id', 'branch_id', 'reference', 'period_start', 'period_end', 'pay_date',
     'status', 'employee_count', 'gross_total', 'deductions_total', 'net_total',
     'paye_total', 'shif_total', 'nssf_total', 'housing_levy_total',
-    'processed_by_user_id', 'processed_at', 'approved_by_user_id', 'approved_at',
-    'posted_journal_id', 'posted_by_user_id', 'posted_at', 'notes',
+    'processed_by_user_id', 'processed_at', 'reviewed_by_user_id', 'reviewed_at',
+    'submitted_for_approval_by_user_id', 'submitted_for_approval_at',
+    'approved_by_user_id', 'approved_at',
+    'posted_journal_id', 'posted_by_user_id', 'posted_at',
+    'paid_by_user_id', 'paid_at', 'cancelled_by_user_id', 'cancelled_at',
+    'notes', 'generation_warnings', 'has_generation_warnings',
+    'review_snapshot', 'has_critical_review_issues',
+    'employer_nssf_total', 'employer_shif_total', 'employer_housing_levy_total',
 ])]
 class PayrollRun extends Model
 {
@@ -40,8 +46,19 @@ class PayrollRun extends Model
             'nssf_total' => 'decimal:2',
             'housing_levy_total' => 'decimal:2',
             'processed_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+            'submitted_for_approval_at' => 'datetime',
             'approved_at' => 'datetime',
             'posted_at' => 'datetime',
+            'paid_at' => 'datetime',
+            'cancelled_at' => 'datetime',
+            'generation_warnings' => 'array',
+            'has_generation_warnings' => 'boolean',
+            'review_snapshot' => 'array',
+            'has_critical_review_issues' => 'boolean',
+            'employer_nssf_total' => 'decimal:2',
+            'employer_shif_total' => 'decimal:2',
+            'employer_housing_levy_total' => 'decimal:2',
         ];
     }
 
@@ -60,6 +77,16 @@ class PayrollRun extends Model
         return $this->belongsTo(User::class, 'processed_by_user_id');
     }
 
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by_user_id');
+    }
+
+    public function submittedForApprovalBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_for_approval_by_user_id');
+    }
+
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by_user_id');
@@ -68,6 +95,16 @@ class PayrollRun extends Model
     public function postedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'posted_by_user_id');
+    }
+
+    public function paidBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'paid_by_user_id');
+    }
+
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by_user_id');
     }
 
     public function postedJournal(): BelongsTo
@@ -86,5 +123,10 @@ class PayrollRun extends Model
         }
 
         return $query->whereRaw('1 = 0');
+    }
+
+    public function getTotalAmountAttribute(): float
+    {
+        return (float) $this->net_total;
     }
 }

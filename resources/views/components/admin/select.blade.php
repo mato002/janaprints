@@ -5,6 +5,7 @@
     'visible' => true,
     'readonly' => false,
     'help' => null,
+    'placeholder' => null,
     'colSpan' => 1,
 ])
 

@@ -4,7 +4,7 @@
     <form method="POST" action="{{ route('admin.hr.training.programs.update', $program) }}" class="erp-card max-w-3xl">
         @csrf
         @method('PUT')
-        @include('admin.hr.training.programs.partials.form', ['program' => $program, 'types' => $types])
+        @include('admin.hr.training.programs.partials.form', ['program' => $program, 'types' => $types, 'statuses' => $statuses])
         <div class="mt-6 flex gap-2">
             <button type="submit" class="erp-btn-primary">{{ __('Save changes') }}</button>
             <a href="{{ route('admin.hr.training.programs.show', $program) }}" class="erp-btn-secondary">{{ __('Cancel') }}</a>

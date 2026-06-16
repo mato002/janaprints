@@ -27,7 +27,7 @@ class PayrollPostingSeeder extends Seeder
 
         foreach (config('posting_account_keys') as $key => $mapping) {
             if (! str_contains($key, 'salary') && ! str_contains($key, 'paye') && ! str_contains($key, 'shif')
-                && ! str_contains($key, 'nssf') && ! str_contains($key, 'housing')) {
+                && ! str_contains($key, 'nssf') && ! str_contains($key, 'housing') && ! str_contains($key, 'employer')) {
                 continue;
             }
 
@@ -59,6 +59,9 @@ class PayrollPostingSeeder extends Seeder
 
         $lines = [
             [PostingLineSide::Debit, 'salaries_expense', PostingAmountSource::ContextField, 'gross_amount'],
+            [PostingLineSide::Debit, 'employer_nssf_expense', PostingAmountSource::ContextField, 'employer_nssf_amount'],
+            [PostingLineSide::Debit, 'employer_shif_expense', PostingAmountSource::ContextField, 'employer_shif_amount'],
+            [PostingLineSide::Debit, 'employer_housing_levy_expense', PostingAmountSource::ContextField, 'employer_housing_levy_amount'],
             [PostingLineSide::Credit, 'paye_payable', PostingAmountSource::ContextField, 'paye_amount'],
             [PostingLineSide::Credit, 'shif_payable', PostingAmountSource::ContextField, 'shif_amount'],
             [PostingLineSide::Credit, 'nssf_payable', PostingAmountSource::ContextField, 'nssf_amount'],

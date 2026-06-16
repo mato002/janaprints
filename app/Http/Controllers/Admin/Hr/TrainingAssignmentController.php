@@ -39,6 +39,7 @@ class TrainingAssignmentController extends Controller
 
         return view('admin.hr.training.assignments.create', [
             'formData' => $this->assignments->formData($companyId),
+            'selectedProgramId' => $request->integer('training_program_id') ?: null,
         ]);
     }
 
@@ -90,9 +91,39 @@ class TrainingAssignmentController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $this->assignments->complete($employeeTrainingAssignment, $validated, $request->user());
+        try {
+            $this->assignments->complete($employeeTrainingAssignment, $validated, $request->user());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         return back()->with('status', __('Training marked as completed.'));
+    }
+
+    public function start(EmployeeTrainingAssignment $employeeTrainingAssignment): RedirectResponse
+    {
+        $this->authorize('update', $employeeTrainingAssignment);
+
+        try {
+            $this->assignments->start($employeeTrainingAssignment);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('status', __('Training started.'));
+    }
+
+    public function cancel(EmployeeTrainingAssignment $employeeTrainingAssignment): RedirectResponse
+    {
+        $this->authorize('update', $employeeTrainingAssignment);
+
+        try {
+            $this->assignments->cancel($employeeTrainingAssignment);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('status', __('Training cancelled.'));
     }
 
     public function skillsMatrix(Request $request): View

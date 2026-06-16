@@ -6,6 +6,7 @@
     'visible' => true,
     'readonly' => false,
     'help' => null,
+    'placeholder' => null,
     'rows' => 3,
     'colSpan' => 2,
 ])
@@ -24,6 +25,7 @@
         name="{{ $name }}"
         rows="{{ $rows }}"
         class="erp-input w-full"
+        @if ($placeholder) placeholder="{{ $placeholder }}" @endif
         @required($required)
         @readonly($readonly)
         {{ $attributes }}

@@ -9,6 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         if (Schema::hasTable('print_artwork_ink_estimates')) {
+            Schema::table('print_artwork_ink_estimates', function (Blueprint $table) {
+                $table->unique(['print_artwork_analysis_id', 'ink_profile_id'], 'print_artwork_ink_est_analysis_ink_uq');
+            });
+
             return;
         }
 
@@ -38,7 +42,7 @@ return new class extends Migration
             $table->index('print_artwork_analysis_id');
             $table->index('ink_profile_id');
             $table->index('estimation_status');
-            $table->unique(['print_artwork_analysis_id', 'ink_profile_id']);
+            $table->unique(['print_artwork_analysis_id', 'ink_profile_id'], 'print_artwork_ink_est_analysis_ink_uq');
         });
     }
 

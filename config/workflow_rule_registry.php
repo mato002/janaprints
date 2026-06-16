@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Artwork\ArtworkRequest;
+use App\Models\Hr\PayrollRun;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\Quotation;
@@ -38,6 +39,12 @@ return [
             'module' => 'commercial',
             'model' => CustomerInvoice::class,
             'condition_fields' => ['total_amount', 'status', 'branch_id', 'due_date'],
+        ],
+        'payroll_run' => [
+            'label' => 'Payroll Run',
+            'module' => 'hr',
+            'model' => PayrollRun::class,
+            'condition_fields' => ['status', 'branch_id', 'net_total', 'employee_count'],
         ],
     ],
 

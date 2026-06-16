@@ -29,7 +29,7 @@ class TrainingProgramPolicy
 
     public function archive(User $user, TrainingProgram $program): bool
     {
-        return $user->can('hr.training.archive') && $this->sameCompany($user, $program->company_id);
+        return $user->can('hr.training.manage') && $this->sameCompany($user, $program->company_id);
     }
 
     public function export(User $user): bool

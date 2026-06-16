@@ -1,101 +1,58 @@
-<x-admin-layout :title="$run->reference" :breadcrumbs="[['label' => __('Payroll'), 'url' => route('admin.hr.payroll.dashboard')], ['label' => $run->reference]]">
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
+<x-admin-layout
+    :title="__('Payroll Run 360').' · '.$run->reference"
+    :breadcrumbs="[['label' => __('Payroll'), 'url' => route('admin.hr.payroll.dashboard')], ['label' => __('Runs'), 'url' => route('admin.hr.payroll.index')], ['label' => $run->reference]]"
+>
+    <div
+        class="payroll-run-360"
+        x-data="{
+            tab: new URLSearchParams(window.location.search).get('tab') || 'overview',
+            setTab(id) {
+                this.tab = id;
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', id);
+                window.history.replaceState({}, '', url);
+            },
+        }"
+    >
+        @include('admin.hr.payroll.360.header')
+        @include('admin.hr.payroll.360.kpi-strip')
 
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-            <h2 class="text-lg font-semibold text-erp-primary">{{ $run->reference }}</h2>
-            <p class="text-sm text-slate-600">{{ $run->period_start?->format('M j, Y') }} – {{ $run->period_end?->format('M j, Y') }} · {{ __('Pay') }} {{ $run->pay_date?->format('M j, Y') }}</p>
-        </div>
-        <span class="erp-badge erp-badge--{{ $run->status?->badgeClass() }}">{{ $run->status?->label() }}</span>
-    </div>
+        <nav class="mb-6 flex flex-wrap gap-2 border-b border-slate-200 pb-2" aria-label="{{ __('Payroll run workspace tabs') }}">
+            @foreach ($tabs as $tabDef)
+                <button
+                    type="button"
+                    class="rounded-md px-3 py-1.5 text-sm font-medium"
+                    :class="tab === @js($tabDef['id']) ? 'bg-erp-primary text-white' : 'text-slate-600 hover:bg-slate-100'"
+                    @click="setTab(@js($tabDef['id']))"
+                >
+                    {{ $tabDef['label'] }}
+                    @if ($tabDef['id'] === 'review' && ! ($review['can_submit_for_approval'] ?? true))
+                        <span class="ml-1 inline-flex h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span>
+                    @endif
+                </button>
+            @endforeach
+        </nav>
 
-    <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        @foreach ([
-            ['Gross', $run->gross_total],
-            ['Deductions', $run->deductions_total],
-            ['Net', $run->net_total],
-            ['Employees', $run->employee_count],
-        ] as [$label, $value])
-            <x-admin.kpi-widget :label="__($label)" :value="is_numeric($value) ? number_format($value, 2) : $value" />
-        @endforeach
-    </div>
-
-    <x-admin.card class="mb-6">
-        <div class="flex flex-wrap gap-2">
-            @can('process', $run)
-                @if (in_array($run->status, [App\Enums\PayrollRunStatus::Draft, App\Enums\PayrollRunStatus::Calculated]))
-                    <form method="POST" action="{{ route('admin.hr.payroll.calculate', $run) }}">
-                        @csrf
-                        <button type="submit" class="erp-btn-primary">{{ __('Calculate payroll') }}</button>
-                    </form>
-                @endif
-            @endcan
-            @can('approve', $run)
-                @if ($run->status === App\Enums\PayrollRunStatus::Calculated)
-                    <form method="POST" action="{{ route('admin.hr.payroll.approve', $run) }}">
-                        @csrf
-                        <button type="submit" class="erp-btn-secondary">{{ __('Approve') }}</button>
-                    </form>
-                @endif
-                @if ($run->status === App\Enums\PayrollRunStatus::Approved)
-                    <form method="POST" action="{{ route('admin.hr.payroll.post', $run) }}">
-                        @csrf
-                        <button type="submit" class="erp-btn-secondary">{{ __('Post to accounting') }}</button>
-                    </form>
-                @endif
-            @endcan
-            @can('export', App\Models\Hr\PayrollRun::class)
-                <x-admin.export-dropdown
-                    export-route="admin.hr.payroll.export"
-                    :export-route-params="['payrollRun' => $run]"
-                />
-            @endcan
-        </div>
-        @if ($run->postedJournal)
-            <p class="mt-3 text-sm text-slate-600">{{ __('Journal posted') }}: {{ $run->postedJournal->reference ?? $run->postedJournal->id }}</p>
+        @if (session('status'))
+            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
         @endif
-    </x-admin.card>
 
-    <x-admin.data-table export-filename="payslips">
-        <x-slot name="head">
-            <tr>
-                <th>{{ __('Employee') }}</th>
-                <th>{{ __('Gross') }}</th>
-                <th>{{ __('PAYE') }}</th>
-                <th>{{ __('SHIF') }}</th>
-                <th>{{ __('NSSF') }}</th>
-                <th>{{ __('Housing') }}</th>
-                <th>{{ __('Net') }}</th>
-                <th>{{ __('Days') }}</th>
-                <th class="erp-table-actions-col">{{ __('Payslip') }}</th>
-            </tr>
-        </x-slot>
-        <x-slot name="body">
-            @forelse ($run->payslips as $payslip)
-                <tr>
-                    <td class="font-medium">{{ $payslip->employee?->full_name }}</td>
-                    <td class="tabular-nums">{{ number_format($payslip->gross_pay, 2) }}</td>
-                    <td class="tabular-nums">{{ number_format($payslip->paye, 2) }}</td>
-                    <td class="tabular-nums">{{ number_format($payslip->shif, 2) }}</td>
-                    <td class="tabular-nums">{{ number_format($payslip->nssf, 2) }}</td>
-                    <td class="tabular-nums">{{ number_format($payslip->housing_levy, 2) }}</td>
-                    <td class="tabular-nums font-medium">{{ number_format($payslip->net_pay, 2) }}</td>
-                    <td class="text-sm text-slate-500">{{ $payslip->days_worked }}W / {{ $payslip->leave_days }}L</td>
-                    <td class="erp-table-actions-col">
-                        <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.hr.payroll.payslip.download', $payslip)">{{ __('PDF') }}</x-admin.table-row-action>
-                            <form method="POST" action="{{ route('admin.hr.payroll.payslip.email', $payslip) }}" class="contents">
-                                @csrf
-                                <button type="submit" class="erp-table-row-action w-full text-left">{{ __('Email') }}</button>
-                            </form>
-                        </x-admin.table-row-actions>
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="9"><x-admin.empty-state :title="__('No payslips yet')" :description="__('Calculate payroll to generate payslips.')" /></td></tr>
-            @endforelse
-        </x-slot>
-    </x-admin.data-table>
+        @if ($errors->any())
+            <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                <ul class="list-disc pl-5">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        <div class="payroll-run-360__panels">
+            @foreach ($tabs as $tabDef)
+                <div x-show="tab === @js($tabDef['id'])" @if ($tabDef['id'] !== 'overview') x-cloak @endif>
+                    @include('admin.hr.payroll.360.tabs.'.$tabDef['id'])
+                </div>
+            @endforeach
+        </div>
+    </div>
 </x-admin-layout>

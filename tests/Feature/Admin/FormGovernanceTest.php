@@ -116,6 +116,17 @@ class FormGovernanceTest extends TestCase
             ->assertSee(__('KRA PIN'));
     }
 
+    public function test_payroll_run_form_is_registered_and_resolves_required_fields(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $forms = app(FormSettingsService::class);
+
+        $this->assertTrue($forms->isRequired('payroll_run.create', 'period_start', $company->id));
+        $this->assertTrue($forms->isRequired('payroll_run.create', 'period_end', $company->id));
+        $this->assertTrue($forms->isRequired('payroll_run.create', 'pay_date', $company->id));
+        $this->assertFalse($forms->isRequired('payroll_run.create', 'branch_id', $company->id));
+    }
+
     public function test_seeded_customer_field_rules_apply(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

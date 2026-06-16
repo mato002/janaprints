@@ -8,7 +8,7 @@
         <select id="training_program_id" name="training_program_id" class="erp-input w-full" required>
             <option value="">{{ __('Select program') }}</option>
             @foreach ($formData['programs'] as $program)
-                <option value="{{ $program->id }}" @selected(old('training_program_id') == $program->id)>{{ $program->title }} ({{ $program->type->label() }})</option>
+                <option value="{{ $program->id }}" @selected(old('training_program_id', $selectedProgramId ?? null) == $program->id)>{{ $program->title }} ({{ $program->type->label() }})</option>
             @endforeach
         </select>
     </div>

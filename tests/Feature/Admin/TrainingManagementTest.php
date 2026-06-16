@@ -35,7 +35,8 @@ class TrainingManagementTest extends TestCase
     public function test_dashboard_renders_for_hr_user(): void
     {
         $this->actingAs($this->hrUser())
-            ->get(route('admin.hr.training.dashboard'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.training.dashboard', ['embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Training & Development'));
     }
@@ -132,7 +133,8 @@ class TrainingManagementTest extends TestCase
         ]);
 
         $this->actingAs($hr)
-            ->get(route('admin.hr.training.dashboard'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.training.dashboard', ['embedded' => '1']))
             ->assertOk()
             ->assertSee('CERT-EXP-001')
             ->assertSee($assignment->employee->full_name);
@@ -151,7 +153,8 @@ class TrainingManagementTest extends TestCase
         $viewer->assignRole(Role::findByName('Viewer', 'web'));
 
         $this->actingAs($viewer)
-            ->get(route('admin.hr.training.dashboard'))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.training.dashboard', ['embedded' => '1']))
             ->assertForbidden();
     }
 

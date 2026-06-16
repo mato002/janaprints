@@ -269,6 +269,7 @@ class ApprovalEnforcementEngine
             ApprovalRuleType::GoodsReceiptApproval => 'goods_receipt',
             ApprovalRuleType::VendorInvoiceApproval => 'vendor_invoice',
             ApprovalRuleType::PaymentApproval => 'payment',
+            ApprovalRuleType::PayrollApproval => 'payroll_run',
             ApprovalRuleType::AssetCapitalizationApproval => 'asset_capitalization',
             default => 'payment',
         };

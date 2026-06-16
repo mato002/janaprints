@@ -6,12 +6,24 @@
     </x-admin.page-header>
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="route('admin.hr.training.certificates')">
             <x-admin.status-pills
                 :options="[['value' => '', 'label' => __('All certificates')], ['value' => 'valid', 'label' => __('Valid')], ['value' => 'expiring', 'label' => __('Expiring Soon')], ['value' => 'expired', 'label' => __('Expired')]]"
                 param="status"
                 :current="$filters['status'] ?? ''"
             />
+            <select name="employee_id" class="erp-toolbar-input" aria-label="{{ __('Employee') }}">
+                <option value="">{{ __('All employees') }}</option>
+                @foreach ($formData['employees'] as $employee)
+                    <option value="{{ $employee->id }}" @selected(($filters['employee_id'] ?? '') == $employee->id)>{{ $employee->full_name }}</option>
+                @endforeach
+            </select>
+            <select name="program_id" class="erp-toolbar-input" aria-label="{{ __('Program') }}">
+                <option value="">{{ __('All programs') }}</option>
+                @foreach ($formData['programs'] as $program)
+                    <option value="{{ $program->id }}" @selected(($filters['program_id'] ?? '') == $program->id)>{{ $program->title }}</option>
+                @endforeach
+            </select>
         </x-admin.index-toolbar>
     </x-admin.card>
 
@@ -21,6 +33,7 @@
                 <th>{{ __('Employee') }}</th>
                 <th>{{ __('Program') }}</th>
                 <th>{{ __('Certificate') }}</th>
+                <th>{{ __('Completed') }}</th>
                 <th>{{ __('Expires') }}</th>
                 <th>{{ __('Status') }}</th>
             </tr>
@@ -35,6 +48,7 @@
                         </a>
                     </td>
                     <td>{{ $assignment->certificate_reference }}</td>
+                    <td>{{ $assignment->completed_at?->format('Y-m-d') ?? '—' }}</td>
                     <td>{{ $assignment->certificate_expires_at?->format('Y-m-d') ?? '—' }}</td>
                     <td>
                         @if ($assignment->certificate_expires_at?->isPast())
@@ -47,7 +61,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="5" class="py-6 text-center text-slate-500">{{ __('No certificates found.') }}</td></tr>
+                <tr><td colspan="6" class="py-6 text-center text-slate-500">{{ __('No certificates found.') }}</td></tr>
             @endforelse
         </x-slot>
     </x-admin.data-table>

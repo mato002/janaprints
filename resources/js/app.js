@@ -5113,7 +5113,7 @@ function cleanupRowActionMenus(root = document) {
     window.__erpOpenRowMenu = null;
 }
 
-function promoteFlashAlertsToToast(root) {
+function promoteFlashAlertsToToast(root, useSweetAlert = false) {
     if (! root) {
         return;
     }
@@ -5122,7 +5122,11 @@ function promoteFlashAlertsToToast(root) {
         const message = alert.textContent?.trim();
 
         if (message) {
-            erpModalManager.showToast(message);
+            if (useSweetAlert) {
+                showFormSettingsSweetAlert(message, 'success');
+            } else {
+                erpModalManager.showToast(message);
+            }
         }
 
         alert.remove();
@@ -5132,7 +5136,11 @@ function promoteFlashAlertsToToast(root) {
         const message = alert.textContent?.trim();
 
         if (message) {
-            erpModalManager.showToast(message, 'error');
+            if (useSweetAlert) {
+                showFormSettingsSweetAlert(message, 'error');
+            } else {
+                erpModalManager.showToast(message, 'error');
+            }
         }
 
         alert.remove();
@@ -5566,6 +5574,15 @@ function wireEmbeddedWorkspaceLinks(root) {
         const method = (form.getAttribute('method') ?? 'get').toLowerCase();
 
         if (method !== 'get') {
+            if (! form.querySelector('input[name="embedded"]')) {
+                const embeddedInput = document.createElement('input');
+
+                embeddedInput.type = 'hidden';
+                embeddedInput.name = 'embedded';
+                embeddedInput.value = '1';
+                form.appendChild(embeddedInput);
+            }
+
             return;
         }
 
@@ -5609,6 +5626,7 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     Alpine.destroyTree(frame);
     Alpine.initTree(frame);
     wireEmbeddedWorkspaceLinks(frame);
+    promoteFlashAlertsToToast(frame, true);
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
     bindWebsiteSettingsForms(frame);

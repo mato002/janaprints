@@ -1,4 +1,6 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $nav = [
         ['label' => __('Overview'), 'route' => 'admin.printing-intelligence.overview', 'permission' => 'printing.intelligence.view'],
         ['label' => __('Artwork Analysis'), 'route' => 'admin.printing-intelligence.artwork-analysis.index', 'permission' => 'printing.intelligence.view'],
@@ -17,6 +19,7 @@
     $nav = array_values(array_filter($nav, fn ($link) => auth()->user()?->can($link['permission'])));
 @endphp
 
+@if (! WorkspaceEmbed::inWorkspaceContext())
 <x-admin.card class="mb-4">
     <nav class="flex flex-wrap gap-2">
         @foreach ($nav as $link)
@@ -31,3 +34,4 @@
         @endforeach
     </nav>
 </x-admin.card>
+@endif

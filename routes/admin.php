@@ -70,6 +70,9 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
 
         Route::get('workspaces/printing-intelligence', [PrintingIntelligenceWorkspaceController::class, 'hub'])
             ->name('workspaces.printing-intelligence');
+        Route::get('workspaces/printing-intelligence/{section}', [PrintingIntelligenceWorkspaceController::class, 'section'])
+            ->where('section', implode('|', array_keys(config('printing_intelligence_workspaces.sections', []))))
+            ->name('workspaces.printing-intelligence.section');
 
         Route::get('workspaces/assets', [AssetsWorkspaceController::class, 'hub'])
             ->name('workspaces.assets');

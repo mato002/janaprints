@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use App\Support\Platform\FormGovernanceErrorClassifier;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -72,14 +73,22 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             $returnUrl = $request->input('_erp_modal_return') ?: url()->previous();
+            $classifier = app(FormGovernanceErrorClassifier::class);
+            $presentation = $classifier->present($exception, config('app.debug'));
 
             if (! $returnUrl) {
-                return null;
+                return response()->view('admin.partials.modal-form-error', [
+                    'presentation' => $presentation,
+                    'message' => $presentation['message'],
+                    'detail' => $presentation['detail'],
+                ], 422);
             }
 
             return redirect($returnUrl)
                 ->withErrors($exception->validator)
-                ->withInput();
+                ->withInput()
+                ->with('form_error_presentation', $presentation)
+                ->with('modal_error', $presentation['message']);
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) {
@@ -87,15 +96,22 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
+            if ($exception instanceof ValidationException) {
+                return null;
+            }
+
             $status = $exception instanceof HttpExceptionInterface
                 ? $exception->getStatusCode()
                 : 500;
 
-            if ($status < 500) {
+            if ($status < 400) {
                 return null;
             }
 
-            Log::error('ERP modal form submission failed', [
+            $classifier = app(FormGovernanceErrorClassifier::class);
+            $presentation = $classifier->present($exception, config('app.debug'));
+
+            Log::error('ERP governed form submission failed', [
                 'form' => $request->route()?->getName(),
                 'route' => $request->route()?->getName(),
                 'path' => $request->path(),
@@ -105,6 +121,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 'branch_id' => session('active_branch_id') ?? $request->user()?->default_branch_id,
                 'payload_keys' => array_keys($request->except(['_token', 'password', 'password_confirmation'])),
                 'status' => $status,
+                'error_category' => $presentation['category'],
                 'exception_class' => $exception::class,
                 'exception_message' => $exception->getMessage(),
             ]);
@@ -113,17 +130,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if (! $returnUrl) {
                 return response()->view('admin.partials.modal-form-error', [
-                    'message' => __('Unable to save this form right now. Please try again or contact support if the problem continues.'),
-                    'detail' => config('app.debug') ? $exception->getMessage() : null,
+                    'presentation' => $presentation,
+                    'message' => $presentation['message'],
+                    'detail' => $presentation['detail'],
                 ], $status);
             }
 
-            $userMessage = config('app.debug')
-                ? class_basename($exception).': '.$exception->getMessage()
-                : __('Unable to save this form right now. Please check your entries and try again.');
-
             return redirect($returnUrl)
                 ->withInput()
-                ->with('modal_error', $userMessage);
+                ->with('form_error_presentation', $presentation)
+                ->with('modal_error', $presentation['message']);
         });
     })->create();

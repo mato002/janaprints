@@ -36,7 +36,7 @@ return new class extends Migration
             $table->timestamp('last_outbound_at')->nullable();
             $table->timestamp('last_movement_at')->nullable();
             $table->json('metadata')->nullable();
-            $table->timestamp('generated_at');
+            $table->timestamp('generated_at')->useCurrent();
             $table->timestamps();
 
             $table->index('company_id', 'inv_velocity_co_idx');
