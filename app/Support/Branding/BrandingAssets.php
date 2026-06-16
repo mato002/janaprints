@@ -115,8 +115,24 @@ class BrandingAssets
         return $this->logoDataUriCache = null;
     }
 
-    public function documentsLogoDataUri(): ?string
+    public function documentsLogoDataUri(?Company $company = null): ?string
     {
+        $company ??= $this->resolveCompany();
+
+        if ($company?->logo && Storage::disk(self::DISK)->exists($company->logo)) {
+            return $this->storagePathToDataUri($company->logo);
+        }
+
+        $siteLogo = config('site.local.logo');
+
+        if (is_string($siteLogo) && $siteLogo !== '') {
+            $publicPath = public_path(ltrim($siteLogo, '/'));
+
+            if (is_file($publicPath)) {
+                return $this->filePathToDataUri($publicPath);
+            }
+        }
+
         $documentsLogo = config('documents.logo_path', '/images/jp-documents-logo.png');
 
         if (is_string($documentsLogo) && $documentsLogo !== '') {
@@ -127,7 +143,7 @@ class BrandingAssets
             }
         }
 
-        return $this->logoDataUri();
+        return null;
     }
 
     protected function storagePathToDataUri(string $path): string

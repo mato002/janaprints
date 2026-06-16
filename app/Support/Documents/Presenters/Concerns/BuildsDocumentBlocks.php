@@ -14,9 +14,13 @@ trait BuildsDocumentBlocks
         return app(DocumentSettingsService::class);
     }
 
-    protected function documentsLogoDataUri(): ?string
+    protected function documentsLogoDataUri(?int $companyId = null): ?string
     {
-        return app(BrandingAssets::class)->documentsLogoDataUri();
+        $company = $companyId !== null
+            ? Company::query()->find($companyId)
+            : null;
+
+        return app(BrandingAssets::class)->documentsLogoDataUri($company);
     }
 
     /**

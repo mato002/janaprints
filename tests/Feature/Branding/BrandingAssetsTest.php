@@ -64,6 +64,35 @@ class BrandingAssetsTest extends TestCase
         $this->get($assets->url($company->favicon_path))->assertOk();
     }
 
+    public function test_documents_logo_uses_uploaded_company_branding(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $logo = UploadedFile::fake()->image('logo.png', 120, 40);
+
+        $company->logo = app(BrandingAssets::class)->storeCompanyLogo($company, $logo);
+        $company->save();
+
+        $dataUri = app(BrandingAssets::class)->documentsLogoDataUri($company);
+
+        $this->assertNotNull($dataUri);
+        $this->assertStringStartsWith('data:image/', $dataUri);
+    }
+
+    public function test_documents_logo_prefers_company_upload_over_static_document_logo(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $logo = UploadedFile::fake()->image('branded-logo.png', 120, 40);
+
+        $company->logo = app(BrandingAssets::class)->storeCompanyLogo($company, $logo);
+        $company->save();
+
+        $dataUri = app(BrandingAssets::class)->documentsLogoDataUri($company);
+        $uploadedContents = Storage::disk(BrandingAssets::DISK)->get($company->logo);
+        $uploadedDataUri = 'data:image/png;base64,'.base64_encode($uploadedContents);
+
+        $this->assertSame($uploadedDataUri, $dataUri);
+    }
+
     public function test_user_can_upload_profile_avatar(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

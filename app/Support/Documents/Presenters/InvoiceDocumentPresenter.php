@@ -46,7 +46,7 @@ class InvoiceDocumentPresenter
             : (float) $invoice->total_amount;
 
         return [
-            'logoDataUri' => $this->documentsLogoDataUri(),
+            'logoDataUri' => $this->documentsLogoDataUri($invoice->company_id),
             'documentType' => 'invoice',
             'title' => __('INVOICE'),
             'documentNumber' => $invoice->invoice_number,

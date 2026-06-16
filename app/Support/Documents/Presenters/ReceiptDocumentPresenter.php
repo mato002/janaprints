@@ -28,7 +28,7 @@ class ReceiptDocumentPresenter
         $accountSettled = $balanceAfter <= 0;
 
         return [
-            'logoDataUri' => $this->documentsLogoDataUri(),
+            'logoDataUri' => $this->documentsLogoDataUri($payment->company_id),
             'documentType' => 'receipt',
             'title' => __('PAYMENT RECEIPT'),
             'documentNumber' => $receipt['receipt_number'],

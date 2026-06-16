@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -10,6 +11,8 @@ use App\Support\Branding\BrandingAssets;
 use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -17,6 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class CompanyController extends Controller
 {
     use ExportsTabularIndex;
+    use HandlesModalFormResponses;
     use ScopesToTenant;
 
     public function __construct(
@@ -55,7 +59,7 @@ class CompanyController extends Controller
         return view('admin.companies.create');
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', Company::class);
 
@@ -63,7 +67,10 @@ class CompanyController extends Controller
         $company = Company::query()->create($validated);
         $this->syncBrandingUploads($request, $company);
 
-        return redirect()->route('admin.companies.index')->with('status', __('Company created.'));
+        return $this->modalOrRedirect(
+            __('Company created.'),
+            redirect()->route('admin.companies.index'),
+        );
     }
 
     public function edit(Company $company): View
@@ -77,14 +84,17 @@ class CompanyController extends Controller
         ]);
     }
 
-    public function update(Request $request, Company $company): RedirectResponse
+    public function update(Request $request, Company $company): RedirectResponse|Response
     {
         $this->authorize('update', $company);
 
         $company->update($this->validateCompany($request));
         $this->syncBrandingUploads($request, $company);
 
-        return redirect()->route('admin.companies.index')->with('status', __('Company updated.'));
+        return $this->modalOrRedirect(
+            __('Company updated.'),
+            redirect()->route('admin.companies.index'),
+        );
     }
 
     public function destroy(Company $company): RedirectResponse
@@ -98,7 +108,7 @@ class CompanyController extends Controller
 
     protected function validateCompany(Request $request): array
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:50', Rule::unique('companies', 'code')->ignore($request->route('company'))],
             'email' => ['nullable', 'email', 'max:255'],
@@ -112,7 +122,7 @@ class CompanyController extends Controller
             'remove_favicon' => ['nullable', 'boolean'],
         ]);
 
-        return $request->safe()->only([
+        return Arr::only($validated, [
             'name',
             'code',
             'email',

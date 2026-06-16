@@ -36,7 +36,7 @@ class QuotationDocumentPresenter
         [$statusLabel, $statusVariant] = $this->statusPresentation($quotation->status);
 
         return [
-            'logoDataUri' => $this->documentsLogoDataUri(),
+            'logoDataUri' => $this->documentsLogoDataUri($quotation->company_id),
             'documentType' => 'quotation',
             'title' => __('QUOTATION'),
             'documentNumber' => $quotation->quotation_number,
