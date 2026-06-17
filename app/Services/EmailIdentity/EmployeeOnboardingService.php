@@ -65,15 +65,34 @@ class EmployeeOnboardingService
             $user = $employee->user;
 
             if (! $user) {
-                $user = User::query()->create([
-                    'company_id' => $employee->company_id,
-                    'default_branch_id' => $employee->branch_id,
-                    'employee_id' => $employee->id,
-                    'name' => $employee->full_name,
-                    'email' => $personalEmail,
-                    'password' => Str::password(32),
-                    'is_active' => false,
-                ]);
+                $user = User::query()->where('email', $personalEmail)->first();
+
+                if ($user !== null) {
+                    if ($user->employee_id !== null && $user->employee_id !== $employee->id) {
+                        throw ValidationException::withMessages([
+                            'email' => __('This email is already linked to another employee account.'),
+                        ]);
+                    }
+
+                    $user->update([
+                        'company_id' => $employee->company_id,
+                        'default_branch_id' => $employee->branch_id,
+                        'employee_id' => $employee->id,
+                        'name' => $employee->full_name,
+                        'email' => $personalEmail,
+                        'is_active' => false,
+                    ]);
+                } else {
+                    $user = User::query()->create([
+                        'company_id' => $employee->company_id,
+                        'default_branch_id' => $employee->branch_id,
+                        'employee_id' => $employee->id,
+                        'name' => $employee->full_name,
+                        'email' => $personalEmail,
+                        'password' => Str::password(32),
+                        'is_active' => false,
+                    ]);
+                }
             } else {
                 $user->update([
                     'email' => $personalEmail,

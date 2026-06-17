@@ -15,7 +15,7 @@ class IntegrationBridgedEmailProvider implements EmailProviderContract
     public function __construct(
         protected IntegrationProviderResolver $resolver,
         protected IntegrationEmailDriver $driver,
-        protected StubEmailProvider $fallback,
+        protected OnboardingFallbackEmailProvider $onboardingFallback,
     ) {}
 
     public function send(EmailAccount $account, EmailMessage $message): EmailProviderResult
@@ -23,7 +23,7 @@ class IntegrationBridgedEmailProvider implements EmailProviderContract
         $chain = $this->resolver->emailChain($account->company_id);
 
         if ($chain->isEmpty()) {
-            return $this->fallback->send($account, $message);
+            return $this->onboardingFallback->send($account, $message);
         }
 
         $lastResult = null;
@@ -53,6 +53,9 @@ class IntegrationBridgedEmailProvider implements EmailProviderContract
             );
         }
 
-        return $lastResult ?? $this->fallback->send($account, $message);
+        return $lastResult ?? EmailProviderResult::failed(__('All email integrations failed to send.'), [
+            'provider' => 'integration_bridge',
+            'reason' => 'integration_exhausted',
+        ]);
     }
 }

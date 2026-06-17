@@ -209,6 +209,8 @@ class LookupQuickCreateFormData
                 ? app(\App\Services\EmailIdentity\EmployeeActivationRoleResolver::class)->assignableRolesFor()
                 : collect(),
             'canAssignActivationRole' => auth()->user()?->can('roles.edit') ?? false,
+            'suggestedEmployeeNumber' => app(\App\Support\Hr\EmployeeNumberService::class)->nextForCompany($companyId),
+            'employeeNumberPrefix' => app(\App\Support\Hr\EmployeeNumberService::class)->prefixForCompany($companyId),
         ];
     }
 

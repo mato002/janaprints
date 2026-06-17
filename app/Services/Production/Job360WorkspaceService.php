@@ -20,6 +20,7 @@ use App\Models\Assets\MachineProfile;
 use App\Models\Production\WorkCenter;
 use App\Services\Assets\MachineJobAssignmentService;
 use App\Services\Production\ProductionCompletionService;
+use App\Support\Communications\Email\EmailVisibilityService;
 use Illuminate\Support\Facades\Schema;
 
 class Job360WorkspaceService
@@ -268,7 +269,10 @@ class Job360WorkspaceService
                     $timelineQuery['timeline_search'] ?? null,
                     isset($timelineQuery['timeline_page']) ? (int) $timelineQuery['timeline_page'] : null,
                 ),
-                ['ready' => true],
+                [
+                    'ready' => true,
+                    'communications' => $this->jobCommunications($jobCard),
+                ],
             ),
             default => [],
         };
@@ -716,5 +720,22 @@ class Job360WorkspaceService
         }
 
         return __('Monitor job progress.');
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function jobCommunications(ProductionJobCard $jobCard): array
+    {
+        if (! auth()->user()?->can('communications.email.view')) {
+            return [];
+        }
+
+        $visibility = app(EmailVisibilityService::class);
+
+        return $visibility->forJobCard($jobCard)
+            ->map(fn ($message) => $visibility->presentJobCommunication($message))
+            ->values()
+            ->all();
     }
 }

@@ -51,6 +51,8 @@ export default {
                     card: '#FFFFFF',
                     border: '#E5E7EB',
                     readonly: '#F5F6FA',
+                    surface: '#F5F6FA',
+                    muted: '#718096',
                 },
             },
             fontFamily: {

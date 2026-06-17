@@ -4,7 +4,7 @@
         <div class="erp-card">
             <h2 class="erp-card-title">{{ $message->subject }}</h2>
             <p class="text-sm text-slate-500">{{ $message->status->label() }}</p>
-            <pre class="mt-2 text-sm whitespace-pre-wrap">{{ $message->body }}</pre>
+            <pre class="mt-2 text-sm whitespace-pre-wrap">{{ app(\App\Support\Hr\PayrollConfidentialityService::class)->emailBodyForViewer($message) }}</pre>
         </div>
         <div class="erp-card text-sm space-y-2">
             <div class="flex justify-between"><span>{{ __('Sent') }}</span><span>{{ $message->sent_at?->format('d M Y H:i') ?? '—' }}</span></div>

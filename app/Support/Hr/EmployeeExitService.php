@@ -210,6 +210,8 @@ class EmployeeExitService
                 'is_active' => false,
             ]);
 
+            app(EmployeeAccessGovernanceService::class)->onExitClosed($exit->fresh(['employee.user']), $user);
+
             return $exit->fresh(['employee', 'clearances']);
         });
     }

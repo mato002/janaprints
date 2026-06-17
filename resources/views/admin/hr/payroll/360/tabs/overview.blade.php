@@ -3,6 +3,7 @@
     <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         @foreach ([
             [__('Reference'), $overview['reference']],
+            [__('Payroll group'), $overview['payroll_group_label'] ?? $overview['payroll_group'] ?? '—'],
             [__('Branch'), $overview['branch']],
             [__('Period start'), $overview['period_start']?->format('M j, Y')],
             [__('Period end'), $overview['period_end']?->format('M j, Y')],

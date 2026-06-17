@@ -170,6 +170,10 @@
         @apply relative w-16 max-w-none overflow-visible text-center;
     }
 
+    .erp-ref-code {
+        @apply text-xs tabular-nums tracking-wide text-slate-500;
+    }
+
     .erp-table-actions-col .erp-row-actions-trigger {
         @apply mx-auto;
     }
@@ -3874,5 +3878,94 @@
             opacity: 1;
             transform: translateY(0);
         }
+    }
+
+    /* Employee Self Service portal */
+    .ess-card {
+        @apply rounded-xl border border-erp-border bg-white p-4 shadow-sm;
+    }
+
+    .ess-widget {
+        @apply rounded-xl border border-erp-border bg-white p-4 shadow-sm;
+    }
+
+    .ess-widget__label {
+        @apply text-xs font-medium uppercase tracking-wide text-erp-muted;
+    }
+
+    .ess-widget__value {
+        @apply mt-1 text-2xl font-semibold text-erp-primary;
+    }
+
+    .ess-section-title {
+        @apply text-base font-semibold text-erp-primary;
+    }
+
+    .ess-label {
+        @apply mb-1 block text-sm font-medium text-erp-primary;
+    }
+
+    .ess-input {
+        @apply rounded-lg border border-erp-border bg-white px-3 py-2.5 text-sm text-erp-primary shadow-sm focus:border-erp-accent focus:outline-none focus:ring-2 focus:ring-erp-accent/20;
+    }
+
+    .ess-btn {
+        @apply inline-flex min-h-11 items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition;
+    }
+
+    .ess-btn--primary {
+        @apply bg-erp-accent text-white hover:opacity-90;
+    }
+
+    .ess-btn--ghost {
+        @apply border border-erp-border bg-white text-erp-primary hover:bg-erp-surface;
+    }
+
+    .ess-tab-nav {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ess-tab-link {
+        @apply inline-flex min-h-10 items-center rounded-lg px-3 py-2 text-sm font-medium text-erp-muted whitespace-nowrap;
+    }
+
+    .ess-tab-link--active {
+        @apply bg-erp-accent/10 text-erp-accent;
+    }
+
+    .ess-dl {
+        @apply mt-3 space-y-2 text-sm;
+    }
+
+    .ess-dl div {
+        @apply grid grid-cols-1 gap-1 border-b border-erp-border/60 pb-2 last:border-0 last:pb-0 sm:grid-cols-2;
+    }
+
+    .ess-dl dt {
+        @apply font-medium text-erp-muted;
+    }
+
+    .ess-dl dd {
+        @apply text-erp-primary;
+    }
+
+    .ess-dl--compact div {
+        @apply sm:grid-cols-2;
+    }
+
+    .ess-timeline__item {
+        @apply relative flex gap-3 ps-8;
+    }
+
+    .ess-timeline__dot {
+        @apply absolute left-0 top-1.5 h-3 w-3 rounded-full border-2 border-erp-border bg-white;
+    }
+
+    .ess-timeline__item--done .ess-timeline__dot {
+        @apply border-emerald-500 bg-emerald-500;
+    }
+
+    .ess-mobile-shell {
+        @apply flex flex-col;
     }
 }

@@ -29,6 +29,7 @@
         'operations' => __('Operations'),
         'materials' => __('Materials'),
         'traceability' => __('Traceability'),
+        'communications' => __('Communications'),
     ];
 @endphp
 

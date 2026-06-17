@@ -1,7 +1,7 @@
 <x-admin.modal-form
     :title="__('Create employee')"
     :breadcrumbs="[['label' => __('Employees'), 'url' => route('admin.employees.index')], ['label' => __('Create')]]"
-    maxWidth="4xl"
+    maxWidth="5xl"
 >
     <x-admin.form-shell :action="route('admin.employees.store')">
         @include('admin.employees.partials.form-fields', ['employee' => null])

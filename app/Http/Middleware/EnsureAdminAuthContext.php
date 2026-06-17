@@ -21,6 +21,12 @@ class EnsureAdminAuthContext
                 ->withErrors(['email' => __('Please sign in to the ERP.')]);
         }
 
+        $user = $request->user();
+
+        if ($user && $user->prefersEssPortal()) {
+            return redirect()->route('ess.dashboard');
+        }
+
         return $next($request);
     }
 }

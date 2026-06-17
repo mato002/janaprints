@@ -11,14 +11,23 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Employee;
+use App\Models\Hr\CompensationSalaryTemplate;
+use App\Models\Hr\EmployeeCompensation;
 use App\Models\JobTitle;
 use App\Services\EmailIdentity\EmployeeActivationManagementService;
 use App\Services\EmailIdentity\EmployeeActivationRoleResolver;
 use App\Services\EmailIdentity\EmployeeOnboardingService;
 use App\Support\Export\TabularExportWriter;
+use App\Support\Hr\CompensationService;
+use App\Support\Hr\EmployeeAccessGovernanceService;
+use App\Support\Hr\EmployeeLifecycleService;
+use App\Support\Hr\EmployeeNumberService;
+use App\Support\Hr\EmployeeRosterQuery;
 use App\Support\Organization\JobTitleService;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -28,26 +37,38 @@ class EmployeeController extends Controller
     use ExportsTabularIndex;
     use ScopesToTenant;
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Employee::class);
 
-        $employees = $this->scopeToTenant(
-            Employee::query()->with(['company', 'branch', 'department', 'jobTitle', 'activations', 'user.roles'])
-        )->latest()->paginate(15);
+        $companyId = EmployeeRosterQuery::resolveCompanyId($request->user());
+        $filters = EmployeeRosterQuery::filtersFromRequest($request);
+
+        $employees = EmployeeRosterQuery::paginate(
+            $filters,
+            15,
+            ['company', 'branch', 'department', 'jobTitle', 'activations', 'user.roles', 'compensation'],
+        );
 
         $activationManagement = app(EmployeeActivationManagementService::class);
 
-        return view('admin.employees.index', compact('employees', 'activationManagement'));
+        $branches = $companyId
+            ? Branch::query()->where('company_id', $companyId)->orderBy('name')->get()
+            : collect();
+
+        return view('admin.employees.index', compact('employees', 'activationManagement', 'filters', 'branches'));
     }
 
     public function export(Request $request, string $format, TabularExportWriter $writer): StreamedResponse
     {
         $this->authorize('viewAny', Employee::class);
 
-        $employees = $this->scopeToTenant(
-            Employee::query()->with(['branch'])
-        )->latest()->get();
+        $filters = EmployeeRosterQuery::filtersFromRequest($request);
+
+        $employees = EmployeeRosterQuery::query(null, $filters)
+            ->with(['branch'])
+            ->orderBy('employee_number')
+            ->get();
 
         $headers = [__('Employee'), __('Employee number'), __('Branch')];
         $rows = $employees->map(fn (Employee $employee) => [
@@ -71,46 +92,56 @@ class EmployeeController extends Controller
         $this->authorize('create', Employee::class);
 
         $data = $this->validateEmployee($request);
+        $data['employee_number'] = app(EmployeeNumberService::class)->nextForCompany((int) $data['company_id']);
+
         $personalEmail = $data['email'];
         $intendedRole = $data['activation_role'] ?? null;
-        unset($data['activation_role']);
+        $salaryTemplateId = $data['salary_template_id'] ?? null;
+        unset($data['activation_role'], $data['salary_template_id']);
 
-        $employee = Employee::query()->create($data);
-        app(JobTitleService::class)->syncEmployeeDesignation($employee);
-        app(EmployeeOnboardingService::class)->ensureOnboarded($employee, $personalEmail, $intendedRole);
+        $employee = DB::transaction(function () use ($data, $request, $personalEmail, $intendedRole, $salaryTemplateId) {
+            $employee = Employee::query()->create($data);
+            app(JobTitleService::class)->syncEmployeeDesignation($employee);
+            app(EmployeeOnboardingService::class)->ensureOnboarded($employee, $personalEmail, $intendedRole);
 
-        return redirect()->route('admin.employees.index')->with('status', __('Employee created. Onboarding invitation queued.'));
+            if ($salaryTemplateId && auth()->user()->can('create', EmployeeCompensation::class)) {
+                $template = CompensationSalaryTemplate::query()
+                    ->where('company_id', $employee->company_id)
+                    ->where('is_active', true)
+                    ->find($salaryTemplateId);
+
+                if ($template) {
+                    app(CompensationService::class)->applyTemplate($employee, $template, [
+                        'effective_from' => $employee->hire_date?->toDateString() ?? now()->toDateString(),
+                        'change_reason' => __('Initial assignment from payroll class :name', ['name' => $template->name]),
+                    ], $request->user());
+                }
+            }
+
+            return $employee->fresh(['compensation']);
+        });
+
+        $status = __('Employee created. Onboarding invitation queued.');
+
+        if ($salaryTemplateId && $employee->compensation) {
+            $template = CompensationSalaryTemplate::query()->find($salaryTemplateId);
+
+            if ($template) {
+                $status = __('Employee created with :class pay package. Onboarding invitation queued.', [
+                    'class' => $template->name,
+                ]);
+            }
+        }
+
+        return redirect()->route('admin.employees.index')->with('status', $status);
     }
 
     public function edit(Employee $employee): View
     {
         $this->authorize('update', $employee);
 
-        $logService = app(\App\Support\Communications\CommunicationLogService::class);
-        $communicationTimeline = auth()->user()->can('communications.logs.view')
-            ? $logService->forEntity('employee', $employee->id, $employee->company_id)
-            : collect();
-        $emailTimeline = auth()->user()->can('communications.logs.view')
-            ? $logService->forEntity('employee', $employee->id, $employee->company_id, 15, \App\Enums\CommunicationLogChannel::Email)
-            : collect();
-
-        $employee->load(['user.roles', 'activations']);
-        $activationManagement = app(EmployeeActivationManagementService::class);
-        $activationStatus = $activationManagement->activationDisplayStatus($employee);
-        $latestActivation = $activationManagement->latestOpenActivation($employee)
-            ?? $employee->activations()->latest('id')->first();
-        $readinessChecks = app(\App\Services\EmailIdentity\EmailIdentityReadinessService::class)
-            ->checks($employee->company_id);
-
         return view('admin.employees.edit', array_merge(
-            [
-                'employee' => $employee,
-                'communicationTimeline' => $communicationTimeline,
-                'emailTimeline' => $emailTimeline,
-                'activationStatus' => $activationStatus,
-                'latestActivation' => $latestActivation,
-                'readinessChecks' => $readinessChecks,
-            ],
+            ['employee' => $employee],
             $this->formData($employee),
         ));
     }
@@ -119,8 +150,19 @@ class EmployeeController extends Controller
     {
         $this->authorize('update', $employee);
 
+        $previousStatus = $employee->employment_status;
         $employee->update($this->validateEmployee($request, $employee));
-        app(JobTitleService::class)->syncEmployeeDesignation($employee->fresh());
+        $employee->refresh();
+        app(JobTitleService::class)->syncEmployeeDesignation($employee);
+
+        $governance = app(EmployeeAccessGovernanceService::class);
+        $actor = $request->user();
+
+        if ($previousStatus !== EmploymentStatus::Suspended && $employee->employment_status === EmploymentStatus::Suspended) {
+            $governance->onSuspended($employee, $actor);
+        } elseif ($previousStatus === EmploymentStatus::Suspended && $employee->employment_status === EmploymentStatus::Active) {
+            $governance->onReactivated($employee, $actor);
+        }
 
         return redirect()->route('admin.employees.index')->with('status', __('Employee updated.'));
     }
@@ -129,7 +171,7 @@ class EmployeeController extends Controller
     {
         $this->authorize('delete', $employee);
 
-        $employee->delete();
+        app(EmployeeLifecycleService::class)->purge($employee);
 
         return redirect()->route('admin.employees.index')->with('status', __('Employee deleted.'));
     }
@@ -168,24 +210,30 @@ class EmployeeController extends Controller
                 'nullable',
                 Rule::exists('departments', 'id')->where('company_id', $companyId),
             ],
-            'employee_number' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('employees', 'employee_number')
-                    ->where('company_id', $companyId)
-                    ->ignore($employee?->id),
-            ],
             'first_name' => ['required', 'string', 'max:255'],
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
+            'date_of_birth' => ['nullable', 'date', 'before:today'],
             'phone' => ['nullable', 'string', 'max:50'],
-            'email' => [$employee ? 'nullable' : 'required', 'email'],
+            'email' => [
+                $employee ? 'nullable' : 'required',
+                'email',
+                Rule::unique('users', 'email')->ignore($employee?->user?->id),
+            ],
+            'address' => ['nullable', 'string', 'max:2000'],
+            'emergency_contact_name' => ['nullable', 'string', 'max:255'],
+            'emergency_contact_phone' => ['nullable', 'string', 'max:50'],
+            'next_of_kin_name' => ['nullable', 'string', 'max:255'],
+            'next_of_kin_phone' => ['nullable', 'string', 'max:50'],
+            'next_of_kin_relationship' => ['nullable', 'string', 'max:255'],
             'national_id' => ['nullable', 'string', 'max:50'],
             'kra_pin' => ['nullable', 'string', 'max:50'],
             'nhif_number' => ['nullable', 'string', 'max:50'],
             'nssf_number' => ['nullable', 'string', 'max:50'],
+            'bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_account_number' => ['nullable', 'string', 'max:50'],
+            'bank_branch_code' => ['nullable', 'string', 'max:50'],
             'job_title_id' => [
                 'nullable',
                 Rule::exists('job_titles', 'id')->where('company_id', $companyId),
@@ -196,6 +244,15 @@ class EmployeeController extends Controller
             'photo' => ['nullable', 'string', 'max:255'],
             'is_active' => ['boolean'],
         ];
+
+        if (! $employee && auth()->user()?->can('create', EmployeeCompensation::class)) {
+            $rules['salary_template_id'] = [
+                'nullable',
+                Rule::exists('compensation_salary_templates', 'id')
+                    ->where('company_id', $companyId)
+                    ->where('is_active', true),
+            ];
+        }
 
         if ($this->canAssignActivationRole()) {
             $rules['activation_role'] = [
@@ -239,6 +296,16 @@ class EmployeeController extends Controller
                 ? $roleResolver->assignableRolesFor()
                 : collect(),
             'canAssignActivationRole' => $this->canAssignActivationRole(),
+            'payrollClasses' => auth()->user()?->can('create', EmployeeCompensation::class)
+                ? CompensationSalaryTemplate::query()
+                    ->where('company_id', $companyId)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get()
+                : collect(),
+            'suggestedEmployeeNumber' => $employee?->employee_number
+                ?? app(EmployeeNumberService::class)->nextForCompany($companyId),
+            'employeeNumberPrefix' => app(EmployeeNumberService::class)->prefixForCompany($companyId),
         ];
     }
 }

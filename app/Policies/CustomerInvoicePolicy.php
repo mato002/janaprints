@@ -68,4 +68,11 @@ class CustomerInvoicePolicy
             && $invoice->status === CustomerInvoiceStatus::Posted
             && ! $invoice->invoice_type->isCredit();
     }
+
+    public function emailInvoice(User $user, CustomerInvoice $invoice): bool
+    {
+        return $user->can('invoices.view')
+            && $this->sameTenant($user, $invoice)
+            && $invoice->status === CustomerInvoiceStatus::Posted;
+    }
 }

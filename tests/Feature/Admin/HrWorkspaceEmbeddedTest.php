@@ -68,7 +68,19 @@ class HrWorkspaceEmbeddedTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.employees.index', ['embedded' => '1']))
-            ->assertRedirect();
+            ->assertRedirect()
+            ->assertRedirectContains('/admin/workspaces/hr/people')
+            ->assertRedirectContains('tab=employees');
+    }
+
+    public function test_employees_desk_url_resolves_to_people_workspace(): void
+    {
+        $url = app(\App\Support\Navigation\ModuleShellPresenter::class)
+            ->deskUrlForFeatureRoute('admin.employees.index');
+
+        $this->assertNotNull($url);
+        $this->assertStringContainsString('/admin/workspaces/hr/people', $url);
+        $this->assertStringContainsString('tab=employees', $url);
     }
 
     public function test_employees_tab_embedded_response_includes_workspace_frame_for_turbo_frame_request(): void

@@ -1,11 +1,37 @@
 <x-admin-layout :title="__('Employees')" :breadcrumbs="[['label' => __('Organization')], ['label' => __('Employees')]]">
     <x-admin.workspace-content-header :title="__('Employees')">
         <x-slot:actions>
+            @can('email', App\Models\Employee::class)
+                <a
+                    href="{{ url()->route('admin.employees.email.compose', ['all' => 1]) }}"
+                    class="erp-btn-secondary"
+                    data-turbo="false"
+                    data-leave-workspace
+                >{{ __('Email all staff') }}</a>
+            @endcan
             @can('create', App\Models\Employee::class)
                 <a href="{{ route('admin.employees.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create employee') }}</a>
             @endcan
         </x-slot:actions>
     </x-admin.workspace-content-header>
+
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.employees.index')" :reset-url="route('admin.employees.index')">
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="active" @selected(($filters['active'] ?? true) === true)>{{ __('Active employees') }}</option>
+                <option value="inactive" @selected(($filters['active'] ?? true) === false)>{{ __('Inactive only') }}</option>
+                <option value="all" @selected(($filters['active'] ?? true) === null)>{{ __('All employees') }}</option>
+            </select>
+            @if ($branches->isNotEmpty())
+                <select name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
+                    <option value="">{{ __('All branches') }}</option>
+                    @foreach ($branches as $branch)
+                        <option value="{{ $branch->id }}" @selected((int) ($filters['branch_id'] ?? 0) === $branch->id)>{{ $branch->name }}</option>
+                    @endforeach
+                </select>
+            @endif
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
     <x-admin.data-table
         :search-placeholder="__('Search employees…')"
@@ -13,11 +39,35 @@
         :export-query="request()->query()"
         :format-in-path="true"
         export-filename="employees"
+        :selectable="auth()->user()->can('email', App\Models\Employee::class)"
     >
+        @can('email', App\Models\Employee::class)
+            <x-slot name="bulk">
+                <button
+                    type="button"
+                    class="erp-btn-secondary py-1 text-xs"
+                    @click="if (selected.size === 0) { window.showErpSweetAlert?.(@js(__('Select at least one employee.')), 'warning'); return; } const url = @js(url()->route('admin.employees.email.compose')).concat('?', [...selected].map((id) => 'employees[]=' + encodeURIComponent(id)).join('&')); window.top.location.href = url"
+                >
+                    {{ __('Email selected') }}
+                </button>
+            </x-slot>
+        @endcan
+
         <x-slot name="head">
             <tr>
+                @can('email', App\Models\Employee::class)
+                    <th scope="col" class="w-10 erp-table-checkbox-col">
+                        <input
+                            type="checkbox"
+                            class="rounded border-slate-300"
+                            aria-label="{{ __('Select all') }}"
+                            @change="toggleAll($event)"
+                        >
+                    </th>
+                @endcan
                 <th scope="col">{{ __('Employee') }}</th>
                 <th scope="col" class="hidden md:table-cell">{{ __('Login email') }}</th>
+                <th scope="col" class="hidden lg:table-cell">{{ __('Basic salary') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Role') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Activation') }}</th>
                 <th scope="col" class="hidden sm:table-cell">{{ __('Branch') }}</th>
@@ -36,12 +86,32 @@
                             : '—');
                     $rowSearch = strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->branch->name.' '.($employee->email ?? '').' '.$roleLabel);
                 @endphp
-                <tr x-show="rowVisible(@js($rowSearch))">
+                <tr data-row-id="{{ $employee->id }}" x-show="rowVisible(@js($rowSearch))">
+                    @can('email', App\Models\Employee::class)
+                        <td class="erp-table-checkbox-col">
+                            @if ($employee->email)
+                                <input
+                                    type="checkbox"
+                                    class="row-select rounded border-slate-300"
+                                    value="{{ $employee->id }}"
+                                    data-export-row
+                                    @change="toggleRow(@js((string) $employee->id), $event)"
+                                >
+                            @endif
+                        </td>
+                    @endcan
                     <td>
                         <div class="font-medium text-erp-primary">{{ $employee->full_name }}</div>
-                        <div class="font-mono text-[11px] text-slate-500">{{ $employee->employee_number }}</div>
+                        <div class="erp-ref-code">{{ $employee->employee_number }}</div>
                     </td>
                     <td class="hidden md:table-cell text-sm text-slate-600">{{ $employee->email ?: '—' }}</td>
+                    <td class="hidden lg:table-cell text-sm text-slate-600">
+                        @if ($employee->compensation)
+                            {{ number_format($employee->compensation->basic_salary, 2) }}
+                        @else
+                            <span class="text-amber-700">{{ __('Not set') }}</span>
+                        @endif
+                    </td>
                     <td class="hidden lg:table-cell text-sm text-slate-600">{{ $roleLabel }}</td>
                     <td class="hidden lg:table-cell text-sm text-slate-600">{{ ucfirst($rowActivationStatus) }}</td>
                     <td class="hidden sm:table-cell">{{ $employee->branch->name }}</td>
@@ -50,11 +120,28 @@
                             @can('update', $employee)
                                 <x-admin.table-row-action :href="route('admin.employees.edit', $employee)">{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan
+                            @can('viewAny', App\Models\Hr\EmployeeCompensation::class)
+                                <x-admin.table-row-action
+                                    :href="url()->route('admin.hr.compensation.edit', $employee)"
+                                    data-turbo="false"
+                                    data-leave-workspace
+                                >{{ $employee->compensation ? __('Salary') : __('Set salary') }}</x-admin.table-row-action>
+                            @endcan
+                            @can('email', App\Models\Employee::class)
+                                @if ($employee->email)
+                                    <x-admin.table-row-action
+                                        :href="url()->route('admin.employees.email.compose', ['employees' => [$employee->id]])"
+                                        data-turbo="false"
+                                        data-leave-workspace
+                                        data-no-modal
+                                    >{{ __('Email') }}</x-admin.table-row-action>
+                                @endif
+                            @endcan
                         </x-admin.table-row-actions>
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6"><x-admin.empty-state icon="identification" :title="__('No employees yet')" /></td></tr>
+                <tr><td colspan="{{ auth()->user()->can('email', App\Models\Employee::class) ? 8 : 7 }}"><x-admin.empty-state icon="identification" :title="__('No employees yet')" /></td></tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$employees" /></x-slot>

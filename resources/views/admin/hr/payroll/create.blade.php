@@ -29,6 +29,19 @@
                     </x-admin.form-field>
                 @endif
 
+                <x-admin.form-field
+                    name="payroll_group"
+                    :label="__('Payroll group')"
+                    required
+                    colSpan="2"
+                >
+                    <select name="payroll_group" class="erp-select w-full" required>
+                        @foreach ($payrollGroups as $group)
+                            <option value="{{ $group->code }}" @selected(old('payroll_group', 'main') === $group->code)>{{ $group->name }}</option>
+                        @endforeach
+                    </select>
+                </x-admin.form-field>
+
                 @if (($fields['period_start']['visible'] ?? true))
                     <x-admin.input
                         name="period_start"

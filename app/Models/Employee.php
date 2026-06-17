@@ -25,8 +25,15 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'middle_name',
     'last_name',
     'gender',
+    'date_of_birth',
     'phone',
     'email',
+    'address',
+    'emergency_contact_name',
+    'emergency_contact_phone',
+    'next_of_kin_name',
+    'next_of_kin_phone',
+    'next_of_kin_relationship',
     'national_id',
     'kra_pin',
     'nhif_number',
@@ -52,6 +59,7 @@ class Employee extends Model
             'gender' => Gender::class,
             'employment_status' => EmploymentStatus::class,
             'hire_date' => 'date',
+            'date_of_birth' => 'date',
             'is_active' => 'boolean',
             'activation_status' => EmployeeActivationStatus::class,
         ];
@@ -111,6 +119,16 @@ class Employee extends Model
         return $this->hasMany(\App\Models\Hr\EmployeeCompensation::class);
     }
 
+    public function payrollAllowances(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\PayrollAllowance::class);
+    }
+
+    public function payrollDeductions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\PayrollDeduction::class);
+    }
+
     public function documents(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Models\Hr\EmployeeDocument::class);
@@ -149,5 +167,15 @@ class Employee extends Model
     public function activations(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(\App\Models\EmailIdentity\EmployeeActivation::class);
+    }
+
+    public function payslips(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Models\Hr\PayrollPayslip::class);
+    }
+
+    public function isEssEligible(): bool
+    {
+        return $this->user !== null && $this->is_active;
     }
 }

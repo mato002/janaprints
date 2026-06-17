@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Hr;
 
 use App\Enums\PayrollComponentCalculationType;
 use App\Enums\PayrollComponentFrequency;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\CompensationAllowanceDefinition;
 use App\Models\Hr\CompensationDeductionDefinition;
@@ -11,11 +12,14 @@ use App\Models\Hr\EmployeeCompensation;
 use App\Support\Hr\CompensationComponentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CompensationLibraryController extends Controller
 {
+    use HandlesModalFormResponses;
+
     public function __construct(
         protected CompensationComponentService $components,
     ) {}
@@ -28,12 +32,20 @@ class CompensationLibraryController extends Controller
 
         return view('admin.hr.compensation.allowances', [
             'definitions' => $this->components->paginateAllowanceLibrary($companyId),
+        ]);
+    }
+
+    public function createAllowance(Request $request): View
+    {
+        $this->authorize('create', EmployeeCompensation::class);
+
+        return view('admin.hr.compensation.allowances.create', [
             'calculationTypes' => PayrollComponentCalculationType::cases(),
             'frequencies' => PayrollComponentFrequency::cases(),
         ]);
     }
 
-    public function storeAllowance(Request $request): RedirectResponse
+    public function storeAllowance(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', EmployeeCompensation::class);
 
@@ -42,7 +54,10 @@ class CompensationLibraryController extends Controller
 
         $this->components->storeAllowanceDefinition($companyId, $data);
 
-        return back()->with('status', __('Allowance added to library.'));
+        return $this->modalOrRedirect(
+            __('Allowance added to library.'),
+            redirect()->route('admin.hr.compensation.allowances'),
+        );
     }
 
     public function updateAllowance(Request $request, CompensationAllowanceDefinition $allowanceDefinition): RedirectResponse
@@ -63,12 +78,20 @@ class CompensationLibraryController extends Controller
 
         return view('admin.hr.compensation.deductions', [
             'definitions' => $this->components->paginateDeductionLibrary($companyId),
+        ]);
+    }
+
+    public function createDeduction(Request $request): View
+    {
+        $this->authorize('create', EmployeeCompensation::class);
+
+        return view('admin.hr.compensation.deductions.create', [
             'calculationTypes' => PayrollComponentCalculationType::cases(),
             'frequencies' => PayrollComponentFrequency::cases(),
         ]);
     }
 
-    public function storeDeduction(Request $request): RedirectResponse
+    public function storeDeduction(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', EmployeeCompensation::class);
 
@@ -79,7 +102,10 @@ class CompensationLibraryController extends Controller
 
         $this->components->storeDeductionDefinition($companyId, $data);
 
-        return back()->with('status', __('Deduction added to library.'));
+        return $this->modalOrRedirect(
+            __('Deduction added to library.'),
+            redirect()->route('admin.hr.compensation.deductions'),
+        );
     }
 
     public function updateDeduction(Request $request, CompensationDeductionDefinition $deductionDefinition): RedirectResponse

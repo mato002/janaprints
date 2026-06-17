@@ -73,6 +73,13 @@ class User extends Authenticatable implements MustVerifyEmail
         return ! $this->isClientPortalAccount();
     }
 
+    public function prefersEssPortal(): bool
+    {
+        return $this->employee_id !== null
+            && $this->can('ess.access')
+            && ! $this->can('employees.manage');
+    }
+
     public function managedWarehouses(): BelongsToMany
     {
         return $this->belongsToMany(Warehouse::class, 'user_warehouse')

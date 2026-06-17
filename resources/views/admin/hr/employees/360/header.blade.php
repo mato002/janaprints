@@ -2,7 +2,7 @@
     <x-slot name="actions">
         <a href="{{ route('admin.employees.index') }}" class="erp-btn-secondary">{{ __('All employees') }}</a>
         @can('update', $employee)
-            <a href="{{ route('admin.employees.edit', $employee) }}" class="erp-btn-secondary">{{ __('Edit profile') }}</a>
+            <a href="{{ route('admin.employees.edit', $employee) }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('Edit profile') }}</a>
         @endcan
         @can('create', App\Models\Hr\EmployeeCompensation::class)
             <a href="{{ route('admin.hr.compensation.edit', $employee) }}" class="erp-btn-primary">{{ __('Manage compensation') }}</a>

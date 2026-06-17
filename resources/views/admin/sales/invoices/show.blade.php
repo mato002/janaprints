@@ -16,6 +16,11 @@
                     class="erp-btn-secondary"
                 />
             @endcan
+            @can('emailInvoice', $invoice)
+                <form method="POST" action="{{ route('admin.invoices.email', $invoice) }}" class="inline">@csrf
+                    <button type="submit" class="erp-btn-secondary">{{ __('Email invoice') }}</button>
+                </form>
+            @endcan
             @can('update', $invoice)
                 <a href="{{ route('admin.invoices.edit', $invoice) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
             @endcan

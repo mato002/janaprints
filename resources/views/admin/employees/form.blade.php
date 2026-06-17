@@ -7,6 +7,10 @@
     </div>
 
     @if ($employee && isset($communicationTimeline))
+        @include('admin.employees.partials.compensation-panel', ['employee' => $employee])
+    @endif
+
+    @if ($employee && isset($communicationTimeline))
         @include('admin.employees.partials.email-identity-panel', [
             'employee' => $employee,
             'activationStatus' => $activationStatus ?? 'none',

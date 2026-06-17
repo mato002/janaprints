@@ -22,6 +22,7 @@
             @foreach ([
                 'overview' => __('Overview'),
                 'conversations' => __('Conversations'),
+                'communications' => __('Communications'),
                 'commercial' => __('Commercial'),
                 'files' => __('Files'),
                 'activities' => __('Activities'),
@@ -46,6 +47,9 @@
             </div>
             <div x-show="tab === 'conversations'" x-cloak class="crm-360__panel">
                 @include('admin.crm.customers.360.tab-conversations')
+            </div>
+            <div x-show="tab === 'communications'" x-cloak class="crm-360__panel">
+                @include('admin.crm.customers.360.tab-communications')
             </div>
             <div x-show="tab === 'commercial'" x-cloak class="crm-360__panel">
                 @include('admin.crm.customers.360.tab-commercial')

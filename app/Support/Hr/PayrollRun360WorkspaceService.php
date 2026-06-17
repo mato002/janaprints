@@ -7,7 +7,9 @@ use App\Enums\PayrollRunStatus;
 use App\Models\ActivityLog;
 use App\Models\Hr\PayrollPayslip;
 use App\Models\Hr\PayrollRun;
+use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 
 class PayrollRun360WorkspaceService
 {
@@ -15,6 +17,10 @@ class PayrollRun360WorkspaceService
         protected PayrollReviewService $review,
         protected PayrollRunService $payrollRuns,
         protected PayrollApprovalWorkflowService $approvalWorkflow,
+        protected PayrollEmployeeScopeService $employeeScope,
+        protected PayrollIntegrityValidationService $integrity,
+        protected PayrollFrozenSnapshotService $frozenSnapshots,
+        protected PayrollGroupService $payrollGroups,
     ) {}
 
     /**
@@ -44,6 +50,7 @@ class PayrollRun360WorkspaceService
         return [
             'run' => $run,
             'overview' => $this->overview($run),
+            'scope' => $this->scopeTab($run),
             'employees' => $this->employeesTab($run),
             'earnings' => $earnings,
             'deductions' => $deductions,
@@ -65,6 +72,7 @@ class PayrollRun360WorkspaceService
     {
         return [
             ['id' => 'overview', 'label' => __('Overview')],
+            ['id' => 'scope', 'label' => __('Scope')],
             ['id' => 'employees', 'label' => __('Employees')],
             ['id' => 'earnings', 'label' => __('Earnings')],
             ['id' => 'deductions', 'label' => __('Deductions')],
@@ -85,6 +93,8 @@ class PayrollRun360WorkspaceService
         return [
             'reference' => $run->reference,
             'branch' => $run->branch?->name ?? __('All branches'),
+            'payroll_group' => $run->payroll_group,
+            'payroll_group_label' => $this->payrollGroups->label((int) $run->company_id, (string) $run->payroll_group),
             'period_start' => $run->period_start,
             'period_end' => $run->period_end,
             'pay_date' => $run->pay_date,
@@ -96,6 +106,22 @@ class PayrollRun360WorkspaceService
             'approval_status' => $this->approvalStatusLabel($run),
             'posting_status' => $this->postingStatusLabel($run),
             'notes' => $run->notes,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function scopeTab(PayrollRun $run): array
+    {
+        $certification = $run->scope_snapshot ?? $this->employeeScope->certify($run);
+        $integrity = $this->integrity->validateBeforeGeneration($run);
+
+        return [
+            'certification' => $certification,
+            'integrity' => $integrity,
+            'frozen_snapshot' => $run->frozen_snapshot,
+            'frozen_intact' => $this->frozenSnapshots->matches($run),
         ];
     }
 
@@ -114,6 +140,7 @@ class PayrollRun360WorkspaceService
                 return [
                     'payslip' => $payslip,
                     'employee' => $payslip->employee,
+                    'breakdown' => $payslip->calculation_breakdown,
                     'has_warning' => $warning !== null,
                     'problems' => $warning['problems'] ?? [],
                 ];
@@ -280,9 +307,11 @@ class PayrollRun360WorkspaceService
      */
     protected function quickActions(PayrollRun $run): array
     {
+        /** @var User|null $user */
+        $user = auth()->user();
         $actions = [];
 
-        if ($run->status->canGenerate()) {
+        if ($run->status->canGenerate() && $user && Gate::forUser($user)->allows('process', $run)) {
             $actions[] = [
                 'type' => 'generate',
                 'label' => $run->payslips()->exists() ? __('Regenerate payroll') : __('Generate payroll'),
@@ -291,7 +320,7 @@ class PayrollRun360WorkspaceService
             ];
         }
 
-        if ($run->status->canSubmitReview()) {
+        if ($run->status->canSubmitReview() && $user && Gate::forUser($user)->allows('review', $run)) {
             $actions[] = [
                 'type' => 'post',
                 'label' => __('Submit for review'),
@@ -299,7 +328,7 @@ class PayrollRun360WorkspaceService
             ];
         }
 
-        if ($run->status->canSubmitApproval()) {
+        if ($run->status->canSubmitApproval() && $user && Gate::forUser($user)->allows('review', $run)) {
             $actions[] = [
                 'type' => 'post',
                 'label' => __('Submit for approval'),
@@ -307,7 +336,7 @@ class PayrollRun360WorkspaceService
             ];
         }
 
-        if ($run->status->canApprove()) {
+        if ($run->status->canApprove() && $user && Gate::forUser($user)->allows('approve', $run)) {
             $actions[] = [
                 'type' => 'post',
                 'label' => __('Approve'),
@@ -321,7 +350,7 @@ class PayrollRun360WorkspaceService
             ];
         }
 
-        if ($run->status->canPost()) {
+        if ($run->status->canPost() && $user && Gate::forUser($user)->allows('post', $run)) {
             $actions[] = [
                 'type' => 'post',
                 'label' => __('Post to accounting'),
@@ -329,15 +358,29 @@ class PayrollRun360WorkspaceService
             ];
         }
 
-        if (in_array($run->status, [PayrollRunStatus::Posted, PayrollRunStatus::Paid], true)) {
+        if (in_array($run->status, [PayrollRunStatus::Posted, PayrollRunStatus::Paid], true)
+            && $user && Gate::forUser($user)->allows('release', $run)) {
             $actions[] = [
                 'type' => 'post',
-                'label' => __('Release payslips'),
+                'label' => __('Release payslips & email staff'),
                 'route' => 'admin.hr.payroll.release-payslips',
+                'needs_confirm' => true,
+                'confirm_message' => __('Release payslips to employees and queue payslip emails?'),
             ];
         }
 
-        if ($run->status->canMarkPaid()) {
+        if ($run->payslips()->exists() && in_array($run->status, [PayrollRunStatus::Posted, PayrollRunStatus::Paid], true)
+            && $user && Gate::forUser($user)->allows('process', $run)) {
+            $actions[] = [
+                'type' => 'post',
+                'label' => __('Email all payslips'),
+                'route' => 'admin.hr.payroll.email-payslips',
+                'needs_confirm' => true,
+                'confirm_message' => __('Queue payslip emails for all employees in this run?'),
+            ];
+        }
+
+        if ($run->status->canMarkPaid() && $user && Gate::forUser($user)->allows('markPaid', $run)) {
             $actions[] = [
                 'type' => 'post',
                 'label' => __('Mark as paid'),
@@ -345,7 +388,7 @@ class PayrollRun360WorkspaceService
             ];
         }
 
-        if ($run->status->canCancel()) {
+        if ($run->status->canCancel() && $user && Gate::forUser($user)->allows('process', $run)) {
             $actions[] = [
                 'type' => 'post',
                 'label' => __('Cancel run'),

@@ -2,14 +2,14 @@
 
 namespace App\Jobs\EmailIdentity;
 
+use App\Enums\EmailIdentity\MailboxAuditAction;
 use App\Jobs\PlatformJob;
 use App\Mail\EmployeeOnboardingMail;
 use App\Models\Employee;
 use App\Services\EmailIdentity\EmailIdentityAuditService;
 use App\Services\EmailIdentity\EmailSenderResolver;
-use App\Enums\EmailIdentity\MailboxAuditAction;
 use App\Support\Branding\BrandingAssets;
-use Illuminate\Support\Facades\Mail;
+use App\Support\Communications\Email\CorporateMailDispatcher;
 
 class SendEmployeeOnboardingEmailJob extends PlatformJob
 {
@@ -23,8 +23,12 @@ class SendEmployeeOnboardingEmailJob extends PlatformJob
         $this->useQueue('emails');
     }
 
-    public function handle(EmailIdentityAuditService $audit, EmailSenderResolver $senderResolver, BrandingAssets $branding): void
-    {
+    public function handle(
+        EmailIdentityAuditService $audit,
+        EmailSenderResolver $senderResolver,
+        BrandingAssets $branding,
+        CorporateMailDispatcher $mail,
+    ): void {
         $employee = Employee::query()->with('company')->find($this->employeeId);
 
         if (! $employee) {
@@ -37,16 +41,7 @@ class SendEmployeeOnboardingEmailJob extends PlatformJob
             ?: $senderResolver->resolve('support')->address
             ?: $sender->address;
 
-        $mailer = (string) config('mailboxes.onboarding.mailer', 'onboarding');
-
-        if (! filled(config('mail.mailers.'.$mailer.'.username')) && ! filled(config('mail.mailers.'.$mailer.'.host'))) {
-            $audit->logForEmployee(MailboxAuditAction::SenderFallbackUsed, $employee, [
-                'reason' => 'onboarding_mailer_not_configured',
-                'mailer' => $mailer,
-            ]);
-        }
-
-        Mail::mailer($mailer)->to($this->personalEmail)->send(new EmployeeOnboardingMail(
+        $mailable = new EmployeeOnboardingMail(
             employeeName: $employee->full_name,
             loginEmail: $this->personalEmail,
             activationUrl: $this->activationUrl,
@@ -57,15 +52,28 @@ class SendEmployeeOnboardingEmailJob extends PlatformJob
             replyToAddress: (string) ($senderResolver->resolve('support')->address ?: $sender->address),
             logoDataUri: $branding->documentsLogoDataUri($employee->company),
             companyName: $employee->company?->name ?? config('app.name'),
-        ));
+        );
+
+        $message = $mail->dispatchMailable([
+            'company_id' => (int) $employee->company_id,
+            'branch_id' => $employee->branch_id,
+            'user_id' => (int) ($employee->created_by ?? 1),
+            'to' => [['email' => $this->personalEmail, 'name' => $employee->full_name]],
+            'sender_purpose' => 'employee_onboarding',
+            'metadata' => [
+                'module' => 'hr',
+                'entity_type' => 'employee',
+                'entity_id' => $employee->id,
+            ],
+        ], $mailable);
 
         $audit->logForEmployee(MailboxAuditAction::InvitationSent, $employee, [
             'personal_email' => $this->personalEmail,
-            'delivered' => true,
+            'delivered' => $message !== null,
             'from' => $sender->address,
-            'mailer' => $mailer,
             'sender_purpose' => 'employee_onboarding',
             'used_fallback' => $sender->usedFallback,
+            'email_message_id' => $message?->id,
         ]);
     }
 }

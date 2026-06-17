@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('{invoice}', [CustomerInvoiceController::class, 'show'])->name('show');
             Route::get('{invoice}/document', [InvoiceDocumentController::class, 'show'])->name('document');
             Route::get('{invoice}/document/pdf', [InvoiceDocumentController::class, 'pdf'])->name('document.pdf');
+            Route::post('{invoice}/email', [CustomerInvoiceController::class, 'email'])->name('email');
         });
 
         Route::middleware('permission:invoices.create')->group(function () {

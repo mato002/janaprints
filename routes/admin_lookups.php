@@ -21,6 +21,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             Route::get('warehouses', [LookupController::class, 'warehouses'])->name('warehouses');
             Route::get('segments', [LookupController::class, 'segments'])->name('segments');
             Route::get('departments', [LookupController::class, 'departments'])->name('departments');
+            Route::get('payroll_groups', [LookupController::class, 'payrollGroups'])->name('payroll_groups');
             Route::get('employees', [LookupController::class, 'employees'])->name('employees');
             Route::get('price_books', [LookupController::class, 'priceBooks'])->name('price_books');
             Route::get('leads', [LookupController::class, 'leads'])->name('leads');
@@ -47,6 +48,11 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         Route::middleware('permission:departments.manage')->group(function () {
             Route::get('departments/quick-create', [QuickCreateLookupController::class, 'createDepartment'])->name('departments.quick-create');
             Route::post('departments/quick-create', [QuickCreateLookupController::class, 'storeDepartment'])->name('departments.quick-store');
+        });
+
+        Route::middleware('permission:hr.compensation.create')->group(function () {
+            Route::get('payroll-groups/quick-create', [QuickCreateLookupController::class, 'createPayrollGroup'])->name('payroll-groups.quick-create');
+            Route::post('payroll-groups/quick-create', [QuickCreateLookupController::class, 'storePayrollGroup'])->name('payroll-groups.quick-store');
         });
 
         Route::middleware('permission:employees.manage')->group(function () {

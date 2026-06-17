@@ -26,7 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'tenant' => \App\Http\Middleware\SetTenantContext::class,
             'admin.auth' => \App\Http\Middleware\EnsureAdminAuthContext::class,
-            'client.auth' => \App\Http\Middleware\EnsureClientAuthContext::class,
+            'employee.auth' => \App\Http\Middleware\EnsureEmployeeAuthContext::class,
         ]);
 
         $middleware->prependToPriorityList(
@@ -35,14 +35,24 @@ return Application::configure(basePath: dirname(__DIR__))
         );
 
         $middleware->redirectGuestsTo(function (Request $request) {
+            if ($request->is('ess') || $request->is('ess/*')) {
+                return route('admin.login');
+            }
+
             return $request->is('admin') || $request->is('admin/*')
                 ? route('admin.login')
                 : route('client.login');
         });
 
         $middleware->redirectUsersTo(function (Request $request) {
-            if ($request->user()?->isClientPortalAccount()) {
+            $user = $request->user();
+
+            if ($user?->isClientPortalAccount()) {
                 return route('client.dashboard');
+            }
+
+            if ($user?->prefersEssPortal()) {
+                return route('ess.dashboard');
             }
 
             return route('admin.dashboard');

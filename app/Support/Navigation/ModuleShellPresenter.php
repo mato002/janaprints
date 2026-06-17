@@ -242,6 +242,10 @@ class ModuleShellPresenter
                         continue;
                     }
 
+                    if ($this->shouldSkipDeskRedirectItem($item)) {
+                        continue;
+                    }
+
                     if (! $this->featureRouteMatchesItem($routeName, $routeParams, $item)) {
                         continue;
                     }
@@ -262,6 +266,10 @@ class ModuleShellPresenter
             foreach ($section['groups'] ?? [] as $group) {
                 foreach ($group['items'] ?? [] as $item) {
                     if ($this->shouldSkipCrossModuleWorkspaceItem($module, $item)) {
+                        continue;
+                    }
+
+                    if ($this->shouldSkipDeskRedirectItem($item)) {
                         continue;
                     }
 
@@ -298,6 +306,17 @@ class ModuleShellPresenter
         $sectionRoute = $module['section_route'] ?? null;
 
         return $itemRoute !== $hubRoute && $itemRoute !== $sectionRoute;
+    }
+
+    /**
+     * Shared feature routes can appear in multiple module desks; skip items that
+     * should not win canonical full-page redirects (e.g. Administration org mirror).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    protected function shouldSkipDeskRedirectItem(array $item): bool
+    {
+        return ! empty($item['skip_desk_redirect']);
     }
 
     /**
@@ -392,6 +411,10 @@ class ModuleShellPresenter
             foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
                 foreach ($section['groups'] ?? [] as $group) {
                     foreach ($group['items'] ?? [] as $item) {
+                        if ($this->shouldSkipDeskRedirectItem($item)) {
+                            continue;
+                        }
+
                         if ($this->routeMatchesItem($routeName, $item, $request)) {
                             return [
                                 'module' => $moduleKey,

@@ -45,7 +45,7 @@ class AdminLayout extends Component
             return false;
         }
 
-        foreach (['.create', '.edit', '.show', '.document', '.pdf'] as $suffix) {
+        foreach (['.create', '.edit', '.show', '.compose', '.document', '.pdf'] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }

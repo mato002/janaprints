@@ -287,6 +287,7 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\Communications\CommunicationLog::class => \App\Policies\CommunicationLogPolicy::class,
         \App\Models\Communications\WhatsappConversation::class => \App\Policies\WhatsappConversationPolicy::class,
         \App\Models\Communications\EmailCampaign::class => \App\Policies\EmailCampaignPolicy::class,
+        \App\Models\Communications\EmailMessage::class => \App\Policies\EmailMessagePolicy::class,
         \App\Models\Communications\Inbox\CommunicationConversation::class => \App\Policies\CommunicationConversationPolicy::class,
         \App\Models\Integrations\IntegrationEmailSetting::class => \App\Policies\IntegrationEmailSettingPolicy::class,
         \App\Models\Integrations\IntegrationSmsSetting::class => \App\Policies\IntegrationSmsSettingPolicy::class,
@@ -350,6 +351,10 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        \Illuminate\Support\Facades\Notification::extend('corporate-mail', function ($app) {
+            return $app->make(\App\Notifications\Channels\CorporateMailNotificationChannel::class);
+        });
+
         \Illuminate\Support\Facades\Route::bind('notification', function (string $value) {
             return \App\Models\Communications\ErpNotification::query()->findOrFail($value);
         });

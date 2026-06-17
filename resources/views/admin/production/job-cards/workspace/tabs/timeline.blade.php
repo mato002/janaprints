@@ -8,8 +8,15 @@
 <div class="c360-timeline">
     <div class="c360-timeline__intro mb-4">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Unified job timeline') }}</h3>
-        <p class="mt-1 text-sm text-slate-600">{{ __('Chronological audit trail across traceability, operations, materials, quality, and dispatch.') }}</p>
+        <p class="mt-1 text-sm text-slate-600">{{ __('Chronological audit trail across traceability, operations, materials, quality, dispatch, and communications.') }}</p>
     </div>
+
+    @if (! empty($tabData['communications']))
+        <x-admin.card class="mb-4">
+            <h4 class="mb-3 text-sm font-semibold text-erp-primary">{{ __('Email communications') }}</h4>
+            <x-admin.customer-timeline-feed :events="$tabData['communications']" />
+        </x-admin.card>
+    @endif
 
     <form
         method="GET"

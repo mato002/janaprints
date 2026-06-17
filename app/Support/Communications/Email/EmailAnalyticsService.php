@@ -8,23 +8,23 @@ use Illuminate\Support\Facades\DB;
 
 class EmailAnalyticsService
 {
+    public function __construct(
+        protected EmailVisibilityService $visibility,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
     public function dashboard(int $companyId): array
     {
-        $base = EmailMessage::query()->where('company_id', $companyId);
-        $total = (clone $base)->where('status', '!=', EmailDeliveryStatus::Draft)->count();
-        $delivered = (clone $base)->whereIn('status', [
-            EmailDeliveryStatus::Delivered,
-            EmailDeliveryStatus::Opened,
-            EmailDeliveryStatus::Clicked,
-            EmailDeliveryStatus::Sent,
-        ])->count();
-        $opened = (clone $base)->whereIn('status', [EmailDeliveryStatus::Opened, EmailDeliveryStatus::Clicked])->count();
-        $clicked = (clone $base)->where('status', EmailDeliveryStatus::Clicked)->count();
-        $bounced = (clone $base)->where('status', EmailDeliveryStatus::Bounced)->count();
-        $failed = (clone $base)->where('status', EmailDeliveryStatus::Failed)->count();
+        $base = EmailMessage::query()->where('company_id', $companyId)->where('status', '!=', EmailDeliveryStatus::Draft);
+
+        $sentToday = (clone $base)->whereDate('sent_at', today())->count();
+        $failedToday = (clone $base)->whereDate('failed_at', today())->whereIn('status', [EmailDeliveryStatus::Failed, EmailDeliveryStatus::Bounced])->count();
+        $queuedToday = (clone $base)->whereIn('status', [EmailDeliveryStatus::Queued, EmailDeliveryStatus::Sending])->count();
+
+        $sentMonth = (clone $base)->where('sent_at', '>=', now()->startOfMonth())->count();
+        $failedMonth = (clone $base)->where('failed_at', '>=', now()->startOfMonth())->whereIn('status', [EmailDeliveryStatus::Failed, EmailDeliveryStatus::Bounced])->count();
 
         $daily = (clone $base)
             ->where('created_at', '>=', now()->subDays(14))
@@ -36,23 +36,49 @@ class EmailAnalyticsService
 
         $monthly = (clone $base)
             ->where('created_at', '>=', now()->subMonths(6))
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as total')
+            ->selectRaw($this->monthExpression().' as month, COUNT(*) as total')
             ->groupBy('month')
             ->orderBy('month')
             ->pluck('total', 'month')
             ->all();
 
+        $topSenders = $this->visibility->topSendersByDepartment($companyId);
+        $topRecipients = $this->visibility->topRecipientGroups($companyId);
+        $topCustomers = $this->visibility->topCustomersByEmail($companyId, 5);
+        $health = $this->visibility->communicationHealth($companyId);
+
         return [
-            'sent_today' => (clone $base)->whereDate('sent_at', today())->count(),
-            'sent_month' => (clone $base)->where('sent_at', '>=', now()->startOfMonth())->count(),
-            'total_sent' => $total,
-            'open_rate' => $delivered > 0 ? (int) round(($opened / $delivered) * 100) : 0,
-            'click_rate' => $delivered > 0 ? (int) round(($clicked / $delivered) * 100) : 0,
-            'bounce_rate' => $total > 0 ? (int) round(($bounced / $total) * 100) : 0,
-            'failed_count' => $failed,
-            'delivery_success_rate' => $total > 0 ? (int) round(($delivered / $total) * 100) : 0,
+            'today' => [
+                'sent' => $sentToday,
+                'failed' => $failedToday,
+                'queued' => $queuedToday,
+            ],
+            'month' => [
+                'sent' => $sentMonth,
+                'failed' => $failedMonth,
+            ],
+            'top_senders' => [
+                ['key' => 'hr', 'label' => __('HR'), 'count' => $topSenders['hr']],
+                ['key' => 'sales', 'label' => __('Sales'), 'count' => $topSenders['sales']],
+                ['key' => 'accounts', 'label' => __('Accounts'), 'count' => $topSenders['accounts']],
+                ['key' => 'production', 'label' => __('Production'), 'count' => $topSenders['production']],
+                ['key' => 'notifications', 'label' => __('Notifications'), 'count' => $topSenders['notifications']],
+            ],
+            'top_recipients' => [
+                ['key' => 'customers', 'label' => __('Customers'), 'count' => $topRecipients['customers']],
+                ['key' => 'employees', 'label' => __('Employees'), 'count' => $topRecipients['employees']],
+            ],
+            'top_customers' => $topCustomers,
+            'health' => $health,
             'daily_activity' => $daily,
             'monthly_activity' => $monthly,
         ];
+    }
+
+    protected function monthExpression(): string
+    {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : 'DATE_FORMAT(created_at, "%Y-%m")';
     }
 }

@@ -15,6 +15,13 @@ return [
     'from_name' => env('PUBLIC_LEADS_FROM_NAME', env('ONBOARDING_MAIL_FROM_NAME', env('MAIL_FROM_NAME', env('APP_NAME')))),
     'reply_to' => env('PUBLIC_LEADS_REPLY_TO', env('MAILBOX_INFO', env('ONBOARDING_MAIL_REPLY_TO', env('MAIL_FROM_ADDRESS')))),
 
+    'crm' => [
+        'default_company_code' => env('PUBLIC_LEADS_COMPANY_CODE', 'JANA'),
+        'default_branch_code' => env('PUBLIC_LEADS_BRANCH_CODE', 'HQ'),
+    ],
+
+    'system_user_id' => env('PUBLIC_LEADS_SYSTEM_USER_ID'),
+
     'rate_limit' => [
         'max_attempts' => (int) env('PUBLIC_LEADS_RATE_LIMIT', 5),
         'decay_minutes' => (int) env('PUBLIC_LEADS_RATE_DECAY', 15),

@@ -2,6 +2,7 @@
     @include('admin.hr.partials.employee-lookup-select', [
         'employees' => $employees,
         'selectClass' => 'erp-input w-full',
+        'allowCreate' => false,
     ])
 @endif
 
@@ -43,19 +44,17 @@
         </select>
     </div>
     <div>
-        <label class="erp-label">{{ __('Payroll Group') }}</label>
-        <select name="payroll_group" class="erp-input w-full" required>
-            @foreach ($payrollGroups as $group)
-                <option value="{{ $group->value }}" @selected(old('payroll_group', $compensation?->payroll_group?->value ?? 'main') === $group->value)>{{ $group->label() }}</option>
-            @endforeach
-        </select>
+        @include('admin.hr.compensation.partials.payroll-group-select', [
+            'value' => old('payroll_group', $compensation?->payroll_group ?? 'main'),
+            'groups' => $payrollGroups,
+        ])
     </div>
     <div>
         <label class="erp-label">{{ __('Currency') }}</label>
         <input type="text" name="currency" maxlength="3" class="erp-input w-full" value="{{ old('currency', $compensation?->currency ?? 'KES') }}" required>
     </div>
     <div>
-        <label class="erp-label">{{ __('Salary Template') }}</label>
+        <label class="erp-label">{{ __('Payroll class') }}</label>
         <select name="salary_template_id" class="erp-input w-full">
             <option value="">{{ __('None') }}</option>
             @foreach ($templates as $template)

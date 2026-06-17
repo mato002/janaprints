@@ -9,7 +9,7 @@
             <div><dt class="text-xs text-slate-500">{{ __('Basic Salary') }}</dt><dd class="font-medium">{{ number_format($comp->basic_salary, 2) }} {{ $comp->currency }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ __('Gross Components') }}</dt><dd class="font-medium">{{ number_format($comp->grossComponents(), 2) }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ __('Payment Frequency') }}</dt><dd>{{ $comp->payment_frequency?->label() }}</dd></div>
-            <div><dt class="text-xs text-slate-500">{{ __('Payroll Group') }}</dt><dd>{{ $comp->payroll_group?->label() }}</dd></div>
+            <div><dt class="text-xs text-slate-500">{{ __('Payroll Group') }}</dt><dd>{{ $comp->payroll_group_label ?? '—' }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ __('House') }}</dt><dd>{{ number_format($comp->house_allowance, 2) }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ __('Transport') }}</dt><dd>{{ number_format($comp->transport_allowance, 2) }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ __('Medical') }}</dt><dd>{{ number_format($comp->medical_allowance, 2) }}</dd></div>

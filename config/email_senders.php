@@ -15,7 +15,9 @@ return [
 
     'purposes' => [
         'employee_onboarding' => 'hr',
-        'password_reset' => 'info',
+        'employee_message' => 'hr',
+        'payslip' => 'hr',
+        'password_reset' => 'noreply',
         'invoice' => 'accounts',
         'receipt' => 'accounts',
         'quotation' => 'sales',

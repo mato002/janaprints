@@ -8,9 +8,6 @@ use App\Enums\SmsCampaignStatus;
 use App\Enums\SmsDeliveryStatus;
 use App\Enums\SmsMessageQueueStatus;
 use App\Enums\SmsRecipientSource;
-use App\Mail\CustomerPaymentReceiptMail;
-use App\Models\Communications\SmsCampaign;
-use App\Models\Communications\SmsMessage;
 use App\Models\Communications\SmsRecipient;
 use App\Models\Sales\CustomerPayment;
 use App\Support\Communications\CommunicationLogService;
@@ -18,7 +15,6 @@ use App\Support\Communications\Sms\SmsCreditService;
 use App\Support\Communications\Sms\SmsProviderGateway;
 use App\Support\Documents\ReceiptDocumentService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -120,11 +116,11 @@ class CustomerPaymentReceiptService
 
         $receipt = $this->build($payment);
 
-        Mail::to($email)->send(new CustomerPaymentReceiptMail($payment, $receipt));
-
-        $payment->update(['receipt_emailed_at' => now()]);
-
-        return true;
+        return app(SalesDocumentEmailService::class)->sendReceipt(
+            $payment,
+            $receipt,
+            auth()->user(),
+        );
     }
 
     public function sendSmsLink(CustomerPayment $payment): bool

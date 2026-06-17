@@ -70,7 +70,7 @@ class RedirectToModuleWorkspaceShell
 
     protected function isDetailRoute(string $routeName): bool
     {
-        foreach (['.create', '.edit', '.show', '.pdf', '.footer-contact', '.seo-global'] as $suffix) {
+        foreach (['.create', '.edit', '.show', '.compose', '.document', '.receipt', '.pdf', '.footer-contact', '.seo-global'] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }

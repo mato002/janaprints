@@ -13,6 +13,7 @@
     use App\Models\Sales\SalesOrder;
     use App\Support\Communications\CommunicationLogService;
     use App\Support\Commercial\ComplaintService;
+    use App\Support\Communications\Email\EmailVisibilityService;
     use App\Support\EnumLabel;
 
     $logService = app(CommunicationLogService::class);
@@ -26,6 +27,7 @@
     $canArtwork = $user->can('artwork.view');
     $canJobs = $user->can('production.view');
     $canCommLogs = $user->can('communications.logs.view');
+    $canEmailView = $user->can('communications.email.view');
 
     $quotesTotal = $canQuotes ? Quotation::query()->where('customer_id', $customer->id)->count() : null;
     $ordersTotal = $canOrders ? SalesOrder::query()->where('customer_id', $customer->id)->count() : null;
@@ -210,6 +212,13 @@
                 'url' => $item['url'] ?? null,
                 'kind' => 'communication',
             ]);
+        }
+    }
+
+    if ($canEmailView) {
+        $emailVisibility = app(EmailVisibilityService::class);
+        foreach ($emailVisibility->forCustomer($customer, null, 20) as $message) {
+            $unifiedTimeline->push($emailVisibility->presentTimelineEvent($message));
         }
     }
 

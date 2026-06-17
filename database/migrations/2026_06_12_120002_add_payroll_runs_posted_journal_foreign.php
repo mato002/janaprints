@@ -48,6 +48,10 @@ return new class extends Migration
 
     protected function foreignKeyExists(string $constraintName): bool
     {
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            return false;
+        }
+
         $result = DB::selectOne(
             'SELECT CONSTRAINT_NAME
              FROM information_schema.TABLE_CONSTRAINTS

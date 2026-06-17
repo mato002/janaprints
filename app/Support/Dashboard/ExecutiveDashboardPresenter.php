@@ -70,6 +70,9 @@ class ExecutiveDashboardPresenter
             'quick_actions' => $this->quickActions(),
             'insights' => $this->smartInsights($monthStart, $today),
             'integrations' => app(IntegrationHealthPresenter::class)->build(),
+            'communication_health' => tenant()->companyId()
+                ? app(\App\Support\Communications\Email\EmailVisibilityService::class)->communicationHealth((int) tenant()->companyId())
+                : null,
         ];
     }
 

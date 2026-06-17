@@ -68,6 +68,7 @@ class EmailCampaignController extends Controller
         ]);
 
         if (! empty($validated['scheduled_at'])) {
+            $this->authorize('schedule', EmailCampaign::class);
             $this->campaigns->schedule($campaign, new \DateTimeImmutable($validated['scheduled_at']));
         }
 

@@ -11,11 +11,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'company_id', 'payroll_run_id', 'employee_id', 'reference',
+    'company_id', 'payroll_run_id', 'employee_id', 'employee_compensation_id', 'reference',
     'basic_salary', 'total_allowances', 'gross_pay',
     'paye', 'shif', 'nssf', 'housing_levy', 'other_deductions',
     'total_deductions', 'net_pay',
-    'days_worked', 'leave_days', 'absent_days', 'emailed_at', 'released_at',
+    'days_worked', 'leave_days', 'absent_days',
+    'compensation_snapshot', 'calculation_breakdown',
+    'emailed_at', 'released_at',
 ])]
 class PayrollPayslip extends Model
 {
@@ -34,6 +36,8 @@ class PayrollPayslip extends Model
             'other_deductions' => 'decimal:2',
             'total_deductions' => 'decimal:2',
             'net_pay' => 'decimal:2',
+            'compensation_snapshot' => 'array',
+            'calculation_breakdown' => 'array',
             'emailed_at' => 'datetime',
             'released_at' => 'datetime',
         ];

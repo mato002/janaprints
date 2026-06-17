@@ -33,13 +33,22 @@
             'class' => "flex w-full items-center gap-2 px-3 py-2 text-sm {$classes}",
         ]);
 
+        $isDownloadLink = is_string($href) && (str_contains($href, '/download') || str_ends_with($href, '.pdf'));
+
         if ($isModalOpen) {
             $linkAttributes = $linkAttributes->merge(['data-erp-modal-open' => true]);
-        } else {
-            $linkAttributes = $linkAttributes->merge([
-                'data-turbo-frame' => 'erp-main',
-                'data-turbo-action' => 'advance',
-            ]);
+        } elseif ($attributes->get('data-turbo') !== 'false') {
+            if ($isDownloadLink) {
+                $linkAttributes = $linkAttributes->merge(['data-turbo' => 'false']);
+            } else {
+                $frameAttributes = ['data-turbo-action' => 'advance'];
+
+                if (! $attributes->has('data-turbo-frame')) {
+                    $frameAttributes['data-turbo-frame'] = 'erp-main';
+                }
+
+                $linkAttributes = $linkAttributes->merge($frameAttributes);
+            }
         }
     @endphp
     <a

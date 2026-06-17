@@ -13,6 +13,7 @@ use App\Models\Accounting\PostingRule;
 use App\Models\Accounting\PostingTemplate;
 use App\Models\Accounting\PostingTemplateLine;
 use App\Models\Company;
+use App\Support\Accounting\JanaPrintsChartOfAccountsSeedService;
 use Illuminate\Database\Seeder;
 
 class PayrollPostingSeeder extends Seeder
@@ -25,6 +26,67 @@ class PayrollPostingSeeder extends Seeder
             return;
         }
 
+        $this->ensurePayrollGlAccounts($company);
+
+        $this->seedAccountMappings($company);
+
+        $template = PostingTemplate::query()->firstOrCreate(
+            ['company_id' => $company->id, 'code' => 'payroll_posted'],
+            [
+                'name' => 'Payroll accrual',
+                'module' => PostingModule::Hr,
+                'is_active' => true,
+                'is_system' => true,
+            ],
+        );
+
+        $this->syncTemplateLines($template);
+
+        PostingRule::query()->updateOrCreate(
+            [
+                'company_id' => $company->id,
+                'event_code' => PostingEventCode::PayrollPosted->value,
+            ],
+            [
+                'module' => PostingModule::Hr,
+                'posting_template_id' => $template->id,
+                'name' => PostingEventCode::PayrollPosted->label(),
+                'priority' => 100,
+                'is_active' => true,
+                'auto_post' => true,
+                'is_system' => true,
+            ],
+        );
+    }
+
+    protected function ensurePayrollGlAccounts(Company $company): void
+    {
+        $requiredCodes = collect(config('posting_account_keys'))
+            ->filter(fn (array $mapping, string $key) => str_contains($key, 'salary')
+                || str_contains($key, 'paye')
+                || str_contains($key, 'shif')
+                || str_contains($key, 'nssf')
+                || str_contains($key, 'housing')
+                || str_contains($key, 'employer'))
+            ->pluck('default_code')
+            ->unique()
+            ->values()
+            ->all();
+
+        $missing = collect($requiredCodes)->contains(
+            fn (string $code) => ! GlAccount::query()
+                ->where('company_id', $company->id)
+                ->where('code', $code)
+                ->exists(),
+        );
+
+        if ($missing) {
+            app(JanaPrintsChartOfAccountsSeedService::class)->seedCompany($company, force: true);
+        }
+    }
+
+    protected function seedAccountMappings(Company $company): void
+    {
         foreach (config('posting_account_keys') as $key => $mapping) {
             if (! str_contains($key, 'salary') && ! str_contains($key, 'paye') && ! str_contains($key, 'shif')
                 && ! str_contains($key, 'nssf') && ! str_contains($key, 'housing') && ! str_contains($key, 'employer')) {
@@ -43,21 +105,14 @@ class PayrollPostingSeeder extends Seeder
                 );
             }
         }
+    }
 
-        if (PostingRule::query()->where('company_id', $company->id)->where('event_code', PostingEventCode::PayrollPosted->value)->exists()) {
-            return;
-        }
-
-        $template = PostingTemplate::query()->create([
-            'company_id' => $company->id,
-            'code' => 'payroll_posted',
-            'name' => 'Payroll accrual',
-            'module' => PostingModule::Hr,
-            'is_active' => true,
-            'is_system' => true,
-        ]);
-
-        $lines = [
+    /**
+     * @return list<array{0: PostingLineSide, 1: string, 2: PostingAmountSource, 3: string}>
+     */
+    protected function templateLineDefinitions(): array
+    {
+        return [
             [PostingLineSide::Debit, 'salaries_expense', PostingAmountSource::ContextField, 'gross_amount'],
             [PostingLineSide::Debit, 'employer_nssf_expense', PostingAmountSource::ContextField, 'employer_nssf_amount'],
             [PostingLineSide::Debit, 'employer_shif_expense', PostingAmountSource::ContextField, 'employer_shif_amount'],
@@ -68,8 +123,13 @@ class PayrollPostingSeeder extends Seeder
             [PostingLineSide::Credit, 'housing_levy_payable', PostingAmountSource::ContextField, 'housing_levy_amount'],
             [PostingLineSide::Credit, 'net_salary_payable', PostingAmountSource::ContextField, 'net_amount'],
         ];
+    }
 
-        foreach ($lines as $index => [$side, $accountKey, $amountSource, $amountField]) {
+    protected function syncTemplateLines(PostingTemplate $template): void
+    {
+        $template->lines()->delete();
+
+        foreach ($this->templateLineDefinitions() as $index => [$side, $accountKey, $amountSource, $amountField]) {
             PostingTemplateLine::query()->create([
                 'posting_template_id' => $template->id,
                 'line_number' => $index + 1,
@@ -81,17 +141,5 @@ class PayrollPostingSeeder extends Seeder
                 'line_description' => ':description',
             ]);
         }
-
-        PostingRule::query()->create([
-            'company_id' => $company->id,
-            'event_code' => PostingEventCode::PayrollPosted->value,
-            'module' => PostingModule::Hr,
-            'posting_template_id' => $template->id,
-            'name' => PostingEventCode::PayrollPosted->label(),
-            'priority' => 100,
-            'is_active' => true,
-            'auto_post' => true,
-            'is_system' => true,
-        ]);
     }
 }

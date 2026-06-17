@@ -16,8 +16,10 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventorySubcategory;
 use App\Models\Inventory\UnitOfMeasure;
 use App\Models\Inventory\Warehouse;
+use App\Models\Hr\PayrollGroupDefinition;
 use App\Models\Procurement\Vendor;
 use App\Models\Sales\Quotation;
+use App\Support\Hr\PayrollGroupService;
 use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -49,6 +51,7 @@ class LookupOptionService
             'lead_sources' => $this->mapOptions($this->leadSourcesQuery($request)->get(['id', 'name']), 'id', 'name'),
             'quotations' => $this->quotationOptions($request),
             'form_statuses' => $this->formStatusOptions($request),
+            'payroll_groups' => $this->payrollGroupOptions($request),
             default => [],
         };
     }
@@ -393,6 +396,28 @@ class LookupOptionService
             ->map(fn ($option) => [
                 'value' => $option->value,
                 'label' => $option->label,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    protected function payrollGroupOptions(Request $request): array
+    {
+        $companyId = $this->companyId($request);
+
+        if (! $companyId) {
+            return [];
+        }
+
+        $service = app(PayrollGroupService::class);
+
+        return $service->activeForCompany($companyId)
+            ->map(fn (PayrollGroupDefinition $group) => [
+                'value' => $group->code,
+                'label' => $group->name,
             ])
             ->values()
             ->all();

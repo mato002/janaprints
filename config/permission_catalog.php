@@ -285,7 +285,9 @@ return [
                     'permissions' => [
                         'view' => 'hr.payroll.view',
                         'create' => 'hr.payroll.process',
+                        'edit' => 'hr.payroll.review',
                         'approve' => 'hr.payroll.approve',
+                        'delete' => 'hr.payroll.post',
                         'export' => 'hr.payroll.export',
                     ],
                 ],

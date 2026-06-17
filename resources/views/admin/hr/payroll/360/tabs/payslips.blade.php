@@ -1,3 +1,7 @@
+<p class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+    {{ __('Payslips are emailed automatically when you release them after posting. Use Email or Resend email for individual staff when needed.') }}
+</p>
+
 <x-admin.data-table export-filename="payslips">
     <x-slot name="head">
         <tr>
@@ -5,6 +9,7 @@
             <th>{{ __('Gross') }}</th>
             <th>{{ __('Net') }}</th>
             <th>{{ __('Released') }}</th>
+            <th>{{ __('Emailed') }}</th>
             <th class="erp-table-actions-col">{{ __('Actions') }}</th>
         </tr>
     </x-slot>
@@ -21,22 +26,42 @@
                         <span class="text-sm text-slate-500">{{ __('Pending') }}</span>
                     @endif
                 </td>
+                <td>
+                    @if ($payslip->emailed_at)
+                        <span class="erp-badge erp-badge--success">{{ $payslip->emailed_at->format('M j, Y') }}</span>
+                    @else
+                        <span class="text-sm text-slate-500">{{ __('Not sent') }}</span>
+                    @endif
+                </td>
                 <td class="erp-table-actions-col">
                     <x-admin.table-row-actions>
                         <x-admin.table-row-action :href="route('admin.hr.payroll.payslip.show', $payslip)">{{ __('View') }}</x-admin.table-row-action>
-                        <x-admin.table-row-action :href="route('admin.hr.payroll.payslip.download', $payslip)">{{ __('PDF') }}</x-admin.table-row-action>
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-2 px-3 py-2 text-sm text-erp-primary hover:bg-erp-page"
+                            data-document-pdf-download
+                            data-document-pdf-download-url="{{ route('admin.hr.payroll.payslip.download', $payslip) }}"
+                            data-document-pdf-download-filename="{{ ($payslip->reference ?? 'payslip-'.$payslip->id).'.pdf' }}"
+                            @click="$dispatch('erp-row-menu-close')"
+                        >
+                            {{ __('PDF') }}
+                        </button>
                         @can('process', $run)
-                            <form method="POST" action="{{ route('admin.hr.payroll.payslip.email', $payslip) }}" class="contents">
-                                @csrf
-                                <button type="submit" class="erp-table-row-action w-full text-left">{{ __('Email') }}</button>
-                            </form>
+                            @if ($payslip->employee?->email)
+                                <form method="POST" action="{{ route('admin.hr.payroll.payslip.email', $payslip) }}" class="contents" data-turbo="false">
+                                    @csrf
+                                    <button type="submit" class="erp-table-row-action w-full text-left">
+                                        {{ $payslip->emailed_at ? __('Resend email') : __('Email') }}
+                                    </button>
+                                </form>
+                            @endif
                         @endcan
                     </x-admin.table-row-actions>
                 </td>
             </tr>
         @empty
             <tr>
-                <td colspan="5">
+                <td colspan="6">
                     <x-admin.empty-state
                         :title="__('No payslips yet')"
                         :description="__('Generate payroll to create payslips for each employee line.')"

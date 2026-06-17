@@ -31,9 +31,19 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+
+        $user = $request->user();
+
+        if ($user && $user->prefersEssPortal()) {
+            $request->session()->put('auth_context', 'ess');
+            $this->userSessionService->recordLogin($user, $request);
+
+            return redirect()->intended(route('ess.dashboard', absolute: false));
+        }
+
         $request->session()->put('auth_context', 'admin');
 
-        $this->userSessionService->recordLogin($request->user(), $request);
+        $this->userSessionService->recordLogin($user, $request);
 
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
@@ -43,9 +53,11 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        $loginRoute = $request->session()->get('auth_context') === 'client'
-            ? 'client.login'
-            : 'admin.login';
+        $loginRoute = match ($request->session()->get('auth_context')) {
+            'client' => 'client.login',
+            'ess' => 'admin.login',
+            default => 'admin.login',
+        };
 
         Auth::guard('web')->logout();
 

@@ -52,7 +52,7 @@ Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
     Route::post('{token}', [RfqVendorPortalController::class, 'submit'])->name('submit');
 });
 
-Route::prefix('activate')->name('employee.activate.')->group(function () {
+Route::prefix('activate')->name('employee.activate.')->middleware('throttle:6,1')->group(function () {
     Route::get('{token}', [EmployeeActivationController::class, 'show'])->name('show');
     Route::post('{token}', [EmployeeActivationController::class, 'store'])->name('store');
 });
@@ -74,3 +74,4 @@ Route::middleware(['auth', 'tenant'])->group(function () {
 
 require __DIR__.'/auth.php';
 require __DIR__.'/client.php';
+require __DIR__.'/ess.php';

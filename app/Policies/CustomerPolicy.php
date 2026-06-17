@@ -45,6 +45,11 @@ class CustomerPolicy
             && $customer->status->value !== 'inactive';
     }
 
+    public function inviteToPortal(User $user, Customer $customer): bool
+    {
+        return $this->update($user, $customer);
+    }
+
     public function viewReceivablesLedger(User $user): bool
     {
         return $user->can('receivables.ledger.view');

@@ -32,6 +32,11 @@ class EmployeePolicy
         return $user->can('employees.manage') && $this->sameCompany($user, $employee->company_id);
     }
 
+    public function email(User $user): bool
+    {
+        return $user->can('employees.email.send');
+    }
+
     protected function sameCompany(User $user, int $companyId): bool
     {
         if ($user->hasRole('Super Admin')) {

@@ -2,7 +2,6 @@
 
 namespace App\Support\Hr;
 
-use App\Enums\EmploymentStatus;
 use App\Enums\DocumentType;
 use App\Enums\PayrollRunStatus;
 use App\Models\Employee;
@@ -25,6 +24,10 @@ class PayrollRunService
         protected PayrollReviewService $review,
         protected PayrollApprovalWorkflowService $approvalWorkflow,
         protected PayrollAuditService $audit,
+        protected EmployeeEmailService $employeeEmail,
+        protected PayrollEmployeeScopeService $employeeScope,
+        protected PayrollIntegrityValidationService $integrity,
+        protected PayrollFrozenSnapshotService $frozenSnapshots,
     ) {}
 
     /**
@@ -58,6 +61,7 @@ class PayrollRunService
         $run = PayrollRun::query()->create([
             'company_id' => $companyId,
             'branch_id' => $data['branch_id'] ?? null,
+            'payroll_group' => $data['payroll_group'],
             'reference' => $reference,
             'period_start' => $data['period_start'],
             'period_end' => $data['period_end'],
@@ -67,6 +71,7 @@ class PayrollRunService
         ]);
 
         $this->audit->logRunCreated($run, $user);
+        $this->audit->logPayrollGroupAssigned($run, $user);
 
         return $run;
     }
@@ -93,7 +98,17 @@ class PayrollRunService
             ]);
         }
 
-        return DB::transaction(function () use ($run, $user) {
+        $integrityCheck = $this->integrity->validateBeforeGeneration($run);
+
+        if (! $integrityCheck['valid']) {
+            throw ValidationException::withMessages([
+                'payroll_group' => collect($integrityCheck['warnings'])
+                    ->pluck('message')
+                    ->first() ?? __('Payroll cannot be generated for this run.'),
+            ]);
+        }
+
+        return DB::transaction(function () use ($run, $user, $integrityCheck) {
             $run->payslips()->delete();
 
             $periodStart = Carbon::parse($run->period_start);
@@ -115,8 +130,15 @@ class PayrollRunService
                     'company_id' => $run->company_id,
                     'payroll_run_id' => $run->id,
                     'employee_id' => $employee->id,
+                    'employee_compensation_id' => $calc['employee_compensation_id'] ?? null,
                     'reference' => $run->reference.'-'.$employee->employee_number,
-                    ...collect($calc)->except(['items', 'employer_nssf', 'employer_shif', 'employer_housing_levy'])->all(),
+                    ...collect($calc)->except([
+                        'items',
+                        'employer_nssf',
+                        'employer_shif',
+                        'employer_housing_levy',
+                        'employee_compensation_id',
+                    ])->all(),
                 ]);
 
                 if ($calc['items'] !== []) {
@@ -151,6 +173,7 @@ class PayrollRunService
             }
 
             $review = $this->review->review($run->fresh(['payslips.employee']));
+            $scopeSnapshot = $integrityCheck['scope'] ?? $this->employeeScope->certify($run);
 
             $run->update([
                 'status' => PayrollRunStatus::Generated,
@@ -170,6 +193,8 @@ class PayrollRunService
                 'generation_warnings' => $warnings,
                 'has_generation_warnings' => $warnings !== [],
                 'review_snapshot' => $review,
+                'scope_snapshot' => $scopeSnapshot,
+                'frozen_snapshot' => null,
                 'has_critical_review_issues' => ! $review['can_submit_for_approval'],
                 'reviewed_by_user_id' => null,
                 'reviewed_at' => null,
@@ -267,7 +292,10 @@ class PayrollRunService
         });
     }
 
-    public function releasePayslips(PayrollRun $run, User $user): PayrollRun
+    /**
+     * @return array{run: PayrollRun, emails: array{queued: int, skipped: int}, released_count: int}
+     */
+    public function releasePayslips(PayrollRun $run, User $user): array
     {
         if (! in_array($run->status, [PayrollRunStatus::Posted, PayrollRunStatus::Paid], true)) {
             throw ValidationException::withMessages([
@@ -275,14 +303,30 @@ class PayrollRunService
             ]);
         }
 
-        $pending = $run->payslips()->whereNull('released_at')->get();
+        $pending = $run->payslips()->with(['employee', 'payrollRun'])->whereNull('released_at')->get();
         $run->payslips()->whereNull('released_at')->update(['released_at' => now()]);
 
         foreach ($pending as $payslip) {
             $this->audit->logPayslipReleased($payslip->fresh(), $user);
         }
 
-        return $run->fresh(['payslips.employee']);
+        $emails = ['queued' => 0, 'skipped' => 0];
+
+        if (config('payroll.automation.email_payslips_on_release', true)) {
+            foreach ($pending as $payslip) {
+                if ($this->employeeEmail->sendPayslip($payslip->fresh(['employee', 'payrollRun']), $user)) {
+                    $emails['queued']++;
+                } else {
+                    $emails['skipped']++;
+                }
+            }
+        }
+
+        return [
+            'run' => $run->fresh(['payslips.employee']),
+            'emails' => $emails,
+            'released_count' => $pending->count(),
+        ];
     }
 
     public function markPaid(PayrollRun $run, User $user): PayrollRun
@@ -324,13 +368,15 @@ class PayrollRunService
      */
     public function scopedEmployees(PayrollRun $run)
     {
-        return Employee::query()
-            ->where('company_id', $run->company_id)
-            ->where('is_active', true)
-            ->where('employment_status', '!=', EmploymentStatus::Terminated->value)
-            ->when($run->branch_id, fn ($q) => $q->where('branch_id', $run->branch_id))
-            ->orderBy('employee_number')
-            ->get();
+        return $this->employeeScope->includedEmployees($run);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildFrozenSnapshot(PayrollRun $run): array
+    {
+        return $this->frozenSnapshots->build($run);
     }
 
     /**
@@ -345,5 +391,18 @@ class PayrollRunService
             'posted_this_year' => (clone $base)->where('status', PayrollRunStatus::Posted->value)->whereYear('posted_at', now()->year)->count(),
             'last_net_total' => (clone $base)->whereIn('status', [PayrollRunStatus::Posted->value, PayrollRunStatus::Paid->value])->orderByDesc('posted_at')->value('net_total') ?? 0,
         ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, PayrollRun>
+     */
+    public function recentRuns(int $companyId, int $limit = 5)
+    {
+        return PayrollRun::query()
+            ->where('company_id', $companyId)
+            ->latest('pay_date')
+            ->latest('id')
+            ->limit($limit)
+            ->get();
     }
 }

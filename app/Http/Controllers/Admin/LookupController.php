@@ -103,6 +103,11 @@ class LookupController extends Controller
         return $this->respond('form_statuses', $request);
     }
 
+    public function payrollGroups(Request $request): JsonResponse
+    {
+        return $this->respond('payroll_groups', $request);
+    }
+
     protected function respond(string $type, Request $request): JsonResponse
     {
         return response()->json($this->lookups->options($type, $request));

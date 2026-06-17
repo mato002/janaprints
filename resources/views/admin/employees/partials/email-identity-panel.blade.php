@@ -55,6 +55,21 @@
         </div>
     @endif
 
+    @can('email', App\Models\Employee::class)
+        @if (filled($employee->email))
+            <div class="mt-4">
+                <a
+                    href="{{ url()->route('admin.employees.email.compose', ['employees' => [$employee->id]]) }}"
+                    class="erp-btn-secondary inline-flex"
+                    data-turbo="false"
+                    data-leave-workspace
+                >
+                    {{ __('Send email') }}
+                </a>
+            </div>
+        @endif
+    @endcan
+
     @if ($employee->activation_status?->value === 'activated' && ! $assignedRole)
         <p class="mt-4 text-sm text-amber-700">
             {{ __('Activation completed without an ERP role assignment. Assign a role from Users administration.') }}

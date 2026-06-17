@@ -103,6 +103,9 @@ class EmployeeActivationService
             ]);
         }
 
+        app(\App\Support\Hr\EmployeeAccessGovernanceService::class)
+            ->assertCanCompleteActivation($activation->employee);
+
         return DB::transaction(function () use ($activation, $password) {
             $employee = $activation->employee;
             $user = $activation->user;

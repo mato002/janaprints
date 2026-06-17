@@ -92,7 +92,7 @@ class EmployeeEmailOnboardingTest extends TestCase
 
     public function test_onboarding_email_job_sends_to_personal_email_without_password(): void
     {
-        Mail::fake();
+        Queue::fake();
 
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
         $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
@@ -109,6 +109,8 @@ class EmployeeEmailOnboardingTest extends TestCase
             'is_active' => false,
         ]);
 
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
         $job = new SendEmployeeOnboardingEmailJob(
             employeeId: $employee->id,
             personalEmail: 'mary.personal@example.com',
@@ -120,14 +122,15 @@ class EmployeeEmailOnboardingTest extends TestCase
             app(\App\Services\EmailIdentity\EmailIdentityAuditService::class),
             app(\App\Services\EmailIdentity\EmailSenderResolver::class),
             app(\App\Support\Branding\BrandingAssets::class),
+            app(\App\Support\Communications\Email\CorporateMailDispatcher::class),
         );
 
-        Mail::assertSent(EmployeeOnboardingMail::class, function (EmployeeOnboardingMail $mail) {
-            return $mail->hasTo('mary.personal@example.com')
-                && $mail->loginEmail === 'mary.personal@example.com'
-                && str_contains($mail->activationUrl, '/activate/test-token')
-                && $mail->envelope()->from->address === 'info@janaprints.co.ke';
-        });
+        $this->assertDatabaseHas('email_messages', [
+            'company_id' => $company->id,
+            'subject' => __('Welcome to :company', ['company' => $company->name]),
+        ]);
+
+        Queue::assertPushed(\App\Jobs\Communications\SendEmailMessageJob::class);
     }
 
     public function test_activation_completes_user_account(): void

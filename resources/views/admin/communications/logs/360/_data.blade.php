@@ -6,8 +6,9 @@
     $eventCount = $log->deliveryEvents->count();
     $timelineEvents = $log->deliveryEvents->sortBy('created_at')->values();
 
-    $messageBodyHtml = nl2br(e($log->message_body ?? ''));
-    if ($log->message_body) {
+    $displayBody = app(\App\Support\Hr\PayrollConfidentialityService::class)->communicationLogBodyForViewer($log);
+    $messageBodyHtml = nl2br(e($displayBody));
+    if ($displayBody) {
         $messageBodyHtml = preg_replace(
             '/(https?:\/\/[^\s<]+)/',
             '<a href="$1" class="comm-log-360__link" target="_blank" rel="noopener noreferrer">$1</a>',

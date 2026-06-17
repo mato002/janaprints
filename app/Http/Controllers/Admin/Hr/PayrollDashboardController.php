@@ -22,6 +22,7 @@ class PayrollDashboardController extends Controller
 
         return view('admin.hr.payroll.dashboard', [
             'stats' => $this->payroll->dashboardStats($companyId),
+            'recentRuns' => $this->payroll->recentRuns($companyId),
         ]);
     }
 }

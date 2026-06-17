@@ -11,6 +11,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\SalesOrder;
 use App\Support\Sales\CustomerInvoiceService;
+use App\Support\Sales\SalesDocumentEmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -21,6 +22,7 @@ class CustomerInvoiceController extends Controller
 
     public function __construct(
         protected CustomerInvoiceService $invoices,
+        protected SalesDocumentEmailService $documentEmails,
     ) {}
 
     public function index(): View
@@ -54,6 +56,15 @@ class CustomerInvoiceController extends Controller
         ]);
 
         return view('admin.sales.invoices.show', compact('invoice'));
+    }
+
+    public function email(CustomerInvoice $invoice): RedirectResponse
+    {
+        $this->authorize('emailInvoice', $invoice);
+
+        $this->documentEmails->sendInvoice($invoice, auth()->user());
+
+        return back()->with('status', __('Invoice emailed to customer.'));
     }
 
     public function edit(CustomerInvoice $invoice): View

@@ -23,7 +23,7 @@
             <select name="payroll_group" class="erp-toolbar-select" aria-label="{{ __('Payroll Group') }}">
                 <option value="">{{ __('All') }}</option>
                 @foreach ($payrollGroups as $group)
-                    <option value="{{ $group->value }}" @selected(($filters['payroll_group'] ?? '') === $group->value)>{{ $group->label() }}</option>
+                    <option value="{{ $group->code }}" @selected(($filters['payroll_group'] ?? '') === $group->code)>{{ $group->name }}</option>
                 @endforeach
             </select>
             <select name="coverage" class="erp-toolbar-select" aria-label="{{ __('Coverage') }}">
@@ -50,11 +50,11 @@
                 <tr>
                     <td>
                         <div class="font-medium text-erp-primary">{{ $employee->full_name }}</div>
-                        <div class="font-mono text-[11px] text-slate-500">{{ $employee->employee_number }}</div>
+                        <div class="erp-ref-code">{{ $employee->employee_number }}</div>
                     </td>
                     <td>{{ $comp ? number_format($comp->basic_salary, 2) : '—' }}</td>
                     <td class="hidden md:table-cell">{{ $comp ? number_format($comp->grossComponents(), 2) : '—' }}</td>
-                    <td class="hidden lg:table-cell">{{ $comp?->payroll_group?->label() ?? '—' }}</td>
+                    <td class="hidden lg:table-cell">{{ $comp?->payroll_group_label ?? '—' }}</td>
                     <td class="hidden lg:table-cell">{{ $comp?->effective_from?->format('M j, Y') ?? '—' }}</td>
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>

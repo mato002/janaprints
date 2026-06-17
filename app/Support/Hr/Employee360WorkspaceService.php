@@ -4,6 +4,7 @@ namespace App\Support\Hr;
 
 use App\Enums\AttendanceStatus;
 use App\Enums\EmployeeDocumentCategory;
+use App\Enums\EmploymentStatus;
 use App\Enums\LeaveRequestStatus;
 use App\Enums\TrainingAssignmentStatus;
 use App\Models\Assets\AssetHandover;
@@ -90,6 +91,8 @@ class Employee360WorkspaceService
      */
     protected function overview(Employee $employee): array
     {
+        $completeness = app(EmployeeProfileCompletenessService::class);
+
         return [
             'employee_number' => $employee->employee_number,
             'name' => $employee->full_name,
@@ -97,10 +100,33 @@ class Employee360WorkspaceService
             'branch' => $employee->branch?->name,
             'job_title' => $employee->jobTitle?->title ?? $employee->designation,
             'employment_status' => $employee->employment_status?->value,
+            'is_suspended' => $employee->employment_status === EmploymentStatus::Suspended,
+            'access_restricted' => in_array($employee->employment_status, [
+                EmploymentStatus::Suspended,
+                EmploymentStatus::Terminated,
+            ], true) || ! $employee->is_active,
             'hire_date' => $employee->hire_date,
+            'date_of_birth' => $employee->date_of_birth,
+            'gender' => $employee->gender?->value,
             'email' => $employee->email,
             'phone' => $employee->phone,
+            'address' => $employee->address,
+            'national_id' => $employee->national_id,
+            'kra_pin' => $employee->kra_pin,
+            'nssf_number' => $employee->nssf_number,
+            'nhif_number' => $employee->nhif_number,
+            'bank_name' => $employee->bank_name,
+            'bank_account_number' => $employee->bank_account_number,
+            'bank_branch_code' => $employee->bank_branch_code,
+            'emergency_contact_name' => $employee->emergency_contact_name,
+            'emergency_contact_phone' => $employee->emergency_contact_phone,
+            'next_of_kin_name' => $employee->next_of_kin_name,
+            'next_of_kin_phone' => $employee->next_of_kin_phone,
+            'next_of_kin_relationship' => $employee->next_of_kin_relationship,
             'gross_salary' => $employee->compensation?->grossComponents(),
+            'payroll_profile_complete' => $completeness->isPayrollReady($employee),
+            'missing_payroll_fields' => $completeness->missingForPayroll($employee),
+            'missing_recommended_fields' => $completeness->missingRecommended($employee),
         ];
     }
 

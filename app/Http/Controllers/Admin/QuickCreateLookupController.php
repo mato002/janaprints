@@ -35,6 +35,8 @@ use App\Models\Platform\SettingsGovernance;
 use App\Models\Sales\Quotation;
 use App\Support\Catalogue\CatalogueService;
 use App\Support\Catalogue\ItemAttributeService;
+use App\Support\Hr\EmployeeNumberService;
+use App\Support\Hr\PayrollGroupService;
 use App\Support\Lookup\LookupQuickCreateFormData;
 use App\Services\EmailIdentity\EmployeeOnboardingService;
 use App\Support\Organization\JobTitleService;
@@ -879,18 +881,12 @@ class QuickCreateLookupController extends Controller
                     'nullable',
                     Rule::exists('departments', 'id')->where('company_id', $companyId),
                 ],
-                'employee_number' => [
-                    'required',
-                    'string',
-                    'max:50',
-                    Rule::unique('employees', 'employee_number')->where('company_id', $companyId),
-                ],
                 'first_name' => ['required', 'string', 'max:255'],
                 'middle_name' => ['nullable', 'string', 'max:255'],
                 'last_name' => ['required', 'string', 'max:255'],
                 'gender' => ['nullable', Rule::enum(Gender::class)],
                 'phone' => ['nullable', 'string', 'max:50'],
-                'email' => ['required', 'email'],
+                'email' => ['required', 'email', Rule::unique('users', 'email')],
                 'job_title_id' => [
                     'nullable',
                     Rule::exists('job_titles', 'id')->where('company_id', $companyId),
@@ -905,6 +901,7 @@ class QuickCreateLookupController extends Controller
         $employee = Employee::query()->create([
             ...$validated,
             'company_id' => $companyId,
+            'employee_number' => app(EmployeeNumberService::class)->nextForCompany($companyId),
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -1231,5 +1228,42 @@ class QuickCreateLookupController extends Controller
         );
 
         return $this->quickCreateStringResponse($option->value, $option->label, __('Status option created.'));
+    }
+
+    public function createPayrollGroup(): View
+    {
+        $this->authorize('create', \App\Models\Hr\EmployeeCompensation::class);
+
+        return $this->lookupForm('admin.lookups.quick-create.payroll-group', [
+            'title' => __('Create payroll group'),
+            'action' => route('admin.payroll-groups.quick-store'),
+        ]);
+    }
+
+    public function storePayrollGroup(Request $request): JsonResponse|Response
+    {
+        $this->authorize('create', \App\Models\Hr\EmployeeCompensation::class);
+
+        $companyId = tenant()->companyId() ?? (int) auth()->user()?->company_id;
+
+        try {
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'code' => ['nullable', 'string', 'max:30'],
+            ]);
+        } catch (ValidationException $exception) {
+            return $this->lookupValidationResponse($request, $exception, 'admin.lookups.quick-create.payroll-group', [
+                'title' => __('Create payroll group'),
+                'action' => route('admin.payroll-groups.quick-store'),
+            ]);
+        }
+
+        $group = app(PayrollGroupService::class)->create(
+            $companyId,
+            $validated['name'],
+            $validated['code'] ?? null,
+        );
+
+        return $this->quickCreateStringResponse($group->code, $group->name, __('Payroll group created.'));
     }
 }

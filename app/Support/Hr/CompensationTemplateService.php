@@ -11,6 +11,7 @@ class CompensationTemplateService
     {
         return CompensationSalaryTemplate::query()
             ->where('company_id', $companyId)
+            ->withCount('employeeCompensations as usage_count')
             ->orderBy('name')
             ->paginate($perPage);
     }
@@ -34,6 +35,36 @@ class CompensationTemplateService
         $template->update($this->payload($data));
 
         return $template->fresh();
+    }
+
+    public function deactivate(CompensationSalaryTemplate $template): CompensationSalaryTemplate
+    {
+        $template->update(['is_active' => false]);
+
+        return $template->fresh();
+    }
+
+    public function reactivate(CompensationSalaryTemplate $template): CompensationSalaryTemplate
+    {
+        $template->update(['is_active' => true]);
+
+        return $template->fresh();
+    }
+
+    public function delete(CompensationSalaryTemplate $template): void
+    {
+        if ($template->employeeCompensations()->exists()) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'template' => __('This payroll class is assigned to employees and cannot be deleted. Deactivate it instead.'),
+            ]);
+        }
+
+        $template->delete();
+    }
+
+    public function usageCount(CompensationSalaryTemplate $template): int
+    {
+        return $template->employeeCompensations()->count();
     }
 
     /**

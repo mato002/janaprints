@@ -28,7 +28,7 @@ class PayrollCalculationService
         Carbon $periodEnd,
     ): array {
         $companyId = (int) $employee->company_id;
-        $compensation = $this->activeCompensation($employee);
+        $compensation = $this->compensationForPeriod($employee, $periodEnd);
         $attendance = $this->attendanceSummary($employee, $periodStart, $periodEnd);
         $workingDays = max(1, $this->workingDaysInPeriod($periodStart, $periodEnd));
 
@@ -36,6 +36,8 @@ class PayrollCalculationService
         $house = (float) ($compensation?->house_allowance ?? 0);
         $transport = (float) ($compensation?->transport_allowance ?? 0);
         $medical = (float) ($compensation?->medical_allowance ?? 0);
+        $risk = (float) ($compensation?->risk_allowance ?? 0);
+        $responsibility = (float) ($compensation?->responsibility_allowance ?? 0);
 
         $unpaidLeaveDays = $this->unpaidLeaveDays($employee, $periodStart, $periodEnd);
         $proration = max(0, ($workingDays - $unpaidLeaveDays) / $workingDays);
@@ -52,8 +54,18 @@ class PayrollCalculationService
             ->whereNotIn('category', ['paye', 'shif', 'nssf', 'housing_levy', 'nhif'])
             ->get();
 
-        $totalCustomAllowances = $customAllowances->sum('amount');
-        $gross = round($basic + $house + $transport + $medical + $totalCustomAllowances, 2);
+        $fixedAllowances = $house + $transport + $medical + $risk + $responsibility;
+        $preStatutoryGross = round($basic + $fixedAllowances, 2);
+
+        $resolvedCustomAllowances = $customAllowances->map(function (PayrollAllowance $allowance) use ($preStatutoryGross) {
+            return [
+                'model' => $allowance,
+                'amount' => $allowance->resolvedAmount($preStatutoryGross),
+            ];
+        });
+
+        $totalCustomAllowances = round((float) $resolvedCustomAllowances->sum('amount'), 2);
+        $gross = round($basic + $fixedAllowances + $totalCustomAllowances, 2);
 
         $nssf = $this->calculateNssf($gross, $companyId);
         $shif = $this->calculateShif($gross, $companyId);
@@ -68,7 +80,14 @@ class PayrollCalculationService
         $additionalStatutories = $this->calculateAdditionalStatutories($gross, $taxableIncome, $companyId);
         $additionalEmployeeTotal = round(collect($additionalStatutories)->where('side', 'employee')->sum('amount'), 2);
 
-        $otherDeductions = round((float) $customDeductions->sum('amount'), 2);
+        $resolvedCustomDeductions = $customDeductions->map(function (PayrollDeduction $deduction) use ($gross) {
+            return [
+                'model' => $deduction,
+                'amount' => $deduction->resolvedAmount($gross),
+            ];
+        });
+
+        $otherDeductions = round((float) $resolvedCustomDeductions->sum('amount'), 2);
 
         $totalDeductions = round($paye + $shif + $nssf + $housingLevy + $additionalEmployeeTotal + $otherDeductions, 2);
         $net = round($gross - $totalDeductions, 2);
@@ -81,6 +100,8 @@ class PayrollCalculationService
             ['HOUSE', __('House Allowance'), $house],
             ['TRANSPORT', __('Transport Allowance'), $transport],
             ['MEDICAL', __('Medical Allowance'), $medical],
+            ['RISK', __('Risk Allowance'), $risk],
+            ['RESPONSIBILITY', __('Responsibility Allowance'), $responsibility],
         ] as [$code, $name, $amount]) {
             if ($amount > 0) {
                 $items[] = $this->item(PayrollItemType::Allowance, $code, $name, $amount, $sort);
@@ -88,9 +109,15 @@ class PayrollCalculationService
             }
         }
 
-        foreach ($customAllowances as $allowance) {
-            $items[] = $this->item(PayrollItemType::Allowance, $allowance->code, $allowance->name, (float) $allowance->amount, $sort);
-            $sort += 10;
+        foreach ($resolvedCustomAllowances as $entry) {
+            /** @var PayrollAllowance $allowance */
+            $allowance = $entry['model'];
+            $amount = (float) $entry['amount'];
+
+            if ($amount > 0) {
+                $items[] = $this->item(PayrollItemType::Allowance, $allowance->code, $allowance->name, $amount, $sort);
+                $sort += 10;
+            }
         }
 
         foreach ([
@@ -118,14 +145,52 @@ class PayrollCalculationService
             }
         }
 
-        foreach ($customDeductions as $deduction) {
-            $items[] = $this->item(PayrollItemType::Deduction, $deduction->code, $deduction->name, (float) $deduction->amount, $sort);
-            $sort += 10;
+        foreach ($resolvedCustomDeductions as $entry) {
+            /** @var PayrollDeduction $deduction */
+            $deduction = $entry['model'];
+            $amount = (float) $entry['amount'];
+
+            if ($amount > 0) {
+                $items[] = $this->item(PayrollItemType::Deduction, $deduction->code, $deduction->name, $amount, $sort);
+                $sort += 10;
+            }
         }
 
-        return [
+        $compensationSnapshot = $this->buildCompensationSnapshot(
+            $compensation,
+            $customAllowances,
+            $customDeductions,
+        );
+
+        $calculationBreakdown = [
             'basic_salary' => round($basic, 2),
-            'total_allowances' => round($house + $transport + $medical + $totalCustomAllowances, 2),
+            'allowances' => [
+                'house' => round($house, 2),
+                'transport' => round($transport, 2),
+                'medical' => round($medical, 2),
+                'risk' => round($risk, 2),
+                'responsibility' => round($responsibility, 2),
+                'custom' => $resolvedCustomAllowances->map(fn ($entry) => [
+                    'code' => $entry['model']->code,
+                    'name' => $entry['model']->name,
+                    'amount' => $entry['amount'],
+                ])->values()->all(),
+            ],
+            'benefits' => [],
+            'gross_pay' => $gross,
+            'paye' => $paye,
+            'nssf' => $nssf,
+            'shif' => $shif,
+            'housing_levy' => $housingLevy,
+            'other_deductions' => $otherDeductions + $additionalEmployeeTotal,
+            'total_deductions' => $totalDeductions,
+            'net_pay' => $net,
+        ];
+
+        return [
+            'employee_compensation_id' => $compensation?->id,
+            'basic_salary' => round($basic, 2),
+            'total_allowances' => round($house + $transport + $medical + $risk + $responsibility + $totalCustomAllowances, 2),
             'gross_pay' => $gross,
             'paye' => $paye,
             'shif' => $shif,
@@ -140,6 +205,8 @@ class PayrollCalculationService
             'days_worked' => $attendance['days_worked'],
             'leave_days' => $attendance['leave_days'],
             'absent_days' => $attendance['absent_days'],
+            'compensation_snapshot' => $compensationSnapshot,
+            'calculation_breakdown' => $calculationBreakdown,
             'items' => $items,
         ];
     }
@@ -246,11 +313,56 @@ class PayrollCalculationService
         }
     }
 
-    protected function activeCompensation(Employee $employee): ?EmployeeCompensation
+    /**
+     * @param  \Illuminate\Support\Collection<int, PayrollAllowance>  $customAllowances
+     * @param  \Illuminate\Support\Collection<int, PayrollDeduction>  $customDeductions
+     * @return array<string, mixed>|null
+     */
+    protected function buildCompensationSnapshot(
+        ?EmployeeCompensation $compensation,
+        $customAllowances,
+        $customDeductions,
+    ): ?array {
+        if ($compensation === null) {
+            return null;
+        }
+
+        return [
+            'employee_compensation_id' => $compensation->id,
+            'effective_from' => $compensation->effective_from?->toDateString(),
+            'payroll_group' => $compensation->payroll_group,
+            'salary_template_id' => $compensation->salary_template_id,
+            'basic_salary' => (float) $compensation->basic_salary,
+            'house_allowance' => (float) $compensation->house_allowance,
+            'transport_allowance' => (float) $compensation->transport_allowance,
+            'medical_allowance' => (float) $compensation->medical_allowance,
+            'risk_allowance' => (float) $compensation->risk_allowance,
+            'responsibility_allowance' => (float) $compensation->responsibility_allowance,
+            'allowances' => $customAllowances->map(fn (PayrollAllowance $row) => [
+                'code' => $row->code,
+                'name' => $row->name,
+                'amount' => (float) $row->amount,
+                'calculation_type' => $row->calculation_type ?? 'fixed',
+                'percentage_rate' => $row->percentage_rate !== null ? (float) $row->percentage_rate : null,
+            ])->values()->all(),
+            'deductions' => $customDeductions->map(fn (PayrollDeduction $row) => [
+                'code' => $row->code,
+                'name' => $row->name,
+                'category' => $row->category,
+                'amount' => (float) $row->amount,
+                'calculation_type' => $row->calculation_type ?? 'fixed',
+                'percentage_rate' => $row->percentage_rate !== null ? (float) $row->percentage_rate : null,
+            ])->values()->all(),
+            'captured_at' => now()->toIso8601String(),
+        ];
+    }
+
+    protected function compensationForPeriod(Employee $employee, Carbon $periodEnd): ?EmployeeCompensation
     {
         return EmployeeCompensation::query()
             ->where('employee_id', $employee->id)
             ->where('is_active', true)
+            ->where('effective_from', '<=', $periodEnd->toDateString())
             ->orderByDesc('effective_from')
             ->first();
     }

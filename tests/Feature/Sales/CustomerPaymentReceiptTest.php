@@ -5,7 +5,6 @@ namespace Tests\Feature\Sales;
 use App\Enums\CustomerPaymentMethod;
 use App\Enums\CustomerPaymentStatus;
 use App\Enums\SalesOrderStatus;
-use App\Mail\CustomerPaymentReceiptMail;
 use App\Models\Branch;
 use App\Models\Communications\SmsMessage;
 use App\Models\Company;
@@ -25,7 +24,7 @@ use Database\Seeders\JanaPrintsTaxSeeder;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -161,7 +160,7 @@ class CustomerPaymentReceiptTest extends TestCase
 
     public function test_receipt_email_sent(): void
     {
-        Mail::fake();
+        Queue::fake();
 
         $payment = $this->postFullPayment();
 
@@ -169,11 +168,12 @@ class CustomerPaymentReceiptTest extends TestCase
             ->post(route('admin.payments.receipt.email', $payment))
             ->assertRedirect();
 
-        Mail::assertSent(CustomerPaymentReceiptMail::class, function (CustomerPaymentReceiptMail $mail) use ($payment) {
-            return $mail->payment->is($payment)
-                && $mail->receipt['receipt_number'] === $payment->receipt_number;
-        });
+        $this->assertDatabaseHas('email_messages', [
+            'company_id' => $this->company->id,
+            'subject' => __('Payment receipt :number', ['number' => $payment->receipt_number]),
+        ]);
 
+        Queue::assertPushed(\App\Jobs\Communications\SendEmailMessageJob::class);
         $this->assertNotNull($payment->fresh()->receipt_emailed_at);
     }
 

@@ -25,6 +25,10 @@ class EmployeeActivationController extends Controller
             return view('auth.employee-activation-expired');
         }
 
+        if (! app(\App\Support\Hr\EmployeeAccessGovernanceService::class)->canCompleteActivation($activation->employee)) {
+            return view('auth.employee-activation-expired');
+        }
+
         return view('auth.employee-activate', [
             'token' => $token,
             'employeeName' => $activation->employee->full_name,
@@ -52,11 +56,13 @@ class EmployeeActivationController extends Controller
         try {
             Auth::login($user);
             $request->session()->regenerate();
-            $request->session()->put('auth_context', 'admin');
+            $request->session()->put('auth_context', $user->prefersEssPortal() ? 'ess' : 'admin');
             $this->userSessionService->recordLogin($user, $request);
 
+            $dashboardRoute = $user->prefersEssPortal() ? 'ess.dashboard' : 'admin.dashboard';
+
             return redirect()
-                ->route('admin.dashboard')
+                ->route($dashboardRoute)
                 ->with('status', __('Your account is activated. Welcome to JanaPrints.'));
         } catch (\Throwable $exception) {
             report($exception);

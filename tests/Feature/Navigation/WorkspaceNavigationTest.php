@@ -36,6 +36,19 @@ class WorkspaceNavigationTest extends TestCase
         $response->assertDontSee('data-nav-depth="child"', false);
     }
 
+    public function test_hr_workspace_is_visible_in_sidebar_for_authorized_users(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->assertTrue(app(WorkspacePresenter::class)->isVisible('hr'));
+
+        $response = $this->actingAs($user)->get(route('admin.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('HR', false);
+        $response->assertSee(route('admin.workspaces.hr'), false);
+    }
+
     public function test_administration_feature_links_are_not_duplicated_in_sidebar(): void
     {
         $user = $this->companyAdmin();

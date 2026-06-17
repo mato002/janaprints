@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\IntegrationEmailProvider;
 use App\Enums\JournalStatus;
 use App\Enums\PayrollRunStatus;
 use App\Models\Accounting\Journal;
@@ -11,6 +12,7 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Hr\EmployeeCompensation;
 use App\Models\Hr\PayrollPayslip;
+use App\Models\Integrations\IntegrationEmailSetting;
 use App\Models\Hr\PayrollRun;
 use App\Models\User;
 use App\Support\Hr\PayrollRunService;
@@ -182,6 +184,7 @@ class PayrollManagementTest extends TestCase
 
         $run = app(PayrollRunService::class)->create($company->id, [
             'branch_id' => $hq->id,
+            'payroll_group' => 'main',
             'period_start' => now()->startOfMonth()->toDateString(),
             'period_end' => now()->endOfMonth()->toDateString(),
             'pay_date' => now()->endOfMonth()->toDateString(),
@@ -294,6 +297,34 @@ class PayrollManagementTest extends TestCase
             ->assertOk();
     }
 
+    public function test_release_payslips_automatically_queues_emails(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+        \Illuminate\Support\Facades\Config::set('mailboxes.department.hr', 'hr@janaprints.co.ke');
+
+        $this->createIntegrationEmailSetting();
+
+        $hr = $this->hrUser();
+        $this->payrollEmployee();
+        $service = app(PayrollRunService::class);
+        $run = $this->createRun($hr);
+
+        $service->generate($run, $hr);
+        $service->submitForReview($run->fresh(), $hr);
+        $service->submitForApproval($run->fresh(), $hr);
+        $service->approve($run->fresh(), $hr);
+        $service->post($run->fresh(), $hr);
+
+        $result = $service->releasePayslips($run->fresh(), $hr);
+
+        $this->assertGreaterThanOrEqual(1, $result['emails']['queued']);
+
+        $payslip = PayrollPayslip::query()->where('payroll_run_id', $run->id)->firstOrFail();
+        $this->assertNotNull($payslip->fresh()->released_at);
+        $this->assertNull($payslip->fresh()->emailed_at);
+        \Illuminate\Support\Facades\Queue::assertPushed(\App\Jobs\Communications\SendEmailMessageJob::class);
+    }
+
     public function test_viewer_cannot_access_payroll(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
@@ -347,6 +378,7 @@ class PayrollManagementTest extends TestCase
         return app(PayrollRunService::class)->create(
             Company::query()->where('code', 'JANA')->value('id'),
             [
+                'payroll_group' => 'main',
                 'period_start' => now()->startOfMonth()->toDateString(),
                 'period_end' => now()->endOfMonth()->toDateString(),
                 'pay_date' => now()->endOfMonth()->toDateString(),
@@ -412,10 +444,29 @@ class PayrollManagementTest extends TestCase
             'house_allowance' => 10000,
             'transport_allowance' => 5000,
             'medical_allowance' => 3000,
+            'payroll_group' => 'main',
             'effective_from' => now()->startOfYear()->toDateString(),
             'is_active' => true,
         ]);
 
         return $employee;
+    }
+
+    protected function createIntegrationEmailSetting(): IntegrationEmailSetting
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+
+        return IntegrationEmailSetting::query()->create([
+            'company_id' => $company->id,
+            'provider' => IntegrationEmailProvider::Smtp,
+            'from_name' => 'Jana Prints HR',
+            'from_email' => 'hr@janaprints.test',
+            'smtp_host' => 'smtp.test.local',
+            'smtp_port' => 587,
+            'smtp_encryption' => 'tls',
+            'smtp_username' => 'smtp-user',
+            'smtp_password' => 'smtp-pass',
+            'is_active' => true,
+        ]);
     }
 }

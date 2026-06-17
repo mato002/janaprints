@@ -22,6 +22,7 @@ class CompensationDashboardController extends Controller
 
         return view('admin.hr.compensation.dashboard', [
             'stats' => $this->compensation->dashboardStats($companyId),
+            'missingEmployees' => $this->compensation->employeesMissingCompensation($companyId),
         ]);
     }
 }

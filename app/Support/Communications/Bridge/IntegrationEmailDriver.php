@@ -31,6 +31,8 @@ class IntegrationEmailDriver
         $fromName = $setting->from_name ?? $account->from_name;
 
         try {
+            $message->loadMissing('attachments');
+
             Mail::mailer($mailer)->html($message->body, function ($mail) use ($message, $to, $fromEmail, $fromName, $setting, $account) {
                 $mail->to($to->all())
                     ->subject($message->subject)
@@ -51,6 +53,26 @@ class IntegrationEmailDriver
                     if (filled($bcc['email'] ?? null)) {
                         $mail->bcc($bcc['email'], $bcc['name'] ?? null);
                     }
+                }
+
+                foreach ($message->attachments as $attachment) {
+                    if (! filled($attachment->file_path)) {
+                        continue;
+                    }
+
+                    $disk = (string) config('communications.email_attachment_disk', 'local');
+
+                    if (! \Illuminate\Support\Facades\Storage::disk($disk)->exists($attachment->file_path)) {
+                        continue;
+                    }
+
+                    $mail->attach(
+                        \Illuminate\Support\Facades\Storage::disk($disk)->path($attachment->file_path),
+                        [
+                            'as' => $attachment->label ?? basename($attachment->file_path),
+                            'mime' => 'application/pdf',
+                        ],
+                    );
                 }
             });
 

@@ -72,6 +72,17 @@ class LoginRequest extends FormRequest
             ]);
         }
 
+        $user = Auth::user();
+
+        if ($user && ! app(\App\Support\Hr\EmployeeAccessGovernanceService::class)->canAuthenticate($user)) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => __('This account is suspended or no longer has ERP access.'),
+            ]);
+        }
+
         RateLimiter::clear($this->throttleKey());
     }
 

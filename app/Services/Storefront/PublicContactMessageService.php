@@ -2,14 +2,17 @@
 
 namespace App\Services\Storefront;
 
-use App\Mail\PublicContactMessageConfirmationMail;
-use App\Mail\PublicContactMessageInternalNotificationMail;
 use App\Models\PublicContactMessage;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
+use App\Support\Communications\Email\StorefrontLeadEmailService;
 
 class PublicContactMessageService
 {
+    public function __construct(
+        protected ?StorefrontLeadEmailService $leadEmails = null,
+    ) {
+        $this->leadEmails ??= app(StorefrontLeadEmailService::class);
+    }
+
     public function store(array $data): PublicContactMessage
     {
         $message = PublicContactMessage::query()->create([
@@ -22,37 +25,8 @@ class PublicContactMessageService
             'source' => 'storefront',
         ]);
 
-        $this->dispatchEmails($message);
+        $this->leadEmails->dispatchContactMessageEmails($message);
 
         return $message;
-    }
-
-    protected function dispatchEmails(PublicContactMessage $message): void
-    {
-        $mailer = Mail::mailer((string) config('leads.mailer', config('mail.default')));
-
-        try {
-            $mailer->to($message->email)->send(new PublicContactMessageConfirmationMail($message));
-        } catch (\Throwable $e) {
-            Log::warning('Failed to send contact message confirmation email.', [
-                'contact_message_id' => $message->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        $adminEmail = config('leads.admin_email');
-
-        if (! $adminEmail) {
-            return;
-        }
-
-        try {
-            $mailer->to($adminEmail)->send(new PublicContactMessageInternalNotificationMail($message));
-        } catch (\Throwable $e) {
-            Log::warning('Failed to send contact message internal notification.', [
-                'contact_message_id' => $message->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 }

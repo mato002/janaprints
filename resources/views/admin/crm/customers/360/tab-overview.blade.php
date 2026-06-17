@@ -27,6 +27,38 @@
                         <dd>{{ $lastPortalLogin?->login_at?->diffForHumans() ?? '—' }}</dd>
                     </div>
                 </dl>
+                @can('inviteToPortal', $customer)
+                    <form method="POST" action="{{ route('admin.crm.customers.portal-invite', $customer) }}" class="mt-3" data-turbo-frame="_top">
+                        @csrf
+                        <button type="submit" class="crm-360__btn crm-360__btn--outline text-xs">
+                            {{ __('Resend portal password link') }}
+                        </button>
+                    </form>
+                @endcan
+            </div>
+        @elseif (filled($customer->email))
+            <div class="mt-4 rounded-lg border border-amber-100 bg-amber-50/70 px-3 py-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-amber-900">{{ __('Client portal') }}</p>
+                <p class="mt-2 text-sm text-amber-950">
+                    {{ __('This customer record has no portal login yet. Customers sign in at :url — invite them to create a password.', [
+                        'url' => route('client.login'),
+                    ]) }}
+                </p>
+                @can('inviteToPortal', $customer)
+                    <form method="POST" action="{{ route('admin.crm.customers.portal-invite', $customer) }}" class="mt-3" data-turbo-frame="_top">
+                        @csrf
+                        <button type="submit" class="crm-360__btn crm-360__btn--primary text-xs">
+                            {{ __('Send client portal invite') }}
+                        </button>
+                    </form>
+                @endcan
+            </div>
+        @else
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3">
+                <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-700">{{ __('Client portal') }}</p>
+                <p class="mt-2 text-sm text-slate-600">
+                    {{ __('Add an email address to this customer profile before sending a portal invite.') }}
+                </p>
             </div>
         @endif
         @if ($customer->segments->isNotEmpty())

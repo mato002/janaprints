@@ -116,6 +116,10 @@ class WorkspacePresenter
             return false;
         }
 
+        if (! empty($definition['managed_by'])) {
+            return $this->isManagedCatalogVisible((string) $definition['managed_by']);
+        }
+
         $hasAccessibleFeature = false;
         $onlyComingSoon = true;
 
@@ -171,6 +175,12 @@ class WorkspacePresenter
 
         if ($key === 'assets') {
             return $this->assets->collectActiveRoutes();
+        }
+
+        $definition = $this->definitions()[$key] ?? null;
+
+        if ($definition !== null && ! empty($definition['managed_by'])) {
+            return $this->collectManagedCatalogActiveRoutes($key, (string) $definition['managed_by']);
         }
 
         if ($key === 'hr') {
@@ -554,5 +564,105 @@ class WorkspacePresenter
         }
 
         return false;
+    }
+
+    protected function isManagedCatalogVisible(string $configKey): bool
+    {
+        $catalog = config($configKey, []);
+
+        if (! is_array($catalog)) {
+            return false;
+        }
+
+        foreach ($catalog['hub'] ?? [] as $item) {
+            if ($this->itemIsAccessible($item)) {
+                return true;
+            }
+        }
+
+        foreach ($catalog['groups'] ?? [] as $group) {
+            foreach ($group['items'] ?? [] as $item) {
+                if ($this->itemIsAccessible($item)) {
+                    return true;
+                }
+            }
+        }
+
+        foreach ($catalog['sections'] ?? [] as $section) {
+            if (! empty($section['permission']) && ! $this->userCan($section['permission'])) {
+                continue;
+            }
+
+            foreach ($section['groups'] ?? [] as $group) {
+                foreach ($group['items'] ?? [] as $item) {
+                    if ($this->itemIsAccessible($item)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function collectManagedCatalogActiveRoutes(string $workspaceKey, string $configKey): array
+    {
+        $catalog = config($configKey, []);
+        $routes = ["admin.workspaces.{$workspaceKey}"];
+        $sectionRoute = "admin.workspaces.{$workspaceKey}.section";
+
+        if (Route::has($sectionRoute)) {
+            $routes[] = $sectionRoute;
+        }
+
+        foreach ($catalog['hub'] ?? [] as $item) {
+            $routes = array_merge($routes, $this->collectCatalogItemRoutes($item));
+
+            $sectionKey = $item['route_params']['section'] ?? null;
+
+            if ($sectionKey !== null) {
+                $routes[] = "{$sectionRoute}:{$sectionKey}";
+            }
+        }
+
+        foreach ($catalog['sections'] ?? [] as $sectionKey => $section) {
+            $routes[] = "{$sectionRoute}:{$sectionKey}";
+
+            foreach ($section['groups'] ?? [] as $group) {
+                foreach ($group['items'] ?? [] as $item) {
+                    $routes = array_merge($routes, $this->collectCatalogItemRoutes($item));
+                }
+            }
+        }
+
+        foreach ($catalog['groups'] ?? [] as $group) {
+            foreach ($group['items'] ?? [] as $item) {
+                $routes = array_merge($routes, $this->collectCatalogItemRoutes($item));
+            }
+        }
+
+        return array_values(array_unique($routes));
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return list<string>
+     */
+    protected function collectCatalogItemRoutes(array $item): array
+    {
+        $routes = [];
+
+        if (! empty($item['route']) && Route::has($item['route'])) {
+            $routes[] = $item['route'];
+        }
+
+        foreach ($item['active_routes'] ?? [] as $pattern) {
+            $routes[] = $pattern;
+        }
+
+        return $routes;
     }
 }

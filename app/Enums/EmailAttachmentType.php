@@ -9,6 +9,7 @@ enum EmailAttachmentType: string
     case StatementPdf = 'statement_pdf';
     case ArtworkPdf = 'artwork_pdf';
     case JobCardPdf = 'job_card_pdf';
+    case PayslipPdf = 'payslip_pdf';
     case Report = 'report';
     case Image = 'image';
     case Document = 'document';
@@ -21,6 +22,7 @@ enum EmailAttachmentType: string
             self::StatementPdf => __('Statement PDF'),
             self::ArtworkPdf => __('Artwork PDF'),
             self::JobCardPdf => __('Job card PDF'),
+            self::PayslipPdf => __('Payslip PDF'),
             self::Report => __('Report'),
             self::Image => __('Image'),
             self::Document => __('Document'),

@@ -27,6 +27,12 @@ class PasswordResetLinkController extends Controller
 
         $email = $request->string('email')->toString();
 
+        $user = User::query()->where('email', $email)->first();
+
+        if ($user !== null && ! app(\App\Support\Hr\EmployeeAccessGovernanceService::class)->canResetPassword($user)) {
+            return back()->with('status', __(Password::RESET_LINK_SENT));
+        }
+
         try {
             $status = Password::sendResetLink(
                 $request->only('email')

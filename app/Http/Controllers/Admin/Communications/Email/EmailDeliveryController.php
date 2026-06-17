@@ -29,6 +29,7 @@ class EmailDeliveryController extends Controller
     public function show(EmailMessage $emailMessage): View
     {
         $this->authorize('audit', EmailCampaign::class);
+        abort_unless($emailMessage->company_id === $this->requireCompanyId(), 404);
 
         $emailMessage->load(['deliveryEvents.creator', 'attachments', 'communicationLog', 'recipient']);
 

@@ -8,7 +8,27 @@
     <input type="hidden" name="company_id" value="{{ auth()->user()->company_id }}">
 @endif
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div><x-input-label for="employee_number" :value="__('Employee number')" /><x-text-input id="employee_number" name="employee_number" class="block mt-1 w-full" :value="old('employee_number', $employee?->employee_number)" required /></div>
+    <div>
+        <x-input-label for="employee_number" :value="__('Employee number')" />
+        <x-text-input
+            id="employee_number"
+            type="text"
+            class="block mt-1 w-full bg-slate-50 erp-ref-code"
+            :value="$employee ? old('employee_number', $employee->employee_number) : ($suggestedEmployeeNumber ?? '')"
+            readonly
+            tabindex="-1"
+            aria-readonly="true"
+        />
+        <p class="mt-1 text-xs text-gray-500">
+            @if ($employee)
+                {{ __('Assigned automatically and cannot be changed.') }}
+            @else
+                {{ __('Assigned automatically on save using the :prefix prefix (e.g. :prefix-0766).', [
+                    'prefix' => $employeeNumberPrefix ?? 'JPEMP',
+                ]) }}
+            @endif
+        </p>
+    </div>
     <x-admin.lookup-select
         name="branch_id"
         :label="__('Branch')"
@@ -56,6 +76,55 @@
         <select name="employment_status" class="block mt-1 w-full rounded-md border-gray-300" required>
             @foreach ($statuses as $status)<option value="{{ $status->value }}" @selected(old('employment_status', $employee?->employment_status?->value) === $status->value)>{{ $status->name }}</option>@endforeach
         </select></div>
+    @if (! $employee)
+        <div>
+            <x-input-label for="hire_date" :value="__('Hire date')" />
+            <input
+                id="hire_date"
+                name="hire_date"
+                type="date"
+                class="erp-input mt-1 w-full"
+                value="{{ old('hire_date', now()->toDateString()) }}"
+            />
+        </div>
+    @else
+        <div>
+            <x-input-label for="hire_date" :value="__('Hire date')" />
+            <input
+                id="hire_date"
+                name="hire_date"
+                type="date"
+                class="erp-input mt-1 w-full"
+                value="{{ old('hire_date', $employee->hire_date?->toDateString()) }}"
+            />
+        </div>
+    @endif
+    @if (! $employee && ($payrollClasses ?? collect())->isNotEmpty())
+        <div>
+            <x-input-label for="salary_template_id" :value="__('Payroll class')" />
+            <select id="salary_template_id" name="salary_template_id" class="erp-select mt-1 w-full">
+                <option value="">{{ __('None — set salary later') }}</option>
+                @foreach ($payrollClasses as $payrollClass)
+                    <option
+                        value="{{ $payrollClass->id }}"
+                        @selected((int) old('salary_template_id') === $payrollClass->id)
+                    >
+                        {{ $payrollClass->name }} — {{ number_format($payrollClass->grossComponents(), 2) }} {{ $payrollClass->currency }}
+                    </option>
+                @endforeach
+            </select>
+            <p class="mt-1 text-xs text-gray-500">
+                {{ __('Applies basic salary and standard allowances from the class. Adjust per employee later in the salary register.') }}
+                <a href="{{ route('admin.hr.compensation.templates') }}" class="text-erp-accent hover:underline" data-turbo="false">{{ __('Manage payroll classes') }}</a>
+            </p>
+        </div>
+    @elseif (! $employee && auth()->user()?->can('create', App\Models\Hr\EmployeeCompensation::class))
+        <div class="md:col-span-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">
+            {{ __('No payroll classes yet.') }}
+            <a href="{{ route('admin.hr.compensation.templates.create') }}" class="font-medium text-erp-accent hover:underline">{{ __('Create a payroll class') }}</a>
+            {{ __('to auto-set salary during onboarding.') }}
+        </div>
+    @endif
     <div>
         <x-input-label for="email" :value="__('Personal email (login & onboarding)')" />
         <input
@@ -83,4 +152,7 @@
         </div>
     @endif
 </div>
+
+@include('admin.employees.partials.form-fields-profile', ['employee' => $employee])
+
 <label class="flex gap-2 mt-4"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $employee?->is_active ?? true))> {{ __('Active') }}</label>

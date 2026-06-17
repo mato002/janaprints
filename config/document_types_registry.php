@@ -398,7 +398,7 @@ return [
         'employee_record' => [
             'name' => 'Employee Record',
             'module' => 'hr',
-            'prefix' => 'EMP',
+            'prefix' => 'JPEMP',
             'number_series_key' => null,
             'approval_required' => false,
             'approval_levels' => 0,

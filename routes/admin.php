@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\EmployeeEmailController;
 use App\Http\Controllers\Admin\FeatureDiscoveryController;
 use App\Http\Controllers\Admin\JobTitleController;
 use App\Http\Controllers\Admin\Governance\ApprovalChainsController;
@@ -301,6 +302,11 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
                 ->where('format', 'csv|excel|pdf')
                 ->name('departments.export');
             Route::resource('departments', DepartmentController::class)->except(['show']);
+        });
+
+        Route::middleware('permission:employees.email.send')->group(function () {
+            Route::get('employees/email/compose', [EmployeeEmailController::class, 'create'])->name('employees.email.compose');
+            Route::post('employees/email', [EmployeeEmailController::class, 'store'])->name('employees.email.send');
         });
 
         Route::middleware('permission:employees.manage')->group(function () {

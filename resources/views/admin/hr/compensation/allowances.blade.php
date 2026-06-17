@@ -2,36 +2,15 @@
     <x-admin.page-header :title="__('Allowance Library')" :description="__('House, transport, medical, risk, responsibility, and custom allowance definitions.')">
         <x-slot name="actions">
             <a href="{{ route('admin.hr.compensation.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
+            @can('create', App\Models\Hr\EmployeeCompensation::class)
+                <a href="{{ route('admin.hr.compensation.allowances.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Add allowance') }}</a>
+            @endcan
         </x-slot>
     </x-admin.page-header>
 
     @if (session('status'))
         <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
     @endif
-
-    @can('create', App\Models\Hr\EmployeeCompensation::class)
-        <form method="POST" action="{{ route('admin.hr.compensation.allowances.store') }}" class="erp-card mb-6 space-y-3">
-            @csrf
-            <h3 class="font-semibold text-erp-primary">{{ __('New allowance type') }}</h3>
-            <div class="grid gap-3 md:grid-cols-4">
-                <input type="text" name="code" class="erp-input" placeholder="{{ __('Code') }}" required>
-                <input type="text" name="name" class="erp-input" placeholder="{{ __('Name') }}" required>
-                <select name="calculation_type" class="erp-input">
-                    @foreach ($calculationTypes as $type)
-                        <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                    @endforeach
-                </select>
-                <select name="frequency" class="erp-input">
-                    @foreach ($frequencies as $freq)
-                        <option value="{{ $freq->value }}">{{ $freq->label() }}</option>
-                    @endforeach
-                </select>
-                <input type="number" step="0.01" name="default_amount" class="erp-input" placeholder="{{ __('Default amount') }}" value="0">
-                <input type="number" step="0.01" name="percentage_rate" class="erp-input" placeholder="{{ __('Percentage %') }}">
-            </div>
-            <button type="submit" class="erp-btn-primary">{{ __('Add allowance') }}</button>
-        </form>
-    @endcan
 
     <x-admin.data-table>
         <x-slot name="head">

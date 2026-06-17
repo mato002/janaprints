@@ -10,6 +10,7 @@ enum CommunicationAttachmentType: string
     case Statement = 'statement';
     case Artwork = 'artwork';
     case JobCard = 'job_card';
+    case PayslipPdf = 'payslip_pdf';
     case Image = 'image';
     case Document = 'document';
 
@@ -22,6 +23,7 @@ enum CommunicationAttachmentType: string
             self::Statement => __('Statement'),
             self::Artwork => __('Artwork'),
             self::JobCard => __('Job card'),
+            self::PayslipPdf => __('Payslip PDF'),
             self::Image => __('Image'),
             self::Document => __('Document'),
         };

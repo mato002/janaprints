@@ -14,13 +14,7 @@ class PayrollCompensationValidationService
     public function validateForRun(PayrollRun $run): array
     {
         return $this->validateEmployees(
-            Employee::query()
-                ->where('company_id', $run->company_id)
-                ->where('is_active', true)
-                ->when($run->branch_id, fn ($q) => $q->where('branch_id', $run->branch_id))
-                ->with('compensation')
-                ->orderBy('employee_number')
-                ->get()
+            app(PayrollEmployeeScopeService::class)->includedEmployees($run),
         );
     }
 
@@ -41,10 +35,19 @@ class PayrollCompensationValidationService
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, Employee>  $employees
+     * @param  \Illuminate\Support\Collection<int, Employee>|\Illuminate\Database\Eloquent\Collection<int, Employee>  $employees
      * @return array{valid: bool, issues: list<array{employee_id: int, employee_number: string, employee_name: string, problems: list<string>}>, summary: array<string, int>}
      */
-    protected function validateEmployees($employees): array
+    public function validateEmployees($employees): array
+    {
+        return $this->validateEmployeeCollection($employees);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, Employee>|\Illuminate\Database\Eloquent\Collection<int, Employee>  $employees
+     * @return array{valid: bool, issues: list<array{employee_id: int, employee_number: string, employee_name: string, problems: list<string>}>, summary: array<string, int>}
+     */
+    protected function validateEmployeeCollection($employees): array
     {
         $issues = [];
 

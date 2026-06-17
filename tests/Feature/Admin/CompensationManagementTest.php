@@ -17,6 +17,7 @@ use App\Models\Hr\PayrollRun;
 use App\Models\User;
 use App\Support\Hr\CompensationService;
 use App\Support\Hr\PayrollCompensationValidationService;
+use App\Support\Hr\PayrollIntegrityValidationService;
 use App\Support\Hr\PayrollRunService;
 use Database\Seeders\GlAccountTypeSeeder;
 use Database\Seeders\JanaPrintsAccountingPeriodsSeeder;
@@ -94,7 +95,7 @@ class CompensationManagementTest extends TestCase
                 'currency' => 'KES',
                 'change_reason' => 'Annual increment',
             ])
-            ->assertRedirect(route('admin.hr.employees.show', ['employee' => $employee, 'tab' => 'compensation']));
+            ->assertRedirect(route('admin.hr.compensation.register'));
 
         $this->assertSame(2, EmployeeCompensation::query()->where('employee_id', $employee->id)->count());
 
@@ -105,6 +106,38 @@ class CompensationManagementTest extends TestCase
 
         $this->assertSame('75000.00', $active->basic_salary);
         $this->assertSame(1, CompensationSalaryChange::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_compensation_edit_renders_modal_panel(): void
+    {
+        $employee = $this->employeeWithCompensation(60000);
+
+        $this->actingAs($this->hrUser())
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.hr.compensation.edit', $employee))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee(__('Save revision'), false);
+    }
+
+    public function test_compensation_update_from_modal_returns_success_marker(): void
+    {
+        $hr = $this->hrUser();
+        $employee = $this->employeeWithCompensation(60000);
+
+        $response = $this->actingAs($hr)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->put(route('admin.hr.compensation.update', $employee), [
+                'basic_salary' => 75000,
+                'effective_from' => now()->addMonth()->toDateString(),
+                'payment_frequency' => 'monthly',
+                'payroll_group' => 'main',
+                'currency' => 'KES',
+                'change_reason' => 'Annual increment',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
     }
 
     public function test_allowance_percentage_calculation(): void
@@ -159,24 +192,34 @@ class CompensationManagementTest extends TestCase
     public function test_payroll_generation_records_missing_compensation_warning(): void
     {
         $hr = $this->hrUser();
-        $covered = $this->employeeWithCompensation(90000);
-        $this->employeeWithoutCompensation();
+        $this->employeeWithCompensation(90000);
+        $employee = $this->employeeWithoutCompensation();
+        EmployeeCompensation::query()->create([
+            'company_id' => $employee->company_id,
+            'employee_id' => $employee->id,
+            'basic_salary' => 0,
+            'payroll_group' => 'main',
+            'effective_from' => now()->startOfYear()->toDateString(),
+            'status' => CompensationStatus::Active,
+            'is_active' => true,
+        ]);
 
-        $run = app(PayrollRunService::class)->create($covered->company_id, [
+        $run = app(PayrollRunService::class)->create($employee->company_id, [
+            'payroll_group' => 'main',
             'period_start' => now()->startOfMonth()->toDateString(),
             'period_end' => now()->endOfMonth()->toDateString(),
             'pay_date' => now()->endOfMonth()->toDateString(),
         ], $hr);
 
-        $validation = app(PayrollCompensationValidationService::class)->validateForRun($run);
-        $this->assertFalse($validation['valid']);
-        $this->assertGreaterThan(0, $validation['summary']['employees_with_issues']);
+        $integrity = app(PayrollIntegrityValidationService::class)->validateBeforeGeneration($run);
+        $this->assertTrue($integrity['valid']);
+        $this->assertGreaterThan(0, $integrity['summary']['setup_warnings']);
 
         app(PayrollRunService::class)->generate($run, $hr);
         $run->refresh();
 
         $this->assertSame(PayrollRunStatus::Generated, $run->status);
-        $this->assertTrue($run->has_generation_warnings);
+        $this->assertSame(1, $run->employee_count);
     }
 
     public function test_payroll_runs_when_compensation_valid(): void
@@ -185,6 +228,7 @@ class CompensationManagementTest extends TestCase
         $employee = $this->employeeWithCompensation(90000);
 
         $run = app(PayrollRunService::class)->create($employee->company_id, [
+            'payroll_group' => 'main',
             'period_start' => now()->startOfMonth()->toDateString(),
             'period_end' => now()->endOfMonth()->toDateString(),
             'pay_date' => now()->endOfMonth()->toDateString(),

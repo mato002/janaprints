@@ -11,9 +11,25 @@
                 </p>
             </div>
             <div class="flex gap-2">
-                <a href="{{ route('admin.hr.payroll.payslip.download', $payslip) }}" class="erp-btn-secondary">{{ __('Download PDF') }}</a>
+                <x-documents.pdf-download-button
+                    :url="route('admin.hr.payroll.payslip.download', $payslip)"
+                    :filename="($payslip->reference ?? 'payslip-'.$payslip->id).'.pdf'"
+                />
+                @can('process', $payslip->payrollRun)
+                    @if ($payslip->employee?->email)
+                        <form method="POST" action="{{ route('admin.hr.payroll.payslip.email', $payslip) }}" class="inline" data-turbo="false">
+                            @csrf
+                            <button type="submit" class="erp-btn-secondary">
+                                {{ $payslip->emailed_at ? __('Resend email') : __('Email payslip') }}
+                            </button>
+                        </form>
+                    @endif
+                @endcan
                 @if ($payslip->released_at)
                     <span class="erp-badge erp-badge--success">{{ __('Released') }}</span>
+                @endif
+                @if ($payslip->emailed_at)
+                    <span class="erp-badge erp-badge--success">{{ __('Emailed :date', ['date' => $payslip->emailed_at->format('M j, Y')]) }}</span>
                 @endif
             </div>
         </div>
@@ -27,26 +43,57 @@
         <div class="grid gap-6 lg:grid-cols-2">
             <div>
                 <h3 class="mb-2 text-sm font-semibold">{{ __('Earnings') }}</h3>
-                <x-admin.data-table export-filename="payslip-earnings">
-                    <x-slot name="head"><tr><th>{{ __('Item') }}</th><th>{{ __('Amount') }}</th></tr></x-slot>
-                    <x-slot name="body">
-                        @foreach ($payslip->items->where('item_type', App\Enums\PayrollItemType::Allowance) as $item)
-                            <tr><td>{{ $item->name }}</td><td class="tabular-nums">{{ number_format($item->amount, 2) }}</td></tr>
-                        @endforeach
-                    </x-slot>
-                </x-admin.data-table>
+                <div class="overflow-x-auto rounded-lg border border-erp-border">
+                    <table class="erp-table w-full">
+                        <thead>
+                            <tr>
+                                <th>{{ __('Item') }}</th>
+                                <th class="text-right">{{ __('Amount') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($payslip->items->where('item_type', App\Enums\PayrollItemType::Allowance) as $item)
+                                <tr>
+                                    <td>{{ $item->name }}</td>
+                                    <td class="tabular-nums text-right">{{ number_format($item->amount, 2) }}</td>
+                                </tr>
+                            @endforeach
+                            <tr class="bg-slate-50">
+                                <th scope="row">{{ __('Gross pay') }}</th>
+                                <th class="tabular-nums text-right">{{ number_format($payslip->gross_pay, 2) }}</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div>
                 <h3 class="mb-2 text-sm font-semibold">{{ __('Deductions & statutories') }}</h3>
-                <x-admin.data-table export-filename="payslip-deductions">
-                    <x-slot name="head"><tr><th>{{ __('Item') }}</th><th>{{ __('Amount') }}</th></tr></x-slot>
-                    <x-slot name="body">
-                        @foreach ($payslip->items->where('item_type', App\Enums\PayrollItemType::Deduction) as $item)
-                            <tr><td>{{ $item->name }}</td><td class="tabular-nums">{{ number_format($item->amount, 2) }}</td></tr>
-                        @endforeach
-                        <tr><th>{{ __('Total deductions') }}</th><th class="tabular-nums">{{ number_format($payslip->total_deductions, 2) }}</th></tr>
-                    </x-slot>
-                </x-admin.data-table>
+                <div class="overflow-x-auto rounded-lg border border-erp-border">
+                    <table class="erp-table w-full">
+                        <thead>
+                            <tr>
+                                <th>{{ __('Item') }}</th>
+                                <th class="text-right">{{ __('Amount') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($payslip->items->where('item_type', App\Enums\PayrollItemType::Deduction) as $item)
+                                <tr>
+                                    <td>{{ $item->name }}</td>
+                                    <td class="tabular-nums text-right">{{ number_format($item->amount, 2) }}</td>
+                                </tr>
+                            @endforeach
+                            <tr class="bg-slate-50">
+                                <th scope="row">{{ __('Total deductions') }}</th>
+                                <th class="tabular-nums text-right">{{ number_format($payslip->total_deductions, 2) }}</th>
+                            </tr>
+                            <tr class="bg-emerald-50">
+                                <th scope="row">{{ __('Net pay') }}</th>
+                                <th class="tabular-nums text-right text-emerald-800">{{ number_format($payslip->net_pay, 2) }}</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </x-admin.card>

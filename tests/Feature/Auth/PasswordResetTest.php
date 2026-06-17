@@ -125,6 +125,8 @@ class PasswordResetTest extends TestCase
     {
         Notification::fake();
 
+        config(['mailboxes.system.noreply' => 'noreply@janaprints.co.ke']);
+
         $customer = Customer::factory()->create();
         $user = User::factory()->create([
             'company_id' => $customer->company_id,
@@ -135,16 +137,16 @@ class PasswordResetTest extends TestCase
         $this->post('/client/forgot-password', ['email' => $user->email]);
 
         Notification::assertSentTo($user, ResetPasswordNotification::class, function ($notification) use ($user) {
+            $payload = $notification->toCorporateMail($user);
+
+            $this->assertSame('password_reset', $payload['sender_purpose']);
+            $this->assertSame($user->email, $payload['to'][0]['email']);
+            $this->assertStringContainsString('/client/reset-password/', $payload['body']);
+
             $mail = $notification->toMail($user);
             $this->assertInstanceOf(PasswordResetMail::class, $mail);
-            $this->assertSame('onboarding', $mail->mailer);
             $this->assertSame($user->email, $mail->to[0]['address'] ?? null);
-            $this->assertStringContainsString('/client/reset-password/', $mail->resetUrl);
-            $this->assertSame(
-                (string) config('mailboxes.auth.from_address'),
-                $mail->fromAddress,
-            );
-            $this->assertStringNotContainsString('noreply@', strtolower($mail->fromAddress));
+            $this->assertStringContainsString('noreply@', strtolower($mail->fromAddress));
 
             return true;
         });

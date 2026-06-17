@@ -76,7 +76,7 @@ class CustomerJourneyCommunicationTest extends TestCase
         $this->assertDomainEventLogged(DomainCommunicationEvent::CustomerCreated, 'customer', $customer->id);
     }
 
-    public function test_quotation_sent_delivers_all_journey_channels(): void
+    public function test_quotation_sent_delivers_sms_and_whatsapp_journey_channels(): void
     {
         [$company, $branch, $user, $customer] = $this->journeyContext(CommunicationTemplateCategory::QuotationReady);
 
@@ -101,7 +101,18 @@ class CustomerJourneyCommunicationTest extends TestCase
             $user,
         );
 
-        $this->assertJourneyChannelsDelivered($company, 'Journey Customer Co');
+        $this->assertSame(0, EmailMessage::query()->where('company_id', $company->id)->count(), 'Journey email is skipped; document email handles quotation PDF delivery.');
+
+        $this->assertDatabaseHas('sms_messages', [
+            'company_id' => $company->id,
+            'phone_number' => '+254711222333',
+        ]);
+        Queue::assertPushed(SendSmsMessageJob::class);
+
+        $this->assertDatabaseHas('whatsapp_messages', [
+            'company_id' => $company->id,
+        ]);
+
         $this->assertDomainEventLogged(DomainCommunicationEvent::QuotationSent, 'quotation', $quotation->id);
     }
 
@@ -292,7 +303,7 @@ class CustomerJourneyCommunicationTest extends TestCase
     protected function journeyContext(CommunicationTemplateCategory $category): array
     {
         Mail::fake();
-        Queue::fake();
+        Queue::fake([SendSmsMessageJob::class]);
         Http::fake(['*' => Http::response(['messages' => [['id' => 'wamid.JOURNEY']]], 200)]);
 
         $company = Company::factory()->create();

@@ -211,6 +211,8 @@ class QuotationApprovalService
             $quotation,
             $actor,
         );
+
+        app(SalesDocumentEmailService::class)->sendQuotation($quotation, $actor);
     }
 
     public function assertCanSend(Quotation $quotation): void

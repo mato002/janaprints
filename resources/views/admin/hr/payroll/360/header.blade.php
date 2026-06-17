@@ -8,7 +8,7 @@
 @if (count($quick_actions) > 0)
     <div class="mb-4 flex flex-wrap gap-2">
         @foreach ($quick_actions as $action)
-            @if (in_array($action['route'], ['admin.hr.payroll.approve', 'admin.hr.payroll.post', 'admin.hr.payroll.mark-paid'], true))
+            @if (in_array($action['route'], ['admin.hr.payroll.approve', 'admin.hr.payroll.post', 'admin.hr.payroll.mark-paid', 'admin.hr.payroll.release-payslips'], true))
                 @can('approve', $run)
                     @include('admin.hr.payroll.360.partials.quick-action', ['action' => $action, 'run' => $run])
                 @endcan

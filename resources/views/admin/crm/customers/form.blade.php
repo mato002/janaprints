@@ -119,18 +119,13 @@
     @endif
 
     @if(($fields['status']['visible'] ?? true))
-    <x-admin.form-field
-        name="status"
-        :label="__('Status')"
-        :required="($fields['status']['required'] ?? true)"
-        :readonly="($fields['status']['read_only'] ?? false)"
-    >
-        <select name="status" class="erp-select w-full" @required($fields['status']['required'] ?? true) @disabled($fields['status']['read_only'] ?? false)>
-            @foreach ($statuses as $s)
-                <option value="{{ $s->value }}" @selected(old('status', $customer?->status?->value ?? ($fields['status']['default'] ?? null)) === $s->value)>{{ $s->name }}</option>
-            @endforeach
-        </select>
-    </x-admin.form-field>
+        <x-admin.form-status-select
+            form-key="customer"
+            :field="$fields['status']"
+            :value="$customer?->status"
+            :model="$customer"
+            select-class="erp-select w-full"
+        />
     @endif
 
     @if (auth()->user()->hasRole('Super Admin') && ! $customer)
@@ -169,5 +164,5 @@
     />
     @endif
 
-    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $customer ?? null])
+    @include('admin.partials.form-custom-fields', ['fields' => $fields, 'model' => $customer ?? null, 'formKey' => 'customer'])
 </div>

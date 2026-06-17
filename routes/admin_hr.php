@@ -2,6 +2,13 @@
 
 use App\Http\Controllers\Admin\Hr\AttendanceController;
 use App\Http\Controllers\Admin\Hr\AttendanceDashboardController;
+use App\Http\Controllers\Admin\Hr\CompensationAuditController;
+use App\Http\Controllers\Admin\Hr\CompensationDashboardController;
+use App\Http\Controllers\Admin\Hr\CompensationLibraryController;
+use App\Http\Controllers\Admin\Hr\CompensationTemplateController;
+use App\Http\Controllers\Admin\Hr\Employee360Controller;
+use App\Http\Controllers\Admin\Hr\EmployeeCompensationComponentController;
+use App\Http\Controllers\Admin\Hr\EmployeeCompensationController;
 use App\Http\Controllers\Admin\Hr\HrDashboardController;
 use App\Http\Controllers\Admin\Hr\EmployeeDocumentController;
 use App\Http\Controllers\Admin\Hr\EmployeeDocumentDashboardController;
@@ -10,6 +17,7 @@ use App\Http\Controllers\Admin\Hr\LeaveCalendarController;
 use App\Http\Controllers\Admin\Hr\LeaveDashboardController;
 use App\Http\Controllers\Admin\Hr\LeaveRequestController;
 use App\Http\Controllers\Admin\Hr\PayrollDashboardController;
+use App\Http\Controllers\Admin\Hr\PayrollGroupDefinitionController;
 use App\Http\Controllers\Admin\Hr\PayrollPayslipController;
 use App\Http\Controllers\Admin\Hr\PayrollRunController;
 use App\Http\Controllers\Admin\Hr\PerformanceDashboardController;
@@ -31,6 +39,50 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
         Route::get('dashboard', HrDashboardController::class)
             ->middleware('permission:hr.dashboard.view')
             ->name('dashboard');
+
+        Route::middleware('permission:employees.manage')->group(function () {
+            Route::get('employees/{employee}', [Employee360Controller::class, 'show'])->name('employees.show');
+        });
+
+        Route::middleware('permission:hr.compensation.view')->group(function () {
+            Route::get('compensation', CompensationDashboardController::class)->name('compensation.dashboard');
+            Route::get('compensation/register', [EmployeeCompensationController::class, 'index'])->name('compensation.register');
+            Route::get('compensation/employees/{employee}/edit', [EmployeeCompensationController::class, 'edit'])->name('compensation.edit');
+            Route::get('compensation/audit', CompensationAuditController::class)->name('compensation.audit');
+            Route::get('compensation/payroll-groups', [PayrollGroupDefinitionController::class, 'index'])->name('compensation.payroll-groups');
+            Route::get('compensation/templates', [CompensationTemplateController::class, 'index'])->name('compensation.templates');
+            Route::get('compensation/allowances', [CompensationLibraryController::class, 'allowances'])->name('compensation.allowances');
+            Route::get('compensation/deductions', [CompensationLibraryController::class, 'deductions'])->name('compensation.deductions');
+        });
+
+        Route::middleware('permission:hr.compensation.create')->group(function () {
+            Route::get('compensation/create', [EmployeeCompensationController::class, 'create'])->name('compensation.create');
+            Route::post('compensation', [EmployeeCompensationController::class, 'store'])->name('compensation.store');
+            Route::put('compensation/employees/{employee}', [EmployeeCompensationController::class, 'update'])->name('compensation.update');
+            Route::get('compensation/templates/create', [CompensationTemplateController::class, 'create'])->name('compensation.templates.create');
+            Route::get('compensation/templates/{salaryTemplate}/edit', [CompensationTemplateController::class, 'edit'])->name('compensation.templates.edit');
+            Route::post('compensation/templates', [CompensationTemplateController::class, 'store'])->name('compensation.templates.store');
+            Route::put('compensation/templates/{salaryTemplate}', [CompensationTemplateController::class, 'update'])->name('compensation.templates.update');
+            Route::patch('compensation/templates/{salaryTemplate}/deactivate', [CompensationTemplateController::class, 'deactivate'])->name('compensation.templates.deactivate');
+            Route::patch('compensation/templates/{salaryTemplate}/reactivate', [CompensationTemplateController::class, 'reactivate'])->name('compensation.templates.reactivate');
+            Route::delete('compensation/templates/{salaryTemplate}', [CompensationTemplateController::class, 'destroy'])->name('compensation.templates.destroy');
+            Route::get('compensation/allowances/create', [CompensationLibraryController::class, 'createAllowance'])->name('compensation.allowances.create');
+            Route::post('compensation/allowances', [CompensationLibraryController::class, 'storeAllowance'])->name('compensation.allowances.store');
+            Route::put('compensation/allowances/{allowanceDefinition}', [CompensationLibraryController::class, 'updateAllowance'])->name('compensation.allowances.update');
+            Route::get('compensation/deductions/create', [CompensationLibraryController::class, 'createDeduction'])->name('compensation.deductions.create');
+            Route::post('compensation/deductions', [CompensationLibraryController::class, 'storeDeduction'])->name('compensation.deductions.store');
+            Route::put('compensation/deductions/{deductionDefinition}', [CompensationLibraryController::class, 'updateDeduction'])->name('compensation.deductions.update');
+            Route::post('compensation/employees/{employee}/allowances', [EmployeeCompensationComponentController::class, 'storeAllowance'])->name('compensation.employee.allowances.store');
+            Route::delete('compensation/employees/{employee}/allowances/{allowance}', [EmployeeCompensationComponentController::class, 'destroyAllowance'])->name('compensation.employee.allowances.destroy');
+            Route::post('compensation/employees/{employee}/deductions', [EmployeeCompensationComponentController::class, 'storeDeduction'])->name('compensation.employee.deductions.store');
+            Route::delete('compensation/employees/{employee}/deductions/{deduction}', [EmployeeCompensationComponentController::class, 'destroyDeduction'])->name('compensation.employee.deductions.destroy');
+            Route::patch('compensation/payroll-groups/{payrollGroupDefinition}/deactivate', [PayrollGroupDefinitionController::class, 'deactivate'])->name('compensation.payroll-groups.deactivate');
+            Route::patch('compensation/payroll-groups/{payrollGroupDefinition}/reactivate', [PayrollGroupDefinitionController::class, 'reactivate'])->name('compensation.payroll-groups.reactivate');
+        });
+
+        Route::post('compensation/{compensation}/approve', [EmployeeCompensationController::class, 'approve'])
+            ->middleware('permission:hr.compensation.approve')
+            ->name('compensation.approve');
 
         Route::get('attendance', AttendanceDashboardController::class)
             ->middleware('permission:hr.attendance.view')
@@ -122,6 +174,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
             Route::post('payroll/runs/{payrollRun}/submit-approval', [PayrollRunController::class, 'submitApproval'])->name('payroll.submit-approval');
             Route::post('payroll/runs/{payrollRun}/cancel', [PayrollRunController::class, 'cancel'])->name('payroll.cancel');
             Route::post('payroll/payslips/{payslip}/email', [PayrollPayslipController::class, 'email'])->name('payroll.payslip.email');
+            Route::post('payroll/runs/{payrollRun}/email-payslips', [PayrollRunController::class, 'emailPayslips'])->name('payroll.email-payslips');
         });
 
         Route::middleware('permission:hr.payroll.view')->group(function () {
@@ -131,8 +184,17 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
         Route::middleware('permission:hr.payroll.approve')->group(function () {
             Route::post('payroll/runs/{payrollRun}/approve', [PayrollRunController::class, 'approve'])->name('payroll.approve');
             Route::post('payroll/runs/{payrollRun}/reject', [PayrollRunController::class, 'reject'])->name('payroll.reject');
+        });
+
+        Route::middleware('permission:hr.payroll.post')->group(function () {
             Route::post('payroll/runs/{payrollRun}/post', [PayrollRunController::class, 'post'])->name('payroll.post');
+        });
+
+        Route::middleware('permission:hr.payroll.release')->group(function () {
             Route::post('payroll/runs/{payrollRun}/release-payslips', [PayrollRunController::class, 'releasePayslips'])->name('payroll.release-payslips');
+        });
+
+        Route::middleware('permission:hr.payroll.mark-paid')->group(function () {
             Route::post('payroll/runs/{payrollRun}/mark-paid', [PayrollRunController::class, 'markPaid'])->name('payroll.mark-paid');
         });
 

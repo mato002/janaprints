@@ -30,6 +30,13 @@
 
             <button type="submit" class="login-btn login-btn--primary">{{ __('Email reset link') }}</button>
 
+            @if ($portal !== 'client')
+                <p class="login-form__footer">
+                    {{ __('Customer portal user?') }}
+                    <a href="{{ route('client.password.request') }}" class="login-form__forgot">{{ __('Reset client portal password') }}</a>
+                </p>
+            @endif
+
             <p class="login-form__footer">
                 <a href="{{ $portal === 'client' ? route('client.login') : route('admin.login') }}" class="login-form__forgot">
                     {{ __('Back to sign in') }}

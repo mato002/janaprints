@@ -3,11 +3,13 @@
 namespace App\Models\Hr;
 
 use App\Enums\PaymentFrequency;
-use App\Enums\PayrollGroup;
 use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\LogsActivity;
+use App\Support\Hr\PayrollGroupService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'company_id',
@@ -38,9 +40,16 @@ class CompensationSalaryTemplate extends Model
             'risk_allowance' => 'decimal:2',
             'responsibility_allowance' => 'decimal:2',
             'payment_frequency' => PaymentFrequency::class,
-            'payroll_group' => PayrollGroup::class,
             'is_active' => 'boolean',
         ];
+    }
+
+    protected function payrollGroupLabel(): Attribute
+    {
+        return Attribute::get(fn () => app(PayrollGroupService::class)->label(
+            (int) $this->company_id,
+            $this->payroll_group,
+        ));
     }
 
     public function grossComponents(): float
@@ -54,5 +63,10 @@ class CompensationSalaryTemplate extends Model
             + (float) $this->responsibility_allowance,
             2,
         );
+    }
+
+    public function employeeCompensations(): HasMany
+    {
+        return $this->hasMany(EmployeeCompensation::class, 'salary_template_id');
     }
 }

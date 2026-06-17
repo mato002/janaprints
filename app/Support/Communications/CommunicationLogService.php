@@ -20,6 +20,8 @@ use App\Models\Communications\SmsMessage;
 use App\Models\Communications\SmsRecipient;
 use App\Models\Communications\EmailMessage;
 use App\Models\Communications\WhatsappMessage;
+use App\Support\Hr\HrGovernanceAuditService;
+use App\Support\Hr\PayrollConfidentialityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -311,7 +313,7 @@ class CommunicationLogService
         ]);
     }
 
-    public function recordFromEmailMessage(EmailMessage $message): CommunicationLog
+    public function recordFromEmailMessage(EmailMessage $message, ?string $event = null, ?int $actorId = null): CommunicationLog
     {
         $status = match ($message->status) {
             EmailDeliveryStatus::Delivered => CommunicationLogStatus::Delivered,
@@ -339,7 +341,14 @@ class CommunicationLogService
                 'provider_response' => $message->provider_response,
                 'delivery_response' => ['failure_reason' => $message->failure_reason],
             ]);
-            $this->recordEvent($existing, $status->value, $status->value, ['email_message_id' => $message->id]);
+            $eventName = $event ?? $status->value;
+            $this->recordEvent(
+                $existing,
+                $eventName,
+                $status->value,
+                ['email_message_id' => $message->id],
+                $actorId ?? $message->created_by,
+            );
 
             return $existing->fresh();
         }
@@ -372,13 +381,17 @@ class CommunicationLogService
             'label' => $a->label,
         ])->all();
 
-        return $this->record([
+        $confidentiality = app(PayrollConfidentialityService::class);
+        $logBody = $confidentiality->bodyForCommunicationLog($message);
+        $isConfidential = $confidentiality->isConfidentialEmailMessage($message);
+
+        $log = $this->record([
             'company_id' => $message->company_id,
             'branch_id' => $message->branch_id,
             'channel' => CommunicationLogChannel::Email,
             'communication_type' => CommunicationLogType::Transactional,
             'subject' => $message->subject,
-            'message_body' => $message->body,
+            'message_body' => $logBody,
             'status' => $status,
             'communication_template_id' => $message->communication_template_id,
             'template_code' => $message->communicationTemplate?->code,
@@ -389,11 +402,30 @@ class CommunicationLogService
             'sent_at' => $message->sent_at,
             'delivered_at' => $message->delivered_at,
             'failed_at' => $message->failed_at ?? $message->bounced_at,
-            'provider_response' => $message->provider_response,
+            'provider_response' => array_merge(
+                is_array($message->provider_response) ? $message->provider_response : [],
+                ['payroll_confidential' => $isConfidential],
+            ),
             'delivery_response' => ['failure_reason' => $message->failure_reason],
             'recipients' => $recipients,
             'attachments' => $attachments,
         ]);
+
+        if ($isConfidential) {
+            app(HrGovernanceAuditService::class)->logPayrollCommunicationRedacted($message->id, $log->id);
+        }
+
+        if ($event !== null && $event !== 'created') {
+            $this->recordEvent(
+                $log,
+                $event,
+                $status->value,
+                ['email_message_id' => $message->id],
+                $actorId ?? $message->created_by,
+            );
+        }
+
+        return $log;
     }
 
     /**
@@ -531,6 +563,8 @@ class CommunicationLogService
      */
     public function timelinePayload(Collection $logs): array
     {
+        $confidentiality = app(PayrollConfidentialityService::class);
+
         return $logs->map(fn (CommunicationLog $log) => [
             'id' => $log->id,
             'reference_number' => $log->reference_number,
@@ -543,7 +577,7 @@ class CommunicationLogService
             'status_badge' => $log->status->badgeClass(),
             'priority' => $log->priority->value,
             'subject' => $log->subject,
-            'message' => $log->message_body,
+            'message' => $confidentiality->communicationLogBodyForViewer($log),
             'recipient' => $log->recipients->first()?->display_name
                 ?? $log->recipients->first()?->phone
                 ?? $log->recipients->first()?->email,

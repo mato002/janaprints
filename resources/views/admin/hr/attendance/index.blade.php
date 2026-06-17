@@ -54,7 +54,7 @@
                         <div class="font-medium text-erp-primary">{{ $record->employee?->full_name }}</div>
                         <div class="text-[11px] text-slate-500">{{ $record->attendance_date?->format('Y-m-d') }}</div>
                     </td>
-                    <td class="hidden md:table-cell font-mono text-[11px]">{{ $record->employee?->employee_number }}</td>
+                    <td class="hidden md:table-cell erp-ref-code">{{ $record->employee?->employee_number }}</td>
                     <td class="hidden lg:table-cell">{{ $record->department?->name ?? '—' }}</td>
                     <td class="hidden lg:table-cell">{{ $record->branch?->name ?? '—' }}</td>
                     <td class="hidden xl:table-cell">{{ $record->shift?->name ?? '—' }}</td>

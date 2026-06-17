@@ -35,6 +35,7 @@
     @include('admin.communications.email.partials.customer-panel', [
         'customer' => $customer,
         'emailTimeline' => $emailTimeline,
+        'customerEmailMessages' => $customerEmailMessages ?? collect(),
     ])
 
     @include('admin.communications.inbox.partials.customer-panel', [

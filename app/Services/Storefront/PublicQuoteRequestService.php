@@ -2,13 +2,10 @@
 
 namespace App\Services\Storefront;
 
-use App\Mail\PublicQuoteRequestConfirmationMail;
-use App\Mail\PublicQuoteRequestInternalNotificationMail;
 use App\Models\PublicQuoteRequest;
 use App\Services\Commercial\PublicQuoteRequestNotificationService;
+use App\Support\Communications\Email\StorefrontLeadEmailService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -16,8 +13,10 @@ class PublicQuoteRequestService
 {
     public function __construct(
         protected ?PublicQuoteRequestNotificationService $notifications = null,
+        protected ?StorefrontLeadEmailService $leadEmails = null,
     ) {
         $this->notifications ??= app(PublicQuoteRequestNotificationService::class);
+        $this->leadEmails ??= app(StorefrontLeadEmailService::class);
     }
 
     public function store(array $data, ?UploadedFile $artwork = null): PublicQuoteRequest
@@ -43,7 +42,10 @@ class PublicQuoteRequestService
             'source' => 'storefront',
         ]);
 
-        $this->dispatchEmails($quoteRequest);
+        $this->leadEmails->dispatchQuoteRequestEmails(
+            $quoteRequest,
+            $this->artworkDownloadPath($quoteRequest),
+        );
         $this->notifications->notifyNewRequest($quoteRequest);
 
         return $quoteRequest;
@@ -63,35 +65,6 @@ class PublicQuoteRequestService
         $path = $file->storeAs("{$directory}/{$subdir}", $filename, $disk);
 
         return [$path, $file->getClientOriginalName()];
-    }
-
-    protected function dispatchEmails(PublicQuoteRequest $quoteRequest): void
-    {
-        $mailer = Mail::mailer((string) config('leads.mailer', config('mail.default')));
-
-        try {
-            $mailer->to($quoteRequest->email)->send(new PublicQuoteRequestConfirmationMail($quoteRequest));
-        } catch (\Throwable $e) {
-            Log::warning('Failed to send quote request confirmation email.', [
-                'quote_request_id' => $quoteRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
-
-        $adminEmail = config('leads.admin_email');
-
-        if (! $adminEmail) {
-            return;
-        }
-
-        try {
-            $mailer->to($adminEmail)->send(new PublicQuoteRequestInternalNotificationMail($quoteRequest));
-        } catch (\Throwable $e) {
-            Log::warning('Failed to send quote request internal notification.', [
-                'quote_request_id' => $quoteRequest->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
     }
 
     public function artworkDownloadPath(PublicQuoteRequest $quoteRequest): ?string

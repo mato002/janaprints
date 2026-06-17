@@ -47,6 +47,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('customers/{customer}/edit', [CustomerController::class, 'edit'])->name('customers.edit');
             Route::put('customers/{customer}', [CustomerController::class, 'update'])->name('customers.update');
             Route::post('customers/{customer}/deactivate', [CustomerController::class, 'deactivate'])->name('customers.deactivate');
+            Route::post('customers/{customer}/portal-invite', [CustomerController::class, 'inviteToPortal'])->name('customers.portal-invite');
             Route::post('customers/{customer}/contacts', [CustomerContactController::class, 'store'])->name('customers.contacts.store');
             Route::delete('customers/{customer}/contacts/{contact}', [CustomerContactController::class, 'destroy'])->name('customers.contacts.destroy');
             Route::post('customers/{customer}/notes', [CustomerNoteController::class, 'store'])->name('customers.notes.store');

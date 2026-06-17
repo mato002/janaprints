@@ -3,6 +3,7 @@
     'value' => null,
     'required' => true,
     'selectClass' => 'erp-select mt-1 w-full',
+    'allowCreate' => true,
 ])
 
 @php
@@ -18,9 +19,9 @@
     :options="$employeeOptions"
     :value="old('employee_id', $value)"
     :required="$required"
-    create-route="admin.employees.quick-create"
+    :create-route="$allowCreate ? 'admin.employees.quick-create' : null"
     refresh-route="admin.lookups.employees"
-    permission="employees.manage"
+    :permission="$allowCreate ? 'employees.manage' : null"
     :modal-title="__('Create employee')"
     option-label-key="name"
     :select-class="$selectClass"

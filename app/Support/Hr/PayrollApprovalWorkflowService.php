@@ -19,6 +19,7 @@ class PayrollApprovalWorkflowService
         protected WorkflowRulesService $workflowRules,
         protected PayrollReviewService $review,
         protected PayrollAuditService $audit,
+        protected PayrollFrozenSnapshotService $frozenSnapshots,
     ) {}
 
     public function submitForApproval(PayrollRun $run, User $user): PayrollRun
@@ -33,6 +34,7 @@ class PayrollApprovalWorkflowService
             'submitted_for_approval_at' => now(),
             'review_snapshot' => $review,
             'has_critical_review_issues' => ! $review['can_submit_for_approval'],
+            'frozen_snapshot' => $this->frozenSnapshots->build($run->fresh(['payslips'])),
         ]);
 
         $this->approvalEngine->beginApproval(
@@ -102,6 +104,7 @@ class PayrollApprovalWorkflowService
             'status' => PayrollRunStatus::Approved,
             'approved_by_user_id' => $user->id,
             'approved_at' => now(),
+            'frozen_snapshot' => $this->frozenSnapshots->build($run->fresh(['payslips'])),
         ]);
 
         $run = $run->fresh();

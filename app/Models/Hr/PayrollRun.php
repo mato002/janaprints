@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'company_id', 'branch_id', 'reference', 'period_start', 'period_end', 'pay_date',
+    'company_id', 'branch_id', 'payroll_group', 'reference', 'period_start', 'period_end', 'pay_date',
     'status', 'employee_count', 'gross_total', 'deductions_total', 'net_total',
     'paye_total', 'shif_total', 'nssf_total', 'housing_levy_total',
     'processed_by_user_id', 'processed_at', 'reviewed_by_user_id', 'reviewed_at',
@@ -24,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'posted_journal_id', 'posted_by_user_id', 'posted_at',
     'paid_by_user_id', 'paid_at', 'cancelled_by_user_id', 'cancelled_at',
     'notes', 'generation_warnings', 'has_generation_warnings',
-    'review_snapshot', 'has_critical_review_issues',
+    'review_snapshot', 'scope_snapshot', 'frozen_snapshot', 'has_critical_review_issues',
     'employer_nssf_total', 'employer_shif_total', 'employer_housing_levy_total',
 ])]
 class PayrollRun extends Model
@@ -55,6 +55,8 @@ class PayrollRun extends Model
             'generation_warnings' => 'array',
             'has_generation_warnings' => 'boolean',
             'review_snapshot' => 'array',
+            'scope_snapshot' => 'array',
+            'frozen_snapshot' => 'array',
             'has_critical_review_issues' => 'boolean',
             'employer_nssf_total' => 'decimal:2',
             'employer_shif_total' => 'decimal:2',

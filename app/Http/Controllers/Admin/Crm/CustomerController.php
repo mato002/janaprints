@@ -14,6 +14,7 @@ use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerSegment;
 use App\Support\Crm\CustomerOperationalGuard;
+use App\Services\Client\ClientPortalInvitationService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Http\RedirectResponse;
@@ -30,6 +31,7 @@ class CustomerController extends Controller
     public function __construct(
         protected FormSettingsService $formSettings,
         protected FormStatusOptionService $statusOptions,
+        protected ClientPortalInvitationService $clientPortalInvitations,
     ) {}
 
     public function index(): View
@@ -150,6 +152,13 @@ class CustomerController extends Controller
                 ->forCustomer($customer->company_id, $customer->id)
             : collect();
 
+        $visibility = app(\App\Support\Communications\Email\EmailVisibilityService::class);
+        $customerEmailMessages = auth()->user()->can('communications.email.view')
+            ? $visibility
+                ->forCustomer($customer, $request->query('comm_type'))
+                ->map(fn ($message) => $visibility->presentCustomerMessage($message))
+            : collect();
+
         return view('admin.crm.customers.show', compact(
             'customer',
             'communicationTimeline',
@@ -157,6 +166,7 @@ class CustomerController extends Controller
             'whatsappConversations',
             'emailTimeline',
             'inboxConversations',
+            'customerEmailMessages',
         ));
     }
 
@@ -208,6 +218,33 @@ class CustomerController extends Controller
         $customer->update(['status' => CustomerStatus::Inactive]);
 
         return redirect()->route('admin.crm.customers.show', $customer)->with('status', __('Customer deactivated.'));
+    }
+
+    public function inviteToPortal(Customer $customer): RedirectResponse
+    {
+        $this->authorize('inviteToPortal', $customer);
+
+        try {
+            $this->clientPortalInvitations->invite($customer);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return back()->withErrors($exception->errors());
+        } catch (\Symfony\Component\Mailer\Exception\TransportException $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'customer' => __('The portal invite could not be emailed. Check mail settings and try again.'),
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->withErrors([
+                'customer' => __('The portal invite could not be queued. Please try again or contact support.'),
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.crm.customers.show', $customer)
+            ->with('status', __('Client portal invite sent to :email.', ['email' => $customer->email]));
     }
 
     protected function validateCustomer(

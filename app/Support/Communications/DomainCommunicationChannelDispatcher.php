@@ -85,6 +85,13 @@ class DomainCommunicationChannelDispatcher
         array $variables,
         ?User $actor,
     ): array {
+        if ($channel === 'email' && $event === DomainCommunicationEvent::QuotationSent) {
+            return [
+                'skipped' => true,
+                'reason' => 'document_email_handled',
+            ];
+        }
+
         $template = $this->resolveTemplate((int) $context['company_id'], $category, $channel);
 
         $config = match ($channel) {

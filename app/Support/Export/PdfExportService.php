@@ -2,6 +2,7 @@
 
 namespace App\Support\Export;
 
+use App\Models\Hr\PayrollPayslip;
 use App\Support\Branding\BrandingAssets;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -66,13 +67,35 @@ class PdfExportService
         return $this->render($this->ensureBrandingHeader($html), $orientation);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function payslipViewData(PayrollPayslip $payslip, ?\DateTimeInterface $generatedAt = null): array
+    {
+        return array_merge($this->brandingViewData(), [
+            'payslip' => $payslip,
+            'generatedAt' => $generatedAt ?? now(),
+            'company' => config('documents.company'),
+            'logoDataUri' => $this->branding->documentsLogoDataUri(),
+        ]);
+    }
+
     protected function ensureBrandingHeader(string $html): string
     {
         if (str_contains($html, 'data-pdf-branding-header')) {
             return $html;
         }
 
+        $styles = view('exports.pdf-styles')->render();
         $header = view('exports.partials.pdf-header', $this->brandingViewData())->render();
+
+        if (preg_match('/<head[^>]*>/i', $html, $matches, PREG_OFFSET_CAPTURE)) {
+            $insertAt = $matches[0][1] + strlen($matches[0][0]);
+
+            return substr($html, 0, $insertAt).$styles.substr($html, $insertAt);
+        }
+
+        $html = $styles.$html;
 
         if (preg_match('/<body[^>]*>/i', $html, $matches, PREG_OFFSET_CAPTURE)) {
             $insertAt = $matches[0][1] + strlen($matches[0][0]);

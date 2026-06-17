@@ -7,9 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Hr\PayrollRun;
 use App\Support\Hr\PayrollExportService;
+use App\Support\Hr\PayrollGroupService;
 use App\Support\Hr\PayrollPaymentExportService;
 use App\Support\Hr\PayrollRun360WorkspaceService;
 use App\Support\Hr\PayrollRunService;
+use App\Support\Hr\EmployeeEmailService;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,6 +27,8 @@ class PayrollRunController extends Controller
         protected PayrollExportService $exports,
         protected PayrollPaymentExportService $paymentExports,
         protected FormSettingsService $formSettings,
+        protected EmployeeEmailService $employeeEmail,
+        protected PayrollGroupService $payrollGroups,
     ) {}
 
     public function index(Request $request): View
@@ -56,6 +60,7 @@ class PayrollRunController extends Controller
 
         $data = $this->formSettings->validateRequest($request, 'payroll_run.create', [
             'branch_id' => [Rule::exists('branches', 'id')->where(fn ($q) => $q->where('company_id', $companyId))],
+            'payroll_group' => ['required', 'string', Rule::exists('payroll_group_definitions', 'code')->where(fn ($q) => $q->where('company_id', $companyId))],
             'period_start' => ['date'],
             'period_end' => ['date', 'after_or_equal:period_start'],
             'pay_date' => ['date', 'after_or_equal:period_end'],
@@ -98,7 +103,7 @@ class PayrollRunController extends Controller
 
     public function submitReview(Request $request, PayrollRun $payrollRun): RedirectResponse
     {
-        $this->authorize('process', $payrollRun);
+        $this->authorize('review', $payrollRun);
 
         $this->payroll->submitForReview($payrollRun, $request->user());
 
@@ -107,7 +112,7 @@ class PayrollRunController extends Controller
 
     public function submitApproval(Request $request, PayrollRun $payrollRun): RedirectResponse
     {
-        $this->authorize('process', $payrollRun);
+        $this->authorize('review', $payrollRun);
 
         $this->payroll->submitForApproval($payrollRun, $request->user());
 
@@ -138,7 +143,7 @@ class PayrollRunController extends Controller
 
     public function post(Request $request, PayrollRun $payrollRun): RedirectResponse
     {
-        $this->authorize('approve', $payrollRun);
+        $this->authorize('post', $payrollRun);
 
         $this->payroll->post($payrollRun, $request->user());
 
@@ -147,16 +152,65 @@ class PayrollRunController extends Controller
 
     public function releasePayslips(Request $request, PayrollRun $payrollRun): RedirectResponse
     {
-        $this->authorize('approve', $payrollRun);
+        $this->authorize('release', $payrollRun);
 
-        $this->payroll->releasePayslips($payrollRun, $request->user());
+        $result = $this->payroll->releasePayslips($payrollRun, $request->user());
 
-        return back()->with('status', __('Payslips marked as released.'));
+        if (($result['released_count'] ?? 0) === 0) {
+            return back()->with('status', __('Payslips were already released. Use "Email all payslips" to send or resend payslip emails.'));
+        }
+
+        $message = __('Payslips marked as released.');
+
+        if (config('payroll.automation.email_payslips_on_release', true)) {
+            $emails = $result['emails'];
+
+            if ($emails['queued'] > 0) {
+                $message .= ' '.($emails['queued'] === 1
+                    ? __('Payslip email queued for :count employee.', ['count' => $emails['queued']])
+                    : __('Payslip emails queued for :count employees.', ['count' => $emails['queued']]));
+            }
+
+            if ($emails['skipped'] > 0) {
+                $message .= ' '.($emails['skipped'] === 1
+                    ? __(':count employee skipped (no email on file).', ['count' => $emails['skipped']])
+                    : __(':count employees skipped (no email on file).', ['count' => $emails['skipped']]));
+            }
+        }
+
+        return back()->with('status', $message);
+    }
+
+    public function emailPayslips(Request $request, PayrollRun $payrollRun): RedirectResponse
+    {
+        $this->authorize('process', $payrollRun);
+
+        if ($payrollRun->payslips()->doesntExist()) {
+            return back()->with('status', __('Generate payslips before emailing staff.'));
+        }
+
+        $result = $this->employeeEmail->sendPayslipsForRun($payrollRun, $request->user());
+
+        if ($result['queued'] === 0) {
+            return back()->with('status', __('No payslip emails were queued. Ensure employees have email addresses on file.'));
+        }
+
+        $message = $result['queued'] === 1
+            ? __('Payslip email queued for :count employee.', ['count' => $result['queued']])
+            : __('Payslip emails queued for :count employees.', ['count' => $result['queued']]);
+
+        if ($result['skipped'] > 0) {
+            $message .= ' '.($result['skipped'] === 1
+                ? __(':count skipped.', ['count' => $result['skipped']])
+                : __(':count skipped.', ['count' => $result['skipped']]));
+        }
+
+        return back()->with('status', $message);
     }
 
     public function markPaid(Request $request, PayrollRun $payrollRun): RedirectResponse
     {
-        $this->authorize('approve', $payrollRun);
+        $this->authorize('markPaid', $payrollRun);
 
         $this->payroll->markPaid($payrollRun, $request->user());
 
@@ -201,6 +255,7 @@ class PayrollRunController extends Controller
         return [
             'formFields' => $this->formSettings->resolvedFields('payroll_run.create', $companyId, $branchId),
             'branches' => Branch::query()->where('company_id', $companyId)->orderBy('name')->get(),
+            'payrollGroups' => $this->payrollGroups->activeForCompany($companyId),
         ];
     }
 }

@@ -4,12 +4,12 @@ namespace App\Support\Hr;
 
 use App\Enums\CompensationStatus;
 use App\Enums\PaymentFrequency;
-use App\Enums\PayrollGroup;
 use App\Models\Employee;
 use App\Models\Hr\CompensationSalaryChange;
 use App\Models\Hr\CompensationSalaryTemplate;
 use App\Models\Hr\EmployeeCompensation;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,14 +21,10 @@ class CompensationService
      */
     public function paginateRegister(int $companyId, array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Employee::query()
-            ->where('company_id', $companyId)
-            ->where('is_active', true)
-            ->with(['branch', 'department', 'compensation']);
-
-        if (! empty($filters['branch_id'])) {
-            $query->where('branch_id', $filters['branch_id']);
-        }
+        $query = EmployeeRosterQuery::query($companyId, [
+            'active' => true,
+            'branch_id' => ! empty($filters['branch_id']) ? (int) $filters['branch_id'] : null,
+        ])->with(['branch', 'department', 'compensation']);
 
         if (! empty($filters['payroll_group'])) {
             $query->whereHas('compensation', fn ($q) => $q->where('payroll_group', $filters['payroll_group']));
@@ -46,14 +42,9 @@ class CompensationService
      */
     public function dashboardStats(int $companyId): array
     {
-        $activeEmployees = Employee::query()
-            ->where('company_id', $companyId)
-            ->where('is_active', true)
-            ->count();
+        $activeEmployees = EmployeeRosterQuery::query($companyId, ['active' => true])->count();
 
-        $withCompensation = Employee::query()
-            ->where('company_id', $companyId)
-            ->where('is_active', true)
+        $withCompensation = EmployeeRosterQuery::query($companyId, ['active' => true])
             ->whereHas('compensation', fn ($q) => $q->where('status', CompensationStatus::Active))
             ->count();
 
@@ -77,6 +68,19 @@ class CompensationService
             'pending_approval' => $pendingApproval,
             'avg_gross' => round((float) $avgGross, 2),
         ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, Employee>
+     */
+    public function employeesMissingCompensation(int $companyId, int $limit = 8)
+    {
+        return EmployeeRosterQuery::query($companyId, ['active' => true])
+            ->whereDoesntHave('compensation', fn ($q) => $q->where('status', CompensationStatus::Active))
+            ->with('branch')
+            ->orderBy('employee_number')
+            ->limit($limit)
+            ->get();
     }
 
     /**
@@ -121,6 +125,20 @@ class CompensationService
                     'reason' => $data['change_reason'] ?? null,
                     'effective_from' => $data['effective_from'],
                 ]);
+
+                app(PayrollAuditService::class)->logCompensationRevised(
+                    $employee,
+                    $user,
+                    $this->auditPayload($current),
+                    $this->auditPayload($record),
+                    $data['change_reason'] ?? null,
+                );
+
+                ActivityLogger::log('payroll_class_assigned', $employee, $user->id, [
+                    'previous_payroll_group' => $current->payroll_group,
+                    'new_payroll_group' => $record->payroll_group,
+                    'effective_from' => $record->effective_from?->toDateString(),
+                ]);
             }
 
             return $record;
@@ -153,7 +171,7 @@ class CompensationService
             'risk_allowance' => $overrides['risk_allowance'] ?? $template->risk_allowance,
             'responsibility_allowance' => $overrides['responsibility_allowance'] ?? $template->responsibility_allowance,
             'payment_frequency' => $overrides['payment_frequency'] ?? $template->payment_frequency->value,
-            'payroll_group' => $overrides['payroll_group'] ?? $template->payroll_group->value,
+            'payroll_group' => $overrides['payroll_group'] ?? $template->payroll_group,
             'currency' => $overrides['currency'] ?? $template->currency,
             'effective_from' => $overrides['effective_from'],
             'change_reason' => $overrides['change_reason'] ?? __('Applied from template :name', ['name' => $template->name]),
@@ -195,7 +213,7 @@ class CompensationService
             'responsibility_allowance' => $data['responsibility_allowance'] ?? 0,
             'effective_from' => $data['effective_from'],
             'payment_frequency' => $data['payment_frequency'] ?? PaymentFrequency::Monthly->value,
-            'payroll_group' => $data['payroll_group'] ?? PayrollGroup::Main->value,
+            'payroll_group' => $data['payroll_group'] ?? 'main',
             'currency' => $data['currency'] ?? 'KES',
             'status' => $status,
             'change_reason' => $data['change_reason'] ?? null,
@@ -203,5 +221,24 @@ class CompensationService
             'salary_template_id' => $data['salary_template_id'] ?? null,
             'is_active' => true,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function auditPayload(EmployeeCompensation $compensation): array
+    {
+        return [
+            'employee_compensation_id' => $compensation->id,
+            'basic_salary' => (float) $compensation->basic_salary,
+            'house_allowance' => (float) $compensation->house_allowance,
+            'transport_allowance' => (float) $compensation->transport_allowance,
+            'medical_allowance' => (float) $compensation->medical_allowance,
+            'risk_allowance' => (float) $compensation->risk_allowance,
+            'responsibility_allowance' => (float) $compensation->responsibility_allowance,
+            'payroll_group' => $compensation->payroll_group,
+            'effective_from' => $compensation->effective_from?->toDateString(),
+            'change_reason' => $compensation->change_reason,
+        ];
     }
 }

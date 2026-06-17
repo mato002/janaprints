@@ -166,7 +166,7 @@
         <turbo-frame id="erp-preview-drawer"></turbo-frame>
     </div>
 
-    <div id="erp-toast-host" class="erp-toast-host" data-turbo-permanent aria-live="polite" aria-atomic="true"></div>
+    <div id="erp-toast-host" class="sr-only" data-turbo-permanent aria-hidden="true"></div>
 
     <x-admin.command-palette />
 </body>

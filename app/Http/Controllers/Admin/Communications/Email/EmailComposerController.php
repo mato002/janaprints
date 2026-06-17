@@ -103,8 +103,9 @@ class EmailComposerController extends Controller
     public function sendDraft(EmailMessage $emailMessage): RedirectResponse
     {
         $this->authorize('create', EmailCampaign::class);
+        abort_unless($emailMessage->company_id === $this->requireCompanyId(), 404);
 
-        $this->messages->sendDraft($emailMessage);
+        $this->messages->sendDraft($emailMessage, auth()->id());
 
         return back()->with('status', __('Email sent.'));
     }

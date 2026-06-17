@@ -4,6 +4,35 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { initDocumentPdfDownload } from './document-pdf-download';
 
+const ErpToast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 4500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+        toast.addEventListener('mouseenter', Swal.stopTimer);
+        toast.addEventListener('mouseleave', Swal.resumeTimer);
+    },
+});
+
+function showErpSweetAlert(message, variant = 'success', options = {}) {
+    if (! message) {
+        return;
+    }
+
+    const icon = ['success', 'error', 'warning', 'info'].includes(variant) ? variant : 'info';
+
+    ErpToast.fire({
+        icon,
+        title: message,
+        timer: options.timer ?? 4500,
+        ...options,
+    });
+}
+
+window.showErpSweetAlert = showErpSweetAlert;
+
 window.Alpine = Alpine;
 window.Turbo = Turbo;
 
@@ -460,21 +489,7 @@ const erpModalManager = {
     },
 
     showToast(message, variant = 'success') {
-        const host = this.toastHost();
-
-        if (! host || ! message) {
-            return;
-        }
-
-        const toast = document.createElement('div');
-        toast.className = `erp-toast erp-toast--${variant}`;
-        toast.setAttribute('role', 'status');
-        toast.textContent = message;
-        host.appendChild(toast);
-
-        window.setTimeout(() => {
-            toast.remove();
-        }, 4500);
+        showErpSweetAlert(message, variant);
     },
 
     saveWorkspaceState() {
@@ -2591,7 +2606,7 @@ document.addEventListener('alpine:init', () => {
                 await window.erpExport.downloadUrl(url, fallbackFilename);
             } catch (error) {
                 console.error('erpExportDropdown.downloadUrl', error);
-                window.alert('Export failed. Please try again.');
+                showErpSweetAlert('Export failed. Please try again.', 'error');
             } finally {
                 this.exporting = false;
             }
@@ -2609,7 +2624,7 @@ document.addEventListener('alpine:init', () => {
                 await window.erpExport.downloadFormPost(action, fields, fallbackFilename);
             } catch (error) {
                 console.error('erpExportDropdown.submitPost', error);
-                window.alert('Export failed. Please try again.');
+                showErpSweetAlert('Export failed. Please try again.', 'error');
             } finally {
                 this.exporting = false;
             }
@@ -2799,6 +2814,8 @@ document.addEventListener('alpine:init', () => {
             } else {
                 this.selected.delete(key);
             }
+
+            this.syncSelectAllCheckbox();
         },
 
         toggleAll(event) {
@@ -2827,6 +2844,39 @@ document.addEventListener('alpine:init', () => {
                     delete row.dataset.selected;
                 }
             });
+
+            this.syncSelectAllCheckbox(event.target);
+        },
+
+        syncSelectAllCheckbox(source = null) {
+            const table = document.getElementById(this.tableId);
+
+            if (!table) {
+                return;
+            }
+
+            const selectAll = source ?? table.querySelector('thead input[type="checkbox"]');
+
+            if (!selectAll) {
+                return;
+            }
+
+            const checkboxes = [...table.querySelectorAll('tbody tr[data-row-id]')]
+                .filter((row) => this.isExportableRow(row))
+                .map((row) => row.querySelector('input[type="checkbox"]'))
+                .filter(Boolean);
+
+            if (checkboxes.length === 0) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+
+                return;
+            }
+
+            const checkedCount = checkboxes.filter((checkbox) => checkbox.checked).length;
+
+            selectAll.checked = checkedCount === checkboxes.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
         },
 
         exportTable(format = 'csv') {
@@ -2867,7 +2917,7 @@ document.addEventListener('alpine:init', () => {
             });
 
             if (rows.length === 0 && headers.length === 0) {
-                window.alert(this.$el?.dataset?.exportEmptyMessage ?? 'No rows to export.');
+                showErpSweetAlert(this.$el?.dataset?.exportEmptyMessage ?? 'No rows to export.', 'warning');
 
                 return;
             }
@@ -2875,7 +2925,7 @@ document.addEventListener('alpine:init', () => {
             const exportUrl = this.tableExportUrl ?? window.__erpTableExportUrl ?? null;
 
             if (!exportUrl) {
-                window.alert('Export is not configured for this table.');
+                showErpSweetAlert('Export is not configured for this table.', 'error');
 
                 return;
             }
@@ -2897,7 +2947,7 @@ document.addEventListener('alpine:init', () => {
                 }, this.exportFilename);
             } catch (error) {
                 console.error('erpDataTable.submitTableExport', error);
-                window.alert('Export failed. Please try again.');
+                showErpSweetAlert('Export failed. Please try again.', 'error');
             } finally {
                 this.exportLoading = false;
             }
@@ -5114,7 +5164,7 @@ function cleanupRowActionMenus(root = document) {
     window.__erpOpenRowMenu = null;
 }
 
-function promoteFlashAlertsToToast(root, useSweetAlert = false) {
+function promoteFlashAlertsToToast(root) {
     if (! root) {
         return;
     }
@@ -5123,11 +5173,7 @@ function promoteFlashAlertsToToast(root, useSweetAlert = false) {
         const message = alert.textContent?.trim();
 
         if (message) {
-            if (useSweetAlert) {
-                showFormSettingsSweetAlert(message, 'success');
-            } else {
-                erpModalManager.showToast(message);
-            }
+            showErpSweetAlert(message, 'success');
         }
 
         alert.remove();
@@ -5137,11 +5183,22 @@ function promoteFlashAlertsToToast(root, useSweetAlert = false) {
         const message = alert.textContent?.trim();
 
         if (message) {
-            if (useSweetAlert) {
-                showFormSettingsSweetAlert(message, 'error');
-            } else {
-                erpModalManager.showToast(message, 'error');
-            }
+            showErpSweetAlert(message, 'error');
+        }
+
+        alert.remove();
+    });
+
+    root.querySelectorAll('[data-erp-validation-errors]').forEach((alert) => {
+        const items = [...alert.querySelectorAll('li')]
+            .map((item) => item.textContent?.trim())
+            .filter(Boolean);
+        const message = items.length > 0
+            ? items.join('\n')
+            : alert.textContent?.trim();
+
+        if (message) {
+            showErpSweetAlert(message, 'error');
         }
 
         alert.remove();
@@ -5246,20 +5303,7 @@ function extractFormSettingsFlashMessage(root) {
 }
 
 function showFormSettingsSweetAlert(message, variant = 'success') {
-    if (! message) {
-        return;
-    }
-
-    Swal.fire({
-        icon: variant === 'error' ? 'error' : 'success',
-        title: variant === 'error' ? 'Unable to save' : 'Saved',
-        text: message,
-        toast: true,
-        position: 'top-end',
-        showConfirmButton: false,
-        timer: 4000,
-        timerProgressBar: true,
-    });
+    showErpSweetAlert(message, variant);
 }
 
 function bindFormSettingsForms(root = document) {
@@ -5497,7 +5541,8 @@ function shouldPromoteWorkspaceLinkToMain(href) {
         return /\/admin\/invoices\/\d+(\/document)?$/.test(path)
             || /\/admin\/quotations\/list\/\d+(\/document)?$/.test(path)
             || /\/admin\/payments\/\d+(\/receipt)?$/.test(path)
-            || /\/admin\/sales-orders\/list\/\d+$/.test(path);
+            || /\/admin\/sales-orders\/list\/\d+$/.test(path)
+            || /\/admin\/employees\/email\/compose$/.test(path);
     } catch {
         return false;
     }
@@ -5512,6 +5557,16 @@ function wireEmbeddedWorkspaceLinks(root) {
 
     root.querySelectorAll('a[href]').forEach((link) => {
         if (link.getAttribute('data-turbo') === 'false' || link.getAttribute('target') === '_blank') {
+            return;
+        }
+
+        if (
+            link.getAttribute('data-turbo-frame') === '_top'
+            || link.hasAttribute('data-leave-workspace')
+        ) {
+            link.setAttribute('data-turbo', 'false');
+            link.removeAttribute('data-turbo-frame');
+
             return;
         }
 
@@ -5655,7 +5710,7 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     Alpine.destroyTree(frame);
     Alpine.initTree(frame);
     wireEmbeddedWorkspaceLinks(frame);
-    promoteFlashAlertsToToast(frame, true);
+    promoteFlashAlertsToToast(frame);
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
     bindWebsiteSettingsForms(frame);
@@ -5822,7 +5877,7 @@ document.addEventListener('click', (event) => {
             } else {
                 saveButton.disabled = false;
                 saveButton.textContent = saveButton.dataset.defaultLabel || 'Save form settings';
-                window.alert('Unable to save form settings. Please refresh the page and try again.');
+                showErpSweetAlert('Unable to save form settings. Please refresh the page and try again.', 'error');
             }
         }
 
