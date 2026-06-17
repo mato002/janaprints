@@ -59,7 +59,7 @@
 </div>
 
 @if (count($quickActions) > 0)
-    <div class="job-360__quick-actions mb-4 flex flex-wrap gap-2">
+    <div class="job-360__quick-actions workspace-action-bar mb-4 flex flex-wrap gap-2">
         @foreach ($quickActions as $action)
             @if (($action['type'] ?? null) === 'post')
                 <form method="POST" action="{{ $action['url'] }}" class="inline">

@@ -1,6 +1,6 @@
 @props(['title', 'description' => null])
 
-<div {{ $attributes->merge(['class' => 'mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between']) }}>
+<div {{ $attributes->merge(['class' => 'workspace-page-header mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between']) }}>
     <div class="min-w-0">
         <h1 class="text-dashboard-title text-erp-primary truncate">{{ $title }}</h1>
         @if ($description)

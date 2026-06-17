@@ -1,7 +1,7 @@
 <x-admin-layout :title="__('Sales Orders')" :breadcrumbs="[['label' => __('Sales')], ['label' => __('Sales Orders')]]">
     <x-admin.page-header :title="__('Sales Orders')" :description="__('Order pipeline from draft through delivery.')" />
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <div class="workspace-kpi-grid grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         @foreach ([
             ['label' => __('Draft Orders'), 'value' => $stats['draft'], 'icon' => 'document-text'],
             ['label' => __('Confirmed Orders'), 'value' => $stats['confirmed'], 'icon' => 'check'],

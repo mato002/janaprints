@@ -57,7 +57,7 @@ class SalesOrderProductionBridgeService
             ProductionJobCardStatus::QualityCheck => SalesOrderStatus::InProduction,
             ProductionJobCardStatus::Rework => SalesOrderStatus::InProduction,
             ProductionJobCardStatus::Completed => SalesOrderStatus::Completed,
-            ProductionJobCardStatus::ReadyForDispatch => SalesOrderStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch => SalesOrderStatus::ReadyForDispatch,
             ProductionJobCardStatus::OnHold => SalesOrderStatus::OnHold,
             ProductionJobCardStatus::Cancelled => SalesOrderStatus::Cancelled,
             default => null,
@@ -174,6 +174,7 @@ class SalesOrderProductionBridgeService
             SalesOrderStatus::ReadyForProduction,
             SalesOrderStatus::InProduction,
             SalesOrderStatus::Completed,
+            SalesOrderStatus::ReadyForDispatch,
             SalesOrderStatus::Delivered,
         ];
     }
@@ -189,8 +190,9 @@ class SalesOrderProductionBridgeService
             SalesOrderStatus::ReadyForProduction->value => 2,
             SalesOrderStatus::InProduction->value => 3,
             SalesOrderStatus::Completed->value => 4,
-            SalesOrderStatus::Delivered->value => 5,
-            SalesOrderStatus::Closed->value => 6,
+            SalesOrderStatus::ReadyForDispatch->value => 5,
+            SalesOrderStatus::Delivered->value => 6,
+            SalesOrderStatus::Closed->value => 7,
             SalesOrderStatus::OnHold->value => -1,
             SalesOrderStatus::Cancelled->value => -1,
         ];

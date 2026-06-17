@@ -6,7 +6,7 @@
         @endcan
     </x-admin.page-header>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+    <div class="workspace-kpi-grid grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
         <x-admin.kpi-widget :label="__('Subtotal')" :value="number_format($salesOrder->subtotal, 2)" icon="currency-dollar" />
         <x-admin.kpi-widget :label="__('Tax')" :value="number_format($salesOrder->tax_amount, 2)" icon="receipt-tax" />
         <x-admin.kpi-widget :label="__('Total')" :value="number_format($salesOrder->total_amount, 2)" icon="calculator" />
@@ -14,7 +14,7 @@
 
     <x-admin.card class="mb-6">
         <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
-        <div class="flex flex-wrap gap-2">
+        <div class="workspace-action-bar flex flex-wrap gap-2">
             @can('confirm', $salesOrder)
                 <form method="POST" action="{{ route('admin.sales-orders.confirm', $salesOrder) }}">@csrf
                     <button class="erp-btn-primary">{{ __('Confirm') }}</button></form>
@@ -67,7 +67,7 @@
                 @endif
             @endcan
         </div>
-        <dl class="text-sm grid sm:grid-cols-3 gap-3">
+        <dl class="workspace-meta-grid text-sm grid sm:grid-cols-3 gap-3">
             <div><dt class="text-slate-500">{{ __('Order total') }}</dt><dd class="font-mono">{{ number_format($salesOrder->total_amount, 2) }}</dd></div>
             <div><dt class="text-slate-500">{{ __('Invoiced') }}</dt><dd class="font-mono">{{ number_format($salesOrder->invoiced_total, 2) }}</dd></div>
             <div><dt class="text-slate-500">{{ __('Remaining') }}</dt><dd class="font-mono">{{ number_format($salesOrder->remainingInvoiceTotal(), 2) }}</dd></div>
@@ -84,7 +84,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <x-admin.card>
             <h3 class="font-medium mb-3">{{ __('Traceability') }}</h3>
-            <dl class="text-sm space-y-2">
+            <dl class="workspace-meta-grid text-sm space-y-2">
                 <div><dt class="text-slate-500">{{ __('Quotation') }}</dt><dd>{{ $salesOrder->quotation?->quotation_number }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Artwork') }}</dt><dd>{{ $salesOrder->artworkRequest?->request_number }}</dd></div>
                 @if ($salesOrder->jobCard)

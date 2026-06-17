@@ -2,8 +2,8 @@
     $indexUrl = route('admin.production.job-cards.index');
 @endphp
 
-<div class="sticky top-0 z-20 -mx-1 mb-4 space-y-3 rounded-lg border border-erp-border bg-erp-page/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-erp-page/80">
-    <nav class="flex flex-wrap gap-1.5" aria-label="{{ __('Production stage') }}">
+<div class="job-cards-register-filters sticky top-0 z-20 -mx-1 mb-4 space-y-3 rounded-lg border border-erp-border bg-erp-page/95 px-1 py-3 backdrop-blur supports-[backdrop-filter]:bg-erp-page/80">
+    <nav class="job-cards-register-filters__tabs flex flex-wrap gap-1.5" aria-label="{{ __('Production stage') }}">
         @foreach ($statusTabs as $tab)
             <a
                 href="{{ $tab['url'] }}"
@@ -15,6 +15,9 @@
             >{{ $tab['label'] }}</a>
         @endforeach
     </nav>
+
+    <details class="workspace-filter-panel">
+        <summary>{{ __('Search & filters') }}</summary>
 
     <form
         method="GET"
@@ -171,4 +174,5 @@
             @endforeach
         </div>
     @endif
+    </details>
 </div>

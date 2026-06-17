@@ -9,6 +9,7 @@ enum SalesOrderStatus: string
     case ReadyForProduction = 'ready_for_production';
     case InProduction = 'in_production';
     case Completed = 'completed';
+    case ReadyForDispatch = 'ready_for_dispatch';
     case Delivered = 'delivered';
     case Closed = 'closed';
     case Cancelled = 'cancelled';
@@ -24,7 +25,8 @@ enum SalesOrderStatus: string
             self::Confirmed => [self::ReadyForProduction, self::Cancelled, self::OnHold],
             self::ReadyForProduction => [self::InProduction, self::Cancelled, self::OnHold],
             self::InProduction => [self::Completed, self::Cancelled, self::OnHold],
-            self::Completed => [self::Delivered, self::OnHold],
+            self::Completed => [self::ReadyForDispatch, self::Delivered, self::OnHold],
+            self::ReadyForDispatch => [self::Delivered, self::OnHold],
             self::Delivered => [self::Closed],
             self::OnHold => [self::Confirmed],
             self::Closed, self::Cancelled => [],

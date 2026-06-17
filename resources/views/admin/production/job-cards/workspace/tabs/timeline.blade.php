@@ -18,10 +18,12 @@
         </x-admin.card>
     @endif
 
+    <details class="workspace-filter-panel c360-timeline__toolbar-panel">
+        <summary>{{ __('Timeline filters') }}</summary>
     <form
         method="GET"
         action="{{ route('admin.production.job-cards.show', $jobCard) }}"
-        class="c360-timeline__toolbar mb-4 space-y-3"
+        class="c360-timeline__toolbar mb-4 space-y-3 px-3 pt-2"
         data-turbo-frame="erp-main"
     >
         <input type="hidden" name="tab" value="timeline">
@@ -58,6 +60,7 @@
             @endforeach
         </div>
     </form>
+    </details>
 
     <x-admin.card :padding="false" class="overflow-hidden">
         <div class="c360-timeline__feed px-4 py-3">

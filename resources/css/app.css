@@ -1,3 +1,5 @@
+@import './commercial-mobile-density.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

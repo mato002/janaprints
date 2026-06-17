@@ -27,7 +27,7 @@
         </x-slot:actions>
     </x-admin.page-header>
 
-    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="workspace-kpi-grid mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <x-admin.kpi-widget :label="__('Subtotal')" :value="number_format($invoice->subtotal, 2)" icon="currency-dollar" />
         <x-admin.kpi-widget :label="__('Tax')" :value="number_format($invoice->tax_amount, 2)" icon="receipt-tax" />
         <x-admin.kpi-widget :label="__('Total')" :value="number_format($invoice->total_amount, 2)" icon="calculator" />
@@ -37,7 +37,7 @@
     </div>
 
     <x-admin.card class="mb-4">
-        <div class="flex flex-wrap gap-2">
+        <div class="workspace-action-bar flex flex-wrap gap-2">
             @can('approve', $invoice)
                 <form method="POST" action="{{ route('admin.invoices.approve', $invoice) }}">@csrf
                     <button type="submit" class="erp-btn-primary">{{ __('Approve') }}</button></form>
@@ -63,7 +63,7 @@
     </x-admin.card>
 
     @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Posted)
-        <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div class="workspace-kpi-grid mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <x-admin.kpi-widget :label="__('Paid')" :value="number_format($invoice->amount_paid, 2)" icon="currency-dollar" />
             <x-admin.kpi-widget :label="__('Balance due')" :value="number_format($invoice->balance_due, 2)" icon="scale" />
         </div>
@@ -95,7 +95,7 @@
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <x-admin.card>
             <h3 class="font-medium mb-3">{{ __('References') }}</h3>
-            <dl class="text-sm space-y-2">
+            <dl class="workspace-meta-grid text-sm space-y-2">
                 @if ($invoice->salesOrder)
                     <div><dt class="text-slate-500">{{ __('Sales order') }}</dt>
                         <dd><a href="{{ route('admin.sales-orders.show', $invoice->salesOrder) }}" class="text-erp-accent">{{ $invoice->salesOrder->order_number }}</a></dd></div>

@@ -17,7 +17,7 @@
         </x-slot:actions>
     </x-admin.page-header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div class="workspace-kpi-grid grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <x-admin.kpi-widget :label="__('Subtotal')" :value="$quotation->currency.' '.number_format($quotation->subtotal, 2)" icon="currency-dollar" />
         <x-admin.kpi-widget :label="__('Tax')" :value="$quotation->currency.' '.number_format($quotation->tax_amount, 2)" icon="receipt-tax" />
         <x-admin.kpi-widget :label="__('Total')" :value="$quotation->currency.' '.number_format($quotation->total_amount, 2)" icon="calculator" />
@@ -27,7 +27,7 @@
 
     <x-admin.card class="mb-6">
         <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
-        <div class="flex flex-wrap gap-2">
+        <div class="workspace-action-bar flex flex-wrap gap-2">
             @if ($quotation->status === App\Enums\QuotationStatus::Draft)
                 @can('transition', $quotation)
                     <form method="POST" action="{{ route('admin.quotations.submit-approval', $quotation) }}">@csrf
