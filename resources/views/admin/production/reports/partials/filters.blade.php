@@ -1,7 +1,7 @@
 @props(['filters', 'branches', 'customers', 'job_cards', 'production_types'])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.production.reports.index')" :reset-url="route('admin.production.reports.index')" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="route('admin.production.reports.index')" :reset-url="route('admin.production.reports.index')">
         <input type="hidden" name="tab" value="{{ $filters['tab'] ?? 'job_profitability' }}">
         <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">

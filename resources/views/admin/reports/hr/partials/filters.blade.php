@@ -1,7 +1,7 @@
 @props(['filters', 'branches', 'departments', 'jobTitles', 'employees', 'employmentStatuses', 'can_export' => false])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.reports.hr')" :reset-url="route('admin.reports.hr')" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="route('admin.reports.hr')" :reset-url="route('admin.reports.hr')">
         @if ($can_export)
             <x-slot name="export">
                 <x-admin.export-dropdown

@@ -237,6 +237,46 @@ class CommercialWorkspaceTest extends TestCase
         $response->assertDontSee(__('Coming Soon'), false);
     }
 
+    public function test_reports_section_renders_embedded_customer_reports_frame_src(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['commercial.reports.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.commercial.section', [
+                'section' => 'reports',
+                'tab' => 'customer-reports',
+            ]))
+            ->assertOk()
+            ->assertSee(route('commercial.reports.customers.index', ['embedded' => '1']), false)
+            ->assertSee('module-workspace-content', false);
+    }
+
+    public function test_customer_reports_embedded_query_renders_workspace_frame(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['commercial.reports.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('commercial.reports.customers.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false);
+    }
+
+    public function test_conversion_reports_embedded_query_renders_workspace_frame(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['commercial.reports.conversion.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('commercial.reports.conversion.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false);
+    }
+
     public function test_user_without_pos_permission_cannot_see_pos_on_section(): void
     {
         [$company, $branch, $user] = $this->tenantUser([

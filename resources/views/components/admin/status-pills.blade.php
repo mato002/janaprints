@@ -2,12 +2,15 @@
     'options' => [],
     'param' => 'status',
     'current' => null,
-    'turboFrame' => 'erp-main',
+    'turboFrame' => null,
     'formMode' => true,
 ])
 
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $current = $current ?? request($param, '');
+    $resolvedTurboFrame = $turboFrame ?? WorkspaceEmbed::turboFrame();
 
     $normalizeValue = static function ($value): string {
         if ($value === null) {
@@ -63,6 +66,9 @@
                         $query[$param] = $value;
                     }
                     unset($query['page']);
+                    if (WorkspaceEmbed::inWorkspaceContext()) {
+                        $query['embedded'] = '1';
+                    }
                     $url = url()->current().($query !== [] ? '?'.http_build_query($query) : '');
                     $isActive = $isAllValue($value)
                         ? ($currentValue === '' || $currentValue === 'all')
@@ -74,7 +80,7 @@
                         'erp-filter-pill',
                         'erp-filter-pill--active' => $isActive,
                     ])
-                    @if ($turboFrame) data-turbo-frame="{{ $turboFrame }}" @endif
+                    @if ($resolvedTurboFrame) data-turbo-frame="{{ $resolvedTurboFrame }}" @endif
                     role="tab"
                     @if ($isActive) aria-selected="true" @endif
                 >{{ $label }}</a>

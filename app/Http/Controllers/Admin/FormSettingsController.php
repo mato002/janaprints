@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\Platform\SettingsGovernance;
+use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Platform\FormSettingsManager;
 use App\Support\Platform\FormsControlCenterPresenter;
 use App\Support\Platform\SettingsRegistry;
@@ -187,14 +188,16 @@ class FormSettingsController extends Controller
     /**
      * @return array<string, int|string>
      */
-    protected function redirectParams(int $companyId, ?int $branchId, ?string $returnForm, bool $embedded = false): array
+    protected function redirectParams(int $companyId, ?int $branchId, ?string $returnForm, ?bool $embedded = null, ?Request $request = null): array
     {
-        return array_filter([
+        $request ??= request();
+        $embedded ??= WorkspaceEmbed::inWorkspaceContext($request);
+
+        return WorkspaceEmbed::queryParams([
             'company_id' => $companyId,
             'branch_id' => $branchId,
             'form' => $returnForm,
-            'embedded' => $embedded ? '1' : null,
-        ], fn ($value) => $value !== null && $value !== '');
+        ], $request);
     }
 
     protected function isTurboFrameRequest(Request $request): bool
@@ -205,7 +208,7 @@ class FormSettingsController extends Controller
 
     protected function isEmbeddedTurboFrameRequest(Request $request): bool
     {
-        return $request->header('Turbo-Frame') === 'module-workspace-content'
+        return WorkspaceEmbed::inWorkspaceContext($request)
             || ($request->boolean('_turbo_frame') && $request->boolean('_embedded_workspace'));
     }
 

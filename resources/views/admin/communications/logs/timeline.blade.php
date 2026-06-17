@@ -4,7 +4,7 @@
     <x-admin.page-header :title="__('Timeline')" :description="__('Newest first — filter by channel, status, and date.')" />
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" turbo-frame="erp-main">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
             <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search recipient, reference, body…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
             <select name="channel" class="erp-toolbar-select" aria-label="{{ __('Channel') }}">
                 <option value="">{{ __('All channels') }}</option>

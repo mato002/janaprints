@@ -1,7 +1,7 @@
 @props(['filters', 'branches'])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.reports.production')" :reset-url="route('admin.reports.production')" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="route('admin.reports.production')" :reset-url="route('admin.reports.production')">
         @if (! empty($filters['tab']))
             <input type="hidden" name="tab" value="{{ $filters['tab'] }}">
         @endif

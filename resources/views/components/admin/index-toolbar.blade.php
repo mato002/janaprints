@@ -1,7 +1,7 @@
 @props([
     'action',
     'resetUrl' => null,
-    'turboFrame' => 'erp-main',
+    'turboFrame' => null,
     'method' => 'GET',
     'pills' => [],
     'pillParam' => 'status',
@@ -10,12 +10,24 @@
     'compact' => false,
 ])
 
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $resolvedTurboFrame = $turboFrame ?? WorkspaceEmbed::turboFrame();
+    $resolvedAction = WorkspaceEmbed::url($action) ?? $action;
+    $resolvedResetUrl = $resetUrl ? (WorkspaceEmbed::url($resetUrl) ?? $resetUrl) : null;
+    $embedded = WorkspaceEmbed::inWorkspaceContext();
+@endphp
+
 <form
     method="{{ $method }}"
-    action="{{ $action }}"
+    action="{{ $resolvedAction }}"
     {{ $attributes->merge(['class' => 'erp-index-toolbar-form']) }}
-    @if ($turboFrame) data-turbo-frame="{{ $turboFrame }}" @endif
+    @if ($resolvedTurboFrame) data-turbo-frame="{{ $resolvedTurboFrame }}" @endif
 >
+    @if ($embedded)
+        <input type="hidden" name="embedded" value="1">
+    @endif
     <div class="erp-index-toolbar border-b border-erp-border bg-white px-4 py-3">
         <div @class(['flex items-center gap-2', 'erp-index-toolbar-row' => $compact])>
             <div @class([
@@ -28,7 +40,7 @@
                         :options="$pills"
                         :param="$pillParam"
                         :current="$activePill"
-                        :turbo-frame="$turboFrame"
+                        :turbo-frame="$resolvedTurboFrame"
                     />
                 @endif
 

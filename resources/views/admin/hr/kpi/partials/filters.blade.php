@@ -1,7 +1,7 @@
 @props(['filters', 'branches', 'departments', 'jobTitles', 'employees', 'employmentStatuses'])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.hr.kpi')" :reset-url="route('admin.hr.kpi')" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="route('admin.hr.kpi')" :reset-url="route('admin.hr.kpi')">
         @if (! empty($filters['dimension']))
             <input type="hidden" name="dimension" value="{{ $filters['dimension'] }}">
         @endif

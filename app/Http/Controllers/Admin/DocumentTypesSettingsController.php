@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\DocumentModule;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
+use App\Http\Controllers\Admin\Concerns\PreservesWorkspaceEmbed;
 use App\Http\Controllers\Controller;
 use App\Models\Platform\DocumentTypeDefinition;
 use App\Services\Security\SecurityAuditService;
-use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Platform\DocumentTypesManager;
 use App\Support\Platform\SettingsRegistry;
 use Illuminate\Http\RedirectResponse;
@@ -18,6 +18,7 @@ use InvalidArgumentException;
 
 class DocumentTypesSettingsController extends Controller
 {
+    use PreservesWorkspaceEmbed;
     use ResolvesSettingsScope;
 
     public function __construct(
@@ -232,12 +233,9 @@ class DocumentTypesSettingsController extends Controller
      */
     protected function scopeParams(int $companyId, ?int $branchId, ?Request $request = null): array
     {
-        $request ??= request();
-
-        return array_filter([
+        return $this->workspaceEmbedParams([
             'company_id' => $companyId,
             'branch_id' => $branchId,
-            'embedded' => WorkspaceEmbed::inWorkspaceContext($request) ? '1' : null,
-        ], fn ($value) => $value !== null && $value !== '');
+        ], $request);
     }
 }

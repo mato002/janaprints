@@ -1,13 +1,13 @@
 @php
     use App\Support\Navigation\WorkspaceEmbed;
 
+    $embedded = WorkspaceEmbed::isEmbedded();
     $scopeQuery = array_filter([
         'company_id' => $companyId,
         'branch_id' => $branchId,
         'embedded' => $embedded ? '1' : null,
     ]);
     $hubBackUrl = route('admin.workspaces.administration.section', ['section' => 'configuration', 'tab' => 'document-types']);
-    $embedded = WorkspaceEmbed::isEmbedded();
 @endphp
 
 <x-admin-layout

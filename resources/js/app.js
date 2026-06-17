@@ -5508,6 +5508,8 @@ function wireEmbeddedWorkspaceLinks(root) {
         return;
     }
 
+    const insideWorkspaceContent = root.id === 'module-workspace-content';
+
     root.querySelectorAll('a[href]').forEach((link) => {
         if (link.getAttribute('data-turbo') === 'false' || link.getAttribute('target') === '_blank') {
             return;
@@ -5518,7 +5520,8 @@ function wireEmbeddedWorkspaceLinks(root) {
         }
 
         const turboFrame = link.getAttribute('data-turbo-frame');
-        const promoteToMain = turboFrame === 'erp-main' || shouldPromoteWorkspaceLinkToMain(link.href);
+        const promoteToMain = shouldPromoteWorkspaceLinkToMain(link.href)
+            || (! insideWorkspaceContent && turboFrame === 'erp-main');
 
         if (promoteToMain) {
             link.setAttribute('data-turbo-frame', 'erp-main');
@@ -5537,7 +5540,11 @@ function wireEmbeddedWorkspaceLinks(root) {
             return;
         }
 
-        const targetsWorkspaceContent = turboFrame === 'module-workspace-content';
+        if (insideWorkspaceContent && turboFrame === 'erp-main') {
+            link.setAttribute('data-turbo-frame', 'module-workspace-content');
+        }
+
+        const targetsWorkspaceContent = link.getAttribute('data-turbo-frame') === 'module-workspace-content';
 
         if (! link.hasAttribute('data-turbo-frame')) {
             link.setAttribute('data-turbo-frame', 'module-workspace-content');
@@ -5562,7 +5569,12 @@ function wireEmbeddedWorkspaceLinks(root) {
             return;
         }
 
-        const turboFrame = form.getAttribute('data-turbo-frame');
+        let turboFrame = form.getAttribute('data-turbo-frame');
+
+        if (insideWorkspaceContent && turboFrame === 'erp-main') {
+            form.setAttribute('data-turbo-frame', 'module-workspace-content');
+            turboFrame = 'module-workspace-content';
+        }
 
         if (turboFrame === 'erp-main') {
             return;
@@ -5598,6 +5610,22 @@ function wireEmbeddedWorkspaceLinks(root) {
             // Keep the original form action when it cannot be parsed.
         }
     });
+
+    if (insideWorkspaceContent) {
+        root.querySelectorAll('[data-turbo-frame="erp-main"]').forEach((element) => {
+            if (element.tagName === 'A' || element.tagName === 'FORM') {
+                return;
+            }
+
+            const targetUrl = element.getAttribute('href') ?? element.getAttribute('action');
+
+            if (targetUrl && shouldPromoteWorkspaceLinkToMain(targetUrl)) {
+                return;
+            }
+
+            element.setAttribute('data-turbo-frame', 'module-workspace-content');
+        });
+    }
 }
 
 function promoteEmbeddedWorkspaceNavigation(frame, responseUrl = null) {
@@ -5715,7 +5743,29 @@ document.addEventListener('turbo:frame-load', (event) => {
 document.addEventListener('turbo:frame-missing', async (event) => {
     if (event.target.id === 'module-workspace-content') {
         event.preventDefault();
-        promoteEmbeddedWorkspaceNavigation(event.target, event.detail?.response?.url);
+
+        const response = event.detail?.response;
+
+        if (response) {
+            try {
+                const html = await response.clone().text();
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const sourceFrame = doc.querySelector('turbo-frame#module-workspace-content');
+
+                if (sourceFrame) {
+                    event.target.innerHTML = sourceFrame.innerHTML;
+                    refreshEmbeddedWorkspaceFrame(event.target);
+
+                    return;
+                }
+            } catch {
+                // Fall back to full-frame navigation below.
+            }
+        }
+
+        if (! promoteEmbeddedWorkspaceNavigation(event.target, event.detail?.response?.url)) {
+            showFormSettingsSweetAlert('Unable to load workspace content. Please refresh the page.', 'error');
+        }
 
         return;
     }

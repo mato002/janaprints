@@ -23,8 +23,11 @@ class RedirectToModuleWorkspaceShell
             return $next($request);
         }
 
-        // Allow embedded content loads inside the module workspace frame only.
-        if ($request->header('Turbo-Frame') === 'module-workspace-content') {
+        // Allow embedded workspace content (frame fetch or redirect follow after form actions).
+        if (
+            $request->header('Turbo-Frame') === 'module-workspace-content'
+            || $request->query('embedded') === '1'
+        ) {
             return $next($request);
         }
 

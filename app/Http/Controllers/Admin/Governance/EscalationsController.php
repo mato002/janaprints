@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Governance;
 
 use App\Enums\EscalationMethod;
 use App\Governance\EscalationsCenter;
+use App\Http\Controllers\Admin\Concerns\PreservesWorkspaceEmbed;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\Governance\WorkflowEscalationRule;
@@ -17,6 +18,7 @@ use Spatie\Permission\Models\Role;
 
 class EscalationsController extends Controller
 {
+    use PreservesWorkspaceEmbed;
     use ResolvesSettingsScope;
 
     public function __construct(
@@ -60,7 +62,7 @@ class EscalationsController extends Controller
         $this->manager->create($companyId, $branchId, $validated, $request->user());
 
         return redirect()
-            ->route('admin.governance.escalations.index', $this->scopeParams($companyId, $branchId))
+            ->route('admin.governance.escalations.index', $this->scopeParams($companyId, $branchId, $request))
             ->with('status', __('Escalation rule created.'));
     }
 
@@ -87,7 +89,7 @@ class EscalationsController extends Controller
         $rule = $this->manager->update($escalation, $validated, $request->user());
 
         return redirect()
-            ->route('admin.governance.escalations.index', $this->scopeParams($rule->company_id, $rule->branch_id))
+            ->route('admin.governance.escalations.index', $this->scopeParams($rule->company_id, $rule->branch_id, $request))
             ->with('status', __('Escalation rule updated.'));
     }
 
@@ -99,7 +101,7 @@ class EscalationsController extends Controller
         $rule = $this->manager->activate($escalation, $request->user());
 
         return redirect()
-            ->route('admin.governance.escalations.index', $this->scopeParams($rule->company_id, $rule->branch_id))
+            ->route('admin.governance.escalations.index', $this->scopeParams($rule->company_id, $rule->branch_id, $request))
             ->with('status', __('Escalation rule activated.'));
     }
 
@@ -111,7 +113,7 @@ class EscalationsController extends Controller
         $rule = $this->manager->deactivate($escalation, $request->user());
 
         return redirect()
-            ->route('admin.governance.escalations.index', $this->scopeParams($rule->company_id, $rule->branch_id))
+            ->route('admin.governance.escalations.index', $this->scopeParams($rule->company_id, $rule->branch_id, $request))
             ->with('status', __('Escalation rule deactivated.'));
     }
 
@@ -168,11 +170,11 @@ class EscalationsController extends Controller
     /**
      * @return array<string, int|null>
      */
-    protected function scopeParams(int $companyId, ?int $branchId): array
+    protected function scopeParams(int $companyId, ?int $branchId, ?Request $request = null): array
     {
-        return array_filter([
+        return $this->workspaceEmbedParams([
             'company_id' => $companyId,
             'branch_id' => $branchId,
-        ]);
+        ], $request);
     }
 }

@@ -13,7 +13,7 @@
     </div>
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" turbo-frame="erp-main">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
             <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search phone, preview, code…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
             <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>

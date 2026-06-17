@@ -98,12 +98,11 @@ class SettingsController extends Controller
         );
 
         return redirect()
-            ->route('admin.settings.show', array_filter([
+            ->route('admin.settings.show', WorkspaceEmbed::queryParams([
                 'section' => $section,
                 'company_id' => $companyId,
                 'branch_id' => $branchId,
-                'embedded' => WorkspaceEmbed::inWorkspaceContext($request) ? '1' : null,
-            ]))
+            ], $request))
             ->with('status', __('Settings saved.'));
     }
 

@@ -8,9 +8,7 @@ class WorkspaceEmbed
 {
     public static function isEmbedded(?Request $request = null): bool
     {
-        $request ??= request();
-
-        return $request->header('Turbo-Frame') === 'module-workspace-content';
+        return self::inWorkspaceContext($request);
     }
 
     public static function inWorkspaceContext(?Request $request = null): bool
@@ -18,7 +16,23 @@ class WorkspaceEmbed
         $request ??= request();
 
         return $request->query('embedded') === '1'
+            || $request->input('embedded') === '1'
             || $request->header('Turbo-Frame') === 'module-workspace-content';
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    public static function queryParams(array $params = [], ?Request $request = null): array
+    {
+        $request ??= request();
+
+        if (self::inWorkspaceContext($request)) {
+            $params['embedded'] = '1';
+        }
+
+        return array_filter($params, fn ($value) => $value !== null && $value !== '');
     }
 
     public static function url(?string $url, ?Request $request = null): ?string
@@ -38,7 +52,7 @@ class WorkspaceEmbed
 
     public static function turboFrame(?Request $request = null): string
     {
-        return self::isEmbedded($request)
+        return self::inWorkspaceContext($request)
             ? 'module-workspace-content'
             : 'erp-main';
     }

@@ -2,6 +2,7 @@
 
 namespace App\View\Components;
 
+use App\Support\Navigation\WorkspaceEmbed;
 use Illuminate\View\Component;
 use Illuminate\View\View;
 
@@ -22,7 +23,7 @@ class AdminLayout extends Component
     ) {
         if (
             ! $embedded
-            && request()->header('Turbo-Frame') === 'module-workspace-content'
+            && WorkspaceEmbed::inWorkspaceContext()
             && ! $this->routeShouldPromoteToMainShell()
         ) {
             $this->embedded = true;

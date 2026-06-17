@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\DelegationReason;
+use App\Http\Controllers\Admin\Concerns\PreservesWorkspaceEmbed;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\Platform\ApprovalDelegation;
@@ -16,6 +17,7 @@ use InvalidArgumentException;
 
 class ApprovalDelegationsController extends Controller
 {
+    use PreservesWorkspaceEmbed;
     use ResolvesSettingsScope;
 
     public function __construct(
@@ -59,7 +61,7 @@ class ApprovalDelegationsController extends Controller
         }
 
         return redirect()
-            ->route('admin.governance.delegations.index', $this->scopeParams($companyId, $branchId))
+            ->route('admin.governance.delegations.index', $this->scopeParams($companyId, $branchId, $request))
             ->with('status', __('Approval delegation created.'));
     }
 
@@ -88,7 +90,7 @@ class ApprovalDelegationsController extends Controller
         }
 
         return redirect()
-            ->route('admin.governance.delegations.index', $this->scopeParams($delegation->company_id, $delegation->branch_id))
+            ->route('admin.governance.delegations.index', $this->scopeParams($delegation->company_id, $delegation->branch_id, $request))
             ->with('status', __('Approval delegation updated.'));
     }
 
@@ -100,7 +102,7 @@ class ApprovalDelegationsController extends Controller
         $delegation = $this->manager->cancel($approvalDelegation, $request->user());
 
         return redirect()
-            ->route('admin.governance.delegations.index', $this->scopeParams($delegation->company_id, $delegation->branch_id))
+            ->route('admin.governance.delegations.index', $this->scopeParams($delegation->company_id, $delegation->branch_id, $request))
             ->with('status', __('Approval delegation cancelled.'));
     }
 
@@ -168,11 +170,11 @@ class ApprovalDelegationsController extends Controller
     /**
      * @return array<string, int|null>
      */
-    protected function scopeParams(int $companyId, ?int $branchId): array
+    protected function scopeParams(int $companyId, ?int $branchId, ?Request $request = null): array
     {
-        return array_filter([
+        return $this->workspaceEmbedParams([
             'company_id' => $companyId,
             'branch_id' => $branchId,
-        ]);
+        ], $request);
     }
 }

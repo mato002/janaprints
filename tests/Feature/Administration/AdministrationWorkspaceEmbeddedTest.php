@@ -187,6 +187,52 @@ class AdministrationWorkspaceEmbeddedTest extends TestCase
         $this->assertStringContainsString('tab=number-series', $url);
     }
 
+    public function test_configuration_section_renders_embedded_document_types_frame_src(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.administration.section', [
+                'section' => 'configuration',
+                'tab' => 'document-types',
+            ]))
+            ->assertOk()
+            ->assertSee(route('admin.settings.document-types.index', ['embedded' => '1']), false)
+            ->assertSee('module-workspace-content', false);
+    }
+
+    public function test_document_types_embedded_response_includes_workspace_frame(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.settings.document-types.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false)
+            ->assertSee(__('Document Types'), false);
+    }
+
+    public function test_embedded_document_types_query_does_not_redirect_to_workspace_shell(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.settings.document-types.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false);
+    }
+
+    public function test_embedded_form_controls_without_turbo_header_renders_workspace_frame(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.settings.forms.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false);
+    }
+
     protected function companyAdmin(): User
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

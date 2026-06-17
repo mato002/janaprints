@@ -1,7 +1,7 @@
 @props(['filters', 'branches', 'warehouses' => null, 'vendors' => null, 'showKpiCategory' => false, 'can_export' => false, 'export_route' => null, 'export_query' => null, 'export_route_params' => [], 'format_in_path' => false])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
         @if ($can_export && filled($export_route))
             <x-slot name="export">
                 @include('admin.reports.partials.export-button', [

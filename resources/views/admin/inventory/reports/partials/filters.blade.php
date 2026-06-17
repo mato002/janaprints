@@ -1,7 +1,7 @@
 @props(['filters', 'branches', 'warehouses', 'categories', 'suppliers', 'items'])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.inventory.reports.index')" :reset-url="route('admin.inventory.reports.index')" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="route('admin.inventory.reports.index')" :reset-url="route('admin.inventory.reports.index')">
         <input type="hidden" name="tab" value="{{ $filters['tab'] ?? 'stock_on_hand' }}">
         <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">

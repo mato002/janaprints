@@ -1,7 +1,7 @@
 @props(['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="$action" :reset-url="$action" turbo-frame="erp-main">
+    <x-admin.index-toolbar :action="$action" :reset-url="$action">
         @if ($canExport && $exportAction)
             <x-slot name="export">
                 <x-admin.export-dropdown

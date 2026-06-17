@@ -15,6 +15,7 @@ class WorkspacePresenter
         protected ?PrintingIntelligenceWorkspacePresenter $printingIntelligence = null,
         protected ?AdministrationWorkspacePresenter $administration = null,
         protected ?AssetsWorkspacePresenter $assets = null,
+        protected ?HrWorkspacePresenter $hr = null,
         protected ?WorkspaceNavigationResolver $navigation = null,
     ) {
         $this->accounting ??= app(AccountingWorkspacePresenter::class);
@@ -24,6 +25,7 @@ class WorkspacePresenter
         $this->printingIntelligence ??= app(PrintingIntelligenceWorkspacePresenter::class);
         $this->administration ??= app(AdministrationWorkspacePresenter::class);
         $this->assets ??= app(AssetsWorkspacePresenter::class);
+        $this->hr ??= app(HrWorkspacePresenter::class);
         $this->navigation ??= app(WorkspaceNavigationResolver::class);
     }
     /**
@@ -104,6 +106,10 @@ class WorkspacePresenter
             return $this->assets->isVisible();
         }
 
+        if ($key === 'hr') {
+            return $this->hr->isVisible();
+        }
+
         $definition = $this->definitions()[$key] ?? null;
 
         if ($definition === null) {
@@ -165,6 +171,10 @@ class WorkspacePresenter
 
         if ($key === 'assets') {
             return $this->assets->collectActiveRoutes();
+        }
+
+        if ($key === 'hr') {
+            return $this->hr->collectActiveRoutes();
         }
 
         $routes = ["admin.workspaces.{$key}"];
@@ -241,6 +251,12 @@ class WorkspacePresenter
 
             if ($key === 'assets') {
                 $flat = array_merge($flat, $this->assets->flattenForSearch());
+
+                continue;
+            }
+
+            if ($key === 'hr') {
+                $flat = array_merge($flat, $this->hr->flattenForSearch());
 
                 continue;
             }

@@ -40,7 +40,7 @@ return [
     ],
 
     /** Bump when sidebar workspace visibility rules change (invalidates cached nav metadata). */
-    'navigation_cache_version' => 2,
+    'navigation_cache_version' => 3,
 
     'cache' => [
         'navigation' => (int) env('PLATFORM_CACHE_NAVIGATION_TTL', 300),
