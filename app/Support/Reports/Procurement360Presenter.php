@@ -174,7 +174,7 @@ class Procurement360Presenter
             ->get();
 
         $rows = $byStatus->map(fn ($r) => [
-            'status' => (string) $r->status,
+            'status' => $r->status instanceof PurchaseOrderStatus ? $r->status->value : (string) $r->status,
             'count' => (string) $r->cnt,
             'value' => $this->queries->money((float) $r->value),
         ])->all();

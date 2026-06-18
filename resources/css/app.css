@@ -4,6 +4,12 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+    .text-erp-muted {
+        color: #718096;
+    }
+}
+
 @layer base {
     html {
         -webkit-font-smoothing: antialiased;
@@ -3899,7 +3905,8 @@
     }
 
     .ess-widget__label {
-        @apply text-xs font-medium uppercase tracking-wide text-erp-muted;
+        @apply text-xs font-medium uppercase tracking-wide;
+        color: #718096;
     }
 
     .ess-widget__value {
@@ -3935,7 +3942,8 @@
     }
 
     .ess-tab-link {
-        @apply inline-flex min-h-10 items-center rounded-lg px-3 py-2 text-sm font-medium text-erp-muted whitespace-nowrap;
+        @apply inline-flex min-h-10 items-center rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap;
+        color: #718096;
     }
 
     .ess-tab-link--active {
@@ -3951,7 +3959,8 @@
     }
 
     .ess-dl dt {
-        @apply font-medium text-erp-muted;
+        @apply font-medium;
+        color: #718096;
     }
 
     .ess-dl dd {

@@ -128,6 +128,7 @@
                         · {{ $policy->updated_at?->diffForHumans() }}
                     </p>
                 @endif
+                </x-admin.card>
             </section>
         @endforeach
     </div>
