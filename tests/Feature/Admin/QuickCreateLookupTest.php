@@ -109,6 +109,32 @@ class QuickCreateLookupTest extends TestCase
             ->assertSee('name="vendor_type"', false);
     }
 
+    public function test_category_quick_create_form_renders_without_workspace_redirect(): void
+    {
+        [$company, $branch, $user] = $this->inventoryContext();
+
+        $this->actingAs($user)
+            ->withHeader('X-Erp-Lookup-Create', '1')
+            ->get(route('admin.inventory.catalogue.categories.quick-create'))
+            ->assertOk()
+            ->assertSee('data-erp-lookup-modal-panel', false)
+            ->assertSee('data-erp-lookup-form', false)
+            ->assertSee('name="code"', false)
+            ->assertSee('name="name"', false);
+    }
+
+    public function test_vendor_quick_create_is_not_redirected_to_workspace_shell(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext(['procurement.vendors.create']);
+
+        $this->actingAs($user)
+            ->withHeader('X-Erp-Lookup-Create', '1')
+            ->get(route('admin.procurement.vendors.quick-create'))
+            ->assertOk()
+            ->assertDontSee('module-workspace-content', false)
+            ->assertSee('data-erp-lookup-modal-panel', false);
+    }
+
     public function test_vendor_quick_create_returns_json(): void
     {
         [$company, $branch, $user] = $this->tenantContext(['procurement.vendors.create']);

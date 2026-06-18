@@ -26,6 +26,7 @@ class RedirectToModuleWorkspaceShell
         // Allow embedded workspace content (frame fetch or redirect follow after form actions).
         if (
             $request->header('Turbo-Frame') === 'module-workspace-content'
+            || $request->header('X-Erp-Lookup-Create') === '1'
             || $request->query('embedded') === '1'
         ) {
             return $next($request);
@@ -70,7 +71,7 @@ class RedirectToModuleWorkspaceShell
 
     protected function isDetailRoute(string $routeName): bool
     {
-        foreach (['.create', '.edit', '.show', '.compose', '.document', '.receipt', '.pdf', '.footer-contact', '.seo-global'] as $suffix) {
+        foreach (['.create', '.edit', '.show', '.compose', '.document', '.receipt', '.pdf', '.footer-contact', '.seo-global', '.quick-create'] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }

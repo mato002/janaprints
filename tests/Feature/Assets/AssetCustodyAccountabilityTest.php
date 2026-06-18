@@ -58,6 +58,35 @@ class AssetCustodyAccountabilityTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_custody_dashboard_renders_pending_handover_summary(): void
+    {
+        $user = $this->custodyManager();
+        $asset = $this->makeAsset();
+        $from = $this->makeEmployee('Jane', 'Doe');
+        $to = $this->makeEmployee('John', 'Smith');
+
+        $this->actingAs($user)
+            ->post(route('admin.assets.custody.handovers.store'), [
+                'fixed_asset_id' => $asset->id,
+                'from_employee_id' => $from->id,
+                'to_employee_id' => $to->id,
+                'handover_date' => now()->toDateString(),
+                'condition' => AssetPhysicalCondition::Good->value,
+            ]);
+
+        $handover = AssetHandover::query()->first();
+        $this->assertNotNull($handover);
+
+        $this->actingAs($user)
+            ->post(route('admin.assets.custody.handovers.submit', $handover));
+
+        $this->actingAs($user)
+            ->get(route('admin.assets.custody.dashboard', ['embedded' => 1]))
+            ->assertOk()
+            ->assertSee($handover->handover_no, false)
+            ->assertSee($asset->asset_name, false);
+    }
+
     public function test_employee_assignment_creation(): void
     {
         $user = $this->custodyManager();
@@ -140,6 +169,30 @@ class AssetCustodyAccountabilityTest extends TestCase
         $handover->refresh();
         $this->assertSame(AssetHandoverStatus::Accepted, $handover->status);
         $this->assertSame($to->id, $handover->asset->fresh()->assigned_to_employee_id);
+    }
+
+    public function test_return_create_renders_modal_panel(): void
+    {
+        $user = $this->custodyManager();
+        $this->makeAsset();
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.assets.custody.returns.create'))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee(__('Record Return'), false);
+    }
+
+    public function test_returns_index_opens_create_in_modal(): void
+    {
+        $user = $this->custodyManager();
+
+        $this->actingAs($user)
+            ->get(route('admin.assets.custody.returns.index', ['embedded' => 1]))
+            ->assertOk()
+            ->assertSee('data-erp-modal-open', false)
+            ->assertSee(route('admin.assets.custody.returns.create'), false);
     }
 
     public function test_return_workflow_and_condition_tracking(): void
@@ -309,6 +362,31 @@ class AssetCustodyAccountabilityTest extends TestCase
                 'assigned_to_employee_id' => $this->makeEmployee()->id,
             ])
             ->assertForbidden();
+    }
+
+    public function test_assignment_create_renders_modal_panel(): void
+    {
+        $user = $this->custodyManager();
+        $this->makeAsset();
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.assets.custody.assignments.create'))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee(__('Assign Asset'), false);
+    }
+
+    public function test_assignments_index_opens_create_in_modal(): void
+    {
+        $user = $this->custodyManager();
+
+        $this->actingAs($user)
+            ->get(route('admin.assets.custody.assignments.index', ['embedded' => 1]))
+            ->assertOk()
+            ->assertSee('data-erp-modal-open', false)
+            ->assertSee(route('admin.assets.custody.assignments.create'), false)
+            ->assertDontSee('name="fixed_asset_id"', false);
     }
 
     protected function custodyManager(): User

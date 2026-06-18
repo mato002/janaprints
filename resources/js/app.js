@@ -1960,7 +1960,19 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.syncSelectOptions();
             this.$watch('options', () => this.syncSelectOptions());
-            this.$watch('selected', () => this.syncSelectOptions());
+            this.$watch('selected', () => {
+                const select = this.$root.querySelector('select');
+
+                if (! select) {
+                    return;
+                }
+
+                const value = this.selected ?? '';
+
+                if (select.value !== value) {
+                    select.value = value;
+                }
+            });
         },
 
         syncSelectOptions() {

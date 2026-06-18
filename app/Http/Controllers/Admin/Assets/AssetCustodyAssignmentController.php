@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Assets;
 
 use App\Enums\AssetAssignmentStatus;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\AssetHandover;
 use App\Models\Assets\AssetAssignmentHistory;
@@ -12,10 +13,13 @@ use App\Models\Employee;
 use App\Services\Assets\AssetCustodyAssignmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class AssetCustodyAssignmentController extends Controller
 {
+    use HandlesModalFormResponses;
+
     public function __construct(
         protected AssetCustodyAssignmentService $assignments,
     ) {}
@@ -48,13 +52,18 @@ class AssetCustodyAssignmentController extends Controller
         return view('admin.assets.custody.assignments.index', [
             'assignments' => $assignments,
             'statuses' => AssetAssignmentStatus::cases(),
-            'employees' => Employee::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('first_name')->get(),
-            'departments' => Department::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(),
-            'assets' => FixedAsset::query()->forTenant()->notArchived()->orderBy('asset_name')->get(['id', 'asset_name', 'asset_number']),
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function create(): View
+    {
+        $this->authorize('viewAny', AssetHandover::class);
+        abort_unless(auth()->user()?->can('assets.assign'), 403);
+
+        return view('admin.assets.custody.assignments.create', $this->formMeta());
+    }
+
+    public function store(Request $request): RedirectResponse|Response
     {
         $validated = $request->validate([
             'fixed_asset_id' => ['required', 'exists:fixed_assets,id'],
@@ -76,8 +85,23 @@ class AssetCustodyAssignmentController extends Controller
             $this->assignments->assignToDepartment($asset, $validated, (int) auth()->id());
         }
 
-        return redirect()
-            ->route('admin.assets.custody.assignments.index')
-            ->with('status', __('Asset assignment recorded.'));
+        return $this->modalOrRedirect(
+            __('Asset assignment recorded.'),
+            redirect()->route('admin.assets.custody.assignments.index'),
+        );
+    }
+
+    /**
+     * @return array{employees: \Illuminate\Support\Collection, departments: \Illuminate\Support\Collection, assets: \Illuminate\Support\Collection}
+     */
+    protected function formMeta(): array
+    {
+        $companyId = (int) tenant()->companyId();
+
+        return [
+            'employees' => Employee::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('first_name')->get(),
+            'departments' => Department::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(),
+            'assets' => FixedAsset::query()->forTenant()->notArchived()->orderBy('asset_name')->get(['id', 'asset_name', 'asset_number']),
+        ];
     }
 }

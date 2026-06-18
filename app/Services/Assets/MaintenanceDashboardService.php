@@ -2,6 +2,7 @@
 
 namespace App\Services\Assets;
 
+use App\Enums\AssetType;
 use App\Enums\MaintenancePriority;
 use App\Enums\MaintenanceWorkOrderStatus;
 use App\Models\Assets\AssetDowntimeRecord;
@@ -9,7 +10,6 @@ use App\Models\Assets\MaintenancePlan;
 use App\Models\Assets\MaintenanceWorkOrder;
 use App\Support\Assets\AssetSchema;
 use App\Support\Platform\PlatformCacheService;
-use Illuminate\Support\Collection;
 
 class MaintenanceDashboardService
 {
@@ -78,27 +78,39 @@ class MaintenanceDashboardService
             'downtime_hours' => 0,
             'critical_failures' => 0,
             'upcoming_maintenance' => 0,
-            'by_branch' => collect(),
-            'by_asset_type' => collect(),
-            'recently_closed' => collect(),
-            'critical_orders' => collect(),
+            'by_branch' => [],
+            'by_asset_type' => [],
+            'recently_closed' => [],
+            'critical_orders' => [],
         ];
     }
 
-    protected function byBranch(int $companyId, ?int $branchId): Collection
+    /**
+     * @return list<array{branch_id: int, count: int}>
+     */
+    protected function byBranch(int $companyId, ?int $branchId): array
     {
         if ($branchId) {
-            return collect();
+            return [];
         }
 
         return MaintenanceWorkOrder::query()
             ->where('company_id', $companyId)
             ->selectRaw('branch_id, COUNT(*) as count')
             ->groupBy('branch_id')
-            ->get();
+            ->get()
+            ->map(fn ($row) => [
+                'branch_id' => (int) $row->branch_id,
+                'count' => (int) $row->count,
+            ])
+            ->values()
+            ->all();
     }
 
-    protected function byAssetType(int $companyId, ?int $branchId): Collection
+    /**
+     * @return list<array{asset_type: string, label: string, count: int}>
+     */
+    protected function byAssetType(int $companyId, ?int $branchId): array
     {
         return MaintenanceWorkOrder::query()
             ->where('maintenance_work_orders.company_id', $companyId)
@@ -108,7 +120,22 @@ class MaintenanceDashboardService
             ->selectRaw('asset_categories.asset_type as asset_type, COUNT(*) as count')
             ->groupBy('asset_categories.asset_type')
             ->orderByDesc('count')
-            ->get();
+            ->get()
+            ->map(function ($row) {
+                $assetType = $row->asset_type;
+                $value = $assetType instanceof AssetType
+                    ? $assetType->value
+                    : (string) $assetType;
+
+                return [
+                    'asset_type' => $value,
+                    'label' => AssetType::tryFrom($value)?->label()
+                        ?? ucfirst(str_replace('_', ' ', $value)),
+                    'count' => (int) $row->count,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**

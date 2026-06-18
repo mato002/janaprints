@@ -32,8 +32,8 @@
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['pending_handovers'] as $handover)
                     <li>
-                        <a href="{{ route('admin.assets.custody.handovers.show', $handover) }}" class="erp-link font-mono">{{ $handover->handover_no }}</a>
-                        — {{ $handover->asset?->asset_name }}
+                        <a href="{{ route('admin.assets.custody.handovers.show', $handover['id']) }}" class="erp-link font-mono">{{ $handover['handover_no'] }}</a>
+                        — {{ $handover['asset_name'] }}
                     </li>
                 @empty
                     <li class="text-slate-500">{{ __('No pending handovers.') }}</li>
@@ -46,8 +46,8 @@
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['pending_transfers'] as $transfer)
                     <li>
-                        <a href="{{ route('admin.assets.custody.transfers.show', $transfer) }}" class="erp-link font-mono">{{ $transfer->transfer_no }}</a>
-                        — {{ $transfer->asset?->asset_name }}
+                        <a href="{{ route('admin.assets.custody.transfers.show', $transfer['id']) }}" class="erp-link font-mono">{{ $transfer['transfer_no'] }}</a>
+                        — {{ $transfer['asset_name'] }}
                     </li>
                 @empty
                     <li class="text-slate-500">{{ __('No pending transfers.') }}</li>
@@ -59,7 +59,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Assets By Department') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_department'] as $row)
-                    <li class="flex justify-between"><span>{{ __('Department #:id', ['id' => $row->department_id]) }}</span><span class="font-medium">{{ $row->count }}</span></li>
+                    <li class="flex justify-between"><span>{{ $row['department_name'] }}</span><span class="font-medium">{{ $row['count'] }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No department assignments.') }}</li>
                 @endforelse
@@ -70,7 +70,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Assets By Employee') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_employee'] as $row)
-                    <li class="flex justify-between"><span>{{ __('Employee #:id', ['id' => $row->employee_id]) }}</span><span class="font-medium">{{ $row->count }}</span></li>
+                    <li class="flex justify-between"><span>{{ $row['employee_name'] }}</span><span class="font-medium">{{ $row['count'] }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No employee assignments.') }}</li>
                 @endforelse

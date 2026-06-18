@@ -1,59 +1,17 @@
 <x-admin-layout :title="__('Assignments')" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Assignments')]]">
-    <x-admin.page-header :title="__('Asset Assignments')" :description="__('Employee and department custody assignments.')" />
+    <x-admin.page-header :title="__('Asset Assignments')" :description="__('Employee and department custody assignments.')">
+        <x-slot name="actions">
+            @can('assets.assign')
+                <x-admin.form-modal-link :href="route('admin.assets.custody.assignments.create')">
+                    {{ __('New Assignment') }}
+                </x-admin.form-modal-link>
+            @endcan
+        </x-slot>
+    </x-admin.page-header>
 
-    @can('assets.assign')
-        <x-admin.card class="mb-4">
-            <h3 class="mb-3 text-sm font-semibold">{{ __('New Assignment') }}</h3>
-            <form method="POST" action="{{ route('admin.assets.custody.assignments.store') }}" class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-                @csrf
-                <div>
-                    <label class="erp-label">{{ __('Asset') }}</label>
-                    <select name="fixed_asset_id" class="erp-select w-full" required>
-                        <option value="">{{ __('Select asset…') }}</option>
-                        @foreach ($assets as $asset)
-                            <option value="{{ $asset->id }}">{{ $asset->asset_number }} — {{ $asset->asset_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Assignment Type') }}</label>
-                    <select name="assignment_type" class="erp-select w-full" required>
-                        <option value="employee">{{ __('Employee') }}</option>
-                        <option value="department">{{ __('Department') }}</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Employee') }}</label>
-                    <select name="assigned_to_employee_id" class="erp-select w-full">
-                        <option value="">{{ __('Select employee…') }}</option>
-                        @foreach ($employees as $employee)
-                            <option value="{{ $employee->id }}">{{ $employee->full_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Department') }}</label>
-                    <select name="assigned_to_department_id" class="erp-select w-full">
-                        <option value="">{{ __('Select department…') }}</option>
-                        @foreach ($departments as $department)
-                            <option value="{{ $department->id }}">{{ $department->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Expected Return') }}</label>
-                    <input type="date" name="expected_return_date" class="erp-input w-full">
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Reason') }}</label>
-                    <input type="text" name="assignment_reason" class="erp-input w-full" maxlength="120">
-                </div>
-                <div class="md:col-span-2 lg:col-span-3">
-                    <button type="submit" class="erp-btn-primary">{{ __('Assign Asset') }}</button>
-                </div>
-            </form>
-        </x-admin.card>
-    @endcan
+    @if (session('status'))
+        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
+    @endif
 
     <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">

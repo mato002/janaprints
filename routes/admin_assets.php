@@ -47,6 +47,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             ->middleware('permission:assets.view')
             ->name('dashboard');
 
+        Route::middleware('permission:assets.create')->group(function () {
+            Route::get('register/create', [FixedAssetController::class, 'create'])->name('create');
+            Route::post('register', [FixedAssetController::class, 'store'])->name('store');
+        });
+
         Route::middleware('permission:assets.view')->group(function () {
             Route::get('register', [FixedAssetController::class, 'index'])->name('index');
             Route::get('register/export/{format}', AssetExportController::class)
@@ -63,11 +68,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('documents/{document}/archive', [AssetDocumentController::class, 'archive'])->name('documents.archive');
 
             Route::get('categories', [AssetCategoryController::class, 'index'])->name('categories.index');
-        });
-
-        Route::middleware('permission:assets.create')->group(function () {
-            Route::get('register/create', [FixedAssetController::class, 'create'])->name('create');
-            Route::post('register', [FixedAssetController::class, 'store'])->name('store');
         });
 
         Route::middleware('permission:assets.edit')->group(function () {
@@ -112,6 +112,13 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::prefix('maintenance')->name('maintenance.')->group(function () {
+            Route::middleware('permission:maintenance.create')->group(function () {
+                Route::get('work-orders/create', [MaintenanceWorkOrderController::class, 'create'])->name('work-orders.create');
+                Route::post('work-orders', [MaintenanceWorkOrderController::class, 'store'])->name('work-orders.store');
+                Route::get('plans/create', [MaintenancePlanController::class, 'create'])->name('plans.create');
+                Route::post('plans', [MaintenancePlanController::class, 'store'])->name('plans.store');
+            });
+
             Route::middleware('permission:maintenance.view')->group(function () {
                 Route::get('/', MaintenanceDashboardController::class)->name('dashboard');
                 Route::get('work-orders', [MaintenanceWorkOrderController::class, 'index'])->name('work-orders.index');
@@ -123,13 +130,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
             Route::middleware('permission:maintenance.calendar.view')->group(function () {
                 Route::get('calendar', MaintenanceCalendarController::class)->name('calendar');
-            });
-
-            Route::middleware('permission:maintenance.create')->group(function () {
-                Route::get('work-orders/create', [MaintenanceWorkOrderController::class, 'create'])->name('work-orders.create');
-                Route::post('work-orders', [MaintenanceWorkOrderController::class, 'store'])->name('work-orders.store');
-                Route::get('plans/create', [MaintenancePlanController::class, 'create'])->name('plans.create');
-                Route::post('plans', [MaintenancePlanController::class, 'store'])->name('plans.store');
             });
 
             Route::middleware('permission:maintenance.manage')->group(function () {
@@ -154,6 +154,21 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::prefix('custody')->name('custody.')->group(function () {
+            Route::middleware('permission:assets.handover.manage')->group(function () {
+                Route::get('handovers/create', [AssetHandoverController::class, 'create'])->name('handovers.create');
+                Route::post('handovers', [AssetHandoverController::class, 'store'])->name('handovers.store');
+            });
+
+            Route::middleware('permission:assets.transfer')->group(function () {
+                Route::get('transfers/create', [AssetBranchTransferController::class, 'create'])->name('transfers.create');
+                Route::post('transfers', [AssetBranchTransferController::class, 'store'])->name('transfers.store');
+            });
+
+            Route::middleware('permission:assets.assign')->group(function () {
+                Route::get('assignments/create', [AssetCustodyAssignmentController::class, 'create'])->name('assignments.create');
+                Route::post('assignments', [AssetCustodyAssignmentController::class, 'store'])->name('assignments.store');
+            });
+
             Route::middleware('permission:assets.custody.view')->group(function () {
                 Route::get('/', AssetCustodyDashboardController::class)->name('dashboard');
                 Route::get('assignments', [AssetCustodyAssignmentController::class, 'index'])->name('assignments.index');
@@ -164,25 +179,18 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 Route::get('transfers/{transfer}', [AssetBranchTransferController::class, 'show'])->name('transfers.show');
             });
 
-            Route::middleware('permission:assets.assign')->group(function () {
-                Route::post('assignments', [AssetCustodyAssignmentController::class, 'store'])->name('assignments.store');
-            });
-
             Route::middleware('permission:assets.handover.manage')->group(function () {
-                Route::get('handovers/create', [AssetHandoverController::class, 'create'])->name('handovers.create');
-                Route::post('handovers', [AssetHandoverController::class, 'store'])->name('handovers.store');
                 Route::post('handovers/{handover}/submit', [AssetHandoverController::class, 'submit'])->name('handovers.submit');
                 Route::post('handovers/{handover}/accept', [AssetHandoverController::class, 'accept'])->name('handovers.accept');
                 Route::post('handovers/{handover}/reject', [AssetHandoverController::class, 'reject'])->name('handovers.reject');
             });
 
             Route::middleware('permission:assets.return')->group(function () {
+                Route::get('returns/create', [AssetReturnController::class, 'create'])->name('returns.create');
                 Route::post('returns', [AssetReturnController::class, 'store'])->name('returns.store');
             });
 
             Route::middleware('permission:assets.transfer')->group(function () {
-                Route::get('transfers/create', [AssetBranchTransferController::class, 'create'])->name('transfers.create');
-                Route::post('transfers', [AssetBranchTransferController::class, 'store'])->name('transfers.store');
                 Route::post('transfers/{transfer}/accept', [AssetBranchTransferController::class, 'accept'])->name('transfers.accept');
                 Route::post('transfers/{transfer}/reject', [AssetBranchTransferController::class, 'reject'])->name('transfers.reject');
             });
@@ -238,6 +246,16 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::prefix('finance')->name('finance.')->group(function () {
+            Route::middleware('permission:assets.depreciation.run')->group(function () {
+                Route::get('runs/create', [DepreciationRunController::class, 'create'])->name('runs.create');
+                Route::post('runs', [DepreciationRunController::class, 'store'])->name('runs.store');
+            });
+
+            Route::middleware('permission:assets.writeoff.manage')->group(function () {
+                Route::get('write-offs/create', [AssetWriteOffController::class, 'create'])->name('write-offs.create');
+                Route::post('write-offs', [AssetWriteOffController::class, 'store'])->name('write-offs.store');
+            });
+
             Route::middleware('permission:assets.depreciation.view')->group(function () {
                 Route::get('/', AssetFinanceDashboardController::class)->name('dashboard');
                 Route::get('runs', [DepreciationRunController::class, 'index'])->name('runs.index');
@@ -251,8 +269,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.depreciation.run')->group(function () {
-                Route::get('runs/create', [DepreciationRunController::class, 'create'])->name('runs.create');
-                Route::post('runs', [DepreciationRunController::class, 'store'])->name('runs.store');
                 Route::post('runs/{run}/preview', [DepreciationRunController::class, 'preview'])->name('runs.preview');
                 Route::post('runs/{run}/cancel', [DepreciationRunController::class, 'cancel'])->name('runs.cancel');
             });
@@ -266,7 +282,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.writeoff.manage')->group(function () {
-                Route::post('write-offs', [AssetWriteOffController::class, 'store'])->name('write-offs.store');
                 Route::post('write-offs/{writeOff}/approve', [AssetWriteOffController::class, 'approve'])->name('write-offs.approve');
                 Route::post('write-offs/{writeOff}/post', [AssetWriteOffController::class, 'post'])->name('write-offs.post');
             });

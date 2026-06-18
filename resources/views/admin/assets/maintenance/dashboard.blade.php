@@ -56,7 +56,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Maintenance By Asset Type') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_asset_type'] as $row)
-                    <li class="flex justify-between"><span>{{ ucfirst(str_replace('_', ' ', $row->asset_type)) }}</span><span class="font-medium">{{ $row->count }}</span></li>
+                    <li class="flex justify-between"><span>{{ $row['label'] }}</span><span class="font-medium">{{ $row['count'] }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No data yet.') }}</li>
                 @endforelse
@@ -67,7 +67,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Maintenance By Branch') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_branch'] as $row)
-                    <li class="flex justify-between"><span>{{ __('Branch') }} #{{ $row->branch_id }}</span><span class="font-medium">{{ $row->count }}</span></li>
+                    <li class="flex justify-between"><span>{{ __('Branch') }} #{{ $row['branch_id'] }}</span><span class="font-medium">{{ $row['count'] }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No branch data.') }}</li>
                 @endforelse

@@ -3723,7 +3723,7 @@
     }
 
     .erp-form-modal {
-        @apply flex w-full min-w-0 flex-col overflow-hidden rounded-xl border border-erp-border bg-white shadow-2xl;
+        @apply flex w-full min-w-0 flex-col rounded-xl border border-erp-border bg-white shadow-2xl;
     }
 
     .erp-form-modal[data-erp-form-modal-loading] {
@@ -3810,6 +3810,13 @@
 
     .erp-lookup-select__row {
         @apply min-h-[2.5rem];
+    }
+
+    .erp-lookup-select__row .erp-lookup-select__input {
+        width: auto;
+        flex: 1 1 0%;
+        min-width: 0;
+        max-width: 100%;
     }
 
     .erp-lookup-select__add {
