@@ -1535,6 +1535,140 @@
         }
     }
 
+    /*
+     * UI-DASHBOARD-DENSITY-PILOT
+     * Command Center only (.exec-dashboard--density-pilot).
+     * Mobile (< md): compact rows, 2-col KPI grids, tighter spacing.
+     * Desktop (md+): inherits global exec-* rules unchanged.
+     */
+    .exec-dashboard--density-pilot {
+        @apply max-md:space-y-3;
+    }
+
+    .exec-dashboard--density-pilot .exec-dashboard__header {
+        @apply max-md:gap-2 max-md:pb-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-hero {
+        @apply max-md:grid-cols-2 max-md:gap-2 max-md:p-3;
+    }
+
+    .exec-dashboard--density-pilot .exec-hero-metric {
+        @apply max-md:min-h-0 max-md:flex-row max-md:items-center max-md:justify-between max-md:gap-2 max-md:px-2.5 max-md:py-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-hero-metric__label {
+        @apply max-md:min-w-0 max-md:flex-1 max-md:truncate max-md:normal-case max-md:tracking-normal;
+    }
+
+    .exec-dashboard--density-pilot .exec-hero-metric__value {
+        @apply max-md:mt-0 max-md:shrink-0 max-md:text-base max-md:font-bold;
+    }
+
+    .exec-dashboard--density-pilot .exec-hero-metric__subtext,
+    .exec-dashboard--density-pilot .exec-hero-metric__hint {
+        @apply max-md:hidden;
+    }
+
+    .exec-dashboard--density-pilot .exec-health-chip {
+        @apply max-md:px-2 max-md:py-1.5;
+    }
+
+    .exec-dashboard--density-pilot .exec-health-chip__value {
+        @apply max-md:text-xs;
+    }
+
+    .exec-dashboard--density-pilot .exec-panel {
+        @apply max-md:p-2.5;
+    }
+
+    .exec-dashboard--density-pilot .exec-quote-alert {
+        @apply max-md:gap-2 max-md:p-3;
+    }
+
+    .exec-dashboard--density-pilot .exec-quote-alert__count {
+        @apply max-md:text-2xl;
+    }
+
+    .exec-dashboard--density-pilot .exec-ops-grid {
+        @apply max-md:grid-cols-2 max-md:gap-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-ops-grid__wide {
+        @apply max-md:col-span-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-progress-widget {
+        @apply max-md:px-2 max-md:py-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-progress-widget__head {
+        @apply max-md:mb-1;
+    }
+
+    .exec-dashboard--density-pilot .exec-charts-grid {
+        @apply max-md:grid-cols-2 max-md:gap-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-chart-panel {
+        @apply max-md:p-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-bar-chart--tall {
+        @apply max-md:h-24;
+    }
+
+    .exec-dashboard--density-pilot .exec-quick-actions {
+        @apply max-md:grid max-md:grid-cols-3 max-md:gap-1.5;
+    }
+
+    .exec-dashboard--density-pilot .exec-quick-btn {
+        @apply max-md:justify-center max-md:px-1.5 max-md:py-1.5 max-md:text-center max-md:text-[9px];
+    }
+
+    .exec-dashboard--density-pilot .exec-intelligence__summary {
+        @apply max-md:px-3 max-md:py-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-intelligence__body {
+        @apply max-md:px-2 max-md:pb-2 max-md:pt-1.5;
+    }
+
+    .exec-dashboard--density-pilot .exec-alert-row {
+        @apply max-md:px-2 max-md:py-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-attention-groups {
+        @apply max-md:space-y-2;
+    }
+
+    .exec-dashboard--density-pilot .exec-pipeline-board {
+        @apply max-md:gap-1.5;
+    }
+
+    .exec-dashboard--density-pilot .exec-pipeline-board__stage {
+        @apply max-md:px-2 max-md:py-1.5;
+    }
+
+    .exec-dashboard--density-pilot .exec-pipeline-board__count {
+        @apply max-md:text-base;
+    }
+
+    .exec-dashboard--density-pilot .exec-metric {
+        @apply max-md:px-2 max-md:py-1;
+    }
+
+    /* Tablet (md–lg): keep 2-col chart/ops grids without altering lg+ desktop */
+    @media (min-width: 768px) and (max-width: 1023px) {
+        .exec-dashboard--density-pilot .exec-charts-grid {
+            @apply grid-cols-2 gap-2;
+        }
+
+        .exec-dashboard--density-pilot .exec-ops-grid {
+            @apply grid-cols-2 gap-2;
+        }
+    }
+
     /* Shared Inbox — premium workspace polish */
     .shared-inbox-page {
         @apply flex h-full min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-2;

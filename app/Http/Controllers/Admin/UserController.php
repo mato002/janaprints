@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\User;
 use App\Support\ActivityLogger;
+use App\Support\Admin\UserProvisioningGovernanceService;
 use App\Support\Export\TabularExportWriter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,6 +25,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class UserController extends Controller
 {
     use ScopesToTenant;
+
+    public function __construct(
+        protected UserProvisioningGovernanceService $provisioningGovernance,
+    ) {}
 
     public function index(): View
     {
@@ -97,6 +102,8 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $data = $this->validateUser($request);
+        $companyId = $this->resolveCompanyId($request);
+        $this->provisioningGovernance->validateCreate($data, $companyId);
         $data['password'] = Hash::make($data['password']);
         $data['email_verified_at'] = now();
 
@@ -122,6 +129,8 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $data = $this->validateUser($request, $user);
+        $companyId = $this->resolveCompanyId($request);
+        $this->provisioningGovernance->validateUpdate($user, $data, $companyId);
         $beforeRole = $user->getRoleNames()->first();
         $beforeBranch = $user->default_branch_id;
         $beforeActive = $user->is_active;
@@ -210,6 +219,7 @@ class UserController extends Controller
             ],
             'role' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
             'is_active' => ['boolean'],
+            'system_account' => ['boolean'],
         ]);
     }
 
@@ -233,7 +243,18 @@ class UserController extends Controller
         return [
             'companies' => $companies,
             'branches' => Branch::query()->where('company_id', $companyId)->where('is_active', true)->get(),
-            'employees' => Employee::query()->where('company_id', $companyId)->where('is_active', true)->get(),
+            'employees' => Employee::query()
+                ->where('company_id', $companyId)
+                ->where('is_active', true)
+                ->where(function ($query) use ($user) {
+                    $query->whereDoesntHave('user');
+
+                    if ($user?->employee_id) {
+                        $query->orWhere('id', $user->employee_id);
+                    }
+                })
+                ->orderBy('employee_number')
+                ->get(),
             'roles' => Role::query()->where('guard_name', 'web')->where('name', '!=', 'Super Admin')->orderBy('name')->get(),
         ];
     }

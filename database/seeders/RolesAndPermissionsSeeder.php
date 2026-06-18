@@ -962,7 +962,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'printing.ink-profiles.view',
         ],
         'HR' => [
-            'users.view', 'users.create', 'users.edit',
             'employees.manage',
             'employees.email.send',
             'hr.attendance.view', 'hr.attendance.create', 'hr.attendance.edit', 'hr.attendance.approve', 'hr.attendance.export',

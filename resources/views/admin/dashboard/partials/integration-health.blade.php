@@ -3,7 +3,7 @@
     $statusColors = ['green' => 'bg-emerald-500', 'yellow' => 'bg-amber-400', 'red' => 'bg-red-500'];
 @endphp
 
-<section class="exec-integration-health rounded-lg border border-erp-border bg-white p-4" aria-label="{{ __('Integration health') }}">
+<section class="exec-integration-health rounded-lg border border-erp-border bg-white p-3 md:p-4" aria-label="{{ __('Integration health') }}">
     <div class="mb-3 flex items-center justify-between">
         <h2 class="text-sm font-semibold text-erp-primary">{{ __('Integration Health') }}</h2>
         <a href="{{ route('admin.workspaces.administration.section', 'integrations') }}" class="text-xs text-erp-accent hover:underline">{{ __('Manage') }}</a>

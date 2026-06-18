@@ -75,6 +75,7 @@ class PlatformGovernanceTest extends TestCase
             'default_branch_id' => $branch->id,
             'role' => 'Viewer',
             'is_active' => 1,
+            'system_account' => 1,
         ]);
 
         $response->assertRedirect(route('admin.users.index'));
@@ -124,7 +125,7 @@ class PlatformGovernanceTest extends TestCase
         $this->assertTrue($accountant->hasPermissionTo('settings.view'));
         $this->assertTrue($accountant->hasPermissionTo('sales_orders.view'));
         $this->assertTrue($hr->hasPermissionTo('employees.manage'));
-        $this->assertTrue($hr->hasPermissionTo('users.create'));
+        $this->assertFalse($hr->hasPermissionTo('users.create'));
     }
 
     protected function createUserWithRole(string $role, array $permissions, ?Company $company = null, ?Branch $branch = null): User

@@ -6,7 +6,7 @@
         ['label' => __('Users')],
     ]"
 >
-    <x-admin.workspace-content-header :title="__('Users')" :description="__('Manage platform users, branches, and security group assignment.')">
+    <x-admin.workspace-content-header :title="__('Users')" :description="__('System logins and role assignment. New staff must be created under HR → People → Employees.')">
         <x-slot:actions>
             @can('create', App\Models\User::class)
                 <a href="{{ route('admin.users.create') }}" class="erp-btn-primary erp-btn--sm">{{ __('Create user') }}</a>
