@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\Reports\CommercialIntelligenceReportController;
 use App\Http\Controllers\Admin\Reports\IntelligenceReportController;
+use App\Http\Controllers\Admin\Reports\OperationalRegisterController;
 use App\Http\Controllers\Admin\Reports\ProductionReportController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +30,15 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
 
             Route::get('executive', [IntelligenceReportController::class, 'executive'])->name('executive');
             Route::get('commercial', [IntelligenceReportController::class, 'commercial'])->name('commercial');
+
+            Route::middleware('permission:intelligence.commercial.view|reports.view')
+                ->get('commercial-intelligence', [CommercialIntelligenceReportController::class, 'index'])
+                ->name('commercial-intelligence');
+            Route::get('operational-registers', [OperationalRegisterController::class, 'index'])->name('operational-registers');
+            Route::get('operational-registers/print', [OperationalRegisterController::class, 'print'])->name('operational-registers.print');
+            Route::middleware('permission:reports.export')->group(function () {
+                Route::get('operational-registers/export', [OperationalRegisterController::class, 'export'])->name('operational-registers.export');
+            });
             Route::get('production', [ProductionReportController::class, 'index'])->name('production');
             Route::get('production/print', [ProductionReportController::class, 'print'])->name('production.print');
             Route::post('production/export', [ProductionReportController::class, 'export'])->name('production.export');

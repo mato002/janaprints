@@ -54,6 +54,8 @@ class LeadFormSettingsTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.crm.leads.create'))
             ->assertOk()
+            ->assertSee('id="status"', false)
+            ->assertSee('value="open"', false)
             ->assertSee('id="notes"', false)
             ->assertSee('id="expected_close_date"', false)
             ->assertDontSee('id="company_name"', false);

@@ -60,6 +60,13 @@ class ProductBomController extends Controller
             ->with('status', __('Bill of materials created.'));
     }
 
+    public function show(ProductBom $bom): RedirectResponse
+    {
+        $this->authorize('view', $bom);
+
+        return redirect()->route('admin.production.boms.edit', $bom);
+    }
+
     public function edit(ProductBom $bom): View
     {
         $this->authorize('update', $bom);

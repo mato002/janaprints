@@ -9,10 +9,11 @@ use App\Models\Sales\Quotation;
 use App\Models\User;
 use App\Policies\Concerns\ChecksApprovalDelegation;
 use App\Policies\Concerns\ChecksCrmTenant;
+use App\Policies\Concerns\ChecksWorkflowAttempt;
 
 class QuotationPolicy
 {
-    use ChecksApprovalDelegation, ChecksCrmTenant;
+    use ChecksApprovalDelegation, ChecksCrmTenant, ChecksWorkflowAttempt;
 
     public function viewAny(User $user): bool
     {
@@ -68,14 +69,30 @@ class QuotationPolicy
     {
         return $user->can('quotations.send')
             && $this->sameTenant($user, $quotation)
-            && $quotation->status === QuotationStatus::PendingApproval;
+            && in_array($quotation->status, [QuotationStatus::PendingApproval, QuotationStatus::Approved], true);
     }
 
     public function convert(User $user, Quotation $quotation): bool
     {
-        return $user->can('quotations.convert')
-            && $this->sameTenant($user, $quotation)
-            && $quotation->status === QuotationStatus::Accepted;
+        return $this->canAttemptWorkflow(
+            $user,
+            $quotation,
+            'quotations.convert',
+            fn (Quotation $record) => $record->status !== QuotationStatus::Accepted,
+        );
+    }
+
+    public function linkArtwork(User $user, Quotation $quotation): bool
+    {
+        if (! $user->can('quotations.edit') || ! $this->sameTenant($user, $quotation) || ! $quotation->customer_id) {
+            return false;
+        }
+
+        return ! in_array($quotation->status, [
+            QuotationStatus::Converted,
+            QuotationStatus::Rejected,
+            QuotationStatus::Expired,
+        ], true);
     }
 
     public function transition(User $user, Quotation $quotation): bool

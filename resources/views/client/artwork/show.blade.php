@@ -2,11 +2,20 @@
     <div class="client-detail">
         <div class="client-detail__meta">
             <p><strong>{{ __('Status') }}:</strong> @include('client.partials.status-badge', ['status' => $artwork->status])</p>
-            <p><strong>{{ __('Due date') }}:</strong> {{ $artwork->due_date?->format('F j, Y') ?: '—' }}</p>
             @if ($artwork->description)
-                <p><strong>{{ __('Brief') }}:</strong> {{ $artwork->description }}</p>
+                <p><strong>{{ __('Notes') }}:</strong> {{ $artwork->description }}</p>
             @endif
         </div>
+
+        @if ($previewUrl)
+            <div class="client-artwork-preview">
+                @if ($previewIsImage)
+                    <img src="{{ $previewUrl }}" alt="{{ $artwork->title }}" class="client-artwork-preview__image">
+                @else
+                    <iframe src="{{ $previewUrl }}" title="{{ $artwork->title }}" class="client-artwork-preview__frame"></iframe>
+                @endif
+            </div>
+        @endif
 
         @if ($canReview)
             <div class="client-review-box">

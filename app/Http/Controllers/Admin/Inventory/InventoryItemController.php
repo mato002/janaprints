@@ -7,15 +7,18 @@ use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
-use App\Models\Inventory\Brand;
 use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryItem;
+use App\Models\Production\WorkCenter;
 use App\Models\Inventory\InventorySubcategory;
 use App\Models\Inventory\ItemAttribute;
 use App\Models\Inventory\UnitOfMeasure;
 use App\Support\Catalogue\CatalogueService;
 use App\Support\Catalogue\ItemAttributeService;
 use App\Support\InventoryStockService;
+use App\Support\Production\ProductBomService;
+use App\Support\Production\ProductQcChecklistService;
+use App\Support\Production\ProductionRouteService;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -30,6 +33,9 @@ class InventoryItemController extends Controller
         protected FormSettingsService $formSettings,
         protected CatalogueService $catalogue,
         protected ItemAttributeService $itemAttributes,
+        protected ProductionRouteService $productionRoutes,
+        protected ProductBomService $productBoms,
+        protected ProductQcChecklistService $productQcChecklists,
     ) {}
 
     public function index(Request $request): View
@@ -80,6 +86,9 @@ class InventoryItemController extends Controller
 
         $this->itemAttributes->sync($item, $request->input('attributes', []));
         $this->syncCustomFields($item, 'inventory_item', $customData, $companyId);
+        $this->syncProductionRoute($item, $request->input('route_steps', []));
+        $this->syncProductMaterials($item, $request->input('material_requirements', []), (int) auth()->id());
+        $this->syncProductQcChecklist($item, $request->input('qc_checklist', []), (int) auth()->id());
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item created.'));
     }
@@ -91,7 +100,7 @@ class InventoryItemController extends Controller
         $item->load([
             'category', 'subcategory', 'brand', 'unitOfMeasure',
             'attributeValues.attribute', 'attributeValues.option', 'images',
-            'priceListItems.priceList',
+            'priceListItems.priceList', 'productionRouteSteps',
         ]);
         $stockBalance = InventoryStockService::branchBalance($item->id, $item->company_id, $item->branch_id);
 
@@ -102,7 +111,7 @@ class InventoryItemController extends Controller
     {
         $this->authorize('update', $item);
 
-        $item->load('attributeValues');
+        $item->load('attributeValues', 'productionRouteSteps');
 
         return view('admin.inventory.items.edit', ['item' => $item, ...$this->formMeta($item)]);
     }
@@ -118,6 +127,9 @@ class InventoryItemController extends Controller
         $item->update($data);
         $this->itemAttributes->sync($item, $request->input('attributes', []));
         $this->syncCustomFields($item, 'inventory_item', $customData, $item->company_id);
+        $this->syncProductionRoute($item, $request->input('route_steps', []));
+        $this->syncProductMaterials($item, $request->input('material_requirements', []), (int) auth()->id());
+        $this->syncProductQcChecklist($item, $request->input('qc_checklist', []), (int) auth()->id());
         InventoryStockService::syncReorderAlerts($item->fresh());
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item updated.'));
@@ -140,10 +152,9 @@ class InventoryItemController extends Controller
         return $this->formSettings->validateRequest($request, 'inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'subcategory_id' => [Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'brand_id' => [Rule::exists('brands', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'brand_name' => ['nullable', 'string', 'max:255'],
             'unit_of_measure_id' => [Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'sku' => ['string', 'max:50'],
-            'item_code' => ['string', 'max:50'],
             'item_name' => ['string', 'max:255'],
             'description' => ['string'],
             'reorder_level' => ['numeric', 'min:0'],
@@ -151,7 +162,26 @@ class InventoryItemController extends Controller
             'standard_cost' => ['numeric', 'min:0'],
             'is_active' => ['boolean'],
             'stock_role' => ['required', Rule::enum(InventoryStockRole::class)],
+            'uses_serial_numbers' => ['boolean'],
+            'requires_customer_approval' => ['boolean'],
+            'serial_prefix' => ['nullable', 'string', 'max:30'],
+            'serial_padding_length' => ['nullable', 'integer', 'min:1', 'max:12'],
+            'route_steps' => ['nullable', 'array'],
+            'route_steps.*.step_name' => ['nullable', 'string', 'max:255'],
+            'route_steps.*.sequence' => ['nullable', 'integer', 'min:1'],
+            'route_steps.*.work_center_id' => ['nullable', 'exists:work_centers,id'],
+            'material_requirements' => ['nullable', 'array'],
+            'material_requirements.*.inventory_item_id' => ['nullable', 'exists:inventory_items,id'],
+            'material_requirements.*.quantity_per_unit' => ['nullable', 'numeric', 'min:0.0001'],
+            'material_requirements.*.quantity_formula' => ['nullable', 'string', 'max:120'],
+            'material_requirements.*.is_active' => ['nullable', 'boolean'],
+            'qc_checklist' => ['nullable', 'array'],
+            'qc_checklist.*.label' => ['nullable', 'string', 'max:120'],
+            'qc_checklist.*.is_active' => ['nullable', 'boolean'],
         ], $companyId, $branchId);
+
+        $data['uses_serial_numbers'] = $request->boolean('uses_serial_numbers');
+        $data['requires_customer_approval'] = $request->boolean('requires_customer_approval');
     }
 
     /**
@@ -165,10 +195,17 @@ class InventoryItemController extends Controller
             'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId, $item),
             'categories' => InventoryCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'subcategories' => InventorySubcategory::query()->forTenant()->with('category')->where('is_active', true)->orderBy('name')->get(),
-            'brands' => Brand::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
-            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->orderBy('name')->get(),
+            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->where('code', '!=', 'FINISH')->orderBy('name')->get(),
             'stockRoles' => InventoryStockRole::cases(),
+            'workCenters' => WorkCenter::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
+            'rawMaterials' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(['id', 'sku', 'item_name']),
+            'productBomLines' => $item
+                ? (app(ProductBomService::class)->findActiveForFinishedItem($item->company_id, $item->branch_id, $item->id)?->lines ?? collect())
+                : collect(),
+            'productQcChecklistLines' => $item
+                ? (app(ProductQcChecklistService::class)->findActiveForFinishedItem($item->company_id, $item->branch_id, $item->id)?->lines ?? collect())
+                : collect(),
         ];
     }
 
@@ -185,10 +222,32 @@ class InventoryItemController extends Controller
         $subcategory = filled($data['subcategory_id'] ?? null)
             ? InventorySubcategory::query()->find($data['subcategory_id'])
             : null;
-        $brand = filled($data['brand_id'] ?? null)
-            ? Brand::query()->find($data['brand_id'])
-            : null;
+        $brandName = filled($data['brand_name'] ?? null) ? (string) $data['brand_name'] : null;
 
-        return $this->catalogue->structuredSku($category, $subcategory, $brand, (string) $data['item_name'], $request->input('sku_parts', []));
+        return $this->catalogue->structuredSku($category, $subcategory, $brandName, (string) $data['item_name'], $request->input('sku_parts', []));
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $steps
+     */
+    protected function syncProductionRoute(InventoryItem $item, array $steps): void
+    {
+        $this->productionRoutes->syncProductRoute($item, $steps);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     */
+    protected function syncProductMaterials(InventoryItem $item, array $lines, int $userId): void
+    {
+        $this->productBoms->syncFromCatalogItem($item, $lines, $userId);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $lines
+     */
+    protected function syncProductQcChecklist(InventoryItem $item, array $lines, int $userId): void
+    {
+        $this->productQcChecklists->syncFromCatalogItem($item, $lines, $userId);
     }
 }

@@ -281,7 +281,7 @@ class Production360Queries
         }
 
         $activeStatuses = [
-            ProductionQueueStatus::Pending->value,
+            ProductionQueueStatus::Waiting->value,
             ProductionQueueStatus::Assigned->value,
             ProductionQueueStatus::InProgress->value,
         ];

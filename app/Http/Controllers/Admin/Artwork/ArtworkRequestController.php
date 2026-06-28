@@ -151,6 +151,16 @@ class ArtworkRequestController extends Controller
     {
         $this->authorize('submit', $artworkRequest);
 
+        if (! $artworkRequest->canSubmitForApproval()) {
+            $message = match ($artworkRequest->status) {
+                ArtworkRequestStatus::Requested => __('Assign a designer or upload an artwork version before submitting for approval.'),
+                ArtworkRequestStatus::InDesign => __('Upload at least one artwork version before submitting for approval.'),
+                default => __('This artwork request cannot be submitted in its current status.'),
+            };
+
+            return back()->withErrors(['workflow' => $message]);
+        }
+
         $artworkRequest->transitionTo(ArtworkRequestStatus::Submitted);
 
         return back()->with('status', __('Artwork submitted for approval.'));
@@ -159,6 +169,24 @@ class ArtworkRequestController extends Controller
     public function startDesign(ArtworkRequest $artworkRequest): RedirectResponse
     {
         $this->authorize('startDesign', $artworkRequest);
+
+        if (
+            $artworkRequest->status === ArtworkRequestStatus::Submitted
+            && $artworkRequest->lacksUploadedVersion()
+        ) {
+            $artworkRequest->update([
+                'status' => ArtworkRequestStatus::InDesign,
+                'current_version' => 0,
+            ]);
+
+            return back()->with('status', __('Artwork returned to design so a file can be uploaded.'));
+        }
+
+        if (! $artworkRequest->status->canTransitionTo(ArtworkRequestStatus::InDesign)) {
+            return back()->withErrors([
+                'workflow' => __('This artwork request cannot be moved back to design in its current status.'),
+            ]);
+        }
 
         $artworkRequest->transitionTo(ArtworkRequestStatus::InDesign);
 
@@ -169,6 +197,12 @@ class ArtworkRequestController extends Controller
     {
         $this->authorize('approve', $artworkRequest);
 
+        if (! $artworkRequest->canReviewSubmission()) {
+            return back()->withErrors([
+                'workflow' => __('Only submitted artwork awaiting approval can be reviewed.'),
+            ]);
+        }
+
         $validated = $httpRequest->validate([
             'decision' => ['required', Rule::enum(ArtworkApprovalDecision::class)],
             'comments' => ['nullable', 'string', 'max:5000'],
@@ -177,25 +211,34 @@ class ArtworkRequestController extends Controller
         $decision = ArtworkApprovalDecision::from($validated['decision']);
         $version = $artworkRequest->currentVersionRecord();
 
-        if (! $version) {
-            return back()->withErrors(['decision' => __('No version available for approval.')]);
+        if (in_array($decision, [ArtworkApprovalDecision::Approved, ArtworkApprovalDecision::RevisionRequested], true)
+            && $version === null) {
+            return back()->withErrors([
+                'decision' => __('Upload artwork before approving or requesting revisions.'),
+            ]);
         }
-
-        ArtworkApproval::query()->create([
-            'company_id' => $artworkRequest->company_id,
-            'branch_id' => $artworkRequest->branch_id,
-            'artwork_request_id' => $artworkRequest->id,
-            'artwork_version_id' => $version->id,
-            'approved_by' => auth()->id(),
-            'decision' => $decision,
-            'comments' => $validated['comments'] ?? null,
-        ]);
 
         $newStatus = match ($decision) {
             ArtworkApprovalDecision::Approved => ArtworkRequestStatus::Approved,
             ArtworkApprovalDecision::Rejected => ArtworkRequestStatus::Rejected,
             ArtworkApprovalDecision::RevisionRequested => ArtworkRequestStatus::RevisionRequested,
         };
+
+        if (! $artworkRequest->status->canTransitionTo($newStatus)) {
+            return back()->withErrors([
+                'decision' => __('This artwork request cannot be moved to the selected status in its current state.'),
+            ]);
+        }
+
+        ArtworkApproval::query()->create([
+            'company_id' => $artworkRequest->company_id,
+            'branch_id' => $artworkRequest->branch_id,
+            'artwork_request_id' => $artworkRequest->id,
+            'artwork_version_id' => $version?->id,
+            'approved_by' => auth()->id(),
+            'decision' => $decision,
+            'comments' => $validated['comments'] ?? null,
+        ]);
 
         $artworkRequest->transitionTo($newStatus);
 
@@ -206,7 +249,13 @@ class ArtworkRequestController extends Controller
         };
         app(WorkflowRulesService::class)->dispatch($trigger, $artworkRequest->fresh(), auth()->user());
 
-        return back()->with('status', __('Approval recorded.'));
+        $message = match ($decision) {
+            ArtworkApprovalDecision::Approved => __('Artwork approved.'),
+            ArtworkApprovalDecision::Rejected => __('Artwork request rejected.'),
+            ArtworkApprovalDecision::RevisionRequested => __('Revision requested.'),
+        };
+
+        return back()->with('status', $message);
     }
 
     /**

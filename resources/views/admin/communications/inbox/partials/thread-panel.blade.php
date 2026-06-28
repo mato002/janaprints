@@ -14,6 +14,8 @@
         <div
             class="shared-inbox__thread-messages"
             id="inbox-messages"
+            data-inbox-feed-url="{{ route('admin.communications.inbox.feed', $active) }}"
+            data-inbox-feed-fingerprint="{{ app(\App\Support\Communications\Inbox\InboxChatFeedService::class)->fingerprint($messageTimeline) }}"
             x-data
             x-init="$nextTick(() => { $el.scrollTop = $el.scrollHeight })"
         >

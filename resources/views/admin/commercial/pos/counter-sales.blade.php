@@ -34,7 +34,6 @@
                                 <span class="font-medium" x-text="product.name"></span>
                                 <span class="block text-xs text-slate-500">
                                     <span x-show="product.sku" x-text="'SKU: ' + product.sku"></span>
-                                    <span x-show="product.item_code" x-text="' · ' + product.item_code"></span>
                                     · <span x-text="formatMoney(product.unit_price)"></span>
                                 </span>
                             </button>

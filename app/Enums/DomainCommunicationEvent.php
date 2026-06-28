@@ -9,9 +9,16 @@ enum DomainCommunicationEvent: string
     case QuotationSent = 'quotation_sent';
     case ArtworkApproved = 'artwork_approved';
     case SalesOrderConfirmed = 'sales_order_confirmed';
+    case SalesOrderCreated = 'sales_order_created';
+    case JobQueued = 'job_queued';
+    case ProductionStarted = 'production_started';
+    case ReadyForCollection = 'ready_for_collection';
+    case Dispatched = 'dispatched';
+    case QualityApproved = 'quality_approved';
     case InvoiceGenerated = 'invoice_generated';
     case PaymentReceived = 'payment_received';
     case InvoiceOverdue = 'invoice_overdue';
+    case StatementGenerated = 'statement_generated';
     case DeliveryCompleted = 'delivery_completed';
     case FollowUpDue = 'follow_up_due';
 
@@ -23,9 +30,16 @@ enum DomainCommunicationEvent: string
             self::QuotationSent => __('Quotation sent'),
             self::ArtworkApproved => __('Artwork approved'),
             self::SalesOrderConfirmed => __('Sales order confirmed'),
+            self::SalesOrderCreated => __('Order created'),
+            self::JobQueued => __('Job queued'),
+            self::ProductionStarted => __('Production started'),
+            self::ReadyForCollection => __('Ready for collection'),
+            self::Dispatched => __('Dispatched'),
+            self::QualityApproved => __('Quality approved'),
             self::InvoiceGenerated => __('Invoice generated'),
             self::PaymentReceived => __('Payment received'),
             self::InvoiceOverdue => __('Invoice overdue'),
+            self::StatementGenerated => __('Statement generated'),
             self::DeliveryCompleted => __('Delivery completed'),
             self::FollowUpDue => __('Follow-up due'),
         };
@@ -47,9 +61,16 @@ enum DomainCommunicationEvent: string
             self::QuotationSent => CommunicationTemplateCategory::QuotationReady,
             self::ArtworkApproved => CommunicationTemplateCategory::ArtworkApproved,
             self::SalesOrderConfirmed => CommunicationTemplateCategory::ProductionStarted,
+            self::SalesOrderCreated => CommunicationTemplateCategory::ProductionStarted,
+            self::JobQueued => CommunicationTemplateCategory::ProductionStarted,
+            self::ProductionStarted => CommunicationTemplateCategory::ProductionStarted,
+            self::ReadyForCollection => CommunicationTemplateCategory::ReadyForCollection,
+            self::Dispatched => CommunicationTemplateCategory::DispatchStarted,
+            self::QualityApproved => CommunicationTemplateCategory::ProductionCompleted,
             self::InvoiceGenerated => CommunicationTemplateCategory::InvoiceGenerated,
             self::PaymentReceived => CommunicationTemplateCategory::PaymentReceived,
             self::InvoiceOverdue => CommunicationTemplateCategory::InvoiceOverdue,
+            self::StatementGenerated => CommunicationTemplateCategory::InvoiceGenerated,
             self::DeliveryCompleted => CommunicationTemplateCategory::Delivered,
             self::FollowUpDue => null,
         };
@@ -97,6 +118,8 @@ enum DomainCommunicationEvent: string
             self::QuotationSent => IntegrationWebhookEvent::QuotationSent,
             self::ArtworkApproved => IntegrationWebhookEvent::ArtworkApproved,
             self::SalesOrderConfirmed => IntegrationWebhookEvent::SalesOrderCreated,
+            self::SalesOrderCreated => IntegrationWebhookEvent::SalesOrderCreated,
+            self::JobQueued => IntegrationWebhookEvent::SalesOrderCreated,
             self::InvoiceGenerated => IntegrationWebhookEvent::InvoiceGenerated,
             self::PaymentReceived => IntegrationWebhookEvent::PaymentReceived,
             self::DeliveryCompleted => IntegrationWebhookEvent::DeliveryCompleted,

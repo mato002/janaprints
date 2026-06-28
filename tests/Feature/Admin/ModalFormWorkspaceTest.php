@@ -65,8 +65,9 @@ class ModalFormWorkspaceTest extends TestCase
                 'status' => 'active',
                 'credit_limit' => 0,
             ])
-            ->assertRedirect($createUrl)
-            ->assertSessionHasErrors('company_name');
+            ->assertStatus(422)
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee('data-erp-validation-errors', false);
     }
 
     public function test_customer_store_from_modal_with_empty_credit_limit_succeeds(): void
@@ -111,6 +112,33 @@ class ModalFormWorkspaceTest extends TestCase
 
         $this->assertDatabaseHas('customers', [
             'company_name' => 'Modal Customer Ltd',
+            'company_id' => $company->id,
+        ]);
+    }
+
+    public function test_customer_store_from_commercial_workspace_modal_returns_success_marker(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext();
+
+        $createUrl = route('admin.crm.customers.create', ['from' => 'commercial']);
+
+        $response = $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.crm.customers.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_return' => $createUrl,
+                'customer_type' => 'corporate',
+                'company_name' => 'Commercial Desk Customer Ltd',
+                'status' => 'active',
+                'credit_limit' => 0,
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
+        $response->assertSee(__('Customer created.'), false);
+
+        $this->assertDatabaseHas('customers', [
+            'company_name' => 'Commercial Desk Customer Ltd',
             'company_id' => $company->id,
         ]);
     }

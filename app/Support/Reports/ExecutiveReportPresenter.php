@@ -14,6 +14,7 @@ use App\Models\Procurement\PurchaseRequest;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
+use App\Support\Commercial\Intelligence\CommercialExecutiveDashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -22,6 +23,7 @@ class ExecutiveReportPresenter
     public function __construct(
         protected IntelligenceScopeResolver $scopeResolver,
         protected IntelligenceAggregateQueries $queries,
+        protected CommercialExecutiveDashboardService $commercialIntelligence,
     ) {}
 
     /**
@@ -135,7 +137,29 @@ class ExecutiveReportPresenter
             ['title' => __('Production'), 'widgets' => $production],
             ['title' => __('Supply Chain'), 'widgets' => $supplyChain],
             ['title' => __('Accounting'), 'widgets' => $accounting],
+            ['title' => __('Commercial Intelligence'), 'widgets' => $this->commercialIntelligenceWidgets($scope)],
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function commercialIntelligenceWidgets(IntelligenceScope $scope): array
+    {
+        if (! $this->queries->hasTable('job_cost_sheets')) {
+            return [
+                $this->pending(__('Estimated margin'), 'chart-pie'),
+                $this->pending(__('Waste cost'), 'exclamation'),
+            ];
+        }
+
+        $widgets = $this->commercialIntelligence->widgets($scope);
+
+        return collect($widgets['kpis'] ?? [])->map(fn (array $kpi) => $this->metric(
+            $kpi['label'],
+            $kpi['value'],
+            $kpi['icon'] ?? 'chart-bar',
+        ))->all();
     }
 
     /**

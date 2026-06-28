@@ -7,16 +7,18 @@
     use App\Models\Artwork\ArtworkRequest;
     use App\Models\Communications\CommunicationLog;
     use App\Models\Production\ProductionJobCard;
+    use App\Models\Crm\CustomerArtwork;
     use App\Models\Sales\CustomerInvoice;
     use App\Models\Sales\CustomerPayment;
     use App\Models\Sales\Quotation;
     use App\Models\Sales\SalesOrder;
-    use App\Support\Communications\CommunicationLogService;
+    use App\Support\Commercial\Intelligence\CommercialCustomerProfitabilityService;
+    use App\Support\Sales\CustomerFinancialIntelligenceService;
     use App\Support\Commercial\ComplaintService;
     use App\Support\Communications\Email\EmailVisibilityService;
+    use App\Support\Communications\CommunicationLogService;
     use App\Support\EnumLabel;
 
-    $logService = app(CommunicationLogService::class);
     $user = auth()->user();
 
     $canQuotes = $user->can('quotations.view');
@@ -29,10 +31,32 @@
     $canCommLogs = $user->can('communications.logs.view');
     $canEmailView = $user->can('communications.email.view');
 
+    $commercialIntelligence = ($canInvoices || $canOrders)
+        ? app(CommercialCustomerProfitabilityService::class)->profile($customer)
+        : null;
+
+    $commercialRecentJobs = $canJobs
+        ? app(CommercialCustomerProfitabilityService::class)->recentJobs($customer, 5)
+        : [];
+
+    $financialSummary = $canInvoices
+        ? app(CustomerFinancialIntelligenceService::class)->profile($customer)
+        : null;
+
+    $logService = app(CommunicationLogService::class);
+
     $quotesTotal = $canQuotes ? Quotation::query()->where('customer_id', $customer->id)->count() : null;
     $ordersTotal = $canOrders ? SalesOrder::query()->where('customer_id', $customer->id)->count() : null;
     $invoicesTotal = $canInvoices ? CustomerInvoice::query()->where('customer_id', $customer->id)->count() : null;
     $paymentsTotal = $canPayments ? CustomerPayment::query()->where('customer_id', $customer->id)->count() : null;
+    $libraryArtworkTotal = $canArtwork
+        ? CustomerArtwork::query()->where('customer_id', $customer->id)->where('is_active_version', true)->count()
+        : null;
+
+    $receiptsTotal = $canPayments
+        ? CustomerPayment::query()->where('customer_id', $customer->id)->whereNotNull('receipt_number')->count()
+        : null;
+
     $artworkTotal = $canArtwork ? ArtworkRequest::query()->where('customer_id', $customer->id)->count() : null;
 
     $revenueTotal = $canInvoices
@@ -146,6 +170,7 @@
         'id' => $row->id,
         'number' => $row->{$numberKey},
         'status' => EnumLabel::of($row->status),
+        'status_value' => $row->status->value,
         'date' => $row->created_at,
         'url' => Route::has($routeName) ? route($routeName, $row) : null,
     ]);
@@ -160,6 +185,42 @@
         'artwork' => $canArtwork
             ? $mapRecord(ArtworkRequest::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.artwork.show', 'request_number')
             : collect(),
+        'library_artwork' => $canArtwork
+            ? CustomerArtwork::query()
+                ->where('customer_id', $customer->id)
+                ->where('is_active_version', true)
+                ->orderByDesc('uploaded_at')
+                ->limit(8)
+                ->get()
+                ->map(fn ($row) => [
+                    'id' => $row->id,
+                    'number' => $row->artwork_name,
+                    'status' => $row->status->label(),
+                    'status_value' => $row->status->value,
+                    'date' => $row->uploaded_at,
+                    'url' => route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'artwork']),
+                    'meta' => $row->versionLabel().' · '.$row->artwork_type->label(),
+                ])
+            : collect(),
+        'receipts' => $canPayments
+            ? CustomerPayment::query()
+                ->where('customer_id', $customer->id)
+                ->whereNotNull('receipt_number')
+                ->orderByDesc('payment_date')
+                ->limit(8)
+                ->get()
+                ->map(fn ($row) => [
+                    'id' => $row->id,
+                    'number' => $row->receipt_number,
+                    'status' => EnumLabel::of($row->status),
+                    'status_value' => $row->status->value,
+                    'date' => $row->payment_date ?? $row->created_at,
+                    'amount' => (float) $row->amount,
+                    'payment_number' => $row->payment_number,
+                    'payment_url' => route('admin.payments.show', $row),
+                    'url' => auth()->user()->can('viewReceipt', $row) ? route('admin.payments.receipt', $row) : null,
+                ])
+            : collect(),
         'invoices' => $canInvoices
             ? $mapRecord(CustomerInvoice::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.invoices.show', 'invoice_number')
             : collect(),
@@ -168,6 +229,7 @@
                 'id' => $row->id,
                 'number' => $row->payment_number,
                 'status' => EnumLabel::of($row->status),
+                'status_value' => $row->status->value,
                 'date' => $row->payment_date ?? $row->created_at,
                 'url' => route('admin.payments.show', $row),
             ])
@@ -176,9 +238,14 @@
             'quotations' => $quotesTotal,
             'orders' => $ordersTotal,
             'artwork' => $artworkTotal,
+            'library_artwork' => $libraryArtworkTotal,
             'invoices' => $invoicesTotal,
             'payments' => $paymentsTotal,
+            'receipts' => $receiptsTotal,
         ],
+        'intelligence' => $commercialIntelligence,
+        'recent_jobs' => $commercialRecentJobs,
+        'financial_summary' => $financialSummary,
     ];
 
     $openJobs = $canJobs

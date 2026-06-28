@@ -2,6 +2,7 @@
 
 namespace App\Support\Reports;
 
+use App\Enums\FulfilmentStatus;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Enums\InventoryMovementType;
 use App\Enums\ProductionJobCardStatus;
@@ -12,6 +13,7 @@ use App\Models\Dispatch\DeliveryNote;
 use App\Models\Inventory\InventoryMovement;
 use App\Models\Inventory\ProductionMaterialConsumption;
 use App\Models\Production\JobCostSheet;
+use App\Models\Production\ProductionFulfilment;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\QualityCheck;
@@ -228,6 +230,60 @@ class ProductionReportQueries
     }
 
     /**
+     * @return list<array<int, string|int|float>>
+     */
+    public function qualityFailReasonRows(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('quality_checks')) {
+            return [];
+        }
+
+        return QualityCheck::query()
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
+            ->whereBetween('checked_at', [$scope->fromDate.' 00:00:00', $scope->toDate.' 23:59:59'])
+            ->whereNotNull('fail_reason')
+            ->selectRaw('fail_reason, COUNT(*) as cnt, COALESCE(SUM(estimated_rework_qty), 0) as est_qty')
+            ->groupBy('fail_reason')
+            ->orderByDesc('cnt')
+            ->get()
+            ->map(fn ($row) => [
+                \App\Enums\QualityFailReason::tryFrom((string) $row->fail_reason)?->label() ?? (string) $row->fail_reason,
+                (int) $row->cnt,
+                round((float) $row->est_qty, 3),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array<int, string|int|float>>
+     */
+    public function reworkSummaryRows(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('quality_checks')) {
+            return [];
+        }
+
+        return QualityCheck::query()
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
+            ->whereBetween('checked_at', [$scope->fromDate.' 00:00:00', $scope->toDate.' 23:59:59'])
+            ->whereIn('result', [QualityCheckResult::Failed, QualityCheckResult::ReworkRequired])
+            ->with('jobCard:id,job_card_number')
+            ->orderByDesc('checked_at')
+            ->limit(200)
+            ->get()
+            ->map(fn (QualityCheck $check) => [
+                $check->jobCard?->job_card_number ?? '—',
+                $check->rework_reason?->label() ?? $check->fail_reason?->label() ?? '—',
+                round((float) $check->estimated_rework_qty, 3),
+                round((float) $check->actual_rework_qty, 3),
+                $check->checked_at?->format('Y-m-d') ?? '—',
+            ])
+            ->all();
+    }
+
+    /**
      * @return list<array<int, string>>
      */
     public function materialConsumptionRows(IntelligenceScope $scope): array
@@ -265,7 +321,10 @@ class ProductionReportQueries
             ->join('inventory_items', 'inventory_items.id', '=', 'inventory_movements.inventory_item_id')
             ->where('inventory_movements.company_id', $scope->companyId)
             ->when($scope->branchId, fn ($q) => $q->where('inventory_movements.branch_id', $scope->branchId))
-            ->where('inventory_movements.movement_type', InventoryMovementType::Adjustment)
+            ->whereIn('inventory_movements.movement_type', [
+                InventoryMovementType::ProductionWaste,
+                InventoryMovementType::Adjustment,
+            ])
             ->where('inventory_movements.quantity', '<', 0)
             ->whereDate('inventory_movements.movement_date', '>=', $scope->fromDate)
             ->whereDate('inventory_movements.movement_date', '<=', $scope->toDate)
@@ -287,11 +346,242 @@ class ProductionReportQueries
     }
 
     /**
+     * @return list<array<int, string>>
+     */
+    public function productionMaterialUsageRows(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('production_material_issues')) {
+            return $this->materialConsumptionRows($scope);
+        }
+
+        $rows = DB::table('production_material_issues')
+            ->join('inventory_items', 'inventory_items.id', '=', 'production_material_issues.inventory_item_id')
+            ->where('production_material_issues.company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('production_material_issues.branch_id', $scope->branchId))
+            ->whereDate('production_material_issues.issued_at', '>=', $scope->fromDate)
+            ->whereDate('production_material_issues.issued_at', '<=', $scope->toDate)
+            ->select(
+                'inventory_items.item_name',
+                DB::raw('SUM(production_material_issues.quantity) as issued_qty'),
+                DB::raw('SUM(production_material_issues.quantity * production_material_issues.unit_cost) as issued_cost'),
+            )
+            ->groupBy('inventory_items.id', 'inventory_items.item_name')
+            ->orderByDesc('issued_cost')
+            ->limit(50)
+            ->get();
+
+        return $rows->map(fn ($row) => [
+            $row->item_name,
+            number_format((float) $row->issued_qty, 2),
+            $this->aggregates->money((float) $row->issued_cost),
+        ])->all();
+    }
+
+    /**
+     * @return list<array<int, string>>
+     */
+    public function materialVarianceRows(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('production_material_requirements')) {
+            return [];
+        }
+
+        $rows = DB::table('production_material_requirements')
+            ->join('inventory_items', 'inventory_items.id', '=', 'production_material_requirements.inventory_item_id')
+            ->join('production_job_cards', 'production_job_cards.id', '=', 'production_material_requirements.production_job_card_id')
+            ->where('production_material_requirements.company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('production_material_requirements.branch_id', $scope->branchId))
+            ->whereDate('production_job_cards.created_at', '>=', $scope->fromDate)
+            ->whereDate('production_job_cards.created_at', '<=', $scope->toDate)
+            ->select(
+                'inventory_items.item_name',
+                DB::raw('SUM(production_material_requirements.required_quantity) as required_qty'),
+                DB::raw('SUM(production_material_requirements.consumed_quantity) as consumed_qty'),
+                DB::raw('SUM(production_material_requirements.required_quantity - production_material_requirements.consumed_quantity) as variance_qty'),
+            )
+            ->groupBy('inventory_items.id', 'inventory_items.item_name')
+            ->havingRaw('SUM(production_material_requirements.required_quantity - production_material_requirements.consumed_quantity) != 0')
+            ->orderByDesc('variance_qty')
+            ->limit(50)
+            ->get();
+
+        return $rows->map(fn ($row) => [
+            $row->item_name,
+            number_format((float) $row->required_qty, 2),
+            number_format((float) $row->consumed_qty, 2),
+            number_format((float) $row->variance_qty, 2),
+        ])->all();
+    }
+
+    /**
      * @return array{on_time: int, late: int, throughput: int, on_time_rate: float}
      */
     public function dispatchMetrics(IntelligenceScope $scope): array
     {
         return $this->production360->dispatchMetrics($scope);
+    }
+
+    /**
+     * @return array{ready_for_collection: int, collected: int, delivered: int, outstanding_collections: int, outstanding_deliveries: int}
+     */
+    public function fulfilmentMetrics(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('production_fulfilments')) {
+            return [
+                'ready_for_collection' => 0,
+                'collected' => 0,
+                'delivered' => 0,
+                'outstanding_collections' => 0,
+                'outstanding_deliveries' => 0,
+            ];
+        }
+
+        $base = ProductionFulfilment::query()
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId));
+
+        return [
+            'ready_for_collection' => (int) (clone $base)
+                ->where('status', FulfilmentStatus::ReadyForCollection)
+                ->whereDate('prepared_at', '>=', $scope->fromDate)
+                ->whereDate('prepared_at', '<=', $scope->toDate)
+                ->count(),
+            'collected' => (int) (clone $base)
+                ->where('status', FulfilmentStatus::Collected)
+                ->whereDate('collected_at', '>=', $scope->fromDate)
+                ->whereDate('collected_at', '<=', $scope->toDate)
+                ->count(),
+            'delivered' => (int) (clone $base)
+                ->where('status', FulfilmentStatus::Delivered)
+                ->whereDate('delivered_at', '>=', $scope->fromDate)
+                ->whereDate('delivered_at', '<=', $scope->toDate)
+                ->count(),
+            'outstanding_collections' => (int) (clone $base)
+                ->where('status', FulfilmentStatus::ReadyForCollection)
+                ->count(),
+            'outstanding_deliveries' => (int) (clone $base)
+                ->where('status', FulfilmentStatus::Dispatched)
+                ->count(),
+        ];
+    }
+
+    /**
+     * @return list<array<int, string>>
+     */
+    public function readyForCollectionRows(IntelligenceScope $scope): array
+    {
+        return $this->fulfilmentRows($scope, FulfilmentStatus::ReadyForCollection, 'prepared_at', [
+            fn ($f) => $f->jobCard?->job_card_number ?? '—',
+            fn ($f) => $f->salesOrder?->order_number ?? '—',
+            fn ($f) => $f->prepared_at?->format('Y-m-d H:i') ?? '—',
+            fn ($f) => $f->preparedByUser?->name ?? '—',
+        ]);
+    }
+
+    /**
+     * @return list<array<int, string>>
+     */
+    public function collectedOrdersRows(IntelligenceScope $scope): array
+    {
+        return $this->fulfilmentRows($scope, FulfilmentStatus::Collected, 'collected_at', [
+            fn ($f) => $f->jobCard?->job_card_number ?? '—',
+            fn ($f) => $f->salesOrder?->order_number ?? '—',
+            fn ($f) => $f->collected_by_name ?? '—',
+            fn ($f) => $f->collected_at?->format('Y-m-d H:i') ?? '—',
+        ]);
+    }
+
+    /**
+     * @return list<array<int, string>>
+     */
+    public function fulfilmentDeliveredRows(IntelligenceScope $scope): array
+    {
+        return $this->fulfilmentRows($scope, FulfilmentStatus::Delivered, 'delivered_at', [
+            fn ($f) => $f->jobCard?->job_card_number ?? '—',
+            fn ($f) => $f->salesOrder?->order_number ?? '—',
+            fn ($f) => $f->received_by ?? $f->recipient_name ?? '—',
+            fn ($f) => $f->delivered_at?->format('Y-m-d H:i') ?? '—',
+        ]);
+    }
+
+    /**
+     * @return list<array<int, string|int>>
+     */
+    public function outstandingCollectionsRows(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('production_fulfilments')) {
+            return [];
+        }
+
+        return ProductionFulfilment::query()
+            ->with(['jobCard:id,job_card_number', 'salesOrder:id,order_number'])
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
+            ->where('status', FulfilmentStatus::ReadyForCollection)
+            ->orderBy('prepared_at')
+            ->limit(100)
+            ->get()
+            ->map(fn (ProductionFulfilment $f) => [
+                $f->jobCard?->job_card_number ?? '—',
+                $f->salesOrder?->order_number ?? '—',
+                $f->prepared_at?->format('Y-m-d H:i') ?? '—',
+                $f->prepared_at ? max(0, $f->prepared_at->diffInDays(now())) : 0,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return list<array<int, string>>
+     */
+    public function outstandingDeliveriesRows(IntelligenceScope $scope): array
+    {
+        if (! $this->aggregates->hasTable('production_fulfilments')) {
+            return [];
+        }
+
+        return ProductionFulfilment::query()
+            ->with(['jobCard:id,job_card_number', 'salesOrder:id,order_number'])
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
+            ->where('status', FulfilmentStatus::Dispatched)
+            ->orderBy('dispatched_at')
+            ->limit(100)
+            ->get()
+            ->map(fn (ProductionFulfilment $f) => [
+                $f->jobCard?->job_card_number ?? '—',
+                $f->salesOrder?->order_number ?? '—',
+                $f->recipient_name ?? '—',
+                $f->dispatched_at?->format('Y-m-d H:i') ?? '—',
+            ])
+            ->all();
+    }
+
+    /**
+     * @param  list<\Closure(ProductionFulfilment): string>  $mappers
+     * @return list<array<int, string>>
+     */
+    protected function fulfilmentRows(
+        IntelligenceScope $scope,
+        FulfilmentStatus $status,
+        string $dateColumn,
+        array $mappers,
+    ): array {
+        if (! $this->aggregates->hasTable('production_fulfilments')) {
+            return [];
+        }
+
+        return ProductionFulfilment::query()
+            ->with(['jobCard:id,job_card_number', 'salesOrder:id,order_number', 'preparedByUser:id,name'])
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
+            ->where('status', $status)
+            ->whereDate($dateColumn, '>=', $scope->fromDate)
+            ->whereDate($dateColumn, '<=', $scope->toDate)
+            ->orderByDesc($dateColumn)
+            ->limit(100)
+            ->get()
+            ->map(fn (ProductionFulfilment $f) => collect($mappers)->map(fn ($m) => $m($f))->all())
+            ->all();
     }
 
     /**

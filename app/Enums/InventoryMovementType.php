@@ -10,6 +10,9 @@ enum InventoryMovementType: string
     case TransferIn = 'transfer_in';
     case TransferOut = 'transfer_out';
     case ProductionConsumption = 'production_consumption';
+    case ProductionIssue = 'production_issue';
+    case ProductionReturn = 'production_return';
+    case ProductionWaste = 'production_waste';
     case WipTransfer = 'wip_transfer';
     case ProductionOutput = 'production_output';
     case FinishedGoodsReceipt = 'finished_goods_receipt';

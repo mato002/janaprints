@@ -44,7 +44,6 @@ class InventoryClassificationTest extends TestCase
         $this->actingAs($user)->post(route('admin.inventory.items.store'), [
             'inventory_category_id' => $category->id,
             'unit_of_measure_id' => $uom->id,
-            'sku' => 'CLASS-001',
             'item_name' => 'Classified Item',
             'stock_role' => InventoryStockRole::Consumable->value,
             'reorder_level' => 0,
@@ -54,7 +53,7 @@ class InventoryClassificationTest extends TestCase
         ])->assertRedirect();
 
         $this->assertDatabaseHas('inventory_items', [
-            'sku' => 'CLASS-001',
+            'item_name' => 'Classified Item',
             'stock_role' => InventoryStockRole::Consumable->value,
         ]);
     }
@@ -69,7 +68,6 @@ class InventoryClassificationTest extends TestCase
             ->post(route('admin.inventory.items.store'), [
                 'inventory_category_id' => $category->id,
                 'unit_of_measure_id' => $uom->id,
-                'sku' => 'BAD-ROLE',
                 'item_name' => 'Bad Role Item',
                 'stock_role' => 'not_a_role',
                 'reorder_level' => 0,

@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Enums\ArtworkRequestStatus;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\Artwork\ArtworkVersion;
 use Illuminate\Http\UploadedFile;
@@ -11,7 +12,8 @@ class ArtworkVersionService
 {
     public static function store(ArtworkRequest $request, UploadedFile $file, ?string $notes = null): ArtworkVersion
     {
-        $versionNumber = $request->current_version + 1;
+        $isFirstVersion = $request->lacksUploadedVersion();
+        $versionNumber = ((int) $request->versions()->max('version_number')) + 1;
         $directory = "artwork/{$request->company_id}/{$request->id}/versions";
         $storedPath = $file->store($directory, 'local');
 
@@ -27,6 +29,16 @@ class ArtworkVersionService
         ]);
 
         $request->update(['current_version' => $versionNumber]);
+
+        if ($request->status === ArtworkRequestStatus::Requested
+            && $request->status->canTransitionTo(ArtworkRequestStatus::InDesign)) {
+            $request->transitionTo(ArtworkRequestStatus::InDesign);
+        } elseif ($isFirstVersion && in_array($request->status, [
+            ArtworkRequestStatus::Submitted,
+            ArtworkRequestStatus::Approved,
+        ], true)) {
+            $request->update(['status' => ArtworkRequestStatus::InDesign]);
+        }
 
         return $version;
     }

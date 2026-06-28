@@ -28,6 +28,7 @@
                 'activities' => __('Activities'),
                 'notes' => __('Notes'),
                 'timeline' => __('Timeline'),
+                'artwork' => __('Artwork Library'),
             ] as $id => $label)
                 <button
                     type="button"
@@ -65,6 +66,9 @@
             </div>
             <div x-show="tab === 'timeline'" x-cloak class="crm-360__panel">
                 @include('admin.crm.customers.360.tab-timeline')
+            </div>
+            <div x-show="tab === 'artwork'" x-cloak class="crm-360__panel">
+                @include('admin.crm.customers.360.tab-artwork')
             </div>
         </div>
     </div>

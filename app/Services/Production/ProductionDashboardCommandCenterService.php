@@ -6,9 +6,13 @@ use App\Enums\ArtworkRequestStatus;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionPriority;
+use App\Enums\ProductionQueueStatus;
 use App\Models\Assets\MachineProfile;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionQueue;
+use App\Models\Production\QualityCheck;
 use App\Models\Production\WorkCenter;
+use App\Enums\QualityCheckResult;
 use App\Models\User;
 use App\Services\Assets\MachineDashboardService;
 use App\Services\Assets\MaintenanceDashboardService;
@@ -58,6 +62,8 @@ class ProductionDashboardCommandCenterService
             'maintenance_alerts' => $this->maintenanceAlerts(),
             'activity' => $this->timeline->recentForTenant(20),
             'quick_actions' => $this->quickActions($user),
+            'queue_widgets' => $this->queueWidgets($user),
+            'qc_widgets' => $this->qcWidgets($user),
         ];
     }
 
@@ -87,12 +93,12 @@ class ProductionDashboardCommandCenterService
             ->first();
 
         $definitions = [
-            ['key' => 'open', 'label' => __('Open Jobs'), 'value' => (int) ($row->open_jobs ?? 0), 'icon' => 'inbox', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view'],
-            ['key' => 'in_production', 'label' => __('In Production'), 'value' => (int) ($row->in_production ?? 0), 'icon' => 'cog', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'in_production']],
-            ['key' => 'awaiting_qc', 'label' => __('Awaiting QC'), 'value' => (int) ($row->awaiting_qc ?? 0), 'icon' => 'clipboard-check', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'query' => ['status' => 'pending']],
-            ['key' => 'ready_for_dispatch', 'label' => __('Ready Dispatch'), 'value' => (int) ($row->ready_for_dispatch ?? 0), 'icon' => 'truck', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'ready_for_dispatch']],
-            ['key' => 'delayed', 'label' => __('Delayed'), 'value' => (int) ($row->delayed_jobs ?? 0), 'icon' => 'exclamation', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view'],
-            ['key' => 'completed_today', 'label' => __('Completed Today'), 'value' => (int) ($row->completed_today ?? 0), 'icon' => 'check-circle', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'completed']],
+            ['key' => 'open', 'label' => __('Open Jobs'), 'value' => (int) ($row->open_jobs ?? 0), 'icon' => 'inbox', 'route' => 'admin.production.floor', 'permission' => 'production.view'],
+            ['key' => 'in_production', 'label' => __('In Production'), 'value' => (int) ($row->in_production ?? 0), 'icon' => 'cog', 'route' => 'admin.production.floor', 'permission' => 'production.view', 'query' => ['stage' => 'on_press']],
+            ['key' => 'awaiting_qc', 'label' => __('Awaiting QC'), 'value' => (int) ($row->awaiting_qc ?? 0), 'icon' => 'clipboard-check', 'route' => 'admin.production.floor', 'permission' => 'production.view', 'query' => ['stage' => 'qc']],
+            ['key' => 'ready_for_dispatch', 'label' => __('Ready Dispatch'), 'value' => (int) ($row->ready_for_dispatch ?? 0), 'icon' => 'truck', 'route' => 'admin.production.floor', 'permission' => 'production.view', 'query' => ['stage' => 'ready']],
+            ['key' => 'delayed', 'label' => __('Delayed'), 'value' => (int) ($row->delayed_jobs ?? 0), 'icon' => 'exclamation', 'route' => 'admin.production.floor', 'permission' => 'production.view', 'query' => ['overdue' => '1']],
+            ['key' => 'completed_today', 'label' => __('Completed Today'), 'value' => (int) ($row->completed_today ?? 0), 'icon' => 'check-circle', 'route' => 'admin.production.floor', 'permission' => 'production.view', 'query' => ['stage' => 'out']],
         ];
 
         return collect($definitions)
@@ -186,7 +192,7 @@ class ProductionDashboardCommandCenterService
                 'key' => 'dispatch',
                 'label' => __('Dispatch'),
                 'count' => (clone $base)->where('status', ProductionJobCardStatus::ReadyForDispatch)->count(),
-                'route' => 'admin.workspaces.dispatch',
+                'route' => 'admin.dispatch.dashboard',
                 'permission' => 'dispatch.view',
             ],
             [
@@ -291,7 +297,7 @@ class ProductionDashboardCommandCenterService
                     ->orderBy('planned_end_date')
                     ->limit(5)
                     ->get(),
-                viewAllRoute: 'admin.workspaces.dispatch',
+                viewAllRoute: 'admin.dispatch.dashboard',
                 viewAllPermission: 'dispatch.view',
                 user: $user,
             ),
@@ -632,5 +638,94 @@ class ProductionDashboardCommandCenterService
     {
         return Schema::hasTable('delivery_notes')
             && method_exists(ProductionJobCard::class, 'deliveryNotes');
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function queueWidgets(?User $user): array
+    {
+        $today = now()->toDateString();
+        $terminal = [
+            ProductionJobCardStatus::Completed->value,
+            ProductionJobCardStatus::ReadyForDispatch->value,
+            ProductionJobCardStatus::Cancelled->value,
+        ];
+
+        $waitingQueues = ProductionQueue::query()
+            ->forTenant()
+            ->where('status', ProductionQueueStatus::Waiting)
+            ->count();
+
+        $inProgress = ProductionJobCard::query()
+            ->forTenant()
+            ->whereIn('status', [
+                ProductionJobCardStatus::InProduction,
+                ProductionJobCardStatus::Rework,
+            ])
+            ->count();
+
+        $completedToday = ProductionJobCard::query()
+            ->forTenant()
+            ->where('status', ProductionJobCardStatus::Completed)
+            ->whereDate('updated_at', $today)
+            ->count();
+
+        $overdue = ProductionJobCard::query()
+            ->forTenant()
+            ->whereNotIn('status', $terminal)
+            ->where(function ($q) use ($today) {
+                $q->whereDate('required_date', '<', $today)
+                    ->orWhere(function ($inner) use ($today) {
+                        $inner->whereNull('required_date')
+                            ->whereNotNull('planned_end_date')
+                            ->whereDate('planned_end_date', '<', $today);
+                    });
+            })
+            ->count();
+
+        $outsourced = ProductionJobCard::query()
+            ->forTenant()
+            ->where('status', ProductionJobCardStatus::Outsourced)
+            ->count();
+
+        $centers = WorkCenter::query()->forTenant()->where('is_active', true)->get(['id', 'name']);
+        $metrics = $this->workCenters->metricsForCenters($centers->pluck('id'));
+        $workCenterLoad = $centers->sum(fn (WorkCenter $wc) => (int) ($metrics[$wc->id]['active_jobs'] ?? 0)
+            + (int) ($metrics[$wc->id]['queue_count'] ?? 0));
+
+        $definitions = [
+            ['key' => 'waiting', 'label' => __('Jobs Waiting'), 'value' => $waitingQueues, 'icon' => 'clock', 'route' => 'admin.production.queue.index', 'permission' => 'production.queue.view', 'query' => ['status' => 'waiting']],
+            ['key' => 'in_progress', 'label' => __('Jobs In Progress'), 'value' => $inProgress, 'icon' => 'cog', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'in_production']],
+            ['key' => 'completed_today', 'label' => __('Jobs Completed Today'), 'value' => $completedToday, 'icon' => 'check-circle', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'completed']],
+            ['key' => 'overdue', 'label' => __('Overdue Jobs'), 'value' => $overdue, 'icon' => 'exclamation', 'route' => 'admin.production.scheduling.index', 'permission' => 'production.scheduling.view'],
+            ['key' => 'work_center_load', 'label' => __('Work Center Load'), 'value' => $workCenterLoad, 'icon' => 'office-building', 'route' => 'admin.production.work-centers.index', 'permission' => 'production.work-centers.view'],
+            ['key' => 'outsourced', 'label' => __('Outsourced Jobs'), 'value' => $outsourced, 'icon' => 'truck', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'outsourced']],
+        ];
+
+        return collect($definitions)
+            ->map(fn (array $card) => $this->presentKpiCard($card, $user))
+            ->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function qcWidgets(?User $user): array
+    {
+        $today = now()->toDateString();
+        $checks = QualityCheck::query()->forTenant();
+
+        $definitions = [
+            ['key' => 'pending_inspection', 'label' => __('Pending Inspection'), 'value' => ProductionJobCard::query()->forTenant()->where('status', ProductionJobCardStatus::QualityCheck)->count(), 'icon' => 'clipboard-check', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'query' => ['status' => 'pending']],
+            ['key' => 'passed_today', 'label' => __('Passed Today'), 'value' => (clone $checks)->where('result', QualityCheckResult::Passed)->whereDate('checked_at', $today)->count(), 'icon' => 'check-circle', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'query' => ['status' => 'passed', 'date' => $today]],
+            ['key' => 'failed_today', 'label' => __('Failed Today'), 'value' => (clone $checks)->where('result', QualityCheckResult::Failed)->whereDate('checked_at', $today)->count(), 'icon' => 'x-circle', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'query' => ['status' => 'failed', 'date' => $today]],
+            ['key' => 'awaiting_approval', 'label' => __('Awaiting Approval'), 'value' => ProductionJobCard::query()->forTenant()->where('status', ProductionJobCardStatus::AwaitingCustomerApproval)->count(), 'icon' => 'clock', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'awaiting_customer_approval']],
+            ['key' => 'rework_jobs', 'label' => __('Rework Jobs'), 'value' => ProductionJobCard::query()->forTenant()->where('status', ProductionJobCardStatus::Rework)->count(), 'icon' => 'refresh', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'query' => ['status' => 'rework']],
+        ];
+
+        return collect($definitions)
+            ->map(fn (array $card) => $this->presentKpiCard($card, $user))
+            ->all();
     }
 }

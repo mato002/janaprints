@@ -1,6 +1,6 @@
 <x-layouts.client :title="__('Quotes')" :heading="__('Quotes')">
     <div class="client-table-wrap">
-        <table class="client-table">
+        <table class="client-table client-table--cards">
             <thead>
                 <tr>
                     <th>{{ __('Quote') }}</th>
@@ -14,12 +14,12 @@
             <tbody>
                 @forelse ($quotations as $quotation)
                     <tr>
-                        <td>{{ $quotation->quotation_number }}</td>
-                        <td>{{ $quotation->quotation_date?->format('M j, Y') }}</td>
-                        <td>{{ $quotation->valid_until?->format('M j, Y') ?: '—' }}</td>
-                        <td>KES {{ number_format((float) $quotation->total_amount, 0) }}</td>
-                        <td>@include('client.partials.status-badge', ['status' => $quotation->status])</td>
-                        <td><a href="{{ route('client.quotations.show', $quotation) }}" class="client-link">{{ __('Open') }}</a></td>
+                        <td data-label="{{ __('Quote') }}">{{ $quotation->quotation_number }}</td>
+                        <td data-label="{{ __('Date') }}">{{ $quotation->quotation_date?->format('M j, Y') }}</td>
+                        <td data-label="{{ __('Valid until') }}">{{ $quotation->valid_until?->format('M j, Y') ?: '—' }}</td>
+                        <td data-label="{{ __('Amount') }}">KES {{ number_format((float) $quotation->total_amount, 0) }}</td>
+                        <td data-label="{{ __('Status') }}">@include('client.partials.status-badge', ['status' => $quotation->status])</td>
+                        <td data-label="{{ __('Action') }}"><a href="{{ route('client.quotations.show', $quotation) }}" class="client-link">{{ __('Open') }}</a></td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="client-empty">{{ __('No quotes available yet.') }}</td></tr>

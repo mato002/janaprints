@@ -29,7 +29,7 @@
         </x-slot>
         <x-slot name="body">
             @forelse ($items as $item)
-                <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->category?->name ?? '').' '.($item->subcategory?->name ?? '').' '.($item->brand?->name ?? ''))))">
+                <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->category?->name ?? '').' '.($item->subcategory?->name ?? '').' '.($item->brand_name ?? $item->brand?->name ?? ''))))">
                     <td>
                         <div class="font-medium">{{ $item->item_name }}</div>
                         <div class="font-mono text-[11px] text-slate-500">{{ $item->sku }}</div>
@@ -40,7 +40,7 @@
                         @endif
                     </td>
                     <td class="hidden md:table-cell">{{ $item->category?->name ?? '-' }} @if($item->subcategory)<span class="block text-xs text-slate-500">{{ $item->subcategory->name }}</span>@endif</td>
-                    <td class="hidden lg:table-cell">{{ $item->brand?->name ?? '-' }}</td>
+                    <td class="hidden lg:table-cell">{{ $item->brand_name ?? $item->brand?->name ?? '-' }}</td>
                     <td class="hidden lg:table-cell">{{ $item->images->isNotEmpty() ? __('Yes') : __('Missing') }}</td>
                     <td class="tabular-nums">{{ $item->reorder_level }}</td>
                     <td class="erp-table-actions-col">

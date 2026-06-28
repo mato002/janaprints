@@ -24,7 +24,7 @@ class ProductionJobCardObserver
 
     public function created(ProductionJobCard $jobCard): void
     {
-        JobCardStatusChanged::dispatch($jobCard->fresh(), $jobCard->status);
+        JobCardStatusChanged::dispatch($jobCard->fresh(), $jobCard->status, null);
     }
 
     public function updated(ProductionJobCard $jobCard): void
@@ -33,6 +33,11 @@ class ProductionJobCardObserver
             return;
         }
 
-        JobCardStatusChanged::dispatch($jobCard->fresh(), $jobCard->status);
+        $original = $jobCard->getOriginal('status');
+        $previous = $original instanceof ProductionJobCardStatus
+            ? $original
+            : ProductionJobCardStatus::tryFrom((string) $original);
+
+        JobCardStatusChanged::dispatch($jobCard->fresh(), $jobCard->status, $previous);
     }
 }

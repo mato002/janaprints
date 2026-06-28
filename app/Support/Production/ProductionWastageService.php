@@ -8,6 +8,7 @@ use App\Enums\ProductionWasteType;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\ProductionMaterialConsumption;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionMaterialRequirement;
 use App\Models\Production\ProductionWastageRecord;
 use App\Support\Inventory\InventoryCostingService;
 use App\Support\InventoryMovementService;
@@ -151,8 +152,8 @@ class ProductionWastageService
                 );
 
             $movementType = $flowType->isOutbound()
-                ? InventoryMovementType::ProductionConsumption
-                : InventoryMovementType::Adjustment;
+                ? InventoryMovementType::ProductionWaste
+                : InventoryMovementType::ProductionReturn;
 
             $signedQty = $flowType->isOutbound()
                 ? InventoryMovementService::issueQuantity($quantity)
@@ -194,6 +195,14 @@ class ProductionWastageService
             ]);
 
             JobCostingService::buildOrRefresh($jobCard);
+
+            $requirement = ProductionMaterialRequirement::query()
+                ->where('production_job_card_id', $jobCard->id)
+                ->where('inventory_item_id', $item->id)
+                ->first();
+            if ($requirement) {
+                app(MaterialRequirementsService::class)->syncRequirementFromConsumption($requirement);
+            }
 
             return $record;
         });

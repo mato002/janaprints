@@ -87,8 +87,10 @@ class ProductBomService
             $bom->lines()->create([
                 'inventory_item_id' => $line['inventory_item_id'],
                 'quantity_per_unit' => $line['quantity_per_unit'],
+                'quantity_formula' => $line['quantity_formula'] ?? null,
                 'waste_factor_percent' => $line['waste_factor_percent'] ?? 0,
                 'sort_order' => $line['sort_order'] ?? $index,
+                'is_active' => $line['is_active'] ?? true,
                 'notes' => $line['notes'] ?? null,
             ]);
         }
@@ -174,17 +176,80 @@ class ProductBomService
     }
 
     /**
+     * Sync catalog "required materials" to the product BOM.
+     *
+     * @param  list<array<string, mixed>>  $lines
+     */
+    public function syncFromCatalogItem(InventoryItem $item, array $lines, int $userId): ?ProductBom
+    {
+        $lines = collect($lines)
+            ->filter(fn (array $line) => ! empty($line['inventory_item_id']))
+            ->values()
+            ->all();
+
+        if ($lines === []) {
+            ProductBom::query()
+                ->where('company_id', $item->company_id)
+                ->where('branch_id', $item->branch_id)
+                ->where('finished_item_id', $item->id)
+                ->update(['is_active' => false]);
+
+            return null;
+        }
+
+        $bom = $this->findActiveForFinishedItem($item->company_id, $item->branch_id, $item->id);
+
+        $normalized = collect($lines)->map(function (array $line, int $index) {
+            $formula = trim((string) ($line['quantity_formula'] ?? ''));
+            $perUnit = (float) ($line['quantity_per_unit'] ?? 1);
+
+            return [
+                'inventory_item_id' => (int) $line['inventory_item_id'],
+                'quantity_per_unit' => $perUnit,
+                'quantity_formula' => $formula !== '' ? $formula : null,
+                'waste_factor_percent' => (float) ($line['waste_factor_percent'] ?? 0),
+                'is_active' => (bool) ($line['is_active'] ?? true),
+                'sort_order' => $index + 1,
+            ];
+        })->all();
+
+        if ($bom === null) {
+            return $this->create($item->company_id, $item->branch_id, $userId, [
+                'finished_item_id' => $item->id,
+                'name' => $item->item_name.' BOM',
+                'is_active' => true,
+            ], $normalized);
+        }
+
+        return $this->update($bom, [
+            'finished_item_id' => $item->id,
+            'name' => $bom->name,
+            'is_active' => true,
+        ], $normalized);
+    }
+
+    /**
      * @return Collection<int, array{line: ProductBomLine, required_quantity: float}>
      */
     public function requirementsForQuantity(ProductBom $bom, float $jobQuantity): Collection
     {
-        return $bom->lines->map(function (ProductBomLine $line) use ($jobQuantity) {
-            $required = round($line->effectiveQuantityPerUnit() * $jobQuantity, 3);
+        $formulaService = app(MaterialQuantityFormulaService::class);
 
-            return [
-                'line' => $line,
-                'required_quantity' => $required,
-            ];
-        });
+        return $bom->lines
+            ->filter(fn (ProductBomLine $line) => (bool) ($line->is_active ?? true))
+            ->map(function (ProductBomLine $line) use ($jobQuantity, $formulaService) {
+                $base = $formulaService->evaluate(
+                    $line->quantity_formula,
+                    $jobQuantity,
+                    (float) $line->quantity_per_unit,
+                );
+                $waste = (float) $line->waste_factor_percent;
+                $required = round($base * (1 + ($waste / 100)), 3);
+
+                return [
+                    'line' => $line,
+                    'required_quantity' => $required,
+                ];
+            });
     }
 }

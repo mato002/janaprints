@@ -13,6 +13,7 @@
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6 mb-4 text-sm">
         @foreach ([
             'material_cost' => __('Material'),
+            'wastage_cost' => __('Waste'),
             'labor_cost' => __('Labour'),
             'machine_cost' => __('Machine'),
             'outsourced_cost' => __('Outsourcing'),

@@ -168,6 +168,7 @@ class QuickCreateLookupTest extends TestCase
                 'inventory_category_id' => $category->id,
                 'unit_of_measure_id' => $unit->id,
                 'item_name' => 'Quick Item',
+                'stock_role' => 'raw_material',
                 'reorder_level' => 0,
                 'reorder_quantity' => 0,
                 'standard_cost' => 0,

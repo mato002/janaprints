@@ -16,10 +16,10 @@
         @foreach ($dashboard['metrics'] as $metric)
             @php
                 $icon = match ($metric['key']) {
-                    'balance' => 'currency',
-                    'quotes' => 'document',
                     'orders' => 'clipboard',
-                    'artwork' => 'palette',
+                    'collection' => 'inbox',
+                    'invoices' => 'receipt',
+                    'payments' => 'banknotes',
                     default => 'home',
                 };
             @endphp
@@ -108,6 +108,31 @@
                 @include('client.partials.empty-state', [
                     'icon' => 'receipt',
                     'message' => __('No invoices yet.'),
+                ])
+            @endforelse
+        </section>
+
+        <section class="client-panel">
+            <div class="client-panel__head">
+                <div class="client-panel__title-wrap">
+                    <span class="client-panel__icon"><x-client.icon name="banknotes" class="h-4 w-4" /></span>
+                    <h2 class="client-panel__title">{{ __('Recent payments') }}</h2>
+                </div>
+                <a href="{{ route('client.payments.index') }}" class="client-panel__link">
+                    {{ __('View all') }}
+                    <x-client.icon name="arrow-right" class="h-3.5 w-3.5" />
+                </a>
+            </div>
+            @forelse ($dashboard['recent_payments'] as $paymentRow)
+                @php($payment = $paymentRow['payment'])
+                <div class="client-list-item">
+                    <span class="client-list-item__primary">{{ $payment->payment_number }}</span>
+                    <span class="client-list-item__meta">KES {{ number_format((float) $payment->amount, 0) }}</span>
+                </div>
+            @empty
+                @include('client.partials.empty-state', [
+                    'icon' => 'banknotes',
+                    'message' => __('No payments recorded yet.'),
                 ])
             @endforelse
         </section>

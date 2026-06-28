@@ -19,7 +19,7 @@
 @endphp
 
 @if ($inFormModal)
-    <div @class(['erp-form-modal mx-auto w-full', $modalMaxWidth]) data-erp-form-modal-panel>
+    <div @class(['erp-form-modal mx-auto w-full max-w-[calc(100vw-2rem)]', $modalMaxWidth]) data-erp-form-modal-panel>
         <div class="erp-form-modal__header">
             <h2 id="erp-form-modal-title" class="erp-form-modal__title">{{ $title }}</h2>
             <button

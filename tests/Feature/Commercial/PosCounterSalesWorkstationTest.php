@@ -69,7 +69,6 @@ class PosCounterSalesWorkstationTest extends TestCase
         $item = InventoryItem::factory()->create([
             'company_id' => $company->id,
             'branch_id' => $branch->id,
-            'item_code' => 'BC-998877',
             'sku' => 'SKU-998877',
             'standard_cost' => 120,
         ]);
@@ -77,7 +76,7 @@ class PosCounterSalesWorkstationTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->getJson(route('admin.commercial.pos.counter-sales.products.search', ['barcode' => 'BC-998877']))
+            ->getJson(route('admin.commercial.pos.counter-sales.products.search', ['barcode' => 'SKU-998877']))
             ->assertOk()
             ->assertJsonPath('exact', true)
             ->assertJsonPath('products.0.id', $item->id);

@@ -2,13 +2,17 @@
 
 namespace App\Models\Sales;
 
+use App\Enums\ArtworkApprovalDecision;
+use App\Enums\ArtworkRequestStatus;
 use App\Enums\QuotationStatus;
+use App\Models\Artwork\ArtworkRequest;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Crm\Lead;
 use App\Models\User;
 use Database\Factories\Sales\QuotationFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -80,11 +84,6 @@ class Quotation extends Model
         return $this->hasMany(QuotationNote::class);
     }
 
-    public function attachments(): HasMany
-    {
-        return $this->hasMany(QuotationAttachment::class);
-    }
-
     public function preparer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'prepared_by');
@@ -98,6 +97,40 @@ class Quotation extends Model
     public function salesOrder(): HasOne
     {
         return $this->hasOne(SalesOrder::class);
+    }
+
+    public function artworkRequests(): HasMany
+    {
+        return $this->hasMany(ArtworkRequest::class);
+    }
+
+    public function artworkRequest(): HasOne
+    {
+        return $this->hasOne(ArtworkRequest::class)->latestOfMany();
+    }
+
+    public function scopeEligibleForSalesOrderConversion(Builder $query): Builder
+    {
+        return $query
+            ->where('status', QuotationStatus::Accepted)
+            ->whereNotNull('customer_id')
+            ->whereDoesntHave('salesOrder')
+            ->whereHas('artworkRequests', function (Builder $artworkQuery) {
+                $artworkQuery
+                    ->where('status', ArtworkRequestStatus::Approved)
+                    ->where('current_version', '>=', 1)
+                    ->whereHas('approvals', function (Builder $approvalQuery) {
+                        $approvalQuery
+                            ->where('decision', ArtworkApprovalDecision::Approved)
+                            ->whereExists(function ($versionQuery) {
+                                $versionQuery->selectRaw('1')
+                                    ->from('artwork_versions')
+                                    ->whereColumn('artwork_versions.id', 'artwork_approvals.artwork_version_id')
+                                    ->whereColumn('artwork_versions.artwork_request_id', 'artwork_requests.id')
+                                    ->whereColumn('artwork_versions.version_number', 'artwork_requests.current_version');
+                            });
+                    });
+            });
     }
 
     public function conversion(): HasOne

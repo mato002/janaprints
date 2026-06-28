@@ -79,6 +79,31 @@ class CustomerInvoiceFoundationTest extends TestCase
         session(['active_company_id' => $this->company->id, 'active_branch_id' => $this->branch->id]);
     }
 
+    public function test_full_invoice_uses_sales_order_tax_rate_not_global_default(): void
+    {
+        $order = SalesOrder::factory()->create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'status' => SalesOrderStatus::Confirmed,
+            'subtotal' => 5000,
+            'tax_amount' => 150,
+            'total_amount' => 5150,
+            'created_by' => $this->user->id,
+        ]);
+
+        $order->items()->create([
+            'item_name' => 'A5 Flyers',
+            'quantity' => 10,
+            'unit_price' => 500,
+            'line_total' => 5000,
+            'sort_order' => 1,
+        ]);
+
+        $invoice = app(CustomerInvoiceService::class)->createFromSalesOrder($order, $this->user->id);
+
+        $this->assertEqualsWithDelta(5150, (float) $invoice->total_amount, 0.01);
+    }
+
     public function test_creates_invoice_from_sales_order_and_posts_to_ar(): void
     {
         $service = app(CustomerInvoiceService::class);
@@ -142,7 +167,7 @@ class CustomerInvoiceFoundationTest extends TestCase
         ]);
         $viewer->assignRole('Viewer');
 
-        $this->actingAs($viewer)->get(route('admin.invoices.index'))->assertForbidden();
+        $this->actingAs($viewer)->get(route('admin.invoices.index', ['embedded' => '1']))->assertForbidden();
     }
 
     public function test_generates_invoice_number(): void
@@ -151,5 +176,79 @@ class CustomerInvoiceFoundationTest extends TestCase
 
         $this->assertNotEmpty($invoice->invoice_number);
         $this->assertSame(CustomerInvoiceStatus::Draft, $invoice->status);
+    }
+
+    public function test_create_invoice_from_sales_order_page_is_not_redirected_to_workspace_desk(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('admin.invoices.from-sales-order', $this->salesOrder))
+            ->assertOk()
+            ->assertSee(__('Create draft invoice'), false)
+            ->assertSee($this->salesOrder->order_number, false);
+    }
+
+    public function test_store_from_sales_order_creates_draft_invoice(): void
+    {
+        $this->actingAs($this->user)
+            ->post(route('admin.invoices.store-from-sales-order', $this->salesOrder), [
+                'invoice_type' => 'standard',
+                'invoice_date' => now()->toDateString(),
+            ])
+            ->assertRedirect();
+
+        $invoice = CustomerInvoice::query()->where('sales_order_id', $this->salesOrder->id)->first();
+        $this->assertNotNull($invoice);
+        $this->assertSame(CustomerInvoiceStatus::Draft, $invoice->status);
+        $this->assertGreaterThan(0, $invoice->lines()->count());
+    }
+
+    public function test_super_admin_invoice_workflow_shows_valid_actions_only(): void
+    {
+        $superAdmin = User::factory()->create([
+            'company_id' => $this->company->id,
+            'default_branch_id' => $this->branch->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $superAdmin->assignRole('Super Admin');
+
+        $service = app(CustomerInvoiceService::class);
+        $invoice = $service->createFromSalesOrder($this->salesOrder, $this->user->id);
+        $service->approve($invoice, $this->user->id);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.invoices.show', $invoice))
+            ->assertOk()
+            ->assertDontSee('>'.__('Approve').'</button>', false)
+            ->assertSee(__('Post to AR'), false);
+
+        $secondOrder = SalesOrder::factory()->create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'status' => SalesOrderStatus::Confirmed,
+            'subtotal' => 500,
+            'tax_amount' => 80,
+            'total_amount' => 580,
+            'created_by' => $this->user->id,
+        ]);
+        $secondOrder->items()->create([
+            'item_name' => 'Flyers',
+            'quantity' => 100,
+            'unit_price' => 5,
+            'line_total' => 500,
+            'sort_order' => 1,
+        ]);
+
+        $draft = $service->createFromSalesOrder($secondOrder, $this->user->id);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.invoices.show', $draft))
+            ->assertOk()
+            ->assertSee(__('Post to AR'), false);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.invoices.post', $draft))
+            ->assertRedirect()
+            ->assertSessionHasErrors('workflow');
     }
 }

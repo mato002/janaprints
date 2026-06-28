@@ -36,28 +36,7 @@ class SalesOrderProductionBridgeTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_start_production_auto_creates_job_card(): void
-    {
-        [$company, $branch, , $user, $salesOrder] = $this->productionContext([
-            'sales_orders.view', 'sales_orders.production',
-        ]);
-
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
-        $salesOrder->update(['status' => SalesOrderStatus::ReadyForProduction]);
-
-        $this->actingAs($user)
-            ->post(route('admin.sales-orders.start-production', $salesOrder))
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('production_job_cards', [
-            'sales_order_id' => $salesOrder->id,
-            'status' => ProductionJobCardStatus::Draft->value,
-        ]);
-        $this->assertEquals(SalesOrderStatus::InProduction, $salesOrder->fresh()->status);
-    }
-
-    public function test_start_production_reuses_existing_job_card(): void
+    public function test_release_to_production_reuses_existing_job_card(): void
     {
         [$company, $branch, , $user, $salesOrder] = $this->productionContext([
             'production.view', 'production.create',
@@ -68,76 +47,11 @@ class SalesOrderProductionBridgeTest extends TestCase
 
         $this->createJobCard($salesOrder, $user);
 
-        $existing = ProductionJobCard::query()->where('sales_order_id', $salesOrder->id)->firstOrFail();
-        $salesOrder->update(['status' => SalesOrderStatus::ReadyForProduction]);
-
         $this->actingAs($user)
-            ->post(route('admin.sales-orders.start-production', $salesOrder))
-            ->assertRedirect();
+            ->post(route('admin.sales-orders.release-to-production', $salesOrder))
+            ->assertSessionHasErrors('sales_order');
 
         $this->assertEquals(1, ProductionJobCard::query()->where('sales_order_id', $salesOrder->id)->count());
-        $this->assertEquals($existing->id, ProductionJobCard::query()->where('sales_order_id', $salesOrder->id)->value('id'));
-        $this->assertEquals(SalesOrderStatus::InProduction, $salesOrder->fresh()->status);
-    }
-
-    public function test_start_production_blocked_without_approved_artwork(): void
-    {
-        [$company, $branch, $customer, $user] = $this->productionContext([
-            'sales_orders.view', 'sales_orders.production',
-        ]);
-
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
-        $quotation = Quotation::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'customer_id' => $customer->id,
-            'prepared_by' => $user->id,
-            'status' => QuotationStatus::Converted,
-        ]);
-
-        $artwork = ArtworkRequest::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'customer_id' => $customer->id,
-            'quotation_id' => $quotation->id,
-            'requested_by' => $user->id,
-            'status' => ArtworkRequestStatus::Submitted,
-            'current_version' => 1,
-        ]);
-
-        $salesOrder = SalesOrder::factory()->create([
-            'company_id' => $company->id,
-            'branch_id' => $branch->id,
-            'customer_id' => $customer->id,
-            'quotation_id' => $quotation->id,
-            'artwork_request_id' => $artwork->id,
-            'status' => SalesOrderStatus::ReadyForProduction,
-            'created_by' => $user->id,
-        ]);
-
-        $this->actingAs($user)
-            ->post(route('admin.sales-orders.start-production', $salesOrder))
-            ->assertSessionHasErrors('artwork');
-
-        $this->assertDatabaseMissing('production_job_cards', ['sales_order_id' => $salesOrder->id]);
-        $this->assertEquals(SalesOrderStatus::ReadyForProduction, $salesOrder->fresh()->status);
-    }
-
-    public function test_ready_for_production_creates_job_card_when_eligible(): void
-    {
-        [$company, $branch, , $user, $salesOrder] = $this->productionContext([
-            'sales_orders.view', 'sales_orders.production',
-        ]);
-
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
-        $this->actingAs($user)
-            ->post(route('admin.sales-orders.ready-for-production', $salesOrder))
-            ->assertRedirect();
-
-        $this->assertDatabaseHas('production_job_cards', ['sales_order_id' => $salesOrder->id]);
-        $this->assertEquals(SalesOrderStatus::ReadyForProduction, $salesOrder->fresh()->status);
     }
 
     public function test_job_card_queue_syncs_sales_order_to_queued(): void

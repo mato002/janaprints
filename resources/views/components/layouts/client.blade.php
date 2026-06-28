@@ -1,20 +1,28 @@
 @props([
     'title' => 'Client Portal',
+    'fullMobileChat' => false,
 ])
 
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#0f2744">
+    @if (auth()->check() && auth()->user()->isClientPortalAccount())
+        <meta name="client-communications-unread-url" content="{{ route('client.communications.unread') }}">
+    @endif
     <title>{{ $title }} — {{ config('site.name', config('app.name')) }}</title>
     <x-site-favicon />
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700|plus-jakarta-sans:600,700,800&display=swap" rel="stylesheet">
     @vite(['resources/css/public.css', 'resources/js/public.js'])
 </head>
-<body class="font-sans antialiased public-page client-portal-page">
+<body @class([
+    'font-sans antialiased public-page client-portal-page',
+    'client-portal-page--chat' => $fullMobileChat,
+])>
     <x-public.header :transparent="false" portal />
 
     <div class="client-portal-wrap">
@@ -30,19 +38,20 @@
                     data-client-sidebar-toggle
                     aria-expanded="false"
                     aria-controls="client-sidebar"
+                    aria-label="{{ __('Open menu') }}"
                 >
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                    <span>{{ __('Menu') }}</span>
+                    <x-client.icon name="menu" class="h-5 w-5" />
                 </button>
-                <p class="client-mobile-toolbar__title">{{ $heading ?? $title }}</p>
+                <div class="client-mobile-toolbar__title-wrap">
+                    <p class="client-mobile-toolbar__eyebrow">{{ __('My account') }}</p>
+                    <p class="client-mobile-toolbar__title">{{ $heading ?? $title }}</p>
+                </div>
                 <x-client.profile-menu compact />
             </div>
 
             <div class="public-container public-container--wide client-portal-body">
                 @if (session('status'))
-                    <div class="client-alert client-alert--success" role="status">
+                    <div class="client-alert client-alert--success client-alert--toast" role="status" data-client-toast>
                         <x-client.icon name="sparkles" class="h-5 w-5 shrink-0" />
                         <span>{{ session('status') }}</span>
                     </div>
@@ -81,5 +90,7 @@
             </footer>
         </div>
     </div>
+
+    <x-client.bottom-nav />
 </body>
 </html>

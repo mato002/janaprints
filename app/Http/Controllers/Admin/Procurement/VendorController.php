@@ -5,18 +5,20 @@ namespace App\Http\Controllers\Admin\Procurement;
 use App\Enums\DocumentType;
 use App\Enums\VendorStatus;
 use App\Enums\VendorType;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Procurement\Concerns\ResolvesProcurementTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Procurement\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class VendorController extends Controller
 {
-    use ResolvesProcurementTenant, ScopesToTenant;
+    use HandlesModalFormResponses, ResolvesProcurementTenant, ScopesToTenant;
 
     public function index(): View
     {
@@ -39,7 +41,7 @@ class VendorController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', Vendor::class);
 
@@ -52,7 +54,10 @@ class VendorController extends Controller
             'vendor_code' => $this->nextNumber(DocumentType::Vendor, $companyId),
         ]);
 
-        return redirect()->route('admin.procurement.vendors.show', $vendor)->with('status', __('Vendor created.'));
+        return $this->modalOrRedirect(
+            __('Vendor created.'),
+            redirect()->route('admin.procurement.vendors.show', $vendor),
+        );
     }
 
     public function show(Vendor $vendor): View
@@ -83,13 +88,16 @@ class VendorController extends Controller
         ]);
     }
 
-    public function update(Request $request, Vendor $vendor): RedirectResponse
+    public function update(Request $request, Vendor $vendor): RedirectResponse|Response
     {
         $this->authorize('update', $vendor);
 
         $vendor->update($this->validateVendor($request));
 
-        return redirect()->route('admin.procurement.vendors.show', $vendor)->with('status', __('Vendor updated.'));
+        return $this->modalOrRedirect(
+            __('Vendor updated.'),
+            redirect()->route('admin.procurement.vendors.show', $vendor),
+        );
     }
 
     public function destroy(Vendor $vendor): RedirectResponse
@@ -106,7 +114,7 @@ class VendorController extends Controller
      */
     protected function validateVendor(Request $request): array
     {
-        return $request->validate([
+        $data = $request->validate([
             'vendor_name' => ['required', 'string', 'max:255'],
             'vendor_type' => ['required', Rule::enum(VendorType::class)],
             'phone' => ['nullable', 'string', 'max:50'],
@@ -117,5 +125,9 @@ class VendorController extends Controller
             'status' => ['required', Rule::enum(VendorStatus::class)],
             'notes' => ['nullable', 'string'],
         ]);
+
+        $data['is_production_vendor'] = $request->boolean('is_production_vendor');
+
+        return $data;
     }
 }

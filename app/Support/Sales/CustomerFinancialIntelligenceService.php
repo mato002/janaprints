@@ -73,6 +73,11 @@ class CustomerFinancialIntelligenceService
         ];
 
         $oldestOutstanding = $openInvoices->first();
+        $lastPayment = CustomerPayment::query()
+            ->where('customer_id', $customerId)
+            ->where('status', CustomerPaymentStatus::Posted)
+            ->latest('payment_date')
+            ->first(['id', 'payment_number', 'payment_date', 'amount']);
 
         return [
             'total_invoiced' => round($totalInvoiced, 2),
@@ -81,6 +86,21 @@ class CustomerFinancialIntelligenceService
             'outstanding' => round($outstanding, 2),
             'credit_balance' => $creditWallet['remaining_credit'],
             'overdue_amount' => $overdueAmount,
+            'outstanding_invoice_count' => $openInvoices->count(),
+            'overdue_invoice_count' => $openInvoices
+                ->filter(fn (CustomerInvoice $invoice) => ($invoice->due_date ?? $invoice->invoice_date)->toDateString() < $today)
+                ->count(),
+            'last_payment' => $lastPayment ? [
+                'payment_number' => $lastPayment->payment_number,
+                'payment_date' => $lastPayment->payment_date?->toDateString(),
+                'amount' => round((float) $lastPayment->amount, 2),
+            ] : null,
+            'credit_control' => [
+                'current' => round((float) ($agingBuckets['current'] ?? 0), 2),
+                'due' => round((float) ($agingBuckets['1_30'] ?? 0), 2),
+                'overdue' => round((float) (($agingBuckets['31_60'] ?? 0) + ($agingBuckets['61_90'] ?? 0)), 2),
+                'severely_overdue' => round((float) ($agingBuckets['90_plus'] ?? 0), 2),
+            ],
             'collection_risk' => $this->resolveCollectionRisk($agingBuckets, $overdueAmount, $outstanding),
             'average_payment_days' => $this->averagePaymentDays($customerId),
             'oldest_outstanding_invoice' => $oldestOutstanding ? [

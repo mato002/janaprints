@@ -144,7 +144,7 @@ class WorkCentersWorkspaceTest extends TestCase
                 'production_job_card_id' => $jobCard->id,
                 'work_center_id' => $workCenter->id,
                 'queue_position' => 1,
-                'status' => ProductionQueueStatus::Pending,
+                'status' => ProductionQueueStatus::Waiting,
             ]);
         }
 

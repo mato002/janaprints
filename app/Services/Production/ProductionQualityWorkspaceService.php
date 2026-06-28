@@ -32,6 +32,20 @@ class ProductionQualityWorkspaceService
             'pending_inspections' => (clone $jobs)
                 ->where('status', ProductionJobCardStatus::QualityCheck)
                 ->count(),
+            'passed_today' => (clone $checks)
+                ->where('result', QualityCheckResult::Passed)
+                ->whereDate('checked_at', now()->toDateString())
+                ->count(),
+            'failed_today' => (clone $checks)
+                ->where('result', QualityCheckResult::Failed)
+                ->whereDate('checked_at', now()->toDateString())
+                ->count(),
+            'awaiting_approval' => (clone $jobs)
+                ->where('status', ProductionJobCardStatus::AwaitingCustomerApproval)
+                ->count(),
+            'rework_jobs' => (clone $jobs)
+                ->where('status', ProductionJobCardStatus::Rework)
+                ->count(),
             'passed' => (clone $checks)->where('result', QualityCheckResult::Passed)->count(),
             'failed' => (clone $checks)->where('result', QualityCheckResult::Failed)->count(),
             'on_hold' => (clone $jobs)->where('status', ProductionJobCardStatus::OnHold)->count(),
@@ -111,6 +125,7 @@ class ProductionQualityWorkspaceService
         return match ($result) {
             QualityCheckResult::Passed => __('Passed'),
             QualityCheckResult::Failed => __('Failed'),
+            QualityCheckResult::ConditionalPass => __('Conditional pass'),
             QualityCheckResult::ReworkRequired => __('Rework required'),
         };
     }

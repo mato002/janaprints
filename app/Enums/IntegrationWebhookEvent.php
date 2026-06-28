@@ -17,7 +17,10 @@ enum IntegrationWebhookEvent: string
     case StockAdjusted = 'stock.adjusted';
     case InvoiceCreated = 'invoice.created';
     case InvoiceApproved = 'invoice.approved';
+    case InvoiceGenerated = 'invoice.generated';
     case PaymentReceived = 'payment.received';
+    case StatementGenerated = 'statement.generated';
+    case DeliveryCompleted = 'delivery.completed';
 
     public function label(): string
     {
@@ -34,7 +37,10 @@ enum IntegrationWebhookEvent: string
             self::StockAdjusted => __('Stock adjusted'),
             self::InvoiceCreated => __('Invoice created'),
             self::InvoiceApproved => __('Invoice approved'),
+            self::InvoiceGenerated => __('Invoice generated'),
             self::PaymentReceived => __('Payment received'),
+            self::StatementGenerated => __('Statement generated'),
+            self::DeliveryCompleted => __('Delivery completed'),
         };
     }
 
@@ -44,7 +50,8 @@ enum IntegrationWebhookEvent: string
             self::CustomerCreated, self::QuotationCreated, self::QuotationApproved, self::SalesOrderCreated => 'commercial',
             self::ArtworkApproved, self::ProductionStarted, self::ProductionCompleted => 'production',
             self::StockReceived, self::StockIssued, self::StockAdjusted => 'inventory',
-            self::InvoiceCreated, self::InvoiceApproved, self::PaymentReceived => 'finance',
+            self::InvoiceCreated, self::InvoiceApproved, self::InvoiceGenerated, self::PaymentReceived, self::StatementGenerated => 'finance',
+            self::DeliveryCompleted => 'production',
         };
     }
 }

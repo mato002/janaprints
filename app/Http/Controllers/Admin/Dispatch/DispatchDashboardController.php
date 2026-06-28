@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Admin\Dispatch;
 use App\Http\Controllers\Controller;
 use App\Models\Dispatch\DeliveryNote;
 use App\Services\Dispatch\DispatchDashboardService;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DispatchDashboardController extends Controller
 {
-    public function __invoke(DispatchDashboardService $dashboard): View
+    public function __invoke(Request $request, DispatchDashboardService $dashboard): View
     {
         $this->authorize('viewAny', DeliveryNote::class);
 
@@ -17,7 +18,7 @@ class DispatchDashboardController extends Controller
         $branchId = tenant()->branchId();
 
         return view('admin.dispatch.dashboard', [
-            'dashboard' => $dashboard->build($companyId, $branchId),
+            'dashboard' => $dashboard->build($companyId, $branchId, $request),
         ]);
     }
 }

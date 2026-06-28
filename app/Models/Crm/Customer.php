@@ -96,4 +96,22 @@ class Customer extends Model
     {
         return $this->portalUsers()->exists();
     }
+
+    public function artworks(): HasMany
+    {
+        return $this->hasMany(CustomerArtwork::class)->orderByDesc('uploaded_at');
+    }
+
+    public function activeArtworks(): HasMany
+    {
+        return $this->hasMany(CustomerArtwork::class)
+            ->where('is_active_version', true)
+            ->where('status', \App\Enums\CustomerArtworkStatus::Active)
+            ->orderBy('artwork_name');
+    }
+
+    public function productSerialProfiles(): HasMany
+    {
+        return $this->hasMany(CustomerProductSerialProfile::class);
+    }
 }

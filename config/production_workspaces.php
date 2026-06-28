@@ -8,12 +8,12 @@ return [
     'hub' => [
         [
             'label' => 'Operations',
-            'description' => 'Job cards, queue, workload, and production pipeline.',
+            'description' => 'Production floor, job execution, and pipeline.',
             'route' => 'admin.workspaces.production.section',
             'route_params' => ['section' => 'operations'],
             'permission' => 'production.view',
             'icon' => 'collection',
-            'active_routes' => ['admin.workspaces.production.section:operations', 'admin.production.dashboard', 'admin.production.job-cards.*', 'admin.production.queue.*'],
+            'active_routes' => ['admin.workspaces.production.section:operations', 'admin.production.floor', 'admin.production.home', 'admin.production.job-cards.*', 'admin.production.queue.*'],
         ],
         [
             'label' => 'Planning',
@@ -26,7 +26,7 @@ return [
         ],
         [
             'label' => 'Quality',
-            'description' => 'QC queue, checks, rejected jobs, and rework.',
+            'description' => 'QC inspections and rework follow-up.',
             'route' => 'admin.workspaces.production.section',
             'route_params' => ['section' => 'quality'],
             'permission' => 'production.quality.view',
@@ -40,7 +40,7 @@ return [
             'route_params' => ['section' => 'dispatch'],
             'permission' => 'dispatch.view',
             'icon' => 'truck',
-            'active_routes' => ['admin.workspaces.production.section:dispatch', 'admin.workspaces.dispatch', 'admin.dispatch.*'],
+            'active_routes' => ['admin.workspaces.production.section:dispatch', 'admin.dispatch.*'],
         ],
         [
             'label' => 'Reports',
@@ -49,29 +49,21 @@ return [
             'route_params' => ['section' => 'reports'],
             'permission' => 'reports.view|production.costing.view|intelligence.production.view',
             'icon' => 'chart-pie',
-            'active_routes' => ['admin.workspaces.production.section:reports', 'admin.reports.production', 'admin.reports.production360', 'admin.production.costing.*'],
-        ],
-        [
-            'label' => 'Printing Intelligence',
-            'description' => 'Cost bridge for materials, machines, ink, and quotation intelligence.',
-            'route' => 'admin.workspaces.printing-intelligence',
-            'permission' => 'printing.intelligence.view',
-            'icon' => 'color-swatch',
-            'cross_workspace' => true,
+            'active_routes' => ['admin.workspaces.production.section:reports', 'admin.reports.production', 'admin.reports.production360', 'admin.production.costing.*', 'admin.production.dashboard'],
         ],
     ],
 
     'sections' => [
         'operations' => [
             'title' => 'Operations',
-            'description' => 'Job execution, queue, and production pipeline.',
+            'description' => 'Run the shop floor from one register.',
             'icon' => 'collection',
             'groups' => [[
                 'label' => 'Operations',
                 'items' => [
-                    ['key' => 'command-center', 'label' => 'Production Command Center', 'description' => 'Live production intelligence and operational monitoring.', 'route' => 'admin.production.dashboard', 'permission' => 'production.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.production.dashboard']],
-                    ['key' => 'job-cards', 'label' => 'Job Cards', 'description' => 'Production order execution register.', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'icon' => 'collection', 'active_routes' => ['admin.production.job-cards.*']],
-                    ['key' => 'job-queue', 'label' => 'Production Queue', 'description' => 'Department queue and work assignment register.', 'route' => 'admin.production.queue.index', 'permission' => 'production.queue.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.production.queue.*']],
+                    ['key' => 'production-floor', 'label' => 'Production Floor', 'description' => 'Table-first shop floor register with next-step actions and vendor tracking.', 'route' => 'admin.production.floor', 'permission' => 'production.view', 'icon' => 'view-grid', 'count_key' => 'open_jobs', 'active_routes' => ['admin.production.floor', 'admin.production.home']],
+                    ['key' => 'job-cards', 'label' => 'All Job Cards', 'description' => 'Full job card register with advanced filters and exports.', 'route' => 'admin.production.job-cards.index', 'permission' => 'production.view', 'icon' => 'collection', 'count_key' => 'job_cards', 'active_routes' => ['admin.production.job-cards.*']],
+                    ['key' => 'job-queue', 'label' => 'Work Center Queue', 'description' => 'Department queue detail when you need per-center assignment.', 'route' => 'admin.production.queue.index', 'permission' => 'production.queue.view', 'icon' => 'switch-horizontal', 'count_key' => 'active_queue', 'active_routes' => ['admin.production.queue.*']],
                 ],
             ]],
         ],
@@ -94,7 +86,7 @@ return [
             'groups' => [[
                 'label' => 'Quality',
                 'items' => [
-                    ['key' => 'quality-control', 'label' => 'Quality Control', 'description' => 'Inspection and approval management.', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'icon' => 'badge-check', 'active_routes' => ['admin.production.quality.*']],
+                    ['key' => 'quality-control', 'label' => 'Quality Control', 'description' => 'Inspection register and approval queue.', 'route' => 'admin.production.quality.index', 'permission' => 'production.quality.view', 'icon' => 'badge-check', 'count_key' => 'pending_qc', 'active_routes' => ['admin.production.quality.*']],
                 ],
             ]],
         ],
@@ -105,7 +97,9 @@ return [
             'groups' => [[
                 'label' => 'Dispatch',
                 'items' => [
-                    ['key' => 'dispatch-workspace', 'label' => 'Dispatch Workspace', 'description' => 'Delivery planning and fulfillment operations.', 'route' => 'admin.workspaces.dispatch', 'permission' => 'dispatch.view', 'icon' => 'truck', 'active_routes' => ['admin.workspaces.dispatch', 'admin.dispatch.*']],
+                    ['key' => 'dispatch-desk', 'label' => 'Dispatch Desk', 'description' => 'Ready jobs and delivery notes — create, dispatch, and confirm in one register.', 'route' => 'admin.dispatch.dashboard', 'permission' => 'dispatch.view', 'icon' => 'truck', 'active_routes' => ['admin.dispatch.dashboard']],
+                    ['key' => 'delivery-notes', 'label' => 'Delivery Notes', 'description' => 'Full delivery note register with filters and exports.', 'route' => 'admin.dispatch.delivery-notes.index', 'permission' => 'dispatch.view', 'icon' => 'document-text', 'active_routes' => ['admin.dispatch.delivery-notes.*']],
+                    ['key' => 'delivery-calendar', 'label' => 'Delivery Calendar', 'description' => 'Scheduled deliveries by date.', 'route' => 'admin.dispatch.calendar', 'permission' => 'dispatch.view', 'icon' => 'calendar', 'active_routes' => ['admin.dispatch.calendar']],
                 ],
             ]],
         ],
@@ -116,6 +110,8 @@ return [
             'groups' => [[
                 'label' => 'Reports',
                 'items' => [
+                    ['key' => 'command-center', 'label' => 'Operations Intelligence', 'description' => 'Capacity, pipeline, and maintenance intelligence.', 'route' => 'admin.production.dashboard', 'permission' => 'production.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.production.dashboard']],
+                    ['key' => 'operational-registers', 'label' => 'Operational Registers', 'description' => 'Executive daily registers from live ERP data.', 'route' => 'admin.reports.operational-registers', 'permission' => 'reports.view|intelligence.production.view', 'icon' => 'table', 'active_routes' => ['admin.reports.operational-registers', 'admin.reports.operational-registers.print', 'admin.reports.operational-registers.export']],
                     ['key' => 'production-reports', 'label' => 'Production Reports', 'description' => 'Historical performance reporting.', 'route' => 'admin.reports.production', 'permission' => 'reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.reports.production', 'admin.reports.production.print']],
                     ['key' => 'production-360', 'label' => 'Production 360', 'description' => 'Strategic production intelligence.', 'route' => 'admin.reports.production360', 'permission' => 'intelligence.production.view|reports.view', 'icon' => 'sparkles', 'active_routes' => ['admin.reports.production360']],
                     ['key' => 'job-costing', 'label' => 'Job Costing & Profitability', 'description' => 'Job-level profitability and cost analysis.', 'route' => 'admin.production.costing.dashboard', 'permission' => 'production.costing.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.production.costing.*', 'admin.production.job-cards.costing']],

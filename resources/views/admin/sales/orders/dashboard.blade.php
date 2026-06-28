@@ -17,7 +17,9 @@
     <x-admin.card class="mt-6">
         <x-admin.quick-actions :items="[]">
             @can('create', App\Models\Sales\SalesOrder::class)
-                <a href="{{ route('admin.sales-orders.create') }}" class="erp-btn-primary">{{ __('New from quotation') }}</a>
+                <x-admin.form-modal-link :href="route('admin.sales-orders.create')">
+                    {{ __('New from quotation') }}
+                </x-admin.form-modal-link>
             @endcan
             <a href="{{ route('admin.sales-orders.index') }}" class="erp-btn-secondary">{{ __('All orders') }}</a>
         </x-admin.quick-actions>

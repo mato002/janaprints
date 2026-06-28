@@ -2,10 +2,15 @@
 
 namespace App\Models\Sales;
 
+use App\Enums\FulfilmentMethod;
+use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
 use App\Models\Artwork\ArtworkRequest;
+use App\Models\Crm\CustomerArtwork;
+use App\Models\Inventory\InventoryItem;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionSpecification;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\User;
@@ -25,10 +30,16 @@ class SalesOrder extends Model
 
     protected $fillable = [
         'company_id', 'branch_id', 'customer_id', 'quotation_id', 'artwork_request_id',
+        'inventory_item_id', 'uses_existing_artwork', 'customer_artwork_id',
+        'artwork_confirmed_by', 'artwork_confirmed_at',
         'order_number', 'order_date', 'required_date', 'status',
         'subtotal', 'tax_amount', 'discount_amount', 'total_amount',
         'invoiced_subtotal', 'invoiced_tax_amount', 'invoiced_total',
         'notes', 'created_by',
+        'is_direct_order', 'repeat_source_sales_order_id',
+        'fulfilment_method',
+        'billing_type', 'payment_terms_days',
+        'required_deposit_amount', 'deposit_invoiced_amount', 'deposit_paid_amount',
     ];
 
     protected function casts(): array
@@ -44,6 +55,15 @@ class SalesOrder extends Model
             'invoiced_subtotal' => 'decimal:2',
             'invoiced_tax_amount' => 'decimal:2',
             'invoiced_total' => 'decimal:2',
+            'uses_existing_artwork' => 'boolean',
+            'artwork_confirmed_at' => 'datetime',
+            'is_direct_order' => 'boolean',
+            'fulfilment_method' => FulfilmentMethod::class,
+            'billing_type' => SalesOrderBillingType::class,
+            'payment_terms_days' => 'integer',
+            'required_deposit_amount' => 'decimal:2',
+            'deposit_invoiced_amount' => 'decimal:2',
+            'deposit_paid_amount' => 'decimal:2',
         ];
     }
 
@@ -60,6 +80,21 @@ class SalesOrder extends Model
     public function artworkRequest(): BelongsTo
     {
         return $this->belongsTo(ArtworkRequest::class);
+    }
+
+    public function inventoryItem(): BelongsTo
+    {
+        return $this->belongsTo(InventoryItem::class);
+    }
+
+    public function customerArtwork(): BelongsTo
+    {
+        return $this->belongsTo(CustomerArtwork::class);
+    }
+
+    public function artworkConfirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'artwork_confirmed_by');
     }
 
     public function creator(): BelongsTo
@@ -90,6 +125,11 @@ class SalesOrder extends Model
     public function jobCard(): HasOne
     {
         return $this->hasOne(ProductionJobCard::class);
+    }
+
+    public function productionSpecifications(): HasMany
+    {
+        return $this->hasMany(ProductionSpecification::class);
     }
 
     public function invoices(): HasMany

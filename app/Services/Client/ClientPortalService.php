@@ -5,6 +5,7 @@ namespace App\Services\Client;
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\CustomerInvoiceStatus;
 use App\Enums\CustomerPaymentStatus;
+use App\Enums\FulfilmentStatus;
 use App\Enums\QuotationStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Artwork\ArtworkRequest;
@@ -30,11 +31,6 @@ class ClientPortalService
     {
         $customerId = (int) $customer->id;
 
-        $openQuotes = Quotation::query()
-            ->where('customer_id', $customerId)
-            ->whereIn('status', [QuotationStatus::Sent, QuotationStatus::Viewed])
-            ->count();
-
         $activeOrders = SalesOrder::query()
             ->where('customer_id', $customerId)
             ->whereNotIn('status', [
@@ -45,20 +41,33 @@ class ClientPortalService
             ])
             ->count();
 
-        $pendingArtwork = ArtworkRequest::query()
+        $awaitingCollection = SalesOrder::query()
             ->where('customer_id', $customerId)
-            ->where('status', ArtworkRequestStatus::Submitted)
+            ->whereHas('jobCard.fulfilment', fn ($query) => $query->where('status', FulfilmentStatus::ReadyForCollection))
+            ->count();
+
+        $outstandingInvoices = CustomerInvoice::query()
+            ->where('customer_id', $customerId)
+            ->where('status', CustomerInvoiceStatus::Posted)
+            ->where('balance_due', '>', 0)
+            ->count();
+
+        $recentPaymentCount = CustomerPayment::query()
+            ->where('customer_id', $customerId)
+            ->where('status', CustomerPaymentStatus::Posted)
+            ->where('payment_date', '>=', now()->subDays(90)->toDateString())
             ->count();
 
         $outstanding = $this->ledger->closingBalance($customerId);
 
         return [
             'metrics' => [
-                ['key' => 'balance', 'label' => __('Outstanding balance'), 'value' => $this->money($outstanding), 'tone' => $outstanding > 0 ? 'warning' : 'neutral'],
-                ['key' => 'quotes', 'label' => __('Quotes awaiting response'), 'value' => (string) $openQuotes, 'tone' => $openQuotes > 0 ? 'action' : 'neutral'],
                 ['key' => 'orders', 'label' => __('Active orders'), 'value' => (string) $activeOrders, 'tone' => 'neutral'],
-                ['key' => 'artwork', 'label' => __('Artwork to review'), 'value' => (string) $pendingArtwork, 'tone' => $pendingArtwork > 0 ? 'action' : 'neutral'],
+                ['key' => 'collection', 'label' => __('Awaiting collection'), 'value' => (string) $awaitingCollection, 'tone' => $awaitingCollection > 0 ? 'action' : 'neutral'],
+                ['key' => 'invoices', 'label' => __('Outstanding invoices'), 'value' => (string) $outstandingInvoices, 'tone' => $outstandingInvoices > 0 ? 'warning' : 'neutral'],
+                ['key' => 'payments', 'label' => __('Recent payments'), 'value' => (string) $recentPaymentCount, 'tone' => 'neutral'],
             ],
+            'outstanding_balance' => $outstanding,
             'recent_quotations' => $this->recentQuotations($customerId),
             'recent_orders' => $this->recentOrders($customerId),
             'recent_invoices' => $this->recentInvoices($customerId),

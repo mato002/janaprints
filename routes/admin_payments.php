@@ -70,4 +70,15 @@ Route::middleware(['auth', 'verified', 'tenant'])
                     Route::get('aging', [CustomerReceivablesController::class, 'aging'])->name('aging');
                 });
             });
+
+        Route::prefix('deposits')
+            ->name('admin.deposits.')
+            ->group(function () {
+                Route::middleware('permission:payments.create')->group(function () {
+                    Route::get('invoices/{invoice}/apply', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'applyForm'])->name('apply-form');
+                    Route::post('invoices/{invoice}/apply', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'apply'])->name('apply');
+                    Route::get('payments/{payment}/refund', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'refundForm'])->name('refund-form');
+                    Route::post('payments/{payment}/refund', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'refund'])->name('refund');
+                });
+            });
     });

@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Vendors')" :description="__('Supplier and vendor master data.')">
         <x-slot name="actions">
             @can('create', App\Models\Procurement\Vendor::class)
-                <a href="{{ route('admin.procurement.vendors.create') }}" class="erp-btn-primary">{{ __('Create vendor') }}</a>
+                <x-admin.form-modal-link :href="route('admin.procurement.vendors.create')">{{ __('Create vendor') }}</x-admin.form-modal-link>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -36,7 +36,7 @@
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.procurement.vendors.show', $vendor)">{{ __('View') }}</x-admin.table-row-action>
                             @can('update', $vendor)
-                                <x-admin.table-row-action :href="route('admin.procurement.vendors.edit', $vendor)">{{ __('Edit') }}</x-admin.table-row-action>
+                                <x-admin.table-row-action :href="route('admin.procurement.vendors.edit', $vendor)" data-erp-modal-open>{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan
                         </x-admin.table-row-actions>
                     </td>

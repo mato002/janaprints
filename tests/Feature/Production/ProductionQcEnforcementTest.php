@@ -34,7 +34,7 @@ class ProductionQcEnforcementTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_qc_pass_completes_job(): void
+    public function test_qc_pass_moves_job_ready_for_dispatch(): void
     {
         [$company, $branch, , $user, $salesOrder] = $this->productionContext([
             'production.view', 'production.create', 'production.qc',
@@ -53,10 +53,10 @@ class ProductionQcEnforcementTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
     }
 
-    public function test_qc_fail_puts_job_on_hold(): void
+    public function test_qc_fail_moves_job_to_rework(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext([
             'production.view', 'production.create', 'production.qc',
@@ -68,10 +68,11 @@ class ProductionQcEnforcementTest extends TestCase
         $this->actingAs($user)
             ->post(route('admin.production.quality-checks.store', $jobCard), [
                 'result' => QualityCheckResult::Failed->value,
+                'rework_reason' => \App\Enums\QualityReworkReason::BadPrint->value,
             ])
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::OnHold, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Rework, $jobCard->fresh()->status);
     }
 
     public function test_qc_rework_puts_job_in_rework(): void
@@ -86,6 +87,7 @@ class ProductionQcEnforcementTest extends TestCase
         $this->actingAs($user)
             ->post(route('admin.production.quality-checks.store', $jobCard), [
                 'result' => QualityCheckResult::ReworkRequired->value,
+                'rework_reason' => \App\Enums\QualityReworkReason::WrongArtwork->value,
             ])
             ->assertRedirect();
 
@@ -127,7 +129,7 @@ class ProductionQcEnforcementTest extends TestCase
             ->post(route('admin.production.job-cards.complete', $jobCard))
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
     }
 
     public function test_qc_submission_requires_production_qc_permission(): void

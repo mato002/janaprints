@@ -9,6 +9,8 @@ use App\Support\ArtworkFileHelper;
 use App\Support\ArtworkVersionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ArtworkVersionController extends Controller
 {
@@ -24,5 +26,19 @@ class ArtworkVersionController extends Controller
         ArtworkVersionService::store($artworkRequest, $validated['file'], $validated['notes'] ?? null);
 
         return back()->with('status', __('New artwork version uploaded.'));
+    }
+
+    public function preview(ArtworkRequest $artworkRequest, ArtworkVersion $version): BinaryFileResponse
+    {
+        abort_unless((int) $version->artwork_request_id === (int) $artworkRequest->id, 404);
+
+        $this->authorize('view', $version);
+
+        abort_unless($version->file_path && Storage::disk('local')->exists($version->file_path), 404);
+
+        return response()->file(Storage::disk('local')->path($version->file_path), [
+            'Content-Type' => $version->mime_type ?? 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="'.addslashes($version->original_name).'"',
+        ]);
     }
 }

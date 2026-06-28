@@ -7,7 +7,7 @@
     <x-slot name="action">
         <div class="flex flex-wrap items-center justify-center gap-3">
             @if ($canCreate && $createUrl)
-                <a href="{{ $createUrl }}" class="erp-btn-primary" data-turbo-frame="erp-main">{{ __('Create Job Card') }}</a>
+                <a href="{{ $createUrl }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create Job Card') }}</a>
             @endif
             @if ($salesOrdersUrl)
                 <a href="{{ $salesOrdersUrl }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ __('View Sales Orders') }}</a>

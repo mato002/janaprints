@@ -37,7 +37,8 @@ class AccountingWorkspaceEmbeddedTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.accounting.dashboard', ['embedded' => '1']))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('<!DOCTYPE html>', false);
     }
 
     public function test_accounting_dashboard_embedded_response_includes_workspace_frame_for_turbo_frame_request(): void

@@ -1,7 +1,9 @@
 <x-admin-layout :title="__('Sales orders')" :breadcrumbs="[['label' => __('Sales Orders'), 'url' => route('admin.sales-orders.dashboard')], ['label' => __('List')]]">
     <x-admin.page-header :title="__('Sales orders')">
         @can('create', App\Models\Sales\SalesOrder::class)
-            <a href="{{ route('admin.sales-orders.create') }}" class="erp-btn-primary">{{ __('New from quotation') }}</a>
+            <x-admin.form-modal-link :href="route('admin.sales-orders.create')">
+                {{ __('New from quotation') }}
+            </x-admin.form-modal-link>
         @endcan
     </x-admin.page-header>
 

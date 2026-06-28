@@ -44,6 +44,8 @@ use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\FormStatusOptionService;
 use App\Support\Platform\NumberingService;
 use App\Support\QuotationRevisionService;
+use App\Support\Sales\QuotationApprovalService;
+use App\Support\Sales\QuotationArtworkLinkService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -191,6 +193,7 @@ class QuickCreateLookupController extends Controller
         }
 
         $data = $this->formSettings->applyDefaults('customer', $validated, $companyId, $branchId);
+        $data['status'] ??= CustomerStatus::Active->value;
         [$data, $customData] = $this->partitionCustomFields('customer', $data, $companyId, $branchId);
 
         $customer = Customer::query()->create([
@@ -335,6 +338,7 @@ class QuickCreateLookupController extends Controller
 
         try {
             $header = $this->validateQuotationHeader($request, $companyId, $branchId);
+            $request->validate(['customer_artwork_id' => ['nullable', 'integer']]);
             ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
         } catch (ValidationException $exception) {
             return $this->lookupValidationResponse($request, $exception, 'admin.lookups.quick-create.quotation', array_merge(
@@ -370,7 +374,17 @@ class QuickCreateLookupController extends Controller
         $this->syncItems($quotation, $items, $totals);
         QuotationRevisionService::snapshot($quotation);
 
-        return $this->quickCreateResponse($quotation->id, $quotation->quotation_number, __('Quotation created.'));
+        app(QuotationApprovalService::class)->publishOnCreate($quotation->fresh(), (int) auth()->id());
+
+        if ($request->filled('customer_artwork_id')) {
+            app(QuotationArtworkLinkService::class)->linkFromLibrary(
+                $quotation->fresh(),
+                (int) $request->input('customer_artwork_id'),
+                (int) auth()->id(),
+            );
+        }
+
+        return $this->quickCreateResponse($quotation->id, $quotation->quotation_number, __('Quotation created and published.'));
     }
 
     public function createVendor(): View
@@ -645,28 +659,6 @@ class QuickCreateLookupController extends Controller
         $this->authorize('create', InventoryItem::class);
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->resolveTenantIds();
-
-        if (! filled($request->input('sku'))
-            && filled($request->input('item_name'))
-            && filled($request->input('inventory_category_id'))) {
-            $category = InventoryCategory::query()->findOrFail((int) $request->input('inventory_category_id'));
-            $subcategory = filled($request->input('subcategory_id'))
-                ? InventorySubcategory::query()->find((int) $request->input('subcategory_id'))
-                : null;
-            $brand = filled($request->input('brand_id'))
-                ? Brand::query()->find((int) $request->input('brand_id'))
-                : null;
-
-            $request->merge([
-                'sku' => $catalogue->structuredSku(
-                    $category,
-                    $subcategory,
-                    $brand,
-                    (string) $request->input('item_name'),
-                    $request->input('sku_parts', []),
-                ),
-            ]);
-        }
 
         try {
             $validated = $this->validateItemQuickCreate($request, $companyId, $branchId);
@@ -1015,7 +1007,6 @@ class QuickCreateLookupController extends Controller
             'website' => ['string', 'max:255'],
             'credit_limit' => ['numeric', 'min:0'],
             'payment_terms' => ['string', 'max:100'],
-            'status' => $this->statusOptions->validationRules('customer', $companyId, $branchId, false),
             'notes' => ['string'],
             'segment_ids' => ['array'],
             'segment_ids.*' => ['exists:customer_segments,id'],
@@ -1057,19 +1048,21 @@ class QuickCreateLookupController extends Controller
      */
     protected function validateItemQuickCreate(Request $request, int $companyId, int $branchId): array
     {
+        $this->formSettings->withoutHiddenInputs($request, 'inventory_item', $companyId, $branchId);
+
         return $request->validate($this->formSettings->mergeValidationRules('inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'subcategory_id' => ['nullable', Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'brand_id' => ['nullable', Rule::exists('brands', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'brand_name' => ['nullable', 'string', 'max:255'],
             'unit_of_measure_id' => [Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'sku' => ['string', 'max:50'],
-            'item_code' => ['nullable', 'string', 'max:50'],
             'item_name' => ['string', 'max:255'],
             'description' => ['string'],
             'reorder_level' => ['numeric', 'min:0'],
             'reorder_quantity' => ['numeric', 'min:0'],
             'standard_cost' => ['numeric', 'min:0'],
             'is_active' => ['boolean'],
+            'stock_role' => ['required', Rule::enum(\App\Enums\InventoryStockRole::class)],
         ], $companyId, $branchId));
     }
 
@@ -1149,11 +1142,9 @@ class QuickCreateLookupController extends Controller
         $subcategory = filled($data['subcategory_id'] ?? null)
             ? InventorySubcategory::query()->find($data['subcategory_id'])
             : null;
-        $brand = filled($data['brand_id'] ?? null)
-            ? Brand::query()->find($data['brand_id'])
-            : null;
+        $brandName = filled($data['brand_name'] ?? null) ? (string) $data['brand_name'] : null;
 
-        return $catalogue->structuredSku($category, $subcategory, $brand, (string) $data['item_name'], $request->input('sku_parts', []));
+        return $catalogue->structuredSku($category, $subcategory, $brandName, (string) $data['item_name'], $request->input('sku_parts', []));
     }
 
     public function createFormStatus(Request $request): View

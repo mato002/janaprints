@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductBomLine extends Model
 {
     protected $fillable = [
-        'product_bom_id', 'inventory_item_id', 'quantity_per_unit',
-        'waste_factor_percent', 'sort_order', 'notes',
+        'product_bom_id', 'inventory_item_id', 'quantity_per_unit', 'quantity_formula',
+        'waste_factor_percent', 'sort_order', 'is_active', 'notes',
     ];
 
     protected function casts(): array
@@ -19,6 +19,7 @@ class ProductBomLine extends Model
             'quantity_per_unit' => 'decimal:4',
             'waste_factor_percent' => 'decimal:2',
             'sort_order' => 'integer',
+            'is_active' => 'boolean',
         ];
     }
 

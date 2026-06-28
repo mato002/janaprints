@@ -4,15 +4,22 @@
     $salesOrder = $tabData['sales_order'] ?? null;
     $quotation = $tabData['quotation'] ?? null;
     $artwork = $tabData['artwork'] ?? null;
+    $queue = $tabData['queue'] ?? [];
+    $manufacturingSummary = $tabData['manufacturing_summary'] ?? [];
 @endphp
 
-@include('admin.production.job-cards.workspace.partials.workflow', [
-    'jobCard' => $jobCard,
-    'completion' => $tabData['completion'] ?? ['eligible' => false, 'blockers' => []],
-    'finishedItems' => $tabData['finished_items'] ?? collect(),
-])
-
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <x-admin.card class="lg:col-span-1">
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Queue status') }}</h3>
+        <dl class="space-y-2 text-sm">
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Current queue') }}</dt><dd>{{ $queue['status_label'] ?? __('—') }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Work center') }}</dt><dd>{{ $queue['work_center'] ?? __('—') }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Queue position') }}</dt><dd>{{ $queue['position'] ?? __('—') }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Priority') }}</dt><dd>{{ str_replace('_', ' ', $queue['priority'] ?? '—') }}</dd></div>
+            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Required date') }}</dt><dd>{{ $queue['required_date'] ?? __('—') }}</dd></div>
+        </dl>
+    </x-admin.card>
+
     <x-admin.card class="lg:col-span-1">
         <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Job summary') }}</h3>
         <dl class="space-y-2 text-sm">
@@ -66,6 +73,25 @@
     </div>
 </div>
 
+@if (! empty($manufacturingSummary))
+    <x-admin.card class="mt-6">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Manufacturing instructions') }}</h3>
+            <a href="{{ $manufacturingSummary['manufacturing_url'] }}" class="text-xs font-medium text-erp-primary">{{ __('Open manufacturing tab') }}</a>
+        </div>
+        @if ($manufacturingSummary['has_specification'] ?? false)
+            <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div><dt class="text-slate-500">{{ __('Product') }}</dt><dd class="font-medium">{{ $manufacturingSummary['product'] ?? '—' }}</dd></div>
+                <div><dt class="text-slate-500">{{ __('Quantity') }}</dt><dd class="font-medium">{{ $manufacturingSummary['quantity'] ?? '—' }}</dd></div>
+                <div><dt class="text-slate-500">{{ __('Production type') }}</dt><dd class="font-medium">{{ $manufacturingSummary['production_type'] ?? '—' }}</dd></div>
+                <div><dt class="text-slate-500">{{ __('Estimated sheets') }}</dt><dd class="font-medium">{{ $manufacturingSummary['estimated_sheets'] ?? '—' }}</dd></div>
+            </dl>
+        @else
+            <p class="text-sm text-slate-600">{{ $manufacturingSummary['empty_message'] ?? __('No structured Production Specification available.') }}</p>
+        @endif
+    </x-admin.card>
+@endif
+
 @php $machine = $tabData['machine'] ?? []; @endphp
 <x-admin.card class="mt-6">
     <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Assigned Machine') }}</h3>
@@ -114,3 +140,5 @@
     <p class="text-sm text-slate-700">{{ $tabData['status_explanation'] ?? '' }}</p>
     <p class="mt-3 text-sm"><span class="font-medium text-erp-primary">{{ __('Next action') }}:</span> {{ $tabData['next_action'] ?? '' }}</p>
 </x-admin.card>
+
+@include('admin.production.job-cards.workspace.partials.outsource', ['jobCard' => $jobCard, 'tabData' => $tabData])

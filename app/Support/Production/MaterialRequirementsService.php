@@ -7,6 +7,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\ProductionMaterialConsumption;
 use App\Models\Inventory\Warehouse;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionMaterialIssue;
 use App\Models\Production\ProductionMaterialRequirement;
 use App\Models\Production\ProductBom;
 use App\Support\Inventory\InventoryCostingService;
@@ -20,7 +21,37 @@ class MaterialRequirementsService
 {
     public function __construct(
         protected ProductBomService $bomService,
+        protected MaterialQuantityFormulaService $formulas,
     ) {}
+
+    /**
+     * Snapshot material requirements when a job card is created (idempotent).
+     */
+    public function snapshotForJobCard(ProductionJobCard $jobCard, int $userId): Collection
+    {
+        $warehouse = Warehouse::query()
+            ->where('company_id', $jobCard->company_id)
+            ->where('branch_id', $jobCard->branch_id)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
+
+        if ($warehouse === null) {
+            return collect();
+        }
+
+        if (ProductionMaterialRequirement::query()->where('production_job_card_id', $jobCard->id)->exists()) {
+            return ProductionMaterialRequirement::query()
+                ->where('production_job_card_id', $jobCard->id)
+                ->get();
+        }
+
+        try {
+            return $this->generate($jobCard, $warehouse->id, $userId, false);
+        } catch (ValidationException) {
+            return collect();
+        }
+    }
 
     /**
      * @return Collection<int, ProductionMaterialRequirement>
@@ -74,6 +105,7 @@ class MaterialRequirementsService
                     /** @var \App\Models\Production\ProductBomLine $line */
                     $line = $calc['line'];
                     $requiredQty = (float) $calc['required_quantity'];
+                    $formula = $line->quantity_formula;
                     $unitCost = InventoryCostingService::resolveIssueUnitCost(
                         $jobCard->company_id,
                         $jobCard->branch_id,
@@ -110,9 +142,13 @@ class MaterialRequirementsService
                         'inventory_item_id' => $line->inventory_item_id,
                         'warehouse_id' => $warehouse->id,
                         'job_quantity' => $source['quantity'],
+                        'quantity_formula' => $formula,
                         'required_quantity' => $requiredQty,
                         'reserved_quantity' => 0,
                         'consumed_quantity' => 0,
+                        'issued_quantity' => 0,
+                        'waste_quantity' => 0,
+                        'returned_quantity' => 0,
                         'unit_cost' => $unitCost,
                         'estimated_cost' => round($requiredQty * $unitCost, 2),
                         'status' => MaterialRequirementStatus::Planned,
@@ -235,10 +271,29 @@ class MaterialRequirementsService
             ->where('production_material_requirement_id', $requirement->id)
             ->sum('quantity');
 
+        $issued = (float) ProductionMaterialIssue::query()
+            ->where('production_material_requirement_id', $requirement->id)
+            ->sum('quantity');
+
+        $wasted = (float) \App\Models\Production\ProductionWastageRecord::query()
+            ->where('production_job_card_id', $requirement->production_job_card_id)
+            ->where('inventory_item_id', $requirement->inventory_item_id)
+            ->where('flow_type', \App\Enums\ProductionMaterialFlowType::Wasted)
+            ->sum('quantity');
+
+        $returned = (float) \App\Models\Production\ProductionWastageRecord::query()
+            ->where('production_job_card_id', $requirement->production_job_card_id)
+            ->where('inventory_item_id', $requirement->inventory_item_id)
+            ->where('flow_type', \App\Enums\ProductionMaterialFlowType::Returned)
+            ->sum('quantity');
+
         $reserved = min((float) $requirement->reserved_quantity, max(0, (float) $requirement->required_quantity - $consumed));
 
         $requirement->update([
             'consumed_quantity' => $consumed,
+            'issued_quantity' => $issued,
+            'waste_quantity' => $wasted,
+            'returned_quantity' => $returned,
             'reserved_quantity' => $reserved,
         ]);
 
@@ -271,7 +326,10 @@ class MaterialRequirementsService
                 'finished_product' => $row->finishedItem?->item_name,
                 'unit' => $row->inventoryItem?->unitOfMeasure?->code,
                 'required' => (float) $row->required_quantity,
+                'issued' => (float) $row->issued_quantity,
                 'consumed' => (float) $row->consumed_quantity,
+                'waste' => (float) $row->waste_quantity,
+                'returned' => (float) $row->returned_quantity,
                 'remaining' => $remaining,
                 'available' => $available,
                 'reserved' => (float) $row->reserved_quantity,
@@ -349,6 +407,15 @@ class MaterialRequirementsService
                 'finished_item_id' => (int) $orderItem->inventory_item_id,
                 'quantity' => (float) $orderItem->quantity,
                 'sales_order_item_id' => $orderItem->id,
+            ]);
+        }
+
+        if ($sources->isEmpty() && $jobCard->inventory_item_id) {
+            $qty = (float) ($jobCard->salesOrder?->items->sum('quantity') ?: 1);
+            $sources->push([
+                'finished_item_id' => (int) $jobCard->inventory_item_id,
+                'quantity' => $qty > 0 ? $qty : 1,
+                'sales_order_item_id' => null,
             ]);
         }
 

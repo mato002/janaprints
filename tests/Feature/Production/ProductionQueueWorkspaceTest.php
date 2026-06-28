@@ -37,17 +37,17 @@ class ProductionQueueWorkspaceTest extends TestCase
             'production_job_card_id' => $jobCard->id,
             'work_center_id' => $workCenter->id,
             'queue_position' => 1,
-            'status' => ProductionQueueStatus::Pending,
+            'status' => ProductionQueueStatus::Waiting,
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
         app()->instance(TenantContext::class, new TenantContext($company, $branch, false));
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.index'))
+            ->get(route('admin.production.queue.index', ['embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Production Queue'), false)
-            ->assertSee(__('Queue Register'), false)
+            ->assertSee(__('Department queue register'), false)
             ->assertSee(__('Queued'), false)
             ->assertSee(__('Blocked'), false)
             ->assertDontSee(__('Bottleneck Detection'), false)
@@ -91,23 +91,45 @@ class ProductionQueueWorkspaceTest extends TestCase
             'production_job_card_id' => $otherJob->id,
             'work_center_id' => $workCenter->id,
             'queue_position' => 2,
-            'status' => ProductionQueueStatus::Pending,
+            'status' => ProductionQueueStatus::Waiting,
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
         app()->instance(TenantContext::class, new TenantContext($company, $branch, false));
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.index', ['operator_id' => $operator->id]))
+            ->get(route('admin.production.queue.index', ['operator_id' => $operator->id, 'embedded' => '1']))
             ->assertOk()
             ->assertSee($jobCard->job_card_number, false)
             ->assertDontSee($otherJob->job_card_number, false);
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.index', ['operator_id' => 'unassigned']))
+            ->get(route('admin.production.queue.index', ['operator_id' => 'unassigned', 'embedded' => '1']))
             ->assertOk()
             ->assertSee($otherJob->job_card_number, false)
             ->assertDontSee($jobCard->job_card_number, false);
+    }
+
+    public function test_queue_workspace_filters_by_status_without_ambiguous_sql(): void
+    {
+        [$company, $branch, $user, $workCenter, $jobCard] = $this->queueContext();
+
+        ProductionQueue::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $jobCard->id,
+            'work_center_id' => $workCenter->id,
+            'queue_position' => 1,
+            'status' => ProductionQueueStatus::Waiting,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(TenantContext::class, new TenantContext($company, $branch, false));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.queue.index', ['status' => 'waiting', 'embedded' => '1']))
+            ->assertOk()
+            ->assertSee($jobCard->job_card_number, false);
     }
 
     public function test_queue_workspace_filters_by_work_center(): void
@@ -127,7 +149,7 @@ class ProductionQueueWorkspaceTest extends TestCase
         app()->instance(TenantContext::class, new TenantContext($company, $branch, false));
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.index', ['work_center_id' => $workCenter->id]))
+            ->get(route('admin.production.queue.index', ['work_center_id' => $workCenter->id, 'embedded' => '1']))
             ->assertOk()
             ->assertSee($jobCard->job_card_number, false);
     }

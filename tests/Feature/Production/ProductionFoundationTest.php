@@ -67,6 +67,38 @@ class ProductionFoundationTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_create_job_card_form_shows_guidance_when_no_eligible_sales_orders(): void
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::factory()->create(['company_id' => $company->id]);
+        $user = $this->productionUser($company, $branch, ['production.view', 'production.create']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.production.job-cards.create'))
+            ->assertOk()
+            ->assertSee(__('No sales orders are ready for a job card yet.'), false)
+            ->assertSee(__('Create job card'), false);
+    }
+
+    public function test_ready_for_production_sales_order_appears_on_create_form(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext([
+            'production.view', 'production.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $salesOrder->update(['status' => SalesOrderStatus::ReadyForProduction]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.create'))
+            ->assertOk()
+            ->assertSee($salesOrder->order_number, false);
+    }
+
     public function test_job_card_requires_confirmed_sales_order_and_approved_artwork(): void
     {
         [$company, $branch, $customer, $user, $salesOrder] = $this->productionContext([
@@ -138,7 +170,7 @@ class ProductionFoundationTest extends TestCase
         $this->assertDatabaseHas('production_queues', [
             'production_job_card_id' => $jobCard->id,
             'work_center_id' => $workCenter->id,
-            'status' => ProductionQueueStatus::Pending->value,
+            'status' => ProductionQueueStatus::Waiting->value,
         ]);
 
         $this->actingAs($user)

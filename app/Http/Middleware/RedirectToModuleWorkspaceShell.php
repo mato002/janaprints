@@ -71,10 +71,15 @@ class RedirectToModuleWorkspaceShell
 
     protected function isDetailRoute(string $routeName): bool
     {
-        foreach (['.create', '.edit', '.show', '.compose', '.document', '.receipt', '.pdf', '.footer-contact', '.seo-global', '.quick-create'] as $suffix) {
+        foreach (['.create', '.edit', '.show', '.preview', '.compose', '.document', '.receipt', '.pdf', '.export', '.print', '.footer-contact', '.seo-global', '.quick-create'] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }
+        }
+
+        // Document wizards such as invoice-from-order and bill-from-PO must not redirect to workspace desks.
+        if (preg_match('/\.from-[^.]+$/', $routeName) === 1) {
+            return true;
         }
 
         return false;

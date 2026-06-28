@@ -15,6 +15,7 @@ class OperationalDemoSeeder extends Seeder
 
         $this->call([
             InboxDemoSeeder::class,
+            ProductionCommandCentreDemoSeeder::class,
         ]);
 
         $this->command?->newLine();

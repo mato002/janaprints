@@ -203,6 +203,7 @@ class CustomerTimelineService
             self::FILTER_DISPATCH => array_merge(
                 [fn (Customer $c) => $this->dispatchEventsQuery($c)],
                 $this->deliveryNoteCollectors(),
+                $this->fulfilmentCollectors(),
             ),
             self::FILTER_ACCOUNTING => $this->accountingCollectors(),
             default => array_merge([
@@ -218,7 +219,7 @@ class CustomerTimelineService
                 fn (Customer $c) => $this->productionJobsQuery($c),
                 fn (Customer $c) => $this->qualityChecksQuery($c),
                 fn (Customer $c) => $this->dispatchEventsQuery($c),
-            ], $this->deliveryNoteCollectors(), $this->accountingCollectors()),
+            ], $this->deliveryNoteCollectors(), $this->fulfilmentCollectors(), $this->accountingCollectors()),
         };
     }
 
@@ -906,6 +907,111 @@ class CustomerTimelineService
             ));
 
         return $created->unionAll($dispatched)->unionAll($delivered)->unionAll($cancelled);
+    }
+
+    /**
+     * @return list<\Closure(Customer): Builder>
+     */
+    protected function fulfilmentCollectors(): array
+    {
+        if (! Schema::hasTable('production_fulfilments')) {
+            return [];
+        }
+
+        return [
+            fn (Customer $c) => $this->fulfilmentHistoryQuery($c),
+        ];
+    }
+
+    protected function fulfilmentHistoryQuery(Customer $customer): Builder
+    {
+        $ready = DB::table('production_fulfilments')
+            ->join('production_job_cards', 'production_job_cards.id', '=', 'production_fulfilments.production_job_card_id')
+            ->leftJoin('sales_orders', 'sales_orders.id', '=', 'production_fulfilments.sales_order_id')
+            ->leftJoin('users', 'users.id', '=', 'production_fulfilments.prepared_by')
+            ->where('production_job_cards.customer_id', $customer->id)
+            ->where('production_fulfilments.company_id', $customer->company_id)
+            ->when($customer->branch_id, fn (Builder $q) => $q->where('production_fulfilments.branch_id', $customer->branch_id))
+            ->whereNotNull('production_fulfilments.prepared_at')
+            ->select($this->eventSelect(
+                eventType: 'READY_FOR_COLLECTION',
+                title: $this->sqlConcat($this->sqlQuote(__('Order').' '), 'sales_orders.order_number', $this->sqlQuote(' '.__('ready for collection'))),
+                description: 'COALESCE(production_fulfilments.collection_notes, '."''".')',
+                eventDatetime: 'production_fulfilments.prepared_at',
+                actorName: 'COALESCE(users.name, '."'".__('System')."'".')',
+                actorType: 'user',
+                sourceType: 'production_fulfilment',
+                sourceId: 'production_fulfilments.id',
+                sourceRoute: 'admin.production.job-cards.show',
+                sourceRouteParam: 'jobCard',
+                icon: 'shopping-bag',
+                color: 'sky',
+                category: 'dispatch',
+                metadata: $this->jsonObject([
+                    'order' => 'sales_orders.order_number',
+                    'job_card_id' => 'production_job_cards.id',
+                ]),
+            ));
+
+        $collected = DB::table('production_fulfilments')
+            ->join('production_job_cards', 'production_job_cards.id', '=', 'production_fulfilments.production_job_card_id')
+            ->leftJoin('sales_orders', 'sales_orders.id', '=', 'production_fulfilments.sales_order_id')
+            ->where('production_job_cards.customer_id', $customer->id)
+            ->where('production_fulfilments.company_id', $customer->company_id)
+            ->when($customer->branch_id, fn (Builder $q) => $q->where('production_fulfilments.branch_id', $customer->branch_id))
+            ->where('production_fulfilments.status', 'collected')
+            ->whereNotNull('production_fulfilments.collected_at')
+            ->select($this->eventSelect(
+                eventType: 'COLLECTED',
+                title: $this->sqlConcat($this->sqlQuote(__('Order').' '), 'sales_orders.order_number', $this->sqlQuote(' '.__('collected'))),
+                description: 'COALESCE(production_fulfilments.collected_by_name, '."''".')',
+                eventDatetime: 'production_fulfilments.collected_at',
+                actorName: 'COALESCE(production_fulfilments.collected_by_name, '."'".__('Customer')."'".')',
+                actorType: 'customer',
+                sourceType: 'production_fulfilment',
+                sourceId: 'production_fulfilments.id',
+                sourceRoute: 'admin.production.job-cards.show',
+                sourceRouteParam: 'jobCard',
+                icon: 'check-circle',
+                color: 'emerald',
+                category: 'dispatch',
+                metadata: $this->jsonObject([
+                    'order' => 'sales_orders.order_number',
+                    'collection_date' => 'production_fulfilments.collected_at',
+                    'recipient' => 'production_fulfilments.collected_by_name',
+                ]),
+            ));
+
+        $delivered = DB::table('production_fulfilments')
+            ->join('production_job_cards', 'production_job_cards.id', '=', 'production_fulfilments.production_job_card_id')
+            ->leftJoin('sales_orders', 'sales_orders.id', '=', 'production_fulfilments.sales_order_id')
+            ->where('production_job_cards.customer_id', $customer->id)
+            ->where('production_fulfilments.company_id', $customer->company_id)
+            ->when($customer->branch_id, fn (Builder $q) => $q->where('production_fulfilments.branch_id', $customer->branch_id))
+            ->where('production_fulfilments.status', 'delivered')
+            ->whereNotNull('production_fulfilments.delivered_at')
+            ->select($this->eventSelect(
+                eventType: 'FULFILMENT_DELIVERED',
+                title: $this->sqlConcat($this->sqlQuote(__('Order').' '), 'sales_orders.order_number', $this->sqlQuote(' '.__('delivered'))),
+                description: 'COALESCE(production_fulfilments.received_by, production_fulfilments.recipient_name, '."''".')',
+                eventDatetime: 'production_fulfilments.delivered_at',
+                actorName: 'COALESCE(production_fulfilments.received_by, '."'".__('Customer')."'".')',
+                actorType: 'customer',
+                sourceType: 'production_fulfilment',
+                sourceId: 'production_fulfilments.id',
+                sourceRoute: 'admin.production.job-cards.show',
+                sourceRouteParam: 'jobCard',
+                icon: 'truck',
+                color: 'emerald',
+                category: 'dispatch',
+                metadata: $this->jsonObject([
+                    'order' => 'sales_orders.order_number',
+                    'delivery_date' => 'production_fulfilments.delivered_at',
+                    'recipient' => 'COALESCE(production_fulfilments.received_by, production_fulfilments.recipient_name)',
+                ]),
+            ));
+
+        return $ready->unionAll($collected)->unionAll($delivered);
     }
 
     /**

@@ -42,6 +42,7 @@
                 :placeholder="__('None')"
             />
             @endif
+            @include('admin.sales.quotations.partials.artwork-picker-field')
             @if(($fields['quotation_date']['visible'] ?? true))
             <div>
                 <label class="erp-label">{{ __('Quotation date') }}</label>

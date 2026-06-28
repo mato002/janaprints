@@ -115,7 +115,7 @@ return new class extends Migration
             $table->json('cc_emails')->nullable();
             $table->json('bcc_emails')->nullable();
             $table->string('subject');
-            $table->text('body');
+            $table->longText('body');
             $table->foreignId('communication_template_id')->nullable()->constrained()->nullOnDelete();
             $table->unsignedBigInteger('email_template_id')->nullable();
             $table->string('status', 20)->default('draft');

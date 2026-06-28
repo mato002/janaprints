@@ -45,6 +45,7 @@ use App\Enums\VendorStatus;
 use App\Enums\VendorType;
 use App\Enums\WebsiteGalleryCategory;
 use App\Models\Artwork\ArtworkRequest;
+use App\Models\Artwork\ArtworkVersion;
 use App\Models\Assets\AssetCategory;
 use App\Models\Assets\FixedAsset;
 use App\Models\Branch;
@@ -98,6 +99,7 @@ use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class OperationalDemoSeedService
@@ -438,7 +440,6 @@ class OperationalDemoSeedService
                 [
                     'inventory_category_id' => $ctx->paperCategory?->id,
                     'unit_of_measure_id' => $ctx->sheetUom->id,
-                    'item_code' => $row['sku'],
                     'item_name' => $row['name'],
                     'standard_cost' => $row['cost'],
                     'reorder_level' => 200,
@@ -646,6 +647,8 @@ class OperationalDemoSeedService
                 'current_version' => 1,
             ]);
 
+            $this->seedDemoArtworkVersion($artwork, $designer?->id ?? $preparer->id);
+
             $orderDate = Carbon::parse($quoteDate)->addDays(3)->toDateString();
             $oStatus = $orderStatuses[min($index, count($orderStatuses) - 1)];
 
@@ -678,6 +681,10 @@ class OperationalDemoSeedService
                 'line_total' => $subtotal,
                 'sort_order' => 1,
             ]);
+
+            if ($qStatus === QuotationStatus::Accepted) {
+                $quotation->update(['status' => QuotationStatus::Converted]);
+            }
         }
     }
 
@@ -1194,5 +1201,22 @@ class OperationalDemoSeedService
                 ]);
             }
         }
+    }
+
+    protected function seedDemoArtworkVersion(ArtworkRequest $artwork, int $uploadedBy): void
+    {
+        $path = "artwork/{$artwork->company_id}/{$artwork->id}/versions/demo-v1.pdf";
+        Storage::disk('local')->put($path, '%PDF-1.4 demo artwork placeholder');
+
+        ArtworkVersion::query()->create([
+            'artwork_request_id' => $artwork->id,
+            'version_number' => 1,
+            'file_path' => $path,
+            'original_name' => 'demo-artwork-v1.pdf',
+            'mime_type' => 'application/pdf',
+            'size' => Storage::disk('local')->size($path),
+            'uploaded_by' => $uploadedBy,
+            'notes' => 'Demo artwork file',
+        ]);
     }
 }

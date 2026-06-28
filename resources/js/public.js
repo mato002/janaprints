@@ -1422,6 +1422,19 @@ function initExitIntentStructure() {
 function initClientPortal() {
     initClientProfileMenu();
     initClientSidebar();
+    initClientCommunicationsUnread();
+    initClientChat();
+    initClientToasts();
+}
+
+function initClientToasts() {
+    document.querySelectorAll('[data-client-toast]').forEach((toast) => {
+        window.setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-0.5rem)';
+            window.setTimeout(() => toast.remove(), 300);
+        }, 3200);
+    });
 }
 
 function initClientProfileMenu() {
@@ -1515,6 +1528,494 @@ function initClientSidebar() {
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             close();
+        }
+    });
+}
+
+function initClientCommunicationsUnread() {
+    const meta = document.querySelector('meta[name="client-communications-unread-url"]');
+
+    if (!meta?.content) {
+        return;
+    }
+
+    const url = meta.content;
+
+    const renderBadge = (count) => {
+        const label = count > 99 ? '99+' : String(count);
+        const bottomLabel = count > 9 ? '9+' : String(count);
+
+        document.querySelectorAll('[data-client-comms-unread-badge]').forEach((badge) => {
+            if (count <= 0) {
+                badge.remove();
+
+                return;
+            }
+
+            if (badge.closest('[data-client-bottom-nav-link]')) {
+                badge.textContent = bottomLabel;
+            } else {
+                badge.textContent = label;
+            }
+
+            badge.setAttribute('aria-label', `${count} unread messages`);
+        });
+
+        if (count <= 0) {
+            return;
+        }
+
+        const commsSidebarLink = document.querySelector('[data-client-sidebar-link][href*="/client/communications"]');
+        const commsBottomLink = document.querySelector('[data-client-bottom-nav-link][href*="/client/communications"]');
+
+        [commsSidebarLink, commsBottomLink].forEach((link) => {
+            if (!link || link.querySelector('[data-client-comms-unread-badge]')) {
+                return;
+            }
+
+            const badge = document.createElement('span');
+            badge.className = link.hasAttribute('data-client-bottom-nav-link')
+                ? 'client-bottom-nav__badge'
+                : 'client-sidebar__badge';
+            badge.setAttribute('data-client-comms-unread-badge', '');
+            badge.textContent = link.hasAttribute('data-client-bottom-nav-link') ? bottomLabel : label;
+            badge.setAttribute('aria-label', `${count} unread messages`);
+
+            if (link.hasAttribute('data-client-bottom-nav-link')) {
+                const wrap = link.querySelector('.client-bottom-nav__icon-wrap') || link;
+                wrap.appendChild(badge);
+            } else {
+                link.appendChild(badge);
+            }
+        });
+    };
+
+    const poll = () => {
+        fetch(url, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+        })
+            .then((response) => (response.ok ? response.json() : null))
+            .then((data) => {
+                if (data && typeof data.unread === 'number') {
+                    renderBadge(data.unread);
+                }
+            })
+            .catch(() => {});
+    };
+
+    poll();
+    window.setInterval(poll, 30000);
+}
+
+function initClientChat() {
+    const chatRoot = document.querySelector('[data-client-chat]');
+    const scroll = document.getElementById('client-chat-scroll');
+    const composer = document.querySelector('[data-client-chat-composer]');
+
+    if (!chatRoot || !scroll) {
+        return;
+    }
+
+    let fingerprint = chatRoot.dataset.feedFingerprint || '';
+    const feedUrl = chatRoot.dataset.feedUrl || '';
+    let pollTimer = null;
+    let sending = false;
+
+    const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+    const isNearBottom = () => {
+        const threshold = 80;
+
+        return scroll.scrollHeight - scroll.scrollTop - scroll.clientHeight < threshold;
+    };
+
+    const scrollToBottom = (smooth = false) => {
+        scroll.scrollTo({
+            top: scroll.scrollHeight,
+            behavior: smooth ? 'smooth' : 'auto',
+        });
+    };
+
+    const bindLightbox = (root = document) => {
+        const lightboxPanel = root.querySelector('[data-client-chat-lightbox-panel]');
+        const lightboxImage = root.querySelector('[data-client-chat-lightbox-image]');
+        const lightboxClose = root.querySelector('[data-client-chat-lightbox-close]');
+
+        const closeLightbox = () => {
+            if (!lightboxPanel || !lightboxImage) {
+                return;
+            }
+
+            lightboxPanel.hidden = true;
+            lightboxPanel.classList.add('hidden');
+            lightboxImage.removeAttribute('src');
+        };
+
+        root.querySelectorAll('[data-client-chat-lightbox]').forEach((button) => {
+            if (button.dataset.lightboxBound === '1') {
+                return;
+            }
+
+            button.dataset.lightboxBound = '1';
+            button.addEventListener('click', () => {
+                const url = button.getAttribute('data-client-chat-lightbox');
+
+                if (!url || !lightboxPanel || !lightboxImage) {
+                    return;
+                }
+
+                lightboxImage.src = url;
+                lightboxPanel.hidden = false;
+                lightboxPanel.classList.remove('hidden');
+            });
+        });
+
+        if (lightboxClose && lightboxClose.dataset.lightboxBound !== '1') {
+            lightboxClose.dataset.lightboxBound = '1';
+            lightboxClose.addEventListener('click', closeLightbox);
+            lightboxPanel?.addEventListener('click', closeLightbox);
+            lightboxImage?.addEventListener('click', (event) => event.stopPropagation());
+        }
+    };
+
+    let onReplyToMessage = () => {};
+
+    const bindSwipeReply = (root) => {
+        root.querySelectorAll('[data-chat-row]').forEach((row) => {
+            if (row.dataset.swipeBound === '1') {
+                return;
+            }
+
+            row.dataset.swipeBound = '1';
+
+            const wrap = row.querySelector('[data-chat-bubble-wrap]');
+            const hint = row.querySelector('[data-chat-reply-hint]');
+
+            if (!wrap) {
+                return;
+            }
+
+            let startX = 0;
+            let startY = 0;
+            let tracking = false;
+            let swiping = false;
+
+            const reset = () => {
+                wrap.style.transform = '';
+                if (hint) {
+                    hint.style.opacity = '0';
+                }
+                row.classList.remove('is-swiping');
+                swiping = false;
+                tracking = false;
+            };
+
+            row.addEventListener('touchstart', (event) => {
+                if (event.touches.length !== 1) {
+                    return;
+                }
+
+                startX = event.touches[0].clientX;
+                startY = event.touches[0].clientY;
+                tracking = true;
+            }, { passive: true });
+
+            row.addEventListener('touchmove', (event) => {
+                if (!tracking) {
+                    return;
+                }
+
+                const dx = event.touches[0].clientX - startX;
+                const dy = Math.abs(event.touches[0].clientY - startY);
+
+                if (!swiping && dy > 12 && dy > Math.abs(dx)) {
+                    tracking = false;
+
+                    return;
+                }
+
+                if (dx <= 8) {
+                    return;
+                }
+
+                swiping = true;
+                row.classList.add('is-swiping');
+                const offset = Math.min(dx, 76);
+                wrap.style.transform = `translateX(${offset}px)`;
+                if (hint) {
+                    hint.style.opacity = String(Math.min(offset / 52, 1));
+                }
+            }, { passive: true });
+
+            row.addEventListener('touchend', () => {
+                if (!tracking && !swiping) {
+                    return;
+                }
+
+                const matrix = new DOMMatrixReadOnly(getComputedStyle(wrap).transform);
+                const offset = matrix.m41 || 0;
+
+                if (offset >= 52) {
+                    onReplyToMessage({
+                        body: row.dataset.messageBody || '',
+                        author: row.dataset.messageAuthor || '',
+                        from: row.dataset.messageFrom || '',
+                    });
+                }
+
+                reset();
+            });
+
+            row.addEventListener('touchcancel', reset);
+        });
+    };
+
+    const replaceMessages = (html, stickToBottom = true) => {
+        const wasNearBottom = isNearBottom();
+        const messages = scroll.querySelector('[data-client-chat-messages]');
+
+        if (!messages) {
+            return;
+        }
+
+        messages.outerHTML = html;
+        bindLightbox(scroll);
+        bindSwipeReply(scroll);
+
+        if (stickToBottom || wasNearBottom) {
+            scrollToBottom(true);
+        }
+    };
+
+    const refreshFeed = async (markRead = true) => {
+        if (!feedUrl || document.hidden) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${feedUrl}?mark_read=${markRead ? '1' : '0'}`, {
+                headers: { Accept: 'application/json' },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!data?.fingerprint || data.fingerprint === fingerprint) {
+                return;
+            }
+
+            fingerprint = data.fingerprint;
+            chatRoot.dataset.feedFingerprint = fingerprint;
+            replaceMessages(data.html, true);
+        } catch {
+            // ignore transient network errors
+        }
+    };
+
+    const startPolling = () => {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+        }
+
+        pollTimer = window.setInterval(() => refreshFeed(true), 4000);
+    };
+
+    const postJson = async (url, body, isFormData = false) => {
+        const headers = { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+            headers['X-CSRF-TOKEN'] = csrf();
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: isFormData ? { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': csrf() } : headers,
+            credentials: 'same-origin',
+            body: isFormData ? body : JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+            throw new Error('send_failed');
+        }
+
+        return response.json();
+    };
+
+    if (!composer) {
+        scrollToBottom(false);
+        bindLightbox(scroll);
+        bindSwipeReply(scroll);
+        startPolling();
+        return;
+    }
+
+    const replyPreview = composer.querySelector('[data-client-chat-reply-preview]');
+    const replyAuthorEl = composer.querySelector('[data-client-chat-reply-author]');
+    const replyTextEl = composer.querySelector('[data-client-chat-reply-text]');
+    const replyCancel = composer.querySelector('[data-client-chat-reply-cancel]');
+    const mainForm = composer.querySelector('[data-client-chat-form]');
+    const fileInput = composer.querySelector('[data-client-chat-file]');
+    const attachBtn = composer.querySelector('[data-client-chat-attach]');
+    const bodyInput = composer.querySelector('[data-client-chat-body]');
+    let replyContext = null;
+
+    const clearReply = () => {
+        replyContext = null;
+        replyPreview?.classList.add('hidden');
+        replyPreview?.setAttribute('hidden', '');
+    };
+
+    const setReply = (payload) => {
+        replyContext = payload;
+        if (replyAuthorEl) {
+            replyAuthorEl.textContent = payload.author || '';
+        }
+        if (replyTextEl) {
+            replyTextEl.textContent = payload.body || '';
+        }
+        replyPreview?.classList.remove('hidden');
+        replyPreview?.removeAttribute('hidden');
+        bodyInput?.focus();
+    };
+
+    onReplyToMessage = setReply;
+
+    const formatWithReply = (text) => {
+        if (!replyContext?.body || !text) {
+            return text;
+        }
+
+        const authorLine = replyContext.author ? `> [${replyContext.author}]` : null;
+        const bodyLines = replyContext.body
+            .split('\n')
+            .map((line) => `> ${line}`);
+        const quote = [authorLine, ...bodyLines].filter(Boolean).join('\n');
+
+        return `${quote}\n\n${text}`;
+    };
+
+    scrollToBottom(false);
+    bindLightbox(scroll);
+    bindSwipeReply(scroll);
+    startPolling();
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshFeed(true);
+        }
+    });
+
+    const fileChip = composer.querySelector('[data-client-chat-file-chip]');
+    const fileNameEl = composer.querySelector('[data-client-chat-file-name]');
+    const fileClear = composer.querySelector('[data-client-chat-file-clear]');
+    const sendBtn = composer.querySelector('[data-client-chat-send]');
+    const attachmentForm = composer.querySelector('[data-client-chat-attachment-form]');
+    const attachmentFile = composer.querySelector('[data-client-chat-attachment-file]');
+    const attachmentCaption = composer.querySelector('[data-client-chat-attachment-caption]');
+
+    const clearFile = () => {
+        if (fileInput) {
+            fileInput.value = '';
+        }
+
+        if (fileChip) {
+            fileChip.hidden = true;
+            fileChip.classList.add('hidden');
+        }
+
+        if (fileNameEl) {
+            fileNameEl.textContent = '';
+        }
+    };
+
+    const showFile = (file) => {
+        if (!file || !fileChip || !fileNameEl) {
+            return;
+        }
+
+        fileNameEl.textContent = file.name;
+        fileChip.hidden = false;
+        fileChip.classList.remove('hidden');
+    };
+
+    attachBtn?.addEventListener('click', () => fileInput?.click());
+
+    fileInput?.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        showFile(file);
+    });
+
+    fileClear?.addEventListener('click', clearFile);
+    replyCancel?.addEventListener('click', clearReply);
+
+    const submitAttachment = async (file, caption) => {
+        const formData = new FormData();
+        formData.append('_token', csrf());
+        formData.append('file', file);
+
+        if (caption) {
+            formData.append('caption', caption);
+        }
+
+        return postJson(attachmentForm?.action || '', formData, true);
+    };
+
+    mainForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        if (sending) {
+            return;
+        }
+
+        const file = fileInput?.files?.[0];
+        const rawBody = bodyInput?.value?.trim() ?? '';
+        const body = formatWithReply(rawBody);
+
+        if (!file && !rawBody) {
+            return;
+        }
+
+        sending = true;
+        sendBtn?.setAttribute('disabled', 'disabled');
+
+        try {
+            const data = file
+                ? await submitAttachment(file, body || rawBody)
+                : await postJson(mainForm.action, { body });
+
+            if (data?.html) {
+                fingerprint = data.fingerprint || fingerprint;
+                chatRoot.dataset.feedFingerprint = fingerprint;
+                replaceMessages(data.html, true);
+            }
+
+            if (bodyInput) {
+                bodyInput.value = '';
+            }
+
+            clearFile();
+            clearReply();
+        } catch {
+            if (file && attachmentForm && attachmentFile && attachmentCaption) {
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                attachmentFile.files = dataTransfer.files;
+                attachmentCaption.value = body;
+                attachmentForm.submit();
+
+                return;
+            }
+
+            mainForm.submit();
+        } finally {
+            sending = false;
+            sendBtn?.removeAttribute('disabled');
         }
     });
 }

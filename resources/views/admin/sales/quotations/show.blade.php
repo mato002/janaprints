@@ -24,9 +24,11 @@
     </div>
 
     @include('admin.sales.quotations.partials.printing-intelligence-estimate')
+    @include('admin.sales.quotations.partials.artwork-link')
 
     <x-admin.card class="mb-6">
         <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
+        <x-admin.workflow-error />
         <div class="workspace-action-bar flex flex-wrap gap-2">
             @if ($quotation->status === App\Enums\QuotationStatus::Draft)
                 @can('transition', $quotation)
@@ -107,24 +109,6 @@
             <form method="POST" action="{{ route('admin.quotations.notes.store', $quotation) }}" class="mt-3">@csrf
                 <textarea name="note" class="erp-input" rows="2" required></textarea>
                 <button class="erp-btn-secondary mt-2 text-sm">{{ __('Add note') }}</button>
-            </form>
-        </x-admin.card>
-
-        <x-admin.card>
-            <h3 class="font-medium mb-3">{{ __('Attachments') }}</h3>
-            @foreach ($quotation->attachments as $file)
-                <div class="text-sm flex justify-between py-1">
-                    <span>{{ $file->original_name }} ({{ $file->attachment_type->value }})</span>
-                </div>
-            @endforeach
-            <form method="POST" action="{{ route('admin.quotations.attachments.store', $quotation) }}" enctype="multipart/form-data" data-turbo-frame="_top" class="mt-3 space-y-2">@csrf
-                <select name="attachment_type" class="erp-input">
-                    @foreach (App\Enums\QuotationAttachmentType::cases() as $t)
-                        <option value="{{ $t->value }}">{{ $t->name }}</option>
-                    @endforeach
-                </select>
-                <input type="file" name="file" class="text-sm" required>
-                <button class="erp-btn-secondary text-sm">{{ __('Upload') }}</button>
             </form>
         </x-admin.card>
     </div>

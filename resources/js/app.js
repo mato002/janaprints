@@ -149,8 +149,8 @@ const erpModalManager = {
 
     prepareModalFormContent(root, sourceUrl = null) {
         root.querySelectorAll('form').forEach((form) => {
+            form.setAttribute('data-turbo', 'false');
             form.removeAttribute('data-turbo-frame');
-            form.removeAttribute('data-turbo');
 
             if (! form.querySelector('[name="_erp_modal"]')) {
                 const input = document.createElement('input');
@@ -173,8 +173,8 @@ const erpModalManager = {
     hasValidationErrors(doc) {
         return Boolean(
             doc?.querySelector('[data-erp-validation-errors]')
-            || doc?.querySelector('[data-erp-field-error]')
-            || doc?.querySelector('[role="alert"]'),
+            || doc?.querySelector('[data-erp-modal-error]')
+            || doc?.querySelector('[data-erp-field-error]'),
         );
     },
 
@@ -578,25 +578,76 @@ const erpModalManager = {
         }
     },
 
-    refreshTable() {
-        const frame = document.getElementById('erp-main');
+    resolveWorkspaceRefreshUrl() {
+        const workspaceFrame = document.getElementById('module-workspace-content');
+        const frameSrc = workspaceFrame?.src || workspaceFrame?.getAttribute('src') || '';
 
-        if (! frame || ! window.Turbo) {
+        if (frameSrc) {
+            return frameSrc;
+        }
+
+        const activeTab = document.querySelector(
+            '.module-workspace-switcher--secondary [data-workspace-tab][href].workspace-pill--active',
+        );
+
+        return activeTab?.getAttribute('href') || null;
+    },
+
+    refreshTable() {
+        if (! window.Turbo) {
             return Promise.resolve();
         }
 
         this.saveWorkspaceState();
 
+        const workspaceRefreshUrl = this.resolveWorkspaceRefreshUrl();
+
+        if (workspaceRefreshUrl) {
+            return window.Turbo.visit(workspaceRefreshUrl, {
+                frame: 'module-workspace-content',
+                action: 'replace',
+            }).then(() => {
+                this.restoreWorkspaceState();
+            });
+        }
+
+        const frame = document.getElementById('erp-main');
+
+        if (! frame) {
+            return Promise.resolve();
+        }
+
         return window.Turbo.visit(window.location.href, {
             frame: 'erp-main',
             action: 'replace',
+        }).then(() => {
+            this.restoreWorkspaceState();
         });
+    },
+
+    safeHandleSuccess(options = {}) {
+        try {
+            this.handleSuccess(options);
+        } catch (error) {
+            console.error('erpModalManager.handleSuccess', error);
+            this.closeModal();
+
+            if (options.message) {
+                this.showToast(options.message);
+            }
+        }
     },
 
     async submitFormRequest(form) {
         if (! form) {
             return;
         }
+
+        if (form.dataset.erpModalSubmitting === '1') {
+            return;
+        }
+
+        form.dataset.erpModalSubmitting = '1';
 
         const formData = new FormData(form);
         const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
@@ -610,7 +661,7 @@ const erpModalManager = {
         }
 
         try {
-            const response = await fetch(form.action, {
+            let response = await fetch(form.action, {
                 method: method === 'GET' ? 'GET' : 'POST',
                 body: method === 'GET' ? null : formData,
                 headers: {
@@ -618,18 +669,61 @@ const erpModalManager = {
                     'Accept': 'text/html, application/xhtml+xml',
                 },
                 credentials: 'same-origin',
-                redirect: 'follow',
+                redirect: 'manual',
             });
 
-            const html = await response.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const successMarker = doc.querySelector('[data-erp-modal-success]');
+            if ((response.status === 301 || response.status === 302 || response.status === 303 || response.status === 307 || response.status === 308) && response.headers.get('Location')) {
+                const location = response.headers.get('Location');
 
-            if (successMarker) {
-                this.handleSuccess({
-                    message: successMarker.dataset.message ?? '',
-                    refresh: successMarker.dataset.refresh !== '0',
+                if (location && ! this.isModalFormUrl(location)) {
+                    this.safeHandleSuccess({ refresh: true });
+
+                    return;
+                }
+
+                const redirectTarget = location || modalReturnUrl;
+
+                response = await fetch(redirectTarget, {
+                    method: 'GET',
+                    headers: {
+                        'Turbo-Frame': 'erp-form-modal',
+                        'Accept': 'text/html, application/xhtml+xml',
+                    },
+                    credentials: 'same-origin',
                 });
+            }
+
+            const html = await response.text();
+
+            if (html.includes('data-erp-modal-success')) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const successMarker = doc.querySelector('[data-erp-modal-success]');
+
+                this.safeHandleSuccess({
+                    message: successMarker?.dataset.message
+                        ?? html.match(/data-message="([^"]*)"/)?.[1]
+                        ?? '',
+                    refresh: (successMarker?.dataset.refresh
+                        ?? html.match(/data-refresh="([^"]*)"/)?.[1]
+                        ?? '1') !== '0',
+                });
+
+                return;
+            }
+
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+
+            const finalUrl = response.url || '';
+            const submittedTo = form.action || '';
+
+            if (
+                response.ok
+                && method !== 'GET'
+                && finalUrl !== ''
+                && finalUrl !== submittedTo
+                && ! this.isModalFormUrl(finalUrl)
+            ) {
+                this.safeHandleSuccess({ refresh: true });
 
                 return;
             }
@@ -686,12 +780,22 @@ const erpModalManager = {
                 return;
             }
 
+            if (method !== 'GET' && ! this.hasValidationErrors(doc)) {
+                this.safeHandleSuccess({ refresh: true });
+
+                return;
+            }
+
             this.showToast('Unable to save form. Please try again.', 'error');
         } catch (error) {
             console.error('erpModalManager.submitFormRequest', error);
             this.showToast('Unable to save form. Please try again.', 'error');
         } finally {
-            if (submitButton) {
+            delete form.dataset.erpModalSubmitting;
+
+            const overlay = this.overlay();
+
+            if (submitButton && overlay && ! overlay.hidden) {
                 submitButton.disabled = false;
             }
         }
@@ -873,13 +977,28 @@ const erpModalManager = {
                 return;
             }
 
-            if (! form.closest('#erp-form-modal')) {
+            if (form.closest('#erp-form-modal')) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.prepareModalFormContent(form);
+                this.submitFormRequest(form);
+
                 return;
             }
 
-            event.preventDefault();
-            event.stopPropagation();
-            this.submitFormRequest(form);
+            const workspaceFrame = form.closest('#module-workspace-content');
+            const method = (form.getAttribute('method') ?? 'POST').toUpperCase();
+
+            if (
+                workspaceFrame
+                && method !== 'GET'
+                && form.closest('.erp-form-grid, .erp-form-shell, [data-erp-form-modal-panel]')
+            ) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.prepareModalFormContent(form.closest('[data-erp-form-modal-panel]') ?? form, window.location.href);
+                this.submitFormRequest(form);
+            }
         }, true);
 
         document.addEventListener('keydown', (event) => {
@@ -918,7 +1037,7 @@ const erpModalManager = {
             const successMarker = frame.querySelector('[data-erp-modal-success]');
 
             if (successMarker) {
-                this.handleSuccess({
+                this.safeHandleSuccess({
                     message: successMarker.dataset.message ?? '',
                     refresh: successMarker.dataset.refresh !== '0',
                 });
@@ -1324,6 +1443,10 @@ document.addEventListener('turbo:frame-render', (event) => {
 
     if (event.target?.id === 'erp-form-modal' || event.target?.id === 'erp-preview-drawer') {
         erpModalManager.initFrame(event.target);
+    }
+
+    if (event.target?.id === 'module-workspace-content' || event.target?.querySelector?.('#inbox-messages')) {
+        initSharedInboxPoll();
     }
 });
 
@@ -3069,6 +3192,46 @@ document.addEventListener('alpine:init', () => {
 
             this.customViews = [...this.customViews, view];
             localStorage.setItem(this.storageKeyViews, JSON.stringify(this.customViews));
+        },
+    }));
+
+    Alpine.data('productionFloor', (config = {}) => ({
+        panelOpen: false,
+        panelLoading: false,
+        panel: null,
+        panelBase: config.panelBase ?? '',
+        csrf: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+
+        init() {
+            if (config.initialJobId) {
+                this.openPanel(config.initialJobId);
+            }
+        },
+
+        async openPanel(jobId) {
+            this.panelOpen = true;
+            this.panelLoading = true;
+            this.panel = null;
+
+            try {
+                const response = await fetch(`${this.panelBase}/${jobId}/panel`, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (response.ok) {
+                    this.panel = await response.json();
+                }
+            } finally {
+                this.panelLoading = false;
+            }
+        },
+
+        closePanel() {
+            this.panelOpen = false;
+            this.panel = null;
         },
     }));
 
@@ -5586,6 +5749,24 @@ function wireEmbeddedWorkspaceLinks(root) {
             return;
         }
 
+        if (erpModalManager.isModalFormUrl(link.href)) {
+            link.setAttribute('data-erp-modal-open', '');
+            link.removeAttribute('data-turbo-frame');
+
+            try {
+                const url = new URL(link.href, window.location.origin);
+
+                if (url.searchParams.has('embedded')) {
+                    url.searchParams.delete('embedded');
+                    link.href = `${url.pathname}${url.search}${url.hash}`;
+                }
+            } catch {
+                // Keep the original href when it cannot be parsed.
+            }
+
+            return;
+        }
+
         const turboFrame = link.getAttribute('data-turbo-frame');
         const promoteToMain = shouldPromoteWorkspaceLinkToMain(link.href)
             || (! insideWorkspaceContent && turboFrame === 'erp-main');
@@ -5636,6 +5817,7 @@ function wireEmbeddedWorkspaceLinks(root) {
             return;
         }
 
+        const method = (form.getAttribute('method') ?? 'get').toLowerCase();
         let turboFrame = form.getAttribute('data-turbo-frame');
 
         if (insideWorkspaceContent && turboFrame === 'erp-main') {
@@ -5648,10 +5830,18 @@ function wireEmbeddedWorkspaceLinks(root) {
         } else if (turboFrame && turboFrame !== 'module-workspace-content') {
             return;
         } else if (! turboFrame) {
+            const isWorkspaceCreateEditForm = Boolean(
+                form.closest('.erp-form-grid, .erp-form-shell, [data-erp-form-modal-panel]'),
+            );
+
+            if (isWorkspaceCreateEditForm && method !== 'get') {
+                form.setAttribute('data-turbo', 'false');
+
+                return;
+            }
+
             form.setAttribute('data-turbo-frame', 'module-workspace-content');
         }
-
-        const method = (form.getAttribute('method') ?? 'get').toLowerCase();
 
         if (method !== 'get') {
             if (! form.querySelector('input[name="embedded"]')) {
@@ -5926,4 +6116,85 @@ document.addEventListener('turbo:load', () => {
     bindWebsiteSettingsForms(document);
     syncSecondaryWorkspaceTabActiveState();
     initDocumentPdfDownload();
+    initSharedInboxPoll();
 });
+
+function initSharedInboxPoll() {
+    const container = document.getElementById('inbox-messages');
+
+    if (!container || container.dataset.inboxPollBound === '1') {
+        return;
+    }
+
+    const feedUrl = container.dataset.inboxFeedUrl;
+
+    if (!feedUrl) {
+        return;
+    }
+
+    container.dataset.inboxPollBound = '1';
+
+    let fingerprint = container.dataset.inboxFeedFingerprint || '';
+    let pollTimer = null;
+
+    const isNearBottom = () => {
+        const threshold = 100;
+
+        return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    };
+
+    const refresh = async () => {
+        if (document.hidden) {
+            return;
+        }
+
+        try {
+            const response = await fetch(feedUrl, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+
+            if (!data?.fingerprint || data.fingerprint === fingerprint) {
+                return;
+            }
+
+            const wasNearBottom = isNearBottom();
+            fingerprint = data.fingerprint;
+            container.dataset.inboxFeedFingerprint = fingerprint;
+            container.innerHTML = data.html;
+
+            if (wasNearBottom) {
+                container.scrollTop = container.scrollHeight;
+            }
+
+            if (window.Alpine) {
+                window.Alpine.initTree(container);
+            }
+        } catch {
+            // ignore transient network errors
+        }
+    };
+
+    pollTimer = window.setInterval(refresh, 4000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refresh();
+        }
+    });
+
+    container.addEventListener('turbo:before-cache', () => {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+
+        container.dataset.inboxPollBound = '0';
+    });
+}

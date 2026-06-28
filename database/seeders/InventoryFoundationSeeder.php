@@ -152,9 +152,8 @@ class InventoryFoundationSeeder extends Seeder
                     foreach ([
                         'GSM' => ['GSM', 'number', 'PAPER'],
                         'SIZE' => ['Size', 'text', null],
-                        'FINISH' => ['Finish', 'text', null],
                         'COLOR' => ['Color', 'text', null],
-                        'VOLUME' => ['Volume', 'text', 'INK'],
+                        'VOLUME' => ['Amount (litres/kg)', 'text', 'INK'],
                         'WIDTH' => ['Width', 'number', 'BANNER'],
                         'LENGTH' => ['Length', 'number', 'BANNER'],
                         'MATERIAL' => ['Material', 'text', 'TSHIRT'],

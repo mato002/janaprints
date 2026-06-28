@@ -4,6 +4,7 @@ namespace App\Services\Production;
 
 use App\Enums\ArtworkApprovalDecision;
 use App\Enums\ArtworkRequestStatus;
+use App\Enums\JobCardRouteStepStatus;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\QualityCheckResult;
 use App\Enums\SalesOrderStatus;
@@ -20,7 +21,14 @@ use App\Models\Assets\MachineProfile;
 use App\Models\Production\WorkCenter;
 use App\Services\Assets\MachineJobAssignmentService;
 use App\Services\Production\ProductionCompletionService;
+use App\Support\Production\JobCardManufacturingPresenter;
+use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\ProductionRouteService;
+use App\Support\Production\ProductionSessionService;
+use App\Support\Production\ProductionSpecificationService;
+use App\Support\Production\SerialNumberGovernanceService;
 use App\Support\Communications\Email\EmailVisibilityService;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 class Job360WorkspaceService
@@ -38,27 +46,84 @@ class Job360WorkspaceService
 
     public const TAB_OPERATIONS = 'operations';
 
+    public const TAB_ROUTE = 'route';
+
+    public const TAB_SERIALS = 'serials';
+
+    public const TAB_SESSIONS = 'sessions';
+
     public const TAB_MATERIALS = 'materials';
 
+    public const TAB_MATERIAL_ISSUES = 'material-issues';
+
+    public const TAB_MATERIAL_CONSUMPTION = 'material-consumption';
+
     public const TAB_QUALITY = 'quality';
+
+    public const TAB_FULFILMENT = 'fulfilment';
 
     public const TAB_OUTPUTS = 'outputs';
 
     public const TAB_DISPATCH = 'dispatch';
 
+    public const TAB_MANUFACTURING = 'manufacturing';
+
+    public const TAB_COMMERCIAL = 'commercial';
+
+    public const TAB_COMMUNICATIONS = 'communications';
+
+    public const TAB_SPECIFICATION = 'specification';
+
     public const TAB_TIMELINE = 'timeline';
+
+    /** @var list<string> */
+    public const PRIMARY_TABS = [
+        self::TAB_OVERVIEW,
+        self::TAB_MANUFACTURING,
+        self::TAB_MATERIALS,
+        self::TAB_ARTWORK,
+        self::TAB_OPERATIONS,
+        self::TAB_QUALITY,
+        self::TAB_DISPATCH,
+    ];
+
+    /** @var list<string> */
+    public const MORE_TABS = [
+        self::TAB_COMMERCIAL,
+        self::TAB_TIMELINE,
+        self::TAB_COMMUNICATIONS,
+        self::TAB_SPECIFICATION,
+        self::TAB_ROUTE,
+        self::TAB_OUTPUTS,
+        self::TAB_FULFILMENT,
+        self::TAB_SESSIONS,
+        self::TAB_TRACEABILITY,
+        self::TAB_SERIALS,
+        self::TAB_MATERIAL_ISSUES,
+        self::TAB_MATERIAL_CONSUMPTION,
+    ];
 
     /** @var list<string> */
     public const TABS = [
         self::TAB_OVERVIEW,
-        self::TAB_TRACEABILITY,
+        self::TAB_MANUFACTURING,
+        self::TAB_MATERIALS,
         self::TAB_ARTWORK,
         self::TAB_OPERATIONS,
-        self::TAB_MATERIALS,
-        self::TAB_OUTPUTS,
         self::TAB_QUALITY,
         self::TAB_DISPATCH,
+        self::TAB_COMMERCIAL,
         self::TAB_TIMELINE,
+        self::TAB_COMMUNICATIONS,
+        self::TAB_SPECIFICATION,
+        self::TAB_TRACEABILITY,
+        self::TAB_ROUTE,
+        self::TAB_SERIALS,
+        self::TAB_SESSIONS,
+        self::TAB_MATERIAL_ISSUES,
+        self::TAB_MATERIAL_CONSUMPTION,
+        self::TAB_OUTPUTS,
+        self::TAB_FULFILMENT,
     ];
 
     /**
@@ -70,13 +135,29 @@ class Job360WorkspaceService
         $activeTab = $this->resolveTab($tab);
         $this->loadBaseRelations($jobCard);
 
+        $completion = app(ProductionCompletionService::class)->eligibility($jobCard);
+        $floorActions = app(ProductionFloorActionService::class);
+
         return [
             'jobCard' => $jobCard,
             'header' => $this->header($jobCard),
             'kpis' => $this->controls->productionKpis($jobCard),
             'control_alerts' => $this->controls->controlAlerts($jobCard),
-            'quick_actions' => $this->quickActions($jobCard),
+            'primary_action' => $floorActions->adaptForJobWorkspace($floorActions->primaryAction($jobCard), $jobCard),
+            'secondary_actions' => $floorActions->adaptSecondaryForJobWorkspace($floorActions->secondaryActions($jobCard), $jobCard),
+            'link_actions' => $this->linkActions($jobCard),
+            'quick_actions' => $this->linkActions($jobCard),
+            'completion' => $completion,
+            'finished_items' => InventoryItem::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
+                ->where('is_active', true)
+                ->orderBy('item_name')
+                ->get(['id', 'sku', 'item_name']),
+            'dispatch_eligibility' => $this->controls->dispatchEligibility($jobCard),
             'active_tab' => $activeTab,
+            'tab_groups' => $this->tabGroups($jobCard, $activeTab),
             'tabs' => $this->tabNavigation($jobCard, $activeTab),
             'tab_data' => $this->tabData($jobCard, $activeTab, $timelineQuery),
         ];
@@ -95,9 +176,21 @@ class Job360WorkspaceService
             'customer:id,company_name,customer_code',
             'branch:id,name',
             'creator:id,name',
-            'salesOrder:id,order_number,status,required_date',
+            'salesOrder:id,order_number,status,required_date,fulfilment_method',
             'quotation:id,quotation_number,status',
             'artworkRequest:id,request_number,status,current_version,title',
+            'inventoryItem:id,item_name,sku,uses_serial_numbers',
+            'customerArtwork:id,artwork_name,version_number,customer_id',
+            'serialAllocation',
+            'outsourceVendor:id,vendor_name,vendor_code',
+            'productionSpecification.paperInventoryItem:id,item_name,sku',
+            'productionSpecification.materialInventoryItem:id,item_name,sku',
+            'productionSpecification.inkProfile:id,name',
+            'productionSpecification.printProductTemplate.preferredWorkCenter:id,name',
+            'productionSpecification.printProductTemplate.preferredMachineAsset:id,asset_name',
+            'assignedMachine:id,asset_name,asset_number',
+            'costSheet',
+            'routeSteps' => fn ($q) => $q->with(['completedByUser:id,name', 'workCenter:id,name'])->orderBy('sequence'),
             'queues' => fn ($q) => $q->with(['workCenter:id,name', 'assignedOperator:id,name'])
                 ->orderBy('queue_position'),
         ])->loadCount([
@@ -128,6 +221,8 @@ class Job360WorkspaceService
             'priority' => $jobCard->priority,
             'customer_name' => $jobCard->customer?->company_name,
             'customer_id' => $jobCard->customer_id,
+            'product_name' => $jobCard->inventoryItem?->item_name,
+            'product_sku' => $jobCard->inventoryItem?->sku,
             'sales_order_number' => $jobCard->salesOrder?->order_number,
             'sales_order_id' => $jobCard->sales_order_id,
             'quotation_number' => $jobCard->quotation?->quotation_number,
@@ -148,74 +243,43 @@ class Job360WorkspaceService
     /**
      * @return list<array<string, mixed>>
      */
-    protected function quickActions(ProductionJobCard $jobCard): array
+    protected function linkActions(ProductionJobCard $jobCard): array
     {
         $user = auth()->user();
-        $actions = [];
+        $links = [];
 
-        if ($user?->can('start', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)) {
-            $actions[] = [
-                'label' => __('Start Job'),
-                'type' => 'post',
-                'url' => route('admin.production.job-cards.start', $jobCard),
-            ];
-        }
-
-        if ($user?->can('start', $jobCard)) {
-            $actions[] = [
-                'label' => __('Log Operation'),
-                'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_OPERATIONS]).'#log-operation',
-            ];
-        }
-
-        if ($user?->can('inventory.issue')) {
-            $actions[] = [
-                'label' => __('Consume Material'),
-                'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_MATERIALS]).'#consume-material',
-            ];
-        }
-
-        if ($user?->can('create', [QualityCheck::class, $jobCard])) {
-            $actions[] = [
-                'label' => __('Add QC Check'),
-                'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_QUALITY]).'#add-qc',
-            ];
-        }
-
-        if (
-            $user?->can('complete', $jobCard)
-            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)
-            && $this->controls->dispatchEligibility($jobCard)['eligible']
-        ) {
-            $actions[] = [
-                'label' => __('Mark Ready For Dispatch'),
-                'type' => 'post',
-                'url' => route('admin.production.job-cards.ready-for-dispatch', $jobCard),
-            ];
+        if ($jobCard->sales_order_id && $user?->can('view', $jobCard->salesOrder)) {
+            $links[] = ['label' => __('Sales order'), 'url' => route('admin.sales-orders.show', $jobCard->sales_order_id)];
         }
 
         if ($jobCard->customer_id && $user?->can('view', $jobCard->customer)) {
-            $actions[] = [
-                'label' => __('View Customer 360'),
-                'url' => route('admin.crm.customers.show', $jobCard->customer_id),
-            ];
-        }
-
-        if ($jobCard->sales_order_id && $user?->can('view', $jobCard->salesOrder)) {
-            $actions[] = [
-                'label' => __('View Sales Order'),
-                'url' => route('admin.sales-orders.show', $jobCard->sales_order_id),
-            ];
+            $links[] = ['label' => __('Customer 360'), 'url' => route('admin.crm.customers.show', $jobCard->customer_id)];
         }
 
         if ($jobCard->artwork_request_id && $user?->can('view', $jobCard->artworkRequest)) {
-            $actions[] = [
-                'label' => __('View Artwork'),
-                'url' => route('admin.artwork.show', $jobCard->artwork_request_id),
-            ];
+            $links[] = ['label' => __('Artwork'), 'url' => route('admin.artwork.show', $jobCard->artwork_request_id)];
         }
 
-        return $actions;
+        if ($user?->can('start', $jobCard)) {
+            $links[] = ['label' => __('Log operation'), 'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_OPERATIONS])];
+        }
+
+        if ($user?->can('inventory.issue')) {
+            $links[] = ['label' => __('Materials'), 'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_MATERIALS])];
+        }
+
+        $links[] = ['label' => __('Production floor'), 'url' => route('admin.production.floor')];
+        $links[] = ['label' => __('Floor display'), 'url' => route('admin.production.job-cards.floor-display', $jobCard), 'target' => '_blank'];
+
+        return $links;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function quickActions(ProductionJobCard $jobCard): array
+    {
+        return $this->linkActions($jobCard);
     }
 
     /**
@@ -228,19 +292,44 @@ class Job360WorkspaceService
             'label' => $this->tabLabel($tab),
             'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => $tab]),
             'active' => $tab === $activeTab,
+            'primary' => in_array($tab, self::PRIMARY_TABS, true),
         ])->all();
+    }
+
+    /**
+     * @return array{primary: list<array<string, mixed>>, more: list<array<string, mixed>>}
+     */
+    protected function tabGroups(ProductionJobCard $jobCard, string $activeTab): array
+    {
+        $tabs = $this->tabNavigation($jobCard, $activeTab);
+
+        return [
+            'primary' => collect($tabs)->where('primary', true)->values()->all(),
+            'more' => collect($tabs)->where('primary', false)->values()->all(),
+            'more_open' => in_array($activeTab, self::MORE_TABS, true),
+        ];
     }
 
     protected function tabLabel(string $tab): string
     {
         return match ($tab) {
             self::TAB_OVERVIEW => __('Overview'),
+            self::TAB_MANUFACTURING => __('Manufacturing'),
+            self::TAB_SPECIFICATION => __('Specification'),
+            self::TAB_COMMERCIAL => __('Commercial'),
+            self::TAB_COMMUNICATIONS => __('Communications'),
             self::TAB_TRACEABILITY => __('Traceability'),
             self::TAB_ARTWORK => __('Artwork'),
-            self::TAB_OPERATIONS => __('Operations'),
+            self::TAB_ROUTE => __('Production Route'),
+            self::TAB_SERIALS => __('Serial Numbers'),
+            self::TAB_SESSIONS => __('Production Sessions'),
+            self::TAB_OPERATIONS => __('Production'),
             self::TAB_MATERIALS => __('Materials'),
+            self::TAB_MATERIAL_ISSUES => __('Issues'),
+            self::TAB_MATERIAL_CONSUMPTION => __('Consumption'),
             self::TAB_OUTPUTS => __('Finished goods'),
-            self::TAB_QUALITY => __('Quality Control'),
+            self::TAB_QUALITY => __('QC'),
+            self::TAB_FULFILMENT => __('Fulfilment'),
             self::TAB_DISPATCH => __('Dispatch'),
             self::TAB_TIMELINE => __('Timeline'),
             default => ucfirst($tab),
@@ -255,12 +344,22 @@ class Job360WorkspaceService
     {
         return match ($tab) {
             self::TAB_OVERVIEW => $this->overviewTab($jobCard),
+            self::TAB_MANUFACTURING => $this->manufacturingTab($jobCard),
+            self::TAB_SPECIFICATION => $this->specificationTab($jobCard),
+            self::TAB_COMMERCIAL => $this->commercialTab($jobCard),
+            self::TAB_COMMUNICATIONS => $this->communicationsTab($jobCard),
             self::TAB_TRACEABILITY => ['chain' => $this->traceabilityChain($jobCard)],
             self::TAB_ARTWORK => $this->artworkTab($jobCard),
+            self::TAB_ROUTE => $this->routeTab($jobCard),
+            self::TAB_SERIALS => $this->serialsTab($jobCard),
+            self::TAB_SESSIONS => $this->sessionsTab($jobCard),
             self::TAB_OPERATIONS => $this->operationsTab($jobCard),
             self::TAB_MATERIALS => $this->materialsTab($jobCard),
+            self::TAB_MATERIAL_ISSUES => $this->materialIssuesTab($jobCard),
+            self::TAB_MATERIAL_CONSUMPTION => $this->materialConsumptionTab($jobCard),
             self::TAB_OUTPUTS => $this->outputsTab($jobCard),
             self::TAB_QUALITY => $this->qualityTab($jobCard),
+            self::TAB_FULFILMENT => $this->fulfilmentTab($jobCard),
             self::TAB_DISPATCH => $this->dispatchTab($jobCard),
             self::TAB_TIMELINE => array_merge(
                 app(JobTimelineService::class)->paginate(
@@ -272,6 +371,8 @@ class Job360WorkspaceService
                 [
                     'ready' => true,
                     'communications' => $this->jobCommunications($jobCard),
+                    'manufacturing_pipeline' => app(JobCardManufacturingPresenter::class)
+                        ->present($jobCard)['timeline_pipeline'] ?? [],
                 ],
             ),
             default => [],
@@ -281,12 +382,104 @@ class Job360WorkspaceService
     /**
      * @return array<string, mixed>
      */
+    protected function manufacturingTab(ProductionJobCard $jobCard): array
+    {
+        $manufacturing = app(JobCardManufacturingPresenter::class)->present($jobCard);
+
+        return array_merge($manufacturing, [
+            'artwork' => $this->artworkTab($jobCard),
+            'quality' => $this->qualityTab($jobCard),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function commercialTab(ProductionJobCard $jobCard): array
+    {
+        $costSheet = $jobCard->costSheet;
+        $canViewCosting = auth()->user()?->can('production.costing.view') ?? false;
+        $salesOrder = $jobCard->salesOrder;
+
+        return [
+            'can_view_costing' => $canViewCosting,
+            'sales_order' => $salesOrder ? [
+                'number' => $salesOrder->order_number,
+                'status' => $salesOrder->status->value,
+                'total' => $salesOrder->total_amount ?? null,
+                'currency' => $salesOrder->currency ?? null,
+            ] : null,
+            'cost_summary' => ($canViewCosting && $costSheet) ? [
+                'material' => (float) $costSheet->material_cost,
+                'labor' => (float) $costSheet->labor_cost,
+                'outsource' => (float) $costSheet->outsourced_cost,
+                'total' => (float) $costSheet->total_cost,
+                'revenue' => (float) $costSheet->revenue,
+                'gross_profit' => (float) $costSheet->gross_profit,
+                'read_only' => true,
+            ] : null,
+            'cost_detail_url' => ($canViewCosting && Route::has('admin.production.job-cards.costing'))
+                ? route('admin.production.job-cards.costing', $jobCard)
+                : null,
+            'outsource' => $this->outsourceContext($jobCard),
+            'manufacturing_cost_hint' => app(JobCardManufacturingPresenter::class)->present($jobCard)['cost_summary'] ?? null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function communicationsTab(ProductionJobCard $jobCard): array
+    {
+        return [
+            'communications' => $this->jobCommunications($jobCard),
+            'can_view' => auth()->user()?->can('communications.email.view') ?? false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function specificationTab(ProductionJobCard $jobCard): array
+    {
+        $service = app(ProductionSpecificationService::class);
+        $spec = $jobCard->productionSpecification ?? $service->findForJobCard($jobCard);
+
+        if ($spec && ! $spec->relationLoaded('paperInventoryItem')) {
+            $spec->load(['paperInventoryItem', 'materialInventoryItem', 'inkProfile']);
+        }
+
+        return [
+            'specification' => $service->present($spec),
+            'edit_url' => ($spec && $spec->sales_order_id && $spec->sales_order_item_id && auth()->user()?->can('update', $spec))
+                ? route('admin.sales-orders.items.specification.edit', [
+                    'salesOrder' => $spec->sales_order_id,
+                    'salesOrderItem' => $spec->sales_order_item_id,
+                    'specification' => $spec->id,
+                ])
+                : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     protected function overviewTab(ProductionJobCard $jobCard): array
     {
         $completion = app(ProductionCompletionService::class)->eligibility($jobCard);
+        $manufacturing = app(JobCardManufacturingPresenter::class)->present($jobCard);
 
         return [
             'completion' => $completion,
+            'manufacturing_summary' => [
+                'has_specification' => $manufacturing['has_specification'],
+                'product' => collect($manufacturing['sections']['general'] ?? [])->firstWhere('label', __('Product'))['value'] ?? null,
+                'quantity' => collect($manufacturing['sections']['general'] ?? [])->firstWhere('label', __('Quantity'))['value'] ?? null,
+                'production_type' => collect($manufacturing['sections']['general'] ?? [])->firstWhere('label', __('Production type'))['value'] ?? null,
+                'estimated_sheets' => $manufacturing['material_plan']['estimated_sheets'] ?? null,
+                'empty_message' => $manufacturing['empty_message'] ?? null,
+                'manufacturing_url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_MANUFACTURING]),
+            ],
             'finished_items' => InventoryItem::query()
                 ->where('company_id', $jobCard->company_id)
                 ->where('branch_id', $jobCard->branch_id)
@@ -328,6 +521,61 @@ class Job360WorkspaceService
             'control_alerts' => $this->controls->controlAlerts($jobCard),
             'machine' => $this->machineAssignments->jobMachineContext($jobCard),
             'machine_options' => $this->assignableMachines(),
+            'outsource' => $this->outsourceContext($jobCard),
+            'queue' => $this->queueContext($jobCard),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function queueContext(ProductionJobCard $jobCard): array
+    {
+        $context = app(\App\Support\Production\RouteStepQueueService::class)->currentQueueContext($jobCard);
+
+        return [
+            'status' => $context['current']?->status?->value,
+            'status_label' => $context['current']?->status?->label(),
+            'work_center' => $context['work_center']?->name,
+            'work_center_code' => $context['work_center']?->code,
+            'position' => $context['position'],
+            'priority' => $jobCard->priority?->value,
+            'required_date' => $jobCard->required_date?->format('Y-m-d')
+                ?? $jobCard->planned_end_date?->format('Y-m-d'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function outsourceContext(ProductionJobCard $jobCard): array
+    {
+        $canOutsource = auth()->user()?->can('update', $jobCard)
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced);
+
+        $canReturn = $jobCard->status === ProductionJobCardStatus::Outsourced
+            && auth()->user()?->can('update', $jobCard);
+
+        return [
+            'vendor' => $jobCard->outsourceVendor,
+            'quoted_cost' => $jobCard->outsource_quoted_cost,
+            'actual_cost' => $jobCard->outsource_actual_cost,
+            'issue_date' => $jobCard->outsource_issue_date,
+            'expected_return' => $jobCard->outsource_expected_return,
+            'notes' => $jobCard->outsource_notes,
+            'outsourced_at' => $jobCard->outsourced_at,
+            'returned_at' => $jobCard->returned_at,
+            'can_outsource' => $canOutsource,
+            'can_return' => $canReturn,
+            'production_vendors' => $canOutsource
+                ? \App\Models\Procurement\Vendor::query()
+                    ->forTenant()
+                    ->where('is_production_vendor', true)
+                    ->where('status', 'active')
+                    ->orderBy('vendor_name')
+                    ->get(['id', 'vendor_name', 'vendor_code'])
+                : collect(),
+            'cost_exposure' => app(JobCardOutsourceService::class)->costExposure($jobCard),
         ];
     }
 
@@ -467,17 +715,21 @@ class Job360WorkspaceService
      */
     protected function artworkTab(ProductionJobCard $jobCard): array
     {
-        if (! $jobCard->artwork_request_id) {
+        $customerArtwork = $jobCard->customerArtwork;
+
+        if (! $jobCard->artwork_request_id && ! $customerArtwork) {
             return ['empty' => true];
         }
 
-        $request = ArtworkRequest::query()
-            ->with([
-                'approvals.approver:id,name',
-                'files',
-                'assignedDesigner:id,name',
-            ])
-            ->find($jobCard->artwork_request_id);
+        $request = $jobCard->artwork_request_id
+            ? ArtworkRequest::query()
+                ->with([
+                    'approvals.approver:id,name',
+                    'files',
+                    'assignedDesigner:id,name',
+                ])
+                ->find($jobCard->artwork_request_id)
+            : null;
 
         $latestApproval = $request?->approvals->first();
         $rejection = $request?->approvals->first(
@@ -486,11 +738,70 @@ class Job360WorkspaceService
 
         return [
             'request' => $request,
+            'customer_artwork' => $jobCard->customerArtwork,
             'approval_status' => $latestApproval?->decision->value ?? $request?->status->value,
             'revision_count' => max(0, ($request?->current_version ?? 0) - 1),
             'latest_approval' => $latestApproval,
             'rejection_reason' => $rejection?->comments,
             'portal_placeholder' => __('Customer portal approval workflow not yet activated'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function routeTab(ProductionJobCard $jobCard): array
+    {
+        $progress = app(ProductionRouteService::class)->routeProgress($jobCard);
+        $steps = $progress['all'];
+
+        return [
+            'progress' => $progress,
+            'can_update' => auth()->user()?->can('start', $jobCard) ?? false,
+            'statuses' => JobCardRouteStepStatus::cases(),
+            'summary' => [
+                'total' => $steps->count(),
+                'completed' => $progress['completed']->count(),
+                'pending' => $progress['pending']->count(),
+                'current' => $progress['current']?->step_name,
+                'percent' => $steps->isEmpty() ? 0 : (int) round(($progress['completed']->count() / $steps->count()) * 100),
+            ],
+            'outsource' => $this->outsourceContext($jobCard),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function serialsTab(ProductionJobCard $jobCard): array
+    {
+        $allocation = $jobCard->serialAllocation;
+        $service = app(SerialNumberGovernanceService::class);
+
+        return [
+            'allocation' => $allocation,
+            'loss_metrics' => $service->productionLossMetrics($jobCard),
+            'spoiled_ranges' => $allocation
+                ? $jobCard->spoiledSerialRanges()->with('recordedByUser:id,name')->get()
+                : collect(),
+            'can_confirm' => $allocation && ! $allocation->is_confirmed && (auth()->user()?->can('complete', $jobCard) ?? false),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function sessionsTab(ProductionJobCard $jobCard): array
+    {
+        $service = app(ProductionSessionService::class);
+
+        return [
+            'sessions' => $jobCard->productionSessions()->with('operator:id,name')->paginate(20, pageName: 'sessions_page'),
+            'metrics' => $service->jobMetrics($jobCard),
+            'waste_reasons' => $service->wasteReasons(),
+            'can_log' => auth()->user()?->can('start', $jobCard) ?? false,
+            'material_requirements' => app(\App\Support\Production\MaterialRequirementsService::class)->panelRows($jobCard),
+            'can_capture_materials' => auth()->user()?->can('production.materials.consume') ?? false,
         ];
     }
 
@@ -548,18 +859,61 @@ class Job360WorkspaceService
      */
     protected function materialsTab(ProductionJobCard $jobCard): array
     {
+        $requirements = app(\App\Support\Production\MaterialRequirementsService::class)->panelRows($jobCard);
+        $costs = app(\App\Support\Production\ProductionMaterialCostVisibilityService::class)->summary($jobCard);
+
+        return [
+            'requirements' => $requirements,
+            'costs' => $costs,
+            'has_requirements' => $requirements->isNotEmpty(),
+            'can_generate' => auth()->user()?->can('production.materials.generate') ?? false,
+            'can_reserve' => auth()->user()?->can('production.materials.reserve') ?? false,
+            'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function materialIssuesTab(ProductionJobCard $jobCard): array
+    {
+        $issues = \App\Models\Production\ProductionMaterialIssue::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->with(['inventoryItem:id,sku,item_name', 'inventoryItem.unitOfMeasure:id,code', 'warehouse:id,name', 'issuer:id,name', 'requirement:id,required_quantity'])
+            ->orderByDesc('issued_at')
+            ->paginate(25, pageName: 'issues_page');
+
+        $requirements = app(\App\Support\Production\MaterialRequirementsService::class)->panelRows($jobCard);
+
+        return [
+            'issues' => $issues,
+            'requirements' => $requirements,
+            'can_issue' => auth()->user()?->can('production.materials.issue') ?? false,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function materialConsumptionTab(ProductionJobCard $jobCard): array
+    {
         $consumptions = ProductionMaterialConsumption::query()
             ->where('production_job_card_id', $jobCard->id)
-            ->with(['inventoryItem:id,sku,item_name,unit_of_measure_id', 'inventoryItem.unitOfMeasure:id,code', 'warehouse:id,name', 'movement:id,reference', 'consumer:id,name'])
+            ->with(['inventoryItem:id,sku,item_name,unit_of_measure_id', 'inventoryItem.unitOfMeasure:id,code', 'warehouse:id,name', 'movement:id,movement_type', 'consumer:id,name'])
             ->latest('consumed_at')
-            ->paginate(25, pageName: 'materials_page');
+            ->paginate(25, pageName: 'consumption_page');
+
+        $wastage = app(\App\Support\Production\ProductionWastageService::class)->summaryForJob($jobCard);
+        $sessionMetrics = app(\App\Support\Production\ProductionSessionService::class)->jobMetrics($jobCard);
+        $serialLoss = app(\App\Support\Production\SerialNumberGovernanceService::class)->productionLossMetrics($jobCard);
 
         return [
             'consumptions' => $consumptions,
-            'bom_warning' => __('Required materials/BOM not yet activated'),
-            'material_requirements_placeholder' => __('Material requirements not activated'),
-            'wastage' => $this->controls->wastageSummary($jobCard),
-            'can_consume' => auth()->user()?->can('inventory.issue') ?? false,
+            'wastage' => $wastage,
+            'session_waste' => $sessionMetrics,
+            'serial_spoilage' => $serialLoss,
+            'can_consume' => auth()->user()?->can('production.materials.consume') ?? false,
+            'can_record_waste' => auth()->user()?->can('production.wastage.record') ?? false,
             'inventory_items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('sku')->get(['id', 'sku', 'item_name']),
             'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];
@@ -572,14 +926,60 @@ class Job360WorkspaceService
     {
         $checks = QualityCheck::query()
             ->where('production_job_card_id', $jobCard->id)
-            ->with('checker:id,name')
+            ->with(['checker:id,name', 'customerApprover:id,name'])
             ->latest('checked_at')
             ->paginate(25, pageName: 'quality_page');
 
+        $snapshot = \App\Models\Production\JobCardQcSnapshot::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->first();
+
+        $serialService = app(SerialNumberGovernanceService::class);
+        $allocation = $jobCard->serialAllocation;
+
         return [
             'checks' => $checks,
+            'snapshot' => $snapshot,
+            'rework_summary' => app(\App\Support\Production\QualityInspectionService::class)->reworkSummary($jobCard),
+            'serial_ranges' => [
+                'allocated_start' => $allocation?->serial_start,
+                'allocated_end' => $allocation?->serial_end,
+                'produced_end' => $allocation?->produced_end,
+                'spoiled_quantity' => $allocation?->spoiled_quantity,
+                'loss_metrics' => $serialService->productionLossMetrics($jobCard),
+                'spoiled_ranges' => $allocation
+                    ? $jobCard->spoiledSerialRanges()->get(['serial_start', 'serial_end', 'quantity'])
+                    : collect(),
+            ],
+            'fail_reasons' => \App\Enums\QualityFailReason::cases(),
+            'rework_reasons' => \App\Enums\QualityReworkReason::cases(),
             'can_record' => auth()->user()?->can('create', [QualityCheck::class, $jobCard]) ?? false,
+            'can_approve_customer' => auth()->user()?->can('create', [QualityCheck::class, $jobCard]) ?? false,
             'qc_blocking' => $this->controls->hasUnresolvedQcFailure($jobCard),
+            'pending_customer_approval' => $checks->first(fn ($c) => $c->requires_customer_approval
+                && $c->result === \App\Enums\QualityCheckResult::ConditionalPass
+                && $c->customer_approved_at === null),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function fulfilmentTab(ProductionJobCard $jobCard): array
+    {
+        $fulfilment = app(\App\Support\Production\ProductionFulfilmentService::class)
+            ->resolveForJobCard($jobCard)
+            ->load(['preparedByUser:id,name', 'dispatchedByUser:id,name', 'deliveryNote:id,delivery_note_number,status']);
+
+        $method = $jobCard->salesOrder?->fulfilment_method
+            ?? $fulfilment->fulfilment_method;
+
+        return [
+            'fulfilment' => $fulfilment,
+            'fulfilment_method' => $method,
+            'ready_for_dispatch' => $jobCard->status === ProductionJobCardStatus::ReadyForDispatch,
+            'can_fulfil' => auth()->user()?->can('fulfil', $jobCard) ?? false,
+            'invoice_ready' => $fulfilment->invoice_ready,
         ];
     }
 

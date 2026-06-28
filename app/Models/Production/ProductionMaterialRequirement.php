@@ -22,7 +22,8 @@ class ProductionMaterialRequirement extends Model
     protected $fillable = [
         'company_id', 'branch_id', 'production_job_card_id', 'product_bom_id',
         'finished_item_id', 'sales_order_item_id', 'inventory_item_id', 'warehouse_id',
-        'job_quantity', 'required_quantity', 'reserved_quantity', 'consumed_quantity',
+        'job_quantity', 'quantity_formula', 'required_quantity', 'reserved_quantity',
+        'consumed_quantity', 'issued_quantity', 'waste_quantity', 'returned_quantity',
         'unit_cost', 'estimated_cost', 'status', 'generated_by', 'generated_at',
     ];
 
@@ -33,6 +34,9 @@ class ProductionMaterialRequirement extends Model
             'required_quantity' => 'decimal:3',
             'reserved_quantity' => 'decimal:3',
             'consumed_quantity' => 'decimal:3',
+            'issued_quantity' => 'decimal:3',
+            'waste_quantity' => 'decimal:3',
+            'returned_quantity' => 'decimal:3',
             'unit_cost' => 'decimal:2',
             'estimated_cost' => 'decimal:2',
             'status' => MaterialRequirementStatus::class,
@@ -88,5 +92,15 @@ class ProductionMaterialRequirement extends Model
     public function unreservedRemaining(): float
     {
         return max(0, round($this->remainingQuantity() - (float) $this->reserved_quantity, 3));
+    }
+
+    public function remainingToIssue(): float
+    {
+        return max(0, round((float) $this->required_quantity - (float) $this->issued_quantity, 3));
+    }
+
+    public function issues(): HasMany
+    {
+        return $this->hasMany(ProductionMaterialIssue::class, 'production_material_requirement_id');
     }
 }

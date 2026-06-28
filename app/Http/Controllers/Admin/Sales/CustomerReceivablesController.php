@@ -46,11 +46,22 @@ class CustomerReceivablesController extends Controller
         $report = null;
 
         if ($request->filled('customer_id') && $request->filled('from_date') && $request->filled('to_date')) {
+            $customer = Customer::query()->forTenant()->findOrFail($request->integer('customer_id'));
+            $this->authorize('view', $customer);
+
             $report = $statements->build([
                 'customer_id' => $request->integer('customer_id'),
                 'from_date' => $request->string('from_date')->toString(),
                 'to_date' => $request->string('to_date')->toString(),
             ]);
+
+            if ($request->boolean('notify')) {
+                app(\App\Support\Communications\CommunicationEventDispatcher::class)->dispatch(
+                    \App\Enums\DomainCommunicationEvent::StatementGenerated,
+                    $customer,
+                    auth()->user(),
+                );
+            }
         }
 
         return view('admin.sales.receivables.statement', compact('customers', 'report'));

@@ -108,6 +108,174 @@ class ArtworkFoundationTest extends TestCase
         $artworkRequest->refresh();
         $this->assertEquals(2, $artworkRequest->current_version);
         $this->assertEquals(2, ArtworkVersion::query()->where('artwork_request_id', $artworkRequest->id)->count());
+
+        $version = ArtworkVersion::query()->where('artwork_request_id', $artworkRequest->id)->where('version_number', 1)->first();
+        $this->actingAs($user)
+            ->get(route('admin.artwork.versions.preview', [$artworkRequest, $version]))
+            ->assertOk();
+
+        $this->actingAs($user)
+            ->get(route('admin.artwork.show', $artworkRequest))
+            ->assertOk()
+            ->assertSee(__('Preview'), false);
+    }
+
+    public function test_submit_blocked_from_requested_status(): void
+    {
+        [$company, $branch, $customer, $user] = $this->artworkContext([
+            'artwork.view', 'artwork.submit',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $artworkRequest = ArtworkRequest::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'requested_by' => $user->id,
+            'status' => ArtworkRequestStatus::Requested,
+            'current_version' => 0,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('admin.artwork.submit', $artworkRequest))
+            ->assertRedirect()
+            ->assertSessionHasErrors('workflow');
+
+        $this->assertEquals(ArtworkRequestStatus::Requested, $artworkRequest->fresh()->status);
+    }
+
+    public function test_uploading_version_from_requested_moves_to_in_design(): void
+    {
+        [$company, $branch, $customer, $user] = $this->artworkContext([
+            'artwork.view', 'artwork.edit',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $artworkRequest = ArtworkRequest::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'requested_by' => $user->id,
+            'status' => ArtworkRequestStatus::Requested,
+            'current_version' => 0,
+        ]);
+
+        $file = UploadedFile::fake()->create('design-v1.pdf', 100, 'application/pdf');
+
+        $this->actingAs($user)
+            ->post(route('admin.artwork.versions.store', $artworkRequest), ['file' => $file])
+            ->assertRedirect();
+
+        $artworkRequest->refresh();
+        $this->assertEquals(ArtworkRequestStatus::InDesign, $artworkRequest->status);
+        $this->assertEquals(1, $artworkRequest->current_version);
+    }
+
+    public function test_upload_recover_submitted_request_missing_version_file(): void
+    {
+        [$company, $branch, $customer, $user] = $this->artworkContext([
+            'artwork.view', 'artwork.edit', 'artwork.submit',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $artworkRequest = ArtworkRequest::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'requested_by' => $user->id,
+            'status' => ArtworkRequestStatus::Submitted,
+            'current_version' => 1,
+        ]);
+
+        $file = UploadedFile::fake()->create('design-v1.pdf', 100, 'application/pdf');
+
+        $this->actingAs($user)
+            ->post(route('admin.artwork.versions.store', $artworkRequest), ['file' => $file])
+            ->assertRedirect();
+
+        $artworkRequest->refresh();
+        $this->assertEquals(ArtworkRequestStatus::InDesign, $artworkRequest->status);
+        $this->assertEquals(1, $artworkRequest->current_version);
+        $this->assertDatabaseHas('artwork_versions', [
+            'artwork_request_id' => $artworkRequest->id,
+            'version_number' => 1,
+        ]);
+    }
+
+    public function test_approve_blocked_when_already_approved(): void
+    {
+        [$company, $branch, $customer, $sales] = $this->artworkContext([
+            'artwork.view', 'artwork.approve',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $artworkRequest = ArtworkRequest::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'requested_by' => $sales->id,
+            'status' => ArtworkRequestStatus::Approved,
+            'current_version' => 1,
+        ]);
+
+        $this->actingAs($sales)
+            ->post(route('admin.artwork.approve', $artworkRequest), [
+                'decision' => ArtworkApprovalDecision::Approved->value,
+            ])
+            ->assertForbidden();
+
+        $this->assertEquals(ArtworkRequestStatus::Approved, $artworkRequest->fresh()->status);
+    }
+
+    public function test_approve_blocked_when_no_version_file_exists(): void
+    {
+        [$company, $branch, $customer, $sales] = $this->artworkContext([
+            'artwork.view', 'artwork.approve', 'artwork.edit',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $artworkRequest = ArtworkRequest::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'requested_by' => $sales->id,
+            'status' => ArtworkRequestStatus::Submitted,
+            'current_version' => 1,
+        ]);
+
+        $this->actingAs($sales)
+            ->get(route('admin.artwork.show', $artworkRequest))
+            ->assertOk()
+            ->assertSee(__('Reject request'), false)
+            ->assertDontSee(__('Record decision'), false);
+
+        $this->actingAs($sales)
+            ->post(route('admin.artwork.approve', $artworkRequest), [
+                'decision' => ArtworkApprovalDecision::Approved->value,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasErrors('decision');
+
+        $this->actingAs($sales)
+            ->post(route('admin.artwork.approve', $artworkRequest), [
+                'decision' => ArtworkApprovalDecision::Rejected->value,
+                'comments' => 'No artwork supplied',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('status');
+
+        $artworkRequest->refresh();
+        $this->assertEquals(ArtworkRequestStatus::Rejected, $artworkRequest->status);
+        $this->assertDatabaseHas('artwork_approvals', [
+            'artwork_request_id' => $artworkRequest->id,
+            'decision' => ArtworkApprovalDecision::Rejected->value,
+            'artwork_version_id' => null,
+        ]);
     }
 
     public function test_approval_workflow_with_revision_cycle(): void

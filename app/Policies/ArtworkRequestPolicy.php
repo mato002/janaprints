@@ -6,10 +6,11 @@ use App\Enums\ArtworkRequestStatus;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\User;
 use App\Policies\Concerns\ChecksCrmTenant;
+use App\Policies\Concerns\ChecksWorkflowAttempt;
 
 class ArtworkRequestPolicy
 {
-    use ChecksCrmTenant;
+    use ChecksCrmTenant, ChecksWorkflowAttempt;
 
     public function viewAny(User $user): bool
     {
@@ -42,35 +43,58 @@ class ArtworkRequestPolicy
 
     public function assign(User $user, ArtworkRequest $request): bool
     {
-        return $user->can('artwork.assign')
-            && $this->sameTenant($user, $request)
-            && in_array($request->status, [
-                ArtworkRequestStatus::Requested,
-                ArtworkRequestStatus::InDesign,
-                ArtworkRequestStatus::RevisionRequested,
-            ], true);
+        return $this->canAttemptWorkflow(
+            $user,
+            $request,
+            'artwork.assign',
+            fn (ArtworkRequest $record) => in_array($record->status, [
+                ArtworkRequestStatus::Approved,
+                ArtworkRequestStatus::Rejected,
+                ArtworkRequestStatus::Submitted,
+            ], true),
+        );
     }
 
     public function submit(User $user, ArtworkRequest $request): bool
     {
-        return $user->can('artwork.submit')
-            && $this->sameTenant($user, $request)
-            && $request->status === ArtworkRequestStatus::InDesign
-            && $request->current_version > 0;
+        return $this->canAttemptWorkflow(
+            $user,
+            $request,
+            'artwork.submit',
+            fn (ArtworkRequest $record) => in_array($record->status, [
+                ArtworkRequestStatus::Approved,
+                ArtworkRequestStatus::Rejected,
+                ArtworkRequestStatus::Submitted,
+            ], true),
+        );
     }
 
     public function approve(User $user, ArtworkRequest $request): bool
     {
-        return $user->can('artwork.approve')
-            && $this->sameTenant($user, $request)
-            && $request->status === ArtworkRequestStatus::Submitted
-            && $request->current_version > 0;
+        return $this->canAttemptWorkflow(
+            $user,
+            $request,
+            'artwork.approve',
+            fn (ArtworkRequest $record) => in_array($record->status, [
+                ArtworkRequestStatus::Approved,
+                ArtworkRequestStatus::Rejected,
+            ], true),
+        );
     }
 
     public function startDesign(User $user, ArtworkRequest $request): bool
     {
-        return $user->can('artwork.edit')
-            && $this->sameTenant($user, $request)
-            && $request->status === ArtworkRequestStatus::RevisionRequested;
+        return $this->canAttemptWorkflow(
+            $user,
+            $request,
+            'artwork.edit',
+            fn (ArtworkRequest $record) => in_array($record->status, [
+                ArtworkRequestStatus::Approved,
+                ArtworkRequestStatus::Rejected,
+            ], true) || (
+                $record->status === ArtworkRequestStatus::Submitted
+                && $record->currentVersionRecord() !== null
+            ),
+        );
     }
 }

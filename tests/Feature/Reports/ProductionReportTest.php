@@ -26,23 +26,23 @@ class ProductionReportTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_production_reports_loads_historical_catalog(): void
+    public function test_production_reports_loads_report_workspace(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['reports.view', 'reports.export']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production'))
+            ->get(route('admin.reports.production', $this->embeddedQuery()))
             ->assertOk()
             ->assertSee(__('Production Reports'), false)
-            ->assertSee(__('Historical reports'), false)
-            ->assertSee(__('Reporting Catalog'), false)
             ->assertSee(__('Production Throughput'), false)
             ->assertSee(__('Quality Reports'), false)
             ->assertSee(__('Material Reports'), false)
             ->assertSee(__('Dispatch Reports'), false)
             ->assertSee(__('Profitability Reports'), false)
+            ->assertDontSee(__('Reporting Catalog'), false)
+            ->assertDontSee(__('Historical reports'), false)
             ->assertDontSee(__('No report data yet'), false)
             ->assertDontSee(__('Read-only intelligence'), false)
             ->assertDontSee(__('Branch Comparison'), false)
@@ -65,18 +65,18 @@ class ProductionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production', [
+            ->get(route('admin.reports.production', $this->embeddedQuery([
                 'tab' => 'throughput',
                 'from_date' => now()->subMonth()->toDateString(),
                 'to_date' => now()->toDateString(),
-            ]))
+            ])))
             ->assertOk()
             ->assertSee(__('Jobs Completed'), false)
             ->assertSee(__('Department Throughput'), false)
             ->assertSee(__('Machine Utilization'), false);
     }
 
-    public function test_quality_tab_shows_rate_summary(): void
+    public function test_quality_tab_shows_detail_tables(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['reports.view']);
 
@@ -98,12 +98,14 @@ class ProductionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production', ['tab' => 'quality']))
+            ->get(route('admin.reports.production', $this->embeddedQuery(['tab' => 'quality'])))
             ->assertOk()
             ->assertSee(__('Pass Rate'), false)
             ->assertSee(__('Fail Rate'), false)
             ->assertSee(__('Rework Rate'), false)
-            ->assertSee(__('Hold Rate'), false);
+            ->assertSee(__('Hold Rate'), false)
+            ->assertSee(__('Quality Fail Reasons'), false)
+            ->assertSee(__('Rework Summary'), false);
     }
 
     public function test_csv_export_streams_for_active_tab(): void
@@ -147,11 +149,11 @@ class ProductionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production'))
+            ->get(route('admin.reports.production', $this->embeddedQuery()))
             ->assertOk()
             ->assertViewHas('tabs', fn (array $tabs) => count($tabs) === 5)
-            ->assertViewHas('catalog', fn (array $catalog) => count($catalog) === 5)
-            ->assertViewHas('active_tab', 'throughput');
+            ->assertViewHas('active_tab', 'throughput')
+            ->assertViewHas('tab_data', fn (array $data) => count($data['sections'] ?? []) >= 3);
     }
 
     public function test_profitability_tab_uses_job_cost_sheets(): void
@@ -178,10 +180,19 @@ class ProductionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.reports.production', ['tab' => 'profitability']))
+            ->get(route('admin.reports.production', $this->embeddedQuery(['tab' => 'profitability'])))
             ->assertOk()
             ->assertSee(__('Job Profitability'), false)
             ->assertSee(__('Customer Profitability'), false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     * @return array<string, mixed>
+     */
+    protected function embeddedQuery(array $params = []): array
+    {
+        return array_merge(['embedded' => '1'], $params);
     }
 
     /**

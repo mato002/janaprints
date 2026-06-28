@@ -1,9 +1,12 @@
-@props(['filters', 'branches'])
+@props(['filters', 'branches', 'turbo_frame' => 'erp-main'])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.reports.production')" :reset-url="route('admin.reports.production')">
+    <x-admin.index-toolbar :action="route('admin.reports.production')" :reset-url="route('admin.reports.production', request()->only('embedded'))">
         @if (! empty($filters['tab']))
             <input type="hidden" name="tab" value="{{ $filters['tab'] }}">
+        @endif
+        @if (request('embedded'))
+            <input type="hidden" name="embedded" value="1">
         @endif
         <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">

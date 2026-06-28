@@ -117,6 +117,27 @@ class PlatformGovernanceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_super_admin_defers_to_policy_for_model_workflow_checks(): void
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::factory()->create(['company_id' => $company->id]);
+
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $user->assignRole('Super Admin');
+
+        $this->assertTrue($user->can('users.view'));
+        $this->assertFalse($user->can('approve', new \App\Models\Sales\CustomerInvoice([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => \App\Enums\CustomerInvoiceStatus::Approved,
+        ])));
+    }
+
     public function test_accountant_and_hr_roles_receive_default_permissions(): void
     {
         $accountant = Role::findByName('Accountant', 'web');

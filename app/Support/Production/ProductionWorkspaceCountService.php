@@ -87,7 +87,7 @@ class ProductionWorkspaceCountService
         return (int) ProductionQueue::query()
             ->forTenant()
             ->whereIn('status', [
-                ProductionQueueStatus::Pending,
+                ProductionQueueStatus::Waiting,
                 ProductionQueueStatus::Assigned,
                 ProductionQueueStatus::InProgress,
             ])

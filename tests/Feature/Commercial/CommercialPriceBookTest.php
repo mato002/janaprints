@@ -34,6 +34,33 @@ class CommercialPriceBookTest extends TestCase
         $this->actingAs($user)->get(route('admin.commercial.price-books.index'))->assertForbidden();
     }
 
+    public function test_price_book_store_from_modal_returns_success_marker(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'commercial.price_books.view', 'commercial.price_books.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.commercial.price-books.store'), [
+                'name' => 'Modal Retail',
+                'code' => 'MODAL-RETAIL',
+                'currency' => 'KES',
+                'status' => CommercialPriceBookStatus::Active->value,
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
+        $response->assertSee(__('Price book created.'), false);
+
+        $this->assertDatabaseHas('commercial_price_books', [
+            'company_id' => $company->id,
+            'code' => 'MODAL-RETAIL',
+        ]);
+    }
+
     public function test_price_book_can_be_created_and_assigned_to_customer(): void
     {
         [$company, $branch, $user] = $this->tenantUser([

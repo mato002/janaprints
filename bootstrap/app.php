@@ -5,6 +5,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use App\Http\Support\ModalFormExceptionRenderer;
 use App\Support\Platform\FormGovernanceErrorClassifier;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'tenant' => \App\Http\Middleware\SetTenantContext::class,
             'admin.auth' => \App\Http\Middleware\EnsureAdminAuthContext::class,
+            'client.auth' => \App\Http\Middleware\EnsureClientAuthContext::class,
             'employee.auth' => \App\Http\Middleware\EnsureEmployeeAuthContext::class,
         ]);
 
@@ -94,11 +96,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 422);
             }
 
-            return redirect($returnUrl)
-                ->withErrors($exception->validator)
-                ->withInput()
-                ->with('form_error_presentation', $presentation)
-                ->with('modal_error', $presentation['message']);
+            return ModalFormExceptionRenderer::validationResponse($exception, $request, $presentation);
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) {

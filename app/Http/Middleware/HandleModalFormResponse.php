@@ -21,12 +21,14 @@ class HandleModalFormResponse
             $message = $request->session()->get('status')
                 ?? $request->session()->get('success');
 
-            if (is_string($message) && $message !== '') {
-                return response()->view('admin.partials.modal-form-success', [
-                    'message' => $message,
-                    'refresh' => true,
-                ]);
+            if (! is_string($message) || $message === '') {
+                $message = __('Saved successfully.');
             }
+
+            return response()->view('admin.partials.modal-form-success', [
+                'message' => $message,
+                'refresh' => true,
+            ]);
         }
 
         return $response;

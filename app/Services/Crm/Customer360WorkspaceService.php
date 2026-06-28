@@ -18,9 +18,9 @@ use App\Models\Sales\CustomerPayment;
 use App\Models\Dispatch\DeliveryNote;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Models\Sales\SalesOrder;
-use App\Services\Accounting\CustomerFinancialIntelligenceService;
+use App\Support\Sales\CustomerFinancialIntelligenceService;
+use App\Support\Sales\CustomerFinancialWorkspaceService;
 use App\Services\Accounting\DeliveryInvoiceEligibilityService;
-use App\Services\Accounting\StatementService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -629,36 +629,13 @@ class Customer360WorkspaceService
      */
     protected function financialTab(Customer $customer, array $query = []): array
     {
-        if (! $this->userCanViewInvoices() || ! Schema::hasTable('customer_invoices')) {
+        $user = auth()->user();
+
+        if (! $user) {
             return ['restricted' => true];
         }
 
-        $intelligence = app(CustomerFinancialIntelligenceService::class);
-        $profile = $intelligence->profile($customer);
-        $section = $query['financial_section'] ?? 'overview';
-
-        $data = [
-            'section' => $section,
-            'profile' => $profile,
-            'aging' => $profile['aging'],
-            'collection' => $profile['collection'],
-            'invoices' => $this->customerScoped(
-                CustomerInvoice::query()->select([
-                    'id', 'invoice_number', 'invoice_date', 'due_date', 'status', 'total_amount', 'customer_id',
-                ]),
-                $customer,
-            )->latest('invoice_date')->paginate(25, pageName: 'invoices_page'),
-        ];
-
-        if ($section === 'statement' && auth()->user()?->can('statements.view')) {
-            $from = $query['statement_from'] ?? now()->subMonths(3)->toDateString();
-            $to = $query['statement_to'] ?? now()->toDateString();
-            $data['statement_from'] = $from;
-            $data['statement_to'] = $to;
-            $data['statement'] = app(StatementService::class)->generate($customer, $from, $to);
-        }
-
-        return $data;
+        return app(CustomerFinancialWorkspaceService::class)->build($customer, $user, $query);
     }
 
     /**

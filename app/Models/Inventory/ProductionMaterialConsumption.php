@@ -15,8 +15,8 @@ class ProductionMaterialConsumption extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'production_job_card_id', 'inventory_item_id',
-        'warehouse_id', 'inventory_movement_id', 'quantity', 'unit_cost',
+        'company_id', 'branch_id', 'production_job_card_id', 'production_material_requirement_id',
+        'inventory_item_id', 'warehouse_id', 'inventory_movement_id', 'quantity', 'unit_cost',
         'consumed_by', 'consumed_at',
     ];
 
@@ -32,6 +32,11 @@ class ProductionMaterialConsumption extends Model
     public function jobCard(): BelongsTo
     {
         return $this->belongsTo(ProductionJobCard::class, 'production_job_card_id');
+    }
+
+    public function requirement(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Production\ProductionMaterialRequirement::class, 'production_material_requirement_id');
     }
 
     public function inventoryItem(): BelongsTo

@@ -37,6 +37,7 @@
     </div>
 
     <x-admin.card class="mb-4">
+        <x-admin.workflow-error />
         <div class="workspace-action-bar flex flex-wrap gap-2">
             @can('approve', $invoice)
                 <form method="POST" action="{{ route('admin.invoices.approve', $invoice) }}">@csrf

@@ -13,7 +13,7 @@ class PosProductSearchService
     ) {}
 
     /**
-     * @return Collection<int, array{id: int, name: string, sku: string|null, item_code: string|null, unit_price: float}>
+     * @return Collection<int, array{id: int, name: string, sku: string|null, unit_price: float}>
      */
     public function search(string $query, ?int $customerId = null, int $limit = 15): Collection
     {
@@ -33,19 +33,18 @@ class PosProductSearchService
                 $like = '%'.$term.'%';
                 $builder
                     ->where('item_name', 'like', $like)
-                    ->orWhere('sku', 'like', $like)
-                    ->orWhere('item_code', 'like', $like);
+                    ->orWhere('sku', 'like', $like);
             })
             ->orderBy('item_name')
             ->limit($limit)
-            ->get(['id', 'item_name', 'sku', 'item_code', 'standard_cost', 'company_id'])
+            ->get(['id', 'item_name', 'sku', 'standard_cost', 'company_id'])
             ->map(fn (InventoryItem $item) => $this->toSearchResult($item, $customerId, $companyId, $branchId));
     }
 
     /**
      * Exact barcode / SKU match for scanner workflows.
      *
-     * @return array{id: int, name: string, sku: string|null, item_code: string|null, unit_price: float}|null
+     * @return array{id: int, name: string, sku: string|null, unit_price: float}|null
      */
     public function findByBarcode(string $barcode, ?int $customerId = null): ?array
     {
@@ -61,18 +60,14 @@ class PosProductSearchService
         $item = InventoryItem::query()
             ->forTenant()
             ->where('is_active', true)
-            ->where(function (Builder $builder) use ($code): void {
-                $builder
-                    ->where('sku', $code)
-                    ->orWhere('item_code', $code);
-            })
-            ->first(['id', 'item_name', 'sku', 'item_code', 'standard_cost', 'company_id']);
+            ->where('sku', $code)
+            ->first(['id', 'item_name', 'sku', 'standard_cost', 'company_id']);
 
         return $item ? $this->toSearchResult($item, $customerId, $companyId, $branchId) : null;
     }
 
     /**
-     * @return array{id: int, name: string, sku: string|null, item_code: string|null, unit_price: float}
+     * @return array{id: int, name: string, sku: string|null, unit_price: float}
      */
     protected function toSearchResult(InventoryItem $item, ?int $customerId, int $companyId, ?int $branchId): array
     {
@@ -82,7 +77,6 @@ class PosProductSearchService
             'id' => (int) $item->id,
             'name' => (string) $item->item_name,
             'sku' => $item->sku,
-            'item_code' => $item->item_code,
             'unit_price' => $unitPrice,
         ];
     }

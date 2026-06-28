@@ -98,6 +98,7 @@ return [
                 'items' => [
                     ['key' => 'commercial-reports', 'label' => 'Commercial Reports', 'description' => 'Hub for departmental commercial reports.', 'route' => 'admin.reports.commercial', 'permission' => 'reports.view', 'icon' => 'document-text', 'active_routes' => ['admin.reports.commercial', 'commercial.reports.*']],
                     ['key' => 'commercial-360', 'label' => 'Commercial 360', 'description' => 'Sales and customer management intelligence.', 'route' => 'admin.reports.commercial360', 'permission' => 'intelligence.commercial.view|reports.view', 'icon' => 'document-text', 'active_routes' => ['admin.reports.commercial360']],
+                    ['key' => 'commercial-intelligence', 'label' => 'Commercial Intelligence', 'description' => 'Job, customer, product profitability, waste, and outsource analysis.', 'route' => 'admin.reports.commercial-intelligence', 'permission' => 'intelligence.commercial.view|reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.reports.commercial-intelligence']],
                 ],
             ]],
         ],

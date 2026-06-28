@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class ArtworkVersion extends Model
 {
@@ -36,5 +37,23 @@ class ArtworkVersion extends Model
     public function approvals(): HasMany
     {
         return $this->hasMany(ArtworkApproval::class);
+    }
+
+    public function isPreviewable(): bool
+    {
+        if (! $this->file_path || ! Storage::disk('local')->exists($this->file_path)) {
+            return false;
+        }
+
+        return str_starts_with((string) $this->mime_type, 'image/')
+            || $this->mime_type === 'application/pdf';
+    }
+
+    public function previewUrl(): string
+    {
+        return route('admin.artwork.versions.preview', [
+            'artworkRequest' => $this->artwork_request_id,
+            'version' => $this->id,
+        ]);
     }
 }

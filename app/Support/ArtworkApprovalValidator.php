@@ -30,17 +30,21 @@ class ArtworkApprovalValidator
             ->where('quotation_id', $quotation->id)
             ->where('company_id', $quotation->company_id)
             ->where('branch_id', $quotation->branch_id)
+            ->where('status', ArtworkRequestStatus::Approved)
+            ->orderByDesc('id')
             ->first();
 
         if (! $artworkRequest) {
-            throw ValidationException::withMessages([
-                'artwork' => __('No artwork request is linked to this quotation.'),
-            ]);
-        }
+            $hasLinkedArtwork = ArtworkRequest::query()
+                ->where('quotation_id', $quotation->id)
+                ->where('company_id', $quotation->company_id)
+                ->where('branch_id', $quotation->branch_id)
+                ->exists();
 
-        if ($artworkRequest->status !== ArtworkRequestStatus::Approved) {
             throw ValidationException::withMessages([
-                'artwork' => __('Artwork must be approved before creating a sales order.'),
+                'artwork' => $hasLinkedArtwork
+                    ? __('Artwork must be approved before creating a sales order.')
+                    : __('No artwork request is linked to this quotation.'),
             ]);
         }
 

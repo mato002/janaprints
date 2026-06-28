@@ -13,6 +13,27 @@ enum ProductionJobCardStatus: string
     case OnHold = 'on_hold';
     case Cancelled = 'cancelled';
     case Rework = 'rework';
+    case AwaitingCustomerApproval = 'awaiting_customer_approval';
+    case Outsourced = 'outsourced';
+    case Returned = 'returned';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Draft => __('Draft'),
+            self::Queued => __('Queued'),
+            self::InProduction => __('In production'),
+            self::QualityCheck => __('Quality check'),
+            self::Completed => __('Completed'),
+            self::ReadyForDispatch => __('Ready for dispatch'),
+            self::OnHold => __('On hold'),
+            self::Cancelled => __('Cancelled'),
+            self::Rework => __('Rework'),
+            self::AwaitingCustomerApproval => __('Awaiting customer approval'),
+            self::Outsourced => __('Outsourced'),
+            self::Returned => __('Returned'),
+        };
+    }
 
     /**
      * @return list<self>
@@ -21,10 +42,13 @@ enum ProductionJobCardStatus: string
     {
         return match ($this) {
             self::Draft => [self::Queued, self::Cancelled, self::OnHold],
-            self::Queued => [self::InProduction, self::Cancelled, self::OnHold],
-            self::InProduction => [self::QualityCheck, self::Cancelled, self::OnHold],
-            self::QualityCheck => [self::Completed, self::Rework, self::OnHold],
-            self::Rework => [self::InProduction, self::Cancelled, self::OnHold],
+            self::Queued => [self::InProduction, self::Outsourced, self::Cancelled, self::OnHold],
+            self::InProduction => [self::QualityCheck, self::Outsourced, self::Cancelled, self::OnHold],
+            self::Outsourced => [self::Returned, self::Cancelled, self::OnHold],
+            self::Returned => [self::InProduction, self::QualityCheck, self::OnHold],
+            self::QualityCheck => [self::ReadyForDispatch, self::Rework, self::AwaitingCustomerApproval, self::OnHold],
+            self::AwaitingCustomerApproval => [self::ReadyForDispatch, self::Rework, self::OnHold],
+            self::Rework => [self::InProduction, self::QualityCheck, self::Cancelled, self::OnHold],
             self::Completed => [self::ReadyForDispatch, self::OnHold],
             self::ReadyForDispatch => [],
             self::OnHold => [self::Queued, self::InProduction],

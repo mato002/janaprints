@@ -8,7 +8,7 @@
     :title="$header['job_number']"
     :breadcrumbs="[
         ['label' => __('Production'), 'url' => route('admin.workspaces.production')],
-        ['label' => __('Job Cards'), 'url' => route('admin.production.job-cards.index')],
+        ['label' => __('Production Floor'), 'url' => route('admin.production.floor')],
         ['label' => $header['job_number']],
     ]"
 >
@@ -16,14 +16,27 @@
         @include('admin.production.job-cards.workspace.header', [
             'jobCard' => $jobCard,
             'header' => $header,
-            'quickActions' => $workspace['quick_actions'],
+        ])
+
+        @include('admin.production.job-cards.workspace.partials.workflow-bar', [
+            'jobCard' => $jobCard,
+            'primaryAction' => $workspace['primary_action'] ?? null,
+            'secondaryActions' => $workspace['secondary_actions'] ?? [],
+            'linkActions' => $workspace['link_actions'] ?? [],
+            'completion' => $workspace['completion'] ?? ['eligible' => false, 'blockers' => []],
+            'finishedItems' => $workspace['finished_items'] ?? collect(),
         ])
 
         @include('admin.production.job-cards.workspace.partials.control-alerts', ['alerts' => $workspace['control_alerts'] ?? []])
 
-        @include('admin.crm.customers.workspace.kpi-strip', ['kpis' => $workspace['kpis']])
+        @if ($activeTab === 'overview')
+            @include('admin.crm.customers.workspace.kpi-strip', ['kpis' => $workspace['kpis']])
+        @endif
 
-        @include('admin.production.job-cards.workspace.tabs-nav', ['tabs' => $workspace['tabs']])
+        @include('admin.production.job-cards.workspace.tabs-nav', [
+            'tabs' => $workspace['tabs'],
+            'workspace' => $workspace,
+        ])
 
         <div class="job-360__panel mt-4">
             @include('admin.production.job-cards.workspace.tabs.' . $activeTab, [

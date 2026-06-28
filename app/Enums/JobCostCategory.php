@@ -9,5 +9,6 @@ enum JobCostCategory: string
     case Machine = 'machine';
     case Finishing = 'finishing';
     case Outsourced = 'outsourced';
+    case Wastage = 'wastage';
     case Overhead = 'overhead';
 }

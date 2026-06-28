@@ -34,7 +34,12 @@ class ArtworkVersionPolicy
             return false;
         }
 
+        if ($request->lacksUploadedVersion()) {
+            return true;
+        }
+
         return in_array($request->status, [
+            ArtworkRequestStatus::Requested,
             ArtworkRequestStatus::InDesign,
             ArtworkRequestStatus::RevisionRequested,
         ], true);

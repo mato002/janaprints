@@ -17,7 +17,7 @@ use App\Models\Crm\CustomerSegment;
 use App\Models\Crm\Lead;
 use App\Models\Crm\LeadSource;
 use App\Models\Crm\LeadStage;
-use App\Models\Inventory\Brand;
+use App\Enums\InventoryStockRole;
 use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventorySubcategory;
@@ -118,9 +118,9 @@ class LookupQuickCreateFormData
             'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId, $item),
             'categories' => InventoryCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'subcategories' => InventorySubcategory::query()->forTenant()->with('category')->where('is_active', true)->orderBy('name')->get(),
-            'brands' => Brand::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
-            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->orderBy('name')->get(),
+            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->where('code', '!=', 'FINISH')->orderBy('name')->get(),
+            'stockRoles' => InventoryStockRole::cases(),
         ];
     }
 

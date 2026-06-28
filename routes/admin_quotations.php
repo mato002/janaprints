@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Admin\Sales\QuotationAttachmentController;
 use App\Http\Controllers\Admin\Sales\QuotationController;
 use App\Http\Controllers\Admin\Sales\QuotationDashboardController;
 use App\Http\Controllers\Admin\Sales\QuotationDocumentController;
@@ -22,6 +21,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:quotations.create')->group(function () {
             Route::get('list/create', [QuotationController::class, 'create'])->name('create');
             Route::post('list', [QuotationController::class, 'store'])->name('store');
+            Route::get('customers/{customer}/artworks', [QuotationController::class, 'customerArtworks'])->name('customer-artworks');
         });
 
         Route::middleware('permission:quotations.view')->group(function () {
@@ -37,11 +37,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('list/{quotation}/mark-viewed', [QuotationController::class, 'markViewed'])->name('mark-viewed');
             Route::post('list/{quotation}/accept', [QuotationController::class, 'accept'])->name('accept');
             Route::post('list/{quotation}/reject', [QuotationController::class, 'reject'])->name('reject');
+            Route::post('list/{quotation}/link-artwork', [QuotationController::class, 'linkArtwork'])->name('link-artwork');
             Route::post('list/{quotation}/expire', [QuotationController::class, 'expire'])->name('expire');
             Route::post('list/{quotation}/notes', [QuotationNoteController::class, 'store'])->name('notes.store');
             Route::delete('list/{quotation}/notes/{note}', [QuotationNoteController::class, 'destroy'])->name('notes.destroy');
-            Route::post('list/{quotation}/attachments', [QuotationAttachmentController::class, 'store'])->name('attachments.store');
-            Route::delete('list/{quotation}/attachments/{attachment}', [QuotationAttachmentController::class, 'destroy'])->name('attachments.destroy');
         });
 
         Route::middleware('permission:quotations.delete')->group(function () {

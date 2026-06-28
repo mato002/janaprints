@@ -20,4 +20,14 @@ class WorkCenterPolicy
         return $user->can('production.work-centers.view')
             && $this->sameTenant($user, $workCenter);
     }
+
+    public function create(User $user): bool
+    {
+        return $user->can('production.edit');
+    }
+
+    public function update(User $user, WorkCenter $workCenter): bool
+    {
+        return $user->can('production.edit') && $this->sameTenant($user, $workCenter);
+    }
 }

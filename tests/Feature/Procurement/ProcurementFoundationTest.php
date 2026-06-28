@@ -178,6 +178,66 @@ class ProcurementFoundationTest extends TestCase
         $this->actingAs($user)->get(route('admin.procurement.vendors.create'))->assertForbidden();
     }
 
+    public function test_vendor_store_from_modal_returns_success_marker(): void
+    {
+        [$company, $branch, $user] = $this->procurementContext([
+            'procurement.vendors.create',
+            'procurement.vendors.view',
+        ]);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.procurement.vendors.store'), [
+                'vendor_name' => 'Modal Vendor Ltd',
+                'vendor_type' => 'supplier',
+                'status' => 'active',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
+        $response->assertSee(__('Vendor created.'), false);
+
+        $this->assertDatabaseHas('vendors', [
+            'vendor_name' => 'Modal Vendor Ltd',
+            'company_id' => $company->id,
+        ]);
+    }
+
+    public function test_vendor_update_from_modal_returns_success_marker(): void
+    {
+        [$company, $branch, $user] = $this->procurementContext([
+            'procurement.vendors.create',
+            'procurement.vendors.edit',
+            'procurement.vendors.view',
+        ]);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $vendor = Vendor::factory()->create([
+            'company_id' => $company->id,
+            'vendor_name' => 'Original Vendor',
+            'vendor_type' => 'supplier',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->put(route('admin.procurement.vendors.update', $vendor), [
+                'vendor_name' => 'Updated Vendor',
+                'vendor_type' => 'contractor',
+                'status' => 'active',
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
+        $response->assertSee(__('Vendor updated.'), false);
+
+        $this->assertDatabaseHas('vendors', [
+            'id' => $vendor->id,
+            'vendor_name' => 'Updated Vendor',
+        ]);
+    }
+
     /**
      * @param  list<string>  $permissions
      * @return array{0: Company, 1: Branch, 2: User, 3?: InventoryItem, 4?: Warehouse}

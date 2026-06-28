@@ -79,4 +79,14 @@ class CustomerPaymentPolicy
             && $this->sameTenant($user, $payment)
             && $payment->status === CustomerPaymentStatus::Posted;
     }
+
+    public function applyDeposit(User $user): bool
+    {
+        return $user->can('payments.create');
+    }
+
+    public function refundDeposit(User $user): bool
+    {
+        return $user->can('payments.create');
+    }
 }

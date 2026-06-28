@@ -15,9 +15,8 @@
                 <div><dt class="text-slate-500">{{ __('Stock role') }}</dt><dd>{{ $item->stock_role?->label() ?? __('-') }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Category') }}</dt><dd>{{ $item->category?->name }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Subcategory') }}</dt><dd>{{ $item->subcategory?->name ?? __('-') }}</dd></div>
-                <div><dt class="text-slate-500">{{ __('Brand') }}</dt><dd>{{ $item->brand?->name ?? __('-') }}</dd></div>
+                <div><dt class="text-slate-500">{{ __('Brand') }}</dt><dd>{{ $item->brand_name ?? $item->brand?->name ?? __('-') }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Unit') }}</dt><dd>{{ $item->unitOfMeasure?->name }}</dd></div>
-                <div><dt class="text-slate-500">{{ __('Item code') }}</dt><dd>{{ $item->item_code ?? __('-') }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Reorder level') }}</dt><dd>{{ $item->reorder_level }}</dd></div>
                 <div><dt class="text-slate-500">{{ __('Standard cost') }}</dt><dd>{{ number_format($item->standard_cost, 2) }}</dd></div>
             </dl>
@@ -41,6 +40,20 @@
             @endif
 
             <p class="text-xs text-slate-500 mt-4">{{ __('Balance is calculated from inventory movements only.') }}</p>
+
+            @if($item->uses_serial_numbers)
+                <h2 class="mt-6 text-sm font-semibold text-slate-900">{{ __('Serial format') }}</h2>
+                <p class="mt-1 text-sm"><code>{{ $item->serial_prefix }}{{ str_repeat('0', max(0, ($item->serial_padding_length ?? 6) - 1)) }}1</code></p>
+            @endif
+
+            @if($item->productionRouteSteps->isNotEmpty())
+                <h2 class="mt-6 text-sm font-semibold text-slate-900">{{ __('Default production route') }}</h2>
+                <ol class="mt-2 list-decimal pl-5 text-sm space-y-1">
+                    @foreach($item->productionRouteSteps as $step)
+                        <li class="{{ $step->is_active ? '' : 'text-slate-400 line-through' }}">{{ $step->step_name }}</li>
+                    @endforeach
+                </ol>
+            @endif
         </x-admin.card>
 
         <x-admin.card>

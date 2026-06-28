@@ -70,7 +70,7 @@ return [
 
         'sales_order' => [
             'label' => 'Sales Orders',
-            'description' => 'Sales order creation from quotation.',
+            'description' => 'Sales order creation from quotation or direct customer order.',
             'fields' => [
                 'quotation_id' => ['label' => 'Quotation', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
             ],
@@ -82,7 +82,7 @@ return [
             'fields' => [
                 'inventory_category_id' => ['label' => 'Category', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
                 'unit_of_measure_id' => ['label' => 'Unit', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
-                'sku' => ['label' => 'SKU', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'sku' => ['label' => 'SKU', 'type' => 'text', 'required' => false, 'visible' => false, 'sort_order' => 3],
                 'item_name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 4],
                 'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 5],
                 'reorder_level' => ['label' => 'Reorder level', 'type' => 'number', 'required' => true, 'visible' => true, 'sort_order' => 6, 'default' => 0],

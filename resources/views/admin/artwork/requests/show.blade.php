@@ -9,6 +9,14 @@
 
     <x-admin.card class="mb-6">
         <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
+        <x-admin.workflow-error />
+        @if ($request->status === \App\Enums\ArtworkRequestStatus::Requested)
+            <p class="mb-3 text-sm text-slate-600">{{ __('Assign a designer, start design, or upload a version before submitting for approval.') }}</p>
+        @elseif ($request->status === \App\Enums\ArtworkRequestStatus::InDesign && $request->lacksUploadedVersion())
+            <p class="mb-3 text-sm text-slate-600">{{ __('Upload at least one artwork version before submitting for approval.') }}</p>
+        @elseif ($request->lacksUploadedVersion())
+            <p class="mb-3 text-sm text-amber-700">{{ __('No artwork file is attached yet. Upload a version below to unblock this request.') }}</p>
+        @endif
         <div class="flex flex-wrap gap-2">
             @can('assign', $request)
                 <form method="POST" action="{{ route('admin.artwork.assign', $request) }}" class="flex flex-wrap gap-2 items-end">
@@ -28,23 +36,40 @@
             @endcan
             @can('startDesign', $request)
                 <form method="POST" action="{{ route('admin.artwork.start-design', $request) }}">@csrf
-                    <button class="erp-btn-secondary">{{ __('Resume design') }}</button></form>
+                    <button class="erp-btn-secondary">
+                        {{ $request->status === \App\Enums\ArtworkRequestStatus::Requested ? __('Start design') : __('Resume design') }}
+                    </button></form>
             @endcan
             @can('approve', $request)
-                <form method="POST" action="{{ route('admin.artwork.approve', $request) }}" class="flex flex-wrap gap-2 items-end">
-                    @csrf
-                    <select name="decision" class="erp-input" required>
-                        <option value="approved">{{ __('Approve') }}</option>
-                        <option value="revision_requested">{{ __('Request revision') }}</option>
-                        <option value="rejected">{{ __('Reject') }}</option>
-                    </select>
-                    <input type="text" name="comments" class="erp-input" placeholder="{{ __('Comments') }}">
-                    <button class="erp-btn-primary">{{ __('Record decision') }}</button>
-                </form>
+                @if ($request->status === \App\Enums\ArtworkRequestStatus::Submitted && $request->lacksUploadedVersion())
+                    <form method="POST" action="{{ route('admin.artwork.approve', $request) }}" class="flex flex-wrap gap-2 items-end">
+                        @csrf
+                        <input type="hidden" name="decision" value="rejected">
+                        <input type="text" name="comments" class="erp-input" placeholder="{{ __('Rejection reason') }}">
+                        <button class="erp-btn-secondary">{{ __('Reject request') }}</button>
+                    </form>
+                    @can('startDesign', $request)
+                        <form method="POST" action="{{ route('admin.artwork.start-design', $request) }}">@csrf
+                            <button class="erp-btn-primary">{{ __('Return to design') }}</button>
+                        </form>
+                    @endcan
+                @elseif ($request->canApproveOrRequestRevision())
+                    <form method="POST" action="{{ route('admin.artwork.approve', $request) }}" class="flex flex-wrap gap-2 items-end">
+                        @csrf
+                        <select name="decision" class="erp-input" required>
+                            <option value="approved">{{ __('Approve') }}</option>
+                            <option value="revision_requested">{{ __('Request revision') }}</option>
+                            <option value="rejected">{{ __('Reject') }}</option>
+                        </select>
+                        <input type="text" name="comments" class="erp-input" placeholder="{{ __('Comments') }}">
+                        <button class="erp-btn-primary">{{ __('Record decision') }}</button>
+                    </form>
+                @endif
             @endcan
         </div>
     </x-admin.card>
 
+    <x-admin.artwork-preview-lightbox>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         <x-admin.card>
             <h3 class="font-medium mb-3">{{ __('Details') }}</h3>
@@ -62,10 +87,22 @@
         <x-admin.card>
             <h3 class="font-medium mb-3">{{ __('Versions') }}</h3>
             @forelse ($request->versions as $version)
-                <div class="text-sm border-b border-slate-100 py-2">
-                    <strong>v{{ $version->version_number }}</strong> — {{ $version->original_name }}
-                    <span class="text-slate-500">({{ $version->uploader?->name }})</span>
-                    @if ($version->notes)<p class="text-slate-600">{{ $version->notes }}</p>@endif
+                <div class="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 py-2 text-sm">
+                    <div>
+                        <strong>v{{ $version->version_number }}</strong> — {{ $version->original_name }}
+                        <span class="text-slate-500">({{ $version->uploader?->name }})</span>
+                        @if ($version->notes)<p class="text-slate-600">{{ $version->notes }}</p>@endif
+                    </div>
+                    @if ($version->isPreviewable())
+                        <button
+                            type="button"
+                            class="erp-btn-ghost text-xs"
+                            data-preview-url="{{ $version->previewUrl() }}"
+                            data-preview-title="{{ $version->original_name }}"
+                            data-preview-pdf="{{ $version->mime_type === 'application/pdf' ? '1' : '0' }}"
+                            @click="show($el.dataset.previewUrl, $el.dataset.previewTitle, $el.dataset.previewPdf === '1')"
+                        >{{ __('View') }}</button>
+                    @endif
                 </div>
             @empty
                 <p class="text-sm text-slate-500">{{ __('No versions uploaded yet.') }}</p>
@@ -73,10 +110,16 @@
             @can('create', [App\Models\Artwork\ArtworkVersion::class, $request])
                 <form method="POST" action="{{ route('admin.artwork.versions.store', $request) }}" enctype="multipart/form-data" data-turbo-frame="_top" class="mt-4 space-y-2">
                     @csrf
-                    <input type="file" name="file" class="erp-input w-full" required>
-                    <input type="text" name="notes" class="erp-input w-full" placeholder="{{ __('Version notes') }}">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Artwork file') }}</label>
+                    <input type="file" name="file" class="erp-input w-full" accept=".pdf,.ai,.psd,.cdr,.svg,.png,.jpg,.jpeg" required>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Version notes') }}</label>
+                    <input type="text" name="notes" class="erp-input w-full" placeholder="{{ __('Optional notes for this version') }}">
                     <button class="erp-btn-secondary">{{ __('Upload version') }}</button>
                 </form>
+            @else
+                @if ($request->lacksUploadedVersion())
+                    <p class="mt-3 text-sm text-slate-500">{{ __('You do not have permission to upload artwork. Ask a designer or administrator to attach a file.') }}</p>
+                @endif
             @endcan
         </x-admin.card>
     </div>
@@ -125,4 +168,5 @@
             @endforeach
         </x-admin.card>
     </div>
+    </x-admin.artwork-preview-lightbox>
 </x-admin-layout>

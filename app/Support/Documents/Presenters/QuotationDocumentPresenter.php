@@ -2,9 +2,7 @@
 
 namespace App\Support\Documents\Presenters;
 
-use App\Enums\QuotationAttachmentType;
 use App\Enums\QuotationStatus;
-use App\Models\Artwork\ArtworkRequest;
 use App\Models\Sales\Quotation;
 use App\Support\Documents\Presenters\Concerns\BuildsDocumentBlocks;
 use App\Support\Platform\FormCustomFieldService;
@@ -28,7 +26,6 @@ class QuotationDocumentPresenter
             'branch',
             'preparer',
             'items',
-            'attachments',
         ]);
 
         $custom = $this->customFields->valuesFor($quotation, 'quotation');
@@ -145,30 +142,6 @@ class QuotationDocumentPresenter
         ];
 
         return $lines;
-    }
-
-    /**
-     * @param  array<string, string|null>  $custom
-     */
-    protected function resolveArtworkReference(Quotation $quotation, array $custom): ?string
-    {
-        if (filled($custom['artwork_reference'] ?? null)) {
-            return $custom['artwork_reference'];
-        }
-
-        $artworkRequest = ArtworkRequest::query()
-            ->where('quotation_id', $quotation->id)
-            ->orderByDesc('id')
-            ->first();
-
-        if ($artworkRequest) {
-            return $artworkRequest->request_number.($artworkRequest->title ? ' — '.$artworkRequest->title : '');
-        }
-
-        $attachment = $quotation->attachments
-            ->first(fn ($file) => $file->attachment_type === QuotationAttachmentType::Artwork);
-
-        return $attachment?->original_name;
     }
 
     /**

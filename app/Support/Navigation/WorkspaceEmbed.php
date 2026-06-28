@@ -21,6 +21,17 @@ class WorkspaceEmbed
     }
 
     /**
+     * True only for turbo-frame fetches that should return the bare workspace fragment.
+     * Full-page navigation with ?embedded=1 must keep the main admin shell (CSS/JS).
+     */
+    public static function rendersEmbeddedFragment(?Request $request = null): bool
+    {
+        $request ??= request();
+
+        return $request->header('Turbo-Frame') === 'module-workspace-content';
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      * @return array<string, mixed>
      */

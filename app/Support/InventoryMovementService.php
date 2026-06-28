@@ -100,6 +100,7 @@ class InventoryMovementService
             InventoryMovementType::FinishedGoodsReceipt,
             InventoryMovementType::ProductionOutput,
             InventoryMovementType::DispatchToTransit,
+            InventoryMovementType::ProductionReturn,
         ], true);
     }
 
@@ -109,6 +110,8 @@ class InventoryMovementService
             InventoryMovementType::Issue,
             InventoryMovementType::TransferOut,
             InventoryMovementType::ProductionConsumption,
+            InventoryMovementType::ProductionIssue,
+            InventoryMovementType::ProductionWaste,
             InventoryMovementType::DispatchToTransit,
             InventoryMovementType::DeliveryCogs,
         ], true);

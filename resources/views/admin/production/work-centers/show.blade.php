@@ -16,6 +16,9 @@
     <x-admin.page-header :title="$workCenter->name" :description="$workCenter->code">
         <x-slot name="actions">
             <a href="{{ route('admin.production.work-centers.index') }}" class="erp-btn-secondary">{{ __('Back to list') }}</a>
+            @can('update', $workCenter)
+                <a href="{{ route('admin.production.work-centers.edit', $workCenter) }}" class="erp-btn-primary" data-turbo-frame="erp-form-modal">{{ __('Edit') }}</a>
+            @endcan
         </x-slot>
     </x-admin.page-header>
 

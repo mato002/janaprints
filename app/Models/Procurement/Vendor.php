@@ -28,6 +28,7 @@ class Vendor extends Model
         'payment_terms',
         'status',
         'notes',
+        'is_production_vendor',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Vendor extends Model
         return [
             'vendor_type' => VendorType::class,
             'status' => VendorStatus::class,
+            'is_production_vendor' => 'boolean',
         ];
     }
 

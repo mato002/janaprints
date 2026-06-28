@@ -9,6 +9,8 @@ use App\Enums\ProductionType;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
 use App\Support\Platform\NumberingService;
+use App\Support\Production\ProductionGovernanceBootstrapService;
+use App\Support\Production\JobCardSpecificationBridgeService;
 use Illuminate\Support\Facades\DB;
 
 class ProductionJobCardService
@@ -21,13 +23,15 @@ class ProductionJobCardService
         ProductionJobCardValidator::assertCanCreateFromSalesOrder($salesOrder);
 
         return DB::transaction(function () use ($salesOrder, $createdBy, $attributes) {
-            return ProductionJobCard::query()->create([
+            $jobCard = ProductionJobCard::query()->create([
                 'company_id' => $salesOrder->company_id,
                 'branch_id' => $salesOrder->branch_id,
                 'sales_order_id' => $salesOrder->id,
                 'customer_id' => $salesOrder->customer_id,
                 'quotation_id' => $salesOrder->quotation_id,
                 'artwork_request_id' => $salesOrder->artwork_request_id,
+                'inventory_item_id' => $salesOrder->inventory_item_id,
+                'customer_artwork_id' => $salesOrder->customer_artwork_id,
                 'job_card_number' => app(NumberingService::class)->next(
                     DocumentType::JobCard,
                     $salesOrder->company_id,
@@ -40,6 +44,15 @@ class ProductionJobCardService
                 'status' => ProductionJobCardStatus::Draft,
                 'created_by' => $createdBy,
             ]);
+
+            app(ProductionGovernanceBootstrapService::class)->bootstrapFromSalesOrder($jobCard, $salesOrder);
+
+            app(JobCardSpecificationBridgeService::class)->attachOnJobCardCreated(
+                $jobCard->fresh(),
+                $salesOrder,
+            );
+
+            return $jobCard->fresh(['productionSpecification']);
         });
     }
 }

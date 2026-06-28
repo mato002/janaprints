@@ -44,7 +44,7 @@ class DeliverySalesOrderSyncTest extends TestCase
         $this->seed(ProductionFoundationSeeder::class);
     }
 
-    public function test_delivery_syncs_sales_order_to_delivered_and_commercially_closed(): void
+    public function test_delivery_syncs_sales_order_to_delivered_without_auto_close(): void
     {
         [, , , $user, $salesOrder, $job] = $this->deliveryContext();
 
@@ -57,7 +57,7 @@ class DeliverySalesOrderSyncTest extends TestCase
         $service->deliver($note, $user->id, ['recipient_name' => 'Site Manager']);
 
         $this->assertSame(DeliveryNoteStatus::Delivered, $note->fresh()->status);
-        $this->assertSame(SalesOrderStatus::Closed, $salesOrder->fresh()->status);
+        $this->assertSame(SalesOrderStatus::Delivered, $salesOrder->fresh()->status);
     }
 
     public function test_proof_of_delivery_is_required_at_delivery(): void
@@ -145,10 +145,10 @@ class DeliverySalesOrderSyncTest extends TestCase
         $service->dispatch($noteB, $user->id);
         $service->deliver($noteB, $user->id, ['recipient_name' => 'Receiver B']);
 
-        $this->assertSame(SalesOrderStatus::Closed, $salesOrder->fresh()->status);
+        $this->assertSame(SalesOrderStatus::Delivered, $salesOrder->fresh()->status);
     }
 
-    public function test_manual_sales_order_deliver_requires_delivery_truth(): void
+    public function test_manual_sales_order_deliver_route_is_removed(): void
     {
         [, , , $user, $salesOrder] = $this->deliveryContext();
         $salesOrder->update(['status' => SalesOrderStatus::ReadyForDispatch]);
@@ -158,8 +158,8 @@ class DeliverySalesOrderSyncTest extends TestCase
         $user->assignRole($role);
 
         $this->actingAs($user)
-            ->post(route('admin.sales-orders.deliver', $salesOrder))
-            ->assertSessionHasErrors('status');
+            ->post('/admin/sales-orders/list/'.$salesOrder->id.'/deliver')
+            ->assertNotFound();
     }
 
     /**

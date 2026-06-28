@@ -143,7 +143,7 @@ class PlatformConfigurationSeeder extends Seeder
             'customer' => [
                 'is_active' => true,
                 'fields' => [
-                    'kra_pin' => ['visibility' => 'visible', 'requirement' => 'required', 'read_only' => '0', 'default_value' => ''],
+                    'kra_pin' => ['visibility' => 'visible', 'requirement' => 'optional', 'read_only' => '0', 'default_value' => ''],
                     'website' => ['visibility' => 'hidden', 'requirement' => 'optional', 'read_only' => '0', 'default_value' => ''],
                 ],
             ],

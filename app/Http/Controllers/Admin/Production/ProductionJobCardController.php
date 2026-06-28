@@ -7,6 +7,7 @@ use App\Enums\ProductionPriority;
 use App\Enums\ProductionType;
 use App\Enums\QualityCheckResult;
 use App\Enums\SalesOrderStatus;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\FixedAsset;
@@ -19,9 +20,12 @@ use App\Services\Production\ProductionJobCardIndexService;
 use App\Enums\WorkflowRuleTrigger;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\Export\TabularExportWriter;
+use App\Support\Production\ProductionJobCardEligibilityService;
 use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -29,7 +33,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionJobCardController extends Controller
 {
-    use ScopesToTenant;
+    use HandlesModalFormResponses, ScopesToTenant;
 
     public function index(Request $request, ProductionJobCardIndexService $index): View
     {
@@ -60,26 +64,26 @@ class ProductionJobCardController extends Controller
         );
     }
 
-    public function create(): View
+    public function create(ProductionJobCardEligibilityService $eligibility): View
     {
         $this->authorize('create', ProductionJobCard::class);
 
-        $eligibleOrders = SalesOrder::query()
-            ->forTenant()
-            ->where('status', SalesOrderStatus::Confirmed)
-            ->whereDoesntHave('jobCard')
-            ->with(['customer', 'artworkRequest'])
-            ->orderByDesc('order_date')
-            ->get();
+        $eligibleOrders = $eligibility->eligibleSalesOrders();
 
         return view('admin.production.job-cards.create', [
             'eligibleOrders' => $eligibleOrders,
             'productionTypes' => ProductionType::cases(),
             'priorities' => ProductionPriority::cases(),
+            'salesOrdersUrl' => Route::has('admin.sales-orders.dashboard')
+                ? route('admin.sales-orders.dashboard')
+                : null,
+            'salesOrderCreateUrl' => Route::has('admin.sales-orders.create')
+                ? route('admin.sales-orders.create')
+                : null,
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', ProductionJobCard::class);
 
@@ -103,9 +107,10 @@ class ProductionJobCardController extends Controller
             return back()->withInput()->withErrors($exception->errors());
         }
 
-        return redirect()
-            ->route('admin.production.job-cards.show', $jobCard)
-            ->with('status', __('Job card created.'));
+        return $this->modalOrRedirect(
+            __('Job card created.'),
+            redirect()->route('admin.production.floor', ['job' => $jobCard->id]),
+        );
     }
 
     public function show(Request $request, ProductionJobCard $jobCard, Job360WorkspaceService $workspace): View
@@ -197,6 +202,7 @@ class ProductionJobCardController extends Controller
         $this->authorize('complete', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck), 403);
         $jobCard->transitionTo(ProductionJobCardStatus::QualityCheck);
+        app(\App\Support\Production\ProductQcChecklistService::class)->snapshotForJobCard($jobCard);
 
         return back()->with('status', __('Job sent to quality check.'));
     }
@@ -204,6 +210,20 @@ class ProductionJobCardController extends Controller
     public function markCompleted(ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('complete', $jobCard);
+
+        if ($jobCard->status === ProductionJobCardStatus::QualityCheck) {
+            $qcRequired = app(\App\Support\Production\ProductionQcSettings::class)
+                ->qcRequired($jobCard->company_id, $jobCard->branch_id);
+
+            if ($qcRequired) {
+                abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed), 403);
+            } elseif ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch);
+
+                return back()->with('status', __('Job ready for dispatch.'));
+            }
+        }
+
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed), 403);
         $jobCard->update([
             'status' => ProductionJobCardStatus::Completed,

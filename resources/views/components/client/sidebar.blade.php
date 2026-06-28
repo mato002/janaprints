@@ -1,22 +1,56 @@
 @php
     $navItems = collect(config('client_portal.nav', []))
         ->reject(fn (array $item) => ($item['route'] ?? '') === 'client.account.edit');
+    $user = auth()->user();
+    $initials = collect(explode(' ', $user?->name ?? ''))->filter()->take(2)->map(fn ($part) => strtoupper(substr($part, 0, 1)))->implode('');
 @endphp
 
 <aside id="client-sidebar" class="client-sidebar" data-client-sidebar aria-label="{{ __('Account navigation') }}">
     <div class="client-sidebar__head">
-        <p class="client-sidebar__label">{{ __('My account') }}</p>
+        <div class="client-sidebar__profile lg:hidden">
+            <span class="client-sidebar__profile-avatar" aria-hidden="true">{{ $initials ?: 'C' }}</span>
+            <div class="client-sidebar__profile-text">
+                <p class="client-sidebar__profile-name">{{ $user?->name }}</p>
+                <p class="client-sidebar__profile-company">{{ $user?->customer?->company_name }}</p>
+            </div>
+        </div>
+        <p class="client-sidebar__label hidden lg:block">{{ __('My account') }}</p>
     </div>
 
     <nav class="client-sidebar__nav">
         @foreach ($navItems as $item)
-            @php($active = request()->routeIs($item['route'].'*') || ($item['route'] === 'client.dashboard' && request()->routeIs('client.dashboard')))
+            @php
+                $activeRoutes = $item['active_routes'] ?? [$item['route'].'*'];
+                $active = collect($activeRoutes)->contains(fn (string $pattern) => request()->routeIs($pattern))
+                    || (($item['route'] ?? '') === 'client.dashboard' && request()->routeIs('client.dashboard'));
+            @endphp
             <a href="{{ route($item['route']) }}" @class(['client-sidebar__link', 'is-active' => $active]) data-client-sidebar-link>
                 <span class="client-sidebar__icon">
                     <x-client.icon :name="$item['icon']" class="h-5 w-5" />
                 </span>
                 <span>{{ __($item['label']) }}</span>
+                @if (($item['route'] ?? '') === 'client.communications.index' && ($clientCommunicationsUnread ?? 0) > 0)
+                    <span
+                        class="client-sidebar__badge"
+                        data-client-comms-unread-badge
+                        aria-label="{{ __(':count unread messages', ['count' => $clientCommunicationsUnread]) }}"
+                    >{{ $clientCommunicationsUnread > 99 ? '99+' : $clientCommunicationsUnread }}</span>
+                @endif
             </a>
         @endforeach
     </nav>
+
+    <div class="client-sidebar__foot lg:hidden">
+        <a href="{{ route('client.account.edit') }}" class="client-sidebar__foot-link">
+            <x-client.icon name="user" class="h-4 w-4" />
+            {{ __('Account settings') }}
+        </a>
+        <form method="POST" action="{{ route('logout') }}">
+            @csrf
+            <button type="submit" class="client-sidebar__foot-link client-sidebar__foot-link--danger">
+                <x-client.icon name="logout" class="h-4 w-4" />
+                {{ __('Sign out') }}
+            </button>
+        </form>
+    </div>
 </aside>

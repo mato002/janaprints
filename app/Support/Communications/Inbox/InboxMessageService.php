@@ -4,12 +4,14 @@ namespace App\Support\Communications\Inbox;
 
 use App\Enums\CommunicationLogStatus;
 use App\Enums\CommunicationLogType;
+use App\Enums\InboxConversationStatus;
 use App\Enums\InboxMessageChannel;
 use App\Enums\InboxMessageStatus;
 use App\Models\Communications\CommunicationLog;
 use App\Models\Communications\Inbox\CommunicationConversation;
 use App\Models\Communications\Inbox\CommunicationConversationAttachment;
 use App\Models\Communications\Inbox\CommunicationConversationMessage;
+use App\Services\Communications\Inbox\InboxIncomingNotificationService;
 use App\Support\Communications\CommunicationLogService;
 
 class InboxMessageService
@@ -62,6 +64,70 @@ class InboxMessageService
         $this->audit->record($conversation, \App\Enums\InboxAuditEventType::MessageSent, $userId, [
             'summary' => mb_substr($body, 0, 120),
             'channel' => $channel->value,
+        ]);
+
+        if ($conversation->status === InboxConversationStatus::WaitingCustomer) {
+            $conversation->update(['status' => InboxConversationStatus::Open]);
+        }
+
+        return $message->fresh();
+    }
+
+    public function receiveFromCustomer(
+        CommunicationConversation $conversation,
+        string $body,
+        ?int $portalUserId = null,
+    ): CommunicationConversationMessage {
+        $message = CommunicationConversationMessage::query()->create([
+            'communication_conversation_id' => $conversation->id,
+            'company_id' => $conversation->company_id,
+            'channel' => InboxMessageChannel::InApp,
+            'direction' => 'incoming',
+            'message_type' => 'message',
+            'body' => $body,
+            'status' => InboxMessageStatus::Delivered,
+            'created_by' => $portalUserId,
+            'sent_at' => now(),
+            'delivered_at' => now(),
+        ]);
+
+        $conversation->increment('unread_count');
+        $conversation->update([
+            'last_customer_message_at' => now(),
+            'last_activity_at' => now(),
+            'waiting_since' => now(),
+            'status' => in_array($conversation->status, [
+                InboxConversationStatus::Closed,
+                InboxConversationStatus::Resolved,
+                InboxConversationStatus::WaitingCustomer,
+            ], true) ? InboxConversationStatus::Open : $conversation->status,
+        ]);
+
+        $this->conversations->touchActivity($conversation, $body, InboxMessageChannel::InApp->value);
+
+        app(InboxIncomingNotificationService::class)->notify($conversation, $message);
+
+        return $message->fresh();
+    }
+
+    public function storeClientAttachment(
+        CommunicationConversation $conversation,
+        CommunicationConversationAttachment $attachment,
+        ?string $caption,
+        int $portalUserId,
+    ): CommunicationConversationMessage {
+        $body = trim((string) $caption);
+        $preview = $body !== '' ? $body : ($attachment->label ?? __('Attachment'));
+
+        $message = $this->receiveFromCustomer(
+            $conversation,
+            $body !== '' ? $body : $preview,
+            $portalUserId,
+        );
+
+        $attachment->update([
+            'communication_conversation_message_id' => $message->id,
+            'uploaded_by' => $portalUserId,
         ]);
 
         return $message->fresh();

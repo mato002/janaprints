@@ -30,6 +30,7 @@ enum NotificationType: string
     case BranchAssigned = 'branch_assigned';
     case SmsCampaignCompleted = 'sms_campaign_completed';
     case PublicQuoteRequestReceived = 'public_quote_request_received';
+    case InboxCustomerMessage = 'inbox_customer_message';
 
     public function label(): string
     {
@@ -60,6 +61,7 @@ enum NotificationType: string
             self::BranchAssigned => __('Branch Assigned'),
             self::SmsCampaignCompleted => __('SMS Campaign Completed'),
             self::PublicQuoteRequestReceived => __('New Quote Request'),
+            self::InboxCustomerMessage => __('New Client Message'),
         };
     }
 
@@ -75,7 +77,7 @@ enum NotificationType: string
             self::SupplierBillApproved, self::PeriodClosingReminder => NotificationCategory::Accounting,
             self::EmployeeCreated, self::LeaveRequestSubmitted, self::LeaveApproved, self::LeaveRejected => NotificationCategory::Hr,
             self::RoleChanged, self::PasswordReset, self::PermissionUpdated, self::BranchAssigned,
-            self::SmsCampaignCompleted => NotificationCategory::System,
+            self::SmsCampaignCompleted, self::InboxCustomerMessage => NotificationCategory::System,
         };
     }
 
@@ -84,7 +86,7 @@ enum NotificationType: string
         return match ($this) {
             self::InvoiceOverdue, self::ProductionDelayed, self::PeriodClosingReminder => NotificationPriority::Critical,
             self::QuotationApproved, self::QuotationRejected, self::PaymentReceived, self::ProductionCompleted,
-            self::PublicQuoteRequestReceived => NotificationPriority::High,
+            self::PublicQuoteRequestReceived, self::InboxCustomerMessage => NotificationPriority::High,
             self::PasswordReset, self::PermissionUpdated => NotificationPriority::High,
             default => NotificationPriority::Normal,
         };

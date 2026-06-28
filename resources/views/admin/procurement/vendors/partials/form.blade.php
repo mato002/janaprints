@@ -38,6 +38,13 @@
     </select>
 </div>
 <div class="md:col-span-2">
+    <label class="inline-flex items-center gap-2 text-sm">
+        <input type="checkbox" name="is_production_vendor" value="1" @checked(old('is_production_vendor', $vendor?->is_production_vendor ?? false))>
+        <span>{{ __('Production vendor') }}</span>
+    </label>
+    <p class="mt-1 text-xs text-slate-500">{{ __('Can receive outsourced production jobs from job cards.') }}</p>
+</div>
+<div class="md:col-span-2">
     <x-input-label for="address" :value="__('Address')" />
     <textarea id="address" name="address" class="erp-input mt-1 w-full" rows="2">{{ old('address', $vendor?->address ?? '') }}</textarea>
 </div>

@@ -84,50 +84,70 @@ class ProductionAutoSchedulingService
      */
     public function schedule(ProductionJobCard $jobCard, int $userId): array
     {
-        $jobCard->loadMissing(['queues', 'salesOrder']);
+        $jobCard->loadMissing(['queues', 'salesOrder', 'routeSteps']);
 
-        if ($jobCard->queues->isNotEmpty()) {
-            throw ValidationException::withMessages([
-                'job_card' => __('Job is already scheduled on a production queue.'),
-            ]);
-        }
-
-        $workCenter = $this->resolveWorkCenter($jobCard);
-        $this->assertCapacityAvailable($workCenter);
-        $machine = $this->resolveMachine($workCenter);
-
-        if ($machine !== null) {
-            $this->assertMachineAvailable($machine);
-        }
-
-        $dates = $this->resolvePlannedDates($jobCard, $workCenter);
-        $queuePosition = $this->nextQueuePosition($workCenter);
-
-        return DB::transaction(function () use ($jobCard, $workCenter, $dates, $queuePosition, $machine, $userId) {
-            $jobCard->update([
-                'planned_start_date' => $dates['planned_start_date'],
-                'planned_end_date' => $dates['planned_end_date'],
-            ]);
-
-            $this->queues->enqueue($jobCard->fresh(), $workCenter->id, $queuePosition);
-
-            $machineAssigned = false;
+        if ($jobCard->queues->isEmpty()) {
+            $workCenter = $this->resolveWorkCenter($jobCard);
+            $this->assertCapacityAvailable($workCenter);
+            $machine = $this->resolveMachine($workCenter);
 
             if ($machine !== null) {
-                $this->machineAssignments->assignToJob($jobCard->fresh(), $machine, $userId);
-                $machineAssigned = true;
+                $this->assertMachineAvailable($machine);
             }
 
-            return [
-                'scheduled' => true,
-                'reason' => null,
-                'work_center_id' => $workCenter->id,
-                'queue_position' => $queuePosition,
-                'planned_start_date' => $dates['planned_start_date'],
-                'planned_end_date' => $dates['planned_end_date'],
-                'machine_assigned' => $machineAssigned,
-            ];
-        });
+            $dates = $this->resolvePlannedDates($jobCard, $workCenter);
+            $queuePosition = $this->nextQueuePosition($workCenter);
+
+            return DB::transaction(function () use ($jobCard, $workCenter, $dates, $queuePosition, $machine, $userId) {
+                $jobCard->update([
+                    'planned_start_date' => $dates['planned_start_date'],
+                    'planned_end_date' => $dates['planned_end_date'],
+                    'estimated_duration_minutes' => $dates['estimated_duration_minutes'] ?? null,
+                ]);
+
+                $this->queues->enqueue($jobCard->fresh(), $workCenter->id, $queuePosition);
+
+                $machineAssigned = false;
+
+                if ($machine !== null) {
+                    $this->machineAssignments->assignToJob($jobCard->fresh(), $machine, $userId);
+                    $machineAssigned = true;
+                }
+
+                return [
+                    'scheduled' => true,
+                    'reason' => null,
+                    'work_center_id' => $workCenter->id,
+                    'queue_position' => $queuePosition,
+                    'planned_start_date' => $dates['planned_start_date'],
+                    'planned_end_date' => $dates['planned_end_date'],
+                    'machine_assigned' => $machineAssigned,
+                ];
+            });
+        }
+
+        $firstStep = $jobCard->routeSteps->first(fn ($s) => $s->work_center_id !== null);
+        $workCenter = $firstStep
+            ? WorkCenter::query()->find($firstStep->work_center_id)
+            : $this->resolveWorkCenter($jobCard);
+
+        $dates = $this->resolvePlannedDates($jobCard, $workCenter);
+
+        $jobCard->update([
+            'planned_start_date' => $dates['planned_start_date'],
+            'planned_end_date' => $dates['planned_end_date'],
+            'estimated_duration_minutes' => $dates['estimated_duration_minutes'] ?? null,
+        ]);
+
+        return [
+            'scheduled' => true,
+            'reason' => null,
+            'work_center_id' => $workCenter->id,
+            'queue_position' => null,
+            'planned_start_date' => $dates['planned_start_date'],
+            'planned_end_date' => $dates['planned_end_date'],
+            'machine_assigned' => false,
+        ];
     }
 
     public function capacitySnapshot(WorkCenter $workCenter): array
@@ -178,6 +198,13 @@ class ProductionAutoSchedulingService
 
     protected function resolveWorkCenter(ProductionJobCard $jobCard): WorkCenter
     {
+        $recommended = app(\App\Support\Production\DepartmentQueueRoutingService::class)
+            ->recommendedWorkCenter($jobCard);
+
+        if ($recommended !== null) {
+            return $recommended;
+        }
+
         $codes = $this->workCenterCodesForType($jobCard->production_type);
 
         $centers = WorkCenter::query()
@@ -299,6 +326,7 @@ class ProductionAutoSchedulingService
         return [
             'planned_start_date' => $start,
             'planned_end_date' => $end,
+            'estimated_duration_minutes' => $durationDays * 8 * 60,
         ];
     }
 
@@ -309,7 +337,7 @@ class ProductionAutoSchedulingService
             ->whereHas('queues', function ($query) use ($workCenter) {
                 $query->where('work_center_id', $workCenter->id)
                     ->whereIn('status', [
-                        ProductionQueueStatus::Pending->value,
+                        ProductionQueueStatus::Waiting->value,
                         ProductionQueueStatus::Assigned->value,
                         ProductionQueueStatus::InProgress->value,
                     ]);
@@ -339,10 +367,9 @@ class ProductionAutoSchedulingService
      */
     protected function activeQueueStatuses(): array
     {
-        return [
-            ProductionQueueStatus::Pending->value,
-            ProductionQueueStatus::Assigned->value,
-            ProductionQueueStatus::InProgress->value,
-        ];
+        return array_map(
+            fn (ProductionQueueStatus $status) => $status->value,
+            ProductionQueueStatus::activeStatuses(),
+        );
     }
 }

@@ -23,7 +23,7 @@ class AdminLayout extends Component
     ) {
         if (
             ! $embedded
-            && WorkspaceEmbed::inWorkspaceContext()
+            && WorkspaceEmbed::rendersEmbeddedFragment()
             && ! $this->routeShouldPromoteToMainShell()
         ) {
             $this->embedded = true;
@@ -49,6 +49,10 @@ class AdminLayout extends Component
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }
+        }
+
+        if (preg_match('/\.from-[^.]+$/', $routeName) === 1) {
+            return true;
         }
 
         if (

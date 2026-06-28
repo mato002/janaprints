@@ -114,6 +114,34 @@ class QuotationApprovalService
         return $quotation->fresh();
     }
 
+    /**
+     * Publish a newly created quotation so it is immediately usable (client portal, PDF, accept/reject).
+     */
+    public function publishOnCreate(Quotation $quotation, int $userId): Quotation
+    {
+        if ($quotation->status !== QuotationStatus::Draft) {
+            return $quotation;
+        }
+
+        $quotation->transitionTo(QuotationStatus::Sent);
+        $quotation->update([
+            'approved_at' => now(),
+            'approved_by' => $userId,
+        ]);
+
+        QuotationRevisionService::snapshot($quotation->fresh(), $userId);
+
+        try {
+            $this->dispatchQuotationSent($quotation->fresh(), User::query()->find($userId));
+        } catch (\Throwable) {
+            // Mail/queue issues on local dev must not block quotation publish.
+        }
+
+        ActivityLogger::log('quote_published', $quotation, $userId);
+
+        return $quotation->fresh();
+    }
+
     public function approve(Quotation $quotation, User $actor, ?string $reason = null): Quotation
     {
         if ($quotation->status !== QuotationStatus::PendingApproval) {

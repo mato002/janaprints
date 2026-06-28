@@ -89,10 +89,10 @@ class PrintInkProfileController extends Controller
         return InventoryItem::query()
             ->where('company_id', $companyId)
             ->orderBy('item_name')
-            ->get(['id', 'item_name', 'item_code'])
+            ->get(['id', 'item_name', 'sku'])
             ->map(fn (InventoryItem $item) => [
                 'id' => $item->id,
-                'label' => trim($item->item_name.' ('.$item->item_code.')'),
+                'label' => trim($item->item_name.' ('.$item->sku.')'),
             ])
             ->all();
     }

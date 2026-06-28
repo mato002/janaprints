@@ -46,7 +46,7 @@ class LeadQuotationAutomationTest extends TestCase
         $quotation = Quotation::query()->where('lead_id', $lead->id)->first();
         $this->assertNotNull($quotation);
         $this->assertSame($lead->customer_id, $quotation->customer_id);
-        $this->assertSame(QuotationStatus::Draft, $quotation->status);
+        $this->assertSame(QuotationStatus::Sent, $quotation->status);
     }
 
     public function test_quick_quote_requires_customer_when_auto_convert_disabled(): void

@@ -29,7 +29,7 @@
     >
         @if ($canCreate && $createUrl)
             <x-slot name="actions">
-                <a href="{{ $createUrl }}" class="erp-btn-primary" data-turbo-frame="erp-main">{{ __('Create Job Card') }}</a>
+                <a href="{{ $createUrl }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create Job Card') }}</a>
             </x-slot>
         @endif
     </x-admin.page-header>

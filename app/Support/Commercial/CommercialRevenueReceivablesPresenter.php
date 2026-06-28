@@ -3,6 +3,7 @@
 namespace App\Support\Commercial;
 
 use App\Enums\CustomerInvoiceStatus;
+use App\Enums\CustomerInvoiceType;
 use App\Enums\CustomerPaymentStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Crm\Customer;
@@ -42,6 +43,64 @@ class CommercialRevenueReceivablesPresenter
             'receivable_aging' => $this->receivableAging($scope),
             'top_debtors' => $this->topDebtors($scope),
             'payment_visibility' => $this->paymentVisibility(),
+            'deposit_tracking' => $this->depositTracking($scope),
+            'sales_vs_collections' => $this->salesVsCollections($scope),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function depositTracking(IntelligenceScope $scope): array
+    {
+        if (! auth()->user()?->can('sales_orders.view')) {
+            return ['rows' => []];
+        }
+
+        $orders = SalesOrder::query()
+            ->forTenant()
+            ->where('required_deposit_amount', '>', 0)
+            ->with('customer:id,company_name')
+            ->orderByDesc('order_date')
+            ->limit(50)
+            ->get(['id', 'order_number', 'customer_id', 'required_deposit_amount', 'deposit_invoiced_amount', 'deposit_paid_amount']);
+
+        return [
+            'rows' => $orders->map(fn (SalesOrder $order) => [
+                $order->order_number,
+                $order->customer?->company_name ?? '—',
+                number_format((float) $order->required_deposit_amount, 2),
+                number_format((float) $order->deposit_invoiced_amount, 2),
+                number_format((float) $order->deposit_paid_amount, 2),
+                number_format(max(0, (float) $order->required_deposit_amount - (float) $order->deposit_paid_amount), 2),
+            ])->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function salesVsCollections(IntelligenceScope $scope): array
+    {
+        $invoiced = (float) CustomerInvoice::query()
+            ->forTenant()
+            ->where('status', CustomerInvoiceStatus::Posted)
+            ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
+            ->whereDate('invoice_date', '>=', $scope->fromDate)
+            ->whereDate('invoice_date', '<=', $scope->toDate)
+            ->sum('total_amount');
+
+        $collected = (float) CustomerPayment::query()
+            ->forTenant()
+            ->where('status', CustomerPaymentStatus::Posted)
+            ->whereDate('payment_date', '>=', $scope->fromDate)
+            ->whereDate('payment_date', '<=', $scope->toDate)
+            ->sum('amount');
+
+        return [
+            'invoiced' => $this->money($invoiced),
+            'collected' => $this->money($collected),
+            'collection_rate' => $invoiced > 0 ? round(($collected / $invoiced) * 100, 1).'%' : '—',
         ];
     }
 

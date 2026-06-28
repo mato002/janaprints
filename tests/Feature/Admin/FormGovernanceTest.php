@@ -132,7 +132,7 @@ class FormGovernanceTest extends TestCase
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
         $forms = app(FormSettingsService::class);
 
-        $this->assertTrue($forms->isRequired('customer', 'kra_pin', $company->id));
+        $this->assertFalse($forms->isRequired('customer', 'kra_pin', $company->id));
         $this->assertFalse($forms->isVisible('customer', 'website', $company->id));
         $this->assertTrue($forms->isRequired('lead', 'estimated_value', $company->id));
         $this->assertTrue($forms->isRequired('artwork', 'due_date', $company->id));

@@ -6,10 +6,11 @@ use App\Enums\CustomerInvoiceStatus;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\User;
 use App\Policies\Concerns\ChecksCrmTenant;
+use App\Policies\Concerns\ChecksWorkflowAttempt;
 
 class CustomerInvoicePolicy
 {
-    use ChecksCrmTenant;
+    use ChecksCrmTenant, ChecksWorkflowAttempt;
 
     public function viewAny(User $user): bool
     {
@@ -42,37 +43,62 @@ class CustomerInvoicePolicy
 
     public function approve(User $user, CustomerInvoice $invoice): bool
     {
-        return $user->can('invoices.approve')
-            && $this->sameTenant($user, $invoice)
-            && $invoice->status === CustomerInvoiceStatus::Draft;
+        return $this->canAttemptWorkflow(
+            $user,
+            $invoice,
+            'invoices.approve',
+            fn (CustomerInvoice $record) => in_array($record->status, [
+                CustomerInvoiceStatus::Approved,
+                CustomerInvoiceStatus::Posted,
+                CustomerInvoiceStatus::Cancelled,
+            ], true),
+        );
     }
 
     public function post(User $user, CustomerInvoice $invoice): bool
     {
-        return $user->can('invoices.post')
-            && $this->sameTenant($user, $invoice)
-            && $invoice->status === CustomerInvoiceStatus::Approved;
+        return $this->canAttemptWorkflow(
+            $user,
+            $invoice,
+            'invoices.post',
+            fn (CustomerInvoice $record) => in_array($record->status, [
+                CustomerInvoiceStatus::Posted,
+                CustomerInvoiceStatus::Cancelled,
+            ], true),
+        );
     }
 
     public function cancel(User $user, CustomerInvoice $invoice): bool
     {
-        return $user->can('invoices.cancel')
-            && $this->sameTenant($user, $invoice)
-            && in_array($invoice->status, [CustomerInvoiceStatus::Draft, CustomerInvoiceStatus::Approved], true);
+        return $this->canAttemptWorkflow(
+            $user,
+            $invoice,
+            'invoices.cancel',
+            fn (CustomerInvoice $record) => in_array($record->status, [
+                CustomerInvoiceStatus::Posted,
+                CustomerInvoiceStatus::Cancelled,
+            ], true),
+        );
     }
 
     public function creditNote(User $user, CustomerInvoice $invoice): bool
     {
-        return $user->can('invoices.credit_note')
-            && $this->sameTenant($user, $invoice)
-            && $invoice->status === CustomerInvoiceStatus::Posted
-            && ! $invoice->invoice_type->isCredit();
+        return $this->canAttemptWorkflow(
+            $user,
+            $invoice,
+            'invoices.credit_note',
+            fn (CustomerInvoice $record) => $record->status !== CustomerInvoiceStatus::Posted
+                || $record->invoice_type->isCredit(),
+        );
     }
 
     public function emailInvoice(User $user, CustomerInvoice $invoice): bool
     {
-        return $user->can('invoices.view')
-            && $this->sameTenant($user, $invoice)
-            && $invoice->status === CustomerInvoiceStatus::Posted;
+        return $this->canAttemptWorkflow(
+            $user,
+            $invoice,
+            'invoices.view',
+            fn (CustomerInvoice $record) => $record->status !== CustomerInvoiceStatus::Posted,
+        );
     }
 }

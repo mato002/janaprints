@@ -71,7 +71,7 @@ class ProductionAutoSchedulingTest extends TestCase
             'production_job_card_id' => $jobCard->id,
             'work_center_id' => $digitalCenter->id,
             'queue_position' => 1,
-            'status' => ProductionQueueStatus::Pending->value,
+            'status' => ProductionQueueStatus::Waiting->value,
         ]);
     }
 

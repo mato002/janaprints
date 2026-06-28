@@ -185,7 +185,7 @@ class LeadController extends Controller
 
         return redirect()
             ->route('admin.quotations.show', $quotation)
-            ->with('status', __('Draft quotation created from lead.'));
+            ->with('status', __('Quotation published from lead.'));
     }
 
     protected function validateLead(Request $request, ?Lead $lead = null): array
@@ -226,6 +226,7 @@ class LeadController extends Controller
             'branches' => Branch::query()->where('company_id', $companyId)->get(),
             'sources' => LeadSource::query()->where('company_id', $companyId)->where('is_active', true)->get(),
             'stages' => LeadStage::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('sort_order')->get(),
+            'statuses' => LeadStatus::cases(),
             'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(),
             'users' => User::query()->when(! auth()->user()->hasRole('Super Admin'), fn ($q) => $q->where('company_id', $companyId))->get(),
         ];

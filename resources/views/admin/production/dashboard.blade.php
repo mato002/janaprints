@@ -7,6 +7,8 @@
     $maintenanceAlerts = $dashboard['maintenance_alerts'] ?? [];
     $activity = $dashboard['activity'] ?? [];
     $quickActions = $dashboard['quick_actions'] ?? [];
+    $queueWidgets = $dashboard['queue_widgets'] ?? [];
+    $qcWidgets = $dashboard['qc_widgets'] ?? [];
 @endphp
 
 <x-admin-layout
@@ -22,6 +24,42 @@
     />
 
     <p class="mb-4 text-xs text-slate-500">{{ __('As of') }} {{ $dashboard['as_of'] ?? now()->format('Y-m-d H:i') }}</p>
+
+    {{-- C4 Queue widgets --}}
+    @if (! empty($queueWidgets))
+        <section class="mb-6" aria-label="{{ __('Queue Management') }}">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Queue Management') }}</h2>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+                @foreach ($queueWidgets as $card)
+                    @if ($card['clickable'] ?? false)
+                        <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                            <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
+                        </a>
+                    @else
+                        <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
+                    @endif
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    {{-- C6 Quality widgets --}}
+    @if (! empty($qcWidgets))
+        <section class="mb-6" aria-label="{{ __('Quality Control') }}">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Quality Control') }}</h2>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                @foreach ($qcWidgets as $card)
+                    @if ($card['clickable'] ?? false)
+                        <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                            <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'clipboard-check'" />
+                        </a>
+                    @else
+                        <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'clipboard-check'" />
+                    @endif
+                @endforeach
+            </div>
+        </section>
+    @endif
 
     {{-- Section 1: Production Snapshot --}}
     <section class="mb-6" aria-label="{{ __('Production Snapshot') }}">

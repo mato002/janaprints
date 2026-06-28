@@ -28,6 +28,9 @@ class CustomerInvoiceService
         protected AccountingPostingService $posting,
         protected TaxCalculationService $taxCalculator,
         protected TaxTransactionRecorder $taxRecorder,
+        protected SalesOrderBillingEligibilityService $billingEligibility,
+        protected SalesOrderFinancialStatusService $financialStatus,
+        protected ?\App\Support\Communications\CommunicationEventDispatcher $communications = null,
     ) {}
 
     /**
@@ -44,10 +47,16 @@ class CustomerInvoiceService
      */
     public function createFromSalesOrder(SalesOrder $order, int $userId, array $options = []): CustomerInvoice
     {
+        $type = $options['invoice_type'] ?? CustomerInvoiceType::Standard;
+        $this->billingEligibility->assertCanInvoice($order, $type);
         $this->assertOrderBillable($order);
 
-        $type = $options['invoice_type'] ?? CustomerInvoiceType::Standard;
         $lines = $this->resolveLinesFromSalesOrder($order, $type, $options);
+
+        $dueDate = $options['due_date'] ?? null;
+        if ($dueDate === null && $order->payment_terms_days) {
+            $dueDate = now()->parse($options['invoice_date'] ?? now())->addDays((int) $order->payment_terms_days)->toDateString();
+        }
 
         return $this->createInvoice([
             'company_id' => $order->company_id,
@@ -56,7 +65,7 @@ class CustomerInvoiceService
             'sales_order_id' => $order->id,
             'invoice_type' => $type,
             'invoice_date' => $options['invoice_date'] ?? now()->toDateString(),
-            'due_date' => $options['due_date'] ?? null,
+            'due_date' => $dueDate,
             'notes' => $options['notes'] ?? null,
             'billing_percent' => $type === CustomerInvoiceType::Progress ? ($options['billing_percent'] ?? null) : null,
             'deposit_amount' => $type === CustomerInvoiceType::Deposit ? ($options['deposit_amount'] ?? null) : null,
@@ -299,11 +308,26 @@ class CustomerInvoiceService
                 $this->reverseInvoicedAmounts($invoice);
             }
 
-            $invoice = $invoice->fresh(['postedJournal', 'poster', 'taxLines']);
+            $invoice = $invoice->fresh(['postedJournal', 'poster', 'taxLines', 'customer', 'salesOrder']);
             $this->taxRecorder->recordCustomerInvoice($invoice);
+
+            if ($invoice->salesOrder) {
+                $this->financialStatus->syncDepositAmounts($invoice->salesOrder);
+            }
+
+            $this->communications()?->dispatch(
+                \App\Enums\DomainCommunicationEvent::InvoiceGenerated,
+                $invoice,
+                auth()->user(),
+            );
 
             return $invoice;
         });
+    }
+
+    protected function communications(): ?\App\Support\Communications\CommunicationEventDispatcher
+    {
+        return $this->communications ??= app(\App\Support\Communications\CommunicationEventDispatcher::class);
     }
 
     public function cancel(CustomerInvoice $invoice, int $userId, ?string $reason = null): CustomerInvoice
@@ -390,6 +414,18 @@ class CustomerInvoiceService
         }
     }
 
+    protected function resolveOrderTaxRate(SalesOrder $order): float
+    {
+        $defaultTaxRate = (float) config('settings_registry.sections.company.settings.default_tax_rate.default', 16);
+        $subtotal = (float) $order->subtotal;
+
+        if ($subtotal <= 0) {
+            return $defaultTaxRate;
+        }
+
+        return round(((float) $order->tax_amount / $subtotal) * 100, 4);
+    }
+
     /**
      * @param  array<string, mixed>  $options
      * @return list<array<string, mixed>>
@@ -397,7 +433,7 @@ class CustomerInvoiceService
     protected function resolveLinesFromSalesOrder(SalesOrder $order, CustomerInvoiceType $type, array $options): array
     {
         $order->load('items');
-        $defaultTaxRate = (float) config('settings_registry.sections.company.settings.default_tax_rate.default', 16);
+        $taxRate = $this->resolveOrderTaxRate($order);
 
         if ($type === CustomerInvoiceType::Progress) {
             $percent = (float) ($options['billing_percent'] ?? 0);
@@ -421,9 +457,9 @@ class CustomerInvoiceService
                 'item_name' => __('Progress billing :percent%', ['percent' => $percent]),
                 'description' => __('Progress invoice for order :number', ['number' => $order->order_number]),
                 'quantity' => 1,
-                'unit_price' => $billAmount / (1 + ($defaultTaxRate / 100)),
+                'unit_price' => $billAmount / (1 + ($taxRate / 100)),
                 'discount' => 0,
-                'tax_rate' => $defaultTaxRate,
+                'tax_rate' => $taxRate,
             ]];
         }
 
@@ -439,14 +475,14 @@ class CustomerInvoiceService
                 'item_name' => __('Customer deposit'),
                 'description' => __('Deposit for order :number', ['number' => $order->order_number]),
                 'quantity' => 1,
-                'unit_price' => $deposit / (1 + ($defaultTaxRate / 100)),
+                'unit_price' => $deposit / (1 + ($taxRate / 100)),
                 'discount' => 0,
-                'tax_rate' => $defaultTaxRate,
+                'tax_rate' => $taxRate,
             ]];
         }
 
         if (! empty($options['lines'])) {
-            return $this->mapPartialLines($order, $options['lines'], $defaultTaxRate);
+            return $this->mapPartialLines($order, $options['lines'], $taxRate);
         }
 
         return $order->items->map(fn (SalesOrderItem $item) => [
@@ -456,7 +492,7 @@ class CustomerInvoiceService
             'quantity' => (float) $item->quantity,
             'unit_price' => (float) $item->unit_price,
             'discount' => 0,
-            'tax_rate' => $defaultTaxRate,
+            'tax_rate' => $taxRate,
         ])->all();
     }
 
@@ -464,7 +500,7 @@ class CustomerInvoiceService
      * @param  array<int, array<string, mixed>>  $partialLines
      * @return list<array<string, mixed>>
      */
-    protected function mapPartialLines(SalesOrder $order, array $partialLines, float $defaultTaxRate): array
+    protected function mapPartialLines(SalesOrder $order, array $partialLines, float $taxRate): array
     {
         $mapped = [];
 
@@ -488,7 +524,7 @@ class CustomerInvoiceService
                 'quantity' => $qty,
                 'unit_price' => (float) ($partial['unit_price'] ?? $item->unit_price),
                 'discount' => (float) ($partial['discount'] ?? 0),
-                'tax_rate' => (float) ($partial['tax_rate'] ?? $defaultTaxRate),
+                'tax_rate' => (float) ($partial['tax_rate'] ?? $taxRate),
             ];
         }
 

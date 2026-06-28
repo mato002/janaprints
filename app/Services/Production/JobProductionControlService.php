@@ -143,7 +143,11 @@ class JobProductionControlService
             return false;
         }
 
-        return in_array($latest->result, [QualityCheckResult::Failed, QualityCheckResult::ReworkRequired], true);
+        return in_array($latest->result, [
+            QualityCheckResult::Failed,
+            QualityCheckResult::ReworkRequired,
+            QualityCheckResult::ConditionalPass,
+        ], true) && $latest->customer_approved_at === null;
     }
 
     /**
@@ -177,12 +181,7 @@ class JobProductionControlService
     public function wastageSummary(ProductionJobCard $jobCard): array
     {
         if ($this->wastageTrackingAvailable()) {
-            return [
-                'activated' => true,
-                'total_quantity' => 0,
-                'line_count' => 0,
-                'placeholder' => null,
-            ];
+            return app(\App\Support\Production\ProductionWastageService::class)->summaryForJob($jobCard);
         }
 
         return [
@@ -467,6 +466,8 @@ SQL;
         $operator = $this->operatorAssignmentCompleteness($jobCard);
         $qc = $this->qcStatusSummary($jobCard);
         $wastage = $this->wastageSummary($jobCard);
+        $sessionWaste = app(\App\Support\Production\ProductionSessionService::class)->jobMetrics($jobCard);
+        $serialLoss = app(\App\Support\Production\SerialNumberGovernanceService::class)->productionLossMetrics($jobCard);
         $score = $this->dispatchReadinessScore($jobCard);
         $costingIncomplete = $this->materialCostingIncomplete($jobCard);
 
@@ -528,6 +529,24 @@ SQL;
                         ['label' => __('Qty'), 'value' => $wastage['total_quantity']],
                     ]
                     : [],
+            ],
+            [
+                'key' => 'session_waste',
+                'label' => __('Session waste'),
+                'icon' => 'trash',
+                'metrics' => [
+                    ['label' => __('Sessions'), 'value' => $sessionWaste['session_count']],
+                    ['label' => __('Waste qty'), 'value' => number_format($sessionWaste['total_waste'], 0)],
+                ],
+            ],
+            [
+                'key' => 'serial_loss',
+                'label' => __('Serial spoilage'),
+                'icon' => 'document',
+                'metrics' => [
+                    ['label' => __('Spoiled'), 'value' => $serialLoss['spoiled']],
+                    ['label' => __('Loss qty'), 'value' => $serialLoss['production_loss_quantity']],
+                ],
             ],
             [
                 'key' => 'dispatch_score',

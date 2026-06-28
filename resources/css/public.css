@@ -3903,7 +3903,8 @@
     }
 
     .public-production-step__thumb {
-        @apply hidden h-14 w-20 overflow-hidden rounded-brand-md sm:block;
+        display: none;
+        @apply h-14 w-20 overflow-hidden rounded-brand-md sm:block;
     }
 
     .public-team-showcase__glow {
@@ -4240,7 +4241,7 @@
         }
 
         .public-h-scroll--team .public-team-card__trust {
-            @apply hidden;
+            display: none;
         }
 
         .public-h-scroll--recent-work.public-recent-work__grid {
@@ -4287,11 +4288,12 @@
     }
 
     .public-header__menu-icon--close {
-        @apply absolute inset-0 m-auto hidden;
+        @apply absolute inset-0 m-auto;
+        display: none;
     }
 
     .public-header--menu-open .public-header__menu-icon--open {
-        @apply hidden;
+        display: none;
     }
 
     .public-header--menu-open .public-header__menu-icon--close {
@@ -4512,7 +4514,8 @@
     }
 
     .client-profile-menu__trigger-text {
-        @apply hidden min-w-0 sm:block;
+        display: none;
+        @apply min-w-0 sm:block;
     }
 
     .client-profile-menu__name {
@@ -4524,7 +4527,8 @@
     }
 
     .client-profile-menu__chevron {
-        @apply hidden shrink-0 text-brand-text-muted sm:block;
+        display: none;
+        @apply shrink-0 text-brand-text-muted sm:block;
     }
 
     .client-profile-menu__dropdown {
@@ -4803,6 +4807,34 @@
         @apply pr-11;
     }
 
+    .client-panel--flush {
+        @apply mb-6;
+    }
+
+    .client-upload-form {
+        @apply space-y-4 px-5 pb-5 sm:px-6 sm:pb-6;
+    }
+
+    .client-upload-form__grid {
+        @apply grid gap-4 sm:grid-cols-2;
+    }
+
+    .client-table__actions {
+        @apply text-right whitespace-nowrap;
+    }
+
+    .client-artwork-preview {
+        @apply mb-6 overflow-hidden rounded-brand-xl border border-brand-gray-muted bg-white shadow-brand-sm;
+    }
+
+    .client-artwork-preview__image {
+        @apply mx-auto block max-h-[70vh] w-full object-contain;
+    }
+
+    .client-artwork-preview__frame {
+        @apply h-[70vh] w-full border-0 bg-white;
+    }
+
     .client-password-wrap {
         @apply relative;
     }
@@ -4859,7 +4891,651 @@
         @apply font-semibold text-brand-magenta hover:underline;
     }
 
+    .client-sidebar__badge {
+        @apply ms-auto inline-flex min-h-[1.25rem] min-w-[1.25rem] items-center justify-center rounded-full bg-brand-magenta px-1.5 text-[11px] font-bold leading-none text-white;
+    }
+
+    .client-comms__toolbar {
+        @apply mb-5 flex flex-wrap items-center justify-between gap-4;
+    }
+
+    .client-comms__intro {
+        @apply mb-0 max-w-2xl text-sm leading-relaxed text-brand-text-secondary sm:text-[15px];
+    }
+
+    .client-comms__history-toggle {
+        @apply inline-flex shrink-0 items-center gap-2 rounded-full border border-brand-gray-muted bg-white px-4 py-2 text-sm font-semibold text-brand-navy shadow-brand-sm transition hover:border-brand-magenta/40 hover:text-brand-magenta;
+    }
+
+    .client-chat {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        @apply min-h-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgb(15_23_42/0.08)];
+    }
+
+    .client-chat__head {
+        @apply flex shrink-0 items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-brand-navy to-[#1e3a5f] px-4 py-4 sm:px-5;
+    }
+
+    .client-chat__identity {
+        @apply relative shrink-0;
+    }
+
+    .client-chat__avatar {
+        @apply flex h-11 w-11 items-center justify-center rounded-full bg-white/15 text-sm font-bold tracking-wide text-white ring-2 ring-white/20;
+    }
+
+    .client-chat__presence {
+        @apply absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-brand-navy bg-emerald-400;
+    }
+
+    .client-chat__identity-text {
+        @apply min-w-0 flex-1;
+    }
+
+    .client-chat__title {
+        @apply truncate text-[15px] font-semibold text-white;
+    }
+
+    .client-chat__meta {
+        @apply mt-0.5 truncate text-xs text-white/70;
+    }
+
+    .client-chat__live {
+        @apply inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-white/90;
+    }
+
+    .client-chat__head-actions {
+        @apply ml-auto flex shrink-0 items-center gap-2;
+    }
+
+    .client-chat__history-link {
+        @apply inline-flex h-9 w-9 items-center justify-center rounded-full text-white/80 transition hover:bg-white/10 hover:text-white;
+    }
+
+    .client-chat__live::before {
+        content: '';
+        @apply h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400;
+    }
+
+    .client-chat__messages-pane {
+        @apply relative min-h-0 overflow-hidden;
+    }
+
+    .client-chat__body {
+        @apply absolute inset-0 overflow-y-auto overscroll-y-contain bg-slate-50 px-3 py-4 sm:px-5;
+        background-image:
+            radial-gradient(circle at 20% 20%, rgb(219 39 119 / 4%), transparent 35%),
+            radial-gradient(circle at 80% 0%, rgb(30 58 95 / 5%), transparent 30%);
+        scrollbar-width: thin;
+        scrollbar-color: rgb(148 163 184 / 0.55) transparent;
+    }
+
+    .client-chat__body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .client-chat__body::-webkit-scrollbar-thumb {
+        @apply rounded-full bg-slate-300/80;
+    }
+
+    .client-chat__messages {
+        @apply space-y-3;
+    }
+
+    .client-chat__date {
+        @apply flex justify-center py-1;
+    }
+
+    .client-chat__date span {
+        @apply rounded-full bg-white px-3 py-1 text-[11px] font-medium text-brand-text-muted shadow-sm ring-1 ring-slate-200/80;
+    }
+
+    .client-chat__row {
+        @apply relative flex flex-col;
+    }
+
+    .client-chat__row--out {
+        @apply items-end;
+    }
+
+    .client-chat__row--in {
+        @apply items-start;
+    }
+
+    .client-chat__reply-hint {
+        @apply pointer-events-none absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-brand-magenta/15 text-brand-magenta opacity-0 transition-opacity;
+    }
+
+    .client-chat__row--out .client-chat__reply-hint {
+        @apply left-auto right-2;
+    }
+
+    .client-chat__bubble-wrap {
+        @apply relative max-w-[min(88%,380px)] transition-transform duration-150 ease-out;
+        touch-action: pan-y;
+    }
+
+    .client-chat__row.is-swiping .client-chat__bubble-wrap {
+        transition: none;
+    }
+
+    .client-chat__bubble {
+        @apply overflow-hidden rounded-2xl px-3.5 py-2.5 shadow-sm;
+    }
+
+    .client-chat__bubble--out {
+        @apply rounded-br-md bg-brand-magenta text-white;
+    }
+
+    .client-chat__bubble--in {
+        @apply rounded-bl-md bg-white text-brand-navy ring-1 ring-slate-200/90;
+    }
+
+    .client-chat__bubble--media {
+        @apply bg-white p-1.5 ring-1 ring-slate-200/90;
+    }
+
+    .client-chat__text {
+        @apply whitespace-pre-wrap break-words text-[14px] leading-relaxed;
+    }
+
+    /* WhatsApp-style quote block, brand colours */
+    .client-chat__quote {
+        @apply mb-2 rounded-md border-l-[4px] px-2.5 py-1.5;
+    }
+
+    .client-chat__quote--out {
+        @apply border-white/70 bg-black/10;
+    }
+
+    .client-chat__quote--in {
+        @apply border-brand-magenta bg-slate-100/95;
+    }
+
+    .client-chat__quote-author {
+        @apply mb-0.5 text-[12px] font-semibold leading-tight;
+    }
+
+    .client-chat__quote--out .client-chat__quote-author {
+        @apply text-white;
+    }
+
+    .client-chat__quote--in .client-chat__quote-author {
+        @apply text-brand-magenta;
+    }
+
+    .client-chat__quote-text {
+        @apply line-clamp-4 whitespace-pre-wrap text-[12px] leading-snug;
+    }
+
+    .client-chat__quote--out .client-chat__quote-text {
+        @apply text-white/80;
+    }
+
+    .client-chat__quote--in .client-chat__quote-text {
+        @apply text-brand-text-muted;
+    }
+
+    .client-chat__bubble--out .client-chat__text {
+        @apply text-white;
+    }
+
+    .client-chat__caption {
+        @apply border-t border-slate-100 px-1 pt-2 text-sm leading-snug text-brand-navy;
+    }
+
+    .client-chat__time {
+        @apply mt-1.5 flex items-center justify-end gap-1 text-[10px] text-brand-text-muted;
+    }
+
+    .client-chat__bubble--out .client-chat__time {
+        @apply text-white/75;
+    }
+
+    .client-chat__ticks {
+        @apply inline-flex opacity-80;
+    }
+
+    .client-chat__empty {
+        @apply flex flex-col items-center justify-center py-14 text-center;
+    }
+
+    .client-chat__empty-icon {
+        @apply mb-3 h-10 w-10 text-brand-magenta/50;
+    }
+
+    .client-chat__empty p {
+        @apply text-sm font-semibold text-brand-navy;
+    }
+
+    .client-chat__empty-hint {
+        @apply mt-1 max-w-xs text-xs font-normal text-brand-text-muted !important;
+    }
+
+    .client-chat__image-btn {
+        @apply block w-full overflow-hidden rounded-xl;
+    }
+
+    .client-chat__image {
+        @apply max-h-48 w-full object-contain;
+    }
+
+    .client-chat__file {
+        @apply flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 text-sm font-medium text-brand-navy transition hover:bg-slate-100;
+    }
+
+    .client-chat__composer {
+        @apply relative z-10 shrink-0 border-t border-slate-200 bg-white px-3 py-3 shadow-[0_-4px_16px_rgb(15_23_42/0.06)] sm:px-4 sm:py-4;
+    }
+
+    .client-chat__composer-bar {
+        @apply flex items-end gap-2;
+    }
+
+    .client-chat__tool,
+    .client-chat__send {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition;
+    }
+
+    .client-chat__tool {
+        @apply text-brand-text-muted hover:bg-slate-100 hover:text-brand-navy;
+    }
+
+    .client-chat__send {
+        @apply bg-brand-magenta text-white shadow-sm hover:bg-brand-magenta/90 disabled:cursor-not-allowed disabled:opacity-40;
+    }
+
+    .client-chat__field {
+        @apply min-w-0 flex-1;
+    }
+
+    .client-chat__input {
+        @apply max-h-32 min-h-[2.75rem] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-brand-navy shadow-inner transition focus:border-brand-magenta/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-magenta/15;
+    }
+
+    .client-chat__file-chip {
+        @apply mt-2 inline-flex max-w-full items-center gap-2 rounded-full bg-brand-magenta/10 px-3 py-1 text-xs font-medium text-brand-magenta;
+    }
+
+    .client-chat__file-chip.hidden {
+        display: none;
+    }
+
+    .client-chat__file-clear {
+        @apply rounded-full p-0.5 text-brand-magenta/70 hover:bg-brand-magenta/10 hover:text-brand-magenta;
+    }
+
+    .client-chat__reply-preview {
+        @apply mb-2 flex items-stretch gap-2 rounded-xl bg-slate-100 px-3 py-2;
+    }
+
+    .client-chat__reply-preview.hidden {
+        display: none;
+    }
+
+    .client-chat__reply-preview-bar {
+        @apply w-1 shrink-0 rounded-full bg-brand-magenta;
+    }
+
+    .client-chat__reply-preview-body {
+        @apply min-w-0 flex-1;
+    }
+
+    .client-chat__reply-preview-author {
+        @apply text-xs font-semibold text-brand-magenta;
+    }
+
+    .client-chat__reply-preview-text {
+        @apply truncate text-xs text-brand-text-muted;
+    }
+
+    .client-chat__reply-preview-cancel {
+        @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-brand-text-muted transition hover:bg-white hover:text-brand-navy;
+    }
+
+    .client-chat__lightbox {
+        @apply fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm;
+    }
+
+    .client-chat__lightbox.hidden {
+        display: none;
+    }
+
+    .client-chat__lightbox-image {
+        @apply max-h-[90vh] max-w-full rounded-xl object-contain shadow-2xl;
+    }
+
+    .client-chat__lightbox-close {
+        @apply absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur hover:bg-white/25;
+    }
+
+    /* Chat page: viewport-locked shell — header + scrollable messages + pinned composer */
+    .client-portal-page--chat {
+        @apply h-dvh max-h-dvh overflow-hidden;
+    }
+
+    .client-portal-page--chat .client-portal-wrap {
+        @apply h-full max-h-full min-h-0 overflow-hidden;
+    }
+
+    .client-portal-page--chat .client-portal-main {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+    }
+
+    .client-portal-page--chat .client-portal-body {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden px-0 py-0;
+    }
+
+    .client-portal-page--chat .client-page-head {
+        display: none;
+    }
+
+    .client-portal-page--chat .client-content {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+    }
+
+    .client-portal-page--chat .client-comms {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+    }
+
+    .client-portal-page--chat .client-chat {
+        @apply h-full max-h-full min-h-0 flex-1 rounded-none border-0 shadow-none;
+    }
+
+    .client-portal-page--chat .client-portal-footer {
+        display: none;
+    }
+
+    @media (min-width: 1024px) {
+        .client-portal-page--chat .client-chat {
+            height: calc(100dvh - var(--public-header-height));
+            max-height: calc(100dvh - var(--public-header-height));
+        }
+    }
+
     .public-mobile-nav__signout {
         @apply w-full text-left text-base font-medium text-brand-text-secondary hover:text-brand-magenta;
+    }
+
+    /* ── Client portal: mobile-first polish ── */
+    @media (max-width: 1023px) {
+        .client-portal-page {
+            --public-header-height: 3.5rem;
+            --client-bottom-nav-height: 4.25rem;
+            --client-mobile-toolbar-height: 3.25rem;
+        }
+
+        .client-portal-page .public-header--portal .public-header__nav,
+        .client-portal-page .public-header--portal .public-header__menu-btn,
+        .client-portal-page .public-header--portal .public-header__quote-btn {
+            display: none;
+        }
+
+        .client-portal-page .public-header--portal .public-header__bar {
+            @apply min-h-[var(--public-header-height)] py-2;
+        }
+
+        .client-portal-page .public-header--portal .public-header__logo,
+        .client-portal-page .public-header--portal img.public-header__logo {
+            max-height: 2.25rem;
+        }
+
+        .client-portal-main {
+            @apply pb-[calc(var(--client-bottom-nav-height)+env(safe-area-inset-bottom))];
+        }
+
+        .client-portal-body {
+            @apply px-3 py-3;
+        }
+
+        .client-portal-footer {
+            display: none;
+        }
+
+        .client-mobile-toolbar {
+            @apply gap-2 px-3 py-2.5;
+            min-height: var(--client-mobile-toolbar-height);
+        }
+
+        .client-mobile-toolbar__menu {
+            display: none;
+        }
+
+        .client-mobile-toolbar__title-wrap {
+            @apply min-w-0 flex-1;
+        }
+
+        .client-mobile-toolbar__eyebrow {
+            @apply text-[10px] font-semibold uppercase tracking-[0.12em] text-brand-magenta;
+        }
+
+        .client-mobile-toolbar__title {
+            @apply truncate font-display text-sm font-bold leading-tight text-brand-navy;
+        }
+
+        .client-profile-menu__trigger {
+            @apply border-0 bg-transparent p-0;
+        }
+
+        .client-sidebar {
+            @apply w-[min(88vw,20rem)];
+        }
+
+        .client-sidebar__head {
+            @apply border-b border-white/10 px-4 py-4;
+        }
+
+        .client-sidebar__profile {
+            @apply flex items-center gap-3;
+        }
+
+        .client-sidebar__profile-avatar {
+            @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-magenta text-sm font-bold text-white;
+        }
+
+        .client-sidebar__profile-name {
+            @apply truncate text-sm font-semibold text-white;
+        }
+
+        .client-sidebar__profile-company {
+            @apply truncate text-xs text-white/65;
+        }
+
+        .client-sidebar__link {
+            @apply min-h-[2.75rem] py-3 text-[15px];
+        }
+
+        .client-sidebar__foot {
+            @apply mt-auto border-t border-white/10 p-3;
+        }
+
+        .client-sidebar__foot-link {
+            @apply flex w-full items-center gap-2 rounded-brand-lg px-3 py-2.5 text-sm font-medium text-white/80 transition hover:bg-white/5 hover:text-white;
+        }
+
+        .client-sidebar__foot-link--danger {
+            @apply text-red-300 hover:bg-red-500/10 hover:text-red-200;
+        }
+
+        .client-bottom-nav {
+            @apply fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-white/95 shadow-[0_-8px_30px_rgb(15_23_42/0.08)] backdrop-blur-lg;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .client-bottom-nav__inner {
+            @apply mx-auto grid max-w-lg grid-cols-5 gap-0 px-1;
+            min-height: var(--client-bottom-nav-height);
+        }
+
+        .client-bottom-nav__link {
+            @apply flex min-w-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-semibold text-brand-text-muted transition;
+        }
+
+        .client-bottom-nav__link.is-active {
+            @apply text-brand-magenta;
+        }
+
+        .client-bottom-nav__icon-wrap {
+            @apply relative inline-flex h-8 w-8 items-center justify-center rounded-full;
+        }
+
+        .client-bottom-nav__link.is-active .client-bottom-nav__icon-wrap {
+            @apply bg-brand-magenta/10 text-brand-magenta;
+        }
+
+        .client-bottom-nav__badge {
+            @apply absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-brand-magenta px-1 text-[9px] font-bold text-white;
+        }
+
+        .client-bottom-nav__label {
+            @apply max-w-full truncate;
+        }
+
+        .client-alert--toast {
+            @apply fixed left-3 right-3 top-[calc(var(--public-header-height)+0.5rem)] z-50 mb-0 shadow-brand-lg transition duration-300;
+        }
+
+        .client-welcome {
+            @apply mb-5 rounded-2xl p-5;
+        }
+
+        .client-welcome__title {
+            @apply text-xl;
+        }
+
+        .client-welcome__text {
+            @apply text-sm;
+        }
+
+        .client-metrics {
+            @apply mb-5 grid-cols-2 gap-3;
+        }
+
+        .client-metric {
+            @apply p-4;
+        }
+
+        .client-metric__value {
+            @apply text-2xl;
+        }
+
+        .client-grid {
+            @apply gap-4;
+        }
+
+        .client-panel {
+            @apply rounded-2xl p-4;
+        }
+
+        .client-panel__head {
+            @apply mb-3 pb-3;
+        }
+
+        .client-list-item {
+            @apply grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1 rounded-xl px-2 py-3;
+        }
+
+        .client-list-item__meta {
+            @apply col-start-1 ml-0 text-xs;
+        }
+
+        .client-list-item__chevron {
+            @apply col-start-2 row-span-2 self-center;
+        }
+
+        .client-table-wrap {
+            @apply -mx-1;
+        }
+
+        .client-table--cards {
+            @apply block w-full border-0 bg-transparent;
+        }
+
+        .client-table--cards thead {
+            display: none;
+        }
+
+        .client-table--cards tbody {
+            @apply block space-y-3;
+        }
+
+        .client-table--cards tr {
+            @apply block rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm;
+        }
+
+        .client-table--cards td {
+            @apply flex items-start justify-between gap-4 border-0 px-0 py-1.5 text-sm;
+        }
+
+        .client-table--cards td::before {
+            content: attr(data-label);
+            @apply shrink-0 text-xs font-semibold uppercase tracking-wide text-brand-text-muted;
+        }
+
+        .client-table--cards td.client-empty {
+            @apply block py-6 text-center before:content-none;
+        }
+
+        .client-table--cards td:last-child {
+            @apply mt-2 border-t border-slate-100 pt-3;
+        }
+
+        .client-table--cards td:last-child .client-link {
+            @apply inline-flex min-h-[2.5rem] w-full items-center justify-center rounded-xl bg-brand-magenta/10 px-4 font-semibold text-brand-magenta;
+        }
+
+        .client-comms__toolbar {
+            @apply mb-3 flex-col items-stretch gap-2;
+        }
+
+        .client-comms__intro {
+            @apply text-sm;
+        }
+
+        .client-comms__history-toggle {
+            @apply w-full justify-center;
+        }
+
+        .client-portal-page--chat .client-mobile-toolbar {
+            display: none;
+        }
+
+        .client-portal-page--chat .client-portal-body {
+            @apply flex min-h-0 flex-1 flex-col px-0 py-0;
+        }
+
+        .client-portal-page--chat .client-content,
+        .client-portal-page--chat .client-comms,
+        .client-portal-page--chat .client-chat {
+            @apply min-h-0 flex-1;
+        }
+
+        .client-portal-page--chat .client-chat {
+            @apply rounded-none border-0 shadow-none;
+            height: calc(100dvh - var(--public-header-height) - var(--client-bottom-nav-height) - env(safe-area-inset-bottom));
+            max-height: calc(100dvh - var(--public-header-height) - var(--client-bottom-nav-height) - env(safe-area-inset-bottom));
+        }
+
+        .client-portal-page--chat .client-chat__head {
+            @apply px-3 py-3;
+        }
+
+        .client-portal-page--chat .client-chat__body {
+            @apply px-2 py-3;
+        }
+
+        .client-portal-page--chat .client-chat__composer {
+            @apply px-2 py-2;
+            padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+        }
+
+        .client-portal-page--chat .client-chat__bubble-wrap {
+            @apply max-w-[92%];
+        }
+
+        .client-portal-page--chat .client-bottom-nav {
+            @apply border-t-0 shadow-[0_-4px_20px_rgb(15_23_42/0.06)];
+        }
     }
 }

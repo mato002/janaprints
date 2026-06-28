@@ -27,7 +27,11 @@ use App\Support\Governance\WorkflowRulesService;
 use App\Services\Crm\LeadQuotationService;
 use App\Support\QuotationConversionService;
 use App\Support\QuotationRevisionService;
+use App\Support\Sales\CustomerOrderContextService;
+use App\Support\Sales\QuotationApprovalService;
+use App\Support\Sales\QuotationArtworkLinkService;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -40,6 +44,8 @@ class QuotationController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected QuotationApprovalService $quotationApprovals,
+        protected QuotationArtworkLinkService $quotationArtwork,
     ) {}
 
     public function index(): View
@@ -99,6 +105,9 @@ class QuotationController extends Controller
         $this->authorize('create', Quotation::class);
 
         $header = $this->validateHeader($request);
+        $request->validate([
+            'customer_artwork_id' => ['nullable', 'integer'],
+        ]);
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
         [$header, $customData] = $this->partitionCustomFields('quotation', $header, $companyId, $branchId);
         ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
@@ -119,8 +128,11 @@ class QuotationController extends Controller
         $this->syncItems($quotation, $items, $totals);
         QuotationRevisionService::snapshot($quotation);
 
+        $this->quotationApprovals->publishOnCreate($quotation->fresh(), (int) auth()->id());
+        $this->maybeLinkArtworkOnCreate($request, $quotation->fresh());
+
         return $this->modalOrRedirect(
-            __('Quotation created.'),
+            __('Quotation created and published to the client.'),
             redirect()->route('admin.quotations.show', $quotation),
         );
     }
@@ -131,7 +143,7 @@ class QuotationController extends Controller
 
         $quotation->load([
             'customer', 'lead', 'branch', 'items', 'revisions.creator',
-            'quotationNotes.user', 'attachments.uploader', 'preparer', 'approver',
+            'quotationNotes.user', 'preparer', 'approver',
             'salesOrder', 'conversion',
         ]);
 
@@ -151,7 +163,9 @@ class QuotationController extends Controller
             'quotation',
             'linkedArtworkAnalysis',
             'appliedQuotationEstimate',
-        ));
+        ) + [
+            'artworkLink' => $this->quotationArtwork->presentForQuotation($quotation),
+        ]);
     }
 
     public function edit(Quotation $quotation): View
@@ -294,6 +308,30 @@ class QuotationController extends Controller
         return back()->with('status', __('Quotation rejected.'));
     }
 
+    public function linkArtwork(Request $request, Quotation $quotation): RedirectResponse
+    {
+        $this->authorize('linkArtwork', $quotation);
+
+        $validated = $request->validate([
+            'artwork_source' => ['required', 'in:library,request'],
+            'customer_artwork_id' => ['required_if:artwork_source,library', 'nullable', 'integer'],
+            'artwork_request_id' => ['required_if:artwork_source,request', 'nullable', 'integer'],
+        ]);
+
+        $artworkId = $validated['artwork_source'] === 'library'
+            ? (int) $validated['customer_artwork_id']
+            : (int) $validated['artwork_request_id'];
+
+        $this->quotationArtwork->link(
+            $quotation,
+            $validated['artwork_source'],
+            $artworkId,
+            (int) auth()->id(),
+        );
+
+        return back()->with('status', __('Artwork linked to this quotation.'));
+    }
+
     public function convert(Quotation $quotation): RedirectResponse
     {
         $this->authorize('convert', $quotation);
@@ -317,6 +355,39 @@ class QuotationController extends Controller
         QuotationRevisionService::snapshot($quotation);
 
         return back()->with('status', __('Quotation expired.'));
+    }
+
+    public function customerArtworks(Customer $customer): JsonResponse
+    {
+        $this->authorize('create', Quotation::class);
+
+        abort_unless(
+            Customer::query()->forTenant()->whereKey($customer->id)->exists(),
+            403,
+        );
+
+        $artworks = app(CustomerOrderContextService::class)
+            ->artworkLibrary($customer)
+            ->map(fn ($artwork) => [
+                'id' => $artwork->id,
+                'label' => $artwork->artwork_name.' · '.$artwork->versionLabel(),
+            ])
+            ->values();
+
+        return response()->json(['artworks' => $artworks]);
+    }
+
+    protected function maybeLinkArtworkOnCreate(Request $request, Quotation $quotation): void
+    {
+        if (! $request->filled('customer_artwork_id')) {
+            return;
+        }
+
+        $this->quotationArtwork->linkFromLibrary(
+            $quotation,
+            (int) $request->input('customer_artwork_id'),
+            (int) auth()->id(),
+        );
     }
 
     protected function validateHeader(Request $request, ?Quotation $quotation = null): array

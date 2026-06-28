@@ -2,7 +2,6 @@
 
 namespace App\Support\Catalogue;
 
-use App\Models\Inventory\Brand;
 use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventorySubcategory;
 use Illuminate\Support\Str;
@@ -12,14 +11,24 @@ class CatalogueService
     public function structuredSku(
         InventoryCategory $category,
         ?InventorySubcategory $subcategory,
-        ?Brand $brand,
+        ?string $brandName,
         string $itemName,
         array $attributes = [],
     ): string {
+        $brandPart = null;
+
+        if (filled($brandName)) {
+            $normalized = strtoupper(trim($brandName));
+
+            if (! in_array($normalized, ['GENERIC', 'GENERIC / NONE', 'NONE'], true)) {
+                $brandPart = $brandName;
+            }
+        }
+
         $parts = [
             $category->code,
             $subcategory?->code,
-            $brand && strtoupper($brand->code) !== 'GENERIC' ? $brand->code : null,
+            $brandPart,
             ...array_values(array_filter($attributes, fn ($value) => filled($value))),
         ];
 

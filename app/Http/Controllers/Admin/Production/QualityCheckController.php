@@ -2,17 +2,23 @@
 
 namespace App\Http\Controllers\Admin\Production;
 
-use App\Enums\ProductionJobCardStatus;
 use App\Enums\QualityCheckResult;
+use App\Enums\QualityFailReason;
+use App\Enums\QualityReworkReason;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\QualityCheck;
+use App\Support\Production\QualityInspectionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class QualityCheckController extends Controller
 {
+    public function __construct(
+        protected QualityInspectionService $inspections,
+    ) {}
+
     public function store(Request $request, ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('create', [QualityCheck::class, $jobCard]);
@@ -20,26 +26,41 @@ class QualityCheckController extends Controller
         $validated = $request->validate([
             'result' => ['required', Rule::enum(QualityCheckResult::class)],
             'comments' => ['nullable', 'string', 'max:5000'],
+            'inspection_date' => ['nullable', 'date'],
+            'fail_reason' => ['nullable', Rule::enum(QualityFailReason::class)],
+            'rework_reason' => ['nullable', Rule::enum(QualityReworkReason::class)],
+            'estimated_rework_qty' => ['nullable', 'numeric', 'min:0'],
+            'actual_rework_qty' => ['nullable', 'numeric', 'min:0'],
+            'requires_customer_approval' => ['nullable', 'boolean'],
+            'checklist' => ['nullable', 'array'],
+            'checklist.*.line_id' => ['nullable'],
+            'checklist.*.label' => ['nullable', 'string', 'max:120'],
+            'checklist.*.passed' => ['nullable', 'boolean'],
         ]);
 
-        $result = QualityCheckResult::from($validated['result']);
+        if (in_array($validated['result'], [QualityCheckResult::Failed->value, QualityCheckResult::ReworkRequired->value], true)
+            && empty($validated['rework_reason']) && empty($validated['fail_reason'])) {
+            return back()->withInput()->withErrors([
+                'rework_reason' => __('A fail or rework reason is required when inspection fails.'),
+            ]);
+        }
 
-        QualityCheck::query()->create([
-            'company_id' => $jobCard->company_id,
-            'branch_id' => $jobCard->branch_id,
-            'production_job_card_id' => $jobCard->id,
-            'checked_by' => auth()->id(),
-            'result' => $result,
-            'comments' => $validated['comments'] ?? null,
-            'checked_at' => now(),
-        ]);
+        $this->inspections->recordInspection($jobCard, $validated, (int) auth()->id());
 
-        match ($result) {
-            QualityCheckResult::Passed => $jobCard->transitionTo(ProductionJobCardStatus::Completed),
-            QualityCheckResult::Failed => $jobCard->transitionTo(ProductionJobCardStatus::OnHold),
-            QualityCheckResult::ReworkRequired => $jobCard->transitionTo(ProductionJobCardStatus::Rework),
-        };
+        return back()->with('status', __('Quality inspection recorded.'));
+    }
 
-        return back()->with('status', __('Quality check recorded.'));
+    public function approveCustomer(
+        Request $request,
+        ProductionJobCard $jobCard,
+        QualityCheck $qualityCheck,
+    ): RedirectResponse {
+        $this->authorize('approveCustomerHold', $jobCard);
+
+        abort_unless($qualityCheck->production_job_card_id === $jobCard->id, 404);
+
+        $this->inspections->approveCustomerHold($jobCard, $qualityCheck, (int) auth()->id());
+
+        return back()->with('status', __('Customer approval recorded. Job is ready for dispatch.'));
     }
 }

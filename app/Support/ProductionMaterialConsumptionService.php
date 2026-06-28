@@ -28,6 +28,7 @@ class ProductionMaterialConsumptionService
         float $quantity,
         int $userId,
         ?float $unitCost = null,
+        ?int $requirementId = null,
     ): ProductionMaterialConsumption {
         if ($quantity <= 0) {
             throw ValidationException::withMessages([
@@ -43,7 +44,7 @@ class ProductionMaterialConsumptionService
 
         InventoryStockService::assertSufficientStock($item->id, $warehouseId, $quantity);
 
-        return DB::transaction(function () use ($jobCard, $item, $warehouseId, $quantity, $userId, $unitCost) {
+        return DB::transaction(function () use ($jobCard, $item, $warehouseId, $quantity, $userId, $unitCost, $requirementId) {
             $cost = $unitCost ?? \App\Support\Inventory\InventoryCostingService::resolveIssueUnitCost(
                 $jobCard->company_id,
                 $jobCard->branch_id,
@@ -70,6 +71,7 @@ class ProductionMaterialConsumptionService
                 'company_id' => $jobCard->company_id,
                 'branch_id' => $jobCard->branch_id,
                 'production_job_card_id' => $jobCard->id,
+                'production_material_requirement_id' => $requirementId,
                 'inventory_item_id' => $item->id,
                 'warehouse_id' => $warehouseId,
                 'inventory_movement_id' => $movement->id,
@@ -83,6 +85,14 @@ class ProductionMaterialConsumptionService
                 ->postMaterialConsumption($consumption, $userId);
 
             \App\Support\Production\JobCostingService::syncFromConsumption($consumption);
+
+            if ($requirementId !== null) {
+                $requirement = \App\Models\Production\ProductionMaterialRequirement::query()->find($requirementId);
+                if ($requirement) {
+                    app(\App\Support\Production\MaterialRequirementsService::class)
+                        ->syncRequirementFromConsumption($requirement);
+                }
+            }
 
             return $consumption;
         });

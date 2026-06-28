@@ -11,7 +11,7 @@
 <form
     method="{{ $httpMethod === 'GET' ? 'GET' : 'POST' }}"
     action="{{ $action }}"
-    @if (! $inFormModal) data-turbo-frame="_top" @endif
+    @if ($inFormModal) data-turbo="false" @else data-turbo-frame="_top" @endif
     {{ $attributes->merge(['class' => 'erp-form-shell']) }}
 >
     @csrf

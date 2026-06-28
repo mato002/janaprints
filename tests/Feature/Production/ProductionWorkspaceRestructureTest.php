@@ -22,14 +22,14 @@ class ProductionWorkspaceRestructureTest extends TestCase
      * @var array<string, string>
      */
     private array $hubCards = [
-        'Production Command Center' => 'admin.production.dashboard',
+        'Operations Intelligence' => 'admin.production.dashboard',
         'Job Cards' => 'admin.production.job-cards.index',
         'Production Queue' => 'admin.production.queue.index',
         'Scheduling' => 'admin.production.scheduling.index',
         'Quality Control' => 'admin.production.quality.index',
         'Work Centers' => 'admin.production.work-centers.index',
         'Job Costing & Profitability' => 'admin.production.costing.dashboard',
-        'Dispatch Workspace' => 'admin.workspaces.dispatch',
+        'Dispatch Desk' => 'admin.dispatch.dashboard',
         'Production 360' => 'admin.reports.production360',
         'Production Reports' => 'admin.reports.production',
     ];
@@ -73,9 +73,19 @@ class ProductionWorkspaceRestructureTest extends TestCase
             ->all();
 
         $this->assertNotContains('Dispatch (legacy)', $labels);
-        $this->assertContains('Dispatch Workspace', $labels);
+        $this->assertContains('Dispatch Desk', $labels);
+        $this->assertNotContains('Dispatch Workspace', $labels);
         $this->assertNotContains('Production Dashboard', $labels);
-        $this->assertContains('Production Command Center', $labels);
+        $this->assertContains('Operations Intelligence', $labels);
+    }
+
+    public function test_printing_intelligence_is_not_a_production_hub_tab(): void
+    {
+        $hubLabels = collect(app(ProductionWorkspacePresenter::class)->hubDefinitions())
+            ->pluck('label')
+            ->all();
+
+        $this->assertNotContains('Printing Intelligence', $hubLabels);
     }
 
     public function test_user_without_dispatch_permission_does_not_see_dispatch_tab(): void
@@ -145,11 +155,11 @@ class ProductionWorkspaceRestructureTest extends TestCase
             'active_branch_id' => Branch::query()->where('code', 'HQ')->firstOrFail()->id,
         ]);
 
-        $this->get(route('admin.production.work-centers.index'))
+        $this->get(route('admin.production.work-centers.index', ['embedded' => '1']))
             ->assertOk()
             ->assertSee($hubUrl, false);
 
-        $this->get(route('admin.production.job-cards.index'))
+        $this->get(route('admin.production.job-cards.index', ['embedded' => '1']))
             ->assertOk()
             ->assertSee($hubUrl, false);
     }

@@ -59,7 +59,7 @@ class ModuleShellPresenter
             'production' => [
                 'config' => 'production_workspaces',
                 'title' => __('Production'),
-                'description' => __('Job cards, scheduling, quality, dispatch, and production intelligence.'),
+                'description' => __('Job cards, shop floor, quality, dispatch, and production intelligence.'),
                 'icon' => 'cog',
                 'hub_route' => 'admin.workspaces.production',
                 'section_route' => 'admin.workspaces.production.section',

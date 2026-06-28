@@ -16,6 +16,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('customers/{customer}/start', [InboxController::class, 'startCustomer'])->name('customers.start');
             Route::get('{inboxConversation}/attachments/{attachment}/download', [InboxController::class, 'downloadAttachment'])
                 ->name('attachments.download');
+            Route::get('{inboxConversation}/feed', [InboxController::class, 'threadFeed'])->name('feed');
         });
 
         Route::middleware('permission:communications.inbox.executive')->group(function () {

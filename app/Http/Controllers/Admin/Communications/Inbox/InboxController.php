@@ -21,8 +21,10 @@ use App\Support\Communications\Inbox\InboxCustomerContextService;
 use App\Support\Communications\Inbox\InboxMessageService;
 use App\Support\Communications\Inbox\InboxNoteService;
 use App\Support\Communications\Inbox\InboxSlaService;
+use App\Support\Communications\Inbox\InboxChatFeedService;
 use App\Support\Communications\Inbox\InboxConversationWorkspaceService;
 use App\Support\Communications\Inbox\InboxTimelineService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -43,6 +45,7 @@ class InboxController extends Controller
         protected InboxConversationWorkspaceService $workspace,
         protected InboxSlaService $sla,
         protected InboxAuditService $audit,
+        protected InboxChatFeedService $chatFeed,
     ) {}
 
     public function index(Request $request): View
@@ -303,6 +306,30 @@ class InboxController extends Controller
 
         return redirect()->route('admin.communications.inbox.index', ['conversation' => $inboxConversation->id])
             ->with('inbox_attachment_sent', true);
+    }
+
+    public function threadFeed(Request $request, CommunicationConversation $inboxConversation): JsonResponse
+    {
+        $this->authorize('view', $inboxConversation);
+
+        $inboxConversation->load([
+            'threadMessages.creator', 'attachments.uploader',
+        ]);
+
+        $channelFilter = $request->get('channel');
+        $this->conversations->markRead($inboxConversation);
+        $workspaceData = $this->workspace->forConversation($inboxConversation, $channelFilter);
+        $events = $workspaceData['message_timeline'];
+
+        return response()->json([
+            'fingerprint' => $this->chatFeed->fingerprint($events),
+            'html' => view('admin.communications.inbox.workspace.chat-messages', [
+                'events' => $events,
+                'active' => $inboxConversation,
+                'inboxTurboFrame' => $request->get('turbo_frame', 'module-workspace-content'),
+            ])->render(),
+            'unread_count' => (int) $inboxConversation->fresh()->unread_count,
+        ]);
     }
 
     public function downloadAttachment(

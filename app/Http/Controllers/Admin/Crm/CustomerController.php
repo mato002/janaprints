@@ -106,6 +106,7 @@ class CustomerController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
         $data = $this->validateCustomer($request, null, $companyId, $branchId);
         $data = $this->formSettings->applyDefaults('customer', $data, $companyId, $branchId);
+        $data['status'] ??= CustomerStatus::Active->value;
         [$data, $customData] = $this->partitionCustomFields('customer', $data, $companyId, $branchId);
 
         $customer = Customer::query()->create([
@@ -256,7 +257,7 @@ class CustomerController extends Controller
         $companyId ??= $customer?->company_id ?? tenant()->companyId();
         $branchId ??= $customer?->branch_id ?? tenant()->branchId();
 
-        return $this->formSettings->validateRequest($request, 'customer', [
+        $rules = [
             'customer_type' => [Rule::enum(CustomerType::class)],
             'company_name' => ['string', 'max:255'],
             'contact_person' => ['string', 'max:255'],
@@ -270,13 +271,18 @@ class CustomerController extends Controller
             'website' => ['string', 'max:255'],
             'credit_limit' => ['numeric', 'min:0'],
             'payment_terms' => ['string', 'max:100'],
-            'status' => $this->statusOptions->validationRules('customer', $companyId, $branchId),
             'notes' => ['string'],
             'segment_ids' => ['array'],
             'segment_ids.*' => ['exists:customer_segments,id'],
             'company_id' => ['sometimes', 'exists:companies,id'],
             'branch_id' => ['sometimes', 'exists:branches,id'],
-        ], $companyId, $branchId, serverProvidedFields: ['company_id', 'branch_id']);
+        ];
+
+        if ($customer !== null) {
+            $rules['status'] = $this->statusOptions->validationRules('customer', $companyId, $branchId);
+        }
+
+        return $this->formSettings->validateRequest($request, 'customer', $rules, $companyId, $branchId, serverProvidedFields: ['company_id', 'branch_id']);
     }
 
     protected function formMeta(?Customer $customer = null): array

@@ -88,7 +88,6 @@ class DeliverySalesOrderSyncService
         }
 
         $this->bridge->advanceSalesOrderTo($note->salesOrder, SalesOrderStatus::Delivered);
-        $this->bridge->advanceSalesOrderTo($note->salesOrder->fresh(), SalesOrderStatus::Closed);
     }
 
     public function canSynchronizeSalesOrder(SalesOrder $salesOrder): bool

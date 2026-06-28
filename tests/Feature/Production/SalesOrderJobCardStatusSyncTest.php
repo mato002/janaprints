@@ -239,7 +239,7 @@ class SalesOrderJobCardStatusSyncTest extends TestCase
 
         app(DeliverySalesOrderSyncService::class)->syncFromDeliveredNote($note->fresh());
 
-        $this->assertEquals(SalesOrderStatus::Closed, $salesOrder->fresh()->status);
+        $this->assertEquals(SalesOrderStatus::Delivered, $salesOrder->fresh()->status);
         $this->assertSame(DeliveryNoteStatus::Delivered, $note->fresh()->status);
     }
 

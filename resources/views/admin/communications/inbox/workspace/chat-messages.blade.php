@@ -53,10 +53,34 @@
                             </a>
                         @endif
                         @if ($caption !== '')
-                            <p class="border-t border-black/5 px-2 py-1.5 text-[14px] leading-snug text-slate-900">{{ $caption }}</p>
+                            @php $parsedCaption = \App\Support\Client\ClientChatMessagePresenter::splitQuote($caption); @endphp
+                            <div class="border-t border-black/5 px-2 py-1.5 text-[14px] leading-snug text-slate-900">
+                                @if ($parsedCaption['quoted'])
+                                    <div @class([
+                                        'mb-1.5 rounded-md border-l-2 px-2 py-1 text-[12px] leading-snug',
+                                        'border-emerald-700/30 bg-emerald-900/5 text-emerald-900/60' => $isOutgoing,
+                                        'border-slate-300 bg-slate-100 text-slate-500' => ! $isOutgoing,
+                                    ])>
+                                        <p class="line-clamp-4 whitespace-pre-wrap">{{ $parsedCaption['quoted'] }}</p>
+                                    </div>
+                                @endif
+                                @if ($parsedCaption['body'] !== '')
+                                    <p class="whitespace-pre-wrap">{{ $parsedCaption['body'] }}</p>
+                                @endif
+                            </div>
                         @endif
                     @else
-                        <p class="whitespace-pre-wrap break-words">{{ $event['body'] }}</p>
+                        @php $parsed = \App\Support\Client\ClientChatMessagePresenter::splitQuote((string) ($event['body'] ?? '')); @endphp
+                        @if ($parsed['quoted'])
+                            <div @class([
+                                'mb-1.5 rounded-md border-l-2 px-2 py-1 text-[12px] leading-snug',
+                                'border-emerald-700/30 bg-emerald-900/5 text-emerald-900/60' => $isOutgoing,
+                                'border-slate-300 bg-slate-100 text-slate-500' => ! $isOutgoing,
+                            ])>
+                                <p class="line-clamp-4 whitespace-pre-wrap">{{ $parsed['quoted'] }}</p>
+                            </div>
+                        @endif
+                        <p class="whitespace-pre-wrap break-words">{{ $parsed['body'] !== '' ? $parsed['body'] : ($parsed['quoted'] ? '' : ($event['body'] ?? '')) }}</p>
                     @endif
                     <p @class([
                         'flex items-center justify-end gap-1 px-2 pb-0.5 text-[11px]',

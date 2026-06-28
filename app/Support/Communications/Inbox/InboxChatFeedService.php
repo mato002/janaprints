@@ -53,6 +53,20 @@ class InboxChatFeedService
     }
 
     /**
+     * @param  Collection<int, array<string, mixed>>  $feed
+     */
+    public function fingerprint(Collection $feed): string
+    {
+        $parts = $feed->map(function (array $event): string {
+            $id = $event['message_id'] ?? $event['attachment_id'] ?? uniqid();
+
+            return ($event['type'] ?? 'event').':'.$id.':'.($event['at']?->timestamp ?? 0);
+        });
+
+        return hash('xxh128', $parts->implode('|'));
+    }
+
+    /**
      * @return array{images: int, files: int, by_month: Collection<string, Collection<int, array<string, mixed>>>}
      */
     public function mediaLibrary(CommunicationConversation $conversation): array

@@ -26,7 +26,9 @@ use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\StockAdjustment;
 use App\Models\Dispatch\DeliveryNote;
+use App\Models\Production\PrintProductTemplate;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionSpecification;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\QualityCheck;
 use App\Models\Production\WorkCenter;
@@ -68,7 +70,9 @@ use App\Policies\QuotationPolicy;
 use App\Policies\InventoryItemPolicy;
 use App\Policies\InventoryMovementPolicy;
 use App\Policies\WarehousePolicy;
+use App\Policies\PrintProductTemplatePolicy;
 use App\Policies\ProductionJobCardPolicy;
+use App\Policies\ProductionSpecificationPolicy;
 use App\Policies\StockAdjustmentPolicy;
 use App\Policies\StockCountPolicy;
 use App\Policies\CycleCountSchedulePolicy;
@@ -225,6 +229,8 @@ class AppServiceProvider extends ServiceProvider
         ArtworkVersion::class => ArtworkVersionPolicy::class,
         SalesOrder::class => SalesOrderPolicy::class,
         ProductionJobCard::class => ProductionJobCardPolicy::class,
+        PrintProductTemplate::class => PrintProductTemplatePolicy::class,
+        ProductionSpecification::class => ProductionSpecificationPolicy::class,
         \App\Models\PrintingIntelligence\PrintEstimateActualComparison::class => \App\Policies\PrintingIntelligence\PrintEstimateActualComparisonPolicy::class,
         \App\Models\PrintingIntelligence\PrintCalibrationRule::class => \App\Policies\PrintingIntelligence\PrintCalibrationRulePolicy::class,
         \App\Models\PrintingIntelligence\PrintInkProfile::class => \App\Policies\PrintingIntelligence\PrintInkProfilePolicy::class,
@@ -397,12 +403,18 @@ class AppServiceProvider extends ServiceProvider
 
         $this->registerAssetIntelligenceGates();
 
-        Gate::before(function (User $user, string $ability) {
+        Gate::before(function (User $user, string $ability, array $arguments = []) {
             if (! $user->is_active || $user->email_verified_at === null) {
                 return false;
             }
 
             if ($user->hasRole('Super Admin')) {
+                foreach ($arguments as $argument) {
+                    if (is_object($argument)) {
+                        return null;
+                    }
+                }
+
                 return true;
             }
 
@@ -424,6 +436,21 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(Logout::class, [LogAuthenticationActivity::class, 'handleLogout']);
         Event::listen(Failed::class, [LogAuthenticationActivity::class, 'handleFailed']);
         Event::listen(Lockout::class, [LogAuthenticationActivity::class, 'handleLockout']);
+
+        Event::listen(
+            \App\Events\Production\JobCardStatusChanged::class,
+            [\App\Listeners\Production\SyncProductionQueueFromJobCard::class, 'handle'],
+        );
+        Event::listen(
+            \App\Events\Production\JobCardStatusChanged::class,
+            [\App\Listeners\Production\SyncSalesOrderFromJobCard::class, 'handle'],
+        );
+        Event::listen(
+            \App\Events\Production\JobCardStatusChanged::class,
+            [\App\Listeners\Production\DispatchProductionCommunication::class, 'handle'],
+        );
+
+        ProductionJobCard::observe(\App\Observers\Production\ProductionJobCardObserver::class);
 
         View::composer('layouts.admin', WorkspaceNavigationComposer::class);
 
@@ -451,6 +478,18 @@ class AppServiceProvider extends ServiceProvider
             'components.public.conversion-exit-intent',
             'components.public.final-cta-section',
         ], PublicWebsiteContentComposer::class);
+
+        View::composer(['components.client.sidebar', 'components.client.bottom-nav'], function ($view): void {
+            $unread = 0;
+            $user = auth()->user();
+
+            if ($user?->isClientPortalAccount() && $user->customer) {
+                $unread = app(\App\Services\Client\ClientPortalInboxService::class)
+                    ->unreadCountForCustomer($user->customer);
+            }
+
+            $view->with('clientCommunicationsUnread', $unread);
+        });
 
         View::composer(['layouts.admin', 'layouts.admin.partials.sidebar', 'layouts.admin.partials.topbar'], function ($view) {
             $assets = app(BrandingAssets::class);

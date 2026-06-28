@@ -20,6 +20,7 @@ class CustomerStatementService
 
         return [
             'customer' => $customer,
+            'customer_id' => $customer->id,
             'from_date' => $filters['from_date'],
             'to_date' => $filters['to_date'],
             ...$ledger,

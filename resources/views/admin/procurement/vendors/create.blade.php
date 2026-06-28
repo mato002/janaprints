@@ -1,10 +1,12 @@
-<x-admin-layout :title="__('Create Vendor')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Vendor Management')], ['label' => __('Vendors'), 'url' => route('admin.procurement.vendors.index')], ['label' => __('Create')]]">
-    <x-admin.page-header :title="__('Create vendor')" />
-    <x-admin.card>
-        <form method="POST" action="{{ route('admin.procurement.vendors.store') }}" class="erp-form-grid">
-            @csrf
-            @include('admin.procurement.vendors.partials.form')
-            <div class="md:col-span-2"><x-primary-button>{{ __('Save vendor') }}</x-primary-button></div>
-        </form>
-    </x-admin.card>
-</x-admin-layout>
+<x-admin.modal-form
+    :title="__('Create vendor')"
+    :breadcrumbs="[['label' => __('Vendors'), 'url' => route('admin.procurement.vendors.index')], ['label' => __('Create')]]"
+    maxWidth="3xl"
+>
+    <x-admin.form-shell :action="route('admin.procurement.vendors.store')">
+        @include('admin.procurement.vendors.partials.form')
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Save vendor') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

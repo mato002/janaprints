@@ -1,65 +1,155 @@
 @php
     $d = $dashboard;
+    $focus = request('focus', 'ready');
 @endphp
-<x-admin-layout :title="__('Dispatch')" :breadcrumbs="[['label' => __('Dispatch')]]">
-    <x-admin.page-header :title="__('Dispatch Dashboard')" :description="__('Delivery notes are the operational source of truth for dispatch and delivery.')">
+<x-admin-layout
+    :title="__('Dispatch Desk')"
+    :breadcrumbs="[
+        ['label' => __('Production'), 'url' => route('admin.workspaces.production.section', ['section' => 'dispatch'])],
+        ['label' => __('Dispatch Desk')],
+    ]"
+>
+    <x-admin.page-header
+        :title="__('Dispatch Desk')"
+        :description="__('Ready jobs and delivery notes in one place — create notes, dispatch, and confirm delivery.')"
+    >
         <x-slot name="actions">
+            <a href="{{ route('admin.dispatch.calendar', ['embedded' => request('embedded')]) }}" class="erp-btn-secondary" data-turbo-frame="module-workspace-content">{{ __('Calendar') }}</a>
             @can('viewAny', App\Models\Dispatch\DeliveryNote::class)
-                <a href="{{ route('admin.dispatch.delivery-notes.index') }}" class="erp-btn-primary">{{ __('Delivery notes') }}</a>
+                <a href="{{ route('admin.dispatch.delivery-notes.index', ['embedded' => request('embedded')]) }}" class="erp-btn-primary" data-turbo-frame="module-workspace-content">{{ __('All delivery notes') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        @foreach ([
-            ['label' => __('Jobs ready'), 'value' => $d['ready_jobs'], 'icon' => 'cog'],
-            ['label' => __('Draft notes'), 'value' => $d['draft_notes'], 'icon' => 'document-text'],
-            ['label' => __('Dispatched'), 'value' => $d['dispatched_notes'], 'icon' => 'truck'],
-            ['label' => __('Delivered'), 'value' => $d['delivered_notes'], 'icon' => 'check-circle'],
-            ['label' => __('Delivered today'), 'value' => $d['delivered_today'], 'icon' => 'calendar'],
-        ] as $card)
-            <x-admin.kpi-widget :label="$card['label']" :value="(string) $card['value']" :icon="$card['icon']" />
+    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        @foreach ($d['summary'] as $card)
+            <a
+                href="{{ route('admin.dispatch.dashboard', array_merge(request()->only('embedded'), $card['filter'] ?? [])) }}"
+                class="block transition-opacity hover:opacity-90"
+                data-turbo-frame="module-workspace-content"
+            >
+                <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" />
+            </a>
         @endforeach
     </div>
 
-    <div class="mb-6 grid gap-4 lg:grid-cols-3">
-        <x-admin.card>
-            <h3 class="mb-2 text-sm font-semibold">{{ __('Inventory ownership') }}</h3>
-            <dl class="space-y-2 text-sm">
-                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Finished goods (est.)') }}</dt><dd class="tabular-nums">{{ number_format($d['ownership']['finished_goods'] ?? 0, 2) }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-500">{{ __('In transit (est.)') }}</dt><dd class="tabular-nums">{{ number_format($d['ownership']['in_transit'] ?? 0, 2) }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Delivered COGS') }}</dt><dd class="tabular-nums">{{ number_format($d['ownership']['delivered_value'] ?? 0, 2) }}</dd></div>
-            </dl>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <a href="{{ route('admin.dispatch.reports.transit-inventory') }}" class="erp-link text-sm">{{ __('Transit inventory') }}</a>
-                <a href="{{ route('admin.dispatch.reports.cogs-postings') }}" class="erp-link text-sm">{{ __('COGS postings') }}</a>
-            </div>
-        </x-admin.card>
-        <x-admin.card>
-            <h3 class="mb-3 text-sm font-semibold">{{ __('Invoice readiness (Phase 3F)') }}</h3>
-            <p class="text-sm text-slate-600">{{ __('Delivered notes marked invoice-ready: :count', ['count' => $d['invoice_ready']]) }}</p>
-        </x-admin.card>
-
-        <x-admin.card class="border-dashed">
-            <h3 class="mb-2 text-sm font-semibold">{{ __('Delivery calendar') }}</h3>
-            <p class="text-sm text-slate-500">{{ __('Calendar view coming in a future release.') }}</p>
-        </x-admin.card>
-    </div>
-
-    <x-admin.card class="mt-6">
-        <h3 class="mb-3 text-sm font-semibold">{{ __('Recent delivery notes') }}</h3>
-        <ul class="divide-y divide-slate-100 text-sm">
-            @forelse ($d['recent_notes'] as $note)
-                <li class="flex justify-between py-2">
-                    <span>
-                        <a href="{{ route('admin.dispatch.delivery-notes.show', $note) }}" class="font-mono text-indigo-600">{{ $note->delivery_note_number }}</a>
-                        — {{ $note->customer?->company_name }}
-                    </span>
-                    <x-admin.enum-status-badge :status="$note->status->value" />
-                </li>
-            @empty
-                <li class="py-4 text-slate-500">{{ __('No delivery notes yet.') }}</li>
-            @endforelse
-        </ul>
+  @if ($focus !== 'notes')
+    <x-admin.card :padding="false" class="mb-6" id="ready-jobs">
+        <div class="border-b border-erp-border px-4 py-3">
+            <h2 class="text-sm font-semibold text-erp-primary">
+                {{ __('Jobs ready for dispatch') }}
+                <span class="ml-1 font-normal text-slate-500">({{ $d['ready_jobs_count'] }})</span>
+            </h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="erp-table w-full text-sm">
+                <thead>
+                    <tr>
+                        <th>{{ __('Job') }}</th>
+                        <th>{{ __('Customer') }}</th>
+                        <th>{{ __('Product') }}</th>
+                        <th>{{ __('Due') }}</th>
+                        <th class="erp-table-actions-col">{{ __('Action') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($d['ready_jobs'] as $job)
+                        <tr>
+                            <td class="font-mono text-xs whitespace-nowrap">
+                                <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch', 'embedded' => request('embedded')]) }}" class="text-erp-accent hover:underline" data-turbo-frame="erp-main">
+                                    {{ $job->job_card_number }}
+                                </a>
+                            </td>
+                            <td>{{ $job->customer?->company_name ?? '—' }}</td>
+                            <td>
+                                {{ $job->inventoryItem?->item_name ?? '—' }}
+                                @if ($job->inventoryItem?->sku)
+                                    <span class="block text-[11px] text-slate-500">{{ $job->inventoryItem->sku }}</span>
+                                @endif
+                            </td>
+                            <td class="whitespace-nowrap text-xs">
+                                {{ $job->required_date?->format('Y-m-d') ?? $job->salesOrder?->required_date?->format('Y-m-d') ?? '—' }}
+                            </td>
+                            <td class="erp-table-actions-col">
+                                @if ($d['can_create_note'])
+                                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.store-from-job', $job) }}" class="inline">
+                                        @csrf
+                                        <button type="submit" class="erp-btn-primary text-xs py-1">{{ __('Create delivery note') }}</button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch']) }}" class="text-sm text-erp-accent hover:underline">{{ __('Open job') }}</a>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-slate-500">{{ __('No jobs are ready for dispatch.') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
     </x-admin.card>
+  @endif
+
+    <x-admin.card :padding="false" id="delivery-notes">
+        <div class="border-b border-erp-border px-4 py-3">
+            <x-admin.index-toolbar :action="route('admin.dispatch.dashboard')" :reset-url="route('admin.dispatch.dashboard', request()->only('embedded'))" :show-reset="($d['filter_status'] ?? '') !== ''">
+                <input type="hidden" name="embedded" value="{{ request('embedded') }}">
+                <input type="hidden" name="focus" value="notes">
+                <x-admin.status-pills
+                    :options="collect(App\Enums\Dispatch\DeliveryNoteStatus::cases())->map(fn ($status) => ['value' => $status->value, 'label' => $status->label()])->prepend(['value' => '', 'label' => __('All')])->all()"
+                    param="status"
+                    :current="$d['filter_status'] ?? ''"
+                />
+            </x-admin.index-toolbar>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="erp-table w-full text-sm">
+                <thead>
+                    <tr>
+                        <th>{{ __('DN number') }}</th>
+                        <th>{{ __('Customer') }}</th>
+                        <th>{{ __('Job') }}</th>
+                        <th>{{ __('Delivery date') }}</th>
+                        <th>{{ __('Status') }}</th>
+                        <th class="erp-table-actions-col">{{ __('Actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($d['notes'] as $note)
+                        <tr>
+                            <td class="font-mono text-xs">
+                                <a href="{{ route('admin.dispatch.delivery-notes.show', $note) }}" class="text-erp-accent hover:underline">{{ $note->delivery_note_number }}</a>
+                            </td>
+                            <td>{{ $note->customer?->company_name ?? '—' }}</td>
+                            <td class="font-mono text-xs">{{ $note->productionJobCard?->job_card_number ?? '—' }}</td>
+                            <td class="whitespace-nowrap text-xs">{{ $note->delivery_date?->format('Y-m-d') ?? '—' }}</td>
+                            <td><x-admin.enum-status-badge :status="$note->status->value" /></td>
+                            <td class="erp-table-actions-col">
+                                <a href="{{ route('admin.dispatch.delivery-notes.show', $note) }}" class="text-sm text-erp-accent hover:underline">{{ __('Open') }}</a>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="py-8 text-center text-slate-500">{{ __('No delivery notes yet.') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if ($d['notes']->hasPages())
+            <div class="border-t border-erp-border px-4 py-3">
+                <x-admin.table-pagination :paginator="$d['notes']" />
+            </div>
+        @endif
+    </x-admin.card>
+
+    <p class="mt-4 text-xs text-slate-500">
+        {{ __('Invoice-ready delivered notes: :count', ['count' => $d['invoice_ready']]) }}
+        ·
+        <a href="{{ route('admin.dispatch.reports.transit-inventory', ['embedded' => request('embedded')]) }}" class="erp-link" data-turbo-frame="module-workspace-content">{{ __('Transit inventory') }}</a>
+        ·
+        <a href="{{ route('admin.dispatch.reports.cogs-postings', ['embedded' => request('embedded')]) }}" class="erp-link" data-turbo-frame="module-workspace-content">{{ __('COGS postings') }}</a>
+    </p>
 </x-admin-layout>

@@ -20,9 +20,11 @@ class InventoryItem extends Model
 
     protected $fillable = [
         'company_id', 'branch_id', 'inventory_category_id', 'subcategory_id',
-        'brand_id', 'unit_of_measure_id', 'sku', 'item_code', 'item_name',
-        'description', 'reorder_level', 'reorder_quantity', 'standard_cost',
+        'brand_id', 'brand_name', 'unit_of_measure_id', 'sku', 'item_name',
+        'description',         'reorder_level', 'reorder_quantity', 'standard_cost',
         'is_active', 'stock_role',
+        'uses_serial_numbers', 'serial_prefix', 'serial_padding_length',
+        'requires_customer_approval',
     ];
 
     protected function casts(): array
@@ -33,6 +35,9 @@ class InventoryItem extends Model
             'standard_cost' => 'decimal:2',
             'is_active' => 'boolean',
             'stock_role' => InventoryStockRole::class,
+            'uses_serial_numbers' => 'boolean',
+            'requires_customer_approval' => 'boolean',
+            'serial_padding_length' => 'integer',
         ];
     }
 
@@ -74,5 +79,17 @@ class InventoryItem extends Model
     public function priceListItems(): HasMany
     {
         return $this->hasMany(PriceListItem::class);
+    }
+
+    public function productionRouteSteps(): HasMany
+    {
+        return $this->hasMany(ProductProductionRouteStep::class)->orderBy('sequence');
+    }
+
+    public function activeProductionRouteSteps(): HasMany
+    {
+        return $this->hasMany(ProductProductionRouteStep::class)
+            ->where('is_active', true)
+            ->orderBy('sequence');
     }
 }

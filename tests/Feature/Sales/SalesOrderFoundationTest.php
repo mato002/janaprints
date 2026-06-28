@@ -80,7 +80,7 @@ class SalesOrderFoundationTest extends TestCase
     public function test_quotation_conversion_creates_sales_order_with_history(): void
     {
         [$company, $branch, $customer, $user] = $this->salesContext([
-            'quotations.view', 'quotations.convert', 'sales_orders.view', 'sales_orders.create',
+            'quotations.view', 'sales_orders.view', 'sales_orders.create',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -88,28 +88,130 @@ class SalesOrderFoundationTest extends TestCase
         $quotation = $this->makeAcceptedQuotation($company, $branch, $customer, $user);
         $this->attachApprovedArtwork($quotation, $user);
 
-        $this->actingAs($user)
-            ->post(route('admin.quotations.convert', $quotation))
-            ->assertRedirect();
+        $response = $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.sales-orders.store'), [
+                'quotation_id' => $quotation->id,
+            ]);
 
-        $quotation->refresh();
-        $this->assertEquals(QuotationStatus::Converted, $quotation->status);
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
+        $response->assertSee(__('Sales order created from quotation.'), false);
 
         $this->assertDatabaseHas('sales_orders', [
             'quotation_id' => $quotation->id,
             'customer_id' => $customer->id,
-            'status' => SalesOrderStatus::Draft->value,
+        ]);
+    }
+
+    public function test_create_form_only_lists_quotations_with_approved_artwork(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'quotations.view', 'sales_orders.view', 'sales_orders.create',
         ]);
 
-        $salesOrder = SalesOrder::query()->where('quotation_id', $quotation->id)->first();
-        $this->assertNotNull($salesOrder);
-        $this->assertDatabaseHas('sales_order_items', ['sales_order_id' => $salesOrder->id]);
-        $this->assertDatabaseHas('quotation_conversions', [
-            'quotation_id' => $quotation->id,
-            'sales_order_id' => $salesOrder->id,
-            'quotation_revision_number' => $quotation->revision_number,
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $readyQuotation = $this->makeAcceptedQuotation($company, $branch, $customer, $user);
+        $this->attachApprovedArtwork($readyQuotation, $user);
+
+        $blockedQuotation = $this->makeAcceptedQuotation($company, $branch, $customer, $user);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.sales-orders.create'))
+            ->assertOk()
+            ->assertSee($readyQuotation->quotation_number, false)
+            ->assertDontSee($blockedQuotation->quotation_number, false);
+    }
+
+    public function test_conversion_uses_approved_artwork_when_multiple_are_linked(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'quotations.view', 'sales_orders.view', 'sales_orders.create',
         ]);
-        $this->assertEquals(1, QuotationConversion::query()->where('quotation_id', $quotation->id)->count());
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $quotation = $this->makeAcceptedQuotation($company, $branch, $customer, $user);
+
+        ArtworkRequest::factory()->create([
+            'company_id' => $quotation->company_id,
+            'branch_id' => $quotation->branch_id,
+            'customer_id' => $quotation->customer_id,
+            'quotation_id' => $quotation->id,
+            'requested_by' => $user->id,
+            'status' => ArtworkRequestStatus::InDesign,
+            'current_version' => 1,
+        ]);
+
+        $approvedArtwork = $this->attachApprovedArtwork($quotation, $user);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.sales-orders.store'), [
+                'quotation_id' => $quotation->id,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('sales_orders', [
+            'quotation_id' => $quotation->id,
+            'artwork_request_id' => $approvedArtwork->id,
+        ]);
+    }
+
+    public function test_convert_shows_button_but_blocks_when_sales_order_already_exists(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'quotations.view', 'quotations.convert', 'sales_orders.view',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $quotation = $this->makeAcceptedQuotation($company, $branch, $customer, $user);
+        $this->attachApprovedArtwork($quotation, $user);
+
+        SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'quotation_id' => $quotation->id,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.quotations.show', $quotation))
+            ->assertOk()
+            ->assertSee(__('Convert to sales order'), false);
+
+        $this->actingAs($user)
+            ->post(route('admin.quotations.convert', $quotation))
+            ->assertRedirect()
+            ->assertSessionHasErrors('quotation');
+    }
+
+    public function test_confirm_blocked_when_already_confirmed(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'sales_orders.view', 'sales_orders.confirm',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'status' => SalesOrderStatus::Confirmed,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->post(route('admin.sales-orders.confirm', $order))
+            ->assertRedirect()
+            ->assertSessionHasErrors('workflow');
+
+        $this->assertEquals(SalesOrderStatus::Confirmed, $order->fresh()->status);
     }
 
     public function test_status_transition_confirm(): void
@@ -133,6 +235,37 @@ class SalesOrderFoundationTest extends TestCase
             ->assertRedirect();
 
         $this->assertEquals(SalesOrderStatus::Confirmed, $order->fresh()->status);
+    }
+
+    public function test_close_blocked_until_invoiced_and_paid(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'sales_orders.view', 'sales_orders.close',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'status' => SalesOrderStatus::Delivered,
+            'total_amount' => 1000,
+            'invoiced_total' => 0,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.sales-orders.show', $order))
+            ->assertOk()
+            ->assertSee(__('Close order'), false);
+
+        $this->actingAs($user)
+            ->post(route('admin.sales-orders.close', $order))
+            ->assertRedirect()
+            ->assertSessionHasErrors('workflow');
+
+        $this->assertEquals(SalesOrderStatus::Delivered, $order->fresh()->status);
     }
 
     /**

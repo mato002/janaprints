@@ -14,5 +14,6 @@ class JobCardStatusChanged
     public function __construct(
         public ProductionJobCard $jobCard,
         public ProductionJobCardStatus $status,
+        public ?ProductionJobCardStatus $previousStatus = null,
     ) {}
 }

@@ -118,7 +118,7 @@
     />
     @endif
 
-    @if(($fields['status']['visible'] ?? true))
+    @if($customer && ($fields['status']['visible'] ?? true))
         <x-admin.form-status-select
             form-key="customer"
             :field="$fields['status']"

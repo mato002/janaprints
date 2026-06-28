@@ -73,7 +73,7 @@ class Job360WorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee(__('End-to-end traceability'), false)
             ->assertSee(__('Quotation'), false)
-            ->assertSee(__('Delivery tracking available after Dispatch module activation'), false);
+            ->assertSee(__('Delivery'), false);
     }
 
     public function test_artwork_tab_loads(): void
@@ -111,7 +111,7 @@ class Job360WorkspaceTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']))
             ->assertOk()
-            ->assertSee(__('Required materials/BOM not yet activated'), false);
+            ->assertSee(__('Material requirements'), false);
     }
 
     public function test_qc_tab_loads(): void
@@ -137,7 +137,7 @@ class Job360WorkspaceTest extends TestCase
             ->assertSee('Defect found');
     }
 
-    public function test_dispatch_tab_placeholder_works(): void
+    public function test_dispatch_tab_loads(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
         $jobCard = $this->createJobCard($salesOrder, $user);
@@ -145,7 +145,13 @@ class Job360WorkspaceTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']))
             ->assertOk()
-            ->assertSee(__('Delivery history will appear when dispatch module is activated'), false);
+            ->assertSee(__('Dispatch readiness checklist'), false)
+            ->assertSee(__('No delivery notes for this job.'), false);
+    }
+
+    public function test_dispatch_tab_placeholder_works(): void
+    {
+        $this->test_dispatch_tab_loads();
     }
 
     public function test_timeline_tab_loads(): void
@@ -159,6 +165,18 @@ class Job360WorkspaceTest extends TestCase
             ->assertSee(__('Unified job timeline'), false);
     }
 
+    public function test_route_tab_loads(): void
+    {
+        [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'route']))
+            ->assertOk()
+            ->assertSee(__('Production route'), false)
+            ->assertDontSee(__('Operation completion'), false);
+    }
+
     public function test_authorization_hides_restricted_quick_actions(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
@@ -167,8 +185,8 @@ class Job360WorkspaceTest extends TestCase
         $payload = app(Job360WorkspaceService::class)->build($jobCard);
         $labels = collect($payload['quick_actions'])->pluck('label')->all();
 
-        $this->assertNotContains(__('Start Job'), $labels);
-        $this->assertNotContains(__('Consume Material'), $labels);
+        $this->assertNotContains(__('Log operation'), $labels);
+        $this->assertNotContains(__('Materials'), $labels);
     }
 
     public function test_tenant_isolation_preserved(): void

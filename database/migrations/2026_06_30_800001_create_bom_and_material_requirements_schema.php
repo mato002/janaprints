@@ -32,8 +32,10 @@ return new class extends Migration
             $table->foreignId('product_bom_id')->constrained()->cascadeOnDelete();
             $table->foreignId('inventory_item_id')->constrained()->cascadeOnDelete();
             $table->decimal('quantity_per_unit', 12, 4);
+            $table->string('quantity_formula', 120)->nullable();
             $table->decimal('waste_factor_percent', 5, 2)->default(0);
             $table->unsignedSmallInteger('sort_order')->default(0);
+            $table->boolean('is_active')->default(true);
             $table->string('notes')->nullable();
             $table->timestamps();
 
@@ -63,9 +65,13 @@ return new class extends Migration
             $table->foreignId('inventory_item_id')->constrained()->cascadeOnDelete();
             $table->foreignId('warehouse_id')->constrained()->cascadeOnDelete();
             $table->decimal('job_quantity', 12, 3)->default(1);
+            $table->string('quantity_formula', 120)->nullable();
             $table->decimal('required_quantity', 12, 3);
             $table->decimal('reserved_quantity', 12, 3)->default(0);
             $table->decimal('consumed_quantity', 12, 3)->default(0);
+            $table->decimal('issued_quantity', 12, 3)->default(0);
+            $table->decimal('waste_quantity', 12, 3)->default(0);
+            $table->decimal('returned_quantity', 12, 3)->default(0);
             $table->decimal('unit_cost', 15, 2)->default(0);
             $table->decimal('estimated_cost', 15, 2)->default(0);
             $table->string('status', 20)->default('planned');
@@ -74,6 +80,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['production_job_card_id', 'status'], 'pmr_job_status_idx');
+            $table->index(['production_job_card_id', 'inventory_item_id'], 'pmr_job_item_idx');
             $table->index(['company_id', 'branch_id', 'inventory_item_id', 'warehouse_id'], 'pmr_item_wh_idx');
             });
         }

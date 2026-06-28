@@ -86,6 +86,38 @@ class ArtworkRequest extends Model
         return $this->versions()->where('version_number', $this->current_version)->first();
     }
 
+    public function lacksUploadedVersion(): bool
+    {
+        return $this->versions()->count() === 0;
+    }
+
+    public function canSubmitForApproval(): bool
+    {
+        return $this->status === ArtworkRequestStatus::InDesign
+            && $this->currentVersionRecord() !== null;
+    }
+
+    public function canReviewSubmission(): bool
+    {
+        return $this->status === ArtworkRequestStatus::Submitted;
+    }
+
+    public function canApproveOrRequestRevision(): bool
+    {
+        return $this->canReviewSubmission() && $this->currentVersionRecord() !== null;
+    }
+
+    public function canRejectSubmission(): bool
+    {
+        return $this->canReviewSubmission();
+    }
+
+    /** @deprecated Use canApproveOrRequestRevision() or canRejectSubmission() */
+    public function canRecordApprovalDecision(): bool
+    {
+        return $this->canApproveOrRequestRevision();
+    }
+
     public function transitionTo(ArtworkRequestStatus $status): void
     {
         if (! $this->status->canTransitionTo($status)) {

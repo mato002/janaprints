@@ -192,13 +192,33 @@ class CustomerPaymentService
                 'posted_journal_id' => $journal->id,
             ]);
 
+            if ($payment->is_deposit) {
+                $payment->update([
+                    'credit_issued' => $payment->amount,
+                    'credit_remaining' => $payment->unallocated_amount,
+                ]);
+            }
+
             foreach ($payment->allocations as $allocation) {
                 $allocation->invoice->refreshPaymentBalance();
+
+                if ($allocation->invoice->sales_order_id) {
+                    $order = \App\Models\Sales\SalesOrder::query()->find($allocation->invoice->sales_order_id);
+                    if ($order) {
+                        app(SalesOrderFinancialStatusService::class)->syncDepositAmounts($order);
+                    }
+                }
             }
 
             $payment = $payment->fresh(['postedJournal', 'poster', 'allocations.invoice']);
 
             $this->receipts->assignReceiptNumber($payment);
+
+            app(\App\Support\Communications\CommunicationEventDispatcher::class)->dispatch(
+                \App\Enums\DomainCommunicationEvent::PaymentReceived,
+                $payment->fresh(['customer']),
+                auth()->user(),
+            );
 
             return $payment->fresh(['postedJournal', 'poster', 'allocations.invoice']);
         });

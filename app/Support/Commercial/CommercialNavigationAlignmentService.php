@@ -14,6 +14,12 @@ class CommercialNavigationAlignmentService
     {
         return [
             [
+                'label' => __('Commercial Intelligence'),
+                'description' => __('Profitability, waste, and outsource margin analysis.'),
+                'route' => 'admin.reports.commercial-intelligence',
+                'permission' => 'intelligence.commercial.view|reports.view',
+            ],
+            [
                 'label' => __('Commercial 360'),
                 'description' => __('Sales and customer management intelligence.'),
                 'route' => 'admin.reports.commercial360',

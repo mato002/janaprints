@@ -2,6 +2,7 @@
 
 namespace App\Support\Integrations;
 
+use App\Enums\IntegrationWebhookEvent;
 use App\Enums\IntegrationWebhookStatus;
 use App\Models\Integrations\IntegrationWebhook;
 use App\Models\Integrations\IntegrationWebhookDelivery;
@@ -13,6 +14,19 @@ class WebhookService
     public function __construct(
         protected IntegrationAuditService $audit,
     ) {}
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function dispatchForCompany(int $companyId, IntegrationWebhookEvent $event, array $payload): void
+    {
+        IntegrationWebhook::query()
+            ->where('company_id', $companyId)
+            ->where('status', IntegrationWebhookStatus::Active)
+            ->get()
+            ->filter(fn (IntegrationWebhook $webhook) => in_array($event->value, $webhook->event_types ?? [], true))
+            ->each(fn (IntegrationWebhook $webhook) => $this->deliver($webhook, $event->value, $payload));
+    }
 
     /**
      * @param  array<string, mixed>  $data

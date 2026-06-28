@@ -8,7 +8,7 @@
 return [
 
     'title' => 'Production Reports',
-    'description' => 'Historical production performance reports with date-range and branch filters.',
+    'description' => 'Period-based production performance — filter by date and branch, then review throughput, quality, materials, dispatch, and profitability.',
 
     'tabs' => [
         'throughput' => [
@@ -29,6 +29,8 @@ return [
                 'fail_rate' => 'Fail Rate',
                 'rework_rate' => 'Rework Rate',
                 'hold_rate' => 'Hold Rate',
+                'quality_fail_reasons' => 'Quality Fail Reasons',
+                'rework_summary' => 'Rework Summary',
             ],
         ],
         'materials' => [
@@ -37,11 +39,19 @@ return [
                 'material_consumption' => 'Material Consumption',
                 'material_cost' => 'Material Cost',
                 'waste_analysis' => 'Waste Analysis',
+                'production_material_usage' => 'Production Material Usage',
+                'production_waste' => 'Production Waste',
+                'material_variance' => 'Material Variance',
             ],
         ],
         'dispatch' => [
             'label' => 'Dispatch Reports',
             'reports' => [
+                'ready_for_collection' => 'Ready For Collection',
+                'collected_orders' => 'Collected Orders',
+                'delivered_orders' => 'Delivered Orders',
+                'outstanding_collections' => 'Outstanding Collections',
+                'outstanding_deliveries' => 'Outstanding Deliveries',
                 'delivered_jobs' => 'Delivered Jobs',
                 'late_deliveries' => 'Late Deliveries',
                 'delivery_success' => 'Delivery Success',

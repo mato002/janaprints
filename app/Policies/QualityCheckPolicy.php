@@ -28,6 +28,13 @@ class QualityCheckPolicy
             && $jobCard->status === \App\Enums\ProductionJobCardStatus::QualityCheck;
     }
 
+    public function approveCustomerHold(User $user, ProductionJobCard $jobCard): bool
+    {
+        return $user->can('production.qc')
+            && $this->sameTenant($user, $jobCard)
+            && $jobCard->status === \App\Enums\ProductionJobCardStatus::AwaitingCustomerApproval;
+    }
+
     public function view(User $user, QualityCheck $check): bool
     {
         return $user->can('production.view') && $this->sameTenant($user, $check->jobCard);

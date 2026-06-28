@@ -6,10 +6,11 @@ use App\Enums\SalesOrderStatus;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Policies\Concerns\ChecksCrmTenant;
+use App\Policies\Concerns\ChecksWorkflowAttempt;
 
 class SalesOrderPolicy
 {
-    use ChecksCrmTenant;
+    use ChecksCrmTenant, ChecksWorkflowAttempt;
 
     public function viewAny(User $user): bool
     {
@@ -42,33 +43,48 @@ class SalesOrderPolicy
 
     public function confirm(User $user, SalesOrder $salesOrder): bool
     {
-        return $user->can('sales_orders.confirm')
-            && $this->sameTenant($user, $salesOrder)
-            && $salesOrder->status === SalesOrderStatus::Draft;
+        return $this->canAttemptWorkflow(
+            $user,
+            $salesOrder,
+            'sales_orders.confirm',
+            fn (SalesOrder $order) => $order->status !== SalesOrderStatus::Draft,
+        );
     }
 
     public function production(User $user, SalesOrder $salesOrder): bool
     {
-        return $user->can('sales_orders.production')
-            && $this->sameTenant($user, $salesOrder)
-            && in_array($salesOrder->status, [
-                SalesOrderStatus::Confirmed,
-                SalesOrderStatus::ReadyForProduction,
-                SalesOrderStatus::InProduction,
-                SalesOrderStatus::Completed,
-            ], true);
+        return $this->canAttemptWorkflow(
+            $user,
+            $salesOrder,
+            'sales_orders.production',
+            fn (SalesOrder $order) => in_array($order->status, [
+                SalesOrderStatus::Draft,
+                SalesOrderStatus::Closed,
+                SalesOrderStatus::Cancelled,
+            ], true),
+        );
     }
 
     public function close(User $user, SalesOrder $salesOrder): bool
     {
-        return $user->can('sales_orders.close')
-            && $this->sameTenant($user, $salesOrder)
-            && $salesOrder->status === SalesOrderStatus::Delivered;
+        return $this->canAttemptWorkflow(
+            $user,
+            $salesOrder,
+            'sales_orders.close',
+            fn (SalesOrder $order) => in_array($order->status, [
+                SalesOrderStatus::Closed,
+                SalesOrderStatus::Cancelled,
+            ], true),
+        );
     }
 
     public function transition(User $user, SalesOrder $salesOrder): bool
     {
         return $user->can('sales_orders.edit')
-            && $this->sameTenant($user, $salesOrder);
+            && $this->sameTenant($user, $salesOrder)
+            && ! in_array($salesOrder->status, [
+                SalesOrderStatus::Closed,
+                SalesOrderStatus::Cancelled,
+            ], true);
     }
 }

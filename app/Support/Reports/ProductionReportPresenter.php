@@ -27,9 +27,11 @@ class ProductionReportPresenter
             'filters' => $resolved['filters'],
             'branches' => $resolved['branches'],
             'can_export' => $resolved['can_export'],
-            'catalog' => $this->catalog(),
             'tabs' => $this->tabs(),
             'active_tab' => $tab,
+            'active_tab_label' => $this->tabs()[$this->tabIndex($tab)]['label'] ?? $tab,
+            'period_label' => $resolved['filters']['from_date'].' — '.$resolved['filters']['to_date'],
+            'branch_label' => $this->branchLabel($resolved['branches'], $resolved['filters']['branch_id'] ?? null),
             'tab_data' => $this->presentTab($scope, $tab),
             'schedule_frequencies' => config('production_reports.schedule_frequencies', []),
             'export_url' => Route::has('admin.reports.production.export')
@@ -39,6 +41,48 @@ class ProductionReportPresenter
                 ? route('admin.reports.production.print', $request->query())
                 : null,
         ];
+    }
+
+    protected function tabIndex(string $tab): int
+    {
+        $keys = array_keys(config('production_reports.tabs', []));
+
+        $index = array_search($tab, $keys, true);
+
+        return $index === false ? 0 : (int) $index;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, \App\Models\Branch>  $branches
+     */
+    protected function branchLabel($branches, mixed $branchId): string
+    {
+        if (! $branchId) {
+            return __('All branches');
+        }
+
+        return $branches->firstWhere('id', (int) $branchId)?->name ?? __('Branch');
+    }
+
+    /**
+     * @param  array<string, mixed>  $tabData
+     * @param  list<string>  $keys
+     * @param  list<string>  $fullWidth
+     * @return array<string, mixed>
+     */
+    protected function withSections(array $tabData, array $keys, array $fullWidth = []): array
+    {
+        $tabData['sections'] = collect($keys)
+            ->filter(fn (string $key) => isset($tabData[$key]))
+            ->map(fn (string $key) => [
+                'key' => $key,
+                'full_width' => in_array($key, $fullWidth, true),
+                'table' => $tabData[$key],
+            ])
+            ->values()
+            ->all();
+
+        return $tabData;
     }
 
     /**
@@ -97,13 +141,13 @@ class ProductionReportPresenter
     {
         $avgTurnaround = $this->queries->averageTurnaroundDays($scope);
 
-        return [
+        return $this->withSections([
             'type' => 'throughput',
             'summary' => [
-                ['label' => __('Jobs Completed'), 'value' => (string) $this->queries->countJobsCompleted($scope)],
-                ['label' => __('Jobs Delayed'), 'value' => (string) $this->queries->countJobsDelayed($scope)],
-                ['label' => __('Jobs Cancelled'), 'value' => (string) $this->queries->countJobsCancelled($scope)],
-                ['label' => __('Average Turnaround'), 'value' => $avgTurnaround !== null ? $avgTurnaround.' '.__('days') : '—'],
+                ['label' => __('Jobs Completed'), 'value' => (string) $this->queries->countJobsCompleted($scope), 'icon' => 'check-circle'],
+                ['label' => __('Jobs Delayed'), 'value' => (string) $this->queries->countJobsDelayed($scope), 'icon' => 'clock'],
+                ['label' => __('Jobs Cancelled'), 'value' => (string) $this->queries->countJobsCancelled($scope), 'icon' => 'x-circle'],
+                ['label' => __('Average Turnaround'), 'value' => $avgTurnaround !== null ? $avgTurnaround.' '.__('days') : '—', 'icon' => 'calendar'],
             ],
             'daily' => [
                 'title' => __('Daily Throughput'),
@@ -119,8 +163,9 @@ class ProductionReportPresenter
                 'title' => __('Machine Utilization'),
                 'columns' => [__('Work Center'), __('Code'), __('Jobs Completed'), __('Utilization')],
                 'rows' => $this->queries->machineUtilization($scope),
+                'highlight_utilization' => true,
             ],
-        ];
+        ], ['daily', 'departments', 'machines'], ['machines']);
     }
 
     /**
@@ -130,20 +175,30 @@ class ProductionReportPresenter
     {
         $rates = $this->queries->qualityRates($scope);
 
-        return [
+        return $this->withSections([
             'type' => 'quality',
             'summary' => [
-                ['label' => __('Pass Rate'), 'value' => $rates['pass_rate'].'%'],
-                ['label' => __('Fail Rate'), 'value' => $rates['fail_rate'].'%'],
-                ['label' => __('Rework Rate'), 'value' => $rates['rework_rate'].'%'],
-                ['label' => __('Hold Rate'), 'value' => $rates['hold_rate'].'%'],
+                ['label' => __('Pass Rate'), 'value' => $rates['pass_rate'].'%', 'icon' => 'check-circle'],
+                ['label' => __('Fail Rate'), 'value' => $rates['fail_rate'].'%', 'icon' => 'x-circle'],
+                ['label' => __('Rework Rate'), 'value' => $rates['rework_rate'].'%', 'icon' => 'refresh'],
+                ['label' => __('Hold Rate'), 'value' => $rates['hold_rate'].'%', 'icon' => 'pause'],
             ],
             'daily' => [
                 'title' => __('Quality Checks By Day'),
                 'columns' => [__('Date'), __('Checks'), __('Pass %'), __('Fail %'), __('Rework %')],
                 'rows' => $this->queries->qualityByDay($scope),
             ],
-        ];
+            'fail_reasons' => [
+                'title' => __('Quality Fail Reasons'),
+                'columns' => [__('Reason'), __('Count'), __('Est. rework qty')],
+                'rows' => $this->queries->qualityFailReasonRows($scope),
+            ],
+            'rework_summary' => [
+                'title' => __('Rework Summary'),
+                'columns' => [__('Job'), __('Reason'), __('Est. qty'), __('Actual qty'), __('Date')],
+                'rows' => $this->queries->reworkSummaryRows($scope),
+            ],
+        ], ['daily', 'fail_reasons', 'rework_summary'], ['daily']);
     }
 
     /**
@@ -153,11 +208,11 @@ class ProductionReportPresenter
     {
         $cost = $this->queries->materialCostSummary($scope);
 
-        return [
+        return $this->withSections([
             'type' => 'materials',
             'summary' => [
-                ['label' => __('Consumption Lines'), 'value' => (string) $cost['lines']],
-                ['label' => __('Material Cost'), 'value' => $cost['total_cost']],
+                ['label' => __('Consumption Lines'), 'value' => (string) $cost['lines'], 'icon' => 'collection'],
+                ['label' => __('Material Cost'), 'value' => $cost['total_cost'], 'icon' => 'currency-dollar'],
             ],
             'consumption' => [
                 'title' => __('Material Consumption'),
@@ -169,7 +224,17 @@ class ProductionReportPresenter
                 'columns' => [__('Material'), __('Waste Qty'), __('Waste Cost')],
                 'rows' => $this->queries->wasteAnalysisRows($scope),
             ],
-        ];
+            'production_usage' => [
+                'title' => __('Production Material Usage'),
+                'columns' => [__('Material'), __('Issued Qty'), __('Issued Cost')],
+                'rows' => $this->queries->productionMaterialUsageRows($scope),
+            ],
+            'variance' => [
+                'title' => __('Material Variance'),
+                'columns' => [__('Material'), __('Required'), __('Consumed'), __('Variance')],
+                'rows' => $this->queries->materialVarianceRows($scope),
+            ],
+        ], ['consumption', 'waste', 'production_usage', 'variance']);
     }
 
     /**
@@ -178,13 +243,42 @@ class ProductionReportPresenter
     protected function dispatchTab(IntelligenceScope $scope): array
     {
         $metrics = $this->queries->dispatchMetrics($scope);
+        $fulfilment = $this->queries->fulfilmentMetrics($scope);
 
-        return [
+        return $this->withSections([
             'type' => 'dispatch',
             'summary' => [
-                ['label' => __('Delivered Jobs'), 'value' => (string) $metrics['throughput']],
-                ['label' => __('Late Deliveries'), 'value' => (string) $metrics['late']],
-                ['label' => __('Delivery Success'), 'value' => $metrics['on_time_rate'].'%'],
+                ['label' => __('Ready For Collection'), 'value' => (string) $fulfilment['ready_for_collection'], 'icon' => 'inbox'],
+                ['label' => __('Collected'), 'value' => (string) $fulfilment['collected'], 'icon' => 'check-circle'],
+                ['label' => __('Delivered'), 'value' => (string) $fulfilment['delivered'], 'icon' => 'truck'],
+                ['label' => __('Outstanding Collections'), 'value' => (string) $fulfilment['outstanding_collections'], 'icon' => 'clock'],
+                ['label' => __('Outstanding Deliveries'), 'value' => (string) $fulfilment['outstanding_deliveries'], 'icon' => 'exclamation'],
+                ['label' => __('Delivered Jobs (DN)'), 'value' => (string) $metrics['throughput'], 'icon' => 'document-text'],
+            ],
+            'ready_for_collection' => [
+                'title' => __('Ready For Collection'),
+                'columns' => [__('Job Card'), __('Order'), __('Prepared At'), __('Prepared By')],
+                'rows' => $this->queries->readyForCollectionRows($scope),
+            ],
+            'collected' => [
+                'title' => __('Collected Orders'),
+                'columns' => [__('Job Card'), __('Order'), __('Collected By'), __('Collected At')],
+                'rows' => $this->queries->collectedOrdersRows($scope),
+            ],
+            'delivered_orders' => [
+                'title' => __('Delivered Orders'),
+                'columns' => [__('Job Card'), __('Order'), __('Recipient'), __('Delivered At')],
+                'rows' => $this->queries->fulfilmentDeliveredRows($scope),
+            ],
+            'outstanding_collections' => [
+                'title' => __('Outstanding Collections'),
+                'columns' => [__('Job Card'), __('Order'), __('Prepared At'), __('Days Waiting')],
+                'rows' => $this->queries->outstandingCollectionsRows($scope),
+            ],
+            'outstanding_deliveries' => [
+                'title' => __('Outstanding Deliveries'),
+                'columns' => [__('Job Card'), __('Order'), __('Recipient'), __('Dispatched At')],
+                'rows' => $this->queries->outstandingDeliveriesRows($scope),
             ],
             'delivered' => [
                 'title' => __('Delivered Jobs'),
@@ -196,7 +290,15 @@ class ProductionReportPresenter
                 'columns' => [__('Job Card'), __('Delivery Note'), __('Planned Date'), __('Delivered At'), __('Days Late')],
                 'rows' => $this->queries->lateDeliveriesRows($scope),
             ],
-        ];
+        ], [
+            'ready_for_collection',
+            'collected',
+            'delivered_orders',
+            'outstanding_collections',
+            'outstanding_deliveries',
+            'delivered',
+            'late',
+        ], ['late']);
     }
 
     /**
@@ -204,8 +306,9 @@ class ProductionReportPresenter
      */
     protected function profitabilityTab(IntelligenceScope $scope): array
     {
-        return [
+        return $this->withSections([
             'type' => 'profitability',
+            'summary' => [],
             'jobs' => [
                 'title' => __('Job Profitability'),
                 'columns' => [__('Job Card'), __('Revenue'), __('Cost'), __('Profit'), __('Margin')],
@@ -221,6 +324,6 @@ class ProductionReportPresenter
                 'columns' => [__('Customer'), __('Jobs'), __('Revenue'), __('Cost'), __('Profit'), __('Margin')],
                 'rows' => $this->queries->customerProfitabilityRows($scope),
             ],
-        ];
+        ], ['jobs', 'departments', 'customers'], ['jobs', 'departments', 'customers']);
     }
 }

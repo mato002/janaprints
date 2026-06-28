@@ -3887,7 +3887,13 @@
     }
 
     .erp-form-modal__actions {
-        @apply mt-6 flex flex-wrap items-center justify-end gap-3 border-t border-erp-border pt-4;
+        @apply mt-6 flex flex-col-reverse gap-3 border-t border-erp-border pt-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end;
+    }
+
+    .erp-form-modal__actions .erp-btn-primary,
+    .erp-form-modal__actions .erp-btn-secondary,
+    .erp-form-modal__actions button[type="submit"] {
+        @apply w-full sm:w-auto;
     }
 
     .erp-form-modal__body--loading {

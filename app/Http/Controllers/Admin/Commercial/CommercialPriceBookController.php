@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Commercial;
 
 use App\Enums\CommercialPriceBookStatus;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -17,12 +18,13 @@ use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class CommercialPriceBookController extends Controller
 {
-    use ResolvesCrmTenant, ScopesToTenant;
+    use HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
 
     public function __construct(
         protected CommercialPriceBookService $priceBooks,
@@ -54,7 +56,7 @@ class CommercialPriceBookController extends Controller
         return view('admin.commercial.price-books.create', $this->formMeta($request));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', CommercialPriceBook::class);
 
@@ -73,7 +75,10 @@ class CommercialPriceBookController extends Controller
             $this->priceBooks->setAsDefault($book);
         }
 
-        return redirect()->route('admin.commercial.price-books.show', $book)->with('status', __('Price book created.'));
+        return $this->modalOrRedirect(
+            __('Price book created.'),
+            redirect()->route('admin.commercial.price-books.show', $book),
+        );
     }
 
     public function show(CommercialPriceBook $priceBook): View
@@ -98,7 +103,7 @@ class CommercialPriceBookController extends Controller
         ));
     }
 
-    public function update(Request $request, CommercialPriceBook $priceBook): RedirectResponse
+    public function update(Request $request, CommercialPriceBook $priceBook): RedirectResponse|Response
     {
         $this->authorize('update', $priceBook);
 
@@ -112,7 +117,10 @@ class CommercialPriceBookController extends Controller
             $this->priceBooks->setAsDefault($priceBook);
         }
 
-        return redirect()->route('admin.commercial.price-books.show', $priceBook)->with('status', __('Price book updated.'));
+        return $this->modalOrRedirect(
+            __('Price book updated.'),
+            redirect()->route('admin.commercial.price-books.show', $priceBook),
+        );
     }
 
     public function destroy(CommercialPriceBook $priceBook): RedirectResponse

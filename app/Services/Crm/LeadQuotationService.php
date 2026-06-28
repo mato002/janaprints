@@ -12,6 +12,7 @@ use App\Support\Crm\LeadConversionService;
 use App\Support\Platform\NumberingService;
 use App\Support\Platform\SystemSettingsService;
 use App\Support\QuotationRevisionService;
+use App\Support\Sales\QuotationApprovalService;
 use Illuminate\Validation\ValidationException;
 
 class LeadQuotationService
@@ -96,6 +97,6 @@ class LeadQuotationService
 
         QuotationRevisionService::snapshot($quotation);
 
-        return $quotation;
+        return app(QuotationApprovalService::class)->publishOnCreate($quotation->fresh(), $actor->id);
     }
 }

@@ -38,6 +38,10 @@ class ProductionQueueService
         }
     }
 
+    public function __construct(
+        protected ProductionQueueOrderingService $ordering,
+    ) {}
+
     public function hasActiveQueue(ProductionJobCard $jobCard): bool
     {
         return ProductionQueue::query()
@@ -70,9 +74,9 @@ class ProductionQueueService
         $position = $queuePosition ?? $this->nextQueuePosition($workCenter);
         $status = $assignedOperatorId !== null
             ? ProductionQueueStatus::Assigned
-            : ProductionQueueStatus::Pending;
+            : ProductionQueueStatus::Waiting;
 
-        return DB::transaction(function () use ($jobCard, $workCenterId, $position, $assignedOperatorId, $status) {
+        return DB::transaction(function () use ($jobCard, $workCenterId, $position, $assignedOperatorId, $status, $workCenter) {
             $entry = ProductionQueue::query()->create([
                 'company_id' => $jobCard->company_id,
                 'branch_id' => $jobCard->branch_id,
@@ -82,6 +86,8 @@ class ProductionQueueService
                 'assigned_operator_id' => $assignedOperatorId,
                 'status' => $status,
             ]);
+
+            $this->ordering->reorderWorkCenter($workCenter);
 
             if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
                 $jobCard->fresh()->transitionTo(ProductionJobCardStatus::Queued);
@@ -108,7 +114,7 @@ class ProductionQueueService
         ) {
             $status = $assignedOperatorId !== null
                 ? ProductionQueueStatus::Assigned
-                : ProductionQueueStatus::Pending;
+                : ProductionQueueStatus::Waiting;
         }
 
         $queue->update([
@@ -147,6 +153,7 @@ class ProductionQueueService
     {
         match ($status) {
             ProductionJobCardStatus::Queued => $this->assertQueuedHasActiveRecord($jobCard),
+            ProductionJobCardStatus::OnHold => $this->markActiveQueues($jobCard, ProductionQueueStatus::Paused),
             ProductionJobCardStatus::InProduction => $this->markActiveQueues($jobCard, ProductionQueueStatus::InProgress),
             ProductionJobCardStatus::QualityCheck,
             ProductionJobCardStatus::Completed,
@@ -209,11 +216,10 @@ class ProductionQueueService
      */
     public function activeQueueStatusValues(): array
     {
-        return [
-            ProductionQueueStatus::Pending->value,
-            ProductionQueueStatus::Assigned->value,
-            ProductionQueueStatus::InProgress->value,
-        ];
+        return array_map(
+            fn (ProductionQueueStatus $status) => $status->value,
+            ProductionQueueStatus::activeStatuses(),
+        );
     }
 
     /**

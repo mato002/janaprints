@@ -1,6 +1,8 @@
 @props(['fieldKey', 'field', 'lead' => null])
 
 @php
+    use App\Enums\LeadStatus;
+
     $required = (bool) ($field['required'] ?? false);
     $readOnly = (bool) ($field['read_only'] ?? false);
     $label = __($field['label'] ?? $fieldKey);
@@ -62,7 +64,7 @@
                 @required($required)
                 @disabled($readOnly)
             >
-                @foreach ($statuses as $status)
+                @foreach (($statuses ?? LeadStatus::cases()) as $status)
                     <option value="{{ $status->value }}" @selected((string) $value === (string) $status->value)>{{ $status->name }}</option>
                 @endforeach
             </select>

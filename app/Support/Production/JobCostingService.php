@@ -8,6 +8,8 @@ use App\Models\Production\JobCostLine;
 use App\Models\Production\JobCostSheet;
 use App\Models\Production\JobOverheadRate;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionWastageRecord;
+use App\Enums\ProductionMaterialFlowType;
 use Illuminate\Support\Facades\DB;
 
 class JobCostingService
@@ -15,7 +17,7 @@ class JobCostingService
     public static function buildOrRefresh(ProductionJobCard $jobCard): JobCostSheet
     {
         return DB::transaction(function () use ($jobCard) {
-            $jobCard->load(['salesOrder', 'materialConsumptions.inventoryItem']);
+            $jobCard->load(['salesOrder', 'materialConsumptions.inventoryItem', 'outsourceVendor']);
 
             $sheet = JobCostSheet::query()->firstOrCreate(
                 ['production_job_card_id' => $jobCard->id],
@@ -26,7 +28,9 @@ class JobCostingService
                 ],
             );
 
-            $sheet->lines()->where('cost_category', JobCostCategory::Material)->delete();
+            $sheet->lines()
+                ->whereIn('cost_category', [JobCostCategory::Material, JobCostCategory::Wastage, JobCostCategory::Outsourced])
+                ->delete();
 
             $materialCost = 0.0;
 
@@ -46,15 +50,49 @@ class JobCostingService
                 ]);
             }
 
+            $wastageCost = 0.0;
+
+            foreach (ProductionWastageRecord::query()
+                ->where('production_job_card_id', $jobCard->id)
+                ->where('flow_type', ProductionMaterialFlowType::Wasted)
+                ->with('inventoryItem')
+                ->get() as $waste) {
+                $lineTotal = (float) ($waste->line_cost ?? 0);
+                $wastageCost += $lineTotal;
+
+                JobCostLine::query()->create([
+                    'job_cost_sheet_id' => $sheet->id,
+                    'cost_category' => JobCostCategory::Wastage,
+                    'description' => $waste->waste_type?->label() ?? __('Production waste'),
+                    'inventory_item_id' => $waste->inventory_item_id,
+                    'quantity' => $waste->quantity,
+                    'unit_cost' => $waste->quantity > 0 ? round($lineTotal / (float) $waste->quantity, 4) : 0,
+                    'line_total' => $lineTotal,
+                ]);
+            }
+
+            $outsourcedCost = round((float) ($jobCard->outsource_actual_cost ?? $jobCard->outsource_quoted_cost ?? 0), 2);
+
+            if ($outsourcedCost > 0) {
+                JobCostLine::query()->create([
+                    'job_cost_sheet_id' => $sheet->id,
+                    'cost_category' => JobCostCategory::Outsourced,
+                    'description' => $jobCard->outsourceVendor?->name ?? __('Outsourced production'),
+                    'line_total' => $outsourcedCost,
+                ]);
+            }
+
             $revenue = (float) ($jobCard->salesOrder?->total_amount ?? 0);
             $overhead = self::calculateOverhead($jobCard, $materialCost);
-            $totalCost = $materialCost + $overhead;
+            $totalCost = round($materialCost + $wastageCost + $outsourcedCost + $overhead, 2);
 
-            $grossProfit = $revenue - $totalCost;
+            $grossProfit = round($revenue - $totalCost, 2);
             $grossMargin = $revenue > 0 ? round(($grossProfit / $revenue) * 100, 2) : 0;
 
             $sheet->update([
-                'material_cost' => $materialCost,
+                'material_cost' => round($materialCost, 2),
+                'wastage_cost' => round($wastageCost, 2),
+                'outsourced_cost' => $outsourcedCost,
                 'overhead_cost' => $overhead,
                 'total_cost' => $totalCost,
                 'revenue' => $revenue,

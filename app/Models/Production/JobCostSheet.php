@@ -19,6 +19,7 @@ class JobCostSheet extends Model
         'production_job_card_id',
         'status',
         'material_cost',
+        'wastage_cost',
         'labor_cost',
         'machine_cost',
         'finishing_cost',
@@ -37,6 +38,7 @@ class JobCostSheet extends Model
     {
         return [
             'material_cost' => 'decimal:2',
+            'wastage_cost' => 'decimal:2',
             'labor_cost' => 'decimal:2',
             'machine_cost' => 'decimal:2',
             'finishing_cost' => 'decimal:2',

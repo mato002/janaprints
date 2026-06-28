@@ -122,7 +122,10 @@ class DeliveryNoteService
                 'dispatch_notes' => $dispatchNotes ?? $note->dispatch_notes,
             ]);
 
-            return $note->fresh(['items', 'items.inventoryItem', 'customer', 'productionJobCard', 'dispatcher']);
+            $note = $note->fresh(['items', 'items.inventoryItem', 'customer', 'productionJobCard', 'dispatcher']);
+            app(\App\Support\Production\ProductionFulfilmentService::class)->syncFromDeliveryNote($note);
+
+            return $note;
         });
     }
 
@@ -144,7 +147,10 @@ class DeliveryNoteService
                 'invoice_ready' => true,
             ]);
 
-            return $note->fresh(['items', 'items.inventoryItem', 'postedJournal', 'customer', 'productionJobCard', 'deliverer']);
+            $note = $note->fresh(['items', 'items.inventoryItem', 'postedJournal', 'customer', 'productionJobCard', 'deliverer']);
+            app(\App\Support\Production\ProductionFulfilmentService::class)->syncFromDeliveryNote($note);
+
+            return $note;
         });
     }
 

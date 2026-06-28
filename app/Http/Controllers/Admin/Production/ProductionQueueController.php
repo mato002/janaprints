@@ -6,36 +6,76 @@ use App\Enums\ProductionQueueStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
-use App\Models\Production\ProductionStage;
-use App\Models\Production\WorkCenter;
-use App\Services\Production\ProductionQueueWorkspaceService;
+use App\Support\Export\TabularExportWriter;
+use App\Support\Production\DepartmentQueueRegistry;
+use App\Services\Production\DepartmentCommandCenterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionQueueController extends Controller
 {
-    public function index(Request $request, ProductionQueueWorkspaceService $workspace): View
+    public function index(Request $request, DepartmentCommandCenterService $commandCenter): View
     {
         $this->authorize('viewWorkspace', ProductionQueue::class);
 
-        return view('admin.production.queue.index', [
-            'queues' => $workspace->paginatedIndex($request),
-            'kpis' => $workspace->kpiCounts(),
-            'workCenters' => WorkCenter::query()->forTenant()->orderBy('name')->get(['id', 'name']),
-            'stages' => ProductionStage::query()->forTenant()->where('is_active', true)->orderBy('sort_order')->get(['id', 'name']),
-            'operators' => $workspace->operatorOptions(),
-            'filters' => [
-                'status' => $request->query('status'),
-                'work_center_id' => $request->query('work_center_id'),
-                'operator_id' => $request->query('operator_id'),
-                'stage_id' => $request->query('stage_id'),
-                'date' => $request->query('date'),
-                'search' => $request->query('search'),
-            ],
-            'workspace' => $workspace,
-        ]);
+        return view('admin.production.queue.index', $commandCenter->build($request));
+    }
+
+    public function department(
+        Request $request,
+        string $department,
+        DepartmentCommandCenterService $commandCenter,
+        DepartmentQueueRegistry $registry,
+    ): View|RedirectResponse {
+        $this->authorize('viewWorkspace', ProductionQueue::class);
+
+        if (! $registry->isValidSlug($department)) {
+            return redirect()->route('admin.production.queue.index');
+        }
+
+        return view('admin.production.queue.index', $commandCenter->build($request, $department));
+    }
+
+    public function export(
+        Request $request,
+        DepartmentCommandCenterService $commandCenter,
+        DepartmentQueueRegistry $registry,
+        TabularExportWriter $writer,
+    ): StreamedResponse {
+        $this->authorize('viewWorkspace', ProductionQueue::class);
+
+        $department = $request->query('department');
+        if ($department && ! $registry->isValidSlug((string) $department)) {
+            abort(404);
+        }
+
+        $format = $request->input('format', 'csv');
+        if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
+            $format = 'csv';
+        }
+
+        $slug = $department ? (string) $department : 'all';
+        $rows = $commandCenter->exportIndex($request, $department ? (string) $department : null)
+            ->map(fn (ProductionQueue $queue) => $commandCenter->exportRow(
+                $queue,
+                $department ? (string) $department : null,
+                $request->user(),
+            ));
+
+        $title = $department
+            ? ($registry->department((string) $department)['label'] ?? ucfirst((string) $department)).' '.__('Command Centre')
+            : __('Production Command Centre');
+
+        return $writer->download(
+            $format,
+            $slug.'-department-register-'.now()->format('Y-m-d'),
+            $commandCenter->exportHeaders($department ? (string) $department : null),
+            $rows,
+            $title,
+        );
     }
 
     public function store(Request $request, ProductionJobCard $jobCard): RedirectResponse
@@ -55,7 +95,7 @@ class ProductionQueueController extends Controller
 
         $status = ! empty($validated['assigned_operator_id'])
             ? ProductionQueueStatus::Assigned
-            : ProductionQueueStatus::Pending;
+            : ProductionQueueStatus::Waiting;
 
         ProductionQueue::query()->create([
             ...$validated,

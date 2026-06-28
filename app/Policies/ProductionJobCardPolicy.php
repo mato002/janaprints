@@ -77,6 +77,13 @@ class ProductionJobCardPolicy
             ], true);
     }
 
+    public function fulfil(User $user, ProductionJobCard $jobCard): bool
+    {
+        return $user->can('production.complete')
+            && $this->sameTenant($user, $jobCard)
+            && $jobCard->status === ProductionJobCardStatus::ReadyForDispatch;
+    }
+
     public function qc(User $user, ProductionJobCard $jobCard): bool
     {
         return $user->can('production.qc')
@@ -87,5 +94,12 @@ class ProductionJobCardPolicy
     public function transition(User $user, ProductionJobCard $jobCard): bool
     {
         return $user->can('production.edit') && $this->sameTenant($user, $jobCard);
+    }
+
+    public function approveCustomerHold(User $user, ProductionJobCard $jobCard): bool
+    {
+        return $user->can('production.qc')
+            && $this->sameTenant($user, $jobCard)
+            && $jobCard->status === ProductionJobCardStatus::AwaitingCustomerApproval;
     }
 }

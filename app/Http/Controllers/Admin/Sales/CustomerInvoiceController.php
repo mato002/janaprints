@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Sales;
 
+use App\Enums\CustomerInvoiceStatus;
 use App\Enums\CustomerInvoiceType;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
@@ -110,6 +111,12 @@ class CustomerInvoiceController extends Controller
     {
         $this->authorize('approve', $invoice);
 
+        if (! $invoice->status->canTransitionTo(CustomerInvoiceStatus::Approved)) {
+            return back()->withErrors([
+                'workflow' => __('Invoice cannot be approved from its current status.'),
+            ]);
+        }
+
         $this->invoices->approve($invoice, (int) auth()->id());
 
         return back()->with('status', __('Invoice approved.'));
@@ -119,6 +126,12 @@ class CustomerInvoiceController extends Controller
     {
         $this->authorize('post', $invoice);
 
+        if (! $invoice->status->canTransitionTo(CustomerInvoiceStatus::Posted)) {
+            return back()->withErrors([
+                'workflow' => __('Only approved invoices can be posted.'),
+            ]);
+        }
+
         $this->invoices->post($invoice, (int) auth()->id());
 
         return back()->with('status', __('Invoice posted to accounts receivable.'));
@@ -127,6 +140,12 @@ class CustomerInvoiceController extends Controller
     public function cancel(Request $request, CustomerInvoice $invoice): RedirectResponse
     {
         $this->authorize('cancel', $invoice);
+
+        if (! $invoice->status->canTransitionTo(CustomerInvoiceStatus::Cancelled)) {
+            return back()->withErrors([
+                'workflow' => __('Invoice cannot be cancelled from its current status.'),
+            ]);
+        }
 
         $validated = $request->validate(['cancel_reason' => ['nullable', 'string', 'max:255']]);
 
@@ -140,11 +159,12 @@ class CustomerInvoiceController extends Controller
         $this->authorize('create', CustomerInvoice::class);
         $this->authorize('view', $salesOrder);
 
-        $salesOrder->load('items', 'customer');
+        $salesOrder->load('items', 'customer', 'jobCard');
 
         return view('admin.sales.invoices.create-from-order', [
             'salesOrder' => $salesOrder,
             'defaultTaxRate' => config('settings_registry.sections.company.settings.default_tax_rate.default', 16),
+            'billingEligibility' => app(\App\Support\Sales\SalesOrderBillingEligibilityService::class)->assess($salesOrder),
         ]);
     }
 
@@ -184,8 +204,8 @@ class CustomerInvoiceController extends Controller
             'invoice_date' => $validated['invoice_date'],
             'due_date' => $validated['due_date'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'billing_percent' => $validated['billing_percent'] ?? null,
-            'deposit_amount' => $validated['deposit_amount'] ?? null,
+            'billing_percent' => $type === CustomerInvoiceType::Progress ? ($validated['billing_percent'] ?? null) : null,
+            'deposit_amount' => $type === CustomerInvoiceType::Deposit ? ($validated['deposit_amount'] ?? null) : null,
             'lines' => $lines,
         ]);
 

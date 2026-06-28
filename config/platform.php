@@ -51,6 +51,7 @@ return [
         'machines_dashboard' => (int) env('PLATFORM_CACHE_MACHINES_DASHBOARD_TTL', 60),
         'maintenance_dashboard' => (int) env('PLATFORM_CACHE_MAINTENANCE_DASHBOARD_TTL', 60),
         'production_hub_counts' => (int) env('PLATFORM_CACHE_PRODUCTION_HUB_COUNTS_TTL', 60),
+        'operational_registers' => (int) env('PLATFORM_CACHE_OPERATIONAL_REGISTERS_TTL', 60),
         'custody_dashboard' => (int) env('PLATFORM_CACHE_CUSTODY_DASHBOARD_TTL', 60),
         'asset_finance_dashboard' => (int) env('PLATFORM_CACHE_ASSET_FINANCE_DASHBOARD_TTL', 60),
         'asset_acquisition_dashboard' => (int) env('PLATFORM_CACHE_ASSET_ACQUISITION_DASHBOARD_TTL', 60),

@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Support\ActivityLogger;
 use App\Support\Platform\NumberingService;
 use App\Support\QuotationRevisionService;
+use App\Support\Sales\QuotationApprovalService;
 use Illuminate\Validation\ValidationException;
 
 class LeadQuotationService
@@ -105,7 +106,7 @@ class LeadQuotationService
             'quick_quote' => true,
         ]);
 
-        return $quotation->fresh(['customer', 'lead', 'items']);
+        return app(QuotationApprovalService::class)->publishOnCreate($quotation->fresh(['customer', 'lead', 'items']), $user->id);
     }
 
     protected function resolveCustomer(Lead $lead, User $user): Customer

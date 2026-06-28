@@ -480,7 +480,7 @@ class WorkCenterWorkspaceService
     protected function activeQueueStatuses(): array
     {
         return [
-            ProductionQueueStatus::Pending,
+            ProductionQueueStatus::Waiting,
             ProductionQueueStatus::Assigned,
             ProductionQueueStatus::InProgress,
         ];

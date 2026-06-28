@@ -85,10 +85,11 @@ class FormStatusOptionTest extends TestCase
         ]);
     }
 
-    public function test_customer_create_page_renders_custom_status_option(): void
+    public function test_customer_edit_page_renders_custom_status_option(): void
     {
-        $user = $this->userWithPermissions(['crm.customers.view', 'crm.customers.create']);
+        $user = $this->userWithPermissions(['crm.customers.view', 'crm.customers.create', 'crm.customers.edit']);
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
 
         app(FormStatusOptionService::class)->syncOptions('customer', $company->id, null, [
             ['value' => 'active', 'label' => 'Active', 'is_active' => 1],
@@ -97,13 +98,18 @@ class FormStatusOptionTest extends TestCase
             ['value' => 'vip', 'label' => 'VIP', 'is_active' => 1],
         ]);
 
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
         session([
             'active_company_id' => $company->id,
-            'active_branch_id' => Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->value('id'),
+            'active_branch_id' => $branch->id,
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.crm.customers.create'))
+            ->get(route('admin.crm.customers.edit', $customer))
             ->assertOk()
             ->assertSee('value="vip"', false)
             ->assertSee('VIP', false);
@@ -133,9 +139,34 @@ class FormStatusOptionTest extends TestCase
         );
     }
 
-    public function test_customer_can_be_saved_with_custom_status(): void
+    public function test_customer_defaults_to_active_status_on_create(): void
     {
         $user = $this->userWithPermissions(['crm.customers.view', 'crm.customers.create']);
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        session([
+            'active_company_id' => $company->id,
+            'active_branch_id' => $branch->id,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post(route('admin.crm.customers.store'), [
+                'customer_type' => 'corporate',
+                'company_name' => 'Default Status Customer Ltd',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHasNoErrors();
+
+        $customer = Customer::query()->where('company_name', 'Default Status Customer Ltd')->firstOrFail();
+
+        $this->assertSame('active', $customer->status->value);
+    }
+
+    public function test_customer_can_be_updated_with_custom_status(): void
+    {
+        $user = $this->userWithPermissions(['crm.customers.view', 'crm.customers.edit']);
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
         $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
 
@@ -146,25 +177,29 @@ class FormStatusOptionTest extends TestCase
             ['value' => 'vip', 'label' => 'VIP', 'is_active' => 1],
         ]);
 
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => 'active',
+        ]);
+
         session([
             'active_company_id' => $company->id,
             'active_branch_id' => $branch->id,
         ]);
 
         $response = $this->actingAs($user)
-            ->post(route('admin.crm.customers.store'), [
+            ->put(route('admin.crm.customers.update', $customer), [
                 'customer_type' => 'corporate',
-                'company_name' => 'VIP Customer Ltd',
-                'kra_pin' => 'A123456789Z',
+                'company_name' => $customer->company_name,
                 'status' => 'vip',
             ]);
 
         $response->assertRedirect();
         $response->assertSessionHasNoErrors();
 
-        $customer = Customer::query()->where('company_name', 'VIP Customer Ltd')->firstOrFail();
+        $customer->refresh();
 
-        $this->assertSame('vip', $customer->status);
         $this->assertSame('vip', FormStatusOptionService::valueOf($customer->status));
     }
 
@@ -180,19 +215,25 @@ class FormStatusOptionTest extends TestCase
             ->assertSee('value="active"', false);
     }
 
-    public function test_customer_create_shows_status_plus_button_for_settings_manager(): void
+    public function test_customer_edit_shows_status_plus_button_for_settings_manager(): void
     {
-        $user = $this->userWithPermissions(['crm.customers.view', 'crm.customers.create', 'settings.manage']);
+        $user = $this->userWithPermissions(['crm.customers.view', 'crm.customers.edit', 'settings.manage']);
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
 
         session([
             'active_company_id' => $company->id,
-            'active_branch_id' => Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->value('id'),
+            'active_branch_id' => $branch->id,
         ]);
 
         $this->actingAs($user)
             ->withHeader('Turbo-Frame', 'erp-form-modal')
-            ->get(route('admin.crm.customers.create'))
+            ->get(route('admin.crm.customers.edit', $customer))
             ->assertOk()
             ->assertSee('erp-lookup-select__add', false)
             ->assertSee('scopeFormKey', false)

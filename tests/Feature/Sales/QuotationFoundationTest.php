@@ -73,10 +73,43 @@ class QuotationFoundationTest extends TestCase
         $this->assertDatabaseHas('quotations', [
             'company_id' => $company->id,
             'customer_id' => $customer->id,
-            'status' => QuotationStatus::Draft->value,
+            'status' => QuotationStatus::Sent->value,
         ]);
         $this->assertDatabaseHas('quotation_items', ['item_name' => 'Banner Print']);
         $this->assertDatabaseHas('quotation_revisions', ['revision_number' => 1]);
+    }
+
+    public function test_quotation_store_from_modal_returns_success_marker(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.quotations.store'), [
+                '_erp_modal' => '1',
+                'customer_id' => $customer->id,
+                'quotation_date' => now()->toDateString(),
+                'currency' => 'KES',
+                'items' => [
+                    [
+                        'item_type' => 'product',
+                        'item_name' => 'Modal Banner Print',
+                        'quantity' => 1,
+                        'unit_price' => 2500,
+                        'discount' => 0,
+                        'tax_rate' => 16,
+                    ],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertSee('data-erp-modal-success', false);
+        $this->assertDatabaseHas('quotations', [
+            'company_id' => $company->id,
+            'customer_id' => $customer->id,
+        ]);
     }
 
     public function test_viewer_cannot_create_quotation(): void
