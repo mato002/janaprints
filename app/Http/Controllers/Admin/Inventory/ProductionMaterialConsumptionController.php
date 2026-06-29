@@ -22,6 +22,8 @@ class ProductionMaterialConsumptionController extends Controller
             abort(403);
         }
 
+        abort_unless(auth()->user()?->can('production.materials.consume'), 403);
+
         ['companyId' => $companyId, 'branchId' => $branchId] = [
             'companyId' => $jobCard->company_id,
             'branchId' => $jobCard->branch_id,
@@ -29,10 +31,29 @@ class ProductionMaterialConsumptionController extends Controller
 
         $validated = $request->validate([
             'inventory_item_id' => ['required', Rule::exists('inventory_items', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'warehouse_id' => ['required', Rule::exists('warehouses', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'warehouse_id' => ['required', 'integer'],
             'quantity' => ['required', 'numeric', 'min:0.001'],
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
         ]);
+
+        $warehouse = Warehouse::query()
+            ->where('id', $validated['warehouse_id'])
+            ->where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->first();
+
+        if ($warehouse === null) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => __('Warehouse not found or inactive.'),
+            ]);
+        }
+
+        if ($warehouse->is_virtual) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => __('Consume raw materials from a physical warehouse. Virtual locations such as Finished Goods only hold completed output.'),
+            ]);
+        }
 
         $item = InventoryItem::query()->findOrFail($validated['inventory_item_id']);
 

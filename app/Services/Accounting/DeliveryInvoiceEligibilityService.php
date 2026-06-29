@@ -40,6 +40,25 @@ class DeliveryInvoiceEligibilityService
             if ($partial['is_partial']) {
                 $warnings[] = __('Partial delivery — remaining quantity can be invoiced on future delivery notes.');
             }
+
+            $order = $note->relationLoaded('salesOrder')
+                ? $note->salesOrder
+                : SalesOrder::query()->find($note->sales_order_id);
+
+            if ($order && $this->remainingBillableOnOrder($order) <= 0.01) {
+                $blockers[] = __('The linked sales order has no remaining billable balance. It may already have been invoiced from the order.');
+            }
+
+            $unlinkedInvoices = CustomerInvoice::query()
+                ->where('sales_order_id', $order?->id)
+                ->where('company_id', $note->company_id)
+                ->whereNull('delivery_note_id')
+                ->whereNot('status', CustomerInvoiceStatus::Cancelled)
+                ->exists();
+
+            if ($unlinkedInvoices && ! $this->hasActiveInvoice($note)) {
+                $warnings[] = __('This sales order already has invoice(s) that are not linked to this delivery note.');
+            }
         }
 
         return [
@@ -144,5 +163,18 @@ class DeliveryInvoiceEligibilityService
             'delivered_not_invoiced' => $notInvoiced,
             'delivered_invoiced' => $invoiced,
         ];
+    }
+
+    protected function remainingBillableOnOrder(SalesOrder $order): float
+    {
+        $pending = (float) CustomerInvoice::query()
+            ->where('sales_order_id', $order->id)
+            ->whereIn('status', [
+                CustomerInvoiceStatus::Draft->value,
+                CustomerInvoiceStatus::Approved->value,
+            ])
+            ->sum('total_amount');
+
+        return round(max(0, (float) $order->total_amount - (float) $order->invoiced_total - $pending), 2);
     }
 }

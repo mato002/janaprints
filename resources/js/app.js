@@ -676,7 +676,7 @@ const erpModalManager = {
                 const location = response.headers.get('Location');
 
                 if (location && ! this.isModalFormUrl(location)) {
-                    this.safeHandleSuccess({ refresh: true });
+                    this.safeHandleSuccess({ refresh: false, redirect: location });
 
                     return;
                 }
@@ -706,6 +706,9 @@ const erpModalManager = {
                     refresh: (successMarker?.dataset.refresh
                         ?? html.match(/data-refresh="([^"]*)"/)?.[1]
                         ?? '1') !== '0',
+                    redirect: successMarker?.dataset.redirect
+                        ?? html.match(/data-redirect="([^"]*)"/)?.[1]
+                        ?? '',
                 });
 
                 return;
@@ -723,7 +726,7 @@ const erpModalManager = {
                 && finalUrl !== submittedTo
                 && ! this.isModalFormUrl(finalUrl)
             ) {
-                this.safeHandleSuccess({ refresh: true });
+                this.safeHandleSuccess({ refresh: false, redirect: finalUrl });
 
                 return;
             }
@@ -819,11 +822,19 @@ const erpModalManager = {
         }
     },
 
-    handleSuccess({ message = '', refresh = true } = {}) {
+    handleSuccess({ message = '', refresh = true, redirect = '' } = {}) {
         this.closeModal();
 
         if (message) {
             this.showToast(message);
+        }
+
+        const target = typeof redirect === 'string' ? redirect.trim() : '';
+
+        if (target && ! this.isModalFormUrl(target)) {
+            window.Turbo.visit(target);
+
+            return;
         }
 
         if (refresh) {
@@ -1040,6 +1051,7 @@ const erpModalManager = {
                 this.safeHandleSuccess({
                     message: successMarker.dataset.message ?? '',
                     refresh: successMarker.dataset.refresh !== '0',
+                    redirect: successMarker.dataset.redirect ?? '',
                 });
 
                 return;
@@ -2083,19 +2095,30 @@ document.addEventListener('alpine:init', () => {
         init() {
             this.syncSelectOptions();
             this.$watch('options', () => this.syncSelectOptions());
-            this.$watch('selected', () => {
+            this.$watch('selected', (value, oldValue) => {
                 const select = this.$root.querySelector('select');
 
                 if (! select) {
                     return;
                 }
 
-                const value = this.selected ?? '';
+                const next = value ?? '';
 
-                if (select.value !== value) {
-                    select.value = value;
+                if (select.value !== next) {
+                    select.value = next;
+                }
+
+                if (String(oldValue ?? '') !== String(next)) {
+                    this.$dispatch('erp-lookup-changed', {
+                        name: this.name,
+                        value: next,
+                    });
                 }
             });
+
+            if (this.refreshUrl && this.options.length === 0) {
+                this.refreshOptions(this.selected || null);
+            }
         },
 
         syncSelectOptions() {
@@ -5611,6 +5634,57 @@ window.__erpSubmitFormSettings = async function submitFormSettingsRequest(form) 
     }
 };
 
+function setSubmitFeedbackState(form, loading) {
+    const button = form?.querySelector('[data-erp-submit-feedback-button]');
+
+    if (! button) {
+        return;
+    }
+
+    const label = button.querySelector('[data-erp-submit-feedback-label]');
+    const loadingEl = button.querySelector('[data-erp-submit-feedback-loading]');
+
+    button.disabled = loading;
+    button.setAttribute('aria-busy', loading ? 'true' : 'false');
+    label?.classList.toggle('hidden', loading);
+    loadingEl?.classList.toggle('hidden', ! loading);
+    loadingEl?.classList.toggle('inline-flex', loading);
+}
+
+function resetSubmitFeedbackForm(form) {
+    if (! form?.hasAttribute?.('data-erp-submit-feedback')) {
+        return;
+    }
+
+    delete form.dataset.erpSubmitFeedbackActive;
+    setSubmitFeedbackState(form, false);
+}
+
+function initSubmitFeedbackForms(root = document) {
+    root.querySelectorAll('form[data-erp-submit-feedback]').forEach((form) => {
+        if (form.dataset.erpSubmitFeedbackBound === '1') {
+            return;
+        }
+
+        form.dataset.erpSubmitFeedbackBound = '1';
+
+        form.addEventListener('submit', () => {
+            if (form.dataset.erpSubmitFeedbackActive === '1') {
+                return;
+            }
+
+            form.dataset.erpSubmitFeedbackActive = '1';
+            setSubmitFeedbackState(form, true);
+
+            const message = form.dataset.erpSubmittingMessage?.trim();
+
+            if (message) {
+                showErpSweetAlert(message, 'info', { timer: 15000 });
+            }
+        });
+    });
+}
+
 function refreshFrameAlpine(frame) {
     if (! frame) {
         return;
@@ -5619,7 +5693,9 @@ function refreshFrameAlpine(frame) {
     cleanupRowActionMenus(frame);
     Alpine.destroyTree(frame);
     Alpine.initTree(frame);
+    wireMainFrameLinks(frame);
     promoteFlashAlertsToToast(frame);
+    initSubmitFeedbackForms(frame);
     syncShellFromFrame();
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
@@ -5721,6 +5797,79 @@ function shouldPromoteWorkspaceLinkToMain(href) {
     } catch {
         return false;
     }
+}
+
+function wireMainFrameLinks(root) {
+    if (! root || root.id !== 'erp-main') {
+        return;
+    }
+
+    const workspaceFrame = document.getElementById('module-workspace-content');
+
+    root.querySelectorAll('a[href]').forEach((link) => {
+        if (link.closest('#module-workspace-content')) {
+            return;
+        }
+
+        if (link.getAttribute('data-turbo') === 'false' || link.getAttribute('target') === '_blank') {
+            return;
+        }
+
+        if (
+            link.getAttribute('data-turbo-frame') === '_top'
+            || link.hasAttribute('data-leave-workspace')
+        ) {
+            return;
+        }
+
+        if (link.closest('#erp-form-modal') || link.hasAttribute('data-erp-modal-open') || link.hasAttribute('data-no-modal')) {
+            return;
+        }
+
+        if (erpModalManager.isModalFormUrl(link.href)) {
+            link.setAttribute('data-erp-modal-open', '');
+            link.removeAttribute('data-turbo-frame');
+
+            return;
+        }
+
+        if (shouldPromoteWorkspaceLinkToMain(link.href)) {
+            link.setAttribute('data-turbo-frame', 'erp-main');
+
+            try {
+                const url = new URL(link.href, window.location.origin);
+
+                if (url.searchParams.has('embedded')) {
+                    url.searchParams.delete('embedded');
+                    link.href = `${url.pathname}${url.search}${url.hash}`;
+                }
+            } catch {
+                // Keep the original href when it cannot be parsed.
+            }
+        } else if (! link.hasAttribute('data-turbo-frame')) {
+            link.setAttribute(
+                'data-turbo-frame',
+                workspaceFrame && root.contains(workspaceFrame) ? 'module-workspace-content' : 'erp-main',
+            );
+        }
+
+        if (! link.hasAttribute('data-turbo-action')) {
+            link.setAttribute('data-turbo-action', 'advance');
+        }
+
+        if (link.getAttribute('data-turbo-frame') === 'module-workspace-content') {
+            try {
+                const url = new URL(link.href, window.location.origin);
+
+                if (! url.searchParams.has('embedded')) {
+                    url.searchParams.set('embedded', '1');
+                    link.href = `${url.pathname}${url.search}${url.hash}`;
+                }
+            } catch {
+                // Keep the original href when it cannot be parsed.
+            }
+        }
+    });
 }
 
 function wireEmbeddedWorkspaceLinks(root) {
@@ -5913,6 +6062,7 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     Alpine.initTree(frame);
     wireEmbeddedWorkspaceLinks(frame);
     promoteFlashAlertsToToast(frame);
+    initSubmitFeedbackForms(frame);
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
     bindWebsiteSettingsForms(frame);
@@ -5970,6 +6120,10 @@ document.addEventListener('submit', (event) => {
         window.__erpSubmitFormSettings(form);
     }
 }, true);
+
+document.addEventListener('turbo:submit-end', (event) => {
+    resetSubmitFeedbackForm(event.detail?.formSubmission?.formElement);
+});
 
 document.addEventListener('turbo:frame-load', (event) => {
     if (event.target.id === 'erp-main') {
@@ -6116,6 +6270,7 @@ document.addEventListener('turbo:load', () => {
     bindWebsiteSettingsForms(document);
     syncSecondaryWorkspaceTabActiveState();
     initDocumentPdfDownload();
+    initSubmitFeedbackForms();
     initSharedInboxPoll();
 });
 

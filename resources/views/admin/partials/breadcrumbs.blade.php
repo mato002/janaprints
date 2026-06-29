@@ -1,3 +1,7 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+@endphp
+
 @if (! empty($workspaceNavigation))
     @include('admin.partials.workspace-back', ['compact' => ! empty($compact)])
 @endif
@@ -16,7 +20,7 @@
                 <li class="flex items-center gap-1.5" aria-current="{{ empty($crumb['url']) ? 'page' : false }}">
                     <span class="text-slate-300" aria-hidden="true">/</span>
                     @if (! empty($crumb['url']))
-                        <a href="{{ $crumb['url'] }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="transition-colors hover:text-erp-accent">{{ $crumb['label'] }}</a>
+                        <a href="{{ WorkspaceEmbed::url($crumb['url']) ?? $crumb['url'] }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="transition-colors hover:text-erp-accent">{{ $crumb['label'] }}</a>
                     @else
                         <span class="font-medium text-erp-primary">{{ $crumb['label'] }}</span>
                     @endif

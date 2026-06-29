@@ -274,6 +274,18 @@ class WorkspaceTurboNavigationTest extends TestCase
         return $user;
     }
 
+    public function test_inventory_intelligence_nav_wires_turbo_frame_attributes(): void
+    {
+        $user = $this->companyAdmin();
+        $this->actingAs($user);
+
+        $html = view('admin.inventory.intelligence.partials.nav')->render();
+
+        $this->assertStringContainsString('data-turbo-frame="erp-main"', $html);
+        $this->assertStringContainsString('data-turbo-action="advance"', $html);
+        $this->assertStringContainsString(route('admin.inventory.intelligence.stockout-risk'), $html);
+    }
+
     protected function extractSidebar(string $html): string
     {
         if (! preg_match('/id="erp-sidebar"[^>]*>(.*?)<\/aside>/s', $html, $matches)) {

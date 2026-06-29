@@ -7,6 +7,8 @@ use App\Enums\CustomerInvoiceType;
 use App\Enums\DocumentType;
 use App\Enums\PostingEventCode;
 use App\Enums\SalesOrderStatus;
+use App\Models\Dispatch\DeliveryNote;
+use App\Models\Dispatch\DeliveryNoteItem;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerInvoiceLine;
@@ -58,7 +60,7 @@ class CustomerInvoiceService
             $dueDate = now()->parse($options['invoice_date'] ?? now())->addDays((int) $order->payment_terms_days)->toDateString();
         }
 
-        return $this->createInvoice([
+        return $this->finalizeCustomerInvoice($this->createInvoice([
             'company_id' => $order->company_id,
             'branch_id' => $order->branch_id,
             'customer_id' => $order->customer_id,
@@ -70,7 +72,7 @@ class CustomerInvoiceService
             'billing_percent' => $type === CustomerInvoiceType::Progress ? ($options['billing_percent'] ?? null) : null,
             'deposit_amount' => $type === CustomerInvoiceType::Deposit ? ($options['deposit_amount'] ?? null) : null,
             'currency' => 'KES',
-        ], $lines, $userId, (float) ($options['header_discount'] ?? 0));
+        ], $lines, $userId, (float) ($options['header_discount'] ?? 0)), $userId);
     }
 
     /**
@@ -90,6 +92,69 @@ class CustomerInvoiceService
         $invoice->update(['production_job_card_id' => $jobCard->id]);
 
         return $invoice->fresh(['lines', 'taxLines', 'customer', 'salesOrder', 'jobCard']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    public function createFromDeliveryNote(DeliveryNote $note, int $userId, array $options = []): CustomerInvoice
+    {
+        $note->load(['items.salesOrderItem', 'salesOrder.items', 'customer']);
+
+        if (! $note->sales_order_id || ! $note->salesOrder) {
+            throw ValidationException::withMessages([
+                'delivery_note' => __('Delivery note must be linked to a sales order to generate an invoice.'),
+            ]);
+        }
+
+        $order = $note->salesOrder;
+        $type = CustomerInvoiceType::Standard;
+        $this->billingEligibility->assertCanInvoice($order, $type);
+        $this->assertOrderBillable($order);
+
+        $remaining = $this->remainingBillableTotal($order);
+        if ($remaining <= 0.01) {
+            throw ValidationException::withMessages([
+                'delivery_note' => __('The linked sales order has no remaining billable balance. It may already have been invoiced from the order.'),
+            ]);
+        }
+
+        $lines = $this->resolveLinesFromDeliveryNote($note, $order);
+
+        $dueDate = $options['due_date'] ?? null;
+        if ($dueDate === null && $order->payment_terms_days) {
+            $dueDate = now()->parse($options['invoice_date'] ?? now())->addDays((int) $order->payment_terms_days)->toDateString();
+        }
+
+        $invoice = $this->createInvoice([
+            'company_id' => $note->company_id,
+            'branch_id' => $note->branch_id,
+            'customer_id' => $note->customer_id,
+            'sales_order_id' => $order->id,
+            'production_job_card_id' => $note->production_job_card_id,
+            'delivery_note_id' => $note->id,
+            'billing_source' => 'delivery_note',
+            'invoice_type' => $type,
+            'invoice_date' => $options['invoice_date'] ?? now()->toDateString(),
+            'due_date' => $dueDate,
+            'notes' => $options['notes'] ?? null,
+            'currency' => 'KES',
+        ], $lines, $userId, (float) ($options['header_discount'] ?? 0));
+
+        $note->forceFill([
+            'invoiced_by' => $userId,
+            'invoiced_at' => now(),
+        ])->save();
+
+        return $this->finalizeCustomerInvoice(
+            $invoice->fresh(['lines', 'taxLines', 'customer', 'salesOrder']),
+            $userId,
+        );
+    }
+
+    public function remainingBillableForSalesOrder(SalesOrder $order): float
+    {
+        return $this->remainingBillableTotal($order);
     }
 
     /**
@@ -186,7 +251,7 @@ class CustomerInvoiceService
             $this->syncTaxLines($invoice, $calculated['tax_summary']);
 
             if ($invoice->sales_order_id && ! $type->isCredit()) {
-                $this->validateSalesOrderCap($invoice->salesOrder);
+                $this->validateSalesOrderCap($invoice->salesOrder, $invoice);
             }
 
             return $invoice->load(['lines', 'taxLines', 'customer', 'salesOrder']);
@@ -229,15 +294,28 @@ class CustomerInvoiceService
             $this->syncTaxLines($invoice, $calculated['tax_summary']);
 
             if ($invoice->sales_order_id) {
-                $this->validateSalesOrderCap($invoice->salesOrder()->first());
+                $this->validateSalesOrderCap($invoice->salesOrder()->first(), $invoice);
             }
 
             return $invoice->fresh(['lines', 'taxLines', 'customer', 'salesOrder']);
         });
     }
 
+    protected function finalizeCustomerInvoice(CustomerInvoice $invoice, int $userId): CustomerInvoice
+    {
+        if ($invoice->invoice_type === CustomerInvoiceType::CreditNote) {
+            return $invoice;
+        }
+
+        return $this->approve($invoice, $userId);
+    }
+
     public function approve(CustomerInvoice $invoice, int $userId): CustomerInvoice
     {
+        if ($invoice->status === CustomerInvoiceStatus::Approved) {
+            return $invoice->fresh(['approver']);
+        }
+
         if (! $invoice->status->canTransitionTo(CustomerInvoiceStatus::Approved)) {
             throw ValidationException::withMessages([
                 'status' => __('Invoice cannot be approved from its current status.'),
@@ -397,12 +475,47 @@ class CustomerInvoiceService
         $projected = (float) $order->invoiced_total + (float) $pendingTotal + (float) ($including?->total_amount ?? 0);
 
         if ($projected > (float) $order->total_amount + 0.01) {
+            $remaining = max(0, (float) $order->total_amount - (float) $order->invoiced_total - (float) $pendingTotal);
+
             throw ValidationException::withMessages([
-                'total_amount' => __('Invoiced amount would exceed the sales order total (:max).', [
+                'total_amount' => __('Invoiced amount would exceed the sales order total (:max). Remaining billable: :remaining.', [
                     'max' => number_format($order->total_amount, 2),
+                    'remaining' => number_format($remaining, 2),
                 ]),
             ]);
         }
+    }
+
+    protected function pendingInvoiceTotal(SalesOrder $order, ?int $excludingInvoiceId = null): float
+    {
+        return (float) CustomerInvoice::query()
+            ->where('sales_order_id', $order->id)
+            ->whereIn('status', [
+                CustomerInvoiceStatus::Draft->value,
+                CustomerInvoiceStatus::Approved->value,
+            ])
+            ->when($excludingInvoiceId, fn ($q) => $q->where('id', '!=', $excludingInvoiceId))
+            ->sum('total_amount');
+    }
+
+    protected function remainingBillableTotal(SalesOrder $order, ?int $excludingInvoiceId = null): float
+    {
+        return round(max(0, (float) $order->total_amount - (float) $order->invoiced_total - $this->pendingInvoiceTotal($order, $excludingInvoiceId)), 2);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function balanceLines(SalesOrder $order, float $billAmount, float $taxRate, string $itemName, string $description): array
+    {
+        return [[
+            'item_name' => $itemName,
+            'description' => $description,
+            'quantity' => 1,
+            'unit_price' => $billAmount / (1 + ($taxRate / 100)),
+            'discount' => 0,
+            'tax_rate' => $taxRate,
+        ]];
     }
 
     protected function assertOrderBillable(SalesOrder $order): void
@@ -430,6 +543,58 @@ class CustomerInvoiceService
      * @param  array<string, mixed>  $options
      * @return list<array<string, mixed>>
      */
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected function resolveLinesFromDeliveryNote(DeliveryNote $note, SalesOrder $order): array
+    {
+        $order->loadMissing('items');
+        $taxRate = $this->resolveOrderTaxRate($order);
+        $lines = [];
+
+        foreach ($note->items as $dnItem) {
+            $soItem = $dnItem->sales_order_item_id
+                ? $order->items->firstWhere('id', $dnItem->sales_order_item_id)
+                : $this->guessSalesOrderItemForDeliveryLine($dnItem, $order);
+
+            if (! $soItem) {
+                throw ValidationException::withMessages([
+                    'delivery_note' => __('Cannot price delivery line “:line”. Link it to a sales order line or ensure the order has a single billable item.', [
+                        'line' => $dnItem->description ?: '#'.$dnItem->id,
+                    ]),
+                ]);
+            }
+
+            $lines[] = [
+                'sales_order_item_id' => $soItem->id,
+                'delivery_note_item_id' => $dnItem->id,
+                'item_name' => $soItem->item_name,
+                'description' => $dnItem->description ?: $soItem->description,
+                'quantity' => (float) $dnItem->quantity,
+                'unit_price' => (float) $soItem->unit_price,
+                'discount' => 0,
+                'tax_rate' => $taxRate,
+            ];
+        }
+
+        if ($lines === []) {
+            throw ValidationException::withMessages([
+                'delivery_note' => __('Delivery note has no billable line items.'),
+            ]);
+        }
+
+        return $lines;
+    }
+
+    protected function guessSalesOrderItemForDeliveryLine(DeliveryNoteItem $dnItem, SalesOrder $order): ?SalesOrderItem
+    {
+        if ($order->items->count() === 1) {
+            return $order->items->first();
+        }
+
+        return null;
+    }
+
     protected function resolveLinesFromSalesOrder(SalesOrder $order, CustomerInvoiceType $type, array $options): array
     {
         $order->load('items');
@@ -443,7 +608,7 @@ class CustomerInvoiceService
                 ]);
             }
 
-            $remaining = max(0, (float) $order->total_amount - (float) $order->invoiced_total);
+            $remaining = $this->remainingBillableTotal($order);
             $targetTotal = round(((float) $order->total_amount * $percent / 100), 2);
             $billAmount = min($targetTotal, $remaining);
 
@@ -453,14 +618,13 @@ class CustomerInvoiceService
                 ]);
             }
 
-            return [[
-                'item_name' => __('Progress billing :percent%', ['percent' => $percent]),
-                'description' => __('Progress invoice for order :number', ['number' => $order->order_number]),
-                'quantity' => 1,
-                'unit_price' => $billAmount / (1 + ($taxRate / 100)),
-                'discount' => 0,
-                'tax_rate' => $taxRate,
-            ]];
+            return $this->balanceLines(
+                $order,
+                $billAmount,
+                $taxRate,
+                __('Progress billing :percent%', ['percent' => $percent]),
+                __('Progress invoice for order :number', ['number' => $order->order_number]),
+            );
         }
 
         if ($type === CustomerInvoiceType::Deposit) {
@@ -471,14 +635,54 @@ class CustomerInvoiceService
                 ]);
             }
 
-            return [[
-                'item_name' => __('Customer deposit'),
-                'description' => __('Deposit for order :number', ['number' => $order->order_number]),
-                'quantity' => 1,
-                'unit_price' => $deposit / (1 + ($taxRate / 100)),
+            $remaining = $this->remainingBillableTotal($order);
+            if ($deposit > $remaining + 0.01) {
+                throw ValidationException::withMessages([
+                    'deposit_amount' => __('Deposit cannot exceed the remaining billable amount (:remaining).', [
+                        'remaining' => number_format($remaining, 2),
+                    ]),
+                ]);
+            }
+
+            return $this->balanceLines(
+                $order,
+                $deposit,
+                $taxRate,
+                __('Customer deposit'),
+                __('Deposit for order :number', ['number' => $order->order_number]),
+            );
+        }
+
+        if ($type === CustomerInvoiceType::Standard) {
+            $billable = $this->remainingBillableTotal($order);
+
+            if ($billable <= 0) {
+                throw ValidationException::withMessages([
+                    'sales_order' => __('Nothing left to bill on this sales order.'),
+                ]);
+            }
+
+            $unpostedRemaining = max(0, (float) $order->total_amount - (float) $order->invoiced_total);
+
+            if ((float) $order->invoiced_total > 0.01 || $billable < $unpostedRemaining - 0.01) {
+                return $this->balanceLines(
+                    $order,
+                    $billable,
+                    $taxRate,
+                    __('Balance due'),
+                    __('Final invoice balance for order :number', ['number' => $order->order_number]),
+                );
+            }
+
+            return $order->items->map(fn (SalesOrderItem $item) => [
+                'sales_order_item_id' => $item->id,
+                'item_name' => $item->item_name,
+                'description' => $item->description,
+                'quantity' => (float) $item->quantity,
+                'unit_price' => (float) $item->unit_price,
                 'discount' => 0,
                 'tax_rate' => $taxRate,
-            ]];
+            ])->all();
         }
 
         if (! empty($options['lines'])) {
@@ -547,6 +751,7 @@ class CustomerInvoiceService
             $lineCalc = $calculated['lines'][$index];
             $invoice->lines()->create([
                 'sales_order_item_id' => $item['sales_order_item_id'] ?? null,
+                'delivery_note_item_id' => $item['delivery_note_item_id'] ?? null,
                 'item_name' => $item['item_name'],
                 'description' => $item['description'] ?? null,
                 'quantity' => $item['quantity'] ?? 1,

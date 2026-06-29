@@ -61,7 +61,6 @@ class ModalFormWorkspaceTest extends TestCase
             ->post(route('admin.crm.customers.store'), [
                 '_erp_modal' => '1',
                 '_erp_modal_return' => $createUrl,
-                'customer_type' => 'corporate',
                 'status' => 'active',
                 'credit_limit' => 0,
             ])

@@ -159,28 +159,33 @@ class JobProductionControlTest extends TestCase
             ->assertSee(__('QC passed'), false);
     }
 
-    public function test_material_requirements_placeholder_displays(): void
+    public function test_materials_readiness_without_consumption(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
         $jobCard = $this->createJobCard($salesOrder, $user);
 
-        $this->actingAs($user)
-            ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']))
-            ->assertOk()
-            ->assertSee(__('Material requirements not activated'), false)
-            ->assertSee(__('Wastage Tracking Not Activated'), false);
+        $state = app(JobProductionControlService::class)->materialsReadinessState($jobCard);
+
+        $this->assertSame('warning', $state['state']);
+        $this->assertNotSame('', $state['detail']);
     }
 
-    public function test_wastage_placeholder_in_service(): void
+    public function test_wastage_summary_reflects_tracking_availability(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
         $jobCard = $this->createJobCard($salesOrder, $user);
 
-        $wastage = app(JobProductionControlService::class)->wastageSummary($jobCard);
+        $controls = app(JobProductionControlService::class);
+        $wastage = $controls->wastageSummary($jobCard);
 
-        $this->assertFalse($wastage['activated']);
-        $this->assertSame(__('Wastage Tracking Not Activated'), $wastage['placeholder']);
-        $this->assertNotEmpty($wastage['recommended_migration']);
+        if ($controls->wastageTrackingAvailable()) {
+            $this->assertTrue($wastage['activated']);
+            $this->assertArrayHasKey('metrics', $wastage);
+        } else {
+            $this->assertFalse($wastage['activated']);
+            $this->assertSame(__('Wastage Tracking Not Activated'), $wastage['placeholder']);
+            $this->assertNotEmpty($wastage['recommended_migration']);
+        }
     }
 
     public function test_authorization_rejects_operator_outside_job_branch(): void

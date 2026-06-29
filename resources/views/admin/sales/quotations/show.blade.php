@@ -62,8 +62,13 @@
             @endif
             @if ($quotation->status === App\Enums\QuotationStatus::Accepted)
                 @can('convert', $quotation)
-                    <form method="POST" action="{{ route('admin.quotations.convert', $quotation) }}">@csrf
-                        <button class="erp-btn-primary">{{ __('Convert to sales order') }}</button></form>
+                    <a
+                        href="{{ route('admin.sales-orders.create', ['quotation_id' => $quotation->id, 'tab' => 'quotation', 'customer_id' => $quotation->customer_id]) }}"
+                        class="erp-btn-primary"
+                        data-turbo-frame="erp-form-modal"
+                    >{{ __('Convert to sales order') }}</a>
+                    <form method="POST" action="{{ route('admin.quotations.convert', $quotation) }}" class="inline">@csrf
+                        <button class="erp-btn-secondary">{{ __('Quick convert') }}</button></form>
                 @endcan
             @endif
             @if ($quotation->salesOrder)

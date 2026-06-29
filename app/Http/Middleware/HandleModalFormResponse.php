@@ -28,6 +28,7 @@ class HandleModalFormResponse
             return response()->view('admin.partials.modal-form-success', [
                 'message' => $message,
                 'refresh' => true,
+                'redirect' => $response->getTargetUrl(),
             ]);
         }
 

@@ -5,14 +5,48 @@
         $request = $tabData['request'] ?? null;
         $latest = $tabData['latest_approval'] ?? null;
         $customerArtwork = $tabData['customer_artwork'] ?? null;
+        $printSource = $tabData['print_specification_source'] ?? null;
     @endphp
+
+    @if ($printSource)
+        <x-admin.card class="mb-6">
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Source') }}</h3>
+            <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                    <dt class="text-slate-500">{{ __('Source') }}</dt>
+                    <dd class="font-medium">{{ $printSource['order_source_label'] ?? __('—') }}</dd>
+                </div>
+                <div class="sm:col-span-2">
+                    <dt class="text-slate-500">{{ __('Specification') }}</dt>
+                    <dd class="font-medium">{{ $printSource['specification_label'] ?? __('—') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500">{{ __('Artwork') }}</dt>
+                    <dd class="font-medium">
+                        @if ($printSource['artwork_version'] ?? null)
+                            {{ __('Version :number', ['number' => $printSource['artwork_version']]) }}
+                        @else
+                            {{ __('—') }}
+                        @endif
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500">{{ __('Product') }}</dt>
+                    <dd class="font-medium">{{ $printSource['product_name'] ?? __('—') }}</dd>
+                </div>
+            </dl>
+        </x-admin.card>
+    @endif
 
     @if ($customerArtwork)
         <x-admin.card class="mb-6">
-            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Customer artwork library') }}</h3>
+            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Artwork Versions') }}</h3>
             <dl class="space-y-2 text-sm">
                 <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Name') }}</dt><dd>{{ $customerArtwork->artwork_name }}</dd></div>
-                <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Version') }}</dt><dd>{{ $customerArtwork->versionLabel() }}</dd></div>
+                <div class="flex justify-between gap-2">
+                    <dt class="text-slate-500">{{ __('Version') }}</dt>
+                    <dd>{{ $printSource['artwork_version'] ?? $customerArtwork->versionLabel() }}</dd>
+                </div>
             </dl>
             @if ($customerArtwork->isPreviewable())
                 <a href="{{ $customerArtwork->previewUrl() }}" target="_blank" class="erp-btn-secondary mt-4 text-sm">{{ __('Open preview') }}</a>

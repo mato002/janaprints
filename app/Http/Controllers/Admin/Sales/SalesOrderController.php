@@ -28,6 +28,7 @@ class SalesOrderController extends Controller
     public function __construct(
         protected FormSettingsService $formSettings,
         protected DirectCustomerSalesOrderService $directOrders,
+        protected SalesOrderWorkflowService $workflow,
     ) {}
 
     public function index(): View
@@ -47,15 +48,32 @@ class SalesOrderController extends Controller
 
         return view('admin.sales.orders.create', [
             ...$this->formMeta(),
-            'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
-            'catalogueItems' => InventoryItem::query()
-                ->forTenant()
-                ->where('is_active', true)
-                ->orderBy('item_name')
-                ->get(['id', 'item_name', 'sku']),
             'selectedCustomerId' => $request->integer('customer_id') ?: null,
-            'defaultTab' => $request->query('tab', $request->filled('customer_id') ? 'direct' : 'quotation'),
+            'selectedSpecificationId' => $request->integer('print_specification_id') ?: null,
+            'selectedQuotationId' => $request->integer('quotation_id') ?: null,
+            'defaultTab' => $this->resolveDefaultTab($request),
+            'billingTypes' => \App\Enums\SalesOrderBillingType::cases(),
+            'fulfilmentMethods' => \App\Enums\FulfilmentMethod::cases(),
+            'priorities' => \App\Enums\ProductionPriority::cases(),
+            'canSendToProduction' => auth()->user()?->can('sales_orders.production') ?? false,
         ]);
+    }
+
+    protected function resolveDefaultTab(Request $request): string
+    {
+        if ($request->query('tab') === 'direct' || $request->filled('print_specification_id')) {
+            return 'direct';
+        }
+
+        if ($request->query('tab') === 'quotation' || $request->filled('quotation_id')) {
+            return 'quotation';
+        }
+
+        if ($request->filled('customer_id')) {
+            return 'direct';
+        }
+
+        return 'quotation';
     }
 
     public function store(Request $request): RedirectResponse|Response
@@ -87,42 +105,60 @@ class SalesOrderController extends Controller
     {
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
-            'repeat_source_sales_order_id' => ['nullable', 'exists:sales_orders,id'],
-            'inventory_item_id' => ['required_without:repeat_source_sales_order_id', 'nullable', 'exists:inventory_items,id'],
-            'quantity' => ['nullable', 'numeric', 'min:0.001'],
+            'customer_print_specification_id' => ['required', 'exists:customer_print_specifications,id'],
+            'quantity' => ['required', 'numeric', 'min:0.001'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
             'required_date' => ['nullable', 'date'],
+            'priority' => ['nullable', 'string', 'in:low,normal,high,urgent'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            'uses_existing_artwork' => ['boolean'],
-            'customer_artwork_id' => ['nullable', 'exists:customer_artworks,id'],
+            'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
+            'billing_type' => ['nullable', 'string', 'in:deposit_50,advance_100,net_30'],
+            'repeat_source_sales_order_id' => ['nullable', 'exists:sales_orders,id'],
+            'send_to_production' => ['sometimes', 'boolean'],
         ]);
-
-        $validated['uses_existing_artwork'] = $request->boolean('uses_existing_artwork');
-
-        if (! $validated['uses_existing_artwork']) {
-            $validated['customer_artwork_id'] = null;
-        }
 
         $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
         $this->authorize('view', $customer);
 
+        $specification = \App\Models\Crm\CustomerPrintSpecification::query()
+            ->forTenant()
+            ->where('customer_id', $customer->id)
+            ->findOrFail($validated['customer_print_specification_id']);
+
         if (! empty($validated['repeat_source_sales_order_id'])) {
             $source = SalesOrder::query()->forTenant()->findOrFail($validated['repeat_source_sales_order_id']);
             abort_unless((int) $source->customer_id === (int) $customer->id, 422);
-
-            $salesOrder = $this->directOrders->repeatFrom($source, (int) $request->user()->id, [
-                'quantity' => $validated['quantity'] ?? null,
-                'required_date' => $validated['required_date'] ?? null,
-                'notes' => $validated['notes'] ?? null,
-            ]);
-        } else {
-            $salesOrder = $this->directOrders->createNewRun($customer, $validated, (int) $request->user()->id);
+            $validated['repeat_source_sales_order_id'] = $source->id;
         }
 
-        return $this->modalOrRedirect(
-            __('Direct sales order created.'),
-            redirect()->route('admin.sales-orders.show', $salesOrder),
+        $salesOrder = $this->directOrders->createFromPrintSpecification(
+            $specification,
+            $validated,
+            (int) $request->user()->id,
         );
+
+        $message = __('Direct sales order created.');
+        $redirect = redirect()->route('admin.sales-orders.show', $salesOrder);
+
+        if ($request->boolean('send_to_production')) {
+            $this->authorize('production', $salesOrder);
+
+            try {
+                $this->workflow->releaseToProduction($salesOrder, (int) $request->user()->id);
+                $message = __('Direct sales order created and sent to production.');
+
+                $jobCard = $salesOrder->fresh('jobCard')->jobCard;
+                if ($jobCard !== null) {
+                    $redirect = redirect()->route('admin.production.job-cards.show', $jobCard);
+                }
+            } catch (\Illuminate\Validation\ValidationException $exception) {
+                return $redirect
+                    ->with('status', $message)
+                    ->withErrors($exception->errors());
+            }
+        }
+
+        return $this->modalOrRedirect($message, $redirect);
     }
 
     public function show(SalesOrder $salesOrder): View
@@ -131,6 +167,7 @@ class SalesOrderController extends Controller
 
         $salesOrder->load([
             'customer', 'quotation', 'artworkRequest', 'branch', 'creator', 'jobCard',
+            'inventoryItem',
             'items.productionSpecification.paperInventoryItem',
             'invoices', 'orderNotes.user', 'attachments.uploader', 'conversion.converter',
         ]);
@@ -157,7 +194,13 @@ class SalesOrderController extends Controller
             'profitability',
             'workflow',
             'itemSpecifications',
-        ));
+        ) + [
+            'catalogueItems' => InventoryItem::query()
+                ->forTenant()
+                ->where('is_active', true)
+                ->orderBy('item_name')
+                ->get(['id', 'item_name', 'sku', 'stock_role']),
+        ]);
     }
 
     public function edit(SalesOrder $salesOrder): View
@@ -226,6 +269,25 @@ class SalesOrderController extends Controller
             __('Sales order updated.'),
             redirect()->route('admin.sales-orders.show', $salesOrder),
         );
+    }
+
+    public function updateProductionSetup(Request $request, SalesOrder $salesOrder): RedirectResponse
+    {
+        $this->authorize('updateProductionSetup', $salesOrder);
+
+        $validated = $request->validate([
+            'inventory_item_id' => ['required', 'exists:inventory_items,id'],
+        ]);
+
+        $item = InventoryItem::query()->forTenant()->findOrFail($validated['inventory_item_id']);
+
+        $salesOrder->update(['inventory_item_id' => $item->id]);
+
+        if ($salesOrder->jobCard) {
+            $salesOrder->jobCard->update(['inventory_item_id' => $item->id]);
+        }
+
+        return back()->with('status', __('Production product linked to this order.'));
     }
 
     public function destroy(SalesOrder $salesOrder): RedirectResponse
@@ -376,6 +438,7 @@ class SalesOrderController extends Controller
         return [
             'formFields' => $this->formSettings->resolvedFields('sales_order', $companyId, $branchId),
             'eligibleQuotations' => $eligible,
+            'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
         ];
     }
 }

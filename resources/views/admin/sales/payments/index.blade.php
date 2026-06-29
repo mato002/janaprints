@@ -1,3 +1,7 @@
+@php
+    $turboFrame = request('embedded') ? 'module-workspace-content' : 'erp-main';
+@endphp
+
 <x-admin-layout :title="__('Payments')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Payments')]]">
     <x-admin.page-header :title="__('Customer payments')">
         @can('create', App\Models\Sales\CustomerPayment::class)
@@ -24,8 +28,23 @@
         </x-slot>
         <x-slot name="body">
             @forelse ($payments as $payment)
-                <tr>
-                    <td><a href="{{ route('admin.payments.show', $payment) }}" class="font-mono text-erp-accent">{{ $payment->payment_number }}</a></td>
+                @php
+                    $showUrl = route('admin.payments.show', $payment);
+                    if (request('embedded')) {
+                        $showUrl .= str_contains($showUrl, '?') ? '&embedded=1' : '?embedded=1';
+                    }
+                @endphp
+                <tr
+                    class="cursor-pointer transition-colors hover:bg-slate-50/80"
+                    data-href="{{ $showUrl }}"
+                    data-turbo-frame="{{ $turboFrame }}"
+                    role="link"
+                    tabindex="0"
+                    aria-label="{{ __('Open payment :number', ['number' => $payment->payment_number]) }}"
+                    @click="if (! $event.target.closest('a, button, [data-erp-row-actions]')) { const url = $el.dataset.href; const frame = $el.dataset.turboFrame || 'erp-main'; if (window.Turbo) { window.Turbo.visit(url, { frame }); } else { window.location.href = url; } }"
+                    @keydown.enter.prevent="if (! $event.target.closest('a, button, [data-erp-row-actions]')) { $el.click(); }"
+                >
+                    <td class="font-mono text-erp-accent">{{ $payment->payment_number }}</td>
                     <td>{{ $payment->customer?->company_name }}</td>
                     <td>{{ $payment->payment_date->format('Y-m-d') }}</td>
                     <td>{{ $payment->payment_method->label() }}@if($payment->is_deposit) <span class="erp-badge text-[10px]">{{ __('Deposit') }}</span>@endif</td>

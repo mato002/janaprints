@@ -10,6 +10,7 @@ use App\Models\Artwork\ArtworkApproval;
 use App\Models\Employee;
 use App\Models\Inventory\ProductionMaterialConsumption;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionMaterialRequirement;
 use App\Models\Production\ProductionOperation;
 use App\Models\Production\QualityCheck;
 use Illuminate\Support\Collection;
@@ -288,13 +289,13 @@ SQL;
             ];
         }
 
+        $materialsState = $this->materialsReadinessState($jobCard, $consumptionCount);
+
         $items[] = [
             'key' => 'materials',
             'label' => __('Materials consumed / requirements'),
-            'state' => 'warning',
-            'detail' => $consumptionCount > 0
-                ? (string) $consumptionCount.' '.__('consumption lines')
-                : __('Material requirements not activated'),
+            'state' => $materialsState['state'],
+            'detail' => $materialsState['detail'],
         ];
 
         if ($jobCard->artwork_request_id) {
@@ -385,10 +386,14 @@ SQL;
             $blockers[] = __('Artwork not approved — dispatch blocked');
         }
 
-        $warnings[] = __('Material requirements not activated');
+        $consumptionCount = (int) $jobCard->material_consumptions_count;
+        if ($consumptionCount === 0) {
+            $warnings[] = __('No material consumption recorded');
+        }
 
         $eligible = $blockers === []
-            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch);
+            && ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)
+                || $jobCard->status === ProductionJobCardStatus::ReadyForDispatch);
 
         return [
             'eligible' => $eligible,
@@ -455,6 +460,51 @@ SQL;
                 $q->whereNull('unit_cost')->orWhere('unit_cost', 0);
             })
             ->exists();
+    }
+
+    /**
+     * @return array{state: string, detail: string}
+     */
+    public function materialsReadinessState(ProductionJobCard $jobCard, ?int $consumptionCount = null): array
+    {
+        $consumptionCount ??= (int) $jobCard->material_consumptions_count;
+
+        $requirements = ProductionMaterialRequirement::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->get(['id', 'required_quantity', 'consumed_quantity', 'inventory_item_id', 'warehouse_id', 'production_job_card_id']);
+
+        if ($consumptionCount === 0) {
+            return [
+                'state' => 'warning',
+                'detail' => $requirements->isEmpty()
+                    ? __('No material consumption recorded')
+                    : __('Material requirements generated but nothing consumed yet'),
+            ];
+        }
+
+        if ($requirements->isEmpty()) {
+            return [
+                'state' => 'passed',
+                'detail' => (string) $consumptionCount.' '.__('consumption lines'),
+            ];
+        }
+
+        $openRemaining = $requirements->sum(fn (ProductionMaterialRequirement $row) => $row->remainingQuantity());
+
+        if ($openRemaining > 0) {
+            return [
+                'state' => 'warning',
+                'detail' => __(':count consumption lines — :remaining units still open on requirements', [
+                    'count' => $consumptionCount,
+                    'remaining' => round($openRemaining, 3),
+                ]),
+            ];
+        }
+
+        return [
+            'state' => 'passed',
+            'detail' => (string) $consumptionCount.' '.__('consumption lines'),
+        ];
     }
 
     /**

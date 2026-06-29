@@ -86,12 +86,13 @@ return [
             'icon' => 'document-text',
             'quick_actions' => [
                 ['label' => 'Create Quotation', 'route' => 'admin.quotations.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'quotations.create'],
+                ['label' => 'Create Direct Order', 'route' => 'admin.sales-orders.create', 'route_params' => ['tab' => 'direct'], 'permission' => 'sales_orders.create'],
                 ['label' => 'Create Artwork Request', 'route' => 'admin.artwork.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'artwork.create'],
                 ['label' => 'Open Sales Orders', 'route' => 'admin.sales-orders.dashboard', 'permission' => 'sales_orders.view'],
                 ['label' => 'Open Approvals', 'route' => 'admin.commercial.approvals.index', 'permission' => 'commercial.approvals.view'],
                 ['label' => 'Open Price Books', 'route' => 'admin.commercial.price-books.index', 'permission' => 'commercial.price_books.view'],
             ],
-            'sales_note' => 'Sales orders are created from accepted quotations.',
+            'sales_note' => 'Use quotations for new customer work, or direct orders with print specifications for repeat production.',
             'groups' => [
                 [
                     'label' => 'Sales',

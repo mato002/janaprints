@@ -3,6 +3,11 @@
     $wastage = $tabData['wastage'] ?? [];
     $sessionWaste = $tabData['session_waste'] ?? [];
     $serialSpoilage = $tabData['serial_spoilage'] ?? [];
+    $requirements = collect($tabData['material_requirements'] ?? []);
+    $defaultRequirement = $requirements->first(fn ($row) => ($row['remaining'] ?? 0) > 0) ?? $requirements->first();
+    $defaultItemId = old('inventory_item_id', $defaultRequirement['requirement']->inventory_item_id ?? null);
+    $defaultWarehouseId = old('warehouse_id', $defaultRequirement['requirement']->warehouse_id ?? ($tabData['warehouses'][0]->id ?? null));
+    $defaultQty = old('quantity', $defaultRequirement['remaining'] ?? null);
 @endphp
 
 <x-admin.card class="mb-4">
@@ -17,21 +22,36 @@
 
 @if ($tabData['can_consume'] ?? false)
     <x-admin.card class="mb-4" id="consume-material">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Record consumption') }}</h3>
+        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Record consumption') }}</h3>
+        <p class="mb-3 text-xs text-slate-500">{{ __('Deduct raw materials from a physical warehouse. When this job has material requirements, consumption counts toward that requirement and cannot exceed the remaining quantity.') }}</p>
+        @if ($requirements->contains(fn ($row) => ($row['remaining'] ?? 0) > 0))
+            <p class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">{{ __('Prefer the Consume button on the Materials tab for each requirement line. Manual entry here is capped to the same remaining quantity.') }}</p>
+        @endif
         <form method="POST" action="{{ route('admin.inventory.production.consume', $jobCard) }}" class="grid grid-cols-1 gap-2 md:grid-cols-4">
             @csrf
-            <select name="inventory_item_id" class="erp-input text-sm" required>
-                @foreach ($tabData['inventory_items'] ?? [] as $inv)
-                    <option value="{{ $inv->id }}">{{ $inv->sku }} — {{ $inv->item_name }}</option>
-                @endforeach
-            </select>
-            <select name="warehouse_id" class="erp-input text-sm" required>
-                @foreach ($tabData['warehouses'] ?? [] as $wh)
-                    <option value="{{ $wh->id }}">{{ $wh->name }}</option>
-                @endforeach
-            </select>
-            <input type="number" step="0.001" name="quantity" class="erp-input text-sm" placeholder="{{ __('Qty') }}" required>
-            <button type="submit" class="erp-btn-primary text-sm">{{ __('Record') }}</button>
+            <div>
+                <label class="erp-label text-xs">{{ __('Material') }}</label>
+                <select name="inventory_item_id" class="erp-input w-full text-sm" required>
+                    @foreach ($tabData['inventory_items'] ?? [] as $inv)
+                        <option value="{{ $inv->id }}" @selected((string) $defaultItemId === (string) $inv->id)>{{ $inv->sku }} — {{ $inv->item_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="erp-label text-xs">{{ __('Physical warehouse') }}</label>
+                <select name="warehouse_id" class="erp-input w-full text-sm" required>
+                    @foreach ($tabData['warehouses'] ?? [] as $wh)
+                        <option value="{{ $wh->id }}" @selected((string) $defaultWarehouseId === (string) $wh->id)>{{ $wh->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="erp-label text-xs">{{ __('Quantity') }}</label>
+                <input type="number" step="0.001" name="quantity" class="erp-input w-full text-sm" value="{{ $defaultQty }}" placeholder="{{ __('Qty') }}" required>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="erp-btn-primary w-full text-sm">{{ __('Record') }}</button>
+            </div>
         </form>
     </x-admin.card>
 @endif

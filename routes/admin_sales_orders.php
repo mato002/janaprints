@@ -43,6 +43,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
             Route::get('list/{salesOrder}/edit', [SalesOrderController::class, 'edit'])->name('edit');
             Route::put('list/{salesOrder}', [SalesOrderController::class, 'update'])->name('update');
+            Route::patch('list/{salesOrder}/production-setup', [SalesOrderController::class, 'updateProductionSetup'])->name('production-setup.update');
             Route::post('list/{salesOrder}/hold', [SalesOrderController::class, 'hold'])->name('hold');
             Route::post('list/{salesOrder}/resume', [SalesOrderController::class, 'resume'])->name('resume');
             Route::post('list/{salesOrder}/cancel', [SalesOrderController::class, 'cancel'])->name('cancel');

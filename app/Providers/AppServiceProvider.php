@@ -397,6 +397,10 @@ class AppServiceProvider extends ServiceProvider
             return ArtworkRequest::query()->findOrFail($value);
         });
 
+        \Illuminate\Support\Facades\Route::bind('printSpecification', function (string $value) {
+            return \App\Models\Crm\CustomerPrintSpecification::query()->forTenant()->findOrFail($value);
+        });
+
         foreach ($this->policies() as $model => $policy) {
             Gate::policy($model, $policy);
         }

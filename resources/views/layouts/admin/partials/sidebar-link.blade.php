@@ -22,6 +22,7 @@
         href="{{ route($child['route']) }}"
         data-turbo-frame="erp-main"
         data-turbo-action="advance"
+        data-turbo-preload="hover"
         data-nav-route="{{ $child['route'] }}"
         @if (! empty($child['active_routes']))
             data-nav-active-routes="{{ implode(',', $child['active_routes']) }}"

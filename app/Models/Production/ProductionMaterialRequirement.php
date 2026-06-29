@@ -86,7 +86,17 @@ class ProductionMaterialRequirement extends Model
 
     public function remainingQuantity(): float
     {
-        return max(0, round((float) $this->required_quantity - (float) $this->consumed_quantity, 3));
+        $consumed = (float) ProductionMaterialConsumption::query()
+            ->where('production_job_card_id', $this->production_job_card_id)
+            ->where('inventory_item_id', $this->inventory_item_id)
+            ->where(function ($query) {
+                $query->where('production_material_requirement_id', $this->id)
+                    ->orWhereNull('production_material_requirement_id');
+            })
+            ->when($this->warehouse_id, fn ($query) => $query->where('warehouse_id', $this->warehouse_id))
+            ->sum('quantity');
+
+        return max(0, round((float) $this->required_quantity - $consumed, 3));
     }
 
     public function unreservedRemaining(): float

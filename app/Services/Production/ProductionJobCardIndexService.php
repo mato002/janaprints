@@ -666,7 +666,7 @@ class ProductionJobCardIndexService
 
     protected function applySort(Builder $query, Request $request): void
     {
-        $sort = $request->query('sort', 'updated_at');
+        $sort = $request->query('sort', 'created_at');
         $direction = strtolower((string) $request->query('direction', 'desc')) === 'asc' ? 'asc' : 'desc';
 
         $column = match ($sort) {
@@ -674,8 +674,10 @@ class ProductionJobCardIndexService
             'due_date' => 'planned_end_date',
             'priority' => 'priority',
             'status' => 'status',
+            'created_at' => 'created_at',
+            'updated_at' => 'updated_at',
             'customer' => null,
-            default => 'updated_at',
+            default => 'created_at',
         };
 
         if ($sort === 'customer') {
@@ -690,6 +692,6 @@ class ProductionJobCardIndexService
             return;
         }
 
-        $query->orderBy($column ?? 'updated_at', $direction);
+        $query->orderBy($column ?? 'created_at', $direction)->orderByDesc('id');
     }
 }

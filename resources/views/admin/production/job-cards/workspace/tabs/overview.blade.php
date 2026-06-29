@@ -6,7 +6,60 @@
     $artwork = $tabData['artwork'] ?? null;
     $queue = $tabData['queue'] ?? [];
     $manufacturingSummary = $tabData['manufacturing_summary'] ?? [];
+    $printSource = $tabData['print_specification_source'] ?? null;
 @endphp
+
+@if ($printSource)
+    <x-admin.card class="mb-6">
+        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Source') }}</h3>
+        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+                <dt class="text-slate-500">{{ __('Source') }}</dt>
+                <dd class="font-medium">{{ $printSource['order_source_label'] ?? __('—') }}</dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-slate-500">{{ __('Specification') }}</dt>
+                <dd class="font-medium">{{ $printSource['specification_label'] ?? __('—') }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">{{ __('Artwork') }}</dt>
+                <dd class="font-medium">
+                    @if ($printSource['artwork_version'] ?? null)
+                        {{ __('Version :number', ['number' => $printSource['artwork_version']]) }}
+                    @else
+                        {{ __('—') }}
+                    @endif
+                </dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">{{ __('Product') }}</dt>
+                <dd class="font-medium">{{ $printSource['product_name'] ?? __('—') }}</dd>
+            </div>
+        </dl>
+        @if (! empty($printSource['production_notes']) || ! empty($printSource['commercial_notes']) || ! empty($printSource['customer_instructions']))
+            <dl class="mt-4 grid grid-cols-1 gap-3 border-t border-erp-border pt-4 text-sm lg:grid-cols-3">
+                @if (! empty($printSource['production_notes']))
+                    <div>
+                        <dt class="text-slate-500">{{ __('Production notes') }}</dt>
+                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['production_notes'] }}</dd>
+                    </div>
+                @endif
+                @if (! empty($printSource['commercial_notes']))
+                    <div>
+                        <dt class="text-slate-500">{{ __('Commercial notes') }}</dt>
+                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['commercial_notes'] }}</dd>
+                    </div>
+                @endif
+                @if (! empty($printSource['customer_instructions']))
+                    <div>
+                        <dt class="text-slate-500">{{ __('Customer instructions') }}</dt>
+                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['customer_instructions'] }}</dd>
+                    </div>
+                @endif
+            </dl>
+        @endif
+    </x-admin.card>
+@endif
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
     <x-admin.card class="lg:col-span-1">
@@ -63,7 +116,10 @@
 
         <x-admin.card>
             <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Artwork') }}</h3>
-            @if ($artwork)
+            @if ($printSource && ($printSource['artwork_version'] ?? null))
+                <p class="text-sm font-medium">{{ __('Version :number', ['number' => $printSource['artwork_version']]) }}</p>
+                <p class="text-xs text-slate-500">{{ __('From customer print specification') }}</p>
+            @elseif ($artwork)
                 <p class="text-sm font-medium">{{ $artwork['number'] }}</p>
                 <p class="text-xs text-slate-500">{{ str_replace('_', ' ', $artwork['status']) }}</p>
             @else

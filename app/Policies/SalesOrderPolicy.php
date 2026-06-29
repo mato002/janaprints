@@ -34,6 +34,16 @@ class SalesOrderPolicy
             && $salesOrder->status->isEditable();
     }
 
+    public function updateProductionSetup(User $user, SalesOrder $salesOrder): bool
+    {
+        return $user->can('sales_orders.edit')
+            && $this->sameTenant($user, $salesOrder)
+            && ! in_array($salesOrder->status, [
+                SalesOrderStatus::Closed,
+                SalesOrderStatus::Cancelled,
+            ], true);
+    }
+
     public function delete(User $user, SalesOrder $salesOrder): bool
     {
         return $user->can('sales_orders.delete')

@@ -7,9 +7,13 @@
             <p class="mt-1 text-sm text-slate-500">{{ $description }}</p>
         @endif
     </div>
-    @isset($actions)
+    @if (isset($actions))
         <div class="flex shrink-0 flex-wrap items-center gap-2">
             {{ $actions }}
         </div>
-    @endisset
+    @elseif (! $slot->isEmpty())
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+            {{ $slot }}
+        </div>
+    @endif
 </div>

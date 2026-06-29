@@ -11,7 +11,7 @@
             class="module-workspace-content__frame"
             data-turbo-action="advance"
             data-turbo-cache="false"
-            loading="eager"
+            loading="lazy"
         >
             <div class="module-workspace-content__loading" aria-live="polite">
                 <div class="erp-skeleton module-workspace-content__skeleton-bar"></div>

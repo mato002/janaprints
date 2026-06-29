@@ -41,7 +41,7 @@ class CustomerArtworkController extends Controller
 
         return $this->modalOrRedirect(
             __('Artwork version uploaded.'),
-            redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'artwork']),
+            redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
         );
     }
 

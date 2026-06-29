@@ -161,10 +161,24 @@ class CustomerInvoiceController extends Controller
 
         $salesOrder->load('items', 'customer', 'jobCard');
 
+        $billingEligibilityService = app(\App\Support\Sales\SalesOrderBillingEligibilityService::class);
+
         return view('admin.sales.invoices.create-from-order', [
             'salesOrder' => $salesOrder,
             'defaultTaxRate' => config('settings_registry.sections.company.settings.default_tax_rate.default', 16),
-            'billingEligibility' => app(\App\Support\Sales\SalesOrderBillingEligibilityService::class)->assess($salesOrder),
+            'pendingInvoices' => $salesOrder->invoices()
+                ->whereIn('status', [
+                    CustomerInvoiceStatus::Draft,
+                    CustomerInvoiceStatus::Approved,
+                ])
+                ->orderBy('id')
+                ->get(['id', 'invoice_number', 'invoice_type', 'total_amount', 'status']),
+            'billingEligibilityByType' => [
+                'standard' => $billingEligibilityService->assess($salesOrder, CustomerInvoiceType::Standard),
+                'partial' => $billingEligibilityService->assess($salesOrder, CustomerInvoiceType::Partial),
+                'deposit' => $billingEligibilityService->assess($salesOrder, CustomerInvoiceType::Deposit),
+                'progress' => $billingEligibilityService->assess($salesOrder, CustomerInvoiceType::Progress),
+            ],
         ]);
     }
 

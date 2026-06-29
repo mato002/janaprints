@@ -1,15 +1,21 @@
 <x-admin-layout :title="$salesOrder->order_number" :breadcrumbs="[['label' => __('Sales Orders'), 'url' => route('admin.sales-orders.dashboard')], ['label' => $salesOrder->order_number]]">
     <x-admin.page-header :title="$salesOrder->order_number" :description="$salesOrder->customer?->company_name">
-        <span class="erp-badge">{{ str_replace('_', ' ', $salesOrder->status->value) }}</span>
-        @if (! empty($financial))
-            <span class="erp-badge bg-{{ $financial['financial_status_variant'] === 'success' ? 'emerald' : ($financial['financial_status_variant'] === 'warning' ? 'amber' : 'slate') }}-100">
-                {{ $financial['financial_status_label'] }}
-            </span>
-        @endif
-        @can('update', $salesOrder)
-            <a href="{{ route('admin.sales-orders.edit', $salesOrder) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
-        @endcan
+        <x-slot:actions>
+            <span class="erp-badge">{{ str_replace('_', ' ', $salesOrder->status->value) }}</span>
+            @if (! empty($financial))
+                <span class="erp-badge bg-{{ $financial['financial_status_variant'] === 'success' ? 'emerald' : ($financial['financial_status_variant'] === 'warning' ? 'amber' : 'slate') }}-100">
+                    {{ $financial['financial_status_label'] }}
+                </span>
+            @endif
+            @can('update', $salesOrder)
+                <a href="{{ route('admin.sales-orders.edit', $salesOrder) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
+            @endcan
+        </x-slot:actions>
     </x-admin.page-header>
+
+    @if (session('status'))
+        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
+    @endif
 
     <div class="workspace-kpi-grid grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
         <x-admin.kpi-widget :label="__('Subtotal')" :value="number_format($salesOrder->subtotal, 2)" icon="currency-dollar" />
@@ -100,14 +106,14 @@
             <h3 class="font-medium">{{ __('Invoicing') }}</h3>
             @can('create', App\Models\Sales\CustomerInvoice::class)
                 @if ($salesOrder->remainingInvoiceTotal() > 0 && !in_array($salesOrder->status, [App\Enums\SalesOrderStatus::Draft, App\Enums\SalesOrderStatus::Cancelled]))
-                    @if ($financial['billing_eligibility']['eligible'] ?? true)
-                        <a href="{{ route('admin.invoices.from-sales-order', $salesOrder) }}" class="erp-btn-primary" data-turbo-frame="_top">{{ __('Create invoice') }}</a>
-                    @else
-                        <span class="text-sm text-amber-700">{{ implode(' ', $financial['billing_eligibility']['blockers'] ?? []) }}</span>
-                    @endif
+                    <a href="{{ route('admin.invoices.from-sales-order', $salesOrder) }}" class="erp-btn-primary" data-turbo-frame="_top">{{ __('Create invoice') }}</a>
                 @endif
             @endcan
         </div>
+        @if (! empty($financial['billing_eligibility']['blockers']))
+            <p class="mb-3 text-sm text-amber-700">{{ implode(' ', $financial['billing_eligibility']['blockers']) }}</p>
+            <p class="mb-3 text-xs text-amber-700">{{ __('Use deposit or progress billing on the next screen if you need to invoice before fulfilment is complete.') }}</p>
+        @endif
         <dl class="workspace-meta-grid text-sm grid sm:grid-cols-3 gap-3 mb-4">
             <div><dt class="text-slate-500">{{ __('Order total') }}</dt><dd class="font-mono">{{ number_format($salesOrder->total_amount, 2) }}</dd></div>
             <div><dt class="text-slate-500">{{ __('Invoiced') }}</dt><dd class="font-mono">{{ number_format($salesOrder->invoiced_total, 2) }}</dd></div>
@@ -155,6 +161,36 @@
                             {{ __('Artwork v') }}{{ $salesOrder->conversion->artwork_version_number }})</dd></div>
                 @endif
             </dl>
+        </x-admin.card>
+
+        <x-admin.card>
+            <h3 class="font-medium mb-3">{{ __('Production product') }}</h3>
+            @if ($salesOrder->inventoryItem)
+                <p class="mb-3 text-sm">
+                    <span class="font-medium">{{ $salesOrder->inventoryItem->item_name }}</span>
+                    <span class="text-slate-500">({{ $salesOrder->inventoryItem->sku }})</span>
+                </p>
+            @else
+                <p class="mb-3 text-sm text-amber-700">{{ __('No catalogue product linked yet. Link a finished-good inventory item so production and material requirements can run.') }}</p>
+            @endif
+            @can('updateProductionSetup', $salesOrder)
+                <form method="POST" action="{{ route('admin.sales-orders.production-setup.update', $salesOrder) }}" class="flex flex-wrap items-end gap-2">
+                    @csrf
+                    @method('PATCH')
+                    <div class="min-w-[16rem] flex-1">
+                        <label class="erp-label">{{ __('Catalogue item') }}</label>
+                        <select name="inventory_item_id" class="erp-input w-full" required>
+                            <option value="">{{ __('Select product') }}</option>
+                            @foreach ($catalogueItems as $item)
+                                <option value="{{ $item->id }}" @selected($salesOrder->inventory_item_id == $item->id)>
+                                    {{ $item->item_name }} ({{ $item->sku }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <button type="submit" class="erp-btn-secondary">{{ $salesOrder->inventoryItem ? __('Update product') : __('Link product') }}</button>
+                </form>
+            @endcan
         </x-admin.card>
 
         <x-admin.card>

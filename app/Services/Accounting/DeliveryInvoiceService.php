@@ -46,7 +46,8 @@ class DeliveryInvoiceService
 
         $order = $jobCard->salesOrder;
         $canInvoice = $order
-            && $this->billingEligibility->isFulfilmentComplete($order)
+            && ($this->billingEligibility->isFulfilmentComplete($order)
+                || $this->billingEligibility->isProductionComplete($order))
             && ! $activeInvoice;
 
         $label = match (true) {
@@ -56,6 +57,7 @@ class DeliveryInvoiceService
             $fulfilment?->status === FulfilmentStatus::Collected => __('Collected — ready to invoice'),
             $fulfilment?->status === FulfilmentStatus::Delivered => __('Delivered — ready to invoice'),
             $invoiceReady => __('Ready for invoice'),
+            $order && $this->billingEligibility->isProductionComplete($order) => __('Production complete — ready to invoice'),
             default => __('Awaiting fulfilment'),
         };
 

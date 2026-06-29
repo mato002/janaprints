@@ -114,4 +114,17 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerProductSerialProfile::class);
     }
+
+    public function printSpecifications(): HasMany
+    {
+        return $this->hasMany(CustomerPrintSpecification::class)->orderByDesc('updated_at');
+    }
+
+    public function activePrintSpecifications(): HasMany
+    {
+        return $this->hasMany(CustomerPrintSpecification::class)
+            ->where('status', \App\Enums\CustomerPrintSpecificationStatus::Active)
+            ->whereNotNull('inventory_item_id')
+            ->orderBy('name');
+    }
 }

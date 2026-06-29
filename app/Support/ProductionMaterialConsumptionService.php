@@ -5,7 +5,9 @@ namespace App\Support;
 use App\Enums\InventoryMovementType;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\ProductionMaterialConsumption;
+use App\Models\Inventory\Warehouse;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionMaterialRequirement;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -42,9 +44,45 @@ class ProductionMaterialConsumptionService
             ]);
         }
 
+        $warehouse = Warehouse::query()->find($warehouseId);
+        if ($warehouse === null || $warehouse->is_virtual) {
+            throw ValidationException::withMessages([
+                'warehouse_id' => __('Consume raw materials from a physical warehouse. Virtual locations such as Finished Goods only hold completed output.'),
+            ]);
+        }
+
         InventoryStockService::assertSufficientStock($item->id, $warehouseId, $quantity);
 
         return DB::transaction(function () use ($jobCard, $item, $warehouseId, $quantity, $userId, $unitCost, $requirementId) {
+            $requirementsService = app(\App\Support\Production\MaterialRequirementsService::class);
+
+            if ($requirementId === null) {
+                $matchedRequirement = $requirementsService->findOpenRequirement(
+                    $jobCard,
+                    (int) $item->id,
+                    $warehouseId,
+                );
+
+                if ($matchedRequirement !== null) {
+                    $matchedRequirement = ProductionMaterialRequirement::query()
+                        ->whereKey($matchedRequirement->id)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+                    $requirementsService->linkOrphanConsumptions($matchedRequirement);
+
+                    if ($quantity > $matchedRequirement->remainingQuantity()) {
+                        throw ValidationException::withMessages([
+                            'quantity' => __('Quantity exceeds remaining requirement. Only :remaining units remain on this job.', [
+                                'remaining' => $matchedRequirement->remainingQuantity(),
+                            ]),
+                        ]);
+                    }
+
+                    $requirementId = $matchedRequirement->id;
+                }
+            }
+
             $cost = $unitCost ?? \App\Support\Inventory\InventoryCostingService::resolveIssueUnitCost(
                 $jobCard->company_id,
                 $jobCard->branch_id,

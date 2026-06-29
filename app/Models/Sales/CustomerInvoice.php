@@ -27,6 +27,8 @@ class CustomerInvoice extends Model
         'customer_id',
         'sales_order_id',
         'production_job_card_id',
+        'delivery_note_id',
+        'billing_source',
         'credited_invoice_id',
         'invoice_number',
         'invoice_type',
@@ -88,6 +90,11 @@ class CustomerInvoice extends Model
     public function jobCard(): BelongsTo
     {
         return $this->belongsTo(ProductionJobCard::class, 'production_job_card_id');
+    }
+
+    public function deliveryNote(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Dispatch\DeliveryNote::class);
     }
 
     public function creditedInvoice(): BelongsTo

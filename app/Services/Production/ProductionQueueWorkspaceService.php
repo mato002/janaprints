@@ -144,7 +144,7 @@ class ProductionQueueWorkspaceService
         return $this->ordering
             ->applyPriorityOrdering($query)
             ->with([
-                'jobCard:id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at',
+                'jobCard:id,company_id,branch_id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at,actual_end_date,updated_at',
                 'jobCard.customer:id,company_name',
                 'jobCard.salesOrder:id,order_number,status,required_date,total_amount',
                 'jobCard.salesOrder.items:id,sales_order_id,item_name,quantity,unit_price,line_total',

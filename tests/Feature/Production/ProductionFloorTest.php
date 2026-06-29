@@ -66,6 +66,48 @@ class ProductionFloorTest extends TestCase
             ->assertSee($jobCard->job_card_number, false);
     }
 
+    public function test_floor_lists_newest_job_cards_first(): void
+    {
+        [$company, $branch, $user] = $this->productionContext(withJob: false);
+
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
+        $older = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'status' => ProductionJobCardStatus::Draft,
+            'created_by' => $user->id,
+            'created_at' => now()->subDay(),
+            'required_date' => now()->addDays(3),
+        ]);
+
+        $newer = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'status' => ProductionJobCardStatus::Draft,
+            'created_by' => $user->id,
+            'created_at' => now(),
+            'required_date' => now()->addDays(10),
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.production.floor', ['embedded' => 1]))
+            ->assertOk();
+
+        $this->assertLessThan(
+            strpos($response->getContent(), $older->job_card_number),
+            strpos($response->getContent(), $newer->job_card_number),
+        );
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2?: Customer, 3: User, 4?: ProductionJobCard}
      */

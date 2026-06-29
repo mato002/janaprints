@@ -161,6 +161,23 @@ class SerialNumberGovernanceService
     }
 
     /**
+     * @return array{start: string, end: string, start_number: int, end_number: int}
+     */
+    public function nextRangePreview(JobCardSerialAllocation $allocation, ?int $quantity = null): array
+    {
+        $qty = max(1, $quantity ?? $allocation->allocatedQuantity());
+        $nextStart = $allocation->serial_end + 1;
+        $nextEnd = $nextStart + $qty - 1;
+
+        return [
+            'start' => $allocation->formatSerial($nextStart),
+            'end' => $allocation->formatSerial($nextEnd),
+            'start_number' => $nextStart,
+            'end_number' => $nextEnd,
+        ];
+    }
+
+    /**
      * @return array{allocated: int, spoiled: int, production_loss_quantity: int}
      */
     public function productionLossMetrics(ProductionJobCard $jobCard): array

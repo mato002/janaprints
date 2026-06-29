@@ -5,8 +5,10 @@ namespace App\Support\Sales;
 use App\Enums\CustomerInvoiceType;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Enums\FulfilmentStatus;
+use App\Enums\ProductionOutputStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Production\ProductionFulfilment;
+use App\Models\Production\ProductionOutput;
 use App\Models\Sales\SalesOrder;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -14,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 class SalesOrderBillingEligibilityService
 {
     /**
-     * @return array{eligible: bool, blockers: list<string>, fulfilment_ready: bool}
+     * @return array{eligible: bool, blockers: list<string>, fulfilment_ready: bool, production_complete: bool}
      */
     public function assess(SalesOrder $order, ?CustomerInvoiceType $invoiceType = null): array
     {
@@ -25,17 +27,19 @@ class SalesOrderBillingEligibilityService
         }
 
         $fulfilmentReady = $this->isFulfilmentComplete($order);
+        $productionComplete = $this->isProductionComplete($order);
         $type = $invoiceType ?? CustomerInvoiceType::Standard;
         $requiresFulfilment = in_array($type, [CustomerInvoiceType::Standard, CustomerInvoiceType::Partial], true);
 
-        if ($requiresFulfilment && ! $fulfilmentReady) {
-            $blockers[] = __('Order must be collected or delivered before final invoicing.');
+        if ($requiresFulfilment && ! $fulfilmentReady && ! $productionComplete) {
+            $blockers[] = __('Final invoice requires production completion (finished goods posted) or customer collection/delivery.');
         }
 
         return [
             'eligible' => $blockers === [],
             'blockers' => $blockers,
             'fulfilment_ready' => $fulfilmentReady,
+            'production_complete' => $productionComplete,
         ];
     }
 
@@ -86,5 +90,19 @@ class SalesOrderBillingEligibilityService
         }
 
         return $order->status === SalesOrderStatus::Delivered;
+    }
+
+    public function isProductionComplete(SalesOrder $order): bool
+    {
+        $order->loadMissing('jobCard');
+
+        if (! $order->jobCard || ! Schema::hasTable('production_outputs')) {
+            return false;
+        }
+
+        return ProductionOutput::query()
+            ->where('production_job_card_id', $order->jobCard->id)
+            ->where('completion_status', ProductionOutputStatus::Posted)
+            ->exists();
     }
 }

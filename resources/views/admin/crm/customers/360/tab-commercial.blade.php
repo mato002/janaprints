@@ -2,7 +2,7 @@
     $commercialCards = [
         ['key' => 'quotations', 'label' => __('Quotes'), 'permission' => 'quotations.view'],
         ['key' => 'orders', 'label' => __('Sales Orders'), 'permission' => 'sales_orders.view'],
-        ['key' => 'library_artwork', 'label' => __('Artwork Library'), 'permission' => 'artwork.view'],
+        ['key' => 'print_specifications', 'label' => __('Print Specifications'), 'permission' => 'crm.customers.view'],
         ['key' => 'artwork', 'label' => __('Artwork Requests'), 'permission' => 'artwork.view'],
         ['key' => 'invoices', 'label' => __('Invoices'), 'permission' => 'invoices.view'],
         ['key' => 'payments', 'label' => __('Payments'), 'permission' => 'payments.view'],
@@ -11,38 +11,11 @@
 @endphp
 
 <div class="crm-360__tab-toolbar">
-    @can('quotations.create')
-        <x-admin.crm-btn
-            variant="outline"
-            size="sm"
-            :href="route('admin.quotations.create', ['customer_id' => $customer->id])"
-            data-turbo-frame="erp-main"
-        >{{ __('Create quote') }}</x-admin.crm-btn>
-    @endcan
-    @can('sales_orders.create')
-        <x-admin.crm-btn
-            variant="outline"
-            size="sm"
-            :href="route('admin.sales-orders.create', ['customer_id' => $customer->id])"
-            data-turbo-frame="erp-main"
-        >{{ __('Create sales order') }}</x-admin.crm-btn>
-    @endcan
-    @can('update', $customer)
-        <x-admin.crm-btn
-            variant="ghost"
-            size="sm"
-            :href="route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'artwork'])"
-            data-turbo-frame="erp-main"
-        >{{ __('Artwork library') }}</x-admin.crm-btn>
-    @endcan
-    @can('invoices.view')
-        <x-admin.crm-btn
-            variant="ghost"
-            size="sm"
-            :href="route('admin.invoices.index')"
-            data-turbo-frame="erp-main"
-        >{{ __('Invoices') }}</x-admin.crm-btn>
-    @endcan
+    @include('admin.crm.customers.360.partials.customer-actions-dropdown', [
+        'customer' => $customer,
+        'latestOrderForRepeat' => $latestOrderForRepeat ?? null,
+        'buttonClass' => 'crm-360__btn crm-360__btn--outline min-h-[2.75rem]',
+    ])
 </div>
 
 <div class="crm-360__commercial-summary">
@@ -74,20 +47,22 @@
 @if (! empty($commercial['recent_jobs']))
     <x-admin.card class="mb-6">
         <h3 class="text-sm font-semibold mb-3">{{ __('Recent jobs') }}</h3>
-        <table class="erp-table w-full text-sm">
-            <thead><tr><th>{{ __('Job') }}</th><th>{{ __('Status') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin') }}</th></tr></thead>
-            <tbody>
-                @foreach ($commercial['recent_jobs'] as $job)
-                    <tr>
-                        <td>{{ $job['job_number'] }}</td>
-                        <td>{{ $job['status'] }}</td>
-                        <td class="font-mono">{{ number_format($job['revenue'], 2) }}</td>
-                        <td class="font-mono">{{ number_format($job['estimated_profit'], 2) }}</td>
-                        <td>{{ number_format($job['estimated_margin_percent'], 1) }}%</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="crm-360__table-scroll">
+            <table class="erp-table w-full text-sm">
+                <thead><tr><th>{{ __('Job') }}</th><th>{{ __('Status') }}</th><th>{{ __('Revenue') }}</th><th>{{ __('Profit') }}</th><th>{{ __('Margin') }}</th></tr></thead>
+                <tbody>
+                    @foreach ($commercial['recent_jobs'] as $job)
+                        <tr>
+                            <td>{{ $job['job_number'] }}</td>
+                            <td>{{ $job['status'] }}</td>
+                            <td class="font-mono">{{ number_format($job['revenue'], 2) }}</td>
+                            <td class="font-mono">{{ number_format($job['estimated_profit'], 2) }}</td>
+                            <td>{{ number_format($job['estimated_margin_percent'], 1) }}%</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </x-admin.card>
 @endif
 
@@ -95,7 +70,6 @@
     @foreach ([
         ['key' => 'quotations', 'title' => __('Quotations'), 'permission' => 'quotations.view', 'type' => 'standard'],
         ['key' => 'orders', 'title' => __('Sales orders'), 'permission' => 'sales_orders.view', 'type' => 'standard'],
-        ['key' => 'library_artwork', 'title' => __('Artwork library'), 'permission' => 'artwork.view', 'type' => 'library'],
         ['key' => 'artwork', 'title' => __('Artwork requests'), 'permission' => 'artwork.view', 'type' => 'standard'],
         ['key' => 'invoices', 'title' => __('Invoices'), 'permission' => 'invoices.view', 'type' => 'standard'],
         ['key' => 'payments', 'title' => __('Payments'), 'permission' => 'payments.view', 'type' => 'standard'],
@@ -112,11 +86,12 @@
                                 @if ($section['type'] === 'receipts')
                                     <th>{{ __('Payment') }}</th>
                                     <th>{{ __('Amount') }}</th>
-                                @elseif ($section['type'] === 'library')
-                                    <th>{{ __('Details') }}</th>
                                 @endif
                                 <th>{{ __('Status') }}</th>
                                 <th>{{ __('Date') }}</th>
+                                @if ($section['key'] === 'orders')
+                                    <th class="text-right">{{ __('Actions') }}</th>
+                                @endif
                             </tr>
                         </thead>
                         <tbody>
@@ -134,8 +109,6 @@
                                             <a href="{{ $row['payment_url'] }}" class="crm-360__row-link" data-turbo-frame="erp-main">{{ $row['payment_number'] }}</a>
                                         </td>
                                         <td class="font-mono">{{ number_format($row['amount'], 2) }}</td>
-                                    @elseif ($section['type'] === 'library')
-                                        <td class="text-slate-500">{{ $row['meta'] ?? '—' }}</td>
                                     @endif
                                     <td>
                                         @if (! empty($row['status_value']))
@@ -145,10 +118,19 @@
                                         @endif
                                     </td>
                                     <td class="text-slate-500">{{ $row['date']?->format('d M Y') ?? '—' }}</td>
+                                    @if ($section['key'] === 'orders')
+                                        <td class="text-right">
+                                            @include('admin.crm.customers.360.partials.repeat-order-form', [
+                                                'customer' => $customer,
+                                                'orderId' => $row['id'],
+                                                'orderNumber' => $row['number'],
+                                            ])
+                                        </td>
+                                    @endif
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="{{ $section['type'] === 'receipts' ? 5 : ($section['type'] === 'library' ? 4 : 3) }}" class="crm-360__empty-inline">{{ __('No data yet') }}</td>
+                                    <td colspan="{{ $section['key'] === 'orders' ? 4 : ($section['type'] === 'receipts' ? 5 : 3) }}" class="crm-360__empty-inline">{{ __('No data yet') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

@@ -42,7 +42,7 @@ enum ProductionJobCardStatus: string
     {
         return match ($this) {
             self::Draft => [self::Queued, self::Cancelled, self::OnHold],
-            self::Queued => [self::InProduction, self::Outsourced, self::Cancelled, self::OnHold],
+            self::Queued => [self::Draft, self::InProduction, self::Outsourced, self::Cancelled, self::OnHold],
             self::InProduction => [self::QualityCheck, self::Outsourced, self::Cancelled, self::OnHold],
             self::Outsourced => [self::Returned, self::Cancelled, self::OnHold],
             self::Returned => [self::InProduction, self::QualityCheck, self::OnHold],

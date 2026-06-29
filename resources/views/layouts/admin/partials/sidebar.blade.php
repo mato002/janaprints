@@ -29,6 +29,7 @@
             href="{{ route('admin.dashboard') }}"
             data-turbo-frame="erp-main"
             data-turbo-action="advance"
+            data-turbo-preload="hover"
             class="flex min-w-0 flex-1 items-center gap-3 font-semibold tracking-tight text-white"
             :class="sidebarCollapsed ? 'lg:order-2 lg:flex-none lg:justify-center' : ''"
             @click="$dispatch('close-nav')"

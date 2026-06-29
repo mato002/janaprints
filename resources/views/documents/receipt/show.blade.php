@@ -13,9 +13,14 @@
             />
         @endcan
         @can('emailReceipt', $payment)
-            <form method="POST" action="{{ route('admin.payments.receipt.email', $payment) }}">@csrf
-                <button type="submit" class="erp-btn-secondary">{{ __('Email receipt') }}</button>
-            </form>
+            <x-documents.email-submit-form
+                :action="route('admin.payments.receipt.email', $payment)"
+                :label="__('Email receipt')"
+                :submitting-label="__('Sending email…')"
+                :submitting-message="filled($payment->customer?->email)
+                    ? __('Sending receipt to :recipient…', ['recipient' => $payment->customer->email])
+                    : __('Sending receipt…')"
+            />
         @endcan
         @can('smsReceipt', $payment)
             <form method="POST" action="{{ route('admin.payments.receipt.sms', $payment) }}">@csrf

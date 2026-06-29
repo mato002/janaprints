@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\Crm\CrmDashboardController;
 use App\Http\Controllers\Admin\Crm\CustomerActivityController;
 use App\Http\Controllers\Admin\Crm\CustomerArtworkController;
+use App\Http\Controllers\Admin\Crm\CustomerPrintSpecificationController;
 use App\Http\Controllers\Admin\Crm\CustomerProductSerialProfileController;
 use App\Http\Controllers\Admin\Crm\CustomerContactController;
 use App\Http\Controllers\Admin\Crm\CustomerController;
@@ -43,8 +44,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:crm.customers.view')->group(function () {
             Route::get('customers/{customer}', [CustomerController::class, 'show'])->name('customers.show');
-            Route::get('customers/{customer}/order-context', [\App\Http\Controllers\Admin\Sales\DirectCustomerOrderController::class, 'context'])->name('customers.order-context');
-            Route::get('customers/{customer}/order-specification/{salesOrder}', [\App\Http\Controllers\Admin\Sales\DirectCustomerOrderController::class, 'orderSpecification'])->name('customers.order-specification');
             Route::get('customers/{customer}/artworks/{customerArtwork}/preview', [CustomerArtworkController::class, 'preview'])->name('customers.artworks.preview');
         });
 
@@ -64,6 +63,14 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('customers/{customer}/files', [CustomerFileController::class, 'store'])->name('customers.files.store');
             Route::delete('customers/{customer}/files/{file}', [CustomerFileController::class, 'destroy'])->name('customers.files.destroy');
             Route::post('customers/{customer}/artworks', [CustomerArtworkController::class, 'store'])->name('customers.artworks.store');
+            Route::get('customers/{customer}/print-specifications/{printSpecification}', [CustomerPrintSpecificationController::class, 'show'])->name('customers.print-specifications.show');
+            Route::post('customers/{customer}/print-specifications/{printSpecification}/transition', [CustomerPrintSpecificationController::class, 'transition'])->name('customers.print-specifications.transition');
+            Route::get('customers/{customer}/print-specifications/create', [CustomerPrintSpecificationController::class, 'create'])->name('customers.print-specifications.create');
+            Route::post('customers/{customer}/print-specifications', [CustomerPrintSpecificationController::class, 'store'])->name('customers.print-specifications.store');
+            Route::get('customers/{customer}/print-specifications/{printSpecification}/edit', [CustomerPrintSpecificationController::class, 'edit'])->name('customers.print-specifications.edit');
+            Route::put('customers/{customer}/print-specifications/{printSpecification}', [CustomerPrintSpecificationController::class, 'update'])->name('customers.print-specifications.update');
+            Route::post('customers/{customer}/print-specifications/{printSpecification}/artworks', [CustomerPrintSpecificationController::class, 'uploadArtwork'])->name('customers.print-specifications.artworks.store');
+            Route::post('customers/{customer}/print-specifications/{printSpecification}/serial-profile', [CustomerPrintSpecificationController::class, 'saveSerialProfileFromSpec'])->name('customers.print-specifications.serial-profile.store');
             Route::post('customers/{customer}/serial-profiles', [CustomerProductSerialProfileController::class, 'store'])->name('customers.serial-profiles.store');
             Route::delete('customers/{customer}/serial-profiles/{profile}', [CustomerProductSerialProfileController::class, 'destroy'])->name('customers.serial-profiles.destroy');
             Route::get('segments/{segment}/edit', [CustomerSegmentController::class, 'edit'])->name('segments.edit');

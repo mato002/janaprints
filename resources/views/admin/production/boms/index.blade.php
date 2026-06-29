@@ -36,7 +36,7 @@
                             @if (auth()->user()?->can('production.bom.edit'))
                                 <x-admin.table-row-action :href="route('admin.production.boms.edit', $bom)">{{ __('Edit') }}</x-admin.table-row-action>
                             @endif
-                            @if (auth()->user()?->can('production.bom.delete'))
+                            @if (auth()->user()?->can('production.bom.edit'))
                                 <x-admin.table-row-action method="DELETE" :action="route('admin.production.boms.destroy', $bom)" variant="danger" :confirm="__('Remove this BOM?')">{{ __('Remove') }}</x-admin.table-row-action>
                             @endif
                         </x-admin.table-row-actions>

@@ -24,6 +24,52 @@ class DispatchInventoryService
         protected InventoryAccountingPostingService $accounting,
     ) {}
 
+    /**
+     * @return array{eligible: bool, blockers: list<string>}
+     */
+    public function dispatchReadiness(DeliveryNote $note): array
+    {
+        $note->loadMissing(['items', 'productionJobCard']);
+
+        $blockers = [];
+
+        if ($note->items->isEmpty()) {
+            $blockers[] = __('Delivery note must have at least one line item.');
+        }
+
+        if ($note->production_job_card_id) {
+            $postedOutputs = ProductionOutput::query()
+                ->where('production_job_card_id', $note->production_job_card_id)
+                ->where('completion_status', ProductionOutputStatus::Posted)
+                ->count();
+
+            if ($postedOutputs === 0) {
+                $blockers[] = __('Post completed output to Finished Goods on the linked job card before dispatching.');
+            }
+        }
+
+        foreach ($note->items as $line) {
+            if (! $line->inventory_item_id) {
+                $blockers[] = __('Line “:item” is not linked to a finished-goods inventory item.', [
+                    'item' => $line->description,
+                ]);
+            } elseif ((float) $line->quantity <= 0) {
+                $blockers[] = __('Line “:item” must have a quantity greater than zero.', [
+                    'item' => $line->description,
+                ]);
+            } elseif ((float) ($line->unit_cost ?? 0) <= 0) {
+                $blockers[] = __('Line “:item” has no unit cost — post finished goods on the job card to populate cost.', [
+                    'item' => $line->description,
+                ]);
+            }
+        }
+
+        return [
+            'eligible' => $blockers === [],
+            'blockers' => array_values(array_unique($blockers)),
+        ];
+    }
+
     public function dispatch(DeliveryNote $note, int $userId): DeliveryNote
     {
         return DB::transaction(function () use ($note, $userId) {

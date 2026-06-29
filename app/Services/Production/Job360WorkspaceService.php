@@ -33,6 +33,9 @@ use Illuminate\Support\Facades\Schema;
 
 class Job360WorkspaceService
 {
+    /** @var array<string, \Illuminate\Support\Collection<int, InventoryItem>> */
+    protected array $finishedItemsCache = [];
+
     public function __construct(
         protected JobProductionControlService $controls,
         protected MachineJobAssignmentService $machineAssignments,
@@ -137,6 +140,8 @@ class Job360WorkspaceService
 
         $completion = app(ProductionCompletionService::class)->eligibility($jobCard);
         $floorActions = app(ProductionFloorActionService::class);
+        $needsFinishedItems = ($completion['eligible'] ?? false)
+            || in_array($activeTab, [self::TAB_OUTPUTS, self::TAB_OVERVIEW], true);
 
         return [
             'jobCard' => $jobCard,
@@ -148,13 +153,7 @@ class Job360WorkspaceService
             'link_actions' => $this->linkActions($jobCard),
             'quick_actions' => $this->linkActions($jobCard),
             'completion' => $completion,
-            'finished_items' => InventoryItem::query()
-                ->where('company_id', $jobCard->company_id)
-                ->where('branch_id', $jobCard->branch_id)
-                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
-                ->where('is_active', true)
-                ->orderBy('item_name')
-                ->get(['id', 'sku', 'item_name']),
+            'finished_items' => $needsFinishedItems ? $this->finishedItemsCatalog($jobCard) : collect(),
             'dispatch_eligibility' => $this->controls->dispatchEligibility($jobCard),
             'active_tab' => $activeTab,
             'tab_groups' => $this->tabGroups($jobCard, $activeTab),
@@ -480,13 +479,6 @@ class Job360WorkspaceService
                 'empty_message' => $manufacturing['empty_message'] ?? null,
                 'manufacturing_url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_MANUFACTURING]),
             ],
-            'finished_items' => InventoryItem::query()
-                ->where('company_id', $jobCard->company_id)
-                ->where('branch_id', $jobCard->branch_id)
-                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
-                ->where('is_active', true)
-                ->orderBy('item_name')
-                ->get(['id', 'sku', 'item_name']),
             'summary' => [
                 'production_type' => $jobCard->production_type->value,
                 'priority' => $jobCard->priority->value,
@@ -511,6 +503,7 @@ class Job360WorkspaceService
                 'number' => $jobCard->quotation->quotation_number,
                 'status' => $jobCard->quotation->status->value,
             ] : null,
+            'print_specification_source' => $this->printSpecificationSource($jobCard),
             'artwork' => $jobCard->artworkRequest ? [
                 'number' => $jobCard->artworkRequest->request_number,
                 'status' => $jobCard->artworkRequest->status->value,
@@ -721,7 +714,7 @@ class Job360WorkspaceService
             return ['empty' => true];
         }
 
-        $request = $jobCard->artwork_request_id
+        $request = $jobCard->artwork_request_id && ! $jobCard->isDirectOrderSource()
             ? ArtworkRequest::query()
                 ->with([
                     'approvals.approver:id,name',
@@ -739,6 +732,7 @@ class Job360WorkspaceService
         return [
             'request' => $request,
             'customer_artwork' => $jobCard->customerArtwork,
+            'print_specification_source' => $this->printSpecificationSource($jobCard),
             'approval_status' => $latestApproval?->decision->value ?? $request?->status->value,
             'revision_count' => max(0, ($request?->current_version ?? 0) - 1),
             'latest_approval' => $latestApproval,
@@ -780,11 +774,71 @@ class Job360WorkspaceService
 
         return [
             'allocation' => $allocation,
+            'next_range_preview' => $allocation ? $service->nextRangePreview($allocation) : null,
             'loss_metrics' => $service->productionLossMetrics($jobCard),
             'spoiled_ranges' => $allocation
                 ? $jobCard->spoiledSerialRanges()->with('recordedByUser:id,name')->get()
                 : collect(),
             'can_confirm' => $allocation && ! $allocation->is_confirmed && (auth()->user()?->can('complete', $jobCard) ?? false),
+        ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, InventoryItem>
+     */
+    protected function finishedItemsCatalog(ProductionJobCard $jobCard): \Illuminate\Support\Collection
+    {
+        $key = $jobCard->company_id.'_'.$jobCard->branch_id.'_'.$jobCard->id;
+
+        if (! isset($this->finishedItemsCache[$key])) {
+            $catalog = InventoryItem::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
+                ->where('is_active', true)
+                ->orderBy('item_name')
+                ->get(['id', 'sku', 'item_name', 'stock_role']);
+
+            $linkedIds = $catalog->pluck('id');
+
+            $suggested = app(ProductionCompletionService::class)->resolveFinishedItem($jobCard, null, false);
+            if ($suggested !== null && ! $linkedIds->contains($suggested->id)) {
+                $suggested->loadMissing([]);
+                $catalog->prepend($suggested);
+            }
+
+            $this->finishedItemsCache[$key] = $catalog->unique('id')->values();
+        }
+
+        return $this->finishedItemsCache[$key];
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    protected function printSpecificationSource(ProductionJobCard $jobCard): ?array
+    {
+        if (! $jobCard->customer_print_specification_id && ! $jobCard->specification_code) {
+            return null;
+        }
+
+        $specLabel = $jobCard->specification_code
+            ? trim($jobCard->specification_code.($jobCard->specification_name ? ' — '.$jobCard->specification_name : ''))
+            : ($jobCard->specification_name ?? null);
+
+        return [
+            'order_source' => $jobCard->order_source,
+            'order_source_label' => $jobCard->isDirectOrderSource()
+                ? __('Direct Order')
+                : ($jobCard->isQuotationOrderSource() ? __('Quotation') : __('Unknown')),
+            'specification_code' => $jobCard->specification_code,
+            'specification_name' => $jobCard->specification_name,
+            'specification_label' => $specLabel,
+            'artwork_version' => $jobCard->artwork_version_number,
+            'product_name' => $jobCard->inventoryItem?->item_name,
+            'production_notes' => $jobCard->production_notes_snapshot,
+            'commercial_notes' => $jobCard->commercial_notes_snapshot,
+            'customer_instructions' => $jobCard->customer_instructions_snapshot,
         ];
     }
 
@@ -843,13 +897,7 @@ class Job360WorkspaceService
         return [
             'outputs' => $outputs,
             'completion' => app(ProductionCompletionService::class)->eligibility($jobCard),
-            'finished_items' => InventoryItem::query()
-                ->where('company_id', $jobCard->company_id)
-                ->where('branch_id', $jobCard->branch_id)
-                ->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood)
-                ->where('is_active', true)
-                ->orderBy('item_name')
-                ->get(['id', 'sku', 'item_name']),
+            'finished_items' => $this->finishedItemsCatalog($jobCard),
             'virtual_locations_url' => route('admin.inventory.virtual-locations.index'),
         ];
     }
@@ -868,7 +916,8 @@ class Job360WorkspaceService
             'has_requirements' => $requirements->isNotEmpty(),
             'can_generate' => auth()->user()?->can('production.materials.generate') ?? false,
             'can_reserve' => auth()->user()?->can('production.materials.reserve') ?? false,
-            'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'can_consume' => $this->userCanRecordMaterialConsumption(),
+            'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];
     }
 
@@ -906,17 +955,28 @@ class Job360WorkspaceService
         $wastage = app(\App\Support\Production\ProductionWastageService::class)->summaryForJob($jobCard);
         $sessionMetrics = app(\App\Support\Production\ProductionSessionService::class)->jobMetrics($jobCard);
         $serialLoss = app(\App\Support\Production\SerialNumberGovernanceService::class)->productionLossMetrics($jobCard);
+        $requirements = app(\App\Support\Production\MaterialRequirementsService::class)->panelRows($jobCard);
 
         return [
             'consumptions' => $consumptions,
             'wastage' => $wastage,
             'session_waste' => $sessionMetrics,
             'serial_spoilage' => $serialLoss,
-            'can_consume' => auth()->user()?->can('production.materials.consume') ?? false,
+            'material_requirements' => $requirements,
+            'can_consume' => $this->userCanRecordMaterialConsumption(),
             'can_record_waste' => auth()->user()?->can('production.wastage.record') ?? false,
             'inventory_items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('sku')->get(['id', 'sku', 'item_name']),
-            'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];
+    }
+
+    protected function userCanRecordMaterialConsumption(): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null
+            && $user->can('production.materials.consume')
+            && $user->can('inventory.issue');
     }
 
     /**

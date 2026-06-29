@@ -6,8 +6,10 @@ use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Dispatch\DeliveryNote;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Sales\CustomerInvoice;
 use App\Services\Accounting\DeliveryInvoiceEligibilityService;
 use App\Services\Dispatch\DeliveryNoteService;
+use App\Support\Sales\CustomerInvoiceService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,6 +21,7 @@ class DeliveryNoteController extends Controller
     public function __construct(
         protected DeliveryNoteService $deliveryNotes,
         protected DeliveryInvoiceEligibilityService $invoiceEligibility,
+        protected CustomerInvoiceService $invoices,
     ) {}
 
     public function index(Request $request): View
@@ -60,18 +63,46 @@ class DeliveryNoteController extends Controller
         $invoiceEligibility = $this->invoiceEligibility->check($deliveryNote);
         $partialDelivery = $this->invoiceEligibility->partialDeliverySummary($deliveryNote);
         $inventoryImpact = app(\App\Services\Dispatch\DispatchInventoryReportService::class)->inventoryImpact($deliveryNote);
+        $dispatchReadiness = app(\App\Services\Dispatch\DispatchInventoryService::class)->dispatchReadiness($deliveryNote);
+
+        $salesOrderInvoices = collect();
+        if ($deliveryNote->sales_order_id) {
+            $salesOrderInvoices = CustomerInvoice::query()
+                ->where('sales_order_id', $deliveryNote->sales_order_id)
+                ->where('company_id', $deliveryNote->company_id)
+                ->whereNot('status', \App\Enums\CustomerInvoiceStatus::Cancelled)
+                ->orderByDesc('invoice_date')
+                ->orderByDesc('id')
+                ->get(['id', 'invoice_number', 'delivery_note_id', 'status', 'total_amount']);
+        }
 
         return view('admin.dispatch.delivery-notes.show', [
             'note' => $deliveryNote,
             'invoiceEligibility' => $invoiceEligibility,
             'partialDelivery' => $partialDelivery,
             'inventoryImpact' => $inventoryImpact,
+            'dispatchReadiness' => $dispatchReadiness,
+            'salesOrderInvoices' => $salesOrderInvoices,
         ]);
     }
 
     public function generateInvoice(DeliveryNote $deliveryNote): RedirectResponse
     {
-        abort(501, __('Invoice generation from delivery notes is not available in this build.'));
+        $this->authorize('create', CustomerInvoice::class);
+        abort_unless($deliveryNote->company_id === (int) tenant()->companyId(), 403);
+
+        $eligibility = $this->invoiceEligibility->check($deliveryNote);
+        if (! $eligibility['eligible']) {
+            return back()->withErrors([
+                'delivery_note' => implode(' ', $eligibility['blockers']),
+            ]);
+        }
+
+        $invoice = $this->invoices->createFromDeliveryNote($deliveryNote, (int) auth()->id());
+
+        return redirect()
+            ->route('admin.invoices.show', $invoice)
+            ->with('status', __('Invoice :number created from delivery note.', ['number' => $invoice->invoice_number]));
     }
 
     public function storeFromJob(Request $request, ProductionJobCard $jobCard): RedirectResponse

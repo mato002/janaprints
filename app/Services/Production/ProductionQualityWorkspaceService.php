@@ -170,8 +170,8 @@ class ProductionQualityWorkspaceService
         }
 
         return $query
-            ->orderBy('planned_end_date')
-            ->orderBy('job_card_number')
+            ->latest('created_at')
+            ->latest('id')
             ->paginate(15)
             ->withQueryString();
     }

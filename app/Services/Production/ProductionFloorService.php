@@ -42,9 +42,8 @@ class ProductionFloorService
                 'salesOrder:id,order_number,required_date',
                 'queues.workCenter:id,name',
             ])
-            ->orderByRaw("CASE WHEN required_date IS NULL THEN 1 ELSE 0 END")
-            ->orderBy('required_date')
-            ->orderByDesc('priority')
+            ->latest('created_at')
+            ->latest('id')
             ->paginate(25)
             ->withQueryString();
 

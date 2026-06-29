@@ -7,6 +7,7 @@ use App\Enums\CustomerInvoiceType;
 use App\Enums\DomainCommunicationEvent;
 use App\Enums\FulfilmentStatus;
 use App\Enums\ProductionJobCardStatus;
+use App\Enums\ProductionOutputStatus;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderFinancialStatus;
 use App\Enums\SalesOrderStatus;
@@ -14,8 +15,10 @@ use App\Events\Communications\DomainCommunicationEventRaised;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionFulfilment;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionOutput;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerPayment;
 use App\Models\Sales\SalesOrder;
@@ -117,7 +120,7 @@ class CommercialBillingC8Test extends TestCase
         $this->assertGreaterThan(0, (float) $this->salesOrder->deposit_invoiced_amount);
     }
 
-    public function test_final_invoice_blocked_until_fulfilment(): void
+    public function test_final_invoice_blocked_until_production_or_fulfilment(): void
     {
         $jobCard = ProductionJobCard::factory()->create([
             'company_id' => $this->company->id,
@@ -133,6 +136,81 @@ class CommercialBillingC8Test extends TestCase
         app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder->fresh(), $this->user->id, [
             'invoice_type' => CustomerInvoiceType::Standard,
         ]);
+    }
+
+    public function test_final_invoice_after_production_complete_without_delivery(): void
+    {
+        $jobCard = ProductionJobCard::factory()->create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'sales_order_id' => $this->salesOrder->id,
+            'customer_id' => $this->customer->id,
+            'status' => ProductionJobCardStatus::ReadyForDispatch,
+            'created_by' => $this->user->id,
+        ]);
+
+        ProductionOutput::query()->create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'production_job_card_id' => $jobCard->id,
+            'finished_inventory_item_id' => InventoryItem::factory()->create([
+                'company_id' => $this->company->id,
+                'branch_id' => $this->branch->id,
+            ])->id,
+            'quantity_completed' => 500,
+            'completion_status' => ProductionOutputStatus::Posted,
+            'posted_job_marker' => $jobCard->id,
+        ]);
+
+        $invoice = app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder->fresh(), $this->user->id, [
+            'invoice_type' => CustomerInvoiceType::Standard,
+        ]);
+
+        $this->assertNotNull($invoice->id);
+    }
+
+    public function test_full_invoice_after_progress_draft_bills_balance(): void
+    {
+        app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder, $this->user->id, [
+            'invoice_type' => CustomerInvoiceType::Progress,
+            'billing_percent' => 50,
+        ]);
+
+        $invoice = app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder->fresh(), $this->user->id, [
+            'invoice_type' => CustomerInvoiceType::Standard,
+        ]);
+
+        $this->assertEqualsWithDelta(580, (float) $invoice->total_amount, 0.01);
+        $this->assertSame(__('Balance due'), $invoice->lines->first()->item_name);
+    }
+
+    public function test_full_invoice_after_posted_progress_bills_balance(): void
+    {
+        $service = app(CustomerInvoiceService::class);
+
+        $progress = $service->createFromSalesOrder($this->salesOrder, $this->user->id, [
+            'invoice_type' => CustomerInvoiceType::Progress,
+            'billing_percent' => 50,
+        ]);
+        $service->approve($progress, $this->user->id);
+        $service->post($progress, $this->user->id);
+
+        $final = $service->createFromSalesOrder($this->salesOrder->fresh(), $this->user->id, [
+            'invoice_type' => CustomerInvoiceType::Standard,
+        ]);
+
+        $this->assertEqualsWithDelta(580, (float) $final->total_amount, 0.01);
+        $this->assertSame(__('Balance due'), $final->lines->first()->item_name);
+    }
+
+    public function test_remaining_invoice_total_excludes_pending_drafts(): void
+    {
+        app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder, $this->user->id, [
+            'invoice_type' => CustomerInvoiceType::Progress,
+            'billing_percent' => 50,
+        ]);
+
+        $this->assertEqualsWithDelta(580, $this->salesOrder->fresh()->remainingInvoiceTotal(), 0.01);
     }
 
     public function test_final_invoice_after_fulfilment(): void

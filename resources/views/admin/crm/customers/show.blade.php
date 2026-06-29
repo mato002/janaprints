@@ -5,7 +5,10 @@
     <div
         class="crm-360"
         x-data="{
-            tab: new URLSearchParams(window.location.search).get('tab') || 'overview',
+            tab: (() => {
+                const requested = new URLSearchParams(window.location.search).get('tab') || 'overview';
+                return requested === 'artwork' ? 'print-specifications' : requested;
+            })(),
             setTab(id) {
                 this.tab = id;
                 const url = new URL(window.location.href);
@@ -28,7 +31,7 @@
                 'activities' => __('Activities'),
                 'notes' => __('Notes'),
                 'timeline' => __('Timeline'),
-                'artwork' => __('Artwork Library'),
+                'print-specifications' => __('Print Specifications'),
             ] as $id => $label)
                 <button
                     type="button"
@@ -67,8 +70,8 @@
             <div x-show="tab === 'timeline'" x-cloak class="crm-360__panel">
                 @include('admin.crm.customers.360.tab-timeline')
             </div>
-            <div x-show="tab === 'artwork'" x-cloak class="crm-360__panel">
-                @include('admin.crm.customers.360.tab-artwork')
+            <div x-show="tab === 'print-specifications'" x-cloak class="crm-360__panel">
+                @include('admin.crm.customers.360.tab-print-specifications')
             </div>
         </div>
     </div>

@@ -8,6 +8,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\User;
 use App\Support\Production\JobCardOutsourceService;
 use App\Support\Production\ProductionQcSettings;
+use App\Support\Production\ProductionQueueService;
 use App\Support\Production\QualityInspectionService;
 
 class ProductionFloorActionService
@@ -18,6 +19,7 @@ class ProductionFloorActionService
         protected ProductionQcSettings $qcSettings,
         protected ProductionCompletionService $completion,
         protected QualityInspectionService $quality,
+        protected ProductionQueueService $queues,
     ) {}
 
     /**
@@ -32,7 +34,16 @@ class ProductionFloorActionService
         }
 
         if ($user->can('schedule', $jobCard) && $jobCard->status === ProductionJobCardStatus::Draft) {
-            return $this->action(__('Queue job'), 'post', route('admin.production.job-cards.queue', $jobCard), 'secondary');
+            if ($this->queues->hasActiveQueue($jobCard)) {
+                return $this->action(__('Queue job'), 'post', route('admin.production.job-cards.queue', $jobCard), 'secondary');
+            }
+
+            return $this->action(
+                __('Add to queue'),
+                'link',
+                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']).'#queue-form',
+                'primary',
+            );
         }
 
         if ($user->can('start', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)) {
@@ -82,10 +93,6 @@ class ProductionFloorActionService
         $user ??= auth()->user();
         $actions = [];
 
-        if ($user?->can('view', $jobCard)) {
-            $actions[] = $this->action(__('Open job'), 'link', route('admin.production.job-cards.show', $jobCard), 'ghost');
-        }
-
         if ($user?->can('transition', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)) {
             $actions[] = $this->action(__('Hold'), 'post', route('admin.production.job-cards.hold', $jobCard), 'ghost');
         }
@@ -123,7 +130,8 @@ class ProductionFloorActionService
             $tab = match ($fragment) {
                 'quality' => 'quality',
                 'fulfilment' => 'dispatch',
-                'outputs' => 'finish',
+                'outputs', 'finish' => 'finish',
+                'queue-form' => 'operations',
                 default => 'overview',
             };
 

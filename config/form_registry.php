@@ -8,7 +8,7 @@ return [
             'label' => 'Customers',
             'description' => 'Customer master data fields shown on create and edit forms.',
             'fields' => [
-                'company_name' => ['label' => 'Company name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'company_name' => ['label' => 'Company name', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 1],
                 'customer_type' => ['label' => 'Type', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
                 'contact_person' => ['label' => 'Contact person', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 3],
                 'phone' => ['label' => 'Phone', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 4],

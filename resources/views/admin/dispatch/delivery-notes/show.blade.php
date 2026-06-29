@@ -23,12 +23,13 @@
             <dl class="space-y-2 text-sm">
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Status') }}</dt><dd><x-admin.enum-status-badge :status="$note->status->value" /></dd></div>
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Delivery date') }}</dt><dd>{{ $note->delivery_date->format('M j, Y') }}</dd></div>
-                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Invoice ready') }}</dt><dd>{{ $note->invoice_ready ? __('Yes') : __('No') }}</dd></div>
-                @if ($note->invoiced_at)
-                    <div class="flex justify-between"><dt class="text-slate-500">{{ __('Invoiced') }}</dt><dd>{{ $note->invoiced_at->format('M j, Y') }}</dd></div>
-                @endif
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Ready to invoice') }}</dt><dd>{{ $note->invoice_ready ? __('Yes') : __('No') }}</dd></div>
                 @if ($note->activeInvoice)
-                    <p><a href="{{ route('admin.accounting.invoices.show', $note->activeInvoice) }}" class="font-mono text-indigo-600">{{ $note->activeInvoice->invoice_number }}</a></p>
+                    <div class="flex justify-between"><dt class="text-slate-500">{{ __('Invoice') }}</dt>
+                        <dd><a href="{{ route('admin.invoices.show', $note->activeInvoice) }}" class="font-mono text-indigo-600">{{ $note->activeInvoice->invoice_number }}</a></dd>
+                    </div>
+                @elseif ($note->invoice_ready && ! ($invoiceEligibility['eligible'] ?? false))
+                    <p class="text-xs text-amber-700">{{ __('Delivery is complete and billable, but no invoice is linked to this delivery note yet.') }}</p>
                 @endif
             </dl>
         </x-admin.card>
@@ -62,7 +63,7 @@
                         <x-danger-button type="submit">{{ __('Cancel') }}</x-danger-button>
                     </form>
                 @endcan
-                @can('create', App\Models\Accounting\Invoice::class)
+                @can('create', App\Models\Sales\CustomerInvoice::class)
                     @if (($invoiceEligibility['eligible'] ?? false))
                         <form method="POST" action="{{ route('admin.dispatch.delivery-notes.generate-invoice', $note) }}">
                             @csrf
@@ -71,6 +72,46 @@
                     @endif
                 @endcan
             </div>
+            @if (! empty($invoiceEligibility['warnings']))
+                <ul class="mt-2 list-disc ps-5 text-xs text-amber-800">
+                    @foreach ($invoiceEligibility['warnings'] as $warning)
+                        <li>{{ $warning }}</li>
+                    @endforeach
+                </ul>
+            @endif
+            @if ($salesOrderInvoices->isNotEmpty())
+                <div class="mt-3 border-t border-slate-100 pt-3">
+                    <p class="mb-1 text-xs font-medium text-slate-600">{{ __('Sales order invoices') }}</p>
+                    <ul class="space-y-1 text-xs">
+                        @foreach ($salesOrderInvoices as $soInvoice)
+                            <li>
+                                <a href="{{ route('admin.invoices.show', $soInvoice) }}" class="font-mono text-indigo-600 hover:underline">{{ $soInvoice->invoice_number }}</a>
+                                @if ((int) $soInvoice->delivery_note_id === (int) $note->id)
+                                    <span class="text-slate-500">({{ __('this delivery') }})</span>
+                                @elseif ($soInvoice->delivery_note_id)
+                                    <span class="text-slate-500">({{ __('other delivery') }})</span>
+                                @else
+                                    <span class="text-amber-700">({{ __('from order — not linked here') }})</span>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+            @if (! empty($dispatchReadiness['blockers'] ?? []))
+                <ul class="mt-2 list-disc ps-5 text-xs text-amber-800">
+                    @foreach ($dispatchReadiness['blockers'] as $blocker)
+                        <li>{{ $blocker }}</li>
+                    @endforeach
+                    @if ($note->productionJobCard)
+                        <li>
+                            <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $note->productionJobCard, 'tab' => 'outputs']) }}" class="font-medium text-erp-primary hover:underline">
+                                {{ __('Open job → Finished goods') }}
+                            </a>
+                        </li>
+                    @endif
+                </ul>
+            @endif
             @if (! empty($invoiceEligibility['blockers']))
                 <ul class="mt-2 list-disc ps-5 text-xs text-red-700">
                     @foreach ($invoiceEligibility['blockers'] as $blocker)

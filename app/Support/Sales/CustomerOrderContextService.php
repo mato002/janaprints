@@ -8,11 +8,28 @@ use App\Models\Crm\CustomerArtwork;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
+use App\Support\Crm\CustomerPrintSpecificationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class CustomerOrderContextService
 {
+    public function __construct(
+        protected CustomerPrintSpecificationService $printSpecifications,
+    ) {}
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function buildForDirectOrder(Customer $customer): array
+    {
+        return [
+            'print_specifications' => $this->printSpecifications->selectableForOrderContext($customer),
+            'print_specification_summary' => $this->printSpecifications->orderSelectionSummary($customer),
+            'billing_defaults' => app(CustomerOrderBillingDefaultsService::class)->resolveForCustomer($customer),
+        ];
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -33,7 +50,9 @@ class CustomerOrderContextService
                 'id' => $art->id,
                 'artwork_name' => $art->artwork_name,
                 'version' => $art->version_number,
+                'customer_print_specification_id' => $art->customer_print_specification_id,
             ]),
+            'print_specifications' => $this->printSpecifications->selectableForOrderContext($customer),
             'frequent_products' => $this->frequentlyOrderedProducts($customer),
             'serial_profiles' => $this->serialProfiles($customer),
             'billing_defaults' => app(CustomerOrderBillingDefaultsService::class)->resolveForCustomer($customer),
@@ -51,6 +70,7 @@ class CustomerOrderContextService
             ->with([
                 'inventoryItem:id,item_name,sku',
                 'customerArtwork:id,artwork_name,version_number',
+                'customerPrintSpecification:id,name,specification_code',
                 'items',
                 'jobCard:id,sales_order_id',
             ])
@@ -85,24 +105,31 @@ class CustomerOrderContextService
      */
     public function frequentlyOrderedProducts(Customer $customer, int $limit = 8): Collection
     {
-        return SalesOrder::query()
+        $rows = SalesOrder::query()
             ->where('customer_id', $customer->id)
             ->whereNotNull('inventory_item_id')
             ->select('inventory_item_id', DB::raw('COUNT(*) as order_count'))
             ->groupBy('inventory_item_id')
             ->orderByDesc('order_count')
             ->limit($limit)
-            ->get()
-            ->map(function ($row) {
-                $item = InventoryItem::query()->find($row->inventory_item_id);
+            ->get();
 
-                return [
-                    'inventory_item_id' => (int) $row->inventory_item_id,
-                    'item_name' => $item?->item_name ?? __('Unknown'),
-                    'sku' => $item?->sku,
-                    'order_count' => (int) $row->order_count,
-                ];
-            });
+        $itemIds = $rows->pluck('inventory_item_id')->filter()->unique()->values();
+        $items = InventoryItem::query()
+            ->whereIn('id', $itemIds)
+            ->get(['id', 'item_name', 'sku'])
+            ->keyBy('id');
+
+        return $rows->map(function ($row) use ($items) {
+            $item = $items->get($row->inventory_item_id);
+
+            return [
+                'inventory_item_id' => (int) $row->inventory_item_id,
+                'item_name' => $item?->item_name ?? __('Unknown'),
+                'sku' => $item?->sku,
+                'order_count' => (int) $row->order_count,
+            ];
+        });
     }
 
     /**
@@ -162,6 +189,8 @@ class CustomerOrderContextService
             'order_date' => $order->order_date?->toDateString(),
             'required_date' => $order->required_date?->toDateString(),
             'status' => $order->status->value,
+            'customer_print_specification_id' => $order->customer_print_specification_id,
+            'print_specification' => $order->customerPrintSpecification?->name,
             'inventory_item_id' => $order->inventory_item_id,
             'product' => $order->inventoryItem?->item_name,
             'sku' => $order->inventoryItem?->sku,

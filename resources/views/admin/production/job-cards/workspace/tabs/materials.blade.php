@@ -53,6 +53,9 @@
                         <th>{{ __('Waste') }}</th>
                         <th>{{ __('Returned') }}</th>
                         <th>{{ __('Status') }}</th>
+                        @if ($tabData['can_consume'] ?? false)
+                            <th></th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -67,6 +70,19 @@
                             <td class="tabular-nums">{{ $row['waste'] }}</td>
                             <td class="tabular-nums">{{ $row['returned'] }}</td>
                             <td><span class="erp-badge text-xs">{{ $row['status']->label() }}</span></td>
+                            @if ($tabData['can_consume'] ?? false)
+                                <td class="whitespace-nowrap">
+                                    @if (($row['remaining'] ?? 0) > 0)
+                                        <form method="POST" action="{{ route('admin.production.job-cards.materials.consume', [$jobCard, $row['requirement']]) }}" class="inline-flex items-center gap-1">
+                                            @csrf
+                                            <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-20 text-xs" value="{{ $row['remaining'] }}">
+                                            <button type="submit" class="erp-btn-primary text-xs">{{ __('Consume') }}</button>
+                                        </form>
+                                    @else
+                                        <span class="text-xs text-slate-400">—</span>
+                                    @endif
+                                </td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>

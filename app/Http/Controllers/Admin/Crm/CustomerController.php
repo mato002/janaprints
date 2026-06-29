@@ -160,6 +160,19 @@ class CustomerController extends Controller
                 ->map(fn ($message) => $visibility->presentCustomerMessage($message))
             : collect();
 
+        $printSpecService = app(\App\Support\Crm\CustomerPrintSpecificationService::class);
+        $printSpecifications = $printSpecService->paginateForCustomer($customer, [
+            'search' => $request->query('spec_search'),
+            'status' => $request->query('spec_status'),
+            'product_id' => $request->query('spec_product_id'),
+            'serial_prefix' => $request->query('spec_serial_prefix'),
+            'artwork_version' => $request->query('spec_artwork_version'),
+        ]);
+        $printSpecSerialSummaries = collect($printSpecifications->items())
+            ->mapWithKeys(fn ($spec) => [$spec->id => $spec->serial_summary ?? []])
+            ->all();
+        $printSpecStatuses = \App\Enums\CustomerPrintSpecificationStatus::cases();
+
         return view('admin.crm.customers.show', compact(
             'customer',
             'communicationTimeline',
@@ -168,6 +181,9 @@ class CustomerController extends Controller
             'emailTimeline',
             'inboxConversations',
             'customerEmailMessages',
+            'printSpecifications',
+            'printSpecSerialSummaries',
+            'printSpecStatuses',
         ));
     }
 

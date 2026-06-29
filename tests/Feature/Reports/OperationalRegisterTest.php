@@ -105,6 +105,48 @@ class OperationalRegisterTest extends TestCase
             ->assertSee($customer->company_name, false);
     }
 
+    public function test_daily_sales_register_sorts_most_recent_first(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['reports.view']);
+
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
+        $older = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'order_date' => today(),
+            'total_amount' => 100,
+        ]);
+
+        $newer = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'order_date' => today(),
+            'total_amount' => 200,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.reports.operational-registers', $this->embeddedQuery([
+                'register' => 'daily_sales',
+                'preset' => 'today',
+            ])));
+
+        $response->assertOk();
+        $this->assertLessThan(
+            strpos($response->getContent(), $older->order_number),
+            strpos($response->getContent(), $newer->order_number),
+        );
+    }
+
     public function test_machine_utilisation_register_renders(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['reports.view']);

@@ -19,6 +19,8 @@ class ProductionGovernanceBootstrapService
 
     public function bootstrapFromSalesOrder(ProductionJobCard $jobCard, SalesOrder $salesOrder): void
     {
+        $salesOrder->loadMissing('items');
+
         $jobCard->update([
             'required_date' => $salesOrder->required_date ?? $jobCard->planned_end_date,
         ]);

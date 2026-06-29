@@ -107,6 +107,43 @@ class ProductionCompletionServiceTest extends TestCase
         ], $user->id, false);
     }
 
+    public function test_eligibility_suggests_order_quantity_and_per_unit_cost(): void
+    {
+        [, , $user, , $finishedItem, , $jobCard] = $this->readyJobForCompletion();
+
+        $salesOrder = \App\Models\Sales\SalesOrder::factory()->create([
+            'company_id' => $jobCard->company_id,
+            'branch_id' => $jobCard->branch_id,
+            'customer_id' => $jobCard->customer_id,
+            'inventory_item_id' => $finishedItem->id,
+            'created_by' => $user->id,
+        ]);
+
+        $salesOrder->items()->create([
+            'inventory_item_id' => $finishedItem->id,
+            'item_name' => $finishedItem->item_name,
+            'quantity' => 200,
+            'unit_price' => 50,
+            'line_total' => 10000,
+            'sort_order' => 1,
+        ]);
+
+        $jobCard->update([
+            'sales_order_id' => $salesOrder->id,
+            'inventory_item_id' => $finishedItem->id,
+        ]);
+
+        $sheet = JobCostingService::buildOrRefresh($jobCard->fresh());
+        $eligibility = app(ProductionCompletionService::class)->eligibility($jobCard->fresh());
+
+        $this->assertEquals(200.0, $eligibility['suggested_quantity_completed']);
+        $this->assertEquals((int) $finishedItem->id, $eligibility['suggested_finished_item_id']);
+        $this->assertEquals(
+            round((float) $sheet->total_cost / 200, 4),
+            $eligibility['suggested_unit_cost'],
+        );
+    }
+
     public function test_is_idempotent_for_duplicate_post(): void
     {
         [, , $user, , $finishedItem, , $jobCard] = $this->readyJobForCompletion();

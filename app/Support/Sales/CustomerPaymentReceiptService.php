@@ -57,9 +57,19 @@ class CustomerPaymentReceiptService
             'balance_remaining' => round((float) $allocation->invoice->balance_due, 2),
         ])->values()->all();
 
-        $balanceRemaining = $this->customerBalanceRemaining($payment);
         $amountPaid = round((float) $payment->amount, 2);
-        $balanceBefore = round($balanceRemaining + $amountPaid, 2);
+        $allocatedApplied = round((float) $payment->allocated_amount, 2);
+        $allocatedRemaining = round($payment->allocations->sum(
+            fn ($allocation) => (float) $allocation->invoice->balance_due
+        ), 2);
+
+        if ($payment->allocations->isNotEmpty()) {
+            $balanceRemaining = $allocatedRemaining;
+            $balanceBefore = round($allocatedRemaining + $allocatedApplied, 2);
+        } else {
+            $balanceRemaining = $this->customerBalanceRemaining($payment);
+            $balanceBefore = round($balanceRemaining + $amountPaid, 2);
+        }
 
         $customer = $payment->customer;
 

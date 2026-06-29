@@ -40,7 +40,14 @@ class ProductionCompletionService
     ) {}
 
     /**
-     * @return array{eligible: bool, blockers: list<string>, suggested_finished_item_id: int|null, suggested_unit_cost: float|null}
+     * @return array{
+     *     eligible: bool,
+     *     blockers: list<string>,
+     *     suggested_finished_item_id: int|null,
+     *     suggested_quantity_completed: float,
+     *     suggested_unit_cost: float|null,
+     *     suggested_notes: string|null
+     * }
      */
     public function eligibility(ProductionJobCard $jobCard): array
     {
@@ -54,8 +61,9 @@ class ProductionCompletionService
             ProductionJobCardStatus::InProduction,
             ProductionJobCardStatus::QualityCheck,
             ProductionJobCardStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch,
         ], true)) {
-            $blockers[] = __('Job must be in production, quality check, or completed status.');
+            $blockers[] = __('Job must be in production, quality check, completed, or ready for dispatch status.');
         }
 
         if ($jobCard->materialConsumptions()->count() === 0) {
@@ -66,25 +74,35 @@ class ProductionCompletionService
             $blockers[] = __('This production job has already been completed into Finished Goods.');
         }
 
-        $fgWarehouse = $this->virtualWarehouses->finishedGoods($jobCard->company_id);
-        if ($fgWarehouse === null) {
-            $blockers[] = __('Finished goods virtual warehouse is not configured.');
+        $companyId = $jobCard->company_id;
+        if ($companyId === null) {
+            $blockers[] = __('Company context is missing for this job.');
+        } else {
+            $fgWarehouse = $this->virtualWarehouses->finishedGoods($companyId);
+            if ($fgWarehouse === null) {
+                $blockers[] = __('Finished goods virtual warehouse is not configured.');
+            }
         }
 
+        $suggestedQuantity = $this->resolveSuggestedQuantity($jobCard);
         $suggestedItem = $this->resolveFinishedItem($jobCard, null, false);
         if ($suggestedItem === null) {
             $blockers[] = __('Select a finished inventory item for this output.');
         } elseif ($suggestedItem->stock_role !== InventoryStockRole::FinishedGood) {
-            $blockers[] = __('Finished output item must have stock role Finished Good.');
+            $blockers[] = __(':item must be set to stock role Finished Good in Inventory before posting output.', [
+                'item' => $suggestedItem->sku.' — '.$suggestedItem->item_name,
+            ]);
         }
 
-        $unitCost = $this->deriveUnitCost($jobCard, 1, null, false);
+        $unitCost = $this->deriveUnitCost($jobCard, $suggestedQuantity, null, false);
 
         return [
             'eligible' => $blockers === [],
             'blockers' => $blockers,
             'suggested_finished_item_id' => $suggestedItem?->id,
+            'suggested_quantity_completed' => $suggestedQuantity,
             'suggested_unit_cost' => $unitCost,
+            'suggested_notes' => $this->resolveSuggestedNotes($jobCard),
         ];
     }
 
@@ -288,6 +306,34 @@ class ProductionCompletionService
             return $bom->finishedItem;
         }
 
+        if ($jobCard->inventory_item_id) {
+            $item = InventoryItem::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->find($jobCard->inventory_item_id);
+
+            if ($item !== null) {
+                return $item;
+            }
+        }
+
+        $jobCard->loadMissing('salesOrder.items');
+
+        foreach ($jobCard->salesOrder?->items ?? [] as $orderLine) {
+            if ($orderLine->inventory_item_id === null) {
+                continue;
+            }
+
+            $item = InventoryItem::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->find($orderLine->inventory_item_id);
+
+            if ($item !== null) {
+                return $item;
+            }
+        }
+
         if ($strict) {
             throw ValidationException::withMessages([
                 'finished_inventory_item_id' => __('Finished inventory item is required.'),
@@ -295,6 +341,72 @@ class ProductionCompletionService
         }
 
         return null;
+    }
+
+    public function resolveSuggestedQuantity(ProductionJobCard $jobCard): float
+    {
+        $jobCard->loadMissing([
+            'salesOrder.items',
+            'productionSpecification',
+        ]);
+
+        if ($jobCard->productionSpecification && (float) $jobCard->productionSpecification->quantity > 0) {
+            return (float) $jobCard->productionSpecification->quantity;
+        }
+
+        $salesOrder = $jobCard->salesOrder;
+
+        if ($salesOrder !== null) {
+            $items = $salesOrder->items;
+
+            if ($jobCard->inventory_item_id) {
+                $matched = $items->first(
+                    fn ($item) => (int) $item->inventory_item_id === (int) $jobCard->inventory_item_id,
+                );
+
+                if ($matched && (float) $matched->quantity > 0) {
+                    return (float) $matched->quantity;
+                }
+            }
+
+            if ($jobCard->customer_print_specification_id) {
+                $matched = $items->first(
+                    fn ($item) => (int) $item->customer_print_specification_id
+                        === (int) $jobCard->customer_print_specification_id,
+                );
+
+                if ($matched && (float) $matched->quantity > 0) {
+                    return (float) $matched->quantity;
+                }
+            }
+
+            if ($items->count() === 1 && (float) $items->first()->quantity > 0) {
+                return (float) $items->first()->quantity;
+            }
+
+            $sum = (float) $items->sum(fn ($item) => (float) $item->quantity);
+
+            if ($sum > 0) {
+                return $sum;
+            }
+        }
+
+        return 1.0;
+    }
+
+    public function resolveSuggestedNotes(ProductionJobCard $jobCard): ?string
+    {
+        $segments = array_filter([
+            $jobCard->production_notes_snapshot,
+            $jobCard->customer_instructions_snapshot,
+            $jobCard->salesOrder?->notes,
+        ]);
+
+        if ($segments === []) {
+            return null;
+        }
+
+        return implode("\n\n", $segments);
     }
 
     protected function deriveUnitCost(

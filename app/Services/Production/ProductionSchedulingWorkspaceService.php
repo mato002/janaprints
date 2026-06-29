@@ -53,9 +53,8 @@ class ProductionSchedulingWorkspaceService
     {
         return $this->filteredQuery($request)
             ->with($this->listRelations())
-            ->orderByRaw('planned_start_date IS NULL')
-            ->orderBy('planned_start_date')
-            ->orderBy('job_card_number')
+            ->latest('created_at')
+            ->latest('id')
             ->paginate(15)
             ->withQueryString();
     }
@@ -67,9 +66,8 @@ class ProductionSchedulingWorkspaceService
     {
         return $this->filteredQuery($request)
             ->with($this->listRelations())
-            ->orderByRaw('planned_start_date IS NULL')
-            ->orderBy('planned_start_date')
-            ->orderBy('job_card_number')
+            ->latest('created_at')
+            ->latest('id')
             ->get();
     }
 

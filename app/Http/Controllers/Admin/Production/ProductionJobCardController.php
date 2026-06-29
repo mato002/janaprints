@@ -21,6 +21,7 @@ use App\Enums\WorkflowRuleTrigger;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\Export\TabularExportWriter;
 use App\Support\Production\ProductionJobCardEligibilityService;
+use App\Support\Production\ProductionQueueService;
 use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,7 +79,7 @@ class ProductionJobCardController extends Controller
                 ? route('admin.sales-orders.dashboard')
                 : null,
             'salesOrderCreateUrl' => Route::has('admin.sales-orders.create')
-                ? route('admin.sales-orders.create')
+                ? route('admin.sales-orders.create', ['tab' => 'direct'])
                 : null,
         ]);
     }
@@ -171,11 +172,27 @@ class ProductionJobCardController extends Controller
             ->with('status', __('Job card deleted.'));
     }
 
-    public function queue(ProductionJobCard $jobCard): RedirectResponse
+    public function queue(Request $request, ProductionJobCard $jobCard, ProductionQueueService $queues): RedirectResponse
     {
         $this->authorize('schedule', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued), 403);
-        $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+
+        if ($queues->hasActiveQueue($jobCard)) {
+            if ($jobCard->status !== ProductionJobCardStatus::Queued) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+            }
+
+            return back()->with('status', __('Job card queued.'));
+        }
+
+        $validated = $request->validate($queues->queueValidationRules($jobCard));
+
+        $queues->enqueue(
+            $jobCard,
+            (int) $validated['work_center_id'],
+            isset($validated['queue_position']) ? (int) $validated['queue_position'] : null,
+            isset($validated['assigned_operator_id']) ? (int) $validated['assigned_operator_id'] : null,
+        );
 
         return back()->with('status', __('Job card queued.'));
     }

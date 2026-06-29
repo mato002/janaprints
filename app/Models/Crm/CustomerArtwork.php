@@ -17,9 +17,10 @@ class CustomerArtwork extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'customer_id',
+        'company_id', 'branch_id', 'customer_id', 'customer_print_specification_id',
         'artwork_name', 'artwork_type', 'version_number', 'is_active_version',
-        'file_path', 'file_name', 'mime_type', 'status',
+        'file_path', 'file_name', 'original_file_name', 'mime_type', 'status',
+        'change_notes', 'approved_by', 'approved_at',
         'uploaded_by', 'uploaded_at',
     ];
 
@@ -31,7 +32,23 @@ class CustomerArtwork extends Model
             'version_number' => 'integer',
             'is_active_version' => 'boolean',
             'uploaded_at' => 'datetime',
+            'approved_at' => 'datetime',
         ];
+    }
+
+    public function printSpecification(): BelongsTo
+    {
+        return $this->belongsTo(CustomerPrintSpecification::class, 'customer_print_specification_id');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function originalFileName(): string
+    {
+        return (string) ($this->original_file_name ?: $this->file_name);
     }
 
     public function customer(): BelongsTo

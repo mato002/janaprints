@@ -19,26 +19,21 @@
                 </x-admin.select>
 
                 @if ($eligibleOrders->isEmpty())
-                    <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
-                        <p class="font-medium">{{ __('No sales orders are ready for a job card yet.') }}</p>
-                        <p class="mt-1 text-amber-800">
-                            {{ __('Create a sales order from an accepted quotation with approved artwork, confirm it, then return here to open the job card.') }}
-                        </p>
-                        @if ($salesOrderCreateUrl || $salesOrdersUrl)
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                @if ($salesOrderCreateUrl)
-                                    <a href="{{ $salesOrderCreateUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">
-                                        {{ __('Create sales order') }}
-                                    </a>
-                                @endif
-                                @if ($salesOrdersUrl)
-                                    <a href="{{ $salesOrdersUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">
-                                        {{ __('View sales orders') }}
-                                    </a>
-                                @endif
-                            </div>
-                        @endif
-                    </div>
+                    <p class="text-sm text-slate-500">{{ __('No sales orders are ready for a job card.') }}</p>
+                    @if ($salesOrderCreateUrl || $salesOrdersUrl)
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            @if ($salesOrderCreateUrl)
+                                <a href="{{ $salesOrderCreateUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">
+                                    {{ __('Create sales order') }}
+                                </a>
+                            @endif
+                            @if ($salesOrdersUrl)
+                                <a href="{{ $salesOrdersUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">
+                                    {{ __('View sales orders') }}
+                                </a>
+                            @endif
+                        </div>
+                    @endif
                 @endif
             </div>
 

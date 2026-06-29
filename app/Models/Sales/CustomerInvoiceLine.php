@@ -10,6 +10,7 @@ class CustomerInvoiceLine extends Model
     protected $fillable = [
         'customer_invoice_id',
         'sales_order_item_id',
+        'delivery_note_item_id',
         'item_name',
         'description',
         'quantity',

@@ -8,6 +8,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Support\Export\TabularExportWriter;
 use App\Support\Production\DepartmentQueueRegistry;
+use App\Support\Production\ProductionQueueService;
 use App\Services\Production\DepartmentCommandCenterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -78,32 +79,21 @@ class ProductionQueueController extends Controller
         );
     }
 
-    public function store(Request $request, ProductionJobCard $jobCard): RedirectResponse
+    public function store(Request $request, ProductionJobCard $jobCard, ProductionQueueService $queues): RedirectResponse
     {
         $this->authorize('create', [ProductionQueue::class, $jobCard]);
 
         $validated = $request->validate([
-            'work_center_id' => [
-                'required',
-                Rule::exists('work_centers', 'id')
-                    ->where('company_id', $jobCard->company_id)
-                    ->where('branch_id', $jobCard->branch_id),
-            ],
-            'queue_position' => ['required', 'integer', 'min:1'],
-            'assigned_operator_id' => ['nullable', 'exists:users,id'],
+            ...$queues->queueValidationRules($jobCard),
+            'queue_position' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $status = ! empty($validated['assigned_operator_id'])
-            ? ProductionQueueStatus::Assigned
-            : ProductionQueueStatus::Waiting;
-
-        ProductionQueue::query()->create([
-            ...$validated,
-            'company_id' => $jobCard->company_id,
-            'branch_id' => $jobCard->branch_id,
-            'production_job_card_id' => $jobCard->id,
-            'status' => $status,
-        ]);
+        $queues->enqueue(
+            $jobCard,
+            (int) $validated['work_center_id'],
+            isset($validated['queue_position']) ? (int) $validated['queue_position'] : null,
+            isset($validated['assigned_operator_id']) ? (int) $validated['assigned_operator_id'] : null,
+        );
 
         return back()->with('status', __('Added to production queue.'));
     }
@@ -124,12 +114,12 @@ class ProductionQueueController extends Controller
         return back()->with('status', __('Queue entry updated.'));
     }
 
-    public function destroy(ProductionJobCard $jobCard, ProductionQueue $queue): RedirectResponse
+    public function destroy(ProductionJobCard $jobCard, ProductionQueue $queue, ProductionQueueService $queues): RedirectResponse
     {
         $this->authorize('delete', $queue);
         abort_unless($queue->production_job_card_id === $jobCard->id, 404);
 
-        $queue->delete();
+        $queues->remove($queue);
 
         return back()->with('status', __('Removed from queue.'));
     }

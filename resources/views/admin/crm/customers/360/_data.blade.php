@@ -45,22 +45,29 @@
 
     $logService = app(CommunicationLogService::class);
 
-    $quotesTotal = $canQuotes ? Quotation::query()->where('customer_id', $customer->id)->count() : null;
-    $ordersTotal = $canOrders ? SalesOrder::query()->where('customer_id', $customer->id)->count() : null;
-    $invoicesTotal = $canInvoices ? CustomerInvoice::query()->where('customer_id', $customer->id)->count() : null;
-    $paymentsTotal = $canPayments ? CustomerPayment::query()->where('customer_id', $customer->id)->count() : null;
-    $libraryArtworkTotal = $canArtwork
-        ? CustomerArtwork::query()->where('customer_id', $customer->id)->where('is_active_version', true)->count()
+    $quotesTotal = $canQuotes ? Quotation::query()->forTenant()->where('customer_id', $customer->id)->count() : null;
+    $ordersTotal = $canOrders ? SalesOrder::query()->forTenant()->where('customer_id', $customer->id)->count() : null;
+    $invoicesTotal = $canInvoices ? CustomerInvoice::query()->forTenant()->where('customer_id', $customer->id)->count() : null;
+    $paymentsTotal = $canPayments ? CustomerPayment::query()->forTenant()->where('customer_id', $customer->id)->count() : null;
+    $libraryArtworkTotal = null;
+
+    $printSpecificationsTotal = $user->can('crm.customers.view')
+        ? \App\Models\Crm\CustomerPrintSpecification::query()
+            ->forTenant()
+            ->where('customer_id', $customer->id)
+            ->where('status', \App\Enums\CustomerPrintSpecificationStatus::Active)
+            ->count()
         : null;
 
     $receiptsTotal = $canPayments
-        ? CustomerPayment::query()->where('customer_id', $customer->id)->whereNotNull('receipt_number')->count()
+        ? CustomerPayment::query()->forTenant()->where('customer_id', $customer->id)->whereNotNull('receipt_number')->count()
         : null;
 
-    $artworkTotal = $canArtwork ? ArtworkRequest::query()->where('customer_id', $customer->id)->count() : null;
+    $artworkTotal = $canArtwork ? ArtworkRequest::query()->forTenant()->where('customer_id', $customer->id)->count() : null;
 
     $revenueTotal = $canInvoices
         ? (float) CustomerInvoice::query()
+            ->forTenant()
             ->where('customer_id', $customer->id)
             ->where('status', CustomerInvoiceStatus::Posted)
             ->where('invoice_type', '!=', CustomerInvoiceType::CreditNote->value)
@@ -69,6 +76,7 @@
 
     $outstandingBalance = $canInvoices
         ? (float) CustomerInvoice::query()
+            ->forTenant()
             ->where('customer_id', $customer->id)
             ->whereIn('status', [CustomerInvoiceStatus::Approved, CustomerInvoiceStatus::Posted])
             ->sum('balance_due')
@@ -177,33 +185,17 @@
 
     $commercial = [
         'quotations' => $canQuotes
-            ? $mapRecord(Quotation::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.quotations.show', 'quotation_number')
+            ? $mapRecord(Quotation::query()->forTenant()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.quotations.show', 'quotation_number')
             : collect(),
         'orders' => $canOrders
-            ? $mapRecord(SalesOrder::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.sales-orders.show', 'order_number')
+            ? $mapRecord(SalesOrder::query()->forTenant()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.sales-orders.show', 'order_number')
             : collect(),
         'artwork' => $canArtwork
-            ? $mapRecord(ArtworkRequest::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.artwork.show', 'request_number')
-            : collect(),
-        'library_artwork' => $canArtwork
-            ? CustomerArtwork::query()
-                ->where('customer_id', $customer->id)
-                ->where('is_active_version', true)
-                ->orderByDesc('uploaded_at')
-                ->limit(8)
-                ->get()
-                ->map(fn ($row) => [
-                    'id' => $row->id,
-                    'number' => $row->artwork_name,
-                    'status' => $row->status->label(),
-                    'status_value' => $row->status->value,
-                    'date' => $row->uploaded_at,
-                    'url' => route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'artwork']),
-                    'meta' => $row->versionLabel().' · '.$row->artwork_type->label(),
-                ])
+            ? $mapRecord(ArtworkRequest::query()->forTenant()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.artwork.show', 'request_number')
             : collect(),
         'receipts' => $canPayments
             ? CustomerPayment::query()
+                ->forTenant()
                 ->where('customer_id', $customer->id)
                 ->whereNotNull('receipt_number')
                 ->orderByDesc('payment_date')
@@ -222,10 +214,10 @@
                 ])
             : collect(),
         'invoices' => $canInvoices
-            ? $mapRecord(CustomerInvoice::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.invoices.show', 'invoice_number')
+            ? $mapRecord(CustomerInvoice::query()->forTenant()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get(), 'admin.invoices.show', 'invoice_number')
             : collect(),
         'payments' => $canPayments
-            ? CustomerPayment::query()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get()->map(fn ($row) => [
+            ? CustomerPayment::query()->forTenant()->where('customer_id', $customer->id)->orderByDesc('id')->limit(8)->get()->map(fn ($row) => [
                 'id' => $row->id,
                 'number' => $row->payment_number,
                 'status' => EnumLabel::of($row->status),
@@ -238,7 +230,8 @@
             'quotations' => $quotesTotal,
             'orders' => $ordersTotal,
             'artwork' => $artworkTotal,
-            'library_artwork' => $libraryArtworkTotal,
+            'print_specifications' => $printSpecificationsTotal,
+            'library_artwork' => null,
             'invoices' => $invoicesTotal,
             'payments' => $paymentsTotal,
             'receipts' => $receiptsTotal,
@@ -248,8 +241,18 @@
         'financial_summary' => $financialSummary,
     ];
 
+    $latestOrderForRepeat = ($canOrders && $user->can('create', SalesOrder::class))
+        ? SalesOrder::query()
+            ->forTenant()
+            ->where('customer_id', $customer->id)
+            ->where('status', '!=', SalesOrderStatus::Cancelled)
+            ->latest('id')
+            ->first(['id', 'order_number'])
+        : null;
+
     $openJobs = $canJobs
         ? ProductionJobCard::query()
+            ->forTenant()
             ->where('customer_id', $customer->id)
             ->whereNotIn('status', [ProductionJobCardStatus::Completed, ProductionJobCardStatus::Cancelled])
             ->orderByDesc('id')
@@ -259,6 +262,7 @@
 
     $openInvoices = $canInvoices
         ? CustomerInvoice::query()
+            ->forTenant()
             ->where('customer_id', $customer->id)
             ->where('balance_due', '>', 0)
             ->whereIn('status', [CustomerInvoiceStatus::Approved, CustomerInvoiceStatus::Posted])

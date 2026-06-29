@@ -122,9 +122,9 @@ class OperationalRegisterQueries
             ->merge($this->salesOrderRegisterRows($scope, $user))
             ->merge($this->posRegisterRows($scope, $user))
             ->merge($this->paymentRegisterRows($scope, $user))
-            ->merge($this->invoiceRegisterRows($scope, $user))
-            ->sortByDesc('sort_date')
-            ->values();
+            ->merge($this->invoiceRegisterRows($scope, $user));
+
+        $rows = $this->sortRegisterRows($rows);
 
         $totalAmount = $rows->sum(fn (array $row) => (float) ($row['amount_raw'] ?? 0));
 
@@ -354,13 +354,20 @@ class OperationalRegisterQueries
             });
         }
 
-        return $query->limit(500)->get()->map(function (SalesOrder $order) use ($user) {
+        return $query
+            ->orderByDesc('order_date')
+            ->orderByDesc('id')
+            ->limit(500)
+            ->get()
+            ->map(function (SalesOrder $order) use ($user) {
             $financial = app(SalesOrderFinancialStatusService::class)->snapshot($order);
             $job = ProductionJobCard::query()->where('sales_order_id', $order->id)->first();
             $product = $order->items->first()?->item_name ?? '—';
 
             return [
                 'sort_date' => $order->order_date?->format('Y-m-d') ?? '',
+                'sort_at' => $order->created_at?->getTimestamp() ?? 0,
+                'sort_id' => $order->id,
                 'values' => [
                     $order->order_date?->format('Y-m-d') ?? '—',
                     $order->customer?->company_name ?? '—',
@@ -405,11 +412,15 @@ class OperationalRegisterQueries
             ->where('status', PosSaleStatus::Paid)
             ->whereDate('sale_date', '>=', $scope->fromDate)
             ->whereDate('sale_date', '<=', $scope->toDate)
+            ->orderByDesc('sale_date')
+            ->orderByDesc('id')
             ->limit(500)
             ->get()
             ->map(function (PosSale $sale) use ($user) {
                 return [
                     'sort_date' => $sale->sale_date?->format('Y-m-d') ?? '',
+                    'sort_at' => $sale->created_at?->getTimestamp() ?? 0,
+                    'sort_id' => $sale->id,
                     'values' => [
                         $sale->sale_date?->format('Y-m-d') ?? '—',
                         $sale->customer?->company_name ?? __('Walk-in'),
@@ -452,11 +463,15 @@ class OperationalRegisterQueries
             ->where('status', CustomerPaymentStatus::Posted)
             ->whereDate('payment_date', '>=', $scope->fromDate)
             ->whereDate('payment_date', '<=', $scope->toDate)
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
             ->limit(500)
             ->get()
             ->map(function (CustomerPayment $payment) use ($user) {
                 return [
                     'sort_date' => $payment->payment_date?->format('Y-m-d') ?? '',
+                    'sort_at' => $payment->created_at?->getTimestamp() ?? 0,
+                    'sort_id' => $payment->id,
                     'values' => [
                         $payment->payment_date?->format('Y-m-d') ?? '—',
                         $payment->customer?->company_name ?? '—',
@@ -501,11 +516,15 @@ class OperationalRegisterQueries
             ->whereNotIn('status', [CustomerInvoiceStatus::Cancelled, CustomerInvoiceStatus::Draft])
             ->whereDate('invoice_date', '>=', $scope->fromDate)
             ->whereDate('invoice_date', '<=', $scope->toDate)
+            ->orderByDesc('invoice_date')
+            ->orderByDesc('id')
             ->limit(500)
             ->get()
             ->map(function (CustomerInvoice $invoice) use ($user) {
                 return [
                     'sort_date' => $invoice->invoice_date?->format('Y-m-d') ?? '',
+                    'sort_at' => $invoice->created_at?->getTimestamp() ?? 0,
+                    'sort_id' => $invoice->id,
                     'values' => [
                         $invoice->invoice_date?->format('Y-m-d') ?? '—',
                         $invoice->customer?->company_name ?? '—',
@@ -769,8 +788,31 @@ class OperationalRegisterQueries
      */
     protected function stripInternalKeys(array $row): array
     {
-        unset($row['sort_date'], $row['amount_raw']);
+        unset($row['sort_date'], $row['sort_at'], $row['sort_id'], $row['amount_raw']);
 
         return $row;
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $rows
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    protected function sortRegisterRows(\Illuminate\Support\Collection $rows): \Illuminate\Support\Collection
+    {
+        return $rows
+            ->sort(function (array $a, array $b): int {
+                $dateCompare = strcmp($b['sort_date'] ?? '', $a['sort_date'] ?? '');
+                if ($dateCompare !== 0) {
+                    return $dateCompare;
+                }
+
+                $timeCompare = ($b['sort_at'] ?? 0) <=> ($a['sort_at'] ?? 0);
+                if ($timeCompare !== 0) {
+                    return $timeCompare;
+                }
+
+                return ($b['sort_id'] ?? 0) <=> ($a['sort_id'] ?? 0);
+            })
+            ->values();
     }
 }

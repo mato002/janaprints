@@ -2,6 +2,7 @@
 
 namespace App\Support\Sales;
 
+use App\Enums\ArtworkRequestStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
@@ -84,6 +85,14 @@ class SalesOrderWorkflowService
 
     protected function hint(SalesOrder $salesOrder): ?string
     {
+        if ($salesOrder->status === SalesOrderStatus::Confirmed && ! $salesOrder->jobCard) {
+            $artworkHint = $this->directOrderArtworkHint($salesOrder);
+
+            if ($artworkHint !== null) {
+                return $artworkHint;
+            }
+        }
+
         return match ($salesOrder->status) {
             SalesOrderStatus::Draft => __('Confirm this order to accept it commercially. Production will start automatically when artwork and prerequisites are ready.'),
             SalesOrderStatus::Confirmed => $salesOrder->jobCard
@@ -99,6 +108,31 @@ class SalesOrderWorkflowService
             SalesOrderStatus::Cancelled => __('This order was cancelled.'),
             default => null,
         };
+    }
+
+    protected function directOrderArtworkHint(SalesOrder $salesOrder): ?string
+    {
+        if (! $salesOrder->is_direct_order) {
+            return null;
+        }
+
+        $salesOrder->loadMissing(['inventoryItem', 'artworkRequest']);
+
+        $artworkOk = ($salesOrder->uses_existing_artwork && $salesOrder->customer_artwork_id)
+            || ($salesOrder->artworkRequest && $salesOrder->artworkRequest->status === ArtworkRequestStatus::Approved);
+
+        if ($artworkOk) {
+            return null;
+        }
+
+        $requiresArtwork = app(DirectCustomerSalesOrderService::class)
+            ->productRequiresArtwork($salesOrder->inventoryItem);
+
+        if (! $requiresArtwork) {
+            return null;
+        }
+
+        return __('This direct order needs artwork on the print specification before production can start. Upload artwork to the specification, or create an artwork request for design work.');
     }
 
     /**

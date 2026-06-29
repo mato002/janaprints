@@ -42,8 +42,8 @@ class DispatchDashboardService
                 'inventoryItem:id,item_name,sku',
                 'salesOrder:id,order_number,required_date',
             ])
-            ->orderByRaw('CASE WHEN required_date IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('required_date')
+            ->latest('created_at')
+            ->latest('id')
             ->limit(25)
             ->get(['id', 'job_card_number', 'customer_id', 'inventory_item_id', 'sales_order_id', 'required_date', 'status']);
 

@@ -2,14 +2,20 @@
 
 namespace Tests\Feature\Sales;
 
+use App\Enums\CustomerArtworkStatus;
+use App\Enums\CustomerArtworkType;
+use App\Enums\CustomerPrintSpecificationStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\DomainCommunicationEvent;
+use App\Enums\InventoryStockRole;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
 use App\Events\Communications\DomainCommunicationEventRaised;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Models\Crm\CustomerArtwork;
+use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
@@ -39,15 +45,15 @@ class HybridSalesOrderC2aTest extends TestCase
             ->withHeader('Turbo-Frame', 'erp-form-modal')
             ->get(route('admin.sales-orders.create'))
             ->assertOk()
-            ->assertSee(__('From quotation'), false)
-            ->assertSee(__('Direct customer order'), false);
+            ->assertSee(__('From Quotation'), false)
+            ->assertSee(__('Direct Order'), false);
     }
 
     public function test_direct_order_creates_sales_order_without_quotation(): void
     {
         Event::fake([DomainCommunicationEventRaised::class]);
 
-        [$company, $branch, $customer, $user, $item] = $this->directContext();
+        [$company, $branch, $customer, $user, $item, $spec] = $this->directContext(withSpecification: true);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -55,7 +61,7 @@ class HybridSalesOrderC2aTest extends TestCase
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
                 'customer_id' => $customer->id,
-                'inventory_item_id' => $item->id,
+                'customer_print_specification_id' => $spec->id,
                 'quantity' => 250,
                 'unit_price' => 12.5,
                 'required_date' => now()->addWeek()->toDateString(),
@@ -80,7 +86,7 @@ class HybridSalesOrderC2aTest extends TestCase
     {
         Event::fake([DomainCommunicationEventRaised::class]);
 
-        [$company, $branch, $customer, $user, $item, $source] = $this->directContext(withSource: true);
+        [$company, $branch, $customer, $user, $item, $spec, $source] = $this->directContext(withSource: true, withSpecification: true);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -88,6 +94,7 @@ class HybridSalesOrderC2aTest extends TestCase
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
                 'customer_id' => $customer->id,
+                'customer_print_specification_id' => $spec->id,
                 'repeat_source_sales_order_id' => $source->id,
                 'quantity' => 1000,
                 'required_date' => now()->addDays(5)->toDateString(),
@@ -108,9 +115,9 @@ class HybridSalesOrderC2aTest extends TestCase
 
     public function test_direct_order_applies_customer_billing_defaults(): void
     {
-        [$company, $branch, $customer, $user, $item] = $this->directContext([
+        [$company, $branch, $customer, $user, $item, $spec] = $this->directContext([
             'payment_terms' => '50% deposit on order',
-        ]);
+        ], withSpecification: true);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -118,7 +125,7 @@ class HybridSalesOrderC2aTest extends TestCase
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
                 'customer_id' => $customer->id,
-                'inventory_item_id' => $item->id,
+                'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
                 'unit_price' => 100,
             ])
@@ -132,7 +139,7 @@ class HybridSalesOrderC2aTest extends TestCase
 
     public function test_order_context_endpoint_returns_customer_history(): void
     {
-        [$company, $branch, $customer, $user, , $source] = $this->directContext(withSource: true);
+        [$company, $branch, $customer, $user, , , $source] = $this->directContext(withSource: true, withSpecification: true);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -144,6 +151,7 @@ class HybridSalesOrderC2aTest extends TestCase
                 'previous_orders',
                 'previous_jobs',
                 'artwork_library',
+                'print_specifications',
                 'frequent_products',
                 'serial_profiles',
                 'billing_defaults',
@@ -151,9 +159,9 @@ class HybridSalesOrderC2aTest extends TestCase
     }
 
     /**
-     * @return array{0: Company, 1: Branch, 2: Customer, 3: User, 4: InventoryItem, 5?: SalesOrder}
+     * @return array{0: Company, 1: Branch, 2: Customer, 3: User, 4: InventoryItem, 5?: CustomerPrintSpecification|SalesOrder, 6?: SalesOrder}
      */
-    protected function directContext(array $customerOverrides = [], bool $withSource = false): array
+    protected function directContext(array $customerOverrides = [], bool $withSource = false, bool $withSpecification = false): array
     {
         [$company, $branch, $customer, $user] = $this->salesContext([
             'sales_orders.view', 'sales_orders.create', 'crm.customers.view',
@@ -167,8 +175,40 @@ class HybridSalesOrderC2aTest extends TestCase
             'company_id' => $company->id,
             'branch_id' => $branch->id,
             'item_name' => 'A4 Flyers',
+            'stock_role' => InventoryStockRole::FinishedGood,
             'is_active' => true,
         ]);
+
+        $spec = null;
+        if ($withSpecification) {
+            $spec = CustomerPrintSpecification::query()->create([
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'customer_id' => $customer->id,
+                'inventory_item_id' => $item->id,
+                'specification_code' => 'CPS-C2A-01',
+                'name' => 'A4 Flyers Spec',
+                'status' => CustomerPrintSpecificationStatus::Active,
+                'created_by' => $user->id,
+            ]);
+
+            CustomerArtwork::query()->create([
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'customer_id' => $customer->id,
+                'customer_print_specification_id' => $spec->id,
+                'artwork_name' => 'A4 Flyers Spec',
+                'artwork_type' => CustomerArtworkType::Layout,
+                'version_number' => 1,
+                'is_active_version' => true,
+                'file_path' => 'customer-artworks/test.png',
+                'file_name' => 'test.png',
+                'original_file_name' => 'test.png',
+                'status' => CustomerArtworkStatus::Active,
+                'uploaded_by' => $user->id,
+                'uploaded_at' => now(),
+            ]);
+        }
 
         $source = null;
 
@@ -177,6 +217,7 @@ class HybridSalesOrderC2aTest extends TestCase
                 'company_id' => $company->id,
                 'branch_id' => $branch->id,
                 'customer_id' => $customer->id,
+                'customer_print_specification_id' => $spec?->id,
                 'quotation_id' => null,
                 'artwork_request_id' => null,
                 'inventory_item_id' => $item->id,
@@ -194,6 +235,14 @@ class HybridSalesOrderC2aTest extends TestCase
                 'line_total' => 500,
                 'sort_order' => 1,
             ]);
+        }
+
+        if ($withSource) {
+            return [$company, $branch, $customer, $user, $item, $spec, $source];
+        }
+
+        if ($withSpecification) {
+            return [$company, $branch, $customer, $user, $item, $spec];
         }
 
         return [$company, $branch, $customer, $user, $item, $source];

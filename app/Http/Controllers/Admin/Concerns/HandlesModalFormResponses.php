@@ -32,6 +32,7 @@ trait HandlesModalFormResponses
         return response()->view('admin.partials.modal-form-success', [
             'message' => $message,
             'refresh' => $refreshWorkspace,
+            'redirect' => $redirect->getTargetUrl(),
         ]);
     }
 }

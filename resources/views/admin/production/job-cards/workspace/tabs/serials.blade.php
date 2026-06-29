@@ -1,6 +1,7 @@
 @php
     $allocation = $tabData['allocation'] ?? null;
     $loss = $tabData['loss_metrics'] ?? [];
+    $nextPreview = $tabData['next_range_preview'] ?? null;
 @endphp
 
 @if ($allocation)
@@ -12,6 +13,30 @@
             {{ $allocation->formatSerial($allocation->serial_end) }}
         </p>
         <p class="mt-1 text-sm text-slate-600">{{ __('Quantity') }}: {{ $allocation->allocatedQuantity() }}</p>
+        <dl class="mt-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
+            <div>
+                <dt class="text-slate-500">{{ __('Prefix') }}</dt>
+                <dd class="font-medium">{{ $allocation->serial_prefix !== '' ? $allocation->serial_prefix : __('—') }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">{{ __('Padding') }}</dt>
+                <dd class="font-medium">{{ $allocation->serial_padding_length }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">{{ __('Allocated start') }}</dt>
+                <dd class="font-medium tabular-nums">{{ $allocation->formatSerial($allocation->serial_start) }}</dd>
+            </div>
+            <div>
+                <dt class="text-slate-500">{{ __('Allocated end') }}</dt>
+                <dd class="font-medium tabular-nums">{{ $allocation->formatSerial($allocation->serial_end) }}</dd>
+            </div>
+            @if ($nextPreview)
+                <div class="sm:col-span-2">
+                    <dt class="text-slate-500">{{ __('Next expected range preview') }}</dt>
+                    <dd class="font-medium tabular-nums">{{ $nextPreview['start'] }} — {{ $nextPreview['end'] }}</dd>
+                </div>
+            @endif
+        </dl>
         @if ($allocation->is_confirmed)
             <p class="mt-2 text-sm text-emerald-700">
                 {{ __('Confirmed') }} {{ $allocation->confirmed_at?->format('Y-m-d H:i') }}

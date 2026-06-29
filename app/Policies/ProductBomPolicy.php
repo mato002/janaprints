@@ -32,6 +32,6 @@ class ProductBomPolicy
 
     public function delete(User $user, ProductBom $bom): bool
     {
-        return $user->can('production.bom.delete') && $this->sameTenant($user, $bom);
+        return $user->can('production.bom.edit') && $this->sameTenant($user, $bom);
     }
 }

@@ -43,7 +43,7 @@ class CustomerProductSerialProfileController extends Controller
 
         return $this->modalOrRedirect(
             __('Serial numbering profile saved.'),
-            redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'artwork']),
+            redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
         );
     }
 

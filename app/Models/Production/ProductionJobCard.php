@@ -12,6 +12,7 @@ use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerArtwork;
+use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\Vendor;
 use App\Models\Sales\Quotation;
@@ -34,6 +35,9 @@ class ProductionJobCard extends Model
     protected $fillable = [
         'company_id', 'branch_id', 'sales_order_id', 'customer_id', 'quotation_id',
         'artwork_request_id', 'inventory_item_id', 'customer_artwork_id',
+        'customer_print_specification_id', 'order_source',
+        'specification_code', 'specification_name', 'artwork_version_number',
+        'production_notes_snapshot', 'commercial_notes_snapshot', 'customer_instructions_snapshot',
         'job_card_number', 'production_type', 'priority',
         'planned_start_date', 'planned_end_date', 'required_date', 'estimated_duration_minutes',
         'actual_start_date', 'actual_end_date',
@@ -61,6 +65,7 @@ class ProductionJobCard extends Model
             'outsource_actual_cost' => 'decimal:2',
             'outsourced_at' => 'datetime',
             'returned_at' => 'datetime',
+            'artwork_version_number' => 'integer',
         ];
     }
 
@@ -92,6 +97,21 @@ class ProductionJobCard extends Model
     public function customerArtwork(): BelongsTo
     {
         return $this->belongsTo(CustomerArtwork::class);
+    }
+
+    public function customerPrintSpecification(): BelongsTo
+    {
+        return $this->belongsTo(CustomerPrintSpecification::class);
+    }
+
+    public function isDirectOrderSource(): bool
+    {
+        return $this->order_source === 'direct';
+    }
+
+    public function isQuotationOrderSource(): bool
+    {
+        return $this->order_source === 'quotation';
     }
 
     public function outsourceVendor(): BelongsTo

@@ -28,7 +28,10 @@ class CustomerPaymentController extends Controller
 
         $payments = $this->scopeToTenant(
             CustomerPayment::query()->with(['customer'])
-        )->latest('payment_date')->paginate(20);
+        )
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
+            ->paginate(20);
 
         return view('admin.sales.payments.index', compact('payments'));
     }
@@ -39,6 +42,7 @@ class CustomerPaymentController extends Controller
 
         $customer = null;
         $openInvoices = [];
+        $sourceInvoice = null;
 
         if ($request->filled('customer_id')) {
             $customer = Customer::query()->forTenant()->findOrFail($request->integer('customer_id'));
@@ -46,19 +50,26 @@ class CustomerPaymentController extends Controller
         }
 
         if ($request->filled('invoice_id')) {
-            $invoice = CustomerInvoice::query()->forTenant()->findOrFail($request->integer('invoice_id'));
-            $customer = $invoice->customer;
+            $sourceInvoice = CustomerInvoice::query()->forTenant()->findOrFail($request->integer('invoice_id'));
+            $customer = $sourceInvoice->customer;
             $openInvoices = $this->payments->openInvoicesForCustomer($customer->id);
         }
 
         $customers = Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']);
 
-        return view('admin.sales.payments.create', compact('customer', 'customers', 'openInvoices'));
+        return view('admin.sales.payments.create', compact('customer', 'customers', 'openInvoices', 'sourceInvoice'));
     }
 
     public function store(Request $request): RedirectResponse
     {
         $this->authorize('create', CustomerPayment::class);
+
+        $request->merge([
+            'allocations' => collect($request->input('allocations', []))
+                ->filter(fn (array $row) => (float) ($row['amount'] ?? 0) > 0)
+                ->values()
+                ->all(),
+        ]);
 
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
@@ -66,6 +77,7 @@ class CustomerPaymentController extends Controller
             'payment_method' => ['required', 'in:cash,bank,mpesa'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'is_deposit' => ['nullable', 'boolean'],
+            'post_now' => ['nullable', 'boolean'],
             'reference' => ['nullable', 'string', 'max:100'],
             'bank_reference' => ['nullable', 'string', 'max:100'],
             'mpesa_reference' => ['nullable', 'string', 'max:100'],
@@ -79,9 +91,18 @@ class CustomerPaymentController extends Controller
 
         $payment = $this->payments->create($customer, (int) auth()->id(), $validated);
 
+        if ($request->boolean('post_now')) {
+            $this->authorize('post', $payment);
+            $payment = $this->payments->post($payment, (int) auth()->id());
+
+            return redirect()
+                ->route('admin.payments.receipt', $payment)
+                ->with('status', __('Payment recorded and receipt generated.'));
+        }
+
         return redirect()
             ->route('admin.payments.show', $payment)
-            ->with('status', __('Payment recorded as draft.'));
+            ->with('status', __('Payment saved as draft. Post it to update invoice balances and generate a receipt.'));
     }
 
     public function show(CustomerPayment $payment): View

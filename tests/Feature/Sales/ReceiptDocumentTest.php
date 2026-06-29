@@ -14,6 +14,7 @@ use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Support\Documents\Presenters\ReceiptDocumentPresenter;
 use App\Support\Sales\CustomerInvoiceService;
+use App\Support\Sales\CustomerPaymentReceiptService;
 use App\Support\Sales\CustomerPaymentService;
 use App\Support\TenantContext;
 use Database\Seeders\GlAccountTypeSeeder;
@@ -189,6 +190,19 @@ class ReceiptDocumentTest extends TestCase
             ->assertOk()
             ->assertSee('Balance Before')
             ->assertSee('Balance After');
+    }
+
+    public function test_receipt_balance_uses_allocated_invoice_totals_when_credit_note_exists(): void
+    {
+        $credit = app(CustomerInvoiceService::class)->createCreditNote($this->invoice, $this->user->id, []);
+        app(CustomerInvoiceService::class)->approve($credit, $this->user->id);
+        app(CustomerInvoiceService::class)->post($credit, $this->user->id);
+
+        $payment = $this->postFullPayment();
+        $receipt = app(CustomerPaymentReceiptService::class)->build($payment);
+
+        $this->assertEqualsWithDelta((float) $this->invoice->total_amount, $receipt['balance_before'], 0.01);
+        $this->assertEqualsWithDelta(0, $receipt['balance_remaining'], 0.01);
     }
 
     public function test_invoice_allocation_table_renders(): void

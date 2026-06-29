@@ -25,7 +25,7 @@ class ReceiptDocumentPresenter
 
         $currency = $receipt['currency'] ?: 'KES';
         $balanceAfter = round((float) $receipt['balance_remaining'], 2);
-        $accountSettled = $balanceAfter <= 0;
+        $accountSettled = $balanceAfter <= 0 && (float) $receipt['allocated_amount'] > 0;
 
         return [
             'logoDataUri' => $this->documentsLogoDataUri($payment->company_id),

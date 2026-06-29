@@ -77,7 +77,7 @@
                                         <button type="submit" class="erp-btn-primary text-xs py-1">{{ __('Create delivery note') }}</button>
                                     </form>
                                 @else
-                                    <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch']) }}" class="text-sm text-erp-accent hover:underline">{{ __('Open job') }}</a>
+                                    <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch', 'embedded' => request('embedded')]) }}" class="text-sm text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('Open job') }}</a>
                                 @endif
                             </td>
                         </tr>

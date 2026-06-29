@@ -3,10 +3,13 @@
 namespace App\Models\Sales;
 
 use App\Enums\FulfilmentMethod;
+use App\Enums\ProductionPriority;
+use App\Enums\CustomerInvoiceStatus;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\Crm\CustomerArtwork;
+use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Production\ProductionJobCard;
@@ -29,10 +32,11 @@ class SalesOrder extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'customer_id', 'quotation_id', 'artwork_request_id',
+        'company_id', 'branch_id', 'customer_id', 'customer_print_specification_id',
+        'quotation_id', 'artwork_request_id',
         'inventory_item_id', 'uses_existing_artwork', 'customer_artwork_id',
         'artwork_confirmed_by', 'artwork_confirmed_at',
-        'order_number', 'order_date', 'required_date', 'status',
+        'order_number', 'order_date', 'required_date', 'priority', 'status',
         'subtotal', 'tax_amount', 'discount_amount', 'total_amount',
         'invoiced_subtotal', 'invoiced_tax_amount', 'invoiced_total',
         'notes', 'created_by',
@@ -58,6 +62,7 @@ class SalesOrder extends Model
             'uses_existing_artwork' => 'boolean',
             'artwork_confirmed_at' => 'datetime',
             'is_direct_order' => 'boolean',
+            'priority' => ProductionPriority::class,
             'fulfilment_method' => FulfilmentMethod::class,
             'billing_type' => SalesOrderBillingType::class,
             'payment_terms_days' => 'integer',
@@ -65,6 +70,11 @@ class SalesOrder extends Model
             'deposit_invoiced_amount' => 'decimal:2',
             'deposit_paid_amount' => 'decimal:2',
         ];
+    }
+
+    public function customerPrintSpecification(): BelongsTo
+    {
+        return $this->belongsTo(CustomerPrintSpecification::class);
     }
 
     public function customer(): BelongsTo
@@ -127,6 +137,11 @@ class SalesOrder extends Model
         return $this->hasOne(ProductionJobCard::class);
     }
 
+    public function repeatSource(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'repeat_source_sales_order_id');
+    }
+
     public function productionSpecifications(): HasMany
     {
         return $this->hasMany(ProductionSpecification::class);
@@ -137,9 +152,19 @@ class SalesOrder extends Model
         return $this->hasMany(CustomerInvoice::class);
     }
 
+    public function pendingInvoiceTotal(): float
+    {
+        return (float) $this->invoices()
+            ->whereIn('status', [
+                CustomerInvoiceStatus::Draft,
+                CustomerInvoiceStatus::Approved,
+            ])
+            ->sum('total_amount');
+    }
+
     public function remainingInvoiceTotal(): float
     {
-        return round(max(0, (float) $this->total_amount - (float) $this->invoiced_total), 2);
+        return round(max(0, (float) $this->total_amount - (float) $this->invoiced_total - $this->pendingInvoiceTotal()), 2);
     }
 
     public function transitionTo(SalesOrderStatus $status): void

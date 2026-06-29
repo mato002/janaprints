@@ -18,7 +18,7 @@
             @endif
         </div>
     @else
-        <p class="mb-4 text-sm text-slate-600">{{ __('Link artwork from the customer library or an approved artwork request before converting to a sales order.') }}</p>
+        <p class="mb-4 text-sm text-slate-600">{{ __('Link artwork from a print specification or an approved artwork request before converting to a sales order.') }}</p>
     @endif
 
     @can('linkArtwork', $quotation)
@@ -29,7 +29,7 @@
                     <label class="erp-label">{{ __('Artwork source') }}</label>
                     <select name="artwork_source" class="erp-input w-full max-w-md" x-model="source" required>
                         @if (count($artworkLink['library']) > 0)
-                            <option value="library">{{ __('Customer artwork library') }}</option>
+                            <option value="library">{{ __('Artwork version (print specification)') }}</option>
                         @endif
                         @if (count($artworkLink['requests']) > 0)
                             <option value="request">{{ __('Approved artwork request') }}</option>
@@ -39,7 +39,7 @@
 
                 @if (count($artworkLink['library']) > 0)
                     <div x-show="source === 'library'" x-cloak>
-                        <label class="erp-label">{{ __('Library artwork') }}</label>
+                        <label class="erp-label">{{ __('Artwork version') }}</label>
                         <select name="customer_artwork_id" class="erp-input w-full max-w-xl" :required="source === 'library'">
                             <option value="">{{ __('Select artwork') }}</option>
                             @foreach ($artworkLink['library'] as $item)
@@ -64,7 +64,7 @@
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="submit" class="erp-btn-primary">{{ $artworkLink['linked'] ? __('Change linked artwork') : __('Link artwork') }}</button>
                     @if ($quotation->customer)
-                        <a href="{{ route('admin.crm.customers.show', ['customer' => $quotation->customer, 'tab' => 'artwork']) }}" class="erp-btn-ghost text-sm">{{ __('Manage customer artwork') }}</a>
+                        <a href="{{ route('admin.crm.customers.show', ['customer' => $quotation->customer, 'tab' => 'print-specifications']) }}" class="erp-btn-ghost text-sm">{{ __('Manage print specifications') }}</a>
                     @endif
                 </div>
             </form>
@@ -72,7 +72,7 @@
             <div class="rounded-lg border border-dashed border-erp-border p-4 text-sm text-slate-600">
                 <p>{{ __('No artwork is available for this customer yet.') }}</p>
                 @if ($quotation->customer)
-                    <a href="{{ route('admin.crm.customers.show', ['customer' => $quotation->customer, 'tab' => 'artwork']) }}" class="mt-2 inline-block text-erp-accent">{{ __('Upload artwork on customer profile') }}</a>
+                    <a href="{{ route('admin.crm.customers.show', ['customer' => $quotation->customer, 'tab' => 'print-specifications']) }}" class="mt-2 inline-block text-erp-accent">{{ __('Add artwork via print specifications') }}</a>
                 @endif
             </div>
         @endif

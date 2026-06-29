@@ -178,6 +178,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::put('boms/{bom}', [ProductBomController::class, 'update'])->name('boms.update');
         });
 
+        Route::middleware('permission:production.bom.edit')->group(function () {
+            Route::delete('boms/{bom}', [ProductBomController::class, 'destroy'])->name('boms.destroy');
+        });
+
         Route::middleware('permission:production.bom.view')->group(function () {
             Route::get('print-templates', [PrintProductTemplateController::class, 'index'])->name('print-templates.index');
             Route::get('print-templates/export', [PrintProductTemplateController::class, 'export'])->name('print-templates.export');

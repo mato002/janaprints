@@ -3,6 +3,17 @@
     $completion = $tabData['completion'] ?? ['eligible' => false, 'blockers' => []];
 @endphp
 
+@if (! ($completion['eligible'] ?? false) && ! empty($completion['blockers'] ?? []))
+    <x-admin.card class="mb-4 border-amber-200 bg-amber-50">
+        <h3 class="mb-2 text-sm font-semibold text-amber-900">{{ __('Before you can post finished goods') }}</h3>
+        <ul class="list-disc space-y-1 pl-5 text-sm text-amber-900">
+            @foreach ($completion['blockers'] as $blocker)
+                <li>{{ $blocker }}</li>
+            @endforeach
+        </ul>
+    </x-admin.card>
+@endif
+
 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Production outputs') }}</h3>

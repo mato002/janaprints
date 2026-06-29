@@ -6,7 +6,7 @@
     $inFormModal = request()->header('Turbo-Frame') === 'erp-form-modal';
 @endphp
 
-<div class="erp-form-modal__actions">
+<div {{ $attributes->class(['erp-form-modal__actions']) }}>
     @if ($inFormModal)
         <button type="button" class="erp-btn-secondary" data-erp-form-modal-close>
             {{ __('Cancel') }}

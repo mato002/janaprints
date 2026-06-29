@@ -25,7 +25,11 @@ class DirectCustomerOrderController extends Controller
     {
         $this->authorize('view', $customer);
 
-        return response()->json($this->context->build($customer));
+        $payload = $request->query('scope') === 'direct-order'
+            ? $this->context->buildForDirectOrder($customer)
+            : $this->context->build($customer);
+
+        return response()->json($payload);
     }
 
     public function orderSpecification(Customer $customer, SalesOrder $salesOrder): JsonResponse
@@ -45,12 +49,26 @@ class DirectCustomerOrderController extends Controller
         abort_unless((int) $salesOrder->customer_id === (int) $customer->id, 404);
 
         $validated = $request->validate([
+            'customer_print_specification_id' => ['nullable', 'exists:customer_print_specifications,id'],
             'quantity' => ['nullable', 'numeric', 'min:0.001'],
             'required_date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $order = $this->orders->repeatFrom($salesOrder, (int) $request->user()->id, $validated);
+        if (! empty($validated['customer_print_specification_id'])) {
+            $spec = \App\Models\Crm\CustomerPrintSpecification::query()
+                ->forTenant()
+                ->where('customer_id', $customer->id)
+                ->findOrFail($validated['customer_print_specification_id']);
+
+            $order = $this->orders->repeatFromPrintSpecification($spec, (int) $request->user()->id, [
+                ...$validated,
+                'repeat_source_sales_order_id' => $salesOrder->id,
+                'unit_price' => (float) ($salesOrder->items->first()?->unit_price ?? 0),
+            ]);
+        } else {
+            $order = $this->orders->repeatFrom($salesOrder, (int) $request->user()->id, $validated);
+        }
 
         return redirect()
             ->route('admin.sales-orders.show', $order)

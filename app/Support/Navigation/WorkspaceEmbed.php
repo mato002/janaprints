@@ -67,4 +67,15 @@ class WorkspaceEmbed
             ? 'module-workspace-content'
             : 'erp-main';
     }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function turboLinkAttributes(?Request $request = null): array
+    {
+        return [
+            'data-turbo-frame' => self::turboFrame($request),
+            'data-turbo-action' => 'advance',
+        ];
+    }
 }

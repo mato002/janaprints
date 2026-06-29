@@ -8,6 +8,7 @@ use App\Enums\StockReceiptSource;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Inventory\InventoryItem;
+use App\Models\Inventory\ProductionMaterialConsumption;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\Warehouse;
 use App\Models\Production\ProductionJobCard;
@@ -161,6 +162,48 @@ class BomMaterialRequirementsTest extends TestCase
         $this->assertGreaterThan(0, (float) $costSheet->material_cost);
     }
 
+    public function test_manual_consumption_is_capped_by_open_requirement(): void
+    {
+        [$company, $branch, $user, $finished, $paper, $ink, $warehouse, $jobCard] = $this->jobWithBom();
+
+        $this->postReceipt($company, $branch, $user, $paper, $warehouse, 2000);
+
+        $warehouse = Warehouse::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->physical()
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $service = app(MaterialRequirementsService::class);
+        $requirements = $service->generate($jobCard, $warehouse->id, $user->id);
+        $paperRequirement = $requirements->firstWhere('inventory_item_id', $paper->id);
+        $requiredQty = (float) $paperRequirement->required_quantity;
+
+        $this->actingAs($user)
+            ->post(route('admin.inventory.production.consume', $jobCard), [
+                'inventory_item_id' => $paper->id,
+                'warehouse_id' => $warehouse->id,
+                'quantity' => $requiredQty / 2,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $paperRequirement->refresh();
+        $this->assertEqualsWithDelta($requiredQty / 2, (float) $paperRequirement->consumed_quantity, 0.01);
+        $this->assertEqualsWithDelta($requiredQty / 2, $paperRequirement->remainingQuantity(), 0.01);
+
+        $this->actingAs($user)
+            ->post(route('admin.production.job-cards.materials.consume', [$jobCard, $paperRequirement]), [
+                'quantity' => $requiredQty,
+            ])
+            ->assertSessionHasErrors('quantity');
+
+        $this->assertSame(1, ProductionMaterialConsumption::query()->where('production_job_card_id', $jobCard->id)->count());
+    }
+
     public function test_viewer_cannot_create_bom(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['production.bom.view']);
@@ -256,7 +299,12 @@ class BomMaterialRequirementsTest extends TestCase
             ['inventory_item_id' => $ink->id, 'quantity_per_unit' => 0.02, 'waste_factor_percent' => 3],
         ]);
 
-        $warehouse = Warehouse::query()->where('company_id', $company->id)->where('branch_id', $branch->id)->firstOrFail();
+        $warehouse = Warehouse::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->physical()
+            ->where('is_active', true)
+            ->firstOrFail();
 
         $salesOrder = SalesOrder::factory()->create([
             'company_id' => $company->id,

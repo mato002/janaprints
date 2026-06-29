@@ -5,7 +5,7 @@
         name="company_name"
         :label="__('Company name')"
         :value="old('company_name', $customer?->company_name ?? ($fields['company_name']['default'] ?? ''))"
-        :required="($fields['company_name']['required'] ?? true)"
+        :required="($fields['company_name']['required'] ?? false)"
         :readonly="($fields['company_name']['read_only'] ?? false)"
     />
     @endif
@@ -128,7 +128,7 @@
         />
     @endif
 
-    @if (auth()->user()->hasRole('Super Admin') && ! $customer)
+    @if (auth()->user()->hasRole('Super Admin') && ! $customer && ! tenant()->hasCompany())
         <x-admin.form-field name="company_id" :label="__('Company')" :required="true">
             <select name="company_id" class="erp-select w-full" required>
                 @foreach ($companies as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach

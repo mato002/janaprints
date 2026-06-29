@@ -17,9 +17,14 @@
                 />
             @endcan
             @can('emailInvoice', $invoice)
-                <form method="POST" action="{{ route('admin.invoices.email', $invoice) }}" class="inline">@csrf
-                    <button type="submit" class="erp-btn-secondary">{{ __('Email invoice') }}</button>
-                </form>
+                <x-documents.email-submit-form
+                    :action="route('admin.invoices.email', $invoice)"
+                    :label="__('Email invoice')"
+                    :submitting-label="__('Sending email…')"
+                    :submitting-message="filled($invoice->customer?->email)
+                        ? __('Sending invoice to :recipient…', ['recipient' => $invoice->customer->email])
+                        : __('Sending invoice…')"
+                />
             @endcan
             @can('update', $invoice)
                 <a href="{{ route('admin.invoices.edit', $invoice) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>

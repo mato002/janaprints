@@ -175,7 +175,7 @@ class CustomerInvoiceFoundationTest extends TestCase
         $invoice = app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder, $this->user->id);
 
         $this->assertNotEmpty($invoice->invoice_number);
-        $this->assertSame(CustomerInvoiceStatus::Draft, $invoice->status);
+        $this->assertSame(CustomerInvoiceStatus::Approved, $invoice->status);
     }
 
     public function test_create_invoice_from_sales_order_page_is_not_redirected_to_workspace_desk(): void
@@ -183,11 +183,11 @@ class CustomerInvoiceFoundationTest extends TestCase
         $this->actingAs($this->user)
             ->get(route('admin.invoices.from-sales-order', $this->salesOrder))
             ->assertOk()
-            ->assertSee(__('Create draft invoice'), false)
+            ->assertSee(__('Create invoice'), false)
             ->assertSee($this->salesOrder->order_number, false);
     }
 
-    public function test_store_from_sales_order_creates_draft_invoice(): void
+    public function test_store_from_sales_order_creates_approved_invoice(): void
     {
         $this->actingAs($this->user)
             ->post(route('admin.invoices.store-from-sales-order', $this->salesOrder), [
@@ -198,7 +198,7 @@ class CustomerInvoiceFoundationTest extends TestCase
 
         $invoice = CustomerInvoice::query()->where('sales_order_id', $this->salesOrder->id)->first();
         $this->assertNotNull($invoice);
-        $this->assertSame(CustomerInvoiceStatus::Draft, $invoice->status);
+        $this->assertSame(CustomerInvoiceStatus::Approved, $invoice->status);
         $this->assertGreaterThan(0, $invoice->lines()->count());
     }
 
@@ -214,7 +214,6 @@ class CustomerInvoiceFoundationTest extends TestCase
 
         $service = app(CustomerInvoiceService::class);
         $invoice = $service->createFromSalesOrder($this->salesOrder, $this->user->id);
-        $service->approve($invoice, $this->user->id);
 
         $this->actingAs($superAdmin)
             ->get(route('admin.invoices.show', $invoice))
@@ -239,16 +238,15 @@ class CustomerInvoiceFoundationTest extends TestCase
             'sort_order' => 1,
         ]);
 
-        $draft = $service->createFromSalesOrder($secondOrder, $this->user->id);
+        $approvedInvoice = $service->createFromSalesOrder($secondOrder, $this->user->id);
 
         $this->actingAs($superAdmin)
-            ->get(route('admin.invoices.show', $draft))
+            ->get(route('admin.invoices.show', $approvedInvoice))
             ->assertOk()
             ->assertSee(__('Post to AR'), false);
 
         $this->actingAs($superAdmin)
-            ->post(route('admin.invoices.post', $draft))
-            ->assertRedirect()
-            ->assertSessionHasErrors('workflow');
+            ->post(route('admin.invoices.post', $approvedInvoice))
+            ->assertRedirect();
     }
 }

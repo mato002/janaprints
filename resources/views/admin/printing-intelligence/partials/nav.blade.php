@@ -1,6 +1,4 @@
 @php
-    use App\Support\Navigation\WorkspaceEmbed;
-
     $nav = [
         ['label' => __('Overview'), 'route' => 'admin.printing-intelligence.overview', 'permission' => 'printing.intelligence.view'],
         ['label' => __('Artwork Analysis'), 'route' => 'admin.printing-intelligence.artwork-analysis.index', 'permission' => 'printing.intelligence.view'],
@@ -16,22 +14,6 @@
         ['label' => __('Operations Advisor'), 'route' => 'admin.printing-intelligence.operations-advisor', 'permission' => 'printing.advisor.view'],
         ['label' => __('Configuration'), 'route' => 'admin.printing-intelligence.configuration', 'permission' => 'printing.intelligence.configure'],
     ];
-    $nav = array_values(array_filter($nav, fn ($link) => auth()->user()?->can($link['permission'])));
 @endphp
 
-@if (! WorkspaceEmbed::inWorkspaceContext())
-<x-admin.card class="mb-4">
-    <nav class="flex flex-wrap gap-2">
-        @foreach ($nav as $link)
-            <a href="{{ route($link['route']) }}"
-               @class([
-                   'rounded-md px-3 py-1.5 text-xs font-medium',
-                   'bg-slate-900 text-white' => request()->routeIs($link['route']) || request()->routeIs(str_replace('.overview', '.*', $link['route'])),
-                   'bg-slate-100 text-slate-700 hover:bg-slate-200' => ! request()->routeIs($link['route']),
-               ])>
-                {{ $link['label'] }}
-            </a>
-        @endforeach
-    </nav>
-</x-admin.card>
-@endif
+<x-admin.workspace-nav :links="$nav" variant="compact" class="mb-4 rounded-lg border border-slate-200 bg-white p-3" />

@@ -237,39 +237,84 @@ class MaterialRequirementsService
         int $userId,
         ?float $quantity = null,
     ): ProductionMaterialConsumption {
-        $qty = $quantity ?? $requirement->remainingQuantity();
+        return DB::transaction(function () use ($requirement, $userId, $quantity) {
+            $requirement = ProductionMaterialRequirement::query()
+                ->whereKey($requirement->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($qty <= 0) {
-            throw ValidationException::withMessages([
-                'quantity' => __('Nothing remaining to consume for this requirement.'),
-            ]);
-        }
+            $this->linkOrphanConsumptions($requirement);
 
-        if ($qty > $requirement->remainingQuantity()) {
-            throw ValidationException::withMessages([
-                'quantity' => __('Quantity exceeds remaining requirement.'),
-            ]);
-        }
+            $qty = $quantity ?? $requirement->remainingQuantity();
 
-        $item = $requirement->inventoryItem ?? InventoryItem::query()->findOrFail($requirement->inventory_item_id);
-        $jobCard = $requirement->jobCard ?? ProductionJobCard::query()->findOrFail($requirement->production_job_card_id);
+            if ($qty <= 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => __('Nothing remaining to consume for this requirement.'),
+                ]);
+            }
 
-        return ProductionMaterialConsumptionService::consume(
-            $jobCard,
-            $item,
-            (int) $requirement->warehouse_id,
-            $qty,
-            $userId,
-            (float) $requirement->unit_cost > 0 ? (float) $requirement->unit_cost : null,
-            $requirement->id,
-        );
+            if ($qty > $requirement->remainingQuantity()) {
+                throw ValidationException::withMessages([
+                    'quantity' => __('Quantity exceeds remaining requirement. Only :remaining :unit remain.', [
+                        'remaining' => $requirement->remainingQuantity(),
+                        'unit' => $requirement->inventoryItem?->unitOfMeasure?->code ?? '',
+                    ]),
+                ]);
+            }
+
+            $item = $requirement->inventoryItem ?? InventoryItem::query()->findOrFail($requirement->inventory_item_id);
+            $jobCard = $requirement->jobCard ?? ProductionJobCard::query()->findOrFail($requirement->production_job_card_id);
+
+            return ProductionMaterialConsumptionService::consume(
+                $jobCard,
+                $item,
+                (int) $requirement->warehouse_id,
+                $qty,
+                $userId,
+                (float) $requirement->unit_cost > 0 ? (float) $requirement->unit_cost : null,
+                $requirement->id,
+            );
+        });
+    }
+
+    public function findOpenRequirement(
+        ProductionJobCard $jobCard,
+        int $inventoryItemId,
+        int $warehouseId,
+    ): ?ProductionMaterialRequirement {
+        return ProductionMaterialRequirement::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->where('inventory_item_id', $inventoryItemId)
+            ->where('warehouse_id', $warehouseId)
+            ->orderBy('id')
+            ->get()
+            ->first(fn (ProductionMaterialRequirement $requirement) => $requirement->remainingQuantity() > 0);
+    }
+
+    public function linkOrphanConsumptions(ProductionMaterialRequirement $requirement): void
+    {
+        ProductionMaterialConsumption::query()
+            ->where('production_job_card_id', $requirement->production_job_card_id)
+            ->where('inventory_item_id', $requirement->inventory_item_id)
+            ->where('warehouse_id', $requirement->warehouse_id)
+            ->whereNull('production_material_requirement_id')
+            ->update(['production_material_requirement_id' => $requirement->id]);
+    }
+
+    public function recordedConsumedQuantity(ProductionMaterialRequirement $requirement): float
+    {
+        $this->linkOrphanConsumptions($requirement);
+
+        return (float) ProductionMaterialConsumption::query()
+            ->where('production_material_requirement_id', $requirement->id)
+            ->sum('quantity');
     }
 
     public function syncRequirementFromConsumption(ProductionMaterialRequirement $requirement): ProductionMaterialRequirement
     {
-        $consumed = (float) ProductionMaterialConsumption::query()
-            ->where('production_material_requirement_id', $requirement->id)
-            ->sum('quantity');
+        $this->linkOrphanConsumptions($requirement);
+
+        $consumed = $this->recordedConsumedQuantity($requirement);
 
         $issued = (float) ProductionMaterialIssue::query()
             ->where('production_material_requirement_id', $requirement->id)
@@ -376,7 +421,7 @@ class MaterialRequirementsService
             return MaterialRequirementStatus::Fulfilled;
         }
 
-        if ((float) $requirement->consumed_quantity > 0) {
+        if ($this->recordedConsumedQuantity($requirement) > 0) {
             return MaterialRequirementStatus::Partial;
         }
 
@@ -407,6 +452,15 @@ class MaterialRequirementsService
                 'finished_item_id' => (int) $orderItem->inventory_item_id,
                 'quantity' => (float) $orderItem->quantity,
                 'sales_order_item_id' => $orderItem->id,
+            ]);
+        }
+
+        if ($sources->isEmpty() && $jobCard->salesOrder?->inventory_item_id) {
+            $qty = (float) ($jobCard->salesOrder->items->sum('quantity') ?: 1);
+            $sources->push([
+                'finished_item_id' => (int) $jobCard->salesOrder->inventory_item_id,
+                'quantity' => $qty > 0 ? $qty : 1,
+                'sales_order_item_id' => null,
             ]);
         }
 

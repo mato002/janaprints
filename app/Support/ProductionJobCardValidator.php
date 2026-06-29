@@ -24,13 +24,20 @@ class ProductionJobCardValidator
                 ]);
             }
 
+            $salesOrder->loadMissing('inventoryItem');
+
             $artworkOk = ($salesOrder->uses_existing_artwork && $salesOrder->customer_artwork_id)
                 || ($salesOrder->artworkRequest && $salesOrder->artworkRequest->status === ArtworkRequestStatus::Approved);
 
             if (! $artworkOk) {
-                throw ValidationException::withMessages([
-                    'artwork' => __('Artwork must be confirmed or approved before creating a job card.'),
-                ]);
+                $requiresArtwork = app(\App\Support\Sales\DirectCustomerSalesOrderService::class)
+                    ->productRequiresArtwork($salesOrder->inventoryItem);
+
+                if ($requiresArtwork) {
+                    throw ValidationException::withMessages([
+                        'artwork' => __('This specification has no active artwork version. Job card cannot be created.'),
+                    ]);
+                }
             }
         } else {
             if (! $salesOrder->customer_id || ! $salesOrder->quotation_id || ! $salesOrder->artwork_request_id) {

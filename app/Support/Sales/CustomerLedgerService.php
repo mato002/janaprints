@@ -3,6 +3,7 @@
 namespace App\Support\Sales;
 
 use App\Enums\CustomerInvoiceStatus;
+use App\Enums\CustomerInvoiceType;
 use App\Enums\CustomerPaymentStatus;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerPayment;
@@ -38,6 +39,12 @@ class CustomerLedgerService
 
         if ($fromDate) {
             $opening += (float) (clone $invoiceQuery)
+                ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
+                ->whereDate('invoice_date', '<', $fromDate)
+                ->sum('total_amount');
+
+            $opening -= (float) (clone $invoiceQuery)
+                ->where('invoice_type', CustomerInvoiceType::CreditNote)
                 ->whereDate('invoice_date', '<', $fromDate)
                 ->sum('total_amount');
 
@@ -57,13 +64,15 @@ class CustomerLedgerService
         $entries = collect();
 
         foreach ($invoiceQuery->orderBy('invoice_date')->orderBy('id')->get() as $invoice) {
+            $isCreditNote = $invoice->invoice_type === CustomerInvoiceType::CreditNote;
+
             $entries->push((object) [
                 'date' => $invoice->invoice_date->toDateString(),
-                'type' => 'invoice',
+                'type' => $isCreditNote ? 'credit_note' : 'invoice',
                 'reference' => $invoice->invoice_number,
                 'description' => $invoice->invoice_type->label(),
-                'debit' => (float) $invoice->total_amount,
-                'credit' => 0.0,
+                'debit' => $isCreditNote ? 0.0 : (float) $invoice->total_amount,
+                'credit' => $isCreditNote ? (float) $invoice->total_amount : 0.0,
                 'source_id' => $invoice->id,
             ]);
         }
