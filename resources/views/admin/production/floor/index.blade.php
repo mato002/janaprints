@@ -22,7 +22,7 @@
         class="production-floor"
         x-data="productionFloor(@js([
             'panelBase' => url('admin/production/floor/jobs'),
-            'initialJobId' => request('job'),
+            'initialJobKey' => request('job'),
         ]))"
         x-cloak
     >

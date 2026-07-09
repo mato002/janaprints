@@ -7,6 +7,7 @@ use App\Enums\ArtworkRequestStatus;
 use App\Enums\QuotationStatus;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Crm\Lead;
@@ -22,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Quotation extends Model
 {
     /** @use HasFactory<QuotationFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

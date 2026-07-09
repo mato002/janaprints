@@ -15,7 +15,7 @@
             />
         </div>
 
-        @if ($invoice->items->isNotEmpty())
+        @if ($invoice->lines->isNotEmpty())
             <div class="client-table-wrap">
                 <table class="client-table">
                     <thead>
@@ -26,7 +26,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($invoice->items as $item)
+                        @foreach ($invoice->lines as $item)
                             <tr>
                                 <td>{{ $item->description }}</td>
                                 <td>{{ number_format((float) $item->quantity, 0) }}</td>

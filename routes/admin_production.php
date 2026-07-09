@@ -8,7 +8,7 @@ use App\Http\Controllers\Admin\Production\ProductionGovernanceController;
 use App\Http\Controllers\Admin\Production\ProductionOutputController;
 use App\Http\Controllers\Admin\Production\ProductionJobCardController;
 use App\Http\Controllers\Admin\Production\ProductionOperationController;
-use App\Http\Controllers\Admin\Production\ProductionQualityController;
+use App\Http\Controllers\Admin\Production\ProductionJobCardScanController;
 use App\Http\Controllers\Admin\Production\ProductionQueueController;
 use App\Http\Controllers\Admin\Production\ProductionSchedulingController;
 use App\Http\Controllers\Admin\Production\QualityCheckController;
@@ -32,6 +32,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:production.view')->group(function () {
             Route::get('floor', [ProductionFloorController::class, 'index'])->name('floor');
             Route::get('floor/jobs/{jobCard}/panel', [ProductionFloorController::class, 'panel'])->name('floor.panel');
+            Route::get('scan/{code}', [ProductionJobCardScanController::class, 'scan'])->name('scan.show');
         });
 
         Route::middleware('permission:machines.assign')->group(function () {
@@ -51,6 +52,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:production.view')->group(function () {
             Route::get('job-cards', [ProductionJobCardController::class, 'index'])->name('job-cards.index');
             Route::get('job-cards/export', [ProductionJobCardController::class, 'export'])->name('job-cards.export');
+            Route::get('job-cards/{jobCard}/label', [ProductionJobCardScanController::class, 'label'])->name('job-cards.label');
         });
 
         Route::middleware('permission:production.work-centers.view')->group(function () {
@@ -114,6 +116,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('job-cards/{jobCard}/edit', [ProductionJobCardController::class, 'edit'])->name('job-cards.edit');
             Route::put('job-cards/{jobCard}', [ProductionJobCardController::class, 'update'])->name('job-cards.update');
             Route::post('job-cards/{jobCard}/hold', [ProductionJobCardController::class, 'hold'])->name('job-cards.hold');
+            Route::post('job-cards/{jobCard}/pause', [ProductionJobCardController::class, 'pause'])->name('job-cards.pause');
+            Route::post('job-cards/{jobCard}/resume', [ProductionJobCardController::class, 'resume'])->name('job-cards.resume');
             Route::post('job-cards/{jobCard}/cancel', [ProductionJobCardController::class, 'cancel'])->name('job-cards.cancel');
         });
 

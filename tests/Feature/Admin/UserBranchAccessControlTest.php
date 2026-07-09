@@ -86,7 +86,7 @@ class UserBranchAccessControlTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.crm.leads.show', $foreignLead))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_hq_access(): void

@@ -45,7 +45,7 @@
     @if (! empty($latestOrderForRepeat))
         <form
             method="POST"
-            action="{{ route('admin.crm.customers.repeat-order', [$customer, $latestOrderForRepeat->id]) }}"
+            action="{{ route('admin.crm.customers.repeat-order', [$customer, $latestOrderForRepeat]) }}"
             class="block"
             onsubmit="return confirm(@js(__('Create a repeat order from :number?', ['number' => $latestOrderForRepeat->order_number])))"
         >

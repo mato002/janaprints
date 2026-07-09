@@ -5,13 +5,40 @@
     @keydown.escape.window="closePanel()"
 >
     <div class="absolute inset-0 bg-slate-900/30" @click="closePanel()"></div>
-    <aside class="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-erp-border bg-white shadow-xl">
+    <aside class="relative z-10 flex h-full w-full max-w-lg flex-col border-l border-erp-border bg-white shadow-xl production-operator-panel">
         <div class="flex items-center justify-between border-b border-erp-border px-4 py-3">
             <div>
                 <p class="text-xs uppercase tracking-wide text-slate-500">{{ __('Job panel') }}</p>
                 <h2 class="text-lg font-semibold text-erp-primary" x-text="panel?.header?.job_number ?? '—'"></h2>
+                <p class="text-sm font-medium text-slate-700" x-text="panel?.header?.status ?? ''"></p>
             </div>
-            <button type="button" class="erp-btn-secondary text-sm" @click="closePanel()">{{ __('Close') }}</button>
+            <button type="button" class="production-operator-btn erp-btn-secondary" @click="closePanel()">{{ __('Close') }}</button>
+        </div>
+
+        <div class="production-operator-sticky border-b border-erp-border bg-slate-50 px-4 py-3" x-show="panel?.operator_actions?.length">
+            <div class="flex flex-wrap gap-2">
+                <template x-for="(action, idx) in panel.operator_actions ?? []" :key="idx">
+                    <template x-if="action.type === 'post'">
+                        <form :action="action.url" method="POST">
+                            <input type="hidden" name="_token" :value="csrf">
+                            <button
+                                type="submit"
+                                class="production-operator-btn"
+                                :class="action.variant === 'primary' ? 'erp-btn-primary' : (action.variant === 'ghost' ? 'erp-btn-ghost' : 'erp-btn-secondary')"
+                                x-text="action.label"
+                            ></button>
+                        </form>
+                    </template>
+                    <template x-if="action.type === 'link'">
+                        <a
+                            :href="action.url"
+                            class="production-operator-btn erp-btn-secondary"
+                            data-turbo-frame="erp-main"
+                            x-text="action.label"
+                        ></a>
+                    </template>
+                </template>
+            </div>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4" x-show="!panelLoading">

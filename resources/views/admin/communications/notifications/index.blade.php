@@ -96,6 +96,10 @@
                             </thead>
                             <tbody>
                                 @forelse ($notifications as $notification)
+                                    @php
+                                        $openUrl = $notification->resolved_action_url
+                                            ?? route('admin.communications.notifications.index');
+                                    @endphp
                                     <tr class="hover:bg-slate-50/80">
                                         @if ($bootstrap['can']['manage'] && $notification->recipient_user_id === auth()->id())
                                             <td><input type="checkbox" value="{{ $notification->id }}" x-model="selectedIds"></td>
@@ -103,8 +107,15 @@
                                             <td></td>
                                         @endif
                                         <td>
-                                            <p class="font-medium text-erp-primary">{{ $notification->title }}</p>
-                                            <p class="text-xs text-slate-600 line-clamp-1">{{ $notification->body }}</p>
+                                            <a
+                                                href="{{ $openUrl }}"
+                                                data-turbo-frame="erp-main"
+                                                class="block no-underline"
+                                                @click="openNotification({{ $notification->id }}, $event, @js($openUrl))"
+                                            >
+                                                <p class="font-medium text-erp-primary hover:underline">{{ $notification->title }}</p>
+                                                <p class="text-xs text-slate-600 line-clamp-1">{{ $notification->body }}</p>
+                                            </a>
                                             @if ($bootstrap['can']['admin'] && $notification->recipient)
                                                 <p class="text-[10px] text-slate-400">{{ $notification->recipient->name }}</p>
                                             @endif
@@ -125,12 +136,20 @@
                                                     @endif
                                                     <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" @click="dismiss({{ $notification->id }})">{{ __('Dismiss') }}</button>
                                                     <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" @click="archive({{ $notification->id }})">{{ __('Archive') }}</button>
-                                                    @if ($notification->action_url)
-                                                        <a href="{{ $notification->action_url }}" class="erp-btn erp-btn--ghost erp-btn--xs" data-turbo-frame="erp-main">{{ __('Open') }}</a>
-                                                    @endif
+                                                    <a
+                                                        href="{{ $openUrl }}"
+                                                        data-turbo-frame="erp-main"
+                                                        class="erp-btn erp-btn--ghost erp-btn--xs"
+                                                        @click="openNotification({{ $notification->id }}, $event, @js($openUrl))"
+                                                    >{{ __('Open') }}</a>
                                                 </div>
-                                            @elseif ($notification->action_url)
-                                                <a href="{{ $notification->action_url }}" class="erp-btn erp-btn--ghost erp-btn--xs" data-turbo-frame="erp-main">{{ __('Open') }}</a>
+                                            @else
+                                                <a
+                                                    href="{{ $openUrl }}"
+                                                    data-turbo-frame="erp-main"
+                                                    class="erp-btn erp-btn--ghost erp-btn--xs"
+                                                    @click="openNotification({{ $notification->id }}, $event, @js($openUrl))"
+                                                >{{ __('Open') }}</a>
                                             @endif
                                         </td>
                                     </tr>

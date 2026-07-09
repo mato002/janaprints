@@ -248,15 +248,18 @@ class Job360WorkspaceService
         $links = [];
 
         if ($jobCard->sales_order_id && $user?->can('view', $jobCard->salesOrder)) {
-            $links[] = ['label' => __('Sales order'), 'url' => route('admin.sales-orders.show', $jobCard->sales_order_id)];
+            $jobCard->loadMissing('salesOrder:id,public_id,order_number');
+            $links[] = ['label' => __('Sales order'), 'url' => route('admin.sales-orders.show', $jobCard->salesOrder)];
         }
 
         if ($jobCard->customer_id && $user?->can('view', $jobCard->customer)) {
-            $links[] = ['label' => __('Customer 360'), 'url' => route('admin.crm.customers.show', $jobCard->customer_id)];
+            $jobCard->loadMissing('customer:id,public_id,company_name');
+            $links[] = ['label' => __('Customer 360'), 'url' => route('admin.crm.customers.show', $jobCard->customer)];
         }
 
         if ($jobCard->artwork_request_id && $user?->can('view', $jobCard->artworkRequest)) {
-            $links[] = ['label' => __('Artwork'), 'url' => route('admin.artwork.show', $jobCard->artwork_request_id)];
+            $jobCard->loadMissing('artworkRequest:id,public_id,request_number');
+            $links[] = ['label' => __('Artwork'), 'url' => route('admin.artwork.show', $jobCard->artworkRequest)];
         }
 
         if ($user?->can('start', $jobCard)) {
@@ -599,21 +602,21 @@ class Job360WorkspaceService
         $steps[] = $this->chainStep(
             __('Quotation'),
             $jobCard->quotation?->quotation_number,
-            $jobCard->quotation_id ? route('admin.quotations.show', $jobCard->quotation_id) : null,
+            $jobCard->quotation ? route('admin.quotations.show', $jobCard->quotation) : null,
             (bool) $jobCard->quotation_id,
         );
 
         $steps[] = $this->chainStep(
             __('Sales Order'),
             $jobCard->salesOrder?->order_number,
-            $jobCard->sales_order_id ? route('admin.sales-orders.show', $jobCard->sales_order_id) : null,
+            $jobCard->salesOrder ? route('admin.sales-orders.show', $jobCard->salesOrder) : null,
             (bool) $jobCard->sales_order_id,
         );
 
         $steps[] = $this->chainStep(
             __('Artwork Request'),
             $jobCard->artworkRequest?->request_number,
-            $jobCard->artwork_request_id ? route('admin.artwork.show', $jobCard->artwork_request_id) : null,
+            $jobCard->artworkRequest ? route('admin.artwork.show', $jobCard->artworkRequest) : null,
             (bool) $jobCard->artwork_request_id,
         );
 
@@ -627,7 +630,7 @@ class Job360WorkspaceService
         $steps[] = [
             'label' => __('Artwork Approval'),
             'reference' => $latestApproval?->decision->value ?? __('Pending'),
-            'url' => $jobCard->artwork_request_id ? route('admin.artwork.show', $jobCard->artwork_request_id) : null,
+            'url' => $jobCard->artworkRequest ? route('admin.artwork.show', $jobCard->artworkRequest) : null,
             'state' => $latestApproval ? 'complete' : 'pending',
             'placeholder' => ! $latestApproval,
         ];

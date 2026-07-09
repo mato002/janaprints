@@ -394,7 +394,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         \Illuminate\Support\Facades\Route::bind('artwork', function (string $value) {
-            return ArtworkRequest::query()->findOrFail($value);
+            return app(\App\Support\PublicHash\PublicHashResolver::class)
+                ->resolve(ArtworkRequest::class, $value);
         });
 
         \Illuminate\Support\Facades\Route::bind('printSpecification', function (string $value) {

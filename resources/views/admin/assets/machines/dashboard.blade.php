@@ -49,7 +49,7 @@
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['recently_assigned'] as $profile)
                     <li>
-                        <a href="{{ route('admin.assets.machines.show', data_get($profile, 'fixed_asset_id')) }}" class="erp-link">
+                        <a href="{{ data_get($profile, 'url') ?? '#' }}" class="erp-link">
                             {{ data_get($profile, 'asset_name') ?: __('Unnamed machine') }}
                         </a>
                         <span class="text-slate-500"> — {{ data_get($profile, 'machine_code') }}</span>

@@ -386,8 +386,8 @@ class OperationalRegisterQueries
                     $order->notes ?? '—',
                 ],
                 'links' => array_filter([
-                    1 => ($user?->can('view', $order->customer) && $order->customer_id)
-                        ? route('admin.crm.customers.show', $order->customer_id) : null,
+                    1 => ($user?->can('view', $order->customer) && $order->customer)
+                        ? route('admin.crm.customers.show', $order->customer) : null,
                     2 => ($user?->can('view', $order) && Route::has('admin.sales-orders.show'))
                         ? route('admin.sales-orders.show', $order) : null,
                 ]),
@@ -490,8 +490,8 @@ class OperationalRegisterQueries
                         $payment->notes ?? '—',
                     ],
                     'links' => array_filter([
-                        1 => ($user?->can('view', $payment->customer) && $payment->customer_id)
-                            ? route('admin.crm.customers.show', $payment->customer_id) : null,
+                        1 => ($user?->can('view', $payment->customer) && $payment->customer)
+                            ? route('admin.crm.customers.show', $payment->customer) : null,
                         2 => ($user?->can('view', $payment) && Route::has('admin.payments.show'))
                             ? route('admin.payments.show', $payment) : null,
                     ]),
@@ -543,8 +543,8 @@ class OperationalRegisterQueries
                         $invoice->notes ?? '—',
                     ],
                     'links' => array_filter([
-                        1 => ($user?->can('view', $invoice->customer) && $invoice->customer_id)
-                            ? route('admin.crm.customers.show', $invoice->customer_id) : null,
+                        1 => ($user?->can('view', $invoice->customer) && $invoice->customer)
+                            ? route('admin.crm.customers.show', $invoice->customer) : null,
                         2 => ($user?->can('view', $invoice) && Route::has('admin.invoices.show'))
                             ? route('admin.invoices.show', $invoice) : null,
                     ]),
@@ -814,5 +814,60 @@ class OperationalRegisterQueries
                 return ($b['sort_id'] ?? 0) <=> ($a['sort_id'] ?? 0);
             })
             ->values();
+    }
+
+    /**
+     * @return array{summary: list<array<string, mixed>>, table: array<string, mixed>}
+     */
+    public function customerSummaryRegister(OperationalRegisterScope $scope): array
+    {
+        $rows = ProductionJobCard::query()
+            ->where('company_id', $scope->companyId)
+            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
+            ->whereDate('created_at', '>=', $scope->fromDate)
+            ->whereDate('created_at', '<=', $scope->toDate)
+            ->with('customer:id,company_name,customer_code')
+            ->get()
+            ->groupBy('customer_id')
+            ->map(function ($jobs, $customerId) use ($scope) {
+                $customer = $jobs->first()?->customer;
+                $completed = $jobs->whereIn('status', [
+                    ProductionJobCardStatus::Completed,
+                    ProductionJobCardStatus::ReadyForDispatch,
+                ])->count();
+
+                return [
+                    'values' => [
+                        $customer?->company_name ?? __('Unknown'),
+                        $customer?->customer_code ?? '—',
+                        (string) $jobs->count(),
+                        (string) $completed,
+                        (string) $jobs->whereIn('status', [
+                            ProductionJobCardStatus::Queued,
+                            ProductionJobCardStatus::InProduction,
+                            ProductionJobCardStatus::QualityCheck,
+                        ])->count(),
+                        (string) $jobs->filter(fn ($job) => $job->isDelayed())->count(),
+                    ],
+                    'sort_date' => $scope->toDate,
+                    'sort_at' => 0,
+                    'sort_id' => (int) $customerId,
+                ];
+            })
+            ->values();
+
+        $sorted = $this->sortRegisterRows($rows);
+
+        return [
+            'summary' => [
+                ['label' => __('Customers'), 'value' => (string) $sorted->count(), 'icon' => 'users'],
+                ['label' => __('Jobs'), 'value' => (string) $sorted->sum(fn ($row) => (int) ($row['values'][2] ?? 0)), 'icon' => 'collection'],
+            ],
+            'table' => $this->tablePayload(
+                __('Customer Production Summary'),
+                [__('Customer'), __('Code'), __('Jobs'), __('Completed'), __('Active'), __('Late')],
+                $sorted->all(),
+            ),
+        ];
     }
 }

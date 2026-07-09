@@ -54,8 +54,16 @@ class NotificationCenterController extends Controller
             ? User::query()->where('company_id', $companyId)->where('is_active', true)->orderBy('name')->get(['id', 'name'])
             : collect();
 
+        $notifications->getCollection()->transform(function (ErpNotification $notification) {
+            $notification->resolved_action_url = $this->notifications->resolveActionUrl($notification);
+
+            return $notification;
+        });
+
         $bootstrap = [
             'routes' => [
+                'open' => route('admin.communications.notifications.open', ['notification' => '__ID__']),
+                'center' => route('admin.communications.notifications.index'),
                 'mark_read' => route('admin.communications.notifications.mark-read', ['notification' => '__ID__']),
                 'dismiss' => route('admin.communications.notifications.dismiss', ['notification' => '__ID__']),
                 'archive' => route('admin.communications.notifications.archive', ['notification' => '__ID__']),

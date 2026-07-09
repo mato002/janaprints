@@ -183,13 +183,15 @@ class ProductionFulfilmentService
         return DB::transaction(function () use ($jobCard, $userId, $payload, $fulfilment) {
             $fulfilment = $this->prepareDelivery($fulfilment, $payload);
 
-            $noteService = app(\App\Services\Dispatch\DeliveryNoteService::class);
-            $note = $noteService->createDraftFromJobCard($jobCard, [
+            $authority = app(\App\Services\Dispatch\DeliveryNoteAuthority::class);
+            $result = $authority->createDraftFromJobCard($jobCard, [
                 'recipient_name' => $fulfilment->recipient_name,
                 'recipient_phone' => $fulfilment->recipient_phone,
                 'dispatch_notes' => $fulfilment->delivery_address,
                 'delivery_date' => $payload['dispatch_date'] ?? $fulfilment->dispatch_date ?? now()->toDateString(),
             ]);
+            $note = $result->note;
+            $noteService = app(\App\Services\Dispatch\DeliveryNoteService::class);
             $note = $noteService->dispatch($note, $userId, $fulfilment->delivery_address);
 
             return $this->resolveForJobCard($jobCard)->fresh(['deliveryNote', 'dispatchedByUser', 'jobCard', 'salesOrder']);

@@ -13,7 +13,7 @@ trait BuildsIntelligenceSections
             'label' => $label,
             'value' => $value,
             'icon' => $icon,
-            'hint' => $hint ?? ($pending ? __('Module not ready') : null),
+            'hint' => $hint ?? ($pending ? __('Report not enabled yet.') : null),
             'pending' => $pending,
         ];
     }
@@ -26,7 +26,8 @@ trait BuildsIntelligenceSections
         return [
             'type' => 'placeholder',
             'title' => $title,
-            'message' => __('Module not ready'),
+            'message' => __('Report not enabled yet.'),
+            'hidden' => true,
         ];
     }
 

@@ -43,7 +43,7 @@
                     @forelse ($machines as $profile)
                         <tr>
                             <td>
-                                <a href="{{ route('admin.assets.machines.show', $profile->fixed_asset_id) }}" class="erp-link font-medium">
+                                <a href="{{ route('admin.assets.machines.show', $profile->asset) }}" class="erp-link font-medium">
                                     {{ $profile->asset?->asset_name }}
                                 </a>
                                 <p class="text-xs text-slate-500">{{ $profile->asset?->asset_number }}</p>

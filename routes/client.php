@@ -4,8 +4,10 @@ use App\Http\Controllers\Client\ClientAccountController;
 use App\Http\Controllers\Client\ClientArtworkController;
 use App\Http\Controllers\Client\ClientArtworkLibraryController;
 use App\Http\Controllers\Client\ClientInboxController;
+use App\Http\Controllers\Client\ClientCommunicationHistoryController;
 use App\Http\Controllers\Client\ClientDashboardController;
 use App\Http\Controllers\Client\ClientInvoiceController;
+use App\Http\Controllers\Client\ClientJobController;
 use App\Http\Controllers\Client\ClientOrderController;
 use App\Http\Controllers\Client\ClientPaymentController;
 use App\Http\Controllers\Client\ClientQuotationController;
@@ -27,6 +29,11 @@ Route::middleware(['auth', 'client.auth', 'tenant'])
 
         Route::get('orders', [ClientOrderController::class, 'index'])->name('orders.index');
         Route::get('orders/{order}', [ClientOrderController::class, 'show'])->name('orders.show');
+
+        Route::get('jobs', [ClientJobController::class, 'index'])->name('jobs.index');
+        Route::get('jobs/{jobCard}', [ClientJobController::class, 'show'])->name('jobs.show');
+
+        Route::get('communications/history', [ClientCommunicationHistoryController::class, 'index'])->name('communications.history');
 
         Route::get('invoices', [ClientInvoiceController::class, 'index'])->name('invoices.index');
         Route::get('invoices/{invoice}', [ClientInvoiceController::class, 'show'])->name('invoices.show');

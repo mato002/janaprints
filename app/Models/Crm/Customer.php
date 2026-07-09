@@ -7,6 +7,7 @@ use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Models\Branch;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Database\Factories\Crm\CustomerFactory;
@@ -20,7 +21,7 @@ use App\Models\User;
 class Customer extends Model
 {
     /** @use HasFactory<CustomerFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

@@ -1,8 +1,8 @@
-@props(['status'])
+@props(['status' => null, 'label' => null])
 
 @php
-    $value = is_object($status) && property_exists($status, 'value') ? $status->value : (string) $status;
-    $label = str($value)->headline();
+    $value = is_object($status) && property_exists($status, 'value') ? $status->value : (string) ($status ?? $label ?? '');
+    $display = $label ?? str($value)->headline();
     $tone = match (strtolower($value)) {
         'sent', 'viewed', 'submitted', 'in_progress', 'in progress' => 'info',
         'accepted', 'approved', 'posted', 'delivered', 'closed', 'paid' => 'success',
@@ -12,4 +12,4 @@
     };
 @endphp
 
-<span {{ $attributes->merge(['class' => 'client-badge client-badge--'.$tone]) }}>{{ $label }}</span>
+<span {{ $attributes->merge(['class' => 'client-badge client-badge--'.$tone]) }}>{{ $display }}</span>

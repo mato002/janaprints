@@ -41,16 +41,11 @@ class ProductionFloorController extends Controller
             'assigned_machine_asset_id' => ['nullable', 'exists:fixed_assets,id'],
         ]);
 
-        if (! empty($validated['assigned_machine_asset_id'])) {
-            $machine = FixedAsset::query()
-                ->forTenant()
-                ->whereHas('machineProfile')
-                ->findOrFail($validated['assigned_machine_asset_id']);
-
-            $assignments->assignToJob($jobCard, $machine, (int) $request->user()->id);
-        } else {
-            $jobCard->update(['assigned_machine_asset_id' => null]);
-        }
+        $assignments->assignFromHttpRequest(
+            $jobCard,
+            ! empty($validated['assigned_machine_asset_id']) ? (int) $validated['assigned_machine_asset_id'] : null,
+            (int) $request->user()->id,
+        );
 
         return redirect()
             ->route('admin.production.floor.index', $request->only(['search', 'stage', 'machine_id', 'vendor_id', 'priority', 'overdue']))

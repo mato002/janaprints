@@ -6,13 +6,28 @@ use App\Enums\NotificationCategory;
 use App\Enums\NotificationPriority;
 use App\Enums\NotificationReadStatus;
 use App\Enums\NotificationType;
+use App\Models\Artwork\ArtworkRequest;
+use App\Models\Assets\FixedAsset;
+use App\Models\Assets\MaintenanceWorkOrder;
 use App\Models\Communications\ErpNotification;
+use App\Models\Communications\Inbox\CommunicationConversation;
 use App\Models\Communications\NotificationPreference;
 use App\Models\Communications\NotificationRead;
+use App\Models\Communications\SmsCampaign;
+use App\Models\Crm\Customer;
+use App\Models\Crm\PublicQuoteRequest;
+use App\Models\Dispatch\DeliveryNote;
+use App\Models\Production\ProductionJobCard;
+use App\Models\Sales\CustomerInvoice;
+use App\Models\Sales\CustomerPayment;
+use App\Models\Sales\Quotation;
+use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 class NotificationService
 {
@@ -172,7 +187,7 @@ class NotificationService
     public function recentForUser(User $actor, int $limit = 8, ?int $companyId = null): Collection
     {
         return $this->baseQueryForUser($actor, $companyId)
-            ->with(['readState', 'creator'])
+            ->with(['readState', 'creator', 'subject'])
             ->latest()
             ->limit($limit)
             ->get();
@@ -186,7 +201,7 @@ class NotificationService
         $companyId = tenant()->companyId() ?? $actor->company_id;
 
         $query = ErpNotification::query()
-            ->with(['readState', 'creator', 'recipient'])
+            ->with(['readState', 'creator', 'recipient', 'subject'])
             ->when($companyId, fn (Builder $q) => $q->where('company_id', $companyId));
 
         if ($adminScope && $actor->can('communications.notifications.admin')) {
@@ -274,6 +289,55 @@ class NotificationService
         return $prefs;
     }
 
+    public function resolveActionUrl(ErpNotification $notification): ?string
+    {
+        if (filled($notification->action_url)) {
+            return $notification->action_url;
+        }
+
+        if (! $notification->subject_type || ! $notification->subject_id) {
+            return null;
+        }
+
+        if (! $notification->relationLoaded('subject')) {
+            $notification->load('subject');
+        }
+
+        $subject = $notification->subject;
+
+        if (! $subject instanceof Model) {
+            return null;
+        }
+
+        return match ($subject::class) {
+            Quotation::class => $this->subjectRoute('admin.quotations.show', $subject),
+            SalesOrder::class => $this->subjectRoute('admin.sales-orders.show', $subject),
+            CustomerInvoice::class => $this->subjectRoute('admin.invoices.show', $subject),
+            CustomerPayment::class => $this->subjectRoute('admin.payments.show', $subject),
+            DeliveryNote::class => $this->subjectRoute('admin.dispatch.delivery-notes.show', $subject),
+            ArtworkRequest::class => $this->subjectRoute('admin.artwork.show', $subject),
+            ProductionJobCard::class => $this->subjectRoute('admin.production.job-cards.show', $subject),
+            Customer::class => $this->subjectRoute('admin.crm.customers.show', $subject),
+            PublicQuoteRequest::class => $this->subjectRoute('admin.public-quote-requests.show', $subject),
+            SmsCampaign::class => $this->subjectRoute('admin.communications.sms.campaigns.show', $subject),
+            CommunicationConversation::class => Route::has('admin.communications.inbox.index')
+                ? route('admin.communications.inbox.index', ['conversation' => $subject->getKey()])
+                : null,
+            FixedAsset::class => $this->subjectRoute('admin.assets.show', $subject),
+            MaintenanceWorkOrder::class => $this->subjectRoute('admin.assets.maintenance.work-orders.show', $subject),
+            default => null,
+        };
+    }
+
+    protected function subjectRoute(string $routeName, Model $subject): ?string
+    {
+        if (! Route::has($routeName)) {
+            return null;
+        }
+
+        return route($routeName, $subject);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -292,7 +356,7 @@ class NotificationService
             'priority_badge' => $notification->priority->badgeClass(),
             'title' => $notification->title,
             'body' => $notification->body,
-            'action_url' => $notification->action_url,
+            'action_url' => $this->resolveActionUrl($notification),
             'status' => $read?->status->value ?? NotificationReadStatus::Unread->value,
             'status_label' => $read?->status->label() ?? NotificationReadStatus::Unread->label(),
             'read_at' => $read?->read_at?->toIso8601String(),

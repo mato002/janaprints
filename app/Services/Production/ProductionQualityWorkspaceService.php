@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
 
 class ProductionQualityWorkspaceService
 {
@@ -115,7 +116,9 @@ class ProductionQualityWorkspaceService
             'rework_count' => (int) ($job?->rework_count ?? 0),
             'hold_reason' => $onHold ? ($job?->hold_reason ?: '—') : '—',
             'status_label' => $this->jobStatusLabel($job),
-            'job_id' => $job?->id,
+            'job_url' => ($job && Route::has('admin.production.job-cards.show'))
+                ? route('admin.production.job-cards.show', $job)
+                : null,
             'is_failed_row' => in_array($check->result, [QualityCheckResult::Failed, QualityCheckResult::ReworkRequired], true),
         ];
     }
@@ -188,7 +191,9 @@ class ProductionQualityWorkspaceService
             'due_date' => $job->planned_end_date?->format('Y-m-d') ?? '—',
             'inspector_name' => '—',
             'status_label' => __('Pending inspection'),
-            'job_id' => $job->id,
+            'job_url' => Route::has('admin.production.job-cards.show')
+                ? route('admin.production.job-cards.show', $job)
+                : null,
         ];
     }
 

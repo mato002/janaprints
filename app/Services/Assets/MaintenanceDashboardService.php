@@ -10,6 +10,7 @@ use App\Models\Assets\MaintenancePlan;
 use App\Models\Assets\MaintenanceWorkOrder;
 use App\Support\Assets\AssetSchema;
 use App\Support\Platform\PlatformCacheService;
+use Illuminate\Support\Facades\Route;
 
 class MaintenanceDashboardService
 {
@@ -183,9 +184,12 @@ class MaintenanceDashboardService
     protected function orderSummary(MaintenanceWorkOrder $order): array
     {
         return [
-            'id' => $order->id,
+            'public_id' => $order->public_id,
             'work_order_no' => $order->work_order_no,
             'asset_name' => $order->asset?->asset_name,
+            'url' => Route::has('admin.assets.maintenance.work-orders.show')
+                ? route('admin.assets.maintenance.work-orders.show', $order)
+                : null,
         ];
     }
 }

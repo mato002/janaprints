@@ -83,15 +83,17 @@ class NotificationBellController extends Controller
     {
         $this->authorize('view', $notification);
 
-        if ($request->user()->can('communications.notifications.manage')
-            && $notification->recipient_user_id === $request->user()->id
+        if ($notification->recipient_user_id === $request->user()->id
             && $notification->readState?->status === NotificationReadStatus::Unread) {
             $this->notifications->markRead($notification, $request->user());
         }
 
+        $notification->loadMissing('subject');
+
         return response()->json([
-            'notification' => $this->notifications->toPayload($notification->fresh(['readState', 'creator'])),
-            'redirect_url' => $notification->action_url,
+            'notification' => $this->notifications->toPayload($notification->fresh(['readState', 'creator', 'subject'])),
+            'redirect_url' => $this->notifications->resolveActionUrl($notification)
+                ?? route('admin.communications.notifications.index'),
             'unread_count' => $this->notifications->unreadCount(
                 $request->user(),
                 tenant()->companyId() ?? $request->user()->company_id,

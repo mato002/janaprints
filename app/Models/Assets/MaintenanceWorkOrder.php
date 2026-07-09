@@ -7,6 +7,7 @@ use App\Enums\MaintenanceType;
 use App\Enums\MaintenanceWorkOrderStatus;
 use App\Models\Branch;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Procurement\Vendor;
 use App\Models\User;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class MaintenanceWorkOrder extends Model
 {
-    use BelongsToTenant, LogsActivity;
+    use BelongsToTenant, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

@@ -510,8 +510,8 @@ class WorkCenterWorkspaceService
             'capacity' => $capacity,
             'availability' => $availability,
             'queue_readiness' => $queue,
-            'url' => Route::has('admin.assets.machines.show')
-                ? route('admin.assets.machines.show', $workCenter->fixed_asset_id)
+            'url' => ($workCenter->machineAsset && Route::has('admin.assets.machines.show'))
+                ? route('admin.assets.machines.show', $workCenter->machineAsset)
                 : null,
         ];
     }

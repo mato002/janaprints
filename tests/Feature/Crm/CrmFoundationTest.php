@@ -48,9 +48,11 @@ class CrmFoundationTest extends TestCase
             'status' => CustomerStatus::Active,
         ]);
 
+        session(['active_company_id' => $companyA->id, 'active_branch_id' => $branchA->id]);
+
         $this->actingAs($salesA)
             ->get(route('admin.crm.customers.show', $customerB))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_sales_user_can_create_customer(): void

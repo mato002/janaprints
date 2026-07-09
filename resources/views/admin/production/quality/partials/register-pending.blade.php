@@ -22,9 +22,9 @@
                 <td class="hidden text-slate-400 sm:table-cell">{{ $row['inspector_name'] }}</td>
                 <td><span class="erp-badge bg-amber-100 text-amber-900">{{ $row['status_label'] }}</span></td>
                 <td class="erp-table-actions-col">
-                    @if ($row['job_id'] && Route::has('admin.production.job-cards.show'))
+                    @if (! empty($row['job_url']) && Route::has('admin.production.job-cards.show'))
                         <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.production.job-cards.show', $row['job_id'])">
+                            <x-admin.table-row-action :href="$row['job_url']">
                                 {{ __('Inspect') }}
                             </x-admin.table-row-action>
                         </x-admin.table-row-actions>

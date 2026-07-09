@@ -5,6 +5,7 @@ namespace App\Models\Inventory;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\StockIssueDestination;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockIssue extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasPublicHash;
 
     protected bool $tenantScopedToBranch = true;
 

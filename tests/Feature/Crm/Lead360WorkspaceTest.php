@@ -253,7 +253,7 @@ class Lead360WorkspaceTest extends TestCase
 
         $this->actingAs($userA)
             ->get(route('admin.crm.leads.show', $leadB))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     /**

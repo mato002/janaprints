@@ -34,13 +34,13 @@ class ProductionFloorService
         $query = $this->baseQuery($filters);
         $jobs = (clone $query)
             ->with([
-                'customer:id,company_name',
+                'customer:id,public_id,company_name',
                 'inventoryItem:id,item_name,sku',
                 'outsourceVendor:id,vendor_name',
-                'assignedMachine:id,asset_name,asset_number',
+                'assignedMachine:id,public_id,asset_name,asset_number',
                 'fulfilment:id,production_job_card_id,status',
-                'salesOrder:id,order_number,required_date',
-                'queues.workCenter:id,name',
+                'salesOrder:id,public_id,order_number,required_date',
+                'queues.workCenter:id,public_id,name',
             ])
             ->latest('created_at')
             ->latest('id')
@@ -67,11 +67,11 @@ class ProductionFloorService
     public function panel(ProductionJobCard $jobCard): array
     {
         $jobCard->loadMissing([
-            'customer:id,company_name,customer_code',
+            'customer:id,public_id,company_name,customer_code',
             'inventoryItem:id,item_name,sku',
-            'salesOrder:id,order_number,required_date,fulfilment_method,status',
+            'salesOrder:id,public_id,order_number,required_date,fulfilment_method,status',
             'outsourceVendor:id,vendor_name',
-            'assignedMachine:id,asset_name',
+            'assignedMachine:id,public_id,asset_name',
             'fulfilment',
         ]);
 
@@ -87,9 +87,11 @@ class ProductionFloorService
                 'stage' => $this->resolveStage($jobCard)->label(),
                 'required_date' => $jobCard->required_date?->toDateString()
                     ?? $jobCard->salesOrder?->required_date?->toDateString(),
+                'label_url' => route('admin.production.job-cards.label', $jobCard),
             ],
             'primary_action' => $this->actions->primaryAction($jobCard),
             'secondary_actions' => $this->actions->secondaryActions($jobCard),
+            'operator_actions' => $this->actions->operatorActions($jobCard),
             'outsource' => $outsource,
             'fulfilment' => [
                 'status' => $jobCard->fulfilment?->status?->value,
@@ -98,8 +100,8 @@ class ProductionFloorService
             ],
             'links' => [
                 'job' => route('admin.production.job-cards.show', $jobCard),
-                'sales_order' => $jobCard->sales_order_id
-                    ? route('admin.sales-orders.show', $jobCard->sales_order_id)
+                'sales_order' => $jobCard->salesOrder
+                    ? route('admin.sales-orders.show', $jobCard->salesOrder)
                     : null,
             ],
             'machines' => $this->machinesForPanel(),
@@ -225,6 +227,7 @@ class ProductionFloorService
 
         return [
             'id' => $jobCard->id,
+            'public_id' => $jobCard->public_id,
             'job_number' => $jobCard->job_card_number,
             'customer' => $jobCard->customer?->company_name,
             'product' => $jobCard->inventoryItem?->item_name,

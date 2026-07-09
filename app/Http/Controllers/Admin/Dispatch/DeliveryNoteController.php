@@ -8,8 +8,9 @@ use App\Models\Dispatch\DeliveryNote;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Services\Accounting\DeliveryInvoiceEligibilityService;
+use App\Services\Dispatch\DeliveryNoteAuthority;
 use App\Services\Dispatch\DeliveryNoteService;
-use App\Support\Sales\CustomerInvoiceService;
+use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -19,9 +20,10 @@ class DeliveryNoteController extends Controller
     use ScopesToTenant;
 
     public function __construct(
+        protected DeliveryNoteAuthority $deliveryAuthority,
         protected DeliveryNoteService $deliveryNotes,
         protected DeliveryInvoiceEligibilityService $invoiceEligibility,
-        protected CustomerInvoiceService $invoices,
+        protected CustomerInvoiceCreationAuthority $invoiceAuthority,
     ) {}
 
     public function index(Request $request): View
@@ -98,11 +100,15 @@ class DeliveryNoteController extends Controller
             ]);
         }
 
-        $invoice = $this->invoices->createFromDeliveryNote($deliveryNote, (int) auth()->id());
+        $result = $this->invoiceAuthority->createFromDeliveryNote($deliveryNote, (int) auth()->id());
+
+        $flash = $result->wasExisting
+            ? ($result->message ?? __('Existing invoice opened.'))
+            : __('Invoice :number created from delivery note.', ['number' => $result->invoice->invoice_number]);
 
         return redirect()
-            ->route('admin.invoices.show', $invoice)
-            ->with('status', __('Invoice :number created from delivery note.', ['number' => $invoice->invoice_number]));
+            ->route('admin.invoices.show', $result->invoice)
+            ->with('status', $flash);
     }
 
     public function storeFromJob(Request $request, ProductionJobCard $jobCard): RedirectResponse
@@ -117,11 +123,15 @@ class DeliveryNoteController extends Controller
             'dispatch_notes' => ['nullable', 'string'],
         ]);
 
-        $note = $this->deliveryNotes->createDraftFromJobCard($jobCard, $validated);
+        $result = $this->deliveryAuthority->createDraftFromJobCard($jobCard, $validated);
+
+        $flash = $result->wasExisting
+            ? ($result->message ?? __('Existing delivery note opened.'))
+            : __('Delivery note :number created.', ['number' => $result->note->delivery_note_number]);
 
         return redirect()
-            ->route('admin.dispatch.delivery-notes.show', $note)
-            ->with('status', __('Delivery note :number created.', ['number' => $note->delivery_note_number]));
+            ->route('admin.dispatch.delivery-notes.show', $result->note)
+            ->with('status', $flash);
     }
 
     public function dispatch(Request $request, DeliveryNote $deliveryNote): RedirectResponse

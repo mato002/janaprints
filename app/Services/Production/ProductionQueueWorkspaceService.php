@@ -144,9 +144,9 @@ class ProductionQueueWorkspaceService
         return $this->ordering
             ->applyPriorityOrdering($query)
             ->with([
-                'jobCard:id,company_id,branch_id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at,actual_end_date,updated_at',
-                'jobCard.customer:id,company_name',
-                'jobCard.salesOrder:id,order_number,status,required_date,total_amount',
+                'jobCard:id,public_id,company_id,branch_id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at,actual_end_date,updated_at',
+                'jobCard.customer:id,public_id,company_name',
+                'jobCard.salesOrder:id,public_id,order_number,status,required_date,total_amount',
                 'jobCard.salesOrder.items:id,sales_order_id,item_name,quantity,unit_price,line_total',
                 'jobCard.outsourceVendor:id,vendor_name',
                 'jobCard.productionSpecification:id,production_job_card_id,product_description,size,finished_size,sheet_size,quantity,unit,ups,estimated_sheets,paper_inventory_item_id,material_inventory_item_id,colour_mode,binding_type,lamination,finishing_type,production_type,print_product_template_id,spot_uv,foiling,embossing,die_cutting,eyelets',
@@ -156,7 +156,7 @@ class ProductionQueueWorkspaceService
                 'jobCard.inventoryItem:id,item_name',
                 'jobCard.assignedMachine:id,asset_name,asset_number',
                 'jobCard.qualityChecks:id,production_job_card_id,result,requires_customer_approval,customer_approved_at',
-                'workCenter:id,name,code',
+                'workCenter:id,public_id,name,code',
                 'routeStep:id,step_name,sequence',
                 'assignedOperator:id,name',
             ])
@@ -217,6 +217,10 @@ class ProductionQueueWorkspaceService
             'estimated_duration_minutes' => $jobCard?->estimated_duration_minutes,
             'work_center_name' => $queue->workCenter?->name ?? '—',
             'is_delayed' => $jobCard?->isDelayed() ?? false,
+            'waiting_hours' => $queue->created_at ? (int) $queue->created_at->diffInHours(now()) : null,
+            'waiting_label' => $this->waitingLabel($queue),
+            'progress_percent' => $this->progressPercent($queue, $jobCard),
+            'badges' => $this->statusBadges($queue, $jobCard, $alerts),
             'alerts' => $alerts,
             'row_tone' => $this->rowTone($alerts),
             'spec_summary' => $spec ? [
@@ -227,8 +231,8 @@ class ProductionQueueWorkspaceService
                 'estimated_sheets' => $spec->estimated_sheets,
             ] : null,
             'job_360_url' => $job360Url,
-            'work_center_url' => ($user?->can('production.work-centers.view') && $queue->work_center_id)
-                ? route('admin.production.work-centers.show', $queue->work_center_id)
+            'work_center_url' => ($user?->can('production.work-centers.view') && $queue->workCenter)
+                ? route('admin.production.work-centers.show', $queue->workCenter)
                 : null,
             'quick_actions' => $jobCard ? $this->quickActions($jobCard, $user) : [],
         ];
@@ -257,16 +261,29 @@ class ProductionQueueWorkspaceService
             ];
         }
 
+        foreach ($this->floorActions->secondaryActions($jobCard, $user) as $secondary) {
+            $actions[] = [
+                'label' => $secondary['label'],
+                'url' => $secondary['url'],
+                'type' => $secondary['type'] ?? 'post',
+                'method' => 'post',
+                'variant' => $secondary['variant'] ?? 'ghost',
+            ];
+        }
+
         if ($user?->can('view', $jobCard) && $jobCard->artwork_request_id && $user->can('artwork.view')) {
-            $actions[] = ['label' => __('View artwork'), 'url' => route('admin.artwork.show', $jobCard->artwork_request_id), 'type' => 'link'];
+            $jobCard->loadMissing('artworkRequest:id,public_id');
+            if ($jobCard->artworkRequest) {
+                $actions[] = ['label' => __('View artwork'), 'url' => route('admin.artwork.show', $jobCard->artworkRequest), 'type' => 'link'];
+            }
         }
 
         if ($jobCard->customer_id && $user?->can('view', $jobCard->customer)) {
-            $actions[] = ['label' => __('View customer'), 'url' => route('admin.crm.customers.show', $jobCard->customer_id), 'type' => 'link'];
+            $actions[] = ['label' => __('View customer'), 'url' => route('admin.crm.customers.show', $jobCard->customer), 'type' => 'link'];
         }
 
         if ($jobCard->sales_order_id && $user?->can('view', $jobCard->salesOrder)) {
-            $actions[] = ['label' => __('View sales order'), 'url' => route('admin.sales-orders.show', $jobCard->sales_order_id), 'type' => 'link'];
+            $actions[] = ['label' => __('View sales order'), 'url' => route('admin.sales-orders.show', $jobCard->salesOrder), 'type' => 'link'];
         }
 
         if ($user?->can('view', $jobCard) && $jobCard->productionSpecification) {
@@ -376,7 +393,75 @@ class ProductionQueueWorkspaceService
             $alerts[] = ['code' => 'customer_approval', 'label' => __('Customer approval pending')];
         }
 
+        if ($jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
+            $alerts[] = ['code' => 'ready', 'label' => __('Ready')];
+        }
+
+        if ($queue->status === ProductionQueueStatus::Waiting && ! $queue->assigned_operator_id) {
+            $alerts[] = ['code' => 'blocked', 'label' => __('Blocked')];
+        }
+
         return $alerts;
+    }
+
+    protected function waitingLabel(ProductionQueue $queue): string
+    {
+        if (! $queue->created_at) {
+            return '—';
+        }
+
+        $hours = (int) $queue->created_at->diffInHours(now());
+
+        if ($hours < 24) {
+            return __(':hours h', ['hours' => $hours]);
+        }
+
+        return __(':days d', ['days' => (int) floor($hours / 24)]);
+    }
+
+    protected function progressPercent(ProductionQueue $queue, ?ProductionJobCard $jobCard): int
+    {
+        if (! $jobCard) {
+            return 0;
+        }
+
+        return match ($jobCard->status) {
+            ProductionJobCardStatus::Draft => 5,
+            ProductionJobCardStatus::Queued => 15,
+            ProductionJobCardStatus::InProduction => $queue->status === ProductionQueueStatus::InProgress ? 55 : 40,
+            ProductionJobCardStatus::OnHold => 35,
+            ProductionJobCardStatus::Outsourced => 45,
+            ProductionJobCardStatus::Returned => 50,
+            ProductionJobCardStatus::QualityCheck => 75,
+            ProductionJobCardStatus::Rework => 60,
+            ProductionJobCardStatus::ReadyForDispatch, ProductionJobCardStatus::Completed => 100,
+            default => 20,
+        };
+    }
+
+    /**
+     * @param  list<array{code: string, label: string}>  $alerts
+     * @return list<array{code: string, label: string, variant: string}>
+     */
+    protected function statusBadges(ProductionQueue $queue, ?ProductionJobCard $jobCard, array $alerts): array
+    {
+        $badges = [];
+
+        foreach ($alerts as $alert) {
+            $variant = match ($alert['code']) {
+                'overdue', 'qc_blocked', 'blocked' => 'danger',
+                'ready' => 'success',
+                'due_today', 'waiting_long', 'customer_approval', 'artwork_missing' => 'warning',
+                default => 'neutral',
+            };
+            $badges[] = ['code' => $alert['code'], 'label' => $alert['label'], 'variant' => $variant];
+        }
+
+        if ($jobCard?->status === ProductionJobCardStatus::OnHold || $queue->status === ProductionQueueStatus::Paused) {
+            $badges[] = ['code' => 'paused', 'label' => __('Paused'), 'variant' => 'neutral'];
+        }
+
+        return $badges;
     }
 
     protected function rowTone(array $alerts): string

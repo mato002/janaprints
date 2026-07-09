@@ -37,6 +37,8 @@
             </div>
         @endif
 
+        @include('admin.operations.jobs.partials.queue-readiness', ['queueReadiness' => $queueReadiness])
+
         <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <x-admin.kpi-widget :label="__('Total Jobs')" :value="$metrics['total']" icon="switch-horizontal" />
             <x-admin.kpi-widget :label="__('Pending')" :value="$metrics['pending']" icon="clock" />

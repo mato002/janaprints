@@ -5,6 +5,7 @@ namespace App\Models\Artwork;
 use App\Enums\ArtworkPriority;
 use App\Enums\ArtworkRequestStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Sales\Quotation;
@@ -18,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ArtworkRequest extends Model
 {
     /** @use HasFactory<ArtworkRequestFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

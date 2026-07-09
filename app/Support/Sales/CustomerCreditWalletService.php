@@ -18,6 +18,7 @@ class CustomerCreditWalletService
      *     remaining_credit: float,
      *     deposits: list<array{
      *         payment_id: int,
+     *         payment_public_id: string|null,
      *         payment_number: string,
      *         payment_date: string,
      *         credit_issued: float,
@@ -45,6 +46,7 @@ class CustomerCreditWalletService
 
         $rows = $deposits->map(fn (CustomerPayment $payment) => [
             'payment_id' => $payment->id,
+            'payment_public_id' => $payment->public_id,
             'payment_number' => $payment->payment_number,
             'payment_date' => $payment->payment_date->toDateString(),
             'credit_issued' => round((float) $payment->credit_issued, 2),

@@ -604,12 +604,17 @@ class JobTimelineService
             ->limit($limit)
             ->get();
 
-        return $rows->map(function (object $row) {
+        $jobPublicIds = ProductionJobCard::query()
+            ->whereIn('id', $rows->pluck('job_card_id')->filter()->unique()->all())
+            ->pluck('public_id', 'id');
+
+        return $rows->map(function (object $row) use ($jobPublicIds) {
             $event = JobTimelineEvent::fromRow($row);
             $payload = $event->toArray();
             $payload['job_number'] = $row->job_number ?? null;
-            $payload['job_url'] = Route::has('admin.production.job-cards.show') && ! empty($row->job_card_id)
-                ? route('admin.production.job-cards.show', ['jobCard' => $row->job_card_id])
+            $jobRouteKey = $jobPublicIds[$row->job_card_id] ?? null;
+            $payload['job_url'] = Route::has('admin.production.job-cards.show') && filled($jobRouteKey)
+                ? route('admin.production.job-cards.show', $jobRouteKey)
                 : null;
 
             return $payload;

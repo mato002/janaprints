@@ -82,6 +82,48 @@ class MachineJobAssignmentService
      *     assignment_history: \Illuminate\Support\Collection
      * }
      */
+    public function unassignFromJob(ProductionJobCard $jobCard, int $userId): ProductionJobCard
+    {
+        return DB::transaction(function () use ($jobCard, $userId) {
+            MachineJobAssignment::query()
+                ->where('production_job_card_id', $jobCard->id)
+                ->whereNull('unassigned_at')
+                ->update(['unassigned_at' => now()]);
+
+            $jobCard->update(['assigned_machine_asset_id' => null]);
+
+            return $jobCard->fresh(['assignedMachine.machineProfile']);
+        });
+    }
+
+    public function assignFromHttpRequest(
+        ProductionJobCard $jobCard,
+        ?int $machineAssetId,
+        int $userId,
+        ?string $notes = null,
+    ): ProductionJobCard {
+        if ($machineAssetId === null) {
+            return $this->unassignFromJob($jobCard, $userId);
+        }
+
+        $machine = FixedAsset::query()
+            ->forTenant()
+            ->whereHas('machineProfile')
+            ->findOrFail($machineAssetId);
+
+        return $this->assignToJob($jobCard, $machine, $userId, $notes);
+    }
+
+    /**
+     * @return array{
+     *     machine_name: ?string,
+     *     machine_status: ?string,
+     *     capacity: ?array<string, mixed>,
+     *     availability: ?array<string, mixed>,
+     *     expected_throughput: ?float,
+     *     assignment_history: \Illuminate\Support\Collection
+     * }
+     */
     public function jobMachineContext(ProductionJobCard $jobCard): array
     {
         $machine = $jobCard->assignedMachine;

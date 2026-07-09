@@ -100,7 +100,9 @@ class PosSaleController extends Controller
     {
         $this->authorize('create', PosSale::class);
 
-        return redirect()->route('admin.commercial.pos.counter-sales');
+        return redirect()
+            ->route('admin.commercial.pos.counter-sales')
+            ->with('status', __('The legacy POS screen has been retired. Use Counter Sales for new transactions.'));
     }
 
     public function store(Request $request): RedirectResponse|JsonResponse

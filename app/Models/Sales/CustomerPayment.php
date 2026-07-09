@@ -6,16 +6,18 @@ use App\Enums\CustomerPaymentMethod;
 use App\Enums\CustomerPaymentStatus;
 use App\Models\Accounting\Journal;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\User;
+use App\Support\PublicHash\PublicHashResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CustomerPayment extends Model
 {
-    use BelongsToTenant, LogsActivity;
+    use BelongsToTenant, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 
@@ -88,5 +90,24 @@ class CustomerPayment extends Model
     public function postedJournal(): BelongsTo
     {
         return $this->belongsTo(Journal::class, 'posted_journal_id');
+    }
+
+    public function resolveRouteBinding($value, $field = null): Model
+    {
+        $resolver = app(PublicHashResolver::class);
+
+        if (request()->routeIs('public.payment-receipt.show')) {
+            $allowLegacyNumeric = request()->hasValidSignature()
+                && config('public_hashes.signed_receipt_legacy_numeric_enabled', true);
+
+            return $resolver->resolveForExternalWithLegacyNumeric(
+                static::class,
+                $value,
+                $field,
+                allowLegacyNumeric: $allowLegacyNumeric,
+            );
+        }
+
+        return $resolver->resolve(static::class, $value, $field);
     }
 }

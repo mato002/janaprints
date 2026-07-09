@@ -18,7 +18,7 @@
         <tbody class="divide-y divide-slate-100">
             @forelse ($deposits as $deposit)
                 <tr>
-                    <td class="px-3 py-2"><a href="{{ route('admin.payments.show', $deposit['payment_id']) }}" class="font-mono text-erp-accent">{{ $deposit['payment_number'] }}</a></td>
+                    <td class="px-3 py-2"><a href="{{ route('admin.payments.show', $deposit['payment_public_id'] ?? $deposit['payment_id']) }}" class="font-mono text-erp-accent">{{ $deposit['payment_number'] }}</a></td>
                     <td class="px-3 py-2">{{ $deposit['payment_date'] }}</td>
                     <td class="px-3 py-2 text-right font-mono">{{ number_format($deposit['credit_issued'], 2) }}</td>
                     <td class="px-3 py-2 text-right font-mono">{{ number_format($deposit['credit_applied'], 2) }}</td>

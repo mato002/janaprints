@@ -6,6 +6,7 @@ use App\Enums\ProductionMachineStatus;
 use App\Models\Assets\MachineProfile;
 use App\Support\Platform\PlatformCacheService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
 
 class MachineDashboardService
 {
@@ -24,7 +25,7 @@ class MachineDashboardService
         return $this->cache->remember('machines_dashboard', $cacheKey, function () use ($companyId, $branchId) {
             $query = MachineProfile::query()
                 ->where('company_id', $companyId)
-                ->with(['asset:id,asset_name,asset_number,branch_id', 'workCenter:id,name,fixed_asset_id']);
+                ->with(['asset:id,public_id,asset_name,asset_number,branch_id', 'workCenter:id,public_id,name,fixed_asset_id']);
 
             if ($branchId) {
                 $query->where('branch_id', $branchId);
@@ -100,13 +101,15 @@ class MachineDashboardService
             ->where('company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->whereHas('jobAssignments', fn ($q) => $q->where('assigned_at', '>=', now()->subDays(30)))
-            ->with(['asset:id,asset_name,asset_number', 'jobAssignments' => fn ($q) => $q->latest('assigned_at')->limit(1)])
+            ->with(['asset:id,public_id,asset_name,asset_number', 'jobAssignments' => fn ($q) => $q->latest('assigned_at')->limit(1)])
             ->limit(8)
             ->get()
             ->map(fn (MachineProfile $profile) => [
-                'fixed_asset_id' => $profile->fixed_asset_id,
                 'machine_code' => $profile->machine_code,
                 'asset_name' => $profile->asset?->asset_name,
+                'url' => ($profile->asset && Route::has('admin.assets.machines.show'))
+                    ? route('admin.assets.machines.show', $profile->asset)
+                    : null,
             ])
             ->all();
     }

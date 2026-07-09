@@ -6,13 +6,14 @@ use App\Enums\QualityCheckResult;
 use App\Enums\QualityFailReason;
 use App\Enums\QualityReworkReason;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class QualityCheck extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasPublicHash;
 
     protected bool $tenantScopedToBranch = true;
 

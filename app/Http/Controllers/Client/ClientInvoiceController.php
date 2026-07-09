@@ -36,7 +36,7 @@ class ClientInvoiceController extends Controller
         $customer = $this->clientCustomer();
         $this->assertClientOwns($invoice, $customer);
 
-        $invoice->load(['items', 'salesOrder']);
+        $invoice->load(['lines', 'salesOrder']);
 
         return view('client.invoices.show', compact('customer', 'invoice'));
     }

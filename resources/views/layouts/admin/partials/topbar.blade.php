@@ -1,4 +1,4 @@
-<header id="erp-topbar" class="z-30 flex h-16 min-w-0 shrink-0 items-center gap-2 overflow-hidden border-b border-erp-border bg-erp-card px-3 sm:gap-3 sm:px-4 lg:px-6">
+<header id="erp-topbar" class="z-30 flex h-16 min-w-0 shrink-0 items-center gap-2 overflow-visible border-b border-erp-border bg-erp-card px-3 sm:gap-3 sm:px-4 lg:px-6">
     <button
         type="button"
         class="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page lg:hidden"

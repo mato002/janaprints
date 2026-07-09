@@ -110,7 +110,7 @@ class ProductionJobCardController extends Controller
 
         return $this->modalOrRedirect(
             __('Job card created.'),
-            redirect()->route('admin.production.floor', ['job' => $jobCard->id]),
+            redirect()->route('admin.production.floor', ['job' => $jobCard->public_id]),
         );
     }
 
@@ -277,6 +277,31 @@ class ProductionJobCardController extends Controller
         return back()->with('status', __('Job card on hold.'));
     }
 
+    public function pause(ProductionJobCard $jobCard): RedirectResponse
+    {
+        $this->authorize('transition', $jobCard);
+        abort_unless($jobCard->status === ProductionJobCardStatus::InProduction, 403);
+        abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold), 403);
+        $jobCard->transitionTo(ProductionJobCardStatus::OnHold);
+
+        return back()->with('status', __('Production paused.'));
+    }
+
+    public function resume(ProductionJobCard $jobCard): RedirectResponse
+    {
+        $this->authorize('transition', $jobCard);
+        abort_unless($jobCard->status === ProductionJobCardStatus::OnHold, 403);
+
+        $target = $jobCard->actual_start_date
+            ? ProductionJobCardStatus::InProduction
+            : ProductionJobCardStatus::Queued;
+
+        abort_unless($jobCard->status->canTransitionTo($target), 403);
+        $jobCard->transitionTo($target);
+
+        return back()->with('status', __('Production resumed.'));
+    }
+
     public function cancel(ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('transition', $jobCard);
@@ -311,14 +336,9 @@ class ProductionJobCardController extends Controller
             'notes' => ['nullable', 'string', 'max:500'],
         ]);
 
-        $machine = FixedAsset::query()
-            ->forTenant()
-            ->whereHas('machineProfile')
-            ->findOrFail($validated['assigned_machine_asset_id']);
-
-        $assignments->assignToJob(
+        $assignments->assignFromHttpRequest(
             $jobCard,
-            $machine,
+            (int) $validated['assigned_machine_asset_id'],
             (int) auth()->id(),
             $validated['notes'] ?? null,
         );

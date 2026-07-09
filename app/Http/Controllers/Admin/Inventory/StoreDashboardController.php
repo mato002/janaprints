@@ -48,6 +48,7 @@ class StoreDashboardController extends Controller
             ->forTenant()
             ->where('is_active', true)
             ->orderBy('item_name')
+            ->limit(200)
             ->get()
             ->filter(fn (InventoryItem $item) => (float) InventoryMovement::query()
                 ->where('company_id', $item->company_id)

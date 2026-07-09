@@ -5,6 +5,7 @@ namespace App\Models\Crm;
 use App\Casts\FlexibleEnumCast;
 use App\Enums\LeadStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Sales\Quotation;
 use App\Models\User;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Lead extends Model
 {
-    use BelongsToTenant, LogsActivity;
+    use BelongsToTenant, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

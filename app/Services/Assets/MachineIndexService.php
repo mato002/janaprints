@@ -43,7 +43,7 @@ class MachineIndexService
         $query = MachineProfile::query()
             ->forTenant()
             ->with([
-                'asset:id,asset_name,asset_number,branch_id,status',
+                'asset:id,public_id,asset_name,asset_number,branch_id,status',
                 'asset.branch:id,name',
                 'workCenter:id,name,code,fixed_asset_id',
             ]);

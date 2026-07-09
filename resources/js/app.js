@@ -3268,18 +3268,18 @@ document.addEventListener('alpine:init', () => {
         csrf: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
 
         init() {
-            if (config.initialJobId) {
-                this.openPanel(config.initialJobId);
+            if (config.initialJobKey) {
+                this.openPanel(config.initialJobKey);
             }
         },
 
-        async openPanel(jobId) {
+        async openPanel(jobKey) {
             this.panelOpen = true;
             this.panelLoading = true;
             this.panel = null;
 
             try {
-                const response = await fetch(`${this.panelBase}/${jobId}/panel`, {
+                const response = await fetch(`${this.panelBase}/${jobKey}/panel`, {
                     headers: {
                         Accept: 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
@@ -4342,6 +4342,37 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    function erpVisitUrl(url) {
+        if (! url) {
+            return;
+        }
+
+        let target;
+
+        try {
+            target = new URL(url, window.location.origin);
+        } catch {
+            return;
+        }
+
+        if (target.origin !== window.location.origin) {
+            window.open(target.href, '_blank', 'noopener');
+
+            return;
+        }
+
+        if (window.Turbo) {
+            const frame = document.getElementById('erp-main') ? 'erp-main' : '_top';
+            window.Turbo.visit(target.href, { frame, action: 'advance' });
+
+            return;
+        }
+
+        window.location.assign(target.href);
+    }
+
+    window.erpVisitUrl = erpVisitUrl;
+
     Alpine.data('erpNotificationBell', (bootstrap = {}) => ({
         routes: bootstrap.routes ?? {},
         unreadCount: bootstrap.unreadCount ?? 0,
@@ -4351,6 +4382,12 @@ document.addEventListener('alpine:init', () => {
         open: false,
         loading: false,
         items: [],
+        panelTop: 0,
+        panelLeft: 0,
+        panelTransform: 'translateX(-100%)',
+        _panelHost: null,
+        _outsideLockedUntil: 0,
+        _onDocumentPointerDown: null,
 
         init() {
             window.addEventListener('erp:notifications-updated', (event) => {
@@ -4361,6 +4398,27 @@ document.addEventListener('alpine:init', () => {
             });
 
             this.startPolling();
+
+            this._onDocumentPointerDown = (event) => {
+                if (! this.open) {
+                    return;
+                }
+
+                if (Date.now() < this._outsideLockedUntil) {
+                    return;
+                }
+
+                const panel = this.$refs.panel;
+                const trigger = this.$refs.trigger;
+
+                if (panel?.contains(event.target) || trigger?.contains(event.target)) {
+                    return;
+                }
+
+                this.close();
+            };
+
+            document.addEventListener('pointerdown', this._onDocumentPointerDown, true);
         },
 
         startPolling() {
@@ -4404,16 +4462,113 @@ document.addEventListener('alpine:init', () => {
             this.pollTimer = window.setInterval(poll, 15000);
         },
 
-        async toggle() {
-            this.open = ! this.open;
-
-            if (this.open) {
-                await this.fetchPanel();
+        destroy() {
+            if (this.pollTimer) {
+                window.clearInterval(this.pollTimer);
+                this.pollTimer = null;
             }
+
+            if (this._onDocumentPointerDown) {
+                document.removeEventListener('pointerdown', this._onDocumentPointerDown, true);
+            }
+        },
+
+        async toggle() {
+            if (this.open) {
+                this.close();
+
+                return;
+            }
+
+            this._outsideLockedUntil = Date.now() + 250;
+            this.open = true;
+
+            this.$nextTick(() => {
+                this.mountPanel();
+                this.placePanel();
+                requestAnimationFrame(() => this.placePanel());
+            });
+
+            await this.fetchPanel();
         },
 
         close() {
             this.open = false;
+            this.restorePanel();
+        },
+
+        closeFromOutside() {
+            if (Date.now() < this._outsideLockedUntil) {
+                return;
+            }
+
+            this.close();
+        },
+
+        mountPanel() {
+            const panel = this.$refs.panel;
+
+            if (! panel || panel.parentElement === document.body) {
+                return;
+            }
+
+            this._panelHost = this.$el;
+            panel.__erpPanelHost = this._panelHost;
+            document.body.appendChild(panel);
+        },
+
+        restorePanel() {
+            const panel = this.$refs.panel;
+            const host = this._panelHost ?? panel?.__erpPanelHost;
+
+            if (! panel || ! host || panel.parentElement !== document.body) {
+                return;
+            }
+
+            host.appendChild(panel);
+            this._panelHost = null;
+        },
+
+        placePanel() {
+            const trigger = this.$refs.trigger;
+            const panel = this.$refs.panel;
+
+            if (! trigger || ! panel || ! this.open) {
+                return;
+            }
+
+            const rect = trigger.getBoundingClientRect();
+            const gap = 8;
+            const panelWidth = panel.offsetWidth || 384;
+            const panelHeight = panel.offsetHeight || 320;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const spaceAbove = rect.top;
+
+            this.panelTop = spaceBelow < panelHeight + gap && spaceAbove > panelHeight + gap
+                ? rect.top - panelHeight - gap
+                : rect.bottom + gap;
+
+            this.panelLeft = Math.min(window.innerWidth - 8, rect.right);
+            this.panelTransform = 'translateX(-100%)';
+
+            if (this.panelLeft - panelWidth < 8) {
+                this.panelLeft = Math.min(rect.left, window.innerWidth - panelWidth - 8);
+                this.panelTransform = 'none';
+            }
+        },
+
+        get panelStyle() {
+            if (! this.open) {
+                return {};
+            }
+
+            return {
+                position: 'fixed',
+                top: `${this.panelTop}px`,
+                left: `${this.panelLeft}px`,
+                transform: this.panelTransform,
+                zIndex: 99999,
+            };
         },
 
         async fetchPanel() {
@@ -4431,6 +4586,7 @@ document.addEventListener('alpine:init', () => {
                 }
             } finally {
                 this.loading = false;
+                this.$nextTick(() => this.placePanel());
             }
         },
 
@@ -4462,25 +4618,44 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async openNotification(item) {
-            const response = await fetch(this.routes.open.replace('__ID__', String(item.id)), {
-                method: 'POST',
-                headers: this.jsonHeaders(),
-            });
-
-            if (! response.ok) {
+        async openNotification(item, event) {
+            if (event?.defaultPrevented) {
                 return;
             }
 
-            const data = await response.json();
-            this.unreadCount = data.unread_count ?? this.unreadCount;
-            item.is_unread = false;
-            this.broadcastUnread();
-            this.close();
+            const href = this.notificationHref(item);
 
-            if (data.redirect_url) {
-                window.Turbo?.visit(data.redirect_url) ?? (window.location.href = data.redirect_url);
+            this.close();
+            this.recordNotificationOpen(item);
+
+            if (event?.currentTarget?.tagName === 'A') {
+                return;
             }
+
+            erpVisitUrl(href);
+        },
+
+        notificationHref(item) {
+            return item.action_url || this.routes.center;
+        },
+
+        recordNotificationOpen(item) {
+            fetch(this.routes.open.replace('__ID__', String(item.id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            })
+                .then((response) => (response.ok ? response.json() : null))
+                .then((data) => {
+                    if (! data) {
+                        return;
+                    }
+
+                    this.unreadCount = data.unread_count ?? this.unreadCount;
+                    item.is_unread = false;
+                    item.status = 'read';
+                    this.broadcastUnread();
+                })
+                .catch(() => {});
         },
 
         broadcastUnread() {
@@ -4553,6 +4728,21 @@ document.addEventListener('alpine:init', () => {
                 headers: this.jsonHeaders(),
             });
             window.location.reload();
+        },
+
+        async openNotification(id, event, href = null) {
+            const targetUrl = href || this.routes.center;
+
+            fetch(this.routes.open.replace('__ID__', String(id)), {
+                method: 'POST',
+                headers: this.jsonHeaders(),
+            }).catch(() => {});
+
+            if (event?.currentTarget?.tagName === 'A') {
+                return;
+            }
+
+            erpVisitUrl(targetUrl);
         },
 
         toggleAll(event) {
@@ -5878,10 +6068,10 @@ function shouldPromoteWorkspaceLinkToMain(href) {
     try {
         const path = new URL(href, window.location.origin).pathname;
 
-        return /\/admin\/invoices\/\d+(\/document)?$/.test(path)
-            || /\/admin\/quotations\/list\/\d+(\/document)?$/.test(path)
-            || /\/admin\/payments\/\d+(\/receipt)?$/.test(path)
-            || /\/admin\/sales-orders\/list\/\d+$/.test(path)
+        return /\/admin\/invoices\/[0-9A-Za-z]{16}(\/document)?$/.test(path)
+            || /\/admin\/quotations\/list\/[0-9A-Za-z]{16}(\/document)?$/.test(path)
+            || /\/admin\/payments\/[0-9A-Za-z]{16}(\/receipt)?$/.test(path)
+            || /\/admin\/sales-orders\/list\/[0-9A-Za-z]{16}$/.test(path)
             || /\/admin\/employees\/email\/compose$/.test(path);
     } catch {
         return false;

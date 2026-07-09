@@ -50,6 +50,14 @@ return [
             'label' => 'Department Performance Register',
             'permission' => 'reports.view|intelligence.production.view',
         ],
+        'customer_summary' => [
+            'label' => 'Customer Production Summary',
+            'permission' => 'reports.view|intelligence.production.view',
+        ],
+        'sales_register' => [
+            'label' => 'Sales Register',
+            'permission' => 'reports.view|intelligence.commercial.view',
+        ],
     ],
 
     'presets' => [

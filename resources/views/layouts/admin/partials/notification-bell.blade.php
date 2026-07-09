@@ -7,8 +7,11 @@
         class="relative"
         x-data="erpNotificationBell(@js($bell))"
         @keydown.escape.window="close()"
+        @scroll.window="open && placePanel()"
+        @resize.window="open && placePanel()"
     >
         <button
+            x-ref="trigger"
             type="button"
             class="relative rounded-lg p-2 text-slate-500 transition-colors hover:bg-erp-page hover:text-slate-700"
             :class="open ? 'bg-erp-page text-erp-primary' : ''"
@@ -28,11 +31,12 @@
         </button>
 
         <div
+            x-ref="panel"
             x-show="open"
             x-cloak
             x-transition
-            @click.outside="close()"
-            class="absolute right-0 z-50 mt-2 w-[min(100vw-2rem,22rem)] overflow-hidden rounded-xl border border-erp-border bg-white shadow-card-hover sm:w-96"
+            :style="panelStyle"
+            class="erp-notification-panel w-[min(100vw-2rem,22rem)] overflow-hidden rounded-xl border border-erp-border bg-white shadow-card-hover sm:w-96"
         >
             <div class="flex items-center justify-between border-b border-erp-border px-4 py-3">
                 <h2 class="text-sm font-semibold text-erp-primary">{{ __('Notifications') }}</h2>
@@ -55,21 +59,28 @@
                 </template>
                 <template x-for="item in items" :key="item.id">
                     <div
-                        class="border-b border-erp-border/60 px-4 py-3 transition-colors hover:bg-slate-50/80"
+                        class="border-b border-erp-border/60 transition-colors hover:bg-slate-50/80"
                         :class="item.is_unread ? 'bg-erp-accent/[0.03]' : ''"
                     >
-                        <div class="flex items-start justify-between gap-2">
-                            <button type="button" class="min-w-0 flex-1 text-left" @click="openNotification(item)">
-                                <p class="text-sm font-medium text-erp-primary line-clamp-1" x-text="item.title"></p>
-                                <p class="mt-0.5 text-xs text-slate-600 line-clamp-2" x-text="item.body"></p>
-                            </button>
-                            <span
-                                class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
-                                :class="item.priority_badge"
-                                x-text="item.priority_label"
-                            ></span>
-                        </div>
-                        <div class="mt-2 flex items-center justify-between gap-2">
+                        <a
+                            :href="notificationHref(item)"
+                            data-turbo-frame="erp-main"
+                            class="block px-4 py-3 text-left no-underline"
+                            @click="openNotification(item, $event)"
+                        >
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-erp-primary line-clamp-1" x-text="item.title"></p>
+                                    <p class="mt-0.5 text-xs text-slate-600 line-clamp-2" x-text="item.body"></p>
+                                </div>
+                                <span
+                                    class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase"
+                                    :class="item.priority_badge"
+                                    x-text="item.priority_label"
+                                ></span>
+                            </div>
+                        </a>
+                        <div class="flex items-center justify-between gap-2 px-4 pb-3">
                             <span class="text-[10px] text-slate-500" x-text="formatDate(item.created_at)"></span>
                             <button
                                 type="button"

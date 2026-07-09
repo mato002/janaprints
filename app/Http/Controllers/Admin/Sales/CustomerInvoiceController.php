@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\SalesOrder;
+use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use App\Support\Sales\CustomerInvoiceService;
 use App\Support\Sales\SalesDocumentEmailService;
 use Illuminate\Http\RedirectResponse;
@@ -23,6 +24,7 @@ class CustomerInvoiceController extends Controller
 
     public function __construct(
         protected CustomerInvoiceService $invoices,
+        protected CustomerInvoiceCreationAuthority $invoiceAuthority,
         protected SalesDocumentEmailService $documentEmails,
     ) {}
 
@@ -213,7 +215,7 @@ class CustomerInvoiceController extends Controller
                 ->all();
         }
 
-        $invoice = $this->invoices->createFromSalesOrder($salesOrder, (int) auth()->id(), [
+        $result = $this->invoiceAuthority->createFromSalesOrder($salesOrder, (int) auth()->id(), [
             'invoice_type' => $type,
             'invoice_date' => $validated['invoice_date'],
             'due_date' => $validated['due_date'] ?? null,
@@ -223,9 +225,13 @@ class CustomerInvoiceController extends Controller
             'lines' => $lines,
         ]);
 
+        $flash = $result->wasExisting
+            ? ($result->message ?? __('Existing invoice opened.'))
+            : __('Invoice created from sales order.');
+
         return redirect()
-            ->route('admin.invoices.show', $invoice)
-            ->with('status', __('Invoice created from sales order.'));
+            ->route('admin.invoices.show', $result->invoice)
+            ->with('status', $flash);
     }
 
     public function storeFromJobCard(ProductionJobCard $jobCard, Request $request): RedirectResponse
@@ -239,16 +245,20 @@ class CustomerInvoiceController extends Controller
             'deposit_amount' => ['nullable', 'numeric', 'min:0.01'],
         ]);
 
-        $invoice = $this->invoices->createFromJobCard($jobCard, (int) auth()->id(), [
+        $result = $this->invoiceAuthority->createFromJobCard($jobCard, (int) auth()->id(), [
             'invoice_type' => CustomerInvoiceType::from($validated['invoice_type'] ?? 'standard'),
             'invoice_date' => $validated['invoice_date'] ?? now()->toDateString(),
             'billing_percent' => $validated['billing_percent'] ?? null,
             'deposit_amount' => $validated['deposit_amount'] ?? null,
         ]);
 
+        $flash = $result->wasExisting
+            ? ($result->message ?? __('Existing invoice opened.'))
+            : __('Invoice created from job card.');
+
         return redirect()
-            ->route('admin.invoices.show', $invoice)
-            ->with('status', __('Invoice created from job card.'));
+            ->route('admin.invoices.show', $result->invoice)
+            ->with('status', $flash);
     }
 
     public function storeCreditNote(Request $request, CustomerInvoice $invoice): RedirectResponse

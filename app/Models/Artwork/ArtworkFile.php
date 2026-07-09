@@ -4,13 +4,14 @@ namespace App\Models\Artwork;
 
 use App\Enums\ArtworkFileType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ArtworkFile extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasPublicHash;
 
     protected bool $tenantScopedToBranch = true;
 

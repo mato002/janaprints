@@ -167,6 +167,6 @@ class CommercialFlowHarmonizationTest extends TestCase
 
         $this->actingAs($this->user)
             ->get(route('admin.crm.customers.show', $otherCustomer))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 }

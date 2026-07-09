@@ -103,7 +103,7 @@ class CustomerPaymentReceiptService
         return URL::temporarySignedRoute(
             'public.payment-receipt.show',
             now()->addDays(30),
-            ['payment' => $payment->id],
+            ['payment' => $payment->getRouteKey()],
         );
     }
 

@@ -254,6 +254,7 @@ class WarehouseController extends Controller
             ->leftJoin('inventory_categories', 'inventory_categories.id', '=', 'inventory_items.inventory_category_id')
             ->select([
                 'inventory_items.id',
+                'inventory_items.public_id',
                 'inventory_items.sku',
                 'inventory_items.item_name',
                 'inventory_items.reorder_level',
@@ -264,6 +265,7 @@ class WarehouseController extends Controller
             ])
             ->groupBy([
                 'inventory_items.id',
+                'inventory_items.public_id',
                 'inventory_items.sku',
                 'inventory_items.item_name',
                 'inventory_items.reorder_level',

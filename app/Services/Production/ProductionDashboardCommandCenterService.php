@@ -387,7 +387,7 @@ class ProductionDashboardCommandCenterService
         return $this->cache->remember('production_machine_overview', $cacheKey, function () use ($companyId, $branchId) {
             $profileQuery = MachineProfile::query()
                 ->where('company_id', $companyId)
-                ->with(['asset:id,asset_name,asset_number', 'workCenter:id,name,code']);
+                ->with(['asset:id,public_id,asset_name,asset_number', 'workCenter:id,public_id,name,code']);
 
             if ($branchId) {
                 $profileQuery->where('branch_id', $branchId);
@@ -414,8 +414,8 @@ class ProductionDashboardCommandCenterService
                         'downtime_percent' => max(0, 100 - min(100, $utilization)),
                         'is_available' => $status->acceptsJobs() && $utilization < 100,
                         'capacity_alert' => $utilization >= 90,
-                        'url' => Route::has('admin.assets.machines.show')
-                            ? route('admin.assets.machines.show', $profile->fixed_asset_id)
+                        'url' => ($profile->asset && Route::has('admin.assets.machines.show'))
+                            ? route('admin.assets.machines.show', $profile->asset)
                             : null,
                     ];
                 })->values()->all();
@@ -519,9 +519,9 @@ class ProductionDashboardCommandCenterService
                 ->map(fn (array $order) => [
                     'work_order_no' => $order['work_order_no'] ?? '—',
                     'asset_name' => $order['asset_name'] ?? null,
-                    'url' => ! empty($order['id']) && Route::has('admin.assets.maintenance.work-orders.show')
-                        ? route('admin.assets.maintenance.work-orders.show', $order['id'])
-                        : null,
+                    'url' => ! empty($order['public_id']) && Route::has('admin.assets.maintenance.work-orders.show')
+                        ? route('admin.assets.maintenance.work-orders.show', $order['public_id'])
+                        : ($order['url'] ?? null),
                 ])
                 ->values()
                 ->all(),
@@ -538,6 +538,7 @@ class ProductionDashboardCommandCenterService
             ->with(['customer:id,company_name'])
             ->select([
                 'id',
+                'public_id',
                 'job_card_number',
                 'customer_id',
                 'status',

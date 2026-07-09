@@ -6,6 +6,7 @@ use App\Enums\ArtworkRequestStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
+use App\Services\Production\ProductionReleaseReadinessService;
 use App\Support\Production\SalesOrderProductionBridgeService;
 use Illuminate\Validation\ValidationException;
 
@@ -13,6 +14,7 @@ class SalesOrderWorkflowService
 {
     public function __construct(
         protected SalesOrderProductionBridgeService $bridge,
+        protected ProductionReleaseReadinessService $releaseReadiness,
     ) {}
 
     public function tryReleaseToProduction(SalesOrder $salesOrder, int $userId): bool
@@ -29,6 +31,9 @@ class SalesOrderWorkflowService
     public function releaseToProduction(SalesOrder $salesOrder, int $userId): ProductionJobCard
     {
         $salesOrder->refresh();
+
+        $user = \App\Models\User::query()->find($userId);
+        $this->releaseReadiness->assertReady($salesOrder, $user);
 
         if ($salesOrder->status === SalesOrderStatus::Confirmed) {
             if (! $salesOrder->status->canTransitionTo(SalesOrderStatus::ReadyForProduction)) {

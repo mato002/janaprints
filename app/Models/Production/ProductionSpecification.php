@@ -6,6 +6,7 @@ use App\Enums\PrintInkType;
 use App\Enums\ProductionSpecificationApprovalStatus;
 use App\Enums\ProductionType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Inventory\InventoryItem;
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductionSpecification extends Model
 {
     /** @use HasFactory<ProductionSpecificationFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

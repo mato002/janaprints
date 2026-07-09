@@ -2,14 +2,19 @@
 
 namespace App\Models\Artwork;
 
+use App\Models\Concerns\HasPublicHash;
 use App\Models\User;
+use App\Support\PublicHash\PublicHashResolver;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Storage;
 
 class ArtworkVersion extends Model
 {
+    use HasPublicHash;
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -22,6 +27,24 @@ class ArtworkVersion extends Model
         return [
             'created_at' => 'datetime',
         ];
+    }
+
+    public function resolveRouteBinding($value, $field = null): Model
+    {
+        $version = app(PublicHashResolver::class)->resolve(static::class, $value, $field);
+
+        $parentVisible = ArtworkRequest::query()
+            ->forTenant()
+            ->whereKey($version->artwork_request_id)
+            ->exists();
+
+        if (! $parentVisible) {
+            throw (new ModelNotFoundException)->setModel(static::class, [
+                (string) config('public_hashes.column', 'public_id') => $value,
+            ]);
+        }
+
+        return $version;
     }
 
     public function artworkRequest(): BelongsTo
@@ -51,9 +74,11 @@ class ArtworkVersion extends Model
 
     public function previewUrl(): string
     {
+        $this->loadMissing('artworkRequest');
+
         return route('admin.artwork.versions.preview', [
-            'artworkRequest' => $this->artwork_request_id,
-            'version' => $this->id,
+            'artworkRequest' => $this->artworkRequest,
+            'version' => $this,
         ]);
     }
 }

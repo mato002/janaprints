@@ -1,7 +1,10 @@
 @foreach ($sections as $section)
     @if (($section['type'] ?? '') === 'placeholder')
+        @if ($section['hidden'] ?? false)
+            @continue
+        @endif
         <x-admin.card class="mb-6">
-            <x-admin.empty-state icon="chart-pie" :title="$section['title']" :description="$section['message'] ?? __('Module not ready')" />
+            <x-admin.empty-state icon="chart-pie" :title="$section['title']" :description="$section['message'] ?? __('Report not enabled yet.')" />
         </x-admin.card>
     @elseif (($section['type'] ?? '') === 'kpis')
         <section class="mb-6">

@@ -521,49 +521,20 @@ class ExecutiveDashboardPresenter
      */
     protected function productionPerformance(string $today): array
     {
-        $base = ProductionJobCard::query()->forTenant();
+        $intel = app(\App\Services\Production\ProductionOperationsIntelligenceService::class)
+            ->liveExecutiveMetrics(tenant()->companyId(), tenant()->branchId());
 
-        $completedMtd = (clone $base)->where('status', ProductionJobCardStatus::Completed)
-            ->whereDate('updated_at', '>=', now()->startOfMonth()->toDateString())
-            ->count();
-
-        $delayed = (clone $base)->whereNotIn('status', [
-            ProductionJobCardStatus::Completed,
-            ProductionJobCardStatus::ReadyForDispatch,
-            ProductionJobCardStatus::Cancelled,
-        ])->whereDate('planned_end_date', '<', $today)->count();
-
-        $inProgress = (clone $base)->whereIn('status', [
-            ProductionJobCardStatus::Queued,
-            ProductionJobCardStatus::InProduction,
-            ProductionJobCardStatus::QualityCheck,
-            ProductionJobCardStatus::Rework,
-        ])->count();
-
-        $completedWithDates = (clone $base)
-            ->where('status', ProductionJobCardStatus::Completed)
-            ->whereNotNull('actual_start_date')
-            ->whereNotNull('actual_end_date')
-            ->whereDate('actual_end_date', '>=', now()->subDays(30)->toDateString())
-            ->get(['actual_start_date', 'actual_end_date']);
-
-        $avgTurnaround = '—';
-        if ($completedWithDates->isNotEmpty()) {
-            $hours = $completedWithDates->avg(fn ($job) => $job->actual_start_date->diffInHours($job->actual_end_date));
-            $avgTurnaround = round($hours / 24, 1).' '.__('days');
-        }
-
-        $queueBase = ProductionQueue::query()->forTenant();
-        $active = (clone $queueBase)->where('status', ProductionQueueStatus::InProgress)->count();
-        $total = max(1, (clone $queueBase)->count());
-
-        return [
-            'completed_mtd' => $completedMtd,
-            'avg_turnaround' => $avgTurnaround,
-            'delayed' => $delayed,
-            'in_progress' => $inProgress,
-            'machine_utilization' => (int) round(($active / $total) * 100),
-        ];
+        return array_merge([
+            'completed_mtd' => $intel['jobs_completed_today'] ?? 0,
+            'avg_turnaround' => isset($intel['avg_turnaround_days'])
+                ? round((float) $intel['avg_turnaround_days'], 1).' '.__('days')
+                : '—',
+            'delayed' => $intel['jobs_overdue'] ?? 0,
+            'in_progress' => $intel['jobs_running'] ?? 0,
+            'machine_utilization' => (int) ($intel['machine_utilisation'] ?? 0),
+        ], [
+            'live' => $intel,
+        ]);
     }
 
     /**

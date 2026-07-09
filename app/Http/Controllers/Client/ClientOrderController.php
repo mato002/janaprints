@@ -42,9 +42,29 @@ class ClientOrderController extends Controller
         $customer = $this->clientCustomer();
         $this->assertClientOwns($order, $customer);
 
-        $order->load(['items', 'quotation', 'jobCard.fulfilment']);
+        $order->load(['items', 'quotation', 'jobCard.fulfilment', 'invoices']);
         $tracking = $this->tracking->track($order);
 
-        return view('client.orders.show', compact('customer', 'order', 'tracking'));
+        $paymentReceipts = \App\Models\Sales\CustomerPayment::query()
+            ->where('customer_id', $customer->id)
+            ->where('status', \App\Enums\CustomerPaymentStatus::Posted)
+            ->whereHas('allocations.invoice', fn ($q) => $q->where('sales_order_id', $order->id))
+            ->latest('payment_date')
+            ->get()
+            ->map(fn ($payment) => [
+                'label' => $payment->payment_number,
+                'receipt' => app(\App\Support\Sales\CustomerPaymentReceiptService::class)->signedPublicUrl($payment),
+            ]);
+
+        $documents = [
+            'quotation_pdf' => $order->quotation ? route('client.quotations.pdf', $order->quotation) : null,
+            'invoices' => $order->invoices->map(fn ($invoice) => [
+                'label' => $invoice->invoice_number,
+                'pdf' => route('client.invoices.pdf', $invoice),
+            ]),
+            'payments' => $paymentReceipts,
+        ];
+
+        return view('client.orders.show', compact('customer', 'order', 'tracking', 'documents'));
     }
 }

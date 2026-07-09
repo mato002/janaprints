@@ -41,7 +41,7 @@
                                         <li>
                                             @if (Route::has('admin.production.job-cards.show'))
                                                 <a
-                                                    href="{{ route('admin.production.job-cards.show', $job['id']) }}"
+                                                    href="{{ $job['url'] ?? route('admin.production.job-cards.show', $job['public_id']) }}"
                                                     class="block truncate rounded px-1 py-0.5 text-[10px] leading-tight {{ $job['span'] === 'start' ? 'bg-erp-accent/15 text-erp-primary font-medium' : ($job['span'] === 'end' ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-700') }}"
                                                     title="{{ $job['job_number'] }} — {{ $job['customer'] }}"
                                                 >

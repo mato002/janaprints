@@ -234,7 +234,7 @@ class CommercialRevenueReceivablesPresenter
         }
 
         $customerIds = $rows->pluck('customer_id')->filter()->all();
-        $names = Customer::query()->whereIn('id', $customerIds)->pluck('company_name', 'id');
+        $customers = Customer::query()->whereIn('id', $customerIds)->get(['id', 'public_id', 'company_name'])->keyBy('id');
 
         $lastPayments = CustomerPayment::query()->forTenant()
             ->where('status', CustomerPaymentStatus::Posted)
@@ -243,15 +243,16 @@ class CommercialRevenueReceivablesPresenter
             ->groupBy('customer_id')
             ->pluck('last_payment', 'customer_id');
 
-        return $rows->map(function ($row) use ($names, $lastPayments, $today) {
+        return $rows->map(function ($row) use ($customers, $lastPayments, $today) {
             $oldest = $row->oldest_anchor ? Carbon::parse($row->oldest_anchor)->startOfDay() : null;
             $daysOutstanding = $oldest ? (int) $oldest->diffInDays($today) : 0;
             $lastPayment = $lastPayments[$row->customer_id] ?? null;
+            $customer = $customers[$row->customer_id] ?? null;
 
             return [
-                'customer' => $names[$row->customer_id] ?? '—',
-                'customer_url' => $row->customer_id && Route::has('admin.crm.customers.show')
-                    ? route('admin.crm.customers.show', $row->customer_id)
+                'customer' => $customer?->company_name ?? '—',
+                'customer_url' => $customer && Route::has('admin.crm.customers.show')
+                    ? route('admin.crm.customers.show', $customer)
                     : null,
                 'outstanding' => $this->money((float) $row->outstanding),
                 'last_payment' => $lastPayment ? Carbon::parse($lastPayment)->format('d M Y') : '—',

@@ -11,6 +11,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
 
 class ProductionSchedulingWorkspaceService
 {
@@ -222,9 +223,9 @@ class ProductionSchedulingWorkspaceService
     protected function listRelations(): array
     {
         return [
-            'customer:id,company_name',
-            'salesOrder:id,required_date',
-            'queues.workCenter:id,name',
+            'customer:id,public_id,company_name',
+            'salesOrder:id,public_id,required_date',
+            'queues.workCenter:id,public_id,name',
         ];
     }
 
@@ -243,7 +244,10 @@ class ProductionSchedulingWorkspaceService
             }
 
             $items[] = [
-                'id' => $job->id,
+                'public_id' => $job->public_id,
+                'url' => Route::has('admin.production.job-cards.show')
+                    ? route('admin.production.job-cards.show', $job)
+                    : null,
                 'job_number' => $job->job_card_number,
                 'customer' => $job->customer?->company_name ?? '—',
                 'status' => $job->status->value,

@@ -267,7 +267,7 @@ class DepartmentCommandCenterService
                 ? route('admin.production.job-cards.floor-display', $job)
                 : null,
             'customer_360_url' => ($job?->customer_id && auth()->user()?->can('view', $job->customer))
-                ? route('admin.crm.customers.show', $job->customer_id)
+                ? route('admin.crm.customers.show', $job->customer)
                 : null,
         ]);
     }

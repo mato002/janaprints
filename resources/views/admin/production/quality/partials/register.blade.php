@@ -29,9 +29,9 @@
                 <td class="hidden tabular-nums lg:table-cell">{{ $row['inspection_date'] }}</td>
                 <td class="hidden sm:table-cell text-sm text-slate-600">{{ $row['status_label'] }}</td>
                 <td class="erp-table-actions-col">
-                    @if ($row['job_id'] && Route::has('admin.production.job-cards.show'))
+                    @if (! empty($row['job_url']) && Route::has('admin.production.job-cards.show'))
                         <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.production.job-cards.show', $row['job_id'])">
+                            <x-admin.table-row-action :href="$row['job_url']">
                                 {{ __('View job') }}
                             </x-admin.table-row-action>
                         </x-admin.table-row-actions>

@@ -84,7 +84,7 @@
                                         @foreach ($day['notes'] as $note)
                                             <li>
                                                 <a
-                                                    href="{{ route('admin.dispatch.delivery-notes.show', $note['id']) }}"
+                                                    href="{{ $note['url'] ?? route('admin.dispatch.delivery-notes.show', $note['public_id']) }}"
                                                     class="block truncate rounded px-1 py-0.5 text-[10px] leading-tight font-medium {{ $note['status_class'] }}"
                                                     title="{{ $note['number'] }} — {{ $note['customer'] }}"
                                                 >

@@ -41,11 +41,15 @@ class CustomerActivityController extends Controller
     {
         $this->authorize('delete', $activity);
 
+        $activity->loadMissing(['lead:id,public_id', 'customer:id,public_id']);
+
         $redirect = auth()->user()?->can('crm.activities.view')
             ? route('admin.commercial.activities.index')
-            : ($activity->lead_id
-                ? route('admin.crm.leads.show', $activity->lead_id)
-                : route('admin.crm.customers.show', $activity->customer_id));
+            : ($activity->lead
+                ? route('admin.crm.leads.show', $activity->lead)
+                : ($activity->customer
+                    ? route('admin.crm.customers.show', $activity->customer)
+                    : route('admin.crm.customers.index')));
 
         $activity->delete();
 

@@ -12,6 +12,7 @@ use App\Models\Crm\CustomerArtwork;
 use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionSpecification;
 use App\Models\Concerns\LogsActivity;
@@ -27,7 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class SalesOrder extends Model
 {
     /** @use HasFactory<SalesOrderFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

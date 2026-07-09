@@ -5,6 +5,7 @@ namespace App\Models\Dispatch;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Models\Accounting\Journal;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Crm\Customer;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DeliveryNote extends Model
 {
-    use BelongsToTenant, SoftDeletes;
+    use BelongsToTenant, HasPublicHash, SoftDeletes;
 
     protected $fillable = [
         'company_id',

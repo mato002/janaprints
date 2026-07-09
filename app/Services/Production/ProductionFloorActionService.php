@@ -3,7 +3,6 @@
 namespace App\Services\Production;
 
 use App\Enums\ProductionJobCardStatus;
-use App\Enums\QualityCheckResult;
 use App\Models\Production\ProductionJobCard;
 use App\Models\User;
 use App\Support\Production\JobCardOutsourceService;
@@ -23,6 +22,28 @@ class ProductionFloorActionService
     ) {}
 
     /**
+     * One-click operator actions for floor, queue, and sticky action bars.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function operatorActions(ProductionJobCard $jobCard, ?User $user = null): array
+    {
+        $user ??= auth()->user();
+        $actions = [];
+
+        $primary = $this->primaryAction($jobCard, $user);
+        if ($primary) {
+            $actions[] = $primary;
+        }
+
+        foreach ($this->secondaryActions($jobCard, $user) as $action) {
+            $actions[] = $action;
+        }
+
+        return $actions;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function primaryAction(ProductionJobCard $jobCard, ?User $user = null): ?array
@@ -31,6 +52,10 @@ class ProductionFloorActionService
 
         if (! $user) {
             return null;
+        }
+
+        if ($user->can('transition', $jobCard) && $jobCard->status === ProductionJobCardStatus::OnHold) {
+            return $this->action(__('Resume'), 'post', route('admin.production.job-cards.resume', $jobCard), 'primary');
         }
 
         if ($user->can('schedule', $jobCard) && $jobCard->status === ProductionJobCardStatus::Draft) {
@@ -51,7 +76,7 @@ class ProductionFloorActionService
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)) {
-            return $this->action(__('Send to QC'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
+            return $this->action(__('QC ready'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
         }
 
         if ($user->can('update', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced)) {
@@ -71,7 +96,7 @@ class ProductionFloorActionService
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)
             && $this->controls->dispatchEligibility($jobCard)['eligible']
         ) {
-            return $this->action(__('Ready for dispatch'), 'post', route('admin.production.job-cards.ready-for-dispatch', $jobCard), 'primary');
+            return $this->action(__('Dispatch ready'), 'post', route('admin.production.job-cards.ready-for-dispatch', $jobCard), 'primary');
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
@@ -93,8 +118,21 @@ class ProductionFloorActionService
         $user ??= auth()->user();
         $actions = [];
 
-        if ($user?->can('transition', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)) {
+        if ($user?->can('transition', $jobCard) && $jobCard->status === ProductionJobCardStatus::InProduction) {
+            $actions[] = $this->action(__('Pause'), 'post', route('admin.production.job-cards.pause', $jobCard), 'ghost');
+        }
+
+        if ($user?->can('transition', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)
+            && $jobCard->status !== ProductionJobCardStatus::InProduction) {
             $actions[] = $this->action(__('Hold'), 'post', route('admin.production.job-cards.hold', $jobCard), 'ghost');
+        }
+
+        if ($user?->can('complete', $jobCard) && $jobCard->status === ProductionJobCardStatus::QualityCheck) {
+            $actions[] = $this->action(__('Quick pass QC'), 'post', route('admin.production.floor.quick-pass-qc', $jobCard), 'ghost');
+        }
+
+        if ($user?->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)) {
+            $actions[] = $this->action(__('Complete'), 'post', route('admin.production.job-cards.complete', $jobCard), 'ghost');
         }
 
         return $actions;
@@ -109,7 +147,7 @@ class ProductionFloorActionService
         abort_unless($jobCard->status === ProductionJobCardStatus::QualityCheck, 422);
 
         $this->quality->recordInspection($jobCard, [
-            'result' => QualityCheckResult::Passed->value,
+            'result' => \App\Enums\QualityCheckResult::Passed->value,
             'comments' => __('Quick pass from production floor.'),
         ], (int) $user->id);
 

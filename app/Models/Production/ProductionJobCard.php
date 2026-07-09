@@ -9,6 +9,7 @@ use App\Models\Artwork\ArtworkRequest;
 use App\Models\Assets\FixedAsset;
 use App\Models\Assets\MachineJobAssignment;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerArtwork;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ProductionJobCard extends Model
 {
     /** @use HasFactory<ProductionJobCardFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 
@@ -224,7 +225,24 @@ class ProductionJobCard extends Model
             );
         }
 
+        $previous = $this->status;
         $this->update(['status' => $status]);
+
+        if ($previous !== $status && auth()->id()) {
+            \App\Models\ActivityLog::query()->create([
+                'company_id' => $this->company_id,
+                'user_id' => auth()->id(),
+                'action' => 'production_job_status_changed',
+                'model_type' => $this->getMorphClass(),
+                'model_id' => $this->id,
+                'properties' => [
+                    'from' => $previous->value,
+                    'to' => $status->value,
+                    'job_card_number' => $this->job_card_number,
+                ],
+                'created_at' => now(),
+            ]);
+        }
     }
 
     public function isDelayed(): bool

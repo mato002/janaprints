@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Operations;
 use App\Http\Controllers\Controller;
 use App\Operations\BackgroundJobsCenter;
 use App\Services\Operations\BackgroundJobMonitorService;
+use App\Services\Operations\QueueReadinessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -14,6 +15,7 @@ class BackgroundJobsController extends Controller
 {
     public function __construct(
         protected BackgroundJobMonitorService $monitor,
+        protected QueueReadinessService $queueReadiness,
     ) {}
 
     public function index(Request $request): View
@@ -30,6 +32,7 @@ class BackgroundJobsController extends Controller
         return view('admin.operations.jobs.index', [
             'jobs' => $this->monitor->paginate($filters),
             'metrics' => $this->monitor->summaryMetrics(),
+            'queueReadiness' => $this->queueReadiness->diagnostics(),
             'filters' => $filters,
             'typeOptions' => $this->monitor->typeOptions(),
             'statusOptions' => $this->monitor->statusOptions(),

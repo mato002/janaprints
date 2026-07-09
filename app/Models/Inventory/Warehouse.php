@@ -4,6 +4,7 @@ namespace App\Models\Inventory;
 
 use App\Enums\VirtualWarehouseRole;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\User;
 use Database\Factories\Inventory\WarehouseFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class Warehouse extends Model
 {
     /** @use HasFactory<WarehouseFactory> */
-    use BelongsToTenant, HasFactory;
+    use BelongsToTenant, HasFactory, HasPublicHash;
 
     protected bool $tenantScopedToBranch = true;
 

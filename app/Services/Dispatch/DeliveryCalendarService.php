@@ -89,7 +89,8 @@ class DeliveryCalendarService
             }
 
             $items[] = [
-                'id' => $note->id,
+                'public_id' => $note->public_id,
+                'url' => route('admin.dispatch.delivery-notes.show', $note),
                 'number' => $note->delivery_note_number,
                 'customer' => $note->customer?->company_name ?? '—',
                 'status' => $note->status->value,

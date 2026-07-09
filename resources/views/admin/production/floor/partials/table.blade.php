@@ -17,10 +17,10 @@
             @forelse ($rows as $row)
                 <tr
                     class="cursor-pointer hover:bg-slate-50 {{ $row['is_overdue'] ? 'bg-amber-50/60' : '' }}"
-                    @click="openPanel({{ $row['id'] }})"
+                    @click="openPanel(@js($row['public_id']))"
                 >
                     <td class="font-mono text-xs whitespace-nowrap">
-                        <button type="button" class="text-erp-accent hover:underline" @click.stop="openPanel({{ $row['id'] }})">
+                        <button type="button" class="text-erp-accent hover:underline" @click.stop="openPanel(@js($row['public_id']))">
                             {{ $row['job_number'] }}
                         </button>
                     </td>
@@ -41,7 +41,7 @@
                     </td>
                     <td @click.stop>
                         @can('machines.assign')
-                            <form method="POST" action="{{ route('admin.production.floor.assign-machine', $row['id']) }}" class="min-w-[9rem]">
+                            <form method="POST" action="{{ route('admin.production.floor.assign-machine', $row['public_id']) }}" class="min-w-[9rem]">
                                 @csrf
                                 @foreach ($filters as $key => $value)
                                     @if ($value !== '' && $value !== null)
@@ -88,14 +88,14 @@
                                     <button type="submit" class="erp-btn-primary text-xs py-1 px-2">{{ $action['label'] }}</button>
                                 </form>
                             @elseif ($action['type'] === 'panel')
-                                <button type="button" class="erp-btn-primary text-xs py-1 px-2" @click="openPanel({{ $row['id'] }})">
+                                <button type="button" class="erp-btn-primary text-xs py-1 px-2" @click="openPanel(@js($row['public_id']))">
                                     {{ $action['label'] }}
                                 </button>
                             @else
                                 <a href="{{ $action['url'] }}" class="erp-btn-secondary text-xs py-1 px-2" data-turbo-frame="erp-main">{{ $action['label'] }}</a>
                             @endif
                         @else
-                            <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="openPanel({{ $row['id'] }})">{{ __('Open') }}</button>
+                            <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="openPanel(@js($row['public_id']))">{{ __('Open') }}</button>
                         @endif
                     </td>
                 </tr>

@@ -6,6 +6,7 @@ use App\Enums\PrintProductTemplateCategory;
 use App\Enums\ProductionType;
 use App\Models\Assets\FixedAsset;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Inventory\InventoryItem;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PrintProductTemplate extends Model
 {
     /** @use HasFactory<PrintProductTemplateFactory> */
-    use BelongsToTenant, HasFactory, LogsActivity;
+    use BelongsToTenant, HasFactory, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

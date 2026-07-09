@@ -3,7 +3,7 @@
 <x-admin.card class="mb-6">
     <h2 class="mb-3 text-sm font-semibold text-erp-primary">{{ $title ?? __('Production Pipeline') }}</h2>
     @if ($stages === [])
-        <p class="text-sm text-slate-500">{{ __('Module not ready') }}</p>
+        <p class="text-sm text-slate-500">{{ __('Report not enabled yet.') }}</p>
     @else
         <div class="flex flex-wrap gap-2">
             @foreach ($stages as $index => $stage)

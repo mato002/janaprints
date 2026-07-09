@@ -47,7 +47,7 @@ class InventoryFoundationTest extends TestCase
         $user = $this->storekeeper($companyA, $branchA, ['inventory.view']);
         $itemB = InventoryItem::factory()->create(['company_id' => $companyB->id, 'branch_id' => $branchB->id]);
 
-        $this->actingAs($user)->get(route('admin.inventory.items.show', $itemB))->assertForbidden();
+        $this->actingAs($user)->get(route('admin.inventory.items.show', $itemB))->assertNotFound();
     }
 
     public function test_viewer_cannot_create_inventory_item(): void

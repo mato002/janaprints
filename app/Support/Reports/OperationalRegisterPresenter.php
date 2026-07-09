@@ -72,6 +72,8 @@ class OperationalRegisterPresenter
             'machine_utilisation' => $this->queries->machineUtilisationRegister($scope),
             'operator_productivity' => $this->queries->operatorProductivityRegister($scope),
             'department_performance' => $this->queries->departmentPerformanceRegister($scope),
+            'customer_summary' => $this->queries->customerSummaryRegister($scope),
+            'sales_register' => $this->queries->dailySalesRegister($scope, $user),
             default => ['summary' => [], 'table' => ['title' => '', 'columns' => [], 'rows' => []]],
         };
     }

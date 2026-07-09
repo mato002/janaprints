@@ -7,6 +7,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.3",
+        "chillerlan/php-qrcode": "5.0",
         "dompdf/dompdf": "^3.1",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
@@ -53,6 +54,11 @@
         "test": [
             "@php artisan config:clear --ansi @no_additional_args",
             "@php artisan test"
+        ],
+        "public-hash:check": [
+            "@php artisan public-hash:certify --strict",
+            "@php artisan public-hash:audit --strict --routes --views --js",
+            "@php artisan public-hash:audit-stored-urls --strict"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",

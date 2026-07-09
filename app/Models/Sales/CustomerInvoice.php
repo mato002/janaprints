@@ -7,6 +7,7 @@ use App\Enums\CustomerInvoiceType;
 use App\Enums\CustomerPaymentStatus;
 use App\Models\Accounting\Journal;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\Production\ProductionJobCard;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CustomerInvoice extends Model
 {
-    use BelongsToTenant, LogsActivity;
+    use BelongsToTenant, HasPublicHash, LogsActivity;
 
     protected bool $tenantScopedToBranch = true;
 

@@ -31,7 +31,9 @@ class StoreBalanceController extends Controller
 
             return (object) [
                 'item_id' => $item->id,
+                'item_public_id' => $item->public_id,
                 'warehouse_id' => $warehouse->id,
+                'warehouse_public_id' => $warehouse->public_id,
                 'warehouse_code' => $warehouse->code,
                 'warehouse_name' => $warehouse->name,
                 'sku' => $item->sku,

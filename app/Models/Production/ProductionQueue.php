@@ -4,6 +4,7 @@ namespace App\Models\Production;
 
 use App\Enums\ProductionQueueStatus;
 use App\Models\Concerns\BelongsToTenant;
+use App\Models\Concerns\HasPublicHash;
 use App\Models\Production\JobCardRouteStep;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductionQueue extends Model
 {
-    use BelongsToTenant;
+    use BelongsToTenant, HasPublicHash;
 
     protected bool $tenantScopedToBranch = true;
 

@@ -26,7 +26,7 @@
                 @foreach ($wallet['deposits'] as $row)
                     <tr class="border-t border-erp-border">
                         <td class="py-2">
-                            <a href="{{ route('admin.payments.show', $row['payment_id']) }}" class="font-mono text-erp-accent">{{ $row['payment_number'] }}</a>
+                            <a href="{{ route('admin.payments.show', $row['payment_public_id'] ?? $row['payment_id']) }}" class="font-mono text-erp-accent">{{ $row['payment_number'] }}</a>
                         </td>
                         <td class="py-2">{{ $row['payment_date'] }}</td>
                         <td class="py-2 font-mono">{{ number_format($row['credit_issued'], 2) }}</td>
