@@ -17,6 +17,10 @@
                 href="{{ route($item['route']) }}"
                 @class(['client-bottom-nav__link', 'is-active' => $active])
                 data-client-bottom-nav-link
+                data-client-nav-route="{{ $item['route'] }}"
+                data-client-nav-active="{{ implode(',', $item['match']) }}"
+                data-turbo-frame="client-main"
+                data-turbo-action="advance"
             >
                 <span class="client-bottom-nav__icon-wrap">
                     <x-client.icon :name="$item['icon']" class="h-5 w-5" />

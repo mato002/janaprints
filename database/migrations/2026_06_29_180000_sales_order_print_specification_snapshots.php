@@ -32,7 +32,7 @@ return new class extends Migration
                 if (! Schema::hasColumn('sales_order_items', 'customer_artwork_id')) {
                     $table->foreignId('customer_artwork_id')
                         ->nullable()
-                        ->after('inventory_item_id')
+                        ->after('customer_print_specification_id')
                         ->constrained('customer_artworks', indexName: 'soi_customer_artwork_fk')
                         ->nullOnDelete();
                 }

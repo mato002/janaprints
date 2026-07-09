@@ -41,6 +41,17 @@ return new class extends Migration
             });
         }
 
+        if (Schema::hasTable('print_product_templates') && Schema::hasColumn('print_product_templates', 'recommended_qc_checklist_id')) {
+            try {
+                Schema::table('print_product_templates', function (Blueprint $table) {
+                    $table->foreign('recommended_qc_checklist_id', 'ppt_qc_checklist_fk')
+                        ->references('id')->on('product_qc_checklists')->nullOnDelete();
+                });
+            } catch (\Throwable) {
+                // FK may already exist.
+            }
+        }
+
         if (! Schema::hasTable('job_card_qc_snapshots')) {
             Schema::create('job_card_qc_snapshots', function (Blueprint $table) {
                 $table->id();

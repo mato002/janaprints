@@ -1,4 +1,7 @@
 @php
+    $inboxUnreadSummaryUrl = \Illuminate\Support\Facades\Route::has('admin.communications.inbox.unread-summary')
+        ? route('admin.communications.inbox.unread-summary')
+        : null;
     $currentView = $filters['view'] ?? 'all';
     $viewChips = [
         'all' => __('All'),
@@ -26,7 +29,11 @@
     )));
 @endphp
 
-<aside class="shared-inbox__list-panel flex h-full min-h-0 w-full flex-col overflow-hidden">
+<aside
+    class="shared-inbox__list-panel flex h-full min-h-0 w-full flex-col overflow-hidden"
+    data-inbox-list-panel
+    @if ($inboxUnreadSummaryUrl) data-inbox-unread-summary-url="{{ $inboxUnreadSummaryUrl }}" @endif
+>
     <div class="shared-inbox__list-header">
         <div x-show="newConvoOpen" x-cloak class="shared-inbox__new-panel">
             @include('admin.communications.inbox.partials.start-conversation', ['compact' => true])
@@ -101,6 +108,7 @@
             <a
                 href="{{ $inboxEmbedUrl(route('admin.communications.inbox.index', array_merge(request()->query(), ['conversation' => $conv->id]))) }}"
                 data-turbo-frame="{{ $inboxTurboFrame }}"
+                data-conversation-id="{{ $conv->id }}"
                 class="shared-inbox__conv-row {{ $isActive ? 'shared-inbox__conv-row--active' : '' }}"
             >
                 <div class="shared-inbox__avatar">{{ $initial }}</div>
@@ -114,7 +122,11 @@
                     <div class="mt-0.5 flex items-center justify-between gap-2">
                         <p class="truncate text-[13px] text-slate-500">{{ $conv->last_message_preview ?? __('No messages') }}</p>
                         @if ($conv->unread_count > 0)
-                            <span class="shared-inbox__unread-badge" aria-label="{{ __(':count unread', ['count' => $conv->unread_count]) }}">{{ $conv->unread_count }}</span>
+                            <span
+                                class="shared-inbox__unread-badge"
+                                data-conversation-unread-badge
+                                aria-label="{{ __(':count unread', ['count' => $conv->unread_count]) }}"
+                            >{{ $conv->unread_count }}</span>
                         @endif
                     </div>
                 </div>

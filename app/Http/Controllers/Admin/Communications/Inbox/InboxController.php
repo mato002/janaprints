@@ -24,6 +24,8 @@ use App\Support\Communications\Inbox\InboxSlaService;
 use App\Support\Communications\Inbox\InboxChatFeedService;
 use App\Support\Communications\Inbox\InboxConversationWorkspaceService;
 use App\Support\Communications\Inbox\InboxTimelineService;
+use App\Services\Communications\Inbox\InboxIncomingNotificationService;
+use App\Services\Communications\Inbox\InboxUnreadCountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -46,6 +48,8 @@ class InboxController extends Controller
         protected InboxSlaService $sla,
         protected InboxAuditService $audit,
         protected InboxChatFeedService $chatFeed,
+        protected InboxIncomingNotificationService $incomingNotifications,
+        protected InboxUnreadCountService $unreadCounts,
     ) {}
 
     public function index(Request $request): View
@@ -92,6 +96,7 @@ class InboxController extends Controller
             if ($active) {
                 $this->authorize('view', $active);
                 $this->conversations->markRead($active);
+                $this->incomingNotifications->markRelatedRead($request->user(), $active);
                 $this->sla->refresh($active);
                 $context = $this->customerContext->forConversation($active);
                 $workspaceData = $this->workspace->forConversation($active, $channelFilter);
@@ -318,6 +323,7 @@ class InboxController extends Controller
 
         $channelFilter = $request->get('channel');
         $this->conversations->markRead($inboxConversation);
+        $this->incomingNotifications->markRelatedRead($request->user(), $inboxConversation);
         $workspaceData = $this->workspace->forConversation($inboxConversation, $channelFilter);
         $events = $workspaceData['message_timeline'];
 
@@ -330,6 +336,13 @@ class InboxController extends Controller
             ])->render(),
             'unread_count' => (int) $inboxConversation->fresh()->unread_count,
         ]);
+    }
+
+    public function unreadSummary(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', CommunicationConversation::class);
+
+        return response()->json($this->unreadCounts->unreadSummary($this->requireCompanyId()));
     }
 
     public function downloadAttachment(

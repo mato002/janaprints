@@ -3,7 +3,9 @@
 namespace App\Services\Communications\Inbox;
 
 use App\Enums\NotificationPriority;
+use App\Enums\NotificationReadStatus;
 use App\Enums\NotificationType;
+use App\Models\Communications\ErpNotification;
 use App\Models\Communications\Inbox\CommunicationConversation;
 use App\Models\Communications\Inbox\CommunicationConversationMessage;
 use App\Models\User;
@@ -53,6 +55,21 @@ class InboxIncomingNotificationService
         }
     }
 
+    public function markRelatedRead(User $user, CommunicationConversation $conversation): void
+    {
+        if (! $user->can('communications.notifications.view')) {
+            return;
+        }
+
+        ErpNotification::query()
+            ->where('recipient_user_id', $user->id)
+            ->where('subject_type', CommunicationConversation::class)
+            ->where('subject_id', $conversation->id)
+            ->where('type', NotificationType::InboxCustomerMessage)
+            ->whereHas('readState', fn ($query) => $query->where('status', NotificationReadStatus::Unread))
+            ->each(fn (ErpNotification $notification) => $this->notifications->markRead($notification, $user));
+    }
+
     /**
      * @return Collection<int, User>
      */
@@ -68,20 +85,27 @@ class InboxIncomingNotificationService
             ->values();
 
         if ($ids->isEmpty()) {
-            return User::query()
-                ->where('company_id', $conversation->company_id)
-                ->where('is_active', true)
-                ->where(function ($query) {
-                    $query->whereHas('permissions', fn ($q) => $q->where('name', 'communications.inbox.view'))
-                        ->orWhereHas('roles.permissions', fn ($q) => $q->where('name', 'communications.inbox.view'));
-                })
-                ->limit(5)
-                ->get();
+            return $this->eligibleRecipients($conversation);
         }
 
         return User::query()
             ->whereIn('id', $ids)
             ->where('is_active', true)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    protected function eligibleRecipients(CommunicationConversation $conversation): Collection
+    {
+        return User::query()
+            ->where('company_id', $conversation->company_id)
+            ->where('is_active', true)
+            ->where(function ($query) {
+                $query->whereHas('permissions', fn ($q) => $q->where('name', 'communications.inbox.view'))
+                    ->orWhereHas('roles.permissions', fn ($q) => $q->where('name', 'communications.inbox.view'));
+            })
             ->get();
     }
 }

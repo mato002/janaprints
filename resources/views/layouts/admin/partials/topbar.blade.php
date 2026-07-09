@@ -72,6 +72,7 @@
         </div>
 
         @include('layouts.admin.partials.quote-requests-topbar')
+        @include('layouts.admin.partials.inbox-topbar')
 
         @if (Route::has('home'))
             <a

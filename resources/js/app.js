@@ -31,7 +31,45 @@ function showErpSweetAlert(message, variant = 'success', options = {}) {
     });
 }
 
+function showErpNotificationAlert(notification) {
+    if (! notification?.title) {
+        return;
+    }
+
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: notification.title,
+        text: notification.body ?? '',
+        timer: 10000,
+        timerProgressBar: true,
+        showConfirmButton: false,
+        showCloseButton: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+
+            if (! notification.action_url) {
+                return;
+            }
+
+            toast.style.cursor = 'pointer';
+            toast.addEventListener('click', () => {
+                Swal.close();
+
+                if (window.Turbo?.visit) {
+                    window.Turbo.visit(notification.action_url, { frame: 'erp-main', action: 'advance' });
+                } else {
+                    window.location.href = notification.action_url;
+                }
+            });
+        },
+    });
+}
+
 window.showErpSweetAlert = showErpSweetAlert;
+window.showErpNotificationAlert = showErpNotificationAlert;
 
 window.Alpine = Alpine;
 window.Turbo = Turbo;
@@ -1459,6 +1497,10 @@ document.addEventListener('turbo:frame-render', (event) => {
 
     if (event.target?.id === 'module-workspace-content' || event.target?.querySelector?.('#inbox-messages')) {
         initSharedInboxPoll();
+    }
+
+    if (event.target?.querySelector?.('[data-inbox-list-panel]')) {
+        initSharedInboxListPoll(event.target);
     }
 });
 
@@ -4303,6 +4345,9 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('erpNotificationBell', (bootstrap = {}) => ({
         routes: bootstrap.routes ?? {},
         unreadCount: bootstrap.unreadCount ?? 0,
+        lastKnownCount: bootstrap.unreadCount ?? 0,
+        lastSeenNotificationId: bootstrap.latestNotificationId ?? null,
+        pollTimer: null,
         open: false,
         loading: false,
         items: [],
@@ -4311,8 +4356,52 @@ document.addEventListener('alpine:init', () => {
             window.addEventListener('erp:notifications-updated', (event) => {
                 if (event.detail?.unreadCount !== undefined) {
                     this.unreadCount = event.detail.unreadCount;
+                    this.lastKnownCount = event.detail.unreadCount;
                 }
             });
+
+            this.startPolling();
+        },
+
+        startPolling() {
+            const poll = async () => {
+                if (document.hidden || ! this.routes.unread) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(this.routes.unread, {
+                        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    });
+
+                    if (! response.ok) {
+                        return;
+                    }
+
+                    const data = await response.json();
+                    const nextCount = data.unread_count ?? 0;
+                    const latest = data.latest ?? null;
+
+                    if (
+                        latest?.id
+                        && latest.id !== this.lastSeenNotificationId
+                        && nextCount > this.lastKnownCount
+                    ) {
+                        this.lastSeenNotificationId = latest.id;
+                        showErpNotificationAlert(latest);
+                    }
+
+                    this.unreadCount = nextCount;
+                    this.lastKnownCount = nextCount;
+                    this.broadcastUnread();
+                } catch {
+                    // ignore transient network errors
+                }
+            };
+
+            poll();
+            this.pollTimer = window.setInterval(poll, 15000);
         },
 
         async toggle() {
@@ -6272,6 +6361,8 @@ document.addEventListener('turbo:load', () => {
     initDocumentPdfDownload();
     initSubmitFeedbackForms();
     initSharedInboxPoll();
+    initSharedInboxListPoll();
+    initInboxTopbarBadgePoll();
 });
 
 function initSharedInboxPoll() {
@@ -6352,4 +6443,166 @@ function initSharedInboxPoll() {
 
         container.dataset.inboxPollBound = '0';
     });
+}
+
+function initSharedInboxListPoll(root = document) {
+    const panel = root.querySelector?.('[data-inbox-list-panel]') ?? document.querySelector('[data-inbox-list-panel]');
+
+    if (!panel || panel.dataset.inboxListPollBound === '1') {
+        return;
+    }
+
+    const summaryUrl = panel.dataset.inboxUnreadSummaryUrl;
+
+    if (!summaryUrl) {
+        return;
+    }
+
+    panel.dataset.inboxListPollBound = '1';
+
+    let pollTimer = null;
+
+    const updateRowBadge = (row, count) => {
+        let badge = row.querySelector('[data-conversation-unread-badge]');
+        const preview = row.querySelector('.truncate.text-\\[13px\\]');
+
+        if (count <= 0) {
+            badge?.remove();
+
+            return;
+        }
+
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.className = 'shared-inbox__unread-badge';
+            badge.setAttribute('data-conversation-unread-badge', '');
+
+            const metaRow = preview?.parentElement ?? row.querySelector('.mt-0\\.5');
+            metaRow?.appendChild(badge);
+        }
+
+        badge.textContent = String(count);
+        badge.setAttribute('aria-label', `${count} unread`);
+    };
+
+    const refresh = async () => {
+        if (document.hidden) {
+            return;
+        }
+
+        try {
+            const response = await fetch(summaryUrl, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            const unreadById = new Map((data.conversations ?? []).map((item) => [String(item.id), item.unread_count]));
+
+            panel.querySelectorAll('[data-conversation-id]').forEach((row) => {
+                const conversationId = row.getAttribute('data-conversation-id');
+                const count = unreadById.has(conversationId) ? Number(unreadById.get(conversationId)) : 0;
+
+                updateRowBadge(row, count);
+            });
+
+            updateInboxTopbarBadge(data.conversation_count ?? 0);
+        } catch {
+            // ignore transient network errors
+        }
+    };
+
+    refresh();
+    pollTimer = window.setInterval(refresh, 10000);
+
+    panel.addEventListener('turbo:before-cache', () => {
+        if (pollTimer) {
+            clearInterval(pollTimer);
+            pollTimer = null;
+        }
+
+        panel.dataset.inboxListPollBound = '0';
+    });
+}
+
+function updateInboxTopbarBadge(count) {
+    const badge = document.querySelector('[data-inbox-topbar-badge]');
+
+    if (badge) {
+        if (count <= 0) {
+            badge.hidden = true;
+            badge.textContent = '0';
+        } else {
+            badge.hidden = false;
+            badge.textContent = count > 99 ? '99+' : String(count);
+        }
+    }
+
+    const navLink = document.querySelector('[data-nav-route="admin.workspaces.communications"]');
+
+    if (!navLink) {
+        return;
+    }
+
+    let navBadge = navLink.querySelector('[data-communications-nav-badge]');
+
+    if (count <= 0) {
+        navBadge?.remove();
+
+        return;
+    }
+
+    if (!navBadge) {
+        navBadge = document.createElement('span');
+        navBadge.className = 'erp-nav-badge erp-nav-badge--quote';
+        navBadge.setAttribute('data-communications-nav-badge', '');
+        navLink.appendChild(navBadge);
+    }
+
+    navBadge.textContent = count > 99 ? '99+' : String(count);
+}
+
+function initInboxTopbarBadgePoll() {
+    if (document.body.dataset.inboxTopbarPollBound === '1') {
+        return;
+    }
+
+    const topbarLink = document.querySelector('[data-inbox-topbar-link]');
+    const summaryUrl = topbarLink?.dataset.inboxUnreadSummaryUrl
+        ?? document.querySelector('[data-inbox-list-panel]')?.dataset.inboxUnreadSummaryUrl;
+
+    if (!summaryUrl) {
+        return;
+    }
+
+    document.body.dataset.inboxTopbarPollBound = '1';
+
+    const refresh = async () => {
+        if (document.hidden) {
+            return;
+        }
+
+        try {
+            const response = await fetch(summaryUrl, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                return;
+            }
+
+            const data = await response.json();
+            updateInboxTopbarBadge(data.conversation_count ?? 0);
+        } catch {
+            // ignore transient network errors
+        }
+    };
+
+    refresh();
+    window.setInterval(refresh, 15000);
 }

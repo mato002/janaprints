@@ -62,7 +62,6 @@ return new class extends Migration
                 $table->string('preferred_operator_skill', 80)->nullable();
                 $table->boolean('optional_outsource')->default(false);
                 $table->unsignedBigInteger('recommended_qc_checklist_id')->nullable();
-                $table->foreign('recommended_qc_checklist_id', 'ppt_qc_checklist_fk')->references('id')->on('product_qc_checklists')->nullOnDelete();
                 $table->text('recommended_packaging')->nullable();
 
                 $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();

@@ -463,9 +463,13 @@ class AppServiceProvider extends ServiceProvider
             'admin.communications.inbox.*.*',
             'admin.communications.inbox.*.*.*',
         ], function ($view) {
+            $isWorkspaceFrameRequest = request()->header('Turbo-Frame') === 'module-workspace-content';
+
             $view->with([
-                'inboxTurboFrame' => WorkspaceEmbed::turboFrame(),
-                'inboxEmbedUrl' => static fn (?string $url): ?string => WorkspaceEmbed::url($url),
+                'inboxTurboFrame' => $isWorkspaceFrameRequest ? 'module-workspace-content' : 'erp-main',
+                'inboxEmbedUrl' => static fn (?string $url): ?string => $isWorkspaceFrameRequest
+                    ? WorkspaceEmbed::url($url)
+                    : $url,
             ]);
         });
 
@@ -529,9 +533,14 @@ class AppServiceProvider extends ServiceProvider
             );
 
             $quoteCounts = app(\App\Services\Commercial\PublicQuoteRequestCountService::class);
-            $navItems = collect($navItems)->map(function (array $item) use ($quoteCounts) {
+            $inboxCounts = app(\App\Services\Communications\Inbox\InboxUnreadCountService::class);
+            $navItems = collect($navItems)->map(function (array $item) use ($quoteCounts, $inboxCounts) {
                 if (($item['workspace'] ?? null) === 'commercial' && $quoteCounts->canView()) {
                     $item['badge_count'] = $quoteCounts->pendingCount();
+                }
+
+                if (($item['workspace'] ?? null) === 'communications' && $inboxCounts->canView()) {
+                    $item['badge_count'] = $inboxCounts->unreadConversationCount();
                 }
 
                 return $item;
@@ -550,20 +559,26 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             $canNotifications = $user?->can('communications.notifications.view') ?? false;
             $unreadCount = 0;
+            $latestNotificationId = null;
             $quoteRequestsTopbar = app(\App\Services\Commercial\PublicQuoteRequestCountService::class)->topbarPayload();
+            $inboxTopbar = app(\App\Services\Communications\Inbox\InboxUnreadCountService::class)->topbarPayload();
 
             if ($canNotifications && $user) {
-                $unreadCount = app(\App\Support\Communications\NotificationService::class)
-                    ->unreadCount($user, tenant()->companyId() ?? $user->company_id);
+                $notificationService = app(\App\Support\Communications\NotificationService::class);
+                $companyId = tenant()->companyId() ?? $user->company_id;
+                $unreadCount = $notificationService->unreadCount($user, $companyId);
+                $latestNotificationId = $notificationService->latestUnreadForUser($user, $companyId)?->id;
             }
 
             $view->with([
                 'quickCreate' => $quickCreate,
                 'quoteRequestsTopbar' => $quoteRequestsTopbar,
+                'inboxTopbar' => $inboxTopbar,
                 'canNotifications' => $canNotifications,
                 'notificationBellBootstrap' => [
                     'enabled' => $canNotifications,
                     'unreadCount' => $unreadCount,
+                    'latestNotificationId' => $latestNotificationId,
                     'routes' => [
                         'panel' => route('admin.communications.notifications.bell.panel'),
                         'unread' => route('admin.communications.notifications.bell.unread'),

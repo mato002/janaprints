@@ -42,9 +42,11 @@ class NotificationBellController extends Controller
 
         $user = $request->user();
         $companyId = tenant()->companyId() ?? $user->company_id;
+        $latest = $this->notifications->latestUnreadForUser($user, $companyId);
 
         return response()->json([
             'unread_count' => $this->notifications->unreadCount($user, $companyId),
+            'latest' => $latest ? $this->notifications->toPayload($latest) : null,
         ]);
     }
 

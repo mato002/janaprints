@@ -3,7 +3,16 @@
  * Scroll reveals, sticky header, smooth anchors, counters, subtle parallax.
  */
 
+import * as Turbo from '@hotwired/turbo';
 import { initDocumentPdfDownload } from './document-pdf-download';
+
+window.Turbo = Turbo;
+
+if (document.body?.classList.contains('client-portal-page')) {
+    Turbo.session.drive = true;
+} else {
+    Turbo.session.drive = false;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     initPageLoader();
@@ -29,9 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
     initScrollNav();
     initMobileNav();
     initRevealOnScroll();
-    initClientPasswordToggle();
     initClientPortal();
     initDocumentPdfDownload();
+
+    if (document.body.classList.contains('client-portal-page')) {
+        initClientPortalTurbo();
+    }
 
     requestAnimationFrame(() => {
         document.documentElement.classList.add('public-anim-active');
@@ -1423,12 +1435,269 @@ function initClientPortal() {
     initClientProfileMenu();
     initClientSidebar();
     initClientCommunicationsUnread();
+    destroyClientChat(document);
     initClientChat();
     initClientToasts();
+    initClientPasswordToggle();
 }
 
-function initClientToasts() {
-    document.querySelectorAll('[data-client-toast]').forEach((toast) => {
+function clientRouteIsActive(pattern, currentRoute) {
+    if (!pattern || !currentRoute) {
+        return false;
+    }
+
+    if (pattern === currentRoute) {
+        return true;
+    }
+
+    if (pattern.endsWith('.*')) {
+        const prefix = pattern.slice(0, -2);
+
+        return currentRoute === prefix || currentRoute.startsWith(`${prefix}.`);
+    }
+
+    if (pattern.endsWith('*')) {
+        return currentRoute.startsWith(pattern.slice(0, -1));
+    }
+
+    return currentRoute === pattern;
+}
+
+function syncClientShellFromFrame() {
+    const meta = document.getElementById('client-route-meta');
+
+    if (!meta) {
+        return;
+    }
+
+    const currentRoute = meta.dataset.route ?? '';
+    const pageTitle = meta.dataset.title ?? '';
+    const heading = meta.dataset.heading ?? pageTitle;
+    const appName = meta.dataset.appName ?? 'Janaprints';
+    const fullMobileChat = meta.dataset.fullMobileChat === '1';
+
+    document.querySelectorAll('.client-topbar__title').forEach((element) => {
+        element.textContent = heading;
+    });
+
+    if (pageTitle) {
+        document.title = `${pageTitle} — ${appName}`;
+    }
+
+    document.body.classList.toggle('client-portal-page--chat', fullMobileChat);
+
+    const frame = document.getElementById('client-main');
+
+    if (frame) {
+        frame.classList.toggle('client-portal-frame--chat', fullMobileChat);
+    }
+
+    document.querySelectorAll('[data-client-sidebar-link]').forEach((link) => {
+        const patterns = (link.dataset.clientNavActive ?? '').split(',').filter(Boolean);
+        const active = patterns.some((pattern) => clientRouteIsActive(pattern, currentRoute));
+
+        link.classList.toggle('is-active', active);
+    });
+
+    document.querySelectorAll('[data-client-bottom-nav-link]').forEach((link) => {
+        const patterns = (link.dataset.clientNavActive ?? '').split(',').filter(Boolean);
+        const active = patterns.some((pattern) => clientRouteIsActive(pattern, currentRoute));
+
+        link.classList.toggle('is-active', active);
+    });
+}
+
+function shouldWireClientTurboLink(link) {
+    if (!link?.href || link.hasAttribute('download')) {
+        return false;
+    }
+
+    if (link.dataset.turbo === 'false' || link.dataset.documentPdfDownload !== undefined) {
+        return false;
+    }
+
+    if (link.target === '_blank' || link.hasAttribute('data-turbo-frame')) {
+        return false;
+    }
+
+    if (link.getAttribute('href')?.startsWith('#')) {
+        return false;
+    }
+
+    try {
+        const url = new URL(link.href, window.location.origin);
+
+        return url.origin === window.location.origin && url.pathname.startsWith('/client');
+    } catch {
+        return false;
+    }
+}
+
+function shouldWireClientTurboForm(form) {
+    if (!form || form.dataset.turbo === 'false' || form.hasAttribute('data-turbo-frame')) {
+        return false;
+    }
+
+    if (form.closest('[data-client-chat]')) {
+        return false;
+    }
+
+    const action = form.getAttribute('action') ?? '';
+
+    if (action.includes('/logout')) {
+        return false;
+    }
+
+    try {
+        const url = new URL(action, window.location.origin);
+
+        return url.origin === window.location.origin && url.pathname.startsWith('/client');
+    } catch {
+        return action === '' || action.startsWith('/client');
+    }
+}
+
+function wireClientPortalLinks(root = document) {
+    const scope = root.id === 'client-main' ? root : root.querySelector('#client-main') ?? root;
+
+    scope.querySelectorAll('a[href]').forEach((link) => {
+        if (!shouldWireClientTurboLink(link)) {
+            return;
+        }
+
+        link.setAttribute('data-turbo-frame', 'client-main');
+        link.setAttribute('data-turbo-action', 'advance');
+    });
+
+    scope.querySelectorAll('form').forEach((form) => {
+        if (!shouldWireClientTurboForm(form)) {
+            return;
+        }
+
+        form.setAttribute('data-turbo-frame', 'client-main');
+        form.setAttribute('data-turbo-action', 'advance');
+    });
+}
+
+function refreshClientPortalFrame(frame) {
+    wireClientPortalLinks(frame);
+    destroyClientChat(frame);
+    initClientChat(frame);
+    initClientToasts(frame);
+    initClientPasswordToggle(frame);
+    initDocumentPdfDownload(frame);
+    syncClientShellFromFrame();
+}
+
+function initClientPortalTurbo() {
+    const progress = document.getElementById('client-turbo-progress');
+
+    const showProgress = () => {
+        if (!progress) {
+            return;
+        }
+
+        progress.classList.add('client-turbo-progress--visible');
+        progress.style.width = '30%';
+    };
+
+    const hideProgress = () => {
+        if (!progress) {
+            return;
+        }
+
+        progress.style.width = '100%';
+        window.setTimeout(() => {
+            progress.classList.remove('client-turbo-progress--visible');
+            progress.style.width = '0';
+        }, 200);
+    };
+
+    document.addEventListener('turbo:visit', showProgress);
+    document.addEventListener('turbo:click', showProgress);
+
+    document.addEventListener('turbo:frame-render', (event) => {
+        if (event.target.id === 'client-main') {
+            refreshClientPortalFrame(event.target);
+        }
+
+        hideProgress();
+    });
+
+    document.addEventListener('turbo:frame-load', (event) => {
+        if (event.target.id === 'client-main') {
+            refreshClientPortalFrame(event.target);
+        }
+    });
+
+    document.addEventListener('turbo:load', () => {
+        if (!document.body.classList.contains('client-portal-page')) {
+            return;
+        }
+
+        wireClientPortalLinks(document);
+        syncClientShellFromFrame();
+        hideProgress();
+    });
+
+    document.addEventListener('turbo:before-frame-render', (event) => {
+        if (event.target.id === 'client-main') {
+            destroyClientChat(event.target);
+        }
+    });
+
+    document.addEventListener('turbo:frame-missing', async (event) => {
+        if (event.target.id !== 'client-main') {
+            return;
+        }
+
+        event.preventDefault();
+
+        const response = event.detail?.response;
+
+        if (!response) {
+            return;
+        }
+
+        try {
+            const html = await response.clone().text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const sourceFrame = doc.querySelector('turbo-frame#client-main');
+
+            if (sourceFrame) {
+                event.target.innerHTML = sourceFrame.innerHTML;
+                refreshClientPortalFrame(event.target);
+            }
+        } catch {
+            // Allow Turbo to surface the error elsewhere.
+        }
+    });
+
+    wireClientPortalLinks(document);
+    syncClientShellFromFrame();
+}
+
+function destroyClientChat(root = document) {
+    root.querySelectorAll('[data-client-chat]').forEach((chatRoot) => {
+        if (chatRoot.dataset.pollTimer) {
+            window.clearInterval(Number(chatRoot.dataset.pollTimer));
+            delete chatRoot.dataset.pollTimer;
+        }
+
+        chatRoot.dataset.chatBound = '';
+    });
+}
+
+function initClientToasts(root = document) {
+    const scope = root.id === 'client-main' ? root : root.querySelector('#client-main') ?? root;
+
+    scope.querySelectorAll('[data-client-toast]').forEach((toast) => {
+        if (toast.dataset.toastBound === '1') {
+            return;
+        }
+
+        toast.dataset.toastBound = '1';
+
         window.setTimeout(() => {
             toast.style.opacity = '0';
             toast.style.transform = 'translateY(-0.5rem)';
@@ -1439,8 +1708,15 @@ function initClientToasts() {
 
 function initClientProfileMenu() {
     document.querySelectorAll('[data-client-profile-menu]').forEach((menu) => {
+        if (menu.dataset.profileMenuBound === '1') {
+            return;
+        }
+
+        menu.dataset.profileMenuBound = '1';
+
         const toggle = menu.querySelector('[data-client-profile-toggle]');
         const dropdown = menu.querySelector('[data-client-profile-dropdown]');
+        const backdrop = menu.querySelector('[data-client-profile-backdrop]');
 
         if (!toggle || !dropdown) {
             return;
@@ -1448,36 +1724,121 @@ function initClientProfileMenu() {
 
         const close = () => {
             dropdown.hidden = true;
+            if (backdrop) {
+                backdrop.hidden = true;
+            }
+            menu.classList.remove('is-open');
             toggle.setAttribute('aria-expanded', 'false');
+        };
+
+        const open = () => {
+            document.querySelectorAll('[data-client-profile-menu]').forEach((otherMenu) => {
+                if (otherMenu === menu) {
+                    return;
+                }
+
+                const otherDropdown = otherMenu.querySelector('[data-client-profile-dropdown]');
+                const otherToggle = otherMenu.querySelector('[data-client-profile-toggle]');
+                const otherBackdrop = otherMenu.querySelector('[data-client-profile-backdrop]');
+
+                if (otherDropdown) {
+                    otherDropdown.hidden = true;
+                }
+
+                if (otherBackdrop) {
+                    otherBackdrop.hidden = true;
+                }
+
+                otherMenu.classList.remove('is-open');
+
+                if (otherToggle) {
+                    otherToggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            dropdown.hidden = false;
+            if (backdrop) {
+                backdrop.hidden = false;
+            }
+            menu.classList.add('is-open');
+            toggle.setAttribute('aria-expanded', 'true');
         };
 
         toggle.addEventListener('click', (event) => {
             event.stopPropagation();
-            const willOpen = dropdown.hidden;
-            document.querySelectorAll('[data-client-profile-dropdown]').forEach((panel) => {
-                panel.hidden = true;
-            });
-            document.querySelectorAll('[data-client-profile-toggle]').forEach((btn) => {
-                btn.setAttribute('aria-expanded', 'false');
-            });
 
-            if (willOpen) {
-                dropdown.hidden = false;
-                toggle.setAttribute('aria-expanded', 'true');
-            }
-        });
-
-        document.addEventListener('click', (event) => {
-            if (!menu.contains(event.target)) {
+            if (dropdown.hidden) {
+                open();
+            } else {
                 close();
             }
         });
 
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
+        if (backdrop) {
+            backdrop.addEventListener('click', close);
+        }
+
+        dropdown.querySelectorAll('a, button').forEach((item) => {
+            item.addEventListener('click', () => {
                 close();
-            }
+            });
         });
+
+        if (!document.documentElement.dataset.clientProfileMenuBound) {
+            document.documentElement.dataset.clientProfileMenuBound = '1';
+
+            document.addEventListener('click', (event) => {
+                if (event.target.closest('[data-client-profile-menu]')) {
+                    return;
+                }
+
+                document.querySelectorAll('[data-client-profile-menu]').forEach((openMenu) => {
+                    const openDropdown = openMenu.querySelector('[data-client-profile-dropdown]');
+                    const openToggle = openMenu.querySelector('[data-client-profile-toggle]');
+                    const openBackdrop = openMenu.querySelector('[data-client-profile-backdrop]');
+
+                    if (openDropdown) {
+                        openDropdown.hidden = true;
+                    }
+
+                    if (openBackdrop) {
+                        openBackdrop.hidden = true;
+                    }
+
+                    openMenu.classList.remove('is-open');
+
+                    if (openToggle) {
+                        openToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+
+            document.addEventListener('keydown', (event) => {
+                if (event.key !== 'Escape') {
+                    return;
+                }
+
+                document.querySelectorAll('[data-client-profile-menu]').forEach((openMenu) => {
+                    const openDropdown = openMenu.querySelector('[data-client-profile-dropdown]');
+                    const openToggle = openMenu.querySelector('[data-client-profile-toggle]');
+                    const openBackdrop = openMenu.querySelector('[data-client-profile-backdrop]');
+
+                    if (openDropdown) {
+                        openDropdown.hidden = true;
+                    }
+
+                    if (openBackdrop) {
+                        openBackdrop.hidden = true;
+                    }
+
+                    openMenu.classList.remove('is-open');
+
+                    if (openToggle) {
+                        openToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            });
+        }
     });
 }
 
@@ -1608,18 +1969,20 @@ function initClientCommunicationsUnread() {
     window.setInterval(poll, 30000);
 }
 
-function initClientChat() {
-    const chatRoot = document.querySelector('[data-client-chat]');
-    const scroll = document.getElementById('client-chat-scroll');
-    const composer = document.querySelector('[data-client-chat-composer]');
+function initClientChat(root = document) {
+    const scope = root.id === 'client-main' ? root : root.querySelector('#client-main') ?? root;
+    const chatRoot = scope.querySelector('[data-client-chat]');
+    const scroll = scope.querySelector('#client-chat-scroll');
+    const composer = scope.querySelector('[data-client-chat-composer]');
 
-    if (!chatRoot || !scroll) {
+    if (!chatRoot || !scroll || chatRoot.dataset.chatBound === '1') {
         return;
     }
 
+    chatRoot.dataset.chatBound = '1';
+
     let fingerprint = chatRoot.dataset.feedFingerprint || '';
     const feedUrl = chatRoot.dataset.feedUrl || '';
-    let pollTimer = null;
     let sending = false;
 
     const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -1818,11 +2181,11 @@ function initClientChat() {
     };
 
     const startPolling = () => {
-        if (pollTimer) {
-            clearInterval(pollTimer);
+        if (chatRoot.dataset.pollTimer) {
+            window.clearInterval(Number(chatRoot.dataset.pollTimer));
         }
 
-        pollTimer = window.setInterval(() => refreshFeed(true), 4000);
+        chatRoot.dataset.pollTimer = String(window.setInterval(() => refreshFeed(true), 4000));
     };
 
     const postJson = async (url, body, isFormData = false) => {
@@ -2020,14 +2383,22 @@ function initClientChat() {
     });
 }
 
-function initClientPasswordToggle() {
-    document.querySelectorAll('.client-password-wrap').forEach((wrap) => {
+function initClientPasswordToggle(root = document) {
+    const scope = root.id === 'client-main' ? root : root.querySelector('#client-main') ?? root;
+
+    scope.querySelectorAll('.client-password-wrap').forEach((wrap) => {
+        if (wrap.dataset.passwordToggleBound === '1') {
+            return;
+        }
+
         const toggle = wrap.querySelector('.client-password-toggle');
         const input = wrap.querySelector('input');
 
         if (!toggle || !input) {
             return;
         }
+
+        wrap.dataset.passwordToggleBound = '1';
 
         const showIcon = toggle.querySelector('[data-show-icon]');
         const hideIcon = toggle.querySelector('[data-hide-icon]');

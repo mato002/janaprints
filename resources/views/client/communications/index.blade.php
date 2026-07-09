@@ -51,7 +51,7 @@
 
             <section class="client-panel client-panel--flush" aria-label="{{ __('Notification history') }}">
                 <div class="client-table-wrap">
-                    <table class="client-table client-table--cards">
+                    <table class="client-table">
                         <thead>
                             <tr>
                                 <th>{{ __('Date') }}</th>

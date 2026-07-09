@@ -11,6 +11,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->group(function () {
         Route::middleware('permission:communications.inbox.view')->group(function () {
             Route::get('/', [InboxController::class, 'index'])->name('index');
+            Route::get('unread-summary', [InboxController::class, 'unreadSummary'])->name('unread-summary');
             Route::get('team', [InboxTeamController::class, 'index'])->name('team');
             Route::post('start', [InboxController::class, 'startFromPicker'])->name('start');
             Route::post('customers/{customer}/start', [InboxController::class, 'startCustomer'])->name('customers.start');

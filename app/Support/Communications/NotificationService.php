@@ -157,6 +157,15 @@ class NotificationService
             ->count();
     }
 
+    public function latestUnreadForUser(User $actor, ?int $companyId = null): ?ErpNotification
+    {
+        return $this->baseQueryForUser($actor, $companyId)
+            ->with(['readState', 'creator'])
+            ->whereHas('readState', fn (Builder $q) => $q->where('status', NotificationReadStatus::Unread))
+            ->latest()
+            ->first();
+    }
+
     /**
      * @return Collection<int, ErpNotification>
      */

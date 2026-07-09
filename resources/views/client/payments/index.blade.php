@@ -1,6 +1,6 @@
 <x-layouts.client :title="__('Payments')" :heading="__('Payments')">
     <div class="client-table-wrap">
-        <table class="client-table client-table--cards">
+        <table class="client-table">
             <thead>
                 <tr>
                     <th>{{ __('Receipt') }}</th>

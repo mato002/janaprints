@@ -4,6 +4,7 @@
         action="{{ route('client.communications.messages.store') }}"
         class="client-chat__form"
         data-client-chat-form
+        data-turbo="false"
     >
         @csrf
         <label class="sr-only" for="client-chat-body">{{ __('Message') }}</label>
@@ -60,6 +61,7 @@
         enctype="multipart/form-data"
         class="hidden"
         data-client-chat-attachment-form
+        data-turbo="false"
     >
         @csrf
         <input type="hidden" name="caption" data-client-chat-attachment-caption>

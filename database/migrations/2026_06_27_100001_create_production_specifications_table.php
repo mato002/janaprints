@@ -34,7 +34,7 @@ return new class extends Migration
             $table->foreignId('paper_inventory_item_id')->nullable()->constrained('inventory_items')->nullOnDelete();
             $table->foreignId('material_inventory_item_id')->nullable()->constrained('inventory_items')->nullOnDelete();
             $table->string('ink_type', 40)->nullable();
-            $table->foreignId('ink_profile_id')->nullable()->constrained('print_ink_profiles')->nullOnDelete();
+            $table->unsignedBigInteger('ink_profile_id')->nullable();
             $table->string('colour_mode', 40)->nullable();
             $table->string('sides', 20)->nullable();
             $table->string('binding_type', 60)->nullable();

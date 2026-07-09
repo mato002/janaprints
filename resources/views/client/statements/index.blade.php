@@ -11,7 +11,7 @@
             </div>
             <div class="client-form-actions">
                 <button type="submit" name="preview" value="1" class="client-button client-button--secondary">{{ __('Preview') }}</button>
-                <a href="{{ route('client.statements.download', ['from_date' => $fromDate, 'to_date' => $toDate, 'format' => 'pdf']) }}" class="client-button">{{ __('Download PDF') }}</a>
+                <a href="{{ route('client.statements.download', ['from_date' => $fromDate, 'to_date' => $toDate, 'format' => 'pdf']) }}" class="client-button" data-turbo="false">{{ __('Download PDF') }}</a>
             </div>
         </form>
 
