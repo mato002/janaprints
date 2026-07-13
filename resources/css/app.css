@@ -104,11 +104,32 @@ body.erp-navigating {
         @apply h-12 px-3 text-left text-xs font-semibold uppercase tracking-wide text-white;
     }
 
+    /*
+     * Sticky thead must use the PAGE scrollport (module-workspace-embedded /
+     * #erp-main), not a mid-page table wrapper. Any overflow-x on a wrapper
+     * around the table makes sticky pin to that wrapper (looks “halfway”).
+     * Horizontal overflow is handled by the page scroller instead.
+     */
+    .erp-table-scroll,
+    .erp-card:has(> .erp-table),
+    .erp-card:has(.erp-table),
+    .overflow-x-auto:has(> .erp-table),
+    .overflow-x-auto:has(> table.erp-table) {
+        @apply relative w-full max-w-full;
+        max-height: none;
+        /* Beat Tailwind overflow-x-auto / overflow-hidden so sticky uses the page */
+        overflow: visible !important;
+    }
+
+    .erp-data-grid,
+    .erp-data-grid > * {
+        overflow: visible !important;
+    }
+
     .erp-table thead th {
         position: sticky;
         top: 0;
         z-index: 30;
-        /* Opaque paint so rows do not show through while stuck */
         background-color: #31339C;
         box-shadow: inset 0 -1px 0 rgb(15 39 68 / 0.18);
     }
@@ -140,37 +161,6 @@ body.erp-navigating {
 
     .erp-table a:not(.erp-row-actions-menu a):not([class*='erp-btn']) {
         @apply font-medium text-erp-accent transition-colors hover:text-erp-accent-hover;
-    }
-
-    /*
-     * Sticky headers need a real vertical scrollport. Wrappers that only set
-     * overflow-x:auto silently become overflow-y:auto too, which traps sticky
-     * and makes thead scroll away with the page. Give table hosts an explicit
-     * max-height so thead can stick at the top of the table region.
-     *
-     * overscroll-behavior: auto (default) chains wheel scroll to the page once
-     * the table hits top/bottom. Scrollbars are hidden; scrolling still works.
-     */
-    .erp-table-scroll,
-    .erp-card:has(> .erp-table),
-    .overflow-x-auto:has(> .erp-table),
-    .overflow-x-auto:has(> table.erp-table) {
-        @apply relative w-full max-w-full;
-        max-height: calc(100dvh - var(--erp-sticky-table-offset, 12rem));
-        overflow: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
-    }
-
-    .erp-table-scroll::-webkit-scrollbar,
-    .erp-card:has(> .erp-table)::-webkit-scrollbar,
-    .overflow-x-auto:has(> .erp-table)::-webkit-scrollbar,
-    .overflow-x-auto:has(> table.erp-table)::-webkit-scrollbar {
-        display: none;
-        width: 0;
-        height: 0;
     }
 
     .erp-data-grid {
@@ -365,7 +355,7 @@ body.erp-navigating {
     }
 
     .module-workspace-embedded {
-        @apply flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain;
+        @apply flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto;
     }
 
     .compact-workspace-header__row {

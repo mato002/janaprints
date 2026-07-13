@@ -67,7 +67,7 @@
             @class([
                 'flex min-h-0 flex-1 flex-col',
                 'overflow-hidden' => $compactPage || $compactWorkspace,
-                'overflow-x-hidden overflow-y-auto' => ! $compactPage && ! $compactWorkspace,
+                'overflow-x-auto overflow-y-auto' => ! $compactPage && ! $compactWorkspace,
             ])
         >
             @php

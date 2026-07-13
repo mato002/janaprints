@@ -6486,67 +6486,37 @@ function syncQuickCreateFromFrame(meta) {
 }
 
 function shellScrollContainer() {
+    const embedded = document.querySelector('.module-workspace-embedded');
+
+    if (embedded instanceof HTMLElement) {
+        const style = window.getComputedStyle(embedded);
+
+        if (/(auto|scroll)/.test(style.overflowY)) {
+            return embedded;
+        }
+    }
+
+    const workspaceFrame = document.getElementById('module-workspace-content');
+
+    if (workspaceFrame instanceof HTMLElement) {
+        const style = window.getComputedStyle(workspaceFrame);
+
+        if (/(auto|scroll)/.test(style.overflowY)) {
+            return workspaceFrame;
+        }
+    }
+
     const frame = document.getElementById('erp-main');
 
-    if (frame?.classList.contains('overflow-y-auto')) {
-        return frame;
+    if (frame instanceof HTMLElement) {
+        const style = window.getComputedStyle(frame);
+
+        if (/(auto|scroll)/.test(style.overflowY)) {
+            return frame;
+        }
     }
 
     return null;
-}
-
-const ERP_TABLE_SCROLL_SELECTOR = [
-    '.erp-table-scroll',
-    '.erp-card:has(> .erp-table)',
-    '.overflow-x-auto:has(> .erp-table)',
-    '.overflow-x-auto:has(> table.erp-table)',
-].join(', ');
-
-/**
- * When a table region hits its top/bottom edge, forward wheel deltas to the
- * page shell so users do not need to move the cursor outside the table.
- */
-function bindTableScrollChaining(root = document) {
-    if (! root?.querySelectorAll) {
-        return;
-    }
-
-    root.querySelectorAll(ERP_TABLE_SCROLL_SELECTOR).forEach((el) => {
-        if (el.dataset.erpTableScrollBound === '1') {
-            return;
-        }
-
-        el.dataset.erpTableScrollBound = '1';
-
-        el.addEventListener('wheel', (event) => {
-            if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.deltaY === 0) {
-                return;
-            }
-
-            const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
-            const atTop = el.scrollTop <= 1;
-            const atBottom = el.scrollTop >= maxScroll - 1;
-            const scrollingDown = event.deltaY > 0;
-            const scrollingUp = event.deltaY < 0;
-
-            // Table can still scroll in this direction — keep native behavior.
-            if ((scrollingDown && ! atBottom) || (scrollingUp && ! atTop)) {
-                return;
-            }
-
-            const parent = shellScrollContainer()
-                || el.parentElement?.closest('.overflow-y-auto, .overflow-auto')
-                || document.scrollingElement
-                || document.documentElement;
-
-            if (! parent || parent === el) {
-                return;
-            }
-
-            event.preventDefault();
-            parent.scrollTop += event.deltaY;
-        }, { passive: false });
-    });
 }
 
 function shellScrollY() {
@@ -6985,7 +6955,6 @@ function refreshFrameAlpine(frame) {
     wireMainFrameLinks(frame);
     promoteFlashAlertsToToast(frame);
     initSubmitFeedbackForms(frame);
-    bindTableScrollChaining(frame);
     syncShellFromFrame();
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
@@ -7488,7 +7457,6 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     wireEmbeddedWorkspaceLinks(frame);
     promoteFlashAlertsToToast(frame);
     initSubmitFeedbackForms(frame);
-    bindTableScrollChaining(frame);
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
     bindWebsiteSettingsForms(frame);
@@ -7766,7 +7734,6 @@ document.addEventListener('turbo:load', () => {
     bindFormSettingsForms(document.getElementById('erp-main'));
     bindIndexFilterForms(document);
     bindWebsiteSettingsForms(document);
-    bindTableScrollChaining(document);
     syncSecondaryWorkspaceTabActiveState();
     initDocumentPdfDownload();
     initSubmitFeedbackForms();
