@@ -94,8 +94,19 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
             ->name('attendance.dashboard');
 
         Route::middleware('permission:hr.attendance.view')->group(function () {
-            Route::get('attendance/register', [AttendanceController::class, 'index'])->name('attendance.index');
-            Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
+            Route::get('attendance/register', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.attendance.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'register'],
+                ));
+            })->name('attendance.index');
+
+            Route::get('shifts', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.attendance.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'shifts'],
+                ));
+            })->name('shifts.index');
         });
 
         Route::middleware('permission:hr.attendance.create')->group(function () {

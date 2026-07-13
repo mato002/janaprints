@@ -1,7 +1,7 @@
 <x-admin.modal-form
     :title="__('Create shift')"
     :breadcrumbs="[
-        ['label' => __('Shifts'), 'url' => route('admin.hr.shifts.index')],
+        ['label' => __('Shifts'), 'url' => route('admin.hr.attendance.dashboard', ['tab' => 'shifts'])],
         ['label' => __('Create')],
     ]"
     maxWidth="3xl"

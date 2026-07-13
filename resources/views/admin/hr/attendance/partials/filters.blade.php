@@ -1,7 +1,7 @@
-@props(['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false])
+@props(['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false, 'hidden' => []])
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="$action" :reset-url="$action">
+    <x-admin.index-toolbar :action="$action" :reset-url="route('admin.hr.attendance.dashboard', array_filter(['tab' => 'register', 'embedded' => ($hidden['embedded'] ?? null)]))">
         @if ($canExport && $exportAction)
             <x-slot name="export">
                 <x-admin.export-dropdown
@@ -11,6 +11,12 @@
                 />
             </x-slot>
         @endif
+
+        @foreach ($hidden as $name => $value)
+            @if ($value !== null && $value !== '')
+                <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+            @endif
+        @endforeach
 
         <input type="date" name="date" value="{{ $filters['date'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Date') }}">
         <select name="employee_id" class="erp-toolbar-select" aria-label="{{ __('Employee') }}">

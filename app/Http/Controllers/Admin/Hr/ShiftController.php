@@ -54,7 +54,7 @@ class ShiftController extends Controller
         Shift::query()->create($data);
 
         return redirect()
-            ->route('admin.hr.shifts.index')
+            ->route('admin.hr.attendance.dashboard', ['tab' => 'shifts', 'embedded' => request('embedded')])
             ->with('status', __('Shift created.'));
     }
 
@@ -78,7 +78,7 @@ class ShiftController extends Controller
         $shift->update($this->validateShift($request, $shift));
 
         return redirect()
-            ->route('admin.hr.shifts.index')
+            ->route('admin.hr.attendance.dashboard', ['tab' => 'shifts', 'embedded' => request('embedded')])
             ->with('status', __('Shift updated.'));
     }
 
@@ -90,7 +90,7 @@ class ShiftController extends Controller
         $shift->update(['is_active' => false]);
 
         return redirect()
-            ->route('admin.hr.shifts.index')
+            ->route('admin.hr.attendance.dashboard', ['tab' => 'shifts', 'embedded' => request('embedded')])
             ->with('status', __('Shift deactivated.'));
     }
 

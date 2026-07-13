@@ -6722,11 +6722,57 @@ function workspaceTabSlug(value) {
         .replace(/^-+|-+$/g, '');
 }
 
-function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
-    const tabs = clickedTab
-        ? [clickedTab]
-        : document.querySelectorAll('.module-workspace-switcher--secondary [data-workspace-tab][href]');
+function workspaceFeaturePathsMatch(framePath, contentPath) {
+    if (! framePath || ! contentPath) {
+        return false;
+    }
 
+    if (framePath === contentPath) {
+        return true;
+    }
+
+    return contentPath !== '/' && framePath.startsWith(`${contentPath}/`);
+}
+
+function syncWorkspaceDeskUrlToTab(tab) {
+    if (! tab || ! window.history?.replaceState) {
+        return;
+    }
+
+    const deskHref = tab.getAttribute('href');
+
+    if (! deskHref) {
+        return;
+    }
+
+    try {
+        const deskUrl = new URL(deskHref, window.location.origin);
+        const currentUrl = new URL(window.location.href);
+
+        if (! deskUrl.pathname.startsWith('/admin/workspaces/')) {
+            return;
+        }
+
+        if (
+            currentUrl.pathname === deskUrl.pathname
+            && currentUrl.search === deskUrl.search
+        ) {
+            return;
+        }
+
+        // Keep the module desk URL in sync with the visible secondary tab.
+        if (
+            currentUrl.pathname.startsWith('/admin/workspaces/')
+            || currentUrl.searchParams.get('embedded') === '1'
+        ) {
+            window.history.replaceState({}, '', `${deskUrl.pathname}${deskUrl.search}${deskUrl.hash}`);
+        }
+    } catch {
+        // Keep the current URL when the desk href cannot be parsed.
+    }
+}
+
+function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
     if (clickedTab) {
         const track = clickedTab.closest('[role="tablist"]');
 
@@ -6741,6 +6787,7 @@ function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
 
         clickedTab.classList.add('workspace-pill--active');
         clickedTab.setAttribute('aria-selected', 'true');
+        syncWorkspaceDeskUrlToTab(clickedTab);
 
         return;
     }
@@ -6749,47 +6796,72 @@ function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
     const currentTab = workspaceTabSlug(currentUrl.searchParams.get('tab'));
     const workspaceFrame = document.getElementById('module-workspace-content');
     const frameSrc = workspaceFrame?.src || workspaceFrame?.getAttribute('src') || '';
+    let framePath = '';
+
+    try {
+        if (frameSrc) {
+            framePath = new URL(frameSrc, window.location.origin).pathname;
+        }
+    } catch {
+        framePath = '';
+    }
 
     document.querySelectorAll('.module-workspace-switcher--secondary [role="tablist"]').forEach((track) => {
-        let matched = false;
+        let matchedTab = null;
+        let frameMatchedTab = null;
 
         track.querySelectorAll('[data-workspace-tab][href]').forEach((tab) => {
-            let isActive = false;
-
             try {
                 const tabKey = workspaceTabSlug(tab.dataset.workspaceTabKey ?? '');
+                const contentHref = tab.dataset.workspaceContentHref || '';
+                let contentPath = '';
 
-                if (currentTab && tabKey) {
-                    isActive = tabKey === currentTab;
-                } else if (frameSrc) {
-                    const srcUrl = new URL(frameSrc, window.location.origin);
-                    const contentHref = tab.dataset.workspaceContentHref || tab.getAttribute('href');
-                    const contentUrl = new URL(contentHref, window.location.origin);
-                    isActive = contentUrl.pathname === srcUrl.pathname;
-                } else {
-                    const tabUrl = new URL(tab.getAttribute('href'), window.location.origin);
-                    isActive = tabUrl.pathname === currentUrl.pathname
-                        && tabUrl.searchParams.get('tab') === currentUrl.searchParams.get('tab');
+                try {
+                    if (contentHref) {
+                        contentPath = new URL(contentHref, window.location.origin).pathname;
+                    }
+                } catch {
+                    contentPath = '';
                 }
 
-                tab.classList.toggle('workspace-pill--active', isActive);
-                tab.toggleAttribute('aria-selected', isActive);
+                // Prefer the loaded frame content over a stale desk ?tab= value.
+                if (framePath && contentPath && workspaceFeaturePathsMatch(framePath, contentPath)) {
+                    frameMatchedTab = tab;
+                } else if (! frameMatchedTab && currentTab && tabKey && tabKey === currentTab) {
+                    matchedTab = tab;
+                } else if (! frameMatchedTab && ! currentTab && ! framePath) {
+                    const tabUrl = new URL(tab.getAttribute('href'), window.location.origin);
 
-                if (isActive) {
-                    matched = true;
+                    if (
+                        tabUrl.pathname === currentUrl.pathname
+                        && tabUrl.searchParams.get('tab') === currentUrl.searchParams.get('tab')
+                    ) {
+                        matchedTab = tab;
+                    }
                 }
             } catch {
                 // Ignore malformed tab hrefs.
             }
         });
 
-        if (! matched && ! currentTab && ! frameSrc) {
+        const activeTab = frameMatchedTab || matchedTab;
+
+        track.querySelectorAll('[data-workspace-tab][href]').forEach((tab) => {
+            const isActive = tab === activeTab;
+
+            tab.classList.toggle('workspace-pill--active', isActive);
+            tab.toggleAttribute('aria-selected', isActive);
+        });
+
+        if (! activeTab && ! currentTab && ! framePath) {
             const first = track.querySelector('[data-workspace-tab][href]');
 
             if (first) {
                 first.classList.add('workspace-pill--active');
                 first.setAttribute('aria-selected', 'true');
             }
+        } else if (activeTab) {
+            syncWorkspaceDeskUrlToTab(activeTab);
         }
     });
 }
@@ -7316,6 +7388,56 @@ document.addEventListener('click', (event) => {
         syncSecondaryWorkspaceTabActiveState(tab);
     }
 }, true);
+
+document.addEventListener('turbo:click', (event) => {
+    const link = event.detail?.originalEvent?.target?.closest?.(
+        '.module-workspace-switcher--secondary a[data-workspace-tab][href]',
+    );
+
+    if (! link || ! window.Turbo) {
+        return;
+    }
+
+    const contentHref = link.dataset.workspaceContentHref;
+    const workspaceFrame = document.getElementById('module-workspace-content');
+    const deskHref = link.getAttribute('href');
+
+    if (! contentHref || ! workspaceFrame || ! deskHref) {
+        return;
+    }
+
+    let deskUrl;
+    let contentUrl;
+    let currentUrl;
+
+    try {
+        deskUrl = new URL(deskHref, window.location.origin);
+        contentUrl = new URL(contentHref, window.location.origin);
+        currentUrl = new URL(window.location.href);
+    } catch {
+        return;
+    }
+
+    // Already on this module section desk — swap the content frame and keep the shell.
+    if (
+        ! currentUrl.pathname.startsWith('/admin/workspaces/')
+        || deskUrl.pathname !== currentUrl.pathname
+    ) {
+        return;
+    }
+
+    event.preventDefault();
+    syncSecondaryWorkspaceTabActiveState(link);
+
+    if (window.history?.pushState) {
+        window.history.pushState({}, '', `${deskUrl.pathname}${deskUrl.search}${deskUrl.hash}`);
+    }
+
+    window.Turbo.visit(contentUrl.toString(), {
+        frame: 'module-workspace-content',
+        action: 'replace',
+    });
+});
 
 document.addEventListener('turbo:load', () => {
     const frame = document.getElementById('erp-main');

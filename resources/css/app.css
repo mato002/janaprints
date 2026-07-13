@@ -281,9 +281,12 @@
         @apply w-full min-w-0;
     }
 
-    .module-workspace-content,
-    .module-workspace-embedded {
+    .module-workspace-content {
         @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+    }
+
+    .module-workspace-embedded {
+        @apply flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain;
     }
 
     .compact-workspace-header__row {

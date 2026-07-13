@@ -67,7 +67,7 @@ class AttendanceController extends Controller
         $this->attendance->createManual($data, $request->user());
 
         return redirect()
-            ->route('admin.hr.attendance.index', ['date' => $data['attendance_date']])
+            ->route('admin.hr.attendance.dashboard', ['tab' => 'register', 'date' => $data['attendance_date'], 'embedded' => request('embedded')])
             ->with('status', __('Attendance record saved.'));
     }
 
@@ -105,7 +105,7 @@ class AttendanceController extends Controller
             : __('Attendance record updated.');
 
         return redirect()
-            ->route('admin.hr.attendance.index', ['date' => $attendanceRecord->attendance_date->toDateString()])
+            ->route('admin.hr.attendance.dashboard', ['tab' => 'register', 'date' => $attendanceRecord->attendance_date->toDateString(), 'embedded' => request('embedded')])
             ->with('status', $message);
     }
 
@@ -117,7 +117,7 @@ class AttendanceController extends Controller
         $this->attendance->approveCorrection($correction, $request->user());
 
         return redirect()
-            ->route('admin.hr.attendance.index', ['date' => $record->attendance_date->toDateString()])
+            ->route('admin.hr.attendance.dashboard', ['tab' => 'register', 'date' => $record->attendance_date->toDateString(), 'embedded' => request('embedded')])
             ->with('status', __('Attendance correction approved.'));
     }
 

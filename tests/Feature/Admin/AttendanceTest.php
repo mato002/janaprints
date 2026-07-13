@@ -34,27 +34,46 @@ class AttendanceTest extends TestCase
     public function test_dashboard_renders_for_hr_user(): void
     {
         $this->actingAs($this->hrUser())
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
             ->get(route('admin.hr.attendance.dashboard'))
             ->assertOk()
             ->assertSee(__('Attendance'))
-            ->assertSee(__('Present Today'));
+            ->assertSee(__('Present Today'))
+            ->assertSee(__('Register'));
     }
 
     public function test_register_renders_seeded_shifts(): void
     {
         $this->actingAs($this->hrUser())
             ->get(route('admin.hr.attendance.index'))
+            ->assertRedirect();
+
+        $this->actingAs($this->hrUser())
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.attendance.dashboard', ['tab' => 'register']))
             ->assertOk()
-            ->assertSee(__('Attendance Register'));
+            ->assertSee(__('Register'));
+    }
+
+    public function test_attendance_workspace_tabs_include_shifts(): void
+    {
+        $this->actingAs($this->hrUser())
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.attendance.dashboard', ['tab' => 'shifts']))
+            ->assertOk()
+            ->assertSee(__('Shifts'));
     }
 
     public function test_workspace_links_attendance_module(): void
     {
         $this->actingAs($this->hrUser())
-            ->get(route('admin.workspaces.hr'))
+            ->get(route('admin.workspaces.hr.section', [
+                'section' => 'people',
+                'tab' => 'attendance',
+            ]))
             ->assertOk()
             ->assertSee(__('Attendance'))
-            ->assertSee(route('admin.hr.attendance.dashboard', [], false));
+            ->assertSee(route('admin.hr.attendance.dashboard', ['embedded' => '1'], false));
     }
 
     public function test_clock_in_records_attendance(): void

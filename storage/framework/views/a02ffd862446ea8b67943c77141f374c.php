@@ -40,7 +40,7 @@ unset($__defined_vars, $__key, $__value); ?>
             id="<?php echo e($frameId); ?>"
             src="<?php echo e($url); ?>"
             class="module-workspace-content__frame flex min-h-0 flex-1 flex-col overflow-hidden"
-            data-turbo-action="advance"
+            data-turbo-action="replace"
             data-turbo-cache="false"
             loading="lazy"
         >

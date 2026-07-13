@@ -1,7 +1,7 @@
 <?php $attributes ??= new \Illuminate\View\ComponentAttributeBag;
 
 $__newAttributes = [];
-$__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames((['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false]));
+$__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames((['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false, 'hidden' => []]));
 
 foreach ($attributes->all() as $__key => $__value) {
     if (in_array($__key, $__propNames)) {
@@ -16,7 +16,7 @@ $attributes = new \Illuminate\View\ComponentAttributeBag($__newAttributes);
 unset($__propNames);
 unset($__newAttributes);
 
-foreach (array_filter((['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
+foreach (array_filter((['filters', 'formData', 'statuses' => [], 'action', 'exportAction' => null, 'canExport' => false, 'hidden' => []]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
     $$__key = $$__key ?? $__value;
 }
 
@@ -40,14 +40,14 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php $component->withAttributes(['padding' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false),'class' => 'mb-4']); ?>
     <?php if (isset($component)) { $__componentOriginal9577df2686262fb25ceb19a81119823d = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal9577df2686262fb25ceb19a81119823d = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.index-toolbar','data' => ['action' => $action,'resetUrl' => $action]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.index-toolbar','data' => ['action' => $action,'resetUrl' => route('admin.hr.attendance.dashboard', array_filter(['tab' => 'register', 'embedded' => ($hidden['embedded'] ?? null)]))]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.index-toolbar'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['action' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($action),'reset-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($action)]); ?>
+<?php $component->withAttributes(['action' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($action),'reset-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('admin.hr.attendance.dashboard', array_filter(['tab' => 'register', 'embedded' => ($hidden['embedded'] ?? null)])))]); ?>
         <?php if($canExport && $exportAction): ?>
              <?php $__env->slot('export', null, []); ?> 
                 <?php if (isset($component)) { $__componentOriginalf419e868e892b32e6daa894c958d94bc = $component; } ?>
@@ -72,6 +72,12 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php endif; ?>
              <?php $__env->endSlot(); ?>
         <?php endif; ?>
+
+        <?php $__currentLoopData = $hidden; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $name => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php if($value !== null && $value !== ''): ?>
+                <input type="hidden" name="<?php echo e($name); ?>" value="<?php echo e($value); ?>">
+            <?php endif; ?>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
 
         <input type="date" name="date" value="<?php echo e($filters['date'] ?? ''); ?>" class="erp-toolbar-input" aria-label="<?php echo e(__('Date')); ?>">
         <select name="employee_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Employee')); ?>">
