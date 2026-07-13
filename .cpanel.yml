@@ -1,0 +1,8 @@
+---
+deployment:
+  tasks:
+    # 1. Sync all core Laravel files to your home directory (excluding the public folder)
+    - /bin/rsync -av --exclude='public' --exclude='.git' $REPO_DIR/ /home/janaprints/
+    
+    # 2. Sync ONLY the contents of Laravel's public folder straight into public_html
+    - /bin/rsync -av $REPO_DIR/public/ /home/janaprints/public_html/
