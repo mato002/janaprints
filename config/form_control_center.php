@@ -64,6 +64,8 @@ return [
         'cycle_count_schedule.create' => ['category' => 'supply_chain', 'icon' => 'calendar', 'keywords' => ['cycle count', 'schedule']],
 
         'payroll_run.create' => ['category' => 'hr', 'icon' => 'cash', 'keywords' => ['payroll', 'payslip', 'salary']],
+        'employee.create' => ['category' => 'hr', 'icon' => 'identification', 'keywords' => ['staff', 'personnel', 'onboarding']],
+        'leave_request.create' => ['category' => 'hr', 'icon' => 'calendar', 'keywords' => ['absence', 'time off', 'leave']],
     ],
 
     'planned_forms' => [
@@ -114,22 +116,6 @@ return [
             'description' => 'Payment receipt and allocation capture fields.',
             'icon' => 'cash',
             'keywords' => ['receipt', 'collection', 'payment'],
-        ],
-        [
-            'id' => 'planned_hr_employee',
-            'category' => 'hr',
-            'label' => 'Employee Records',
-            'description' => 'Employee master data and onboarding fields.',
-            'icon' => 'identification',
-            'keywords' => ['staff', 'personnel', 'onboarding'],
-        ],
-        [
-            'id' => 'planned_hr_leave',
-            'category' => 'hr',
-            'label' => 'Leave Requests',
-            'description' => 'Leave application and approval capture fields.',
-            'icon' => 'calendar',
-            'keywords' => ['absence', 'time off', 'leave'],
         ],
         [
             'id' => 'planned_admin_company',

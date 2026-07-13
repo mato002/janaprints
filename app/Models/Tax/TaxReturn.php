@@ -25,6 +25,8 @@ class TaxReturn extends Model
         'net_liability',
         'filed_by',
         'filed_at',
+        'filing_package_path',
+        'filing_package_checksum',
         'notes',
     ];
 

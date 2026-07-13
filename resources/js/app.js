@@ -16,6 +16,32 @@ const ErpToast = Swal.mixin({
     },
 });
 
+function erpFormActionUrl(form) {
+    if (! form) {
+        return '';
+    }
+
+    // Prefer an explicit snapshot — named controls like name="action" shadow the URL property
+    // and can even leave a corrupted action attribute ("[object RadioNodeList]").
+    const snapshot = form.dataset?.erpFormAction;
+
+    if (snapshot && snapshot.trim() !== '' && ! snapshot.includes('[object ')) {
+        return snapshot;
+    }
+
+    const attr = form.getAttribute('action');
+
+    if (attr && attr.trim() !== '' && ! attr.includes('[object ')) {
+        try {
+            return new URL(attr, window.location.href).toString();
+        } catch {
+            return attr;
+        }
+    }
+
+    return window.location.href;
+}
+
 function showErpSweetAlert(message, variant = 'success', options = {}) {
     if (! message) {
         return;
@@ -29,6 +55,38 @@ function showErpSweetAlert(message, variant = 'success', options = {}) {
         timer: options.timer ?? 4500,
         ...options,
     });
+}
+
+function erpCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
+}
+
+function erpXsrfToken() {
+    const match = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]*)/);
+
+    return match ? decodeURIComponent(match[1]) : '';
+}
+
+function erpJsonHeaders(extra = {}) {
+    const headers = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...extra,
+    };
+
+    const csrf = erpCsrfToken();
+    const xsrf = erpXsrfToken();
+
+    if (csrf) {
+        headers['X-CSRF-TOKEN'] = csrf;
+    }
+
+    if (xsrf) {
+        headers['X-XSRF-TOKEN'] = xsrf;
+    }
+
+    return headers;
 }
 
 function showErpNotificationAlert(notification) {
@@ -190,6 +248,15 @@ const erpModalManager = {
             form.setAttribute('data-turbo', 'false');
             form.removeAttribute('data-turbo-frame');
 
+            // Snapshot the real action URL before any name="action" controls can shadow form.action.
+            if (! form.dataset.erpFormAction) {
+                const actionAttr = form.getAttribute('action');
+
+                if (actionAttr && actionAttr.trim() !== '' && ! actionAttr.includes('[object ')) {
+                    form.dataset.erpFormAction = new URL(actionAttr, window.location.href).toString();
+                }
+            }
+
             if (! form.querySelector('[name="_erp_modal"]')) {
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -342,12 +409,17 @@ const erpModalManager = {
             ?? doc.title.split('—')[0]?.trim()
             ?? 'Form';
 
-        const container = form.closest('.bg-white')
+        // Prefer a wrapper around the form. If the form itself matches a card
+        // selector (e.g. class="erp-card"), use form.outerHTML so the modal
+        // keeps a real <form> — using the form's innerHTML alone drops the tag
+        // and leaves submit buttons that do nothing.
+        const container = form.closest('.bg-white:not(form)')
             ?? form.closest('.erp-data-grid')?.parentElement
-            ?? form.closest('[class*="card"]')
             ?? form.parentElement;
 
-        const bodyHtml = container?.innerHTML ?? form.outerHTML;
+        const bodyHtml = (container && container !== form && container.querySelector('form') !== form)
+            ? container.innerHTML
+            : form.outerHTML;
         const panel = this.buildModalPanel(title, bodyHtml);
         this.prepareModalFormContent(panel, doc.baseURI || window.location.href);
 
@@ -676,7 +748,7 @@ const erpModalManager = {
         }
     },
 
-    async submitFormRequest(form) {
+    async submitFormRequest(form, submitter = null) {
         if (! form) {
             return;
         }
@@ -688,8 +760,20 @@ const erpModalManager = {
         form.dataset.erpModalSubmitting = '1';
 
         const formData = new FormData(form);
+        // FormData(form) omits the clicked submit button — restore intent / action values.
+        const activeSubmitter = submitter
+            || form.querySelector('button[type="submit"]:focus, input[type="submit"]:focus')
+            || null;
+
+        if (activeSubmitter instanceof HTMLButtonElement || activeSubmitter instanceof HTMLInputElement) {
+            if (activeSubmitter.name) {
+                formData.set(activeSubmitter.name, activeSubmitter.value ?? '');
+            }
+        }
+
         const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
-        const submitButton = form.querySelector('[type="submit"]');
+        const submitButton = activeSubmitter
+            || form.querySelector('[type="submit"]');
         const modalReturnUrl = formData.get('_erp_modal_return')?.toString()
             || form.dataset.erpModalReturn
             || null;
@@ -699,7 +783,7 @@ const erpModalManager = {
         }
 
         try {
-            let response = await fetch(form.action, {
+            let response = await fetch(erpFormActionUrl(form), {
                 method: method === 'GET' ? 'GET' : 'POST',
                 body: method === 'GET' ? null : formData,
                 headers: {
@@ -755,7 +839,7 @@ const erpModalManager = {
             const doc = new DOMParser().parseFromString(html, 'text/html');
 
             const finalUrl = response.url || '';
-            const submittedTo = form.action || '';
+            const submittedTo = erpFormActionUrl(form);
 
             if (
                 response.ok
@@ -814,7 +898,7 @@ const erpModalManager = {
             if (! response.ok) {
                 console.error('erpModalManager.submitFormRequest', {
                     status: response.status,
-                    url: form.action,
+                    url: erpFormActionUrl(form),
                 });
                 this.showToast(`Unable to save form (${response.status}). Please try again.`, 'error');
 
@@ -1030,7 +1114,7 @@ const erpModalManager = {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 this.prepareModalFormContent(form);
-                this.submitFormRequest(form);
+                this.submitFormRequest(form, event.submitter);
 
                 return;
             }
@@ -1046,7 +1130,7 @@ const erpModalManager = {
                 event.preventDefault();
                 event.stopImmediatePropagation();
                 this.prepareModalFormContent(form.closest('[data-erp-form-modal-panel]') ?? form, window.location.href);
-                this.submitFormRequest(form);
+                this.submitFormRequest(form, event.submitter);
             }
         }, true);
 
@@ -1329,7 +1413,7 @@ const erpLookupManager = {
         const method = (formData.get('_method') || form.method || 'POST').toString().toUpperCase();
 
         try {
-            const response = await fetch(form.action, {
+            const response = await fetch(erpFormActionUrl(form), {
                 method: method === 'GET' ? 'GET' : 'POST',
                 body: method === 'GET' ? null : formData,
                 headers: {
@@ -4304,11 +4388,263 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('whatsappComposeForm', (bootstrap = {}) => ({
+        contactType: bootstrap.contactType || 'customers',
+        selectedId: bootstrap.selectedId ? String(bootstrap.selectedId) : '',
+        phone: bootstrap.phone || '',
+        contactSearch: '',
+        pickerOptions: bootstrap.pickerOptions || {},
+        filters: {
+            branch_id: bootstrap.filters?.branch_id || '',
+            customer_type: bootstrap.filters?.customer_type || '',
+            status: bootstrap.filters?.status || '',
+            has_outstanding: bootstrap.filters?.has_outstanding || '',
+            department_id: bootstrap.filters?.department_id || '',
+            employment_status: bootstrap.filters?.employment_status || '',
+            vendor_type: bootstrap.filters?.vendor_type || '',
+        },
+
+        get currentPickerOptions() {
+            return this.pickerOptions[this.contactType] || [];
+        },
+
+        get visibleContacts() {
+            const query = this.contactSearch.trim().toLowerCase();
+
+            return this.currentPickerOptions.filter((person) => {
+                if (! this.matchesActiveFilters(person)) {
+                    return false;
+                }
+
+                if (! query) {
+                    return true;
+                }
+
+                const haystack = `${person.label || ''} ${person.phone || ''}`.toLowerCase();
+
+                return haystack.includes(query);
+            });
+        },
+
+        matchesActiveFilters(person) {
+            const f = this.filters;
+            const source = this.contactType;
+
+            const eq = (expected, actual) => {
+                if (expected === undefined || expected === null || expected === '') {
+                    return true;
+                }
+
+                return String(actual ?? '') === String(expected);
+            };
+
+            if (source === 'customers') {
+                const outstandingOk = ! f.has_outstanding
+                    || Boolean(person.has_outstanding) === ['1', 'true', 'yes'].includes(String(f.has_outstanding));
+
+                return eq(f.branch_id, person.branch_id)
+                    && eq(f.customer_type, person.customer_type)
+                    && eq(f.status, person.status)
+                    && outstandingOk;
+            }
+
+            if (source === 'leads') {
+                return eq(f.branch_id, person.branch_id) && eq(f.status, person.status);
+            }
+
+            if (source === 'employees') {
+                return eq(f.department_id, person.department_id)
+                    && eq(f.employment_status, person.employment_status);
+            }
+
+            if (source === 'suppliers') {
+                return eq(f.vendor_type, person.vendor_type) && eq(f.status, person.status);
+            }
+
+            return true;
+        },
+
+        resetFilters() {
+            this.filters = {
+                branch_id: '',
+                customer_type: '',
+                status: '',
+                has_outstanding: '',
+                department_id: '',
+                employment_status: '',
+                vendor_type: '',
+            };
+        },
+
+        setContactType(type) {
+            this.contactType = type;
+            this.contactSearch = '';
+            this.selectedId = '';
+            this.phone = type === 'phone' ? this.phone : '';
+            this.resetFilters();
+        },
+
+        onFiltersChanged() {
+            if (! this.selectedId) {
+                return;
+            }
+
+            const stillVisible = this.visibleContacts.some(
+                (person) => String(person.id) === String(this.selectedId),
+            );
+
+            if (! stillVisible) {
+                this.selectedId = '';
+                this.phone = '';
+            }
+        },
+
+        selectContact(person) {
+            this.selectedId = String(person.id);
+            this.phone = person.phone || '';
+        },
+    }));
+
     Alpine.data('smsCampaignForm', (bootstrap = {}) => ({
         previewUrl: bootstrap.previewUrl,
-        sendMode: 'immediate',
-        messageTemplate: '',
+        estimateUrl: bootstrap.estimateUrl || null,
+        sendMode: bootstrap.sendMode || 'immediate',
+        recipientSource: bootstrap.recipientSource || 'customers',
+        messageTemplate: bootstrap.messageTemplate || '',
+        manualPhones: bootstrap.manualPhones || '',
         preview: null,
+        pickerOptions: bootstrap.pickerOptions || {},
+        selectedRecipientIds: (bootstrap.selectedRecipientIds || []).map(String),
+        recipientSearch: '',
+        audienceEstimate: null,
+        estimatingAudience: false,
+        importSummary: null,
+        filters: {
+            branch_id: bootstrap.filters?.branch_id || '',
+            customer_type: bootstrap.filters?.customer_type || '',
+            status: bootstrap.filters?.status || '',
+            has_outstanding: bootstrap.filters?.has_outstanding || '',
+            department_id: bootstrap.filters?.department_id || '',
+            employment_status: bootstrap.filters?.employment_status || '',
+            vendor_type: bootstrap.filters?.vendor_type || '',
+        },
+
+        get currentPickerOptions() {
+            return this.pickerOptions[this.recipientSource] || [];
+        },
+
+        get visibleRecipients() {
+            const query = this.recipientSearch.trim().toLowerCase();
+
+            return this.currentPickerOptions.filter((person) => {
+                if (! this.matchesActiveFilters(person)) {
+                    return false;
+                }
+
+                if (! query) {
+                    return true;
+                }
+
+                const haystack = `${person.label || ''} ${person.phone || ''}`.toLowerCase();
+
+                return haystack.includes(query);
+            });
+        },
+
+        get selectedRecipientCount() {
+            return this.selectedRecipientIds.length;
+        },
+
+        matchesActiveFilters(person) {
+            const f = this.filters;
+            const source = this.recipientSource;
+
+            const eq = (expected, actual) => {
+                if (expected === undefined || expected === null || expected === '') {
+                    return true;
+                }
+
+                return String(actual ?? '') === String(expected);
+            };
+
+            if (['customers', 'dynamic'].includes(source)) {
+                const outstandingOk = ! f.has_outstanding
+                    || Boolean(person.has_outstanding) === ['1', 'true', 'yes'].includes(String(f.has_outstanding));
+
+                return eq(f.branch_id, person.branch_id)
+                    && eq(f.customer_type, person.customer_type)
+                    && eq(f.status, person.status)
+                    && outstandingOk;
+            }
+
+            if (source === 'leads') {
+                return eq(f.branch_id, person.branch_id) && eq(f.status, person.status);
+            }
+
+            if (source === 'employees') {
+                return eq(f.department_id, person.department_id)
+                    && eq(f.employment_status, person.employment_status);
+            }
+
+            if (source === 'suppliers') {
+                return eq(f.vendor_type, person.vendor_type) && eq(f.status, person.status);
+            }
+
+            return true;
+        },
+
+        onFiltersChanged() {
+            const visibleIds = new Set(this.visibleRecipients.map((person) => String(person.id)));
+            this.selectedRecipientIds = this.selectedRecipientIds.filter((id) => visibleIds.has(String(id)));
+            this.audienceEstimate = null;
+        },
+
+        resetFilters() {
+            this.filters = {
+                branch_id: '',
+                customer_type: '',
+                status: '',
+                has_outstanding: '',
+                department_id: '',
+                employment_status: '',
+                vendor_type: '',
+            };
+        },
+
+        onRecipientSourceChange() {
+            this.recipientSearch = '';
+            this.selectedRecipientIds = [];
+            this.audienceEstimate = null;
+            this.importSummary = null;
+            this.resetFilters();
+        },
+
+        toggleRecipient(id, checked) {
+            const key = String(id);
+
+            if (checked) {
+                if (! this.selectedRecipientIds.includes(key)) {
+                    this.selectedRecipientIds.push(key);
+                }
+
+                return;
+            }
+
+            this.selectedRecipientIds = this.selectedRecipientIds.filter((value) => value !== key);
+        },
+
+        selectAllVisibleRecipients() {
+            const ids = new Set(this.selectedRecipientIds.map(String));
+
+            this.visibleRecipients.forEach((person) => ids.add(String(person.id)));
+            this.selectedRecipientIds = Array.from(ids);
+            this.audienceEstimate = null;
+        },
+
+        clearSelectedRecipients() {
+            this.selectedRecipientIds = [];
+            this.audienceEstimate = null;
+        },
 
         onTemplateChange(event) {
             const option = event.target.selectedOptions[0];
@@ -4316,6 +4652,164 @@ document.addEventListener('alpine:init', () => {
 
             if (body) {
                 this.messageTemplate = body;
+            }
+        },
+
+        parsePhoneList(raw) {
+            const lines = String(raw || '').split(/\r\n|\r|\n/);
+            const recipients = [];
+            const invalid = [];
+            const seen = new Set();
+
+            lines.forEach((line, index) => {
+                const trimmed = line.trim();
+
+                if (! trimmed) {
+                    return;
+                }
+
+                if (index === 0 && /^(name|phone|mobile|number)\b/i.test(trimmed)) {
+                    return;
+                }
+
+                const parts = trimmed.split(/[,;\t]+/).map((part) => part.trim()).filter(Boolean);
+                let phone = null;
+                let name = null;
+
+                parts.forEach((part) => {
+                    const digits = part.replace(/\D+/g, '');
+
+                    if (digits.length >= 9) {
+                        phone = digits;
+                    } else if (! name) {
+                        name = part;
+                    }
+                });
+
+                if (! phone && parts.length === 1) {
+                    const digits = parts[0].replace(/\D+/g, '');
+                    phone = digits.length >= 9 ? digits : null;
+                }
+
+                if (! phone) {
+                    invalid.push(trimmed);
+
+                    return;
+                }
+
+                if (seen.has(phone)) {
+                    return;
+                }
+
+                seen.add(phone);
+                recipients.push(name ? `${name},${phone}` : phone);
+            });
+
+            return { recipients, invalid };
+        },
+
+        applyImportedList() {
+            const parsed = this.parsePhoneList(this.manualPhones);
+
+            this.manualPhones = parsed.recipients.join('\n');
+            this.importSummary = {
+                valid: parsed.recipients.length,
+                invalid: parsed.invalid.length,
+                invalidSamples: parsed.invalid.slice(0, 5),
+            };
+            this.audienceEstimate = parsed.recipients.length;
+        },
+
+        clearImportedList() {
+            this.manualPhones = '';
+            this.importSummary = null;
+            this.audienceEstimate = null;
+        },
+
+        async importFromFile(event) {
+            const file = event.target.files?.[0];
+
+            if (! file) {
+                return;
+            }
+
+            const text = await file.text();
+            this.manualPhones = text;
+            this.applyImportedList();
+            event.target.value = '';
+        },
+
+        collectRecipientFilters() {
+            const source = this.recipientSource;
+            const f = this.filters;
+            const filters = {};
+
+            const put = (key, value) => {
+                if (value !== undefined && value !== null && value !== '') {
+                    filters[key] = value;
+                }
+            };
+
+            if (['customers', 'dynamic', 'leads'].includes(source)) {
+                put('branch_id', f.branch_id);
+            }
+
+            if (['customers', 'dynamic'].includes(source)) {
+                put('customer_type', f.customer_type);
+                put('status', f.status);
+                put('has_outstanding', f.has_outstanding);
+            }
+
+            if (source === 'leads') {
+                put('status', f.status);
+            }
+
+            if (source === 'employees') {
+                put('department_id', f.department_id);
+                put('employment_status', f.employment_status);
+            }
+
+            if (source === 'suppliers') {
+                put('vendor_type', f.vendor_type);
+                put('status', f.status);
+            }
+
+            if (this.selectedRecipientIds.length && source !== 'dynamic') {
+                filters.ids = this.selectedRecipientIds.map((id) => Number(id));
+            }
+
+            return filters;
+        },
+
+        async estimateAudience() {
+            if (! this.estimateUrl) {
+                return;
+            }
+
+            this.estimatingAudience = true;
+
+            try {
+                const response = await fetch(this.estimateUrl, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        recipient_source: this.recipientSource,
+                        recipient_filters: this.collectRecipientFilters(),
+                        manual_phones: this.manualPhones,
+                    }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    this.audienceEstimate = data.count ?? 0;
+                }
+            } finally {
+                this.estimatingAudience = false;
             }
         },
 
@@ -4811,19 +5305,260 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('smsCrmTopupModal', (bootstrap = {}) => ({
+        isOpen: Boolean(bootstrap.open),
+        phase: Boolean(bootstrap.polling) && bootstrap.reference ? 'waiting' : 'form',
+        reference: bootstrap.reference || null,
+        statusUrlTemplate: bootstrap.statusUrlTemplate || '',
+        topupUrl: bootstrap.topupUrl || '',
+        enabled: Boolean(bootstrap.enabled),
+        currency: bootstrap.currency || 'KES',
+        minAmount: Number(bootstrap.minAmount || 10),
+        maxAmount: Number(bootstrap.maxAmount || 50000),
+        phone: '',
+        amount: '500',
+        statusMessage: '',
+        formError: '',
+        pollTimer: null,
+        submitting: false,
+
+        get busy() {
+            return this.submitting || this.phase === 'waiting';
+        },
+
+        get polling() {
+            return this.phase === 'waiting' || this.phase === 'submitting';
+        },
+
+        get statusTitle() {
+            if (this.phase === 'submitting') {
+                return 'Sending M-Pesa prompt…';
+            }
+
+            if (this.phase === 'waiting') {
+                return 'Waiting for M-Pesa confirmation…';
+            }
+
+            if (this.phase === 'completed') {
+                return 'Payment successful';
+            }
+
+            if (this.phase === 'failed') {
+                return 'Payment not completed';
+            }
+
+            return '';
+        },
+
+        get amountLabel() {
+            if (! this.amount) {
+                return '';
+            }
+
+            return `${this.currency} ${Number(this.amount).toLocaleString()}`;
+        },
+
+        init() {
+            if (this.phase === 'waiting' && this.reference) {
+                this.statusMessage = 'Approve the STK prompt on your phone.';
+                this.startPolling();
+            }
+        },
+
+        open() {
+            if (this.phase === 'form') {
+                this.formError = '';
+            }
+
+            this.isOpen = true;
+        },
+
+        close() {
+            if (this.busy) {
+                return;
+            }
+
+            this.isOpen = false;
+        },
+
+        resetToForm() {
+            window.clearTimeout(this.pollTimer);
+            this.phase = 'form';
+            this.reference = null;
+            this.statusMessage = '';
+            this.formError = '';
+            this.submitting = false;
+        },
+
+        closeAndRefresh() {
+            window.clearTimeout(this.pollTimer);
+            this.isOpen = false;
+            window.location.reload();
+        },
+
+        statusUrl() {
+            return String(this.statusUrlTemplate).replace('__REF__', encodeURIComponent(String(this.reference || '')));
+        },
+
+        async submitTopup() {
+            this.formError = '';
+
+            const phone = String(this.phone || '').trim();
+            const amount = Number(this.amount);
+
+            if (! phone) {
+                this.formError = 'Enter the M-Pesa phone number.';
+
+                return;
+            }
+
+            if (! Number.isFinite(amount) || amount < this.minAmount || amount > this.maxAmount) {
+                this.formError = `Amount must be between ${this.minAmount} and ${this.maxAmount} ${this.currency}.`;
+
+                return;
+            }
+
+            this.submitting = true;
+            this.phase = 'submitting';
+            this.statusMessage = 'Contacting payment provider…';
+
+            try {
+                const response = await fetch(this.topupUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        phone,
+                        amount,
+                    }),
+                });
+
+                const data = await response.json().catch(() => ({}));
+
+                if (! response.ok || data.ok === false) {
+                    const firstError = data.errors
+                        ? Object.values(data.errors).flat()[0]
+                        : null;
+                    this.formError = firstError || data.message || 'Could not send the M-Pesa prompt.';
+                    this.phase = 'form';
+                    this.submitting = false;
+
+                    return;
+                }
+
+                this.reference = data.reference;
+                this.phone = data.phone || phone;
+                this.amount = String(data.amount ?? amount);
+                this.statusMessage = data.message || 'Check your phone and enter your M-Pesa PIN.';
+                this.phase = 'waiting';
+                this.submitting = false;
+                this.startPolling(data.next_poll_seconds || 3);
+            } catch {
+                this.formError = 'Network error while sending the M-Pesa prompt. Try again.';
+                this.phase = 'form';
+                this.submitting = false;
+            }
+        },
+
+        startPolling(delaySeconds = 0) {
+            window.clearTimeout(this.pollTimer);
+
+            if (delaySeconds > 0) {
+                this.scheduleNext(delaySeconds);
+
+                return;
+            }
+
+            this.pollOnce();
+        },
+
+        async pollOnce() {
+            if (! this.reference || this.phase !== 'waiting') {
+                return;
+            }
+
+            try {
+                const response = await fetch(this.statusUrl(), {
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (data.message) {
+                    this.statusMessage = data.message;
+                }
+
+                if (data.amount) {
+                    this.amount = String(data.amount);
+                }
+
+                if (! response.ok && ! data.terminal) {
+                    this.scheduleNext(data.next_poll_seconds || 5);
+
+                    return;
+                }
+
+                if (data.terminal) {
+                    this.finish(data.status || 'failed', data.message || this.statusMessage);
+
+                    return;
+                }
+
+                this.scheduleNext(data.next_poll_seconds || 4);
+            } catch {
+                this.scheduleNext(5);
+            }
+        },
+
+        scheduleNext(seconds) {
+            window.clearTimeout(this.pollTimer);
+            this.pollTimer = window.setTimeout(() => this.pollOnce(), Math.max(2, Number(seconds) || 4) * 1000);
+        },
+
+        finish(status, message) {
+            window.clearTimeout(this.pollTimer);
+            this.submitting = false;
+            this.statusMessage = message || '';
+
+            if (status === 'completed') {
+                this.phase = 'completed';
+
+                if (typeof showErpSweetAlert === 'function') {
+                    showErpSweetAlert(message || 'SMS credits topped up.', 'success');
+                }
+
+                return;
+            }
+
+            this.phase = 'failed';
+
+            if (typeof showErpSweetAlert === 'function') {
+                showErpSweetAlert(message || 'Payment was not completed.', 'error');
+            }
+        },
+    }));
+
     Alpine.data('communicationTemplatesWorkspace', (bootstrap = {}) => ({
         routes: bootstrap.routes ?? {},
         can: bootstrap.can ?? {},
         options: bootstrap.options ?? {},
-        variables: bootstrap.variables ?? [],
-        sampleData: bootstrap.sampleData ?? {},
+        categoryGroups: bootstrap.categoryGroups ?? [],
         templates: bootstrap.templates ?? [],
         viewMode: bootstrap.activeFilters?.view === 'category' ? 'category' : 'list',
+        filters: {
+            channel: bootstrap.activeFilters?.channel ?? '',
+            status: bootstrap.activeFilters?.status ?? '',
+            group: bootstrap.activeFilters?.group ?? '',
+        },
         selectedId: null,
-        selected: null,
-        previewData: { ...bootstrap.sampleData },
-        previewResult: null,
-        previewLoading: false,
         editorOpen: false,
         editorMode: 'create',
         editorSaving: false,
@@ -4836,51 +5571,54 @@ document.addEventListener('alpine:init', () => {
         compareRight: null,
         compareResult: null,
 
-        init() {
-            const first = this.templates[0];
-
-            if (first) {
-                this.selectTemplate(first.id);
-            }
+        get hasActiveFilters() {
+            return Boolean(this.filters.channel || this.filters.status || this.filters.group);
         },
 
-        selectTemplate(id) {
-            this.selectedId = id;
-            this.selected = this.templates.find((t) => t.id === id) ?? null;
-            this.previewResult = null;
-            this.previewData = { ...this.sampleData };
-        },
-
-        async runPreview() {
-            if (! this.selectedId) {
-                return;
-            }
-
-            this.previewLoading = true;
-
-            try {
-                const response = await fetch(this.routes.preview.replace('__ID__', String(this.selectedId)), {
-                    method: 'POST',
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({ data: this.previewData }),
-                });
-
-                if (response.ok) {
-                    this.previewResult = await response.json();
+        get filteredTemplates() {
+            return this.templates.filter((template) => {
+                if (this.filters.channel && template.channel !== this.filters.channel) {
+                    return false;
                 }
-            } finally {
-                this.previewLoading = false;
-            }
+
+                if (this.filters.status && template.status !== this.filters.status) {
+                    return false;
+                }
+
+                if (this.filters.group) {
+                    const group = this.categoryGroups.find((item) => item.key === this.filters.group);
+                    const categories = group?.categories ?? [];
+
+                    if (categories.length > 0 && ! categories.includes(template.category)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            });
+        },
+
+        get categoryGroupCards() {
+            return this.categoryGroups.map((group) => ({
+                ...group,
+                count: this.templates.filter((template) => (group.categories ?? []).includes(template.category)).length,
+            }));
+        },
+
+        clearFilters() {
+            this.filters.channel = '';
+            this.filters.status = '';
+            this.filters.group = '';
+        },
+
+        toggleGroup(key) {
+            this.filters.group = this.filters.group === key ? '' : key;
         },
 
         openEditor(template = null) {
             this.editorMode = template ? 'edit' : 'create';
             this.editorError = null;
+            this.selectedId = template?.id ?? null;
             this.form = template
                 ? {
                     name: template.name,
@@ -4894,16 +5632,12 @@ document.addEventListener('alpine:init', () => {
                     change_notes: '',
                 }
                 : {
-                    code: '',
                     name: '',
                     channel: 'sms',
                     template_type: 'transactional',
                     category: 'quotation_ready',
-                    status: 'active',
                     subject: '',
                     body: 'Dear {{customer_name}}, your quotation {{quotation_number}} is ready.',
-                    description: '',
-                    change_notes: '',
                 };
             this.editorOpen = true;
         },
@@ -4925,13 +5659,12 @@ document.addEventListener('alpine:init', () => {
             try {
                 const response = await fetch(url, {
                     method,
-                    headers: {
-                        Accept: 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify(this.form),
+                    credentials: 'same-origin',
+                    headers: erpJsonHeaders(),
+                    body: JSON.stringify({
+                        ...this.form,
+                        _token: erpCsrfToken(),
+                    }),
                 });
 
                 const data = await response.json().catch(() => ({}));
@@ -4947,24 +5680,26 @@ document.addEventListener('alpine:init', () => {
 
                 if (isCreate) {
                     this.templates.push(data.template);
-                    this.selectTemplate(data.template.id);
                 } else {
                     const index = this.templates.findIndex((t) => t.id === data.template.id);
 
                     if (index >= 0) {
                         this.templates[index] = data.template;
                     }
-
-                    this.selectTemplate(data.template.id);
                 }
 
+                this.selectedId = data.template.id;
                 this.closeEditor();
             } finally {
                 this.editorSaving = false;
             }
         },
 
-        async openVersions() {
+        async openVersions(template = null) {
+            if (template) {
+                this.selectedId = template.id;
+            }
+
             if (! this.selectedId || ! this.can.versionView) {
                 return;
             }
@@ -5024,13 +5759,12 @@ document.addEventListener('alpine:init', () => {
 
             const response = await fetch(this.routes.restore.replace('__ID__', String(this.selectedId)), {
                 method: 'POST',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify({ version_id: version.id }),
+                credentials: 'same-origin',
+                headers: erpJsonHeaders(),
+                body: JSON.stringify({
+                    _token: erpCsrfToken(),
+                    version_id: version.id,
+                }),
             });
 
             if (response.ok) {
@@ -5041,8 +5775,7 @@ document.addEventListener('alpine:init', () => {
                     this.templates[index] = data.template;
                 }
 
-                this.selectTemplate(data.template.id);
-                this.openVersions();
+                this.openVersions({ id: data.template.id });
             }
         },
 
@@ -5344,7 +6077,7 @@ document.addEventListener('alpine:init', () => {
             this.piStatusMessage = null;
 
             try {
-                const response = await fetch(form.action, {
+                const response = await fetch(erpFormActionUrl(form), {
                     method: 'POST',
                     body: new FormData(form),
                     headers: {
@@ -5364,7 +6097,7 @@ document.addEventListener('alpine:init', () => {
                 this.piSummary = data.summary ?? null;
                 this.piWarnings = data.warnings ?? [];
                 this.piStatusMessage = data.message ?? null;
-                this.piActiveTab = this.resolvePiTabFromAction(form.action);
+                this.piActiveTab = this.resolvePiTabFromAction(erpFormActionUrl(form));
             } catch (error) {
                 this.piWarnings = [error?.message || 'Unable to run analysis.'];
             } finally {
@@ -5876,7 +6609,7 @@ window.__erpSubmitFormSettings = async function submitFormSettingsRequest(form) 
     setFormSettingsSaveState(form, true);
 
     try {
-        const response = await fetch(form.action, {
+        const response = await fetch(erpFormActionUrl(form), {
             method: method === 'GET' ? 'GET' : 'POST',
             body: method === 'GET' ? null : formData,
             headers: {
@@ -6029,13 +6762,14 @@ function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
                 if (currentTab && tabKey) {
                     isActive = tabKey === currentTab;
                 } else if (frameSrc) {
-                    const tabUrl = new URL(tab.getAttribute('href'), window.location.origin);
                     const srcUrl = new URL(frameSrc, window.location.origin);
-                    isActive = tabUrl.pathname === srcUrl.pathname;
+                    const contentHref = tab.dataset.workspaceContentHref || tab.getAttribute('href');
+                    const contentUrl = new URL(contentHref, window.location.origin);
+                    isActive = contentUrl.pathname === srcUrl.pathname;
                 } else {
                     const tabUrl = new URL(tab.getAttribute('href'), window.location.origin);
                     isActive = tabUrl.pathname === currentUrl.pathname
-                        && tabUrl.searchParams.get('embedded') === currentUrl.searchParams.get('embedded');
+                        && tabUrl.searchParams.get('tab') === currentUrl.searchParams.get('tab');
                 }
 
                 tab.classList.toggle('workspace-pill--active', isActive);
@@ -6058,6 +6792,58 @@ function syncSecondaryWorkspaceTabActiveState(clickedTab = null) {
             }
         }
     });
+}
+
+/**
+ * If an embedded feature URL leaked into the address bar (pagination/filters),
+ * restore the active workspace desk URL so refresh keeps the module shell.
+ */
+function restoreWorkspaceDeskUrlInHistory() {
+    if (! window.history?.replaceState) {
+        return;
+    }
+
+    let currentUrl;
+
+    try {
+        currentUrl = new URL(window.location.href);
+    } catch {
+        return;
+    }
+
+    if (! currentUrl.pathname.startsWith('/admin/')) {
+        return;
+    }
+
+    if (currentUrl.pathname.startsWith('/admin/workspaces/')) {
+        return;
+    }
+
+    if (currentUrl.searchParams.get('embedded') !== '1') {
+        return;
+    }
+
+    const activeTab = document.querySelector(
+        '.module-workspace-switcher--secondary [data-workspace-tab][href].workspace-pill--active',
+    ) || document.querySelector(
+        '.module-workspace-switcher--primary [data-workspace-tab][href].workspace-pill--active',
+    );
+
+    const deskHref = activeTab?.getAttribute('href');
+
+    if (! deskHref) {
+        return;
+    }
+
+    try {
+        const deskUrl = new URL(deskHref, window.location.origin);
+
+        if (deskUrl.pathname.startsWith('/admin/workspaces/')) {
+            window.history.replaceState({}, '', `${deskUrl.pathname}${deskUrl.search}${deskUrl.hash}`);
+        }
+    } catch {
+        // Keep the current URL when the desk href cannot be parsed.
+    }
 }
 
 function shouldPromoteWorkspaceLinkToMain(href) {
@@ -6348,6 +7134,8 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
     bindWebsiteSettingsForms(frame);
+    syncSecondaryWorkspaceTabActiveState();
+    restoreWorkspaceDeskUrlInHistory();
 }
 
 document.addEventListener('turbo:before-cache', () => {

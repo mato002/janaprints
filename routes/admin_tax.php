@@ -45,6 +45,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             ->group(function () {
                 Route::get('/', [TaxReturnController::class, 'index'])->name('index');
                 Route::get('{taxReturn}', [TaxReturnController::class, 'show'])->name('show');
+                Route::get('{taxReturn}/package', [TaxReturnController::class, 'downloadPackage'])->name('package');
                 Route::post('periods/{taxPeriod}/draft', [TaxReturnController::class, 'buildDraft'])->name('draft');
                 Route::post('{taxReturn}/file', [TaxReturnController::class, 'file'])->name('file');
             });

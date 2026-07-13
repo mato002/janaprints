@@ -1,6 +1,6 @@
 <x-admin-layout :title="__('SMS Provider Logs')" :breadcrumbs="[['label' => __('Communications'), 'url' => route('admin.workspaces.communications')], ['label' => __('Provider logs')]]">
     @include('admin.communications.sms.partials.nav')
-    <x-admin.page-header :title="__('SMS provider logs')" :description="__('Request and response audit trail (stub provider in COM-3).')" />
+    <x-admin.page-header :title="__('SMS provider logs')" :description="__('Request and response audit trail for SMS integrations.')" />
 
     <div class="erp-card overflow-hidden p-0">
         <table class="erp-table w-full text-sm">

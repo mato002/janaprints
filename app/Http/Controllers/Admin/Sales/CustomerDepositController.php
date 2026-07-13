@@ -21,6 +21,24 @@ class CustomerDepositController extends Controller
         protected CustomerCreditWalletService $wallet,
     ) {}
 
+    public function index(Request $request): View
+    {
+        $this->authorize('viewAny', CustomerPayment::class);
+
+        $deposits = $this->scopeToTenant(
+            CustomerPayment::query()
+                ->with(['customer'])
+                ->where('is_deposit', true)
+        )
+            ->when($request->filled('customer_id'), fn ($q) => $q->where('customer_id', $request->integer('customer_id')))
+            ->orderByDesc('payment_date')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        return view('admin.sales.deposits.index', compact('deposits'));
+    }
+
     public function applyForm(CustomerInvoice $invoice): View
     {
         $this->authorize('applyDeposit', CustomerPayment::class);

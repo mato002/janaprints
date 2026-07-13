@@ -280,6 +280,23 @@ return [
                         'export' => 'hr.leave.export',
                     ],
                 ],
+                'leave_config' => [
+                    'label' => 'Leave Setup',
+                    'permissions' => [
+                        'view' => 'hr.leave.config.view',
+                        'create' => 'hr.leave.config.create',
+                        'edit' => 'hr.leave.config.edit',
+                        'delete' => 'hr.leave.config.manage',
+                    ],
+                ],
+                'recruitment' => [
+                    'label' => 'Recruitment',
+                    'permissions' => [
+                        'view' => 'hr.recruitment.view',
+                        'create' => 'hr.recruitment.create',
+                        'edit' => 'hr.recruitment.manage',
+                    ],
+                ],
                 'payroll' => [
                     'label' => 'Payroll',
                     'permissions' => [
@@ -289,6 +306,16 @@ return [
                         'approve' => 'hr.payroll.approve',
                         'delete' => 'hr.payroll.post',
                         'export' => 'hr.payroll.export',
+                    ],
+                ],
+                'compensation' => [
+                    'label' => 'Compensation',
+                    'permissions' => [
+                        'view' => 'hr.compensation.view',
+                        'create' => 'hr.compensation.create',
+                        'edit' => 'hr.compensation.edit',
+                        'approve' => 'hr.compensation.approve',
+                        'export' => 'hr.compensation.audit',
                     ],
                 ],
                 'documents' => [
@@ -329,6 +356,20 @@ return [
                     'label' => 'HR Dashboard',
                     'permissions' => [
                         'view' => 'hr.dashboard.view',
+                    ],
+                ],
+                'kpi' => [
+                    'label' => 'HR KPI',
+                    'permissions' => [
+                        'view' => 'hr.kpi.view',
+                        'export' => 'hr.kpi.export',
+                    ],
+                ],
+                'reports' => [
+                    'label' => 'HR Reports',
+                    'permissions' => [
+                        'view' => 'hr.reports.view',
+                        'export' => 'hr.reports.export',
                     ],
                 ],
             ],
@@ -949,6 +990,27 @@ return [
                         'view' => 'accounting.reports.view',
                     ],
                 ],
+                'bank' => [
+                    'label' => 'Bank Reconciliation',
+                    'permissions' => [
+                        'view' => 'accounting.bank.view',
+                        'edit' => 'accounting.bank.manage',
+                    ],
+                ],
+                'currencies' => [
+                    'label' => 'Currencies & FX',
+                    'permissions' => [
+                        'view' => 'accounting.currencies.view',
+                        'edit' => 'accounting.currencies.manage',
+                    ],
+                ],
+                'budgets' => [
+                    'label' => 'Budgets',
+                    'permissions' => [
+                        'view' => 'accounting.budgets.view',
+                        'edit' => 'accounting.budgets.manage',
+                    ],
+                ],
                 'dashboard' => [
                     'label' => 'Accounting Dashboard',
                     'permissions' => [
@@ -963,6 +1025,7 @@ return [
                     'extra' => [
                         ['label' => 'Customer statement', 'permission' => 'receivables.statement.view'],
                         ['label' => 'Aging analysis', 'permission' => 'receivables.aging.view'],
+                        ['label' => 'AR reconciliation', 'permission' => 'receivables.reconciliation.view'],
                     ],
                 ],
                 'payables_bills' => [

@@ -21,6 +21,7 @@ class InboxMessageService
         protected CommunicationLogService $communicationLogs,
         protected InboxSlaService $sla,
         protected InboxAuditService $audit,
+        protected InboxOutboundChannelService $outbound,
     ) {}
 
     public function reply(
@@ -29,6 +30,11 @@ class InboxMessageService
         int $userId,
         InboxMessageChannel $channel = InboxMessageChannel::InApp,
     ): CommunicationConversationMessage {
+        $dispatch = $this->outbound->dispatch($conversation, $channel, $body, $userId);
+        $sent = $dispatch['success'];
+        $messageStatus = $sent ? InboxMessageStatus::Sent : InboxMessageStatus::Failed;
+        $logStatus = $sent ? CommunicationLogStatus::Sent : CommunicationLogStatus::Failed;
+
         $message = CommunicationConversationMessage::query()->create([
             'communication_conversation_id' => $conversation->id,
             'company_id' => $conversation->company_id,
@@ -36,10 +42,12 @@ class InboxMessageService
             'direction' => 'outgoing',
             'message_type' => 'message',
             'body' => $body,
-            'status' => InboxMessageStatus::Sent,
+            'status' => $messageStatus,
             'created_by' => $userId,
-            'sent_at' => now(),
-            'delivered_at' => now(),
+            'sent_at' => $sent ? now() : null,
+            'delivered_at' => $sent ? now() : null,
+            'source_type' => $dispatch['source_type'],
+            'source_id' => $dispatch['source_id'],
         ]);
 
         $log = $this->communicationLogs->record([
@@ -49,25 +57,38 @@ class InboxMessageService
             'communication_type' => CommunicationLogType::Operational,
             'subject' => $conversation->display_name,
             'message_body' => $body,
-            'status' => CommunicationLogStatus::Sent,
+            'status' => $logStatus,
+            'source_type' => $dispatch['source_type'],
+            'source_id' => $dispatch['source_id'],
             'created_by' => $userId,
             'sent_by' => $userId,
-            'sent_at' => now(),
-            'delivered_at' => now(),
+            'sent_at' => $sent ? now() : null,
+            'delivered_at' => $sent ? now() : null,
+            'failed_at' => $sent ? null : now(),
+            'delivery_response' => $dispatch['error'] ? ['failure_reason' => $dispatch['error']] : null,
             'recipients' => $this->recipientPayload($conversation),
         ]);
 
-        $message->update(['communication_log_id' => $log->id, 'source_type' => CommunicationLog::class, 'source_id' => $log->id]);
+        $message->update(['communication_log_id' => $log->id]);
 
-        $this->conversations->touchActivity($conversation, $body, $channel->value);
-        $this->sla->recordStaffResponse($conversation);
-        $this->audit->record($conversation, \App\Enums\InboxAuditEventType::MessageSent, $userId, [
-            'summary' => mb_substr($body, 0, 120),
-            'channel' => $channel->value,
-        ]);
+        if ($sent) {
+            $this->conversations->touchActivity($conversation, $body, $channel->value);
+            $this->sla->recordStaffResponse($conversation);
+            $this->audit->record($conversation, \App\Enums\InboxAuditEventType::MessageSent, $userId, [
+                'summary' => mb_substr($body, 0, 120),
+                'channel' => $channel->value,
+            ]);
 
-        if ($conversation->status === InboxConversationStatus::WaitingCustomer) {
-            $conversation->update(['status' => InboxConversationStatus::Open]);
+            if ($conversation->status === InboxConversationStatus::WaitingCustomer) {
+                $conversation->update(['status' => InboxConversationStatus::Open]);
+            }
+        } else {
+            $this->audit->record($conversation, \App\Enums\InboxAuditEventType::MessageSent, $userId, [
+                'summary' => mb_substr($body, 0, 120),
+                'channel' => $channel->value,
+                'failed' => true,
+                'error' => $dispatch['error'],
+            ]);
         }
 
         return $message->fresh();

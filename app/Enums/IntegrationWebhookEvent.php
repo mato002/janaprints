@@ -8,6 +8,7 @@ enum IntegrationWebhookEvent: string
     case CustomerCreated = 'customer.created';
     case QuotationCreated = 'quotation.created';
     case QuotationApproved = 'quotation.approved';
+    case QuotationSent = 'quotation.sent';
     case SalesOrderCreated = 'sales_order.created';
     case ArtworkApproved = 'artwork.approved';
     case ProductionStarted = 'production.started';
@@ -28,6 +29,7 @@ enum IntegrationWebhookEvent: string
             self::CustomerCreated => __('Customer created'),
             self::QuotationCreated => __('Quotation created'),
             self::QuotationApproved => __('Quotation approved'),
+            self::QuotationSent => __('Quotation sent'),
             self::SalesOrderCreated => __('Sales order created'),
             self::ArtworkApproved => __('Artwork approved'),
             self::ProductionStarted => __('Production started'),
@@ -47,7 +49,7 @@ enum IntegrationWebhookEvent: string
     public function group(): string
     {
         return match ($this) {
-            self::CustomerCreated, self::QuotationCreated, self::QuotationApproved, self::SalesOrderCreated => 'commercial',
+            self::CustomerCreated, self::QuotationCreated, self::QuotationApproved, self::QuotationSent, self::SalesOrderCreated => 'commercial',
             self::ArtworkApproved, self::ProductionStarted, self::ProductionCompleted => 'production',
             self::StockReceived, self::StockIssued, self::StockAdjusted => 'inventory',
             self::InvoiceCreated, self::InvoiceApproved, self::InvoiceGenerated, self::PaymentReceived, self::StatementGenerated => 'finance',

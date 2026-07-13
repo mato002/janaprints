@@ -55,6 +55,13 @@ class TaxReturnController extends Controller
 
         $this->returns->file($taxReturn, (int) auth()->id());
 
-        return back()->with('status', __('Tax return filed.'));
+        return back()->with('status', __('Tax return filed. Filing package is ready to download.'));
+    }
+
+    public function downloadPackage(TaxReturn $taxReturn)
+    {
+        $this->authorize('manageReturns', TaxCode::class);
+
+        return $this->returns->downloadPackage($taxReturn);
     }
 }

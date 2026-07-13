@@ -24,6 +24,7 @@ use App\Support\Hr\EmployeeLifecycleService;
 use App\Support\Hr\EmployeeNumberService;
 use App\Support\Hr\EmployeeRosterQuery;
 use App\Support\Organization\JobTitleService;
+use App\Support\Platform\FormSettingsService;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,6 +37,10 @@ class EmployeeController extends Controller
 {
     use ExportsTabularIndex;
     use ScopesToTenant;
+
+    public function __construct(
+        protected FormSettingsService $formSettings,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -267,7 +272,15 @@ class EmployeeController extends Controller
             ];
         }
 
-        return $request->validate($rules);
+        $branchId = tenant()->branchId() ?? auth()->user()?->default_branch_id;
+
+        return $this->formSettings->validateRequest(
+            $request,
+            'employee.create',
+            $rules,
+            (int) $companyId,
+            $branchId ? (int) $branchId : null,
+        );
     }
 
     protected function canAssignActivationRole(): bool
@@ -278,6 +291,7 @@ class EmployeeController extends Controller
     protected function formData(?Employee $employee = null): array
     {
         $companyId = $employee?->company_id ?? tenant()->companyId() ?? auth()->user()->company_id;
+        $branchId = tenant()->branchId() ?? auth()->user()?->default_branch_id;
 
         $companies = auth()->user()->hasRole('Super Admin')
             ? Company::query()->where('is_active', true)->orderBy('name')->get()
@@ -306,6 +320,7 @@ class EmployeeController extends Controller
             'suggestedEmployeeNumber' => $employee?->employee_number
                 ?? app(EmployeeNumberService::class)->nextForCompany($companyId),
             'employeeNumberPrefix' => app(EmployeeNumberService::class)->prefixForCompany($companyId),
+            'formFields' => $this->formSettings->resolvedFields('employee.create', $companyId, $branchId),
         ];
     }
 }

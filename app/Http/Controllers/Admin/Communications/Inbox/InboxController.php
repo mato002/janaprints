@@ -177,7 +177,14 @@ class InboxController extends Controller
         ], [], ['body' => __('message')]);
 
         $channel = InboxMessageChannel::tryFrom($validated['channel'] ?? '') ?? InboxMessageChannel::InApp;
-        $this->messages->reply($inboxConversation, $validated['body'], $request->user()->id, $channel);
+        $message = $this->messages->reply($inboxConversation, $validated['body'], $request->user()->id, $channel);
+
+        if ($message->status === \App\Enums\InboxMessageStatus::Failed) {
+            return $this->redirectToConversation($inboxConversation, $request)
+                ->with('error', __('Message could not be delivered on :channel. Check integration settings and try again.', [
+                    'channel' => $channel->label(),
+                ]));
+        }
 
         return $this->redirectToConversation($inboxConversation, $request)
             ->with('inbox_reply_sent', true);

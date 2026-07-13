@@ -98,6 +98,7 @@ return [
         'quick_create' => [
             ['label' => 'Employee', 'route' => 'admin.employees.create', 'permission' => 'employees.manage'],
             ['label' => 'Leave Request', 'route' => 'admin.hr.leave.create', 'permission' => 'hr.leave.create'],
+            ['label' => 'Vacancy', 'route' => 'admin.hr.recruitment.vacancies.create', 'permission' => 'hr.recruitment.create'],
             ['label' => 'Payroll Run', 'route' => 'admin.hr.payroll.create', 'permission' => 'hr.payroll.process'],
             ['label' => 'HR Document', 'route' => 'admin.hr.documents.create', 'permission' => 'hr.documents.upload'],
             ['label' => 'Appraisal', 'route' => 'admin.hr.performance.create', 'permission' => 'hr.performance.manage'],
@@ -127,7 +128,7 @@ return [
             [
                 'label' => 'Channels',
                 'items' => [
-                    ['label' => 'SMS Dashboard', 'description' => 'Credits, usage charts, and delivery KPIs.', 'route' => 'admin.communications.sms.dashboard', 'permission' => 'communications.sms.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.communications.sms.dashboard']],
+                    ['label' => 'SMS Dashboard', 'description' => 'Top up credits, delivery health, and issues that need attention.', 'route' => 'admin.communications.sms.dashboard', 'permission' => 'communications.sms.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.communications.sms.dashboard']],
                     ['label' => 'SMS Campaigns', 'description' => 'Create, preview, schedule, and send bulk SMS.', 'route' => 'admin.communications.sms.campaigns.index', 'permission' => 'communications.sms.view', 'icon' => 'sparkles', 'active_routes' => ['admin.communications.sms.campaigns.*']],
                     ['label' => 'SMS Queue', 'description' => 'Queued, processing, sent, and failed messages.', 'route' => 'admin.communications.sms.queues.index', 'permission' => 'communications.sms.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.communications.sms.queues.*']],
                     ['label' => 'Provider Logs', 'description' => 'SMS provider request and response audit trail.', 'route' => 'admin.communications.sms.provider-logs.index', 'permission' => 'communications.sms.audit', 'icon' => 'clock', 'active_routes' => ['admin.communications.sms.provider-logs.*']],

@@ -46,6 +46,9 @@
                 @else
                     <a
                         href="{{ $workspace['href'] }}"
+                        @if (! empty($workspace['content_href']))
+                            data-workspace-content-href="{{ $workspace['content_href'] }}"
+                        @endif
                         data-turbo-frame="{{ $workspace['turbo_frame'] ?? $turboFrame }}"
                         data-turbo-action="advance"
                         data-workspace-tab

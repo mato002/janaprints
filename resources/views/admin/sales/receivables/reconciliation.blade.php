@@ -6,7 +6,7 @@
     </x-admin.page-header>
 
     <x-admin.card :padding="false" class="mb-4">
-        <x-admin.index-toolbar :action="route('admin.sales.receivables.reconciliation')" :reset-url="route('admin.sales.receivables.reconciliation')">
+        <x-admin.index-toolbar :action="route('admin.receivables.reconciliation')" :reset-url="route('admin.receivables.reconciliation')">
             <input type="date" name="as_of_date" value="{{ $report['as_of_date'] }}" class="erp-toolbar-input" aria-label="{{ __('As of date') }}">
         </x-admin.index-toolbar>
     </x-admin.card>

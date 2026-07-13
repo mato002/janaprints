@@ -44,6 +44,15 @@ return [
             'active_routes' => ['admin.workspaces.accounting.section:payables', 'admin.payables.*'],
         ],
         [
+            'label' => 'Cash Management',
+            'description' => 'Bank accounts, reconciliation, and cash flow statement.',
+            'route' => 'admin.workspaces.accounting.section',
+            'route_params' => ['section' => 'cash-management'],
+            'permission' => 'accounting.bank.view|accounting.reports.view',
+            'icon' => 'cash',
+            'active_routes' => ['admin.workspaces.accounting.section:cash-management', 'admin.accounting.bank.*', 'admin.accounting.reports.cash-flow'],
+        ],
+        [
             'label' => 'Tax',
             'description' => 'Tax codes, ledger, VAT summary, returns, periods, and audit trail.',
             'route' => 'admin.workspaces.accounting.section',
@@ -53,13 +62,22 @@ return [
             'active_routes' => ['admin.workspaces.accounting.section:tax', 'admin.tax.*'],
         ],
         [
+            'label' => 'Budgets',
+            'description' => 'GL budgets and budget versus actual reporting.',
+            'route' => 'admin.workspaces.accounting.section',
+            'route_params' => ['section' => 'budgets'],
+            'permission' => 'accounting.budgets.view',
+            'icon' => 'chart-bar',
+            'active_routes' => ['admin.workspaces.accounting.section:budgets', 'admin.accounting.budgets.*'],
+        ],
+        [
             'label' => 'Setup',
             'description' => 'Chart of accounts, fiscal periods, posting rules, and templates.',
             'route' => 'admin.workspaces.accounting.section',
             'route_params' => ['section' => 'setup'],
-            'permission' => 'accounting.chart.view|accounting.periods.view|accounting.posting.view',
+            'permission' => 'accounting.chart.view|accounting.periods.view|accounting.posting.view|accounting.currencies.view',
             'icon' => 'cog',
-            'active_routes' => ['admin.workspaces.accounting.section:setup', 'admin.accounting.accounts.*', 'admin.accounting.periods.*', 'admin.accounting.posting.*'],
+            'active_routes' => ['admin.workspaces.accounting.section:setup', 'admin.accounting.accounts.*', 'admin.accounting.periods.*', 'admin.accounting.posting.*', 'admin.accounting.currencies.*'],
         ],
     ],
 
@@ -78,7 +96,9 @@ return [
                         ['label' => 'Trial Balance', 'description' => 'Debit and credit trial balance.', 'route' => 'admin.accounting.reports.trial-balance', 'permission' => 'accounting.reports.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.accounting.reports.trial-balance', 'admin.accounting.trial-balance.index']],
                         ['label' => 'Balance Sheet', 'description' => 'Assets, liabilities, and equity.', 'route' => 'admin.accounting.reports.balance-sheet', 'permission' => 'accounting.reports.view', 'icon' => 'scale', 'active_routes' => ['admin.accounting.reports.balance-sheet']],
                         ['label' => 'Profit & Loss', 'description' => 'Revenue and expenses for a period.', 'route' => 'admin.accounting.reports.profit-and-loss', 'permission' => 'accounting.reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.accounting.reports.profit-and-loss']],
+                        ['label' => 'Cash Flow Statement', 'description' => 'Operating, investing, and financing cash movements.', 'route' => 'admin.accounting.reports.cash-flow', 'permission' => 'accounting.reports.view', 'icon' => 'cash', 'active_routes' => ['admin.accounting.reports.cash-flow']],
                         ['label' => 'GL Report', 'description' => 'Account ledger with running balance.', 'route' => 'admin.accounting.reports.general-ledger', 'permission' => 'accounting.reports.view', 'icon' => 'document-text', 'active_routes' => ['admin.accounting.reports.general-ledger']],
+                        ['label' => 'Financial Integrity', 'description' => 'Trial balance and balance sheet integrity checks.', 'route' => 'admin.accounting.reports.financial-integrity', 'permission' => 'accounting.reports.view', 'icon' => 'shield-check', 'active_routes' => ['admin.accounting.reports.financial-integrity']],
                     ],
                 ],
             ],
@@ -94,9 +114,11 @@ return [
                     'items' => [
                         ['label' => 'Invoices', 'description' => 'Customer billing and credit notes.', 'route' => 'admin.invoices.index', 'permission' => 'invoices.view', 'icon' => 'receipt-tax', 'active_routes' => ['admin.invoices.*']],
                         ['label' => 'Payments', 'description' => 'Cash, bank, and M-Pesa receipts.', 'route' => 'admin.payments.index', 'permission' => 'payments.view', 'icon' => 'credit-card', 'active_routes' => ['admin.payments.*']],
+                        ['label' => 'Customer Deposits', 'description' => 'Unallocated deposits, applications, and refunds.', 'route' => 'admin.deposits.index', 'permission' => 'payments.view', 'icon' => 'cash', 'active_routes' => ['admin.deposits.*']],
                         ['label' => 'Customer Ledger', 'description' => 'Running AR balance by customer.', 'route' => 'admin.receivables.ledger', 'permission' => 'receivables.ledger.view', 'icon' => 'book-open', 'active_routes' => ['admin.receivables.ledger']],
                         ['label' => 'Customer Statement', 'description' => 'Period statement of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],
                         ['label' => 'Aging Analysis', 'description' => 'Outstanding balances by age bucket.', 'route' => 'admin.receivables.aging', 'permission' => 'receivables.aging.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.receivables.aging']],
+                        ['label' => 'AR Reconciliation', 'description' => 'Subledger vs GL truth checks before period close.', 'route' => 'admin.receivables.reconciliation', 'permission' => 'receivables.reconciliation.view|receivables.ledger.view', 'icon' => 'scale', 'active_routes' => ['admin.receivables.reconciliation']],
                     ],
                 ],
             ],
@@ -115,6 +137,36 @@ return [
                         ['label' => 'Supplier Ledger', 'description' => 'Running AP balance by supplier.', 'route' => 'admin.payables.ledger', 'permission' => 'payables.ledger.view', 'icon' => 'book-open', 'active_routes' => ['admin.payables.ledger']],
                         ['label' => 'Supplier Statement', 'description' => 'Period statement of account.', 'route' => 'admin.payables.statement', 'permission' => 'payables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.payables.statement']],
                         ['label' => 'AP Aging', 'description' => 'Outstanding balances by age bucket.', 'route' => 'admin.payables.aging', 'permission' => 'payables.aging.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.payables.aging']],
+                    ],
+                ],
+            ],
+        ],
+
+        'cash-management' => [
+            'title' => 'Cash Management',
+            'description' => 'Bank accounts, statement reconciliation, and cash flow reporting.',
+            'icon' => 'cash',
+            'groups' => [
+                [
+                    'label' => 'Cash & Bank',
+                    'items' => [
+                        ['label' => 'Bank Accounts', 'description' => 'GL-linked bank and cash accounts.', 'route' => 'admin.accounting.bank.accounts.index', 'permission' => 'accounting.bank.view', 'icon' => 'cash', 'active_routes' => ['admin.accounting.bank.accounts.*']],
+                        ['label' => 'Bank Reconciliation', 'description' => 'Match statements to posted GL movements.', 'route' => 'admin.accounting.bank.reconciliation.index', 'permission' => 'accounting.bank.view', 'icon' => 'scale', 'active_routes' => ['admin.accounting.bank.reconciliation.*']],
+                        ['label' => 'Cash Flow Statement', 'description' => 'Operating, investing, and financing cash movements.', 'route' => 'admin.accounting.reports.cash-flow', 'permission' => 'accounting.reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.accounting.reports.cash-flow']],
+                    ],
+                ],
+            ],
+        ],
+
+        'budgets' => [
+            'title' => 'Budgets',
+            'description' => 'GL budgets and budget versus actual analysis.',
+            'icon' => 'chart-bar',
+            'groups' => [
+                [
+                    'label' => 'Planning',
+                    'items' => [
+                        ['label' => 'Budgets', 'description' => 'Create and activate GL budgets.', 'route' => 'admin.accounting.budgets.index', 'permission' => 'accounting.budgets.view', 'icon' => 'document-text', 'active_routes' => ['admin.accounting.budgets.*']],
                     ],
                 ],
             ],
@@ -151,6 +203,8 @@ return [
                         ['label' => 'Accounting Periods', 'description' => 'Fiscal years, monthly periods, and close controls.', 'route' => 'admin.accounting.periods.index', 'permission' => 'accounting.periods.view', 'icon' => 'calendar', 'active_routes' => ['admin.accounting.periods.*']],
                         ['label' => 'Posting Rules', 'description' => 'Event-to-template mapping for automated journals.', 'route' => 'admin.accounting.posting.rules.index', 'permission' => 'accounting.posting_rules.view|accounting.posting_rules.audit|accounting.posting.view', 'icon' => 'cog', 'active_routes' => ['admin.accounting.posting.rules.*']],
                         ['label' => 'Posting Templates', 'description' => 'Reusable debit/credit line definitions.', 'route' => 'admin.accounting.posting.templates.index', 'permission' => 'accounting.posting.view', 'icon' => 'document-duplicate', 'active_routes' => ['admin.accounting.posting.templates.*']],
+                        ['label' => 'Currencies', 'description' => 'Active currencies and base currency.', 'route' => 'admin.accounting.currencies.index', 'permission' => 'accounting.currencies.view', 'icon' => 'cash', 'active_routes' => ['admin.accounting.currencies.index']],
+                        ['label' => 'Exchange Rates', 'description' => 'FX rates to the company base currency.', 'route' => 'admin.accounting.currencies.rates.index', 'permission' => 'accounting.currencies.view', 'icon' => 'scale', 'active_routes' => ['admin.accounting.currencies.rates.*']],
                     ],
                 ],
             ],

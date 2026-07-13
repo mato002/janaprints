@@ -35,17 +35,48 @@ class LeaveManagementTest extends TestCase
     public function test_dashboard_renders_for_hr_user(): void
     {
         $this->actingAs($this->hrUser())
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
             ->get(route('admin.hr.leave.dashboard'))
             ->assertOk()
-            ->assertSee(__('Leave Management'));
+            ->assertSee(__('Leave Management'))
+            ->assertSee(__('All requests'));
     }
 
     public function test_leave_requests_index_renders(): void
     {
         $this->actingAs($this->hrUser())
             ->get(route('admin.hr.leave.index'))
+            ->assertRedirect();
+
+        $this->actingAs($this->hrUser())
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.leave.dashboard', ['tab' => 'requests']))
             ->assertOk()
-            ->assertSee(__('Leave Requests'));
+            ->assertSee(__('All requests'));
+    }
+
+    public function test_leave_workspace_tabs_render_on_dashboard(): void
+    {
+        $user = $this->hrUser();
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.leave.dashboard', ['tab' => 'balances']))
+            ->assertOk()
+            ->assertSee(__('Leave balances'));
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.leave.dashboard', ['tab' => 'calendar']))
+            ->assertOk()
+            ->assertSee(__('Monthly'));
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.leave.dashboard', ['tab' => 'setup']))
+            ->assertOk()
+            ->assertSee(__('Setup'))
+            ->assertSee(__('Leave Types'));
     }
 
     public function test_apply_leave_form_renders(): void
@@ -161,11 +192,11 @@ class LeaveManagementTest extends TestCase
     {
         $this->actingAs($this->hrUser())
             ->get(route('admin.hr.leave.calendar', ['view' => 'month']))
-            ->assertOk()
-            ->assertSee(__('Leave Calendar'));
+            ->assertRedirect();
 
         $this->actingAs($this->hrUser())
-            ->get(route('admin.hr.leave.calendar', ['view' => 'week']))
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.leave.dashboard', ['tab' => 'calendar', 'view' => 'week']))
             ->assertOk()
             ->assertSee(__('Weekly'));
     }

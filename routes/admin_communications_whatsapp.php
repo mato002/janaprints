@@ -18,12 +18,21 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('templates', [WhatsappTemplateController::class, 'index'])->name('templates.index');
             Route::get('queue', [WhatsappQueueController::class, 'index'])->name('queue.index');
             Route::get('analytics', [WhatsappAnalyticsController::class, 'index'])->name('analytics');
-            Route::get('conversations/{conversation}', [WhatsappConversationController::class, 'show'])->name('conversations.show');
         });
 
+        // create must be registered before conversations/{conversation}
         Route::middleware('permission:communications.whatsapp.send')->group(function () {
+            Route::get('conversations/create', [WhatsappConversationController::class, 'create'])
+                ->name('conversations.create');
+            Route::post('conversations', [WhatsappConversationController::class, 'store'])
+                ->name('conversations.store');
             Route::post('conversations/{conversation}/messages', [WhatsappConversationController::class, 'storeMessage'])
                 ->name('conversations.messages.store');
+        });
+
+        Route::middleware('permission:communications.whatsapp.view')->group(function () {
+            Route::get('conversations/{conversation}', [WhatsappConversationController::class, 'show'])
+                ->name('conversations.show');
         });
 
         Route::middleware('permission:communications.whatsapp.manage')->group(function () {

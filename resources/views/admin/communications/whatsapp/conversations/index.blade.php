@@ -1,6 +1,14 @@
 <x-admin-layout :title="__('WhatsApp Conversations')" :breadcrumbs="[['label' => __('WhatsApp'), 'url' => route('admin.communications.whatsapp.inbox')], ['label' => __('Conversations')]]">
     @include('admin.communications.whatsapp.partials.nav')
-    <x-admin.page-header :title="__('All conversations')" />
+    <x-admin.page-header :title="__('All conversations')">
+        @can('send', App\Models\Communications\WhatsappConversation::class)
+            <x-slot:actions>
+                <x-admin.crm-btn variant="primary" :href="route('admin.communications.whatsapp.conversations.create')" data-turbo-frame="erp-main">
+                    {{ __('New message') }}
+                </x-admin.crm-btn>
+            </x-slot:actions>
+        @endcan
+    </x-admin.page-header>
     <div class="erp-card">
         <div class="overflow-x-auto">
             <table class="erp-table w-full">

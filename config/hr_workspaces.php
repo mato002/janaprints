@@ -7,9 +7,17 @@ return [
             'description' => 'Employees, attendance, leave, and workforce records.',
             'route' => 'admin.workspaces.hr.section',
             'route_params' => ['section' => 'people'],
-            'permission' => 'employees.manage|hr.attendance.view|hr.leave.view',
+            'permission' => 'employees.manage|hr.attendance.view|hr.leave.view|hr.recruitment.view',
             'icon' => 'identification',
-            'active_routes' => ['admin.workspaces.hr.section:people', 'admin.employees.*', 'admin.hr.employees.*', 'admin.hr.attendance.*', 'admin.hr.leave.*', 'admin.hr.shifts.*'],
+            'active_routes' => [
+                'admin.workspaces.hr.section:people',
+                'admin.employees.*',
+                'admin.hr.employees.*',
+                'admin.hr.attendance.*',
+                'admin.hr.leave.*',
+                'admin.hr.shifts.*',
+                'admin.hr.recruitment.*',
+            ],
         ],
         [
             'label' => 'Payroll',
@@ -43,16 +51,16 @@ return [
             'description' => 'HR analytics and workforce reporting.',
             'route' => 'admin.workspaces.hr.section',
             'route_params' => ['section' => 'reports'],
-            'permission' => 'reports.view|hr.dashboard.view',
+            'permission' => 'reports.view|hr.dashboard.view|hr.kpi.view|kpi.view',
             'icon' => 'chart-pie',
-            'active_routes' => ['admin.workspaces.hr.section:reports', 'admin.reports.hr'],
+            'active_routes' => ['admin.workspaces.hr.section:reports', 'admin.reports.hr', 'admin.hr.kpi', 'admin.hr.kpi.*'],
         ],
     ],
 
     'sections' => [
         'people' => [
             'title' => 'People',
-            'description' => 'Employee records, attendance, and leave.',
+            'description' => 'Employee records, attendance, leave, and recruitment.',
             'icon' => 'identification',
             'groups' => [[
                 'label' => 'People',
@@ -60,7 +68,8 @@ return [
                     ['key' => 'dashboard', 'label' => 'HR Dashboard', 'description' => 'Workforce metrics and HR overview.', 'route' => 'admin.hr.dashboard', 'permission' => 'hr.dashboard.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.hr.dashboard']],
                     ['key' => 'employees', 'label' => 'Employees', 'description' => 'Employee records linked to user accounts.', 'route' => 'admin.employees.index', 'permission' => 'employees.manage', 'icon' => 'identification', 'active_routes' => ['admin.employees.*']],
                     ['key' => 'attendance', 'label' => 'Attendance', 'description' => 'Time tracking and shift records.', 'route' => 'admin.hr.attendance.dashboard', 'permission' => 'hr.attendance.view', 'icon' => 'clock', 'active_routes' => ['admin.hr.attendance.*', 'admin.hr.shifts.*']],
-                    ['key' => 'leave', 'label' => 'Leave', 'description' => 'Leave requests and balances.', 'route' => 'admin.hr.leave.dashboard', 'permission' => 'hr.leave.view', 'icon' => 'calendar', 'active_routes' => ['admin.hr.leave.*']],
+                    ['key' => 'leave', 'label' => 'Leave', 'description' => 'Leave requests, balances, calendar, and setup.', 'route' => 'admin.hr.leave.dashboard', 'permission' => 'hr.leave.view', 'icon' => 'calendar', 'active_routes' => ['admin.hr.leave.dashboard', 'admin.hr.leave.index', 'admin.hr.leave.create', 'admin.hr.leave.show', 'admin.hr.leave.calendar', 'admin.hr.leave.balances', 'admin.hr.leave.config', 'admin.hr.leave.config.*']],
+                    ['key' => 'recruitment', 'label' => 'Recruitment', 'description' => 'Vacancies, applications, offers, and onboarding.', 'route' => 'admin.hr.recruitment.dashboard', 'permission' => 'hr.recruitment.view', 'icon' => 'users', 'active_routes' => ['admin.hr.recruitment.*']],
                 ],
             ]],
         ],
@@ -169,6 +178,7 @@ return [
                 'label' => 'Reports',
                 'items' => [
                     ['key' => 'hr-reports', 'label' => 'HR Reports', 'description' => 'Workforce and payroll analytics.', 'route' => 'admin.reports.hr', 'permission' => 'reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.reports.hr']],
+                    ['key' => 'hr-kpi', 'label' => 'HR KPI', 'description' => 'Workforce KPIs by department, branch, and role.', 'route' => 'admin.hr.kpi', 'permission' => 'hr.kpi.view|kpi.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.hr.kpi', 'admin.hr.kpi.*']],
                 ],
             ]],
         ],

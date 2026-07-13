@@ -1,5 +1,9 @@
 <x-admin-layout :title="__('Posting templates')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Posting templates')]]">
-    <x-admin.page-header :title="__('Posting templates')" :description="__('Reusable debit/credit line definitions for automated journals.')" />
+    <x-admin.page-header :title="__('Posting templates')" :description="__('Reusable debit/credit line definitions for automated journals.')">
+        @can('manage', App\Models\Accounting\PostingTemplate::class)
+            <a href="{{ route('admin.accounting.posting.templates.create') }}" class="erp-btn-primary">{{ __('Create template') }}</a>
+        @endcan
+    </x-admin.page-header>
 
     <x-admin.data-table
         :search-placeholder="__('Search templates…')"
@@ -28,6 +32,15 @@
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>
                             <x-admin.table-row-action :href="route('admin.accounting.posting.templates.show', $template)">{{ __('View') }}</x-admin.table-row-action>
+                            @can('manage', App\Models\Accounting\PostingTemplate::class)
+                                @unless ($template->is_system)
+                                    <x-admin.table-row-action :href="route('admin.accounting.posting.templates.edit', $template)">{{ __('Edit') }}</x-admin.table-row-action>
+                                @endunless
+                                <form method="POST" action="{{ route('admin.accounting.posting.templates.toggle', $template) }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="erp-table-row-action">{{ $template->is_active ? __('Deactivate') : __('Activate') }}</button>
+                                </form>
+                            @endcan
                         </x-admin.table-row-actions>
                     </td>
                 </tr>

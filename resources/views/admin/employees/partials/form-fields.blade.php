@@ -1,10 +1,11 @@
 @php
     $employee = $employee ?? null;
+    $fields = $formFields ?? [];
 @endphp
 
-@if (auth()->user()->hasRole('Super Admin'))
+@if (($fields['company_id']['visible'] ?? true) && auth()->user()->hasRole('Super Admin'))
     <x-admin.lookup-company-select :companies="$companies" :value="old('company_id', $employee?->company_id)" select-class="block mt-1 w-full rounded-md border-gray-300" class="mb-4" />
-@else
+@elseif (! auth()->user()->hasRole('Super Admin'))
     <input type="hidden" name="company_id" value="{{ auth()->user()->company_id }}">
 @endif
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -29,12 +30,13 @@
             @endif
         </p>
     </div>
+    @if (($fields['branch_id']['visible'] ?? true))
     <x-admin.lookup-select
         name="branch_id"
-        :label="__('Branch')"
+        :label="$fields['branch_id']['label'] ?? __('Branch')"
         :options="$branches"
         :value="old('branch_id', $employee?->branch_id)"
-        :required="true"
+        :required="($fields['branch_id']['required'] ?? true)"
         create-route="admin.branches.quick-create"
         refresh-route="admin.lookups.branches"
         permission="branches.manage"
@@ -44,9 +46,11 @@
         scope-company-field="company_id"
         :empty-option="false"
     />
+    @endif
+    @if (($fields['department_id']['visible'] ?? true))
     <x-admin.lookup-select
         name="department_id"
-        :label="__('Department')"
+        :label="$fields['department_id']['label'] ?? __('Department')"
         :options="$departments"
         :value="old('department_id', $employee?->department_id)"
         create-route="admin.departments.quick-create"
@@ -58,10 +62,18 @@
         scope-company-field="company_id"
         :placeholder="__('None')"
     />
-    <div><x-input-label for="first_name" :value="__('First name')" /><x-text-input id="first_name" name="first_name" class="block mt-1 w-full" :value="old('first_name', $employee?->first_name)" required /></div>
-    <div><x-input-label for="middle_name" :value="__('Middle name')" /><x-text-input id="middle_name" name="middle_name" class="block mt-1 w-full" :value="old('middle_name', $employee?->middle_name)" /></div>
-    <div><x-input-label for="last_name" :value="__('Last name')" /><x-text-input id="last_name" name="last_name" class="block mt-1 w-full" :value="old('last_name', $employee?->last_name)" required /></div>
-    <div><x-input-label for="job_title_id" :value="__('Job Title')" />
+    @endif
+    @if (($fields['first_name']['visible'] ?? true))
+    <div><x-input-label for="first_name" :value="$fields['first_name']['label'] ?? __('First name')" /><x-text-input id="first_name" name="first_name" class="block mt-1 w-full" :value="old('first_name', $employee?->first_name)" :required="$fields['first_name']['required'] ?? true" /></div>
+    @endif
+    @if (($fields['middle_name']['visible'] ?? true))
+    <div><x-input-label for="middle_name" :value="$fields['middle_name']['label'] ?? __('Middle name')" /><x-text-input id="middle_name" name="middle_name" class="block mt-1 w-full" :value="old('middle_name', $employee?->middle_name)" /></div>
+    @endif
+    @if (($fields['last_name']['visible'] ?? true))
+    <div><x-input-label for="last_name" :value="$fields['last_name']['label'] ?? __('Last name')" /><x-text-input id="last_name" name="last_name" class="block mt-1 w-full" :value="old('last_name', $employee?->last_name)" :required="$fields['last_name']['required'] ?? true" /></div>
+    @endif
+    @if (($fields['job_title_id']['visible'] ?? true))
+    <div><x-input-label for="job_title_id" :value="$fields['job_title_id']['label'] ?? __('Job Title')" />
         <select name="job_title_id" class="erp-select mt-1 w-full">
             <option value="">{{ __('Select job title') }}</option>
             @foreach ($jobTitles as $jobTitle)
@@ -72,10 +84,13 @@
             <p class="mt-1 text-xs text-amber-700">{{ __('Legacy designation') }}: {{ $employee->designation }}</p>
         @endif
     </div>
-    <div><x-input-label for="employment_status" :value="__('Employment status')" />
-        <select name="employment_status" class="block mt-1 w-full rounded-md border-gray-300" required>
+    @endif
+    @if (($fields['employment_status']['visible'] ?? true))
+    <div><x-input-label for="employment_status" :value="$fields['employment_status']['label'] ?? __('Employment status')" />
+        <select name="employment_status" class="block mt-1 w-full rounded-md border-gray-300" @required($fields['employment_status']['required'] ?? true)>
             @foreach ($statuses as $status)<option value="{{ $status->value }}" @selected(old('employment_status', $employee?->employment_status?->value) === $status->value)>{{ $status->name }}</option>@endforeach
         </select></div>
+    @endif
     @if (! $employee)
         <div>
             <x-input-label for="hire_date" :value="__('Hire date')" />

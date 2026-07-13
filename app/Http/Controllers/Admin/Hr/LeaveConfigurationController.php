@@ -39,7 +39,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateLeaveType($request, $companyId);
         $this->config->createLeaveType($companyId, $data);
 
-        return back()->with('status', __('Leave type created.'));
+        return $this->redirectToSetup('leave-types', __('Leave type created.'));
     }
 
     public function updateLeaveType(Request $request, LeaveType $leaveType): RedirectResponse
@@ -49,7 +49,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateLeaveType($request, $leaveType->company_id, $leaveType->id);
         $this->config->updateLeaveType($leaveType, $data);
 
-        return back()->with('status', __('Leave type updated.'));
+        return $this->redirectToSetup('leave-types', __('Leave type updated.'));
     }
 
     public function storeHoliday(Request $request): RedirectResponse
@@ -60,7 +60,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateHoliday($request, $companyId);
         $this->config->createHoliday($companyId, $data);
 
-        return back()->with('status', __('Public holiday created.'));
+        return $this->redirectToSetup('holidays', __('Public holiday created.'));
     }
 
     public function updateHoliday(Request $request, PublicHoliday $publicHoliday): RedirectResponse
@@ -70,7 +70,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateHoliday($request, $publicHoliday->company_id);
         $this->config->updateHoliday($publicHoliday, $data);
 
-        return back()->with('status', __('Public holiday updated.'));
+        return $this->redirectToSetup('holidays', __('Public holiday updated.'));
     }
 
     public function storePolicy(Request $request): RedirectResponse
@@ -81,7 +81,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validatePolicy($request, $companyId);
         $this->config->createPolicy($companyId, $data);
 
-        return back()->with('status', __('Leave policy created.'));
+        return $this->redirectToSetup('policies', __('Leave policy created.'));
     }
 
     public function updatePolicy(Request $request, LeavePolicy $leavePolicy): RedirectResponse
@@ -91,7 +91,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validatePolicy($request, $leavePolicy->company_id, $leavePolicy->id);
         $this->config->updatePolicy($leavePolicy, $data);
 
-        return back()->with('status', __('Leave policy updated.'));
+        return $this->redirectToSetup('policies', __('Leave policy updated.'));
     }
 
     public function storeAccrualRule(Request $request): RedirectResponse
@@ -102,7 +102,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateAccrualRule($request, $companyId);
         $this->config->createAccrualRule($companyId, $data);
 
-        return back()->with('status', __('Accrual rule created.'));
+        return $this->redirectToSetup('accrual-rules', __('Accrual rule created.'));
     }
 
     public function updateAccrualRule(Request $request, LeaveAccrualRule $leaveAccrualRule): RedirectResponse
@@ -112,7 +112,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateAccrualRule($request, $leaveAccrualRule->company_id);
         $this->config->updateAccrualRule($leaveAccrualRule, $data);
 
-        return back()->with('status', __('Accrual rule updated.'));
+        return $this->redirectToSetup('accrual-rules', __('Accrual rule updated.'));
     }
 
     public function storeCarryForwardRule(Request $request): RedirectResponse
@@ -123,7 +123,7 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateCarryForwardRule($request, $companyId);
         $this->config->createCarryForwardRule($companyId, $data);
 
-        return back()->with('status', __('Carry forward rule created.'));
+        return $this->redirectToSetup('carry-forward', __('Carry forward rule created.'));
     }
 
     public function updateCarryForwardRule(Request $request, LeaveCarryForwardRule $leaveCarryForwardRule): RedirectResponse
@@ -133,7 +133,20 @@ class LeaveConfigurationController extends Controller
         $data = $this->validateCarryForwardRule($request, $leaveCarryForwardRule->company_id);
         $this->config->updateCarryForwardRule($leaveCarryForwardRule, $data);
 
-        return back()->with('status', __('Carry forward rule updated.'));
+        return $this->redirectToSetup('carry-forward', __('Carry forward rule updated.'));
+    }
+
+    protected function redirectToSetup(string $section, string $status): RedirectResponse
+    {
+        $params = array_filter([
+            'tab' => 'setup',
+            'setup' => $section,
+            'embedded' => request('embedded'),
+        ]);
+
+        return redirect()
+            ->route('admin.hr.leave.dashboard', $params)
+            ->with('status', $status);
     }
 
     /**

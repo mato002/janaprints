@@ -317,6 +317,12 @@ class WorkspacePresenter
             'admin.workspaces.supply-chain.section',
             'admin.workspaces.commercial.section',
             'admin.workspaces.administration.section',
+            'admin.workspaces.hr.section',
+            'admin.workspaces.production.section',
+            'admin.workspaces.assets.section',
+            'admin.workspaces.communications.section',
+            'admin.workspaces.reports.section',
+            'admin.workspaces.printing-intelligence.section',
         ], true)) {
             if (str_contains($currentRoute, 'supply-chain')) {
                 return 'supply-chain';
@@ -328,6 +334,30 @@ class WorkspacePresenter
 
             if (str_contains($currentRoute, 'administration')) {
                 return 'administration';
+            }
+
+            if (str_contains($currentRoute, 'printing-intelligence')) {
+                return 'printing-intelligence';
+            }
+
+            if (str_contains($currentRoute, 'hr')) {
+                return 'hr';
+            }
+
+            if (str_contains($currentRoute, 'production')) {
+                return 'production';
+            }
+
+            if (str_contains($currentRoute, 'assets')) {
+                return 'assets';
+            }
+
+            if (str_contains($currentRoute, 'communications')) {
+                return 'communications';
+            }
+
+            if (str_contains($currentRoute, 'reports')) {
+                return 'reports';
             }
 
             return 'accounting';
@@ -350,6 +380,30 @@ class WorkspacePresenter
 
             if (str_starts_with($key, 'administration')) {
                 return 'administration';
+            }
+
+            if (str_starts_with($key, 'printing-intelligence')) {
+                return 'printing-intelligence';
+            }
+
+            if (str_starts_with($key, 'hr')) {
+                return 'hr';
+            }
+
+            if (str_starts_with($key, 'production')) {
+                return 'production';
+            }
+
+            if (str_starts_with($key, 'assets')) {
+                return 'assets';
+            }
+
+            if (str_starts_with($key, 'communications')) {
+                return 'communications';
+            }
+
+            if (str_starts_with($key, 'reports')) {
+                return 'reports';
             }
 
             return $key;

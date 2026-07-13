@@ -135,8 +135,10 @@ class QueueReadinessService
             ['command' => 'commercial:expire-report-exports', 'schedule' => __('Daily'), 'configured' => true],
             ['command' => 'governance:process-escalations', 'schedule' => __('Every 15 minutes'), 'configured' => true],
             ['command' => 'inventory:velocity:snapshot --all-windows', 'schedule' => __('Daily at 02:30'), 'configured' => true],
-            ['command' => 'communications:dispatch-scheduled-events', 'schedule' => __('Recommended hourly'), 'configured' => false],
-            ['command' => 'communications:dispatch-payment-reminders', 'schedule' => __('Recommended daily'), 'configured' => false],
+            ['command' => 'communications:dispatch-scheduled-events', 'schedule' => __('Hourly'), 'configured' => true],
+            ['command' => 'communications:payment-reminders', 'schedule' => __('Daily at 08:00'), 'configured' => true],
+            ['command' => 'communications:follow-up-due', 'schedule' => __('Hourly'), 'configured' => true],
+            ['command' => 'communications:dispatch-scheduled-email-campaigns', 'schedule' => __('Every 5 minutes'), 'configured' => true],
             ['command' => 'printing-intelligence:generate-profitability-snapshots', 'schedule' => __('Recommended nightly'), 'configured' => false],
         ];
     }

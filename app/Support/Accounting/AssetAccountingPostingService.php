@@ -74,8 +74,10 @@ class AssetAccountingPostingService
 
         return DB::transaction(function () use ($disposal, $asset, $userId) {
             $nbv = (float) ($disposal->nbv_at_disposal ?? $asset->netBookValue());
+            $cost = (float) $asset->acquisition_cost;
             $proceeds = (float) $disposal->disposal_proceeds;
             $gainLoss = round($proceeds - $nbv, 2);
+            $accumulated = round(max(0, $cost - $nbv), 2);
 
             $journal = $this->posting->postEvent(
                 PostingEventCode::AssetDisposalPosted,
@@ -85,10 +87,13 @@ class AssetAccountingPostingService
                 $disposal->id,
                 $disposal->disposal_date->toDateString(),
                 [
-                    'total_amount' => (float) $asset->acquisition_cost,
+                    'total_amount' => $cost,
                     'amount' => $nbv,
                     'allocated_amount' => $proceeds,
                     'unallocated_amount' => abs($gainLoss),
+                    'accumulated_amount' => $accumulated,
+                    'gain_amount' => max(0, $gainLoss),
+                    'loss_amount' => max(0, -$gainLoss),
                 ],
                 $asset->branch_id,
                 reference: $asset->asset_number,
@@ -126,6 +131,8 @@ class AssetAccountingPostingService
         }
 
         $asset->load('category');
+        $cost = (float) $asset->acquisition_cost;
+        $accumulated = round(max(0, $cost - $amount), 2);
 
         $journal = $this->posting->postEvent(
             PostingEventCode::AssetWriteOffPosted,
@@ -134,7 +141,11 @@ class AssetAccountingPostingService
             'asset_write_off',
             $writeOff->id,
             $writeOff->write_off_date->toDateString(),
-            ['total_amount' => $amount],
+            [
+                'total_amount' => $cost,
+                'amount' => $amount,
+                'accumulated_amount' => $accumulated,
+            ],
             $asset->branch_id,
             reference: $writeOff->writeoff_no,
             description: __('Asset write-off :asset', ['asset' => $asset->asset_name]),

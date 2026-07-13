@@ -242,6 +242,61 @@ class CustomerPaymentService
         return $payment;
     }
 
+    /**
+     * Refund a posted non-deposit customer payment (reverses allocations and posts PaymentRefundPosted).
+     * Deposit refunds continue to use CustomerDepositService::refund (DepositRefundPosted).
+     */
+    public function refund(CustomerPayment $payment, int $userId, ?string $reason = null): CustomerPayment
+    {
+        if ($payment->status !== CustomerPaymentStatus::Posted) {
+            throw ValidationException::withMessages([
+                'status' => __('Only posted payments can be refunded.'),
+            ]);
+        }
+
+        if ($payment->is_deposit) {
+            throw ValidationException::withMessages([
+                'payment' => __('Use deposit refund for customer deposits.'),
+            ]);
+        }
+
+        $payment->load(['allocations.invoice']);
+
+        return DB::transaction(function () use ($payment, $userId, $reason) {
+            $receiptAccountId = $this->resolveReceiptAccountId($payment);
+
+            $journal = $this->posting->postEvent(
+                PostingEventCode::PaymentRefundPosted,
+                $payment->company_id,
+                $userId,
+                'customer_payment_refund',
+                $payment->id,
+                now()->toDateString(),
+                [
+                    'total_amount' => (float) $payment->amount,
+                ],
+                $payment->branch_id,
+                reference: $payment->payment_number.'-RF',
+                description: $reason ?? __('Refund payment :number', ['number' => $payment->payment_number]),
+                accounts: ['bank' => $receiptAccountId],
+            );
+
+            $payment->update([
+                'status' => CustomerPaymentStatus::Refunded,
+                'cancelled_by' => $userId,
+                'cancelled_at' => now(),
+                'cancel_reason' => $reason ?? __('Payment refunded'),
+                'notes' => trim(($payment->notes ? $payment->notes."\n" : '').__('Refund journal #:id', ['id' => $journal->id])),
+            ]);
+
+            foreach ($payment->allocations as $allocation) {
+                $allocation->invoice?->refreshPaymentBalance();
+            }
+
+            return $payment->fresh(['allocations.invoice', 'postedJournal']);
+        });
+    }
+
     public function deleteDraft(CustomerPayment $payment): void
     {
         if (! $payment->status->isEditable()) {

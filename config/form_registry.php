@@ -298,6 +298,52 @@ return [
             ],
         ],
 
+        'employee.create' => [
+            'label' => 'Employee Records',
+            'description' => 'Employee master data and onboarding fields.',
+            'fields' => [
+                'company_id' => ['label' => 'Company', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'department_id' => ['label' => 'Department', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 3],
+                'first_name' => ['label' => 'First name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'middle_name' => ['label' => 'Middle name', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 5],
+                'last_name' => ['label' => 'Last name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 6],
+                'job_title_id' => ['label' => 'Job title', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 7],
+                'employment_status' => ['label' => 'Employment status', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 8],
+                'email' => ['label' => 'Email', 'type' => 'email', 'required' => true, 'visible' => true, 'sort_order' => 9],
+                'phone' => ['label' => 'Phone', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 10],
+                'hire_date' => ['label' => 'Hire date', 'type' => 'date', 'required' => false, 'visible' => true, 'sort_order' => 11],
+                'gender' => ['label' => 'Gender', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 12],
+                'date_of_birth' => ['label' => 'Date of birth', 'type' => 'date', 'required' => false, 'visible' => true, 'sort_order' => 13],
+                'address' => ['label' => 'Address', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 14],
+                'national_id' => ['label' => 'National ID', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 15],
+                'kra_pin' => ['label' => 'KRA PIN', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 16],
+                'nhif_number' => ['label' => 'NHIF number', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 17],
+                'nssf_number' => ['label' => 'NSSF number', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 18],
+                'bank_name' => ['label' => 'Bank name', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 19],
+                'bank_account_number' => ['label' => 'Bank account', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 20],
+                'bank_branch_code' => ['label' => 'Bank branch code', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 21],
+                'emergency_contact_name' => ['label' => 'Emergency contact', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 22],
+                'emergency_contact_phone' => ['label' => 'Emergency phone', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 23],
+                'salary_template_id' => ['label' => 'Payroll class', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 24],
+            ],
+        ],
+
+        'leave_request.create' => [
+            'label' => 'Leave Requests',
+            'description' => 'Leave application and approval capture fields.',
+            'fields' => [
+                'employee_id' => ['label' => 'Employee', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 1],
+                'leave_type_id' => ['label' => 'Leave type', 'type' => 'select', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'start_date' => ['label' => 'Start date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 3],
+                'end_date' => ['label' => 'End date', 'type' => 'date', 'required' => true, 'visible' => true, 'sort_order' => 4],
+                'is_half_day_start' => ['label' => 'Half day (start)', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 5],
+                'is_half_day_end' => ['label' => 'Half day (end)', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 6],
+                'reason' => ['label' => 'Reason', 'type' => 'textarea', 'required' => true, 'visible' => true, 'sort_order' => 7],
+                'notes' => ['label' => 'Notes', 'type' => 'textarea', 'required' => false, 'visible' => false, 'sort_order' => 8],
+            ],
+        ],
+
     ],
 
     'field_aliases' => [

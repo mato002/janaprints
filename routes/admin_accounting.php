@@ -2,6 +2,11 @@
 
 use App\Http\Controllers\Admin\Accounting\AccountingDashboardController;
 use App\Http\Controllers\Admin\Accounting\AccountingPeriodController;
+use App\Http\Controllers\Admin\Accounting\BankAccountController;
+use App\Http\Controllers\Admin\Accounting\BankReconciliationController;
+use App\Http\Controllers\Admin\Accounting\BudgetController;
+use App\Http\Controllers\Admin\Accounting\CurrencyController;
+use App\Http\Controllers\Admin\Accounting\ExchangeRateController;
 use App\Http\Controllers\Admin\Accounting\FiscalYearController;
 use App\Http\Controllers\Admin\Accounting\FinancialReportController;
 use App\Http\Controllers\Admin\Accounting\GeneralLedgerController;
@@ -126,16 +131,73 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('posting/rules/{rule}', [PostingRuleController::class, 'show'])->name('posting.rules.show');
         });
 
+        Route::middleware('permission:accounting.posting_rules.manage|accounting.posting.manage')->group(function () {
+            Route::get('posting/rules-create', [PostingRuleController::class, 'create'])->name('posting.rules.create');
+            Route::post('posting/rules', [PostingRuleController::class, 'store'])->name('posting.rules.store');
+            Route::get('posting/rules/{rule}/edit', [PostingRuleController::class, 'edit'])->name('posting.rules.edit');
+            Route::put('posting/rules/{rule}', [PostingRuleController::class, 'update'])->name('posting.rules.update');
+            Route::post('posting/rules/{rule}/toggle', [PostingRuleController::class, 'toggle'])->name('posting.rules.toggle');
+        });
+
         Route::middleware('permission:accounting.posting.view')->group(function () {
             Route::get('posting/templates', [PostingTemplateController::class, 'index'])->name('posting.templates.index');
             Route::get('posting/templates/{template}', [PostingTemplateController::class, 'show'])->name('posting.templates.show');
+        });
+
+        Route::middleware('permission:accounting.posting.manage')->group(function () {
+            Route::get('posting/templates-create', [PostingTemplateController::class, 'create'])->name('posting.templates.create');
+            Route::post('posting/templates', [PostingTemplateController::class, 'store'])->name('posting.templates.store');
+            Route::get('posting/templates/{template}/edit', [PostingTemplateController::class, 'edit'])->name('posting.templates.edit');
+            Route::put('posting/templates/{template}', [PostingTemplateController::class, 'update'])->name('posting.templates.update');
+            Route::post('posting/templates/{template}/toggle', [PostingTemplateController::class, 'toggle'])->name('posting.templates.toggle');
         });
 
         Route::middleware('permission:accounting.reports.view')->prefix('reports')->name('reports.')->group(function () {
             Route::get('trial-balance', [FinancialReportController::class, 'trialBalance'])->name('trial-balance');
             Route::get('balance-sheet', [FinancialReportController::class, 'balanceSheet'])->name('balance-sheet');
             Route::get('profit-and-loss', [FinancialReportController::class, 'profitAndLoss'])->name('profit-and-loss');
+            Route::get('cash-flow', [FinancialReportController::class, 'cashFlow'])->name('cash-flow');
             Route::get('general-ledger', [FinancialReportController::class, 'generalLedger'])->name('general-ledger');
             Route::get('financial-integrity', [FinancialReportController::class, 'financialIntegrity'])->name('financial-integrity');
+        });
+
+        Route::middleware('permission:accounting.bank.view')->prefix('bank')->name('bank.')->group(function () {
+            Route::get('accounts', [BankAccountController::class, 'index'])->name('accounts.index');
+            Route::get('reconciliation', [BankReconciliationController::class, 'index'])->name('reconciliation.index');
+            Route::get('reconciliation/{statement}', [BankReconciliationController::class, 'show'])->name('reconciliation.show');
+        });
+
+        Route::middleware('permission:accounting.bank.manage')->prefix('bank')->name('bank.')->group(function () {
+            Route::get('accounts/create', [BankAccountController::class, 'create'])->name('accounts.create');
+            Route::post('accounts', [BankAccountController::class, 'store'])->name('accounts.store');
+            Route::get('reconciliation-create', [BankReconciliationController::class, 'create'])->name('reconciliation.create');
+            Route::post('reconciliation', [BankReconciliationController::class, 'store'])->name('reconciliation.store');
+            Route::post('reconciliation/{statement}/match', [BankReconciliationController::class, 'match'])->name('reconciliation.match');
+            Route::post('reconciliation/{statement}/import-lines', [BankReconciliationController::class, 'importLines'])->name('reconciliation.import-lines');
+            Route::post('reconciliation/{statement}/reconcile', [BankReconciliationController::class, 'reconcile'])->name('reconciliation.reconcile');
+            Route::post('statement-lines/{line}/unmatch', [BankReconciliationController::class, 'unmatch'])->name('statement-lines.unmatch');
+        });
+
+        Route::middleware('permission:accounting.currencies.view')->prefix('currencies')->name('currencies.')->group(function () {
+            Route::get('/', [CurrencyController::class, 'index'])->name('index');
+            Route::get('rates', [ExchangeRateController::class, 'index'])->name('rates.index');
+        });
+
+        Route::middleware('permission:accounting.currencies.manage')->prefix('currencies')->name('currencies.')->group(function () {
+            Route::post('rates', [ExchangeRateController::class, 'store'])->name('rates.store');
+        });
+
+        Route::prefix('budgets')->name('budgets.')->group(function () {
+            Route::middleware('permission:accounting.budgets.manage')->group(function () {
+                Route::get('create', [BudgetController::class, 'create'])->name('create');
+                Route::post('/', [BudgetController::class, 'store'])->name('store');
+                Route::post('{budget}/activate', [BudgetController::class, 'activate'])->name('activate');
+            });
+
+            Route::middleware('permission:accounting.budgets.view')->group(function () {
+                Route::get('/', [BudgetController::class, 'index'])->name('index');
+                Route::get('{budget}/vs-actual', [BudgetController::class, 'vsActual'])->name('vs-actual');
+                Route::get('{budget}', [BudgetController::class, 'show'])->name('show');
+            });
         });
     });

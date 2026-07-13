@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin\Sales;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Crm\Customer;
+use App\Support\Sales\AccountsReceivableReconciliationService;
 use App\Support\Sales\CustomerAgingService;
 use App\Support\Sales\CustomerLedgerService;
 use App\Support\Sales\CustomerStatementService;
+use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -79,5 +81,21 @@ class CustomerReceivablesController extends Controller
         $customers = $this->scopeToTenant(Customer::query())->orderBy('company_name')->get(['id', 'company_name']);
 
         return view('admin.sales.receivables.aging', compact('report', 'customers'));
+    }
+
+    public function reconciliation(Request $request, AccountsReceivableReconciliationService $reconciliation): View
+    {
+        $this->authorize('viewReceivablesReconciliation', Customer::class);
+
+        $companyId = app(TenantContext::class)->companyId()
+            ?? (int) $request->user()?->company_id;
+
+        $report = $reconciliation->build([
+            'company_id' => $companyId,
+            'as_of_date' => $request->input('as_of_date', now()->toDateString()),
+            'branch_id' => $request->integer('branch_id') ?: null,
+        ]);
+
+        return view('admin.sales.receivables.reconciliation', compact('report'));
     }
 }

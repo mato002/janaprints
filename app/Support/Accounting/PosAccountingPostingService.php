@@ -163,6 +163,7 @@ class PosAccountingPostingService
             PosPaymentMethod::Cash => PostingEventCode::PosSaleCash,
             PosPaymentMethod::Mpesa => PostingEventCode::PosSaleMpesa,
             PosPaymentMethod::Card => PostingEventCode::PosSaleCard,
+            PosPaymentMethod::Bank => PostingEventCode::PosSaleBank,
             default => null,
         };
     }

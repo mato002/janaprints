@@ -389,7 +389,8 @@ return [
                     'description' => 'Email, SMS, and in-app notification preferences.',
                     'icon' => 'bell',
                     'keywords' => ['notification', 'email', 'sms', 'alert'],
-                    'coming_soon' => true,
+                    'link' => ['type' => 'route', 'name' => 'admin.communications.notifications.index'],
+                    'permission' => 'communications.notifications.view',
                 ],
                 [
                     'id' => 'approvals',

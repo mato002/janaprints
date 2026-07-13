@@ -13,6 +13,7 @@ Every **paid** POS transaction posts to the General Ledger. Returns reverse reve
 | `POS_SALE_CASH` | `pos.sale.cash` | Paid sale — cash payment line |
 | `POS_SALE_MPESA` | `pos.sale.mpesa` | Paid sale — M-Pesa payment line |
 | `POS_SALE_CARD` | `pos.sale.card` | Paid sale — card payment line |
+| `POS_SALE_BANK` | `pos.sale.bank` | Paid sale — bank payment line |
 | `POS_RETURN` | `pos.return` | Return completed with refund |
 | `POS_VARIANCE` | `pos.variance` | Cash reconciliation approved with variance |
 
@@ -66,7 +67,7 @@ Every **paid** POS transaction posts to the General Ledger. Returns reverse reve
 | Cancelled sales | No GL posting |
 | Returns reverse sale | DR Sales Returns, CR refund clearing account |
 | Idempotency | One journal per `pos_payment` / `pos_return` / reconciliation |
-| Bank POS payments | Not posted (cash/mpesa/card only) |
+| Bank POS payments | Posted via `pos.sale.bank` |
 
 ---
 

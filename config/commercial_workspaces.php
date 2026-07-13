@@ -125,7 +125,7 @@ return [
                         ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'route' => 'admin.commercial.complaints.index', 'permission' => 'commercial.complaints.view', 'icon' => 'exclamation', 'active_routes' => ['admin.commercial.complaints.*']],
                         ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'route' => 'admin.commercial.support-tickets.index', 'permission' => 'commercial.tickets.view', 'icon' => 'inbox', 'active_routes' => ['admin.commercial.support-tickets.*']],
                         ['label' => 'Customer Statements', 'description' => 'Period statements of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],
-                        ['label' => 'Customer 360', 'description' => 'Select a customer to view profile, quotations, jobs, invoices, payments, communications, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'active_routes' => ['admin.crm.customers.*']],
+                        ['label' => 'Customer 360', 'description' => 'Select a customer to view profile, quotations, jobs, invoices, payments, communications, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'skip_desk_redirect' => true, 'active_routes' => ['admin.crm.customers.*']],
                     ],
                 ],
             ],

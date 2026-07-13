@@ -7,10 +7,10 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Legacy no-op — embedded workspace requests must never be redirected.
+ * Legacy pass-through kept for middleware order stability.
  *
- * Previously stripped ?embedded=1 and caused a second redirect into the module shell.
- * Kept as an explicit pass-through so middleware order stays stable if referenced elsewhere.
+ * Full-page ?embedded=1 refreshes are restored to the module desk by
+ * RedirectToModuleWorkspaceShell. Turbo-frame fetches keep bare content.
  */
 class PromoteEmbeddedWorkspaceRequest
 {

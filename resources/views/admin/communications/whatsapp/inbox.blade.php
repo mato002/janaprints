@@ -1,7 +1,15 @@
 <x-admin-layout :title="__('WhatsApp Inbox')" :breadcrumbs="[['label' => __('Communications'), 'url' => route('admin.workspaces.communications')], ['label' => __('WhatsApp')]]">
     @include('admin.communications.whatsapp.partials.nav')
 
-    <x-admin.page-header :title="__('WhatsApp inbox')" :description="__('Enterprise conversation center — provider-agnostic foundation.')" />
+    <x-admin.page-header :title="__('WhatsApp inbox')" :description="__('Enterprise conversation center — provider-agnostic foundation.')">
+        @can('send', App\Models\Communications\WhatsappConversation::class)
+            <x-slot:actions>
+                <x-admin.crm-btn variant="primary" :href="route('admin.communications.whatsapp.conversations.create')" data-turbo-frame="erp-main">
+                    {{ __('New message') }}
+                </x-admin.crm-btn>
+            </x-slot:actions>
+        @endcan
+    </x-admin.page-header>
 
     <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">
         <x-admin.stat-card :label="__('Open conversations')" :value="$stats['open_conversations']" />
@@ -48,7 +56,14 @@
                 <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase {{ $conversation->status->badgeClass() }}">{{ $conversation->status->label() }}</span>
             </a>
         @empty
-            <p class="py-8 text-center text-sm text-slate-500">{{ __('No conversations yet. Start by messaging a customer from Customer 360 or send a template.') }}</p>
+            <div class="space-y-3 py-8 text-center">
+                <p class="text-sm text-slate-500">{{ __('No conversations yet.') }}</p>
+                @can('send', App\Models\Communications\WhatsappConversation::class)
+                    <x-admin.crm-btn variant="primary" :href="route('admin.communications.whatsapp.conversations.create')" data-turbo-frame="erp-main">
+                        {{ __('Send WhatsApp message') }}
+                    </x-admin.crm-btn>
+                @endcan
+            </div>
         @endforelse
         @if ($conversations->hasPages())<div class="p-3">{{ $conversations->links() }}</div>@endif
     </div>

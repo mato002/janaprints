@@ -6,6 +6,7 @@ use App\Models\Accounting\AccountingPeriod;
 use App\Support\Accounting\Reports\BalanceSheetReportService;
 use App\Support\Accounting\Reports\ProfitAndLossReportService;
 use App\Support\Accounting\TrialBalanceService;
+use App\Support\Sales\AccountsReceivableReconciliationService;
 use Illuminate\Validation\ValidationException;
 
 class FinancialIntegrityService
@@ -14,6 +15,7 @@ class FinancialIntegrityService
         protected TrialBalanceService $trialBalance,
         protected BalanceSheetReportService $balanceSheet,
         protected ProfitAndLossReportService $profitAndLoss,
+        protected AccountsReceivableReconciliationService $arReconciliation,
     ) {}
 
     /**
@@ -39,6 +41,9 @@ class FinancialIntegrityService
             ]);
         }
 
+        $arReport = $this->arReconciliation->buildForPeriod($period);
+        $this->arReconciliation->assertReconciledForPeriod($period, $arReport);
+
         $balanceSheet = $this->balanceSheet->build([
             'company_id' => $period->company_id,
             'as_of_date' => $period->end_date->toDateString(),
@@ -56,6 +61,12 @@ class FinancialIntegrityService
                 'total_equity' => $balanceSheet['total_equity'],
                 'total_liabilities_and_equity' => $balanceSheet['total_liabilities_and_equity'],
                 'is_balanced' => $balanceSheet['is_balanced'],
+            ],
+            'ar_reconciliation' => [
+                'is_resolved' => $arReport['is_resolved'],
+                'as_of_date' => $arReport['as_of_date'],
+                'checks' => $arReport['checks'],
+                'exception_count' => count($arReport['exceptions'] ?? []),
             ],
         ];
 

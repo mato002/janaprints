@@ -225,7 +225,7 @@ class InboxCustomerContextService
             ['label' => __('Create job card'), 'route' => 'admin.production.job-cards.create', 'permission' => 'production.create'],
             ['label' => __('Create invoice'), 'route' => 'admin.invoices.index', 'permission' => 'invoices.create'],
             ['label' => __('Record payment'), 'route' => 'admin.payments.create', 'permission' => 'payments.create'],
-            ['label' => __('Schedule follow-up'), 'route' => null, 'permission' => null],
+            ['label' => __('Schedule follow-up'), 'route' => 'admin.commercial.activities.create', 'permission' => 'crm.activities.create'],
             ['label' => __('Add internal note'), 'route' => null, 'permission' => 'communications.inbox.notes', 'anchor' => 'inbox-note'],
             ['label' => __('Assign user'), 'route' => null, 'permission' => 'communications.inbox.assign', 'anchor' => 'inbox-assign'],
             ['label' => __('Escalate'), 'route' => null, 'permission' => 'communications.inbox.escalate', 'anchor' => 'inbox-escalate'],

@@ -449,7 +449,7 @@ class ModuleShellPresenter
         }
 
         $activePrimary = $this->resolveActivePrimary($primaryWorkspaces, $primaryKey);
-        $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module);
+        $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module, $moduleKey);
         $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
         $contentUrl = $this->resolveContentUrl($activeSecondary)
             ?? $this->resolveSectionHubContentUrl($catalog, $activePrimary)
@@ -525,7 +525,7 @@ class ModuleShellPresenter
         }
 
         $activePrimary = $this->resolveActivePrimary($primaryWorkspaces, $primaryKey);
-        $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module);
+        $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module, $moduleKey);
         $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
 
         return $this->presentDeskPayload(
@@ -629,9 +629,14 @@ class ModuleShellPresenter
      */
     /**
      * @param  array<string, mixed>|null  $module
+     * @return list<array<string, mixed>>
      */
-    protected function presentSecondaryWorkspaces(array $catalog, ?string $primaryKey, ?array $module = null): array
-    {
+    protected function presentSecondaryWorkspaces(
+        array $catalog,
+        ?string $primaryKey,
+        ?array $module = null,
+        ?string $moduleKey = null,
+    ): array {
         if ($primaryKey === null) {
             return [];
         }
@@ -655,14 +660,20 @@ class ModuleShellPresenter
                 }
 
                 $key = $this->itemKey($item);
-                $href = $this->resolveSecondaryHref($item, $primaryKey, $module);
+                $embeddedHref = $this->resolveSecondaryHref($item, $primaryKey, $module);
+                $deskHref = ($module !== null && $moduleKey !== null)
+                    ? $this->buildDeskUrl($moduleKey, $module, $primaryKey, $key)
+                    : null;
 
                 $tabs[] = [
                     'key' => $key,
                     'label' => $item['label'] ?? '',
                     'description' => $item['description'] ?? '',
-                    'href' => $href,
-                    'turbo_frame' => 'module-workspace-content',
+                    // Tab clicks restore the full module desk (shell + address bar).
+                    'href' => $deskHref ?? $embeddedHref,
+                    // Frame src stays on the embedded feature URL.
+                    'content_href' => $embeddedHref,
+                    'turbo_frame' => $deskHref !== null ? 'erp-main' : 'module-workspace-content',
                     'badge' => $item['count'] ?? null,
                     'coming_soon' => (bool) ($item['coming_soon'] ?? false),
                     'active' => false,
@@ -764,7 +775,7 @@ class ModuleShellPresenter
             return null;
         }
 
-        return $activeSecondary['href'] ?? null;
+        return $activeSecondary['content_href'] ?? $activeSecondary['href'] ?? null;
     }
 
     /**

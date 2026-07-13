@@ -13,6 +13,7 @@ use App\Models\Communications\CommunicationTemplate;
 use App\Models\Communications\SmsCampaign;
 use App\Models\Communications\SmsMessage;
 use App\Models\Communications\SmsRecipient;
+use App\Models\Company;
 use App\Models\User;
 use App\Support\Communications\NotificationService;
 use App\Support\Communications\TemplateRenderer;
@@ -48,8 +49,8 @@ class SmsCampaignService
                 'branch_id' => $data['branch_id'] ?? tenant()->branchId(),
                 'department_id' => $data['department_id'] ?? null,
                 'campaign_code' => $this->nextCode($companyId),
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
+                'name' => $this->resolveCampaignName($data, $companyId),
+                'description' => null,
                 'communication_template_id' => $template?->id,
                 'message_template' => $messageTemplate,
                 'sample_data' => $data['sample_data'] ?? [],
@@ -85,8 +86,8 @@ class SmsCampaignService
 
         return DB::transaction(function () use ($campaign, $data, $template, $messageTemplate, $preview) {
             $campaign->fill([
-                'name' => $data['name'] ?? $campaign->name,
-                'description' => $data['description'] ?? $campaign->description,
+                'name' => filled($data['name'] ?? null) ? $data['name'] : $campaign->name,
+                'description' => $campaign->description,
                 'communication_template_id' => $template?->id,
                 'message_template' => $messageTemplate,
                 'sample_data' => $data['sample_data'] ?? $campaign->sample_data,
@@ -305,5 +306,30 @@ class SmsCampaignService
         $count = SmsCampaign::query()->where('company_id', $companyId)->count() + 1;
 
         return 'SMS-'.now()->format('ymd').'-'.str_pad((string) $count, 4, '0', STR_PAD_LEFT);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function resolveCampaignName(array $data, int $companyId): string
+    {
+        if (filled($data['name'] ?? null)) {
+            return (string) $data['name'];
+        }
+
+        $companyName = Company::query()->whereKey($companyId)->value('name')
+            ?: tenant()->company?->name
+            ?: config('app.name');
+
+        $source = $data['recipient_source'] ?? null;
+        if ($source instanceof SmsRecipientSource) {
+            $audience = $source->label();
+        } elseif (is_string($source) && $source !== '') {
+            $audience = SmsRecipientSource::tryFrom($source)?->label() ?? __('Recipients');
+        } else {
+            $audience = __('Recipients');
+        }
+
+        return trim($companyName).' · '.__('SMS').' · '.$audience.' · '.now()->format('d M Y H:i');
     }
 }

@@ -6,7 +6,7 @@
     >
         <x-admin.page-header
             :title="__('Communication Templates')"
-            :description="__('Template-driven messages for SMS, email, WhatsApp, and in-app notifications. Preview and version control only — no sending in this phase.')"
+            :description="__('Reusable message templates for SMS, email, WhatsApp, and in-app notifications used across customer journeys and campaigns.')"
         >
             <x-slot:actions>
                 <x-admin.crm-btn
@@ -25,11 +25,26 @@
         </x-admin.page-header>
 
         <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
-            <x-admin.stat-card :label="__('Total templates')" :value="$summary['total']" />
-            <x-admin.stat-card :label="__('SMS templates')" :value="$summary['sms']" />
-            <x-admin.stat-card :label="__('Email templates')" :value="$summary['email']" />
-            <x-admin.stat-card :label="__('WhatsApp templates')" :value="$summary['whatsapp']" />
-            <x-admin.stat-card :label="__('Inactive templates')" :value="$summary['inactive']" />
+            <div class="rounded-lg border border-erp-border bg-erp-card p-4 shadow-card">
+                <p class="text-card-title text-erp-primary">{{ __('Total templates') }}</p>
+                <p class="mt-1.5 text-card-value text-erp-primary tabular-nums" x-text="templates.length"></p>
+            </div>
+            <div class="rounded-lg border border-erp-border bg-erp-card p-4 shadow-card">
+                <p class="text-card-title text-erp-primary">{{ __('SMS templates') }}</p>
+                <p class="mt-1.5 text-card-value text-erp-primary tabular-nums" x-text="templates.filter(t => t.channel === 'sms').length"></p>
+            </div>
+            <div class="rounded-lg border border-erp-border bg-erp-card p-4 shadow-card">
+                <p class="text-card-title text-erp-primary">{{ __('Email templates') }}</p>
+                <p class="mt-1.5 text-card-value text-erp-primary tabular-nums" x-text="templates.filter(t => t.channel === 'email').length"></p>
+            </div>
+            <div class="rounded-lg border border-erp-border bg-erp-card p-4 shadow-card">
+                <p class="text-card-title text-erp-primary">{{ __('WhatsApp templates') }}</p>
+                <p class="mt-1.5 text-card-value text-erp-primary tabular-nums" x-text="templates.filter(t => t.channel === 'whatsapp').length"></p>
+            </div>
+            <div class="rounded-lg border border-erp-border bg-erp-card p-4 shadow-card">
+                <p class="text-card-title text-erp-primary">{{ __('Inactive templates') }}</p>
+                <p class="mt-1.5 text-card-value text-erp-primary tabular-nums" x-text="templates.filter(t => t.status === 'inactive').length"></p>
+            </div>
         </div>
 
         <div class="erp-card mb-4">
@@ -53,29 +68,33 @@
                     </button>
                 </div>
 
-                <form method="GET" action="{{ route('admin.communications.templates.index') }}" class="flex flex-wrap items-end gap-2" data-turbo-frame="erp-main">
+                <div class="flex flex-wrap items-end gap-2">
                     <div>
                         <label class="erp-label text-xs">{{ __('Channel') }}</label>
-                        <select name="channel" class="erp-input erp-input--sm" onchange="this.form.submit()">
+                        <select class="erp-input erp-input--sm" x-model="filters.channel">
                             <option value="">{{ __('All') }}</option>
-                            @foreach (\App\Enums\CommunicationChannel::cases() as $channel)
-                                <option value="{{ $channel->value }}" @selected(request('channel') === $channel->value)>{{ $channel->label() }}</option>
-                            @endforeach
+                            <template x-for="opt in options.channels" :key="opt.value">
+                                <option :value="opt.value" x-text="opt.label"></option>
+                            </template>
                         </select>
                     </div>
                     <div>
                         <label class="erp-label text-xs">{{ __('Status') }}</label>
-                        <select name="status" class="erp-input erp-input--sm" onchange="this.form.submit()">
+                        <select class="erp-input erp-input--sm" x-model="filters.status">
                             <option value="">{{ __('All') }}</option>
-                            @foreach (\App\Enums\CommunicationTemplateStatus::cases() as $status)
-                                <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
-                            @endforeach
+                            <template x-for="opt in options.statuses" :key="opt.value">
+                                <option :value="opt.value" x-text="opt.label"></option>
+                            </template>
                         </select>
                     </div>
-                    @if (request()->hasAny(['channel', 'status', 'category', 'group']))
-                        <x-admin.crm-btn variant="ghost" size="sm" :href="route('admin.communications.templates.index')" data-turbo-frame="erp-main">{{ __('Clear') }}</x-admin.crm-btn>
-                    @endif
-                </form>
+                    <button
+                        type="button"
+                        class="erp-btn erp-btn--ghost erp-btn--sm"
+                        x-show="hasActiveFilters"
+                        x-cloak
+                        @click="clearFilters()"
+                    >{{ __('Clear') }}</button>
+                </div>
             </div>
         </div>
 
@@ -83,162 +102,99 @@
             <div class="erp-card mb-4">
                 <h2 class="erp-card-title">{{ __('Templates by category group') }}</h2>
                 <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-                    @foreach ($categoryGroups as $group)
-                        <a
-                            href="{{ route('admin.communications.templates.index', ['group' => $group['key']]) }}"
-                            data-turbo-frame="erp-main"
-                            class="rounded-lg border border-erp-border bg-white px-3 py-2.5 transition-colors hover:border-erp-accent/40 {{ request('group') === $group['key'] ? 'ring-1 ring-erp-accent/30 border-erp-accent' : '' }}"
+                    <template x-for="group in categoryGroupCards" :key="group.key">
+                        <button
+                            type="button"
+                            class="rounded-lg border border-erp-border bg-white px-3 py-2.5 text-left transition-colors hover:border-erp-accent/40"
+                            :class="filters.group === group.key ? 'ring-1 ring-erp-accent/30 border-erp-accent' : ''"
+                            @click="toggleGroup(group.key)"
                         >
-                            <p class="text-sm font-semibold text-erp-primary">{{ $group['label'] }}</p>
-                            <p class="mt-1 text-lg font-semibold tabular-nums text-erp-primary">{{ $group['count'] }}</p>
-                        </a>
-                    @endforeach
+                            <p class="text-sm font-semibold text-erp-primary" x-text="group.label"></p>
+                            <p class="mt-1 text-lg font-semibold tabular-nums text-erp-primary" x-text="group.count"></p>
+                        </button>
+                    </template>
                 </div>
             </div>
         </template>
 
-        <div class="grid gap-4 xl:grid-cols-12">
-            <div class="xl:col-span-7">
-                <div class="erp-card overflow-hidden p-0">
-                    <div class="overflow-x-auto">
-                        <table class="erp-table w-full min-w-[40rem]">
-                            <thead>
-                                <tr>
-                                    <th>{{ __('Name') }}</th>
-                                    <th>{{ __('Code') }}</th>
-                                    <th>{{ __('Channel') }}</th>
-                                    <th>{{ __('Category') }}</th>
-                                    <th>{{ __('Version') }}</th>
-                                    <th>{{ __('Status') }}</th>
-                                    <th class="text-right">{{ __('Actions') }}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse ($templates as $template)
-                                    <tr
-                                        class="cursor-pointer hover:bg-slate-50/80"
-                                        :class="selectedId === {{ $template->id }} ? 'bg-erp-accent/5' : ''"
-                                        @click="selectTemplate({{ $template->id }})"
-                                    >
-                                        <td class="font-medium text-erp-primary">{{ $template->name }}</td>
-                                        <td class="font-mono text-xs text-slate-600">{{ $template->code }}</td>
-                                        <td>{{ $template->channel->label() }}</td>
-                                        <td>{{ $template->category->label() }}</td>
-                                        <td class="tabular-nums">v{{ $template->version_number }}</td>
-                                        <td>
-                                            <span class="erp-badge {{ $template->status === \App\Enums\CommunicationTemplateStatus::Active ? 'erp-badge--success' : ($template->status === \App\Enums\CommunicationTemplateStatus::Inactive ? 'erp-badge--neutral' : 'erp-badge--warning') }}">
-                                                {{ $template->status->label() }}
-                                            </span>
-                                        </td>
-                                        <td class="text-right">
-                                            <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" @click.stop="selectTemplate({{ $template->id }})">{{ __('Open') }}</button>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="7" class="py-8 text-center text-slate-500">
-                                            {{ __('No templates yet. Create your first reusable communication template.') }}
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-4 xl:col-span-5">
-                <div class="erp-card" x-show="selected" x-cloak>
-                    <div class="flex items-start justify-between gap-2">
-                        <div>
-                            <h2 class="erp-card-title" x-text="selected?.name"></h2>
-                            <p class="text-xs text-slate-500">
-                                <span x-text="selected?.code"></span>
-                                · <span x-text="selected?.channel_label"></span>
-                                · <span x-text="'v' + (selected?.version_number ?? '')"></span>
-                            </p>
-                        </div>
-                        <div class="flex gap-1">
-                            <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" x-show="can.edit" @click="openEditor(selected)">{{ __('Edit') }}</button>
-                            <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" x-show="can.versionView" @click="openVersions()">{{ __('History') }}</button>
-                        </div>
-                    </div>
-                    <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
-                        <div><dt class="text-slate-500">{{ __('Category') }}</dt><dd class="font-medium" x-text="selected?.category_label"></dd></div>
-                        <div><dt class="text-slate-500">{{ __('Type') }}</dt><dd class="font-medium" x-text="selected?.template_type_label"></dd></div>
-                        <div><dt class="text-slate-500">{{ __('Status') }}</dt><dd class="font-medium" x-text="selected?.status_label"></dd></div>
-                        <div><dt class="text-slate-500">{{ __('Updated') }}</dt><dd class="font-medium" x-text="formatDate(selected?.updated_at)"></dd></div>
-                    </dl>
-                    <div class="mt-3" x-show="selected?.subject">
-                        <p class="text-xs font-semibold text-slate-500">{{ __('Subject') }}</p>
-                        <p class="mt-1 rounded border border-erp-border bg-slate-50 px-2 py-1.5 text-sm" x-text="selected?.subject"></p>
-                    </div>
-                    <div class="mt-3">
-                        <p class="text-xs font-semibold text-slate-500">{{ __('Body') }}</p>
-                        <pre class="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded border border-erp-border bg-slate-50 px-2 py-1.5 text-sm" x-text="selected?.body"></pre>
-                    </div>
-                </div>
-
-                <div class="erp-card" x-show="selected" x-cloak>
-                    <h2 class="erp-card-title">{{ __('Preview') }}</h2>
-                    <p class="text-xs text-slate-500 mb-3">{{ __('Provide sample data to render output. No messages are sent.') }}</p>
-                    <div class="max-h-48 space-y-2 overflow-y-auto">
-                        <template x-for="variable in variables" :key="variable.key">
-                            <div>
-                                <label class="erp-label text-xs" x-text="variable.label"></label>
-                                <input type="text" class="erp-input erp-input--sm w-full" x-model="previewData[variable.key]">
-                            </div>
+        <div class="erp-card overflow-hidden p-0">
+            <div class="overflow-x-auto">
+                <table class="erp-table w-full min-w-[56rem]">
+                    <thead>
+                        <tr>
+                            <th>{{ __('Name') }}</th>
+                            <th>{{ __('Code') }}</th>
+                            <th>{{ __('Channel') }}</th>
+                            <th>{{ __('Category') }}</th>
+                            <th>{{ __('Type') }}</th>
+                            <th>{{ __('Version') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th class="text-right">{{ __('Actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="template in filteredTemplates" :key="template.id">
+                            <tr class="hover:bg-slate-50/80">
+                                <td class="font-medium text-erp-primary" x-text="template.name"></td>
+                                <td class="font-mono text-xs text-slate-600" x-text="template.code"></td>
+                                <td x-text="template.channel_label"></td>
+                                <td x-text="template.category_label"></td>
+                                <td x-text="template.template_type_label"></td>
+                                <td class="tabular-nums" x-text="'v' + template.version_number"></td>
+                                <td>
+                                    <span
+                                        class="erp-badge"
+                                        :class="template.status === 'active' ? 'erp-badge--success' : (template.status === 'inactive' ? 'erp-badge--neutral' : 'erp-badge--warning')"
+                                        x-text="template.status_label"
+                                    ></span>
+                                </td>
+                                <td class="text-right">
+                                    <div class="inline-flex flex-wrap items-center justify-end gap-1">
+                                        <button
+                                            type="button"
+                                            class="erp-btn erp-btn--ghost erp-btn--xs"
+                                            x-show="can.edit"
+                                            @click="openEditor(template)"
+                                        >{{ __('Edit') }}</button>
+                                        <button
+                                            type="button"
+                                            class="erp-btn erp-btn--ghost erp-btn--xs"
+                                            x-show="can.versionView"
+                                            @click="openVersions(template)"
+                                        >{{ __('History') }}</button>
+                                    </div>
+                                </td>
+                            </tr>
                         </template>
-                    </div>
-                    <button type="button" class="erp-btn erp-btn--primary erp-btn--sm mt-3 w-full" @click="runPreview()" :disabled="previewLoading">
-                        <span x-show="!previewLoading">{{ __('Render preview') }}</span>
-                        <span x-show="previewLoading">{{ __('Rendering…') }}</span>
-                    </button>
-                    <template x-if="previewResult">
-                        <div class="mt-3 space-y-2">
-                            <template x-if="previewResult.subject">
-                                <div>
-                                    <p class="text-xs font-semibold text-slate-500">{{ __('Rendered subject') }}</p>
-                                    <p class="mt-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm" x-text="previewResult.subject"></p>
-                                </div>
-                            </template>
-                            <div>
-                                <p class="text-xs font-semibold text-slate-500">{{ __('Rendered body') }}</p>
-                                <pre class="mt-1 whitespace-pre-wrap rounded border border-emerald-200 bg-emerald-50 px-2 py-1.5 text-sm" x-text="previewResult.body"></pre>
-                            </div>
-                            <template x-if="previewResult.validation?.missing?.length">
-                                <p class="text-xs text-amber-800">{{ __('Missing variables') }}: <span x-text="previewResult.validation.missing.join(', ')"></span></p>
-                            </template>
-                        </div>
-                    </template>
-                </div>
-
-                <div class="erp-card text-sm text-slate-500" x-show="!selected">
-                    <p>{{ __('Select a template to inspect details, preview rendered output, or review version history.') }}</p>
-                </div>
+                        <tr x-show="filteredTemplates.length === 0">
+                            <td colspan="8" class="py-10 text-center text-slate-500">
+                                <span x-show="templates.length === 0">{{ __('No templates yet. Create your first reusable communication template.') }}</span>
+                                <span x-show="templates.length > 0">{{ __('No templates match the selected filters.') }}</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        {{-- Editor drawer --}}
+        {{-- Editor modal --}}
         <div
             x-show="editorOpen"
             x-cloak
-            class="fixed inset-0 z-40 flex justify-end bg-slate-900/30"
-            @click.self="closeEditor()"
+            class="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto p-4 sm:items-center sm:p-6"
+            role="dialog"
+            aria-modal="true"
         >
-            <div class="flex h-full w-full max-w-lg flex-col bg-white shadow-xl" @click.stop>
-                <div class="flex items-center justify-between border-b border-erp-border px-4 py-3">
+            <div class="fixed inset-0 bg-erp-primary/50 backdrop-blur-[1px]" @click="closeEditor()"></div>
+            <div class="relative z-10 flex w-full max-w-lg max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-xl border border-erp-border bg-white shadow-2xl" @click.stop>
+                <div class="flex shrink-0 items-center justify-between gap-4 border-b border-erp-border px-5 py-4">
                     <h2 class="text-lg font-semibold text-erp-primary" x-text="editorMode === 'create' ? @js(__('New template')) : @js(__('Edit template'))"></h2>
-                    <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" @click="closeEditor()">{{ __('Close') }}</button>
+                    <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" @click="closeEditor()" aria-label="{{ __('Close') }}">
+                        <x-admin.icon name="x-mark" class="h-4 w-4" />
+                    </button>
                 </div>
-                <form class="flex flex-1 flex-col overflow-hidden" @submit.prevent="saveTemplate()">
-                    <div class="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-                        <template x-if="editorMode === 'create'">
-                            <div>
-                                <label class="erp-label">{{ __('Code') }}</label>
-                                <input type="text" class="erp-input w-full" x-model="form.code" required>
-                            </div>
-                        </template>
+                <form class="flex min-h-0 flex-1 flex-col overflow-hidden" @submit.prevent="saveTemplate()">
+                    <div class="flex-1 space-y-3 overflow-y-auto px-5 py-4">
                         <div>
                             <label class="erp-label">{{ __('Name') }}</label>
                             <input type="text" class="erp-input w-full" x-model="form.name" required>
@@ -269,14 +225,6 @@
                                 </template>
                             </select>
                         </div>
-                        <div>
-                            <label class="erp-label">{{ __('Status') }}</label>
-                            <select class="erp-input w-full" x-model="form.status" required>
-                                <template x-for="opt in options.statuses" :key="opt.value">
-                                    <option :value="opt.value" x-text="opt.label"></option>
-                                </template>
-                            </select>
-                        </div>
                         <div x-show="['email', 'notification'].includes(form.channel)">
                             <label class="erp-label">{{ __('Subject') }}</label>
                             <input type="text" class="erp-input w-full" x-model="form.subject">
@@ -286,18 +234,29 @@
                             <textarea class="erp-input w-full font-mono text-sm" rows="8" x-model="form.body" required></textarea>
                             <p class="mt-1 text-xs text-slate-500">{{ __('Use placeholders like') }} @{{customer_name}}</p>
                         </div>
-                        <div>
-                            <label class="erp-label">{{ __('Description') }}</label>
-                            <textarea class="erp-input w-full" rows="2" x-model="form.description"></textarea>
-                        </div>
-                        <div x-show="editorMode === 'edit'">
-                            <label class="erp-label">{{ __('Change notes') }}</label>
-                            <input type="text" class="erp-input w-full" x-model="form.change_notes" :placeholder="@js(__('What changed in this version?'))">
+                        <div x-show="editorMode === 'edit'" class="space-y-3">
+                            <div>
+                                <label class="erp-label">{{ __('Status') }}</label>
+                                <select class="erp-input w-full" x-model="form.status">
+                                    <template x-for="opt in options.statuses" :key="opt.value">
+                                        <option :value="opt.value" x-text="opt.label"></option>
+                                    </template>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="erp-label">{{ __('Description') }} <span class="font-normal text-slate-400">({{ __('optional') }})</span></label>
+                                <textarea class="erp-input w-full" rows="2" x-model="form.description"></textarea>
+                            </div>
+                            <div>
+                                <label class="erp-label">{{ __('Change notes') }}</label>
+                                <input type="text" class="erp-input w-full" x-model="form.change_notes" :placeholder="@js(__('What changed in this version?'))">
+                            </div>
                         </div>
                         <p class="text-sm text-red-600" x-show="editorError" x-text="editorError"></p>
                     </div>
-                    <div class="border-t border-erp-border px-4 py-3">
-                        <button type="submit" class="erp-btn erp-btn--primary w-full" :disabled="editorSaving">
+                    <div class="flex shrink-0 justify-end gap-3 border-t border-erp-border px-5 py-4">
+                        <button type="button" class="erp-btn-secondary" @click="closeEditor()">{{ __('Cancel') }}</button>
+                        <button type="submit" class="erp-btn-primary" :disabled="editorSaving">
                             <span x-show="!editorSaving">{{ __('Save template') }}</span>
                             <span x-show="editorSaving">{{ __('Saving…') }}</span>
                         </button>
@@ -306,19 +265,23 @@
             </div>
         </div>
 
-        {{-- Version history drawer --}}
+        {{-- Version history modal --}}
         <div
             x-show="versionsOpen"
             x-cloak
-            class="fixed inset-0 z-40 flex justify-end bg-slate-900/30"
-            @click.self="versionsOpen = false"
+            class="fixed inset-0 z-[60] flex items-end justify-center overflow-y-auto p-4 sm:items-center sm:p-6"
+            role="dialog"
+            aria-modal="true"
         >
-            <div class="flex h-full w-full max-w-xl flex-col bg-white shadow-xl" @click.stop>
-                <div class="flex items-center justify-between border-b border-erp-border px-4 py-3">
+            <div class="fixed inset-0 bg-erp-primary/50 backdrop-blur-[1px]" @click="versionsOpen = false"></div>
+            <div class="relative z-10 flex w-full max-w-xl max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-xl border border-erp-border bg-white shadow-2xl" @click.stop>
+                <div class="flex shrink-0 items-center justify-between gap-4 border-b border-erp-border px-5 py-4">
                     <h2 class="text-lg font-semibold text-erp-primary">{{ __('Version history') }}</h2>
-                    <button type="button" class="erp-btn erp-btn--ghost erp-btn--xs" @click="versionsOpen = false">{{ __('Close') }}</button>
+                    <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" @click="versionsOpen = false" aria-label="{{ __('Close') }}">
+                        <x-admin.icon name="x-mark" class="h-4 w-4" />
+                    </button>
                 </div>
-                <div class="flex-1 overflow-y-auto px-4 py-4">
+                <div class="flex-1 overflow-y-auto px-5 py-4">
                     <p class="text-xs text-slate-500 mb-3" x-show="versionsLoading">{{ __('Loading versions…') }}</p>
                     <template x-for="version in versions" :key="version.id">
                         <div class="mb-3 rounded-lg border border-erp-border p-3">

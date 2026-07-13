@@ -114,6 +114,21 @@ class PosAccountingTruthTest extends TestCase
         $this->assertJournalHasLine($journal, $card->id, debit: 1200.00);
     }
 
+    public function test_bank_sale_journal(): void
+    {
+        $sale = $this->createPaidSale(PosPaymentMethod::Bank, 900.00);
+
+        $journal = Journal::query()->findOrFail($sale->payments->first()->posted_journal_id);
+        $this->assertSame(PostingEventCode::PosSaleBank->value, $journal->posting_event);
+        $this->assertTrue($journal->isBalanced());
+
+        $bank = GlAccount::query()->where('company_id', $this->company->id)->where('code', '1210')->firstOrFail();
+        $revenue = GlAccount::query()->where('company_id', $this->company->id)->where('code', '4110')->firstOrFail();
+
+        $this->assertJournalHasLine($journal, $bank->id, debit: 900.00);
+        $this->assertJournalHasLine($journal, $revenue->id, credit: 900.00);
+    }
+
     public function test_return_reversal_journal(): void
     {
         $sale = $this->createPaidSale(PosPaymentMethod::Cash, 400.00)->fresh('items');

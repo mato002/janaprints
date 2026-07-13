@@ -69,11 +69,19 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 Route::middleware('permission:receivables.aging.view')->group(function () {
                     Route::get('aging', [CustomerReceivablesController::class, 'aging'])->name('aging');
                 });
+
+                Route::middleware('permission:receivables.reconciliation.view|receivables.ledger.view')->group(function () {
+                    Route::get('reconciliation', [CustomerReceivablesController::class, 'reconciliation'])->name('reconciliation');
+                });
             });
 
         Route::prefix('deposits')
             ->name('admin.deposits.')
             ->group(function () {
+                Route::middleware('permission:payments.view')->group(function () {
+                    Route::get('/', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'index'])->name('index');
+                });
+
                 Route::middleware('permission:payments.create')->group(function () {
                     Route::get('invoices/{invoice}/apply', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'applyForm'])->name('apply-form');
                     Route::post('invoices/{invoice}/apply', [\App\Http\Controllers\Admin\Sales\CustomerDepositController::class, 'apply'])->name('apply');

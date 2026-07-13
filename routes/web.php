@@ -47,6 +47,14 @@ Route::get('/payment-receipt/{payment}', [CustomerPaymentReceiptPublicController
     ->middleware('signed')
     ->name('public.payment-receipt.show');
 
+Route::prefix('webhooks/whatsapp')->name('webhooks.whatsapp.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Webhooks\WhatsappWebhookController::class, 'verify'])
+        ->name('verify');
+    Route::post('/', [\App\Http\Controllers\Webhooks\WhatsappWebhookController::class, 'receive'])
+        ->middleware('throttle:120,1')
+        ->name('receive');
+});
+
 Route::prefix('rfq/respond')->name('rfq.portal.')->group(function () {
     Route::get('{token}', [RfqVendorPortalController::class, 'show'])->name('show');
     Route::post('{token}', [RfqVendorPortalController::class, 'submit'])->name('submit');

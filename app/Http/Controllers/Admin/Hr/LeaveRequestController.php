@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hr\LeaveRequest;
 use App\Support\Hr\LeaveExportService;
 use App\Support\Hr\LeaveRequestService;
+use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,7 @@ class LeaveRequestController extends Controller
     public function __construct(
         protected LeaveRequestService $leaveRequests,
         protected LeaveExportService $exports,
+        protected FormSettingsService $formSettings,
     ) {}
 
     public function index(Request $request): View
@@ -40,10 +42,12 @@ class LeaveRequestController extends Controller
         $this->authorize('create', LeaveRequest::class);
 
         $companyId = tenant()->companyId() ?? $request->user()->company_id;
+        $branchId = tenant()->branchId() ?? $request->user()->default_branch_id;
 
         return view('admin.hr.leave.create', [
             'formData' => $this->leaveRequests->formData($companyId),
             'defaultEmployeeId' => $request->user()->employee_id,
+            'formFields' => $this->formSettings->resolvedFields('leave_request.create', $companyId, $branchId),
         ]);
     }
 
@@ -143,8 +147,9 @@ class LeaveRequestController extends Controller
     protected function validateRequest(Request $request): array
     {
         $companyId = tenant()->companyId() ?? $request->user()->company_id;
+        $branchId = tenant()->branchId() ?? $request->user()->default_branch_id;
 
-        return $request->validate([
+        $rules = [
             'employee_id' => [
                 'required',
                 Rule::exists('employees', 'id')->where(fn ($q) => $q->where('company_id', $companyId)),
@@ -159,6 +164,8 @@ class LeaveRequestController extends Controller
             'is_half_day_end' => ['sometimes', 'boolean'],
             'reason' => ['nullable', 'string', 'max:2000'],
             'notes' => ['nullable', 'string', 'max:2000'],
-        ]);
+        ];
+
+        return $this->formSettings->validateRequest($request, 'leave_request.create', $rules, $companyId, $branchId);
     }
 }

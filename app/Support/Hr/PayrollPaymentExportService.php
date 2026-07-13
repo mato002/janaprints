@@ -60,7 +60,7 @@ class PayrollPaymentExportService
             $headers,
             $rows,
             __('Bank Payment File — :reference', ['reference' => $run->reference]),
-            __('Placeholder export — configure bank file layout before production use.'),
+            __('Standard bank payment CSV — columns: employee, bank, account, branch code, net pay.'),
         );
     }
 
@@ -80,7 +80,7 @@ class PayrollPaymentExportService
             $headers,
             $rows,
             __('EFT Payment File — :reference', ['reference' => $run->reference]),
-            __('Placeholder EFT export — integrate with your bank format when ready.'),
+            __('Standard EFT CSV — map columns to your bank upload template as needed.'),
         );
     }
 
@@ -100,7 +100,7 @@ class PayrollPaymentExportService
             $headers,
             $rows,
             __('M-Pesa Payroll File — :reference', ['reference' => $run->reference]),
-            __('Placeholder M-Pesa export — integrate with disbursement API when ready.'),
+            __('Standard M-Pesa CSV — phone and net pay ready for disbursement upload.'),
         );
     }
 }

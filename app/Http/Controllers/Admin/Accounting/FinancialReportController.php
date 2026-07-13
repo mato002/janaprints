@@ -7,6 +7,7 @@ use App\Models\Accounting\AccountingPeriod;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\Journal;
 use App\Support\Accounting\Reports\BalanceSheetReportService;
+use App\Support\Accounting\Reports\CashFlowStatementReportService;
 use App\Support\Accounting\Reports\GeneralLedgerReportService;
 use App\Support\Accounting\Reports\ProfitAndLossReportService;
 use App\Support\Accounting\Close\FinancialIntegrityService;
@@ -20,6 +21,7 @@ class FinancialReportController extends Controller
         protected TrialBalanceService $trialBalance,
         protected BalanceSheetReportService $balanceSheet,
         protected ProfitAndLossReportService $profitAndLoss,
+        protected CashFlowStatementReportService $cashFlow,
         protected GeneralLedgerReportService $generalLedger,
         protected FinancialIntegrityService $integrity,
     ) {}
@@ -74,6 +76,26 @@ class FinancialReportController extends Controller
         $report = $this->profitAndLoss->build(array_filter($filters));
 
         return view('admin.accounting.reports.profit-and-loss', [
+            'report' => $report,
+            'periods' => $this->periods(),
+            'filters' => $filters,
+        ]);
+    }
+
+    public function cashFlow(Request $request): View
+    {
+        $this->authorize('viewReports', Journal::class);
+
+        $period = $this->defaultPeriod();
+        $filters = [
+            'from_date' => $request->input('from_date', $period?->start_date?->toDateString() ?? now()->startOfMonth()->toDateString()),
+            'to_date' => $request->input('to_date', $period?->end_date?->toDateString() ?? now()->toDateString()),
+            'period_id' => $request->integer('period_id') ?: $period?->id,
+        ];
+
+        $report = $this->cashFlow->build(array_filter($filters));
+
+        return view('admin.accounting.reports.cash-flow', [
             'report' => $report,
             'periods' => $this->periods(),
             'filters' => $filters,

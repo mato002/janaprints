@@ -228,10 +228,23 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                 'module' => PostingModule::Assets,
                 'name' => 'Asset write-off',
                 'lines' => [
-                    ['debit', 'asset_disposal_loss', PostingAmountSource::TotalAmount],
+                    ['debit', 'accumulated_depreciation', PostingAmountSource::ContextField, 'accumulated_amount'],
+                    ['debit', 'asset_disposal_loss', PostingAmountSource::Amount],
                     ['credit', 'fixed_asset', PostingAmountSource::TotalAmount],
                 ],
                 'events' => [PostingEventCode::AssetWriteOffPosted],
+            ],
+            'asset_disposal' => [
+                'module' => PostingModule::Assets,
+                'name' => 'Asset disposal',
+                'lines' => [
+                    ['debit', 'accumulated_depreciation', PostingAmountSource::ContextField, 'accumulated_amount'],
+                    ['debit', 'bank', PostingAmountSource::AllocatedAmount],
+                    ['debit', 'asset_disposal_loss', PostingAmountSource::ContextField, 'loss_amount'],
+                    ['credit', 'asset_disposal_gain', PostingAmountSource::ContextField, 'gain_amount'],
+                    ['credit', 'fixed_asset', PostingAmountSource::TotalAmount],
+                ],
+                'events' => [PostingEventCode::AssetDisposalPosted],
             ],
             'asset_acquisition' => [
                 'module' => PostingModule::Assets,
@@ -262,7 +275,10 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                     $this->seedPaymentReceivedTemplateLines($template->id);
                     }
             } elseif (! $template->lines()->exists()) {
-                    foreach ($def['lines'] as $index => [$side, $accountKey, $amountSource]) {
+                    foreach ($def['lines'] as $index => $lineDef) {
+                        [$side, $accountKey, $amountSource] = $lineDef;
+                        $amountField = $lineDef[3] ?? null;
+
                         PostingTemplateLine::query()->create([
                             'posting_template_id' => $template->id,
                             'line_number' => $index + 1,
@@ -270,6 +286,7 @@ class JanaPrintsPostingEngineSeeder extends Seeder
                             'account_resolver' => PostingAccountResolver::AccountKey,
                             'account_key' => $accountKey,
                             'amount_source' => $amountSource,
+                            'amount_field' => $amountField,
                             'line_description' => ':description',
                         ]);
                     }

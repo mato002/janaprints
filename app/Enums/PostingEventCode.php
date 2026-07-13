@@ -40,6 +40,7 @@ enum PostingEventCode: string
     case PosSaleCash = 'pos.sale.cash';
     case PosSaleMpesa = 'pos.sale.mpesa';
     case PosSaleCard = 'pos.sale.card';
+    case PosSaleBank = 'pos.sale.bank';
     case PosReturn = 'pos.return';
     case PosVariance = 'pos.variance';
 
@@ -84,6 +85,7 @@ enum PostingEventCode: string
             self::PosSaleCash,
             self::PosSaleMpesa,
             self::PosSaleCard,
+            self::PosSaleBank,
             self::PosReturn,
             self::PosVariance => PostingModule::Pos,
 
@@ -121,6 +123,7 @@ enum PostingEventCode: string
             self::PosSaleCash => __('POS cash sale'),
             self::PosSaleMpesa => __('POS M-Pesa sale'),
             self::PosSaleCard => __('POS card sale'),
+            self::PosSaleBank => __('POS bank sale'),
             self::PosReturn => __('POS return'),
             self::PosVariance => __('POS cash variance'),
             self::PayrollPosted => __('Payroll posted'),

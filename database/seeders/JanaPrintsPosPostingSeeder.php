@@ -31,6 +31,7 @@ class JanaPrintsPosPostingSeeder extends Seeder
         $this->seedSaleTemplate($company->id, 'pos_sale_cash', PostingEventCode::PosSaleCash, 'cash_till');
         $this->seedSaleTemplate($company->id, 'pos_sale_mpesa', PostingEventCode::PosSaleMpesa, 'mpesa_clearing');
         $this->seedSaleTemplate($company->id, 'pos_sale_card', PostingEventCode::PosSaleCard, 'card_clearing');
+        $this->seedSaleTemplate($company->id, 'pos_sale_bank', PostingEventCode::PosSaleBank, 'bank');
         $this->seedReturnTemplate($company->id);
         $this->seedVarianceTemplate($company->id);
     }
@@ -39,6 +40,7 @@ class JanaPrintsPosPostingSeeder extends Seeder
     {
         foreach ([
             'cash_till',
+            'bank',
             'card_clearing',
             'retail_revenue',
             'sales_returns',

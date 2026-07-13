@@ -10,6 +10,7 @@ use App\Models\Communications\CommunicationTemplate;
 use App\Models\Communications\CommunicationTemplateVersion;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class CommunicationTemplateService
@@ -26,7 +27,7 @@ class CommunicationTemplateService
         return DB::transaction(function () use ($data, $actor, $companyId) {
             $template = CommunicationTemplate::query()->create([
                 'company_id' => $companyId,
-                'code' => $data['code'],
+                'code' => $data['code'] ?? $this->nextCode($companyId, (string) $data['channel'], (string) $data['category']),
                 'name' => $data['name'],
                 'category' => $data['category'],
                 'channel' => $data['channel'],
@@ -238,5 +239,24 @@ class CommunicationTemplateService
             fn (CommunicationTemplateStatus $case) => ['value' => $case->value, 'label' => $case->label()],
             CommunicationTemplateStatus::cases(),
         );
+    }
+
+    protected function nextCode(int $companyId, string $channel, string $category): string
+    {
+        $base = Str::lower($channel).'-'.Str::slug($category, '_');
+        $code = $base;
+        $suffix = 1;
+
+        while (
+            CommunicationTemplate::query()
+                ->where('company_id', $companyId)
+                ->where('code', $code)
+                ->exists()
+        ) {
+            $suffix++;
+            $code = $base.'-'.$suffix;
+        }
+
+        return $code;
     }
 }

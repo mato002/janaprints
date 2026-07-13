@@ -446,7 +446,7 @@ class ProductionDashboardCommandCenterService
             ->forTenant()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+            ->get(['id', 'name', 'code', 'public_id']);
 
         if ($centers->isEmpty()) {
             return [
@@ -482,7 +482,7 @@ class ProductionDashboardCommandCenterService
                 'downtime_percent' => max(0, 100 - min(100, $utilization)),
                 'is_available' => ! ($metric['is_overbooked'] ?? false),
                 'capacity_alert' => $utilization >= 90,
-                'url' => Route::has('admin.production.work-centers.show')
+                'url' => (Route::has('admin.production.work-centers.show') && filled($center->getRouteKey()))
                     ? route('admin.production.work-centers.show', $center)
                     : null,
             ];

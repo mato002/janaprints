@@ -12,7 +12,7 @@
     >
         <x-admin.page-header :title="__('Leave Configuration')" :description="__('Administer leave types, holidays, policies, accrual, and carry-forward rules.')">
             <x-slot name="actions">
-                <a href="{{ route('admin.hr.leave.dashboard') }}" class="erp-btn-secondary">{{ __('Leave dashboard') }}</a>
+                <a href="{{ route('admin.hr.leave.dashboard') }}" class="erp-btn-secondary">{{ __('Back to leave') }}</a>
             </x-slot>
         </x-admin.page-header>
 

@@ -17,8 +17,12 @@
     >
         <x-admin.page-header
             :title="__('Posting rules')"
-            :description="__('Complete visibility into how business events become journal entries. Preview only — no posting behavior changes.')"
-        />
+            :description="__('Complete visibility into how business events become journal entries.')"
+        >
+            @if ($canManage ?? false)
+                <a href="{{ route('admin.accounting.posting.rules.create') }}" class="erp-btn-primary">{{ __('Create rule') }}</a>
+            @endif
+        </x-admin.page-header>
 
         {{-- Section 1: Summary cards --}}
         <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6">

@@ -31,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'employee.auth' => \App\Http\Middleware\EnsureEmployeeAuthContext::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/whatsapp',
+            'webhooks/whatsapp/*',
+        ]);
+
         $middleware->prependToPriorityList(
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\SetTenantContext::class,
@@ -70,6 +75,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('commercial:expire-report-exports')->daily();
         $schedule->command('governance:process-escalations')->everyFifteenMinutes();
         $schedule->command('inventory:velocity:snapshot --all-windows')->dailyAt('02:30');
+        $schedule->command('communications:dispatch-scheduled-events')->hourly();
+        $schedule->command('communications:payment-reminders')->dailyAt('08:00');
+        $schedule->command('communications:follow-up-due')->hourly();
+        $schedule->command('communications:dispatch-scheduled-email-campaigns')->everyFiveMinutes();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

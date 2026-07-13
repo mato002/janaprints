@@ -4,17 +4,29 @@
     <div class="crm-360__channel-card">
         <div class="crm-360__card-head">
             <h3 class="erp-card-title">{{ __('WhatsApp') }}</h3>
-            <x-admin.crm-btn
-                variant="outline"
-                size="sm"
-                :href="route('admin.communications.whatsapp.inbox', ['q' => $customer->phone])"
-                data-turbo-frame="erp-main"
-            >
-                <x-slot:icon>
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
-                </x-slot:icon>
-                {{ __('Open inbox') }}
-            </x-admin.crm-btn>
+            <div class="flex flex-wrap gap-2">
+                @can('send', App\Models\Communications\WhatsappConversation::class)
+                    <x-admin.crm-btn
+                        variant="primary"
+                        size="sm"
+                        :href="route('admin.communications.whatsapp.conversations.create', ['customer_id' => $customer->id])"
+                        data-turbo-frame="erp-main"
+                    >
+                        {{ __('Message') }}
+                    </x-admin.crm-btn>
+                @endcan
+                <x-admin.crm-btn
+                    variant="outline"
+                    size="sm"
+                    :href="route('admin.communications.whatsapp.inbox', ['q' => $customer->phone])"
+                    data-turbo-frame="erp-main"
+                >
+                    <x-slot:icon>
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
+                    </x-slot:icon>
+                    {{ __('Open inbox') }}
+                </x-admin.crm-btn>
+            </div>
         </div>
 
         @if ($conversations->isNotEmpty())

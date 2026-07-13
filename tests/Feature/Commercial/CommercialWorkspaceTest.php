@@ -290,6 +290,33 @@ class CommercialWorkspaceTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_customers_full_page_embedded_refresh_restores_crm_workspace(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['crm.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.crm.customers.index', ['embedded' => '1']))
+            ->assertRedirect()
+            ->assertRedirectContains('/admin/workspaces/commercial/crm')
+            ->assertRedirectContains('tab=customers');
+    }
+
+    public function test_customers_embedded_turbo_frame_request_stays_in_content_frame(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['crm.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.crm.customers.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false)
+            ->assertSee(__('Customers'));
+    }
+
     /**
      * @param  list<string>  $permissions
      * @return array{0: Company, 1: Branch, 2: User}

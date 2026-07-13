@@ -13,7 +13,6 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:communications.templates.view')->group(function () {
             Route::get('templates', [CommunicationTemplateController::class, 'index'])->name('templates.index');
             Route::get('templates/{template}', [CommunicationTemplateController::class, 'show'])->name('templates.show');
-            Route::post('templates/{template}/preview', [CommunicationTemplateController::class, 'preview'])->name('templates.preview');
         });
 
         Route::middleware('permission:communications.templates.create')->group(function () {

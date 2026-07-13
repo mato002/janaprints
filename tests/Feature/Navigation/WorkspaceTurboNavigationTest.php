@@ -28,7 +28,7 @@ class WorkspaceTurboNavigationTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_secondary_tab_links_target_module_workspace_content_frame(): void
+    public function test_secondary_tab_links_target_erp_main_desk_urls(): void
     {
         $user = $this->companyAdmin();
 
@@ -39,12 +39,12 @@ class WorkspaceTurboNavigationTest extends TestCase
 
         $this->assertStringContainsString('module-workspace-switcher--secondary', $html);
         $this->assertMatchesRegularExpression(
-            '/module-workspace-switcher--secondary[^>]*>.*?data-turbo-frame="module-workspace-content"/s',
+            '/module-workspace-switcher--secondary[^>]*>.*?data-turbo-frame="erp-main"/s',
             $html,
         );
     }
 
-    public function test_secondary_tab_links_use_embedded_feature_urls(): void
+    public function test_secondary_tab_links_use_desk_urls_and_keep_embedded_content_src(): void
     {
         $user = $this->companyAdmin();
 
@@ -62,15 +62,17 @@ class WorkspaceTurboNavigationTest extends TestCase
         preg_match('/module-workspace-switcher--secondary.*?<\/nav>/s', $html, $matches);
         $secondaryNav = $matches[0];
 
+        $this->assertStringContainsString('tab=customers', $secondaryNav);
+        $this->assertStringContainsString('tab=leads', $secondaryNav);
+        $this->assertStringContainsString('/admin/workspaces/commercial/crm', $secondaryNav);
+        $this->assertStringContainsString(
+            'data-workspace-content-href="'.route('admin.crm.customers.index', ['embedded' => '1']).'"',
+            $secondaryNav,
+        );
         $this->assertStringContainsString(
             route('admin.crm.customers.index', ['embedded' => '1']),
-            $secondaryNav,
+            $html,
         );
-        $this->assertStringContainsString(
-            route('admin.crm.leads.index', ['embedded' => '1']),
-            $secondaryNav,
-        );
-        $this->assertStringNotContainsString('tab=customers', $secondaryNav);
     }
 
     public function test_sidebar_module_links_target_erp_main_frame(): void
@@ -128,17 +130,20 @@ class WorkspaceTurboNavigationTest extends TestCase
             ->assertSee('id="module-workspace-content"', false);
     }
 
-    public function test_embedded_feature_url_never_redirects_even_without_turbo_frame_header(): void
+    public function test_embedded_feature_url_without_turbo_frame_redirects_to_workspace_shell(): void
     {
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
             ->get(route('admin.crm.customers.index', ['embedded' => '1']))
-            ->assertOk();
+            ->assertRedirect()
+            ->assertRedirectContains('/admin/workspaces/commercial/crm')
+            ->assertRedirectContains('tab=customers');
 
         $this->actingAs($user)
-            ->get(route('admin.dispatch.dashboard', ['embedded' => '1']))
-            ->assertOk();
+            ->get(route('admin.settings.forms.index', ['embedded' => '1']))
+            ->assertRedirect()
+            ->assertRedirectContains('/admin/workspaces/administration/');
     }
 
     public function test_modal_create_forms_still_open_in_erp_form_modal(): void

@@ -1,12 +1,18 @@
-<x-admin-layout :title="__('New Vacancy')">
-    <x-admin.page-header :title="__('New Vacancy')" />
-
-    <form method="POST" action="{{ route('admin.hr.recruitment.vacancies.store') }}" class="erp-card max-w-3xl">
-        @csrf
+<x-admin.modal-form
+    :title="__('New Vacancy')"
+    :breadcrumbs="[
+        ['label' => __('HR'), 'url' => route('admin.workspaces.hr')],
+        ['label' => __('Recruitment'), 'url' => route('admin.hr.recruitment.dashboard')],
+        ['label' => __('Vacancies'), 'url' => route('admin.hr.recruitment.vacancies.index')],
+        ['label' => __('New')],
+    ]"
+    maxWidth="3xl"
+>
+    <x-admin.form-shell :action="route('admin.hr.recruitment.vacancies.store')">
         @include('admin.hr.recruitment.partials.vacancy-form', ['formData' => $formData])
-        <div class="mt-6 flex gap-2">
-            <button type="submit" class="erp-btn-primary">{{ __('Create vacancy') }}</button>
-            <a href="{{ route('admin.hr.recruitment.vacancies.index') }}" class="erp-btn-secondary">{{ __('Cancel') }}</a>
-        </div>
-    </form>
-</x-admin-layout>
+
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Create vacancy') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

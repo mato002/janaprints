@@ -1,8 +1,14 @@
-<x-admin-layout :title="__('New Application')">
-    <x-admin.page-header :title="__('Record Application')" />
-
-    <form method="POST" action="{{ route('admin.hr.recruitment.applications.store') }}" class="erp-card max-w-3xl">
-        @csrf
+<x-admin.modal-form
+    :title="__('New Application')"
+    :breadcrumbs="[
+        ['label' => __('HR'), 'url' => route('admin.workspaces.hr')],
+        ['label' => __('Recruitment'), 'url' => route('admin.hr.recruitment.dashboard')],
+        ['label' => __('Applications'), 'url' => route('admin.hr.recruitment.applications.index')],
+        ['label' => __('New')],
+    ]"
+    maxWidth="3xl"
+>
+    <x-admin.form-shell :action="route('admin.hr.recruitment.applications.store')">
         <div class="grid gap-4 md:grid-cols-2">
             <div class="md:col-span-2">
                 <label class="erp-label" for="vacancy_id">{{ __('Vacancy') }}</label>
@@ -34,9 +40,9 @@
                 <input id="source" type="text" name="source" value="{{ old('source') }}" class="erp-input w-full" placeholder="{{ __('e.g. Referral, Job Board') }}">
             </div>
         </div>
-        <div class="mt-6 flex gap-2">
-            <button type="submit" class="erp-btn-primary">{{ __('Submit application') }}</button>
-            <a href="{{ route('admin.hr.recruitment.applications.index') }}" class="erp-btn-secondary">{{ __('Cancel') }}</a>
-        </div>
-    </form>
-</x-admin-layout>
+
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Submit application') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

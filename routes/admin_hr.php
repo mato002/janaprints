@@ -10,18 +10,22 @@ use App\Http\Controllers\Admin\Hr\Employee360Controller;
 use App\Http\Controllers\Admin\Hr\EmployeeCompensationComponentController;
 use App\Http\Controllers\Admin\Hr\EmployeeCompensationController;
 use App\Http\Controllers\Admin\Hr\HrDashboardController;
+use App\Http\Controllers\Admin\Hr\HrKpiController;
 use App\Http\Controllers\Admin\Hr\EmployeeDocumentController;
 use App\Http\Controllers\Admin\Hr\EmployeeDocumentDashboardController;
-use App\Http\Controllers\Admin\Hr\LeaveBalanceController;
-use App\Http\Controllers\Admin\Hr\LeaveCalendarController;
+use App\Http\Controllers\Admin\Hr\JobApplicationController;
+use App\Http\Controllers\Admin\Hr\JobRequisitionController;
+use App\Http\Controllers\Admin\Hr\LeaveConfigurationController;
 use App\Http\Controllers\Admin\Hr\LeaveDashboardController;
 use App\Http\Controllers\Admin\Hr\LeaveRequestController;
+use App\Http\Controllers\Admin\Hr\OnboardingController;
 use App\Http\Controllers\Admin\Hr\PayrollDashboardController;
 use App\Http\Controllers\Admin\Hr\PayrollGroupDefinitionController;
 use App\Http\Controllers\Admin\Hr\PayrollPayslipController;
 use App\Http\Controllers\Admin\Hr\PayrollRunController;
 use App\Http\Controllers\Admin\Hr\PerformanceDashboardController;
 use App\Http\Controllers\Admin\Hr\PerformanceReviewController;
+use App\Http\Controllers\Admin\Hr\RecruitmentDashboardController;
 use App\Http\Controllers\Admin\Hr\ShiftController;
 use App\Http\Controllers\Admin\Hr\EmployeeExitController;
 use App\Http\Controllers\Admin\Hr\ExitDashboardController;
@@ -30,6 +34,7 @@ use App\Http\Controllers\Admin\Hr\TrainingCalendarController;
 use App\Http\Controllers\Admin\Hr\TrainingCertificatesController;
 use App\Http\Controllers\Admin\Hr\TrainingDashboardController;
 use App\Http\Controllers\Admin\Hr\TrainingProgramController;
+use App\Http\Controllers\Admin\Hr\VacancyController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
@@ -124,9 +129,26 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
             ->name('leave.dashboard');
 
         Route::middleware('permission:hr.leave.view')->group(function () {
-            Route::get('leave/requests', [LeaveRequestController::class, 'index'])->name('leave.index');
-            Route::get('leave/calendar', [LeaveCalendarController::class, 'index'])->name('leave.calendar');
-            Route::get('leave/balances', [LeaveBalanceController::class, 'index'])->name('leave.balances');
+            Route::get('leave/requests', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.leave.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'requests'],
+                ));
+            })->name('leave.index');
+
+            Route::get('leave/calendar', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.leave.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'calendar'],
+                ));
+            })->name('leave.calendar');
+
+            Route::get('leave/balances', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.leave.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'balances'],
+                ));
+            })->name('leave.balances');
         });
 
         Route::middleware('permission:hr.leave.create')->group(function () {
@@ -154,6 +176,80 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
         Route::post('leave/export', [LeaveRequestController::class, 'export'])
             ->middleware('permission:hr.leave.export')
             ->name('leave.export');
+
+        Route::get('leave/config', function (\Illuminate\Http\Request $request) {
+            return redirect()->route('admin.hr.leave.dashboard', array_merge(
+                $request->query(),
+                ['tab' => 'setup'],
+            ));
+        })
+            ->middleware('permission:hr.leave.config.view')
+            ->name('leave.config');
+
+        Route::middleware('permission:hr.leave.config.create')->group(function () {
+            Route::post('leave/config/types', [LeaveConfigurationController::class, 'storeLeaveType'])->name('leave.config.types.store');
+            Route::post('leave/config/holidays', [LeaveConfigurationController::class, 'storeHoliday'])->name('leave.config.holidays.store');
+            Route::post('leave/config/policies', [LeaveConfigurationController::class, 'storePolicy'])->name('leave.config.policies.store');
+            Route::post('leave/config/accrual', [LeaveConfigurationController::class, 'storeAccrualRule'])->name('leave.config.accrual.store');
+            Route::post('leave/config/carry', [LeaveConfigurationController::class, 'storeCarryForwardRule'])->name('leave.config.carry.store');
+        });
+
+        Route::middleware('permission:hr.leave.config.edit')->group(function () {
+            Route::put('leave/config/types/{leaveType}', [LeaveConfigurationController::class, 'updateLeaveType'])->name('leave.config.types.update');
+            Route::put('leave/config/holidays/{publicHoliday}', [LeaveConfigurationController::class, 'updateHoliday'])->name('leave.config.holidays.update');
+            Route::put('leave/config/policies/{leavePolicy}', [LeaveConfigurationController::class, 'updatePolicy'])->name('leave.config.policies.update');
+            Route::put('leave/config/accrual/{leaveAccrualRule}', [LeaveConfigurationController::class, 'updateAccrualRule'])->name('leave.config.accrual.update');
+            Route::put('leave/config/carry/{leaveCarryForwardRule}', [LeaveConfigurationController::class, 'updateCarryForwardRule'])->name('leave.config.carry.update');
+        });
+
+        Route::get('recruitment', RecruitmentDashboardController::class)
+            ->middleware('permission:hr.recruitment.view')
+            ->name('recruitment.dashboard');
+
+        Route::middleware('permission:hr.recruitment.create')->group(function () {
+            Route::get('recruitment/requisitions/create', [JobRequisitionController::class, 'create'])->name('recruitment.requisitions.create');
+            Route::post('recruitment/requisitions', [JobRequisitionController::class, 'store'])->name('recruitment.requisitions.store');
+            Route::get('recruitment/vacancies/create', [VacancyController::class, 'create'])->name('recruitment.vacancies.create');
+            Route::post('recruitment/vacancies', [VacancyController::class, 'store'])->name('recruitment.vacancies.store');
+            Route::get('recruitment/applications/create', [JobApplicationController::class, 'create'])->name('recruitment.applications.create');
+            Route::post('recruitment/applications', [JobApplicationController::class, 'store'])->name('recruitment.applications.store');
+        });
+
+        Route::middleware('permission:hr.recruitment.view')->group(function () {
+            Route::get('recruitment/requisitions', [JobRequisitionController::class, 'index'])->name('recruitment.requisitions.index');
+            Route::get('recruitment/vacancies', [VacancyController::class, 'index'])->name('recruitment.vacancies.index');
+            Route::get('recruitment/applications', [JobApplicationController::class, 'index'])->name('recruitment.applications.index');
+            Route::get('recruitment/applications/pipeline', [JobApplicationController::class, 'pipeline'])->name('recruitment.applications.pipeline');
+            Route::get('recruitment/requisitions/{jobRequisition}', [JobRequisitionController::class, 'show'])->name('recruitment.requisitions.show');
+            Route::get('recruitment/vacancies/{vacancy}', [VacancyController::class, 'show'])->name('recruitment.vacancies.show');
+            Route::get('recruitment/applications/{jobApplication}', [JobApplicationController::class, 'show'])->name('recruitment.applications.show');
+            Route::get('recruitment/onboarding/{onboardingRecord}', [OnboardingController::class, 'show'])->name('recruitment.onboarding.show');
+        });
+
+        Route::middleware('permission:hr.recruitment.manage')->group(function () {
+            Route::post('recruitment/requisitions/{jobRequisition}/submit', [JobRequisitionController::class, 'submit'])->name('recruitment.requisitions.submit');
+            Route::post('recruitment/requisitions/{jobRequisition}/approve', [JobRequisitionController::class, 'approve'])->name('recruitment.requisitions.approve');
+            Route::post('recruitment/vacancies/{vacancy}/publish', [VacancyController::class, 'publish'])->name('recruitment.vacancies.publish');
+            Route::post('recruitment/vacancies/{vacancy}/close', [VacancyController::class, 'close'])->name('recruitment.vacancies.close');
+            Route::post('recruitment/applications/{jobApplication}/advance', [JobApplicationController::class, 'advance'])->name('recruitment.applications.advance');
+            Route::post('recruitment/applications/{jobApplication}/reject', [JobApplicationController::class, 'reject'])->name('recruitment.applications.reject');
+            Route::post('recruitment/applications/{jobApplication}/interview', [JobApplicationController::class, 'scheduleInterview'])->name('recruitment.applications.interview');
+            Route::post('recruitment/applications/{jobApplication}/feedback', [JobApplicationController::class, 'recordFeedback'])->name('recruitment.applications.feedback');
+            Route::post('recruitment/applications/{jobApplication}/offer', [JobApplicationController::class, 'createOffer'])->name('recruitment.applications.offer');
+            Route::post('recruitment/offers/{offerLetter}/send', [JobApplicationController::class, 'sendOffer'])->name('recruitment.offers.send');
+            Route::post('recruitment/offers/{offerLetter}/accept', [JobApplicationController::class, 'acceptOffer'])->name('recruitment.offers.accept');
+            Route::post('recruitment/onboarding/{jobApplication}/start', [OnboardingController::class, 'start'])->name('recruitment.onboarding.start');
+            Route::put('recruitment/onboarding/{onboardingRecord}', [OnboardingController::class, 'update'])->name('recruitment.onboarding.update');
+            Route::post('recruitment/onboarding/{onboardingRecord}/complete', [OnboardingController::class, 'complete'])->name('recruitment.onboarding.complete');
+        });
+
+        Route::get('kpi', [HrKpiController::class, 'index'])
+            ->middleware('permission:hr.kpi.view|kpi.view')
+            ->name('kpi');
+
+        Route::post('kpi/export', [HrKpiController::class, 'export'])
+            ->middleware('permission:hr.kpi.export|reports.export')
+            ->name('kpi.export');
 
         Route::get('payroll', PayrollDashboardController::class)
             ->middleware('permission:hr.payroll.view')

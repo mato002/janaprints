@@ -22,6 +22,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('campaigns/create', [SmsCampaignController::class, 'create'])->name('campaigns.create');
             Route::post('campaigns', [SmsCampaignController::class, 'store'])->name('campaigns.store');
             Route::post('campaigns/preview', [SmsCampaignController::class, 'preview'])->name('campaigns.preview');
+            Route::post('campaigns/estimate-recipients', [SmsCampaignController::class, 'estimateRecipients'])->name('campaigns.estimate-recipients');
         });
 
         Route::middleware('permission:communications.sms.view')->group(function () {
@@ -30,7 +31,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:communications.sms.audit')->group(function () {
             Route::get('provider-logs', [SmsProviderLogController::class, 'index'])->name('provider-logs.index');
-            Route::post('credits/purchase', [SmsCreditController::class, 'purchase'])->name('credits.purchase');
+            Route::post('credits/topup', [SmsCreditController::class, 'topup'])->name('credits.topup');
+            Route::get('credits/topup/{reference}/status', [SmsCreditController::class, 'topupStatus'])->name('credits.topup.status');
         });
 
         Route::middleware('permission:communications.sms.send')->group(function () {

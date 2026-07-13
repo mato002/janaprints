@@ -75,6 +75,7 @@ class WhatsappConversationService
         ?int $leadId = null,
         ?int $vendorId = null,
         ?string $displayName = null,
+        ?int $employeeId = null,
     ): WhatsappConversation {
         $account = $this->accounts->ensureDefaultAccount($companyId, $userId);
         $normalized = preg_replace('/\s+/', '', $phoneNumber) ?: $phoneNumber;
@@ -86,8 +87,15 @@ class WhatsappConversationService
             ->first();
 
         if ($conversation) {
-            if ($customerId && ! $conversation->customer_id) {
-                $conversation->update(['customer_id' => $customerId]);
+            $patch = array_filter([
+                'customer_id' => $customerId && ! $conversation->customer_id ? $customerId : null,
+                'lead_id' => $leadId && ! $conversation->lead_id ? $leadId : null,
+                'vendor_id' => $vendorId && ! $conversation->vendor_id ? $vendorId : null,
+                'employee_id' => $employeeId && ! $conversation->employee_id ? $employeeId : null,
+            ], fn ($v) => $v !== null);
+
+            if ($patch !== []) {
+                $conversation->update($patch);
             }
 
             return $conversation;
@@ -101,16 +109,26 @@ class WhatsappConversationService
             'phone_number' => $normalized,
             'customer_id' => $customerId,
             'lead_id' => $leadId,
+            'employee_id' => $employeeId,
             'vendor_id' => $vendorId,
             'status' => WhatsappConversationStatus::Open,
             'started_at' => now(),
             'last_activity_at' => now(),
+            'unread_count' => 0,
         ]);
+
+        $participantType = match (true) {
+            $customerId !== null => 'customer',
+            $leadId !== null => 'lead',
+            $employeeId !== null => 'employee',
+            $vendorId !== null => 'vendor',
+            default => 'external',
+        };
 
         WhatsappParticipant::query()->create([
             'whatsapp_conversation_id' => $conversation->id,
-            'participant_type' => $customerId ? 'customer' : ($leadId ? 'lead' : ($vendorId ? 'vendor' : 'external')),
-            'participant_id' => $customerId ?? $leadId ?? $vendorId,
+            'participant_type' => $participantType,
+            'participant_id' => $customerId ?? $leadId ?? $employeeId ?? $vendorId,
             'phone_number' => $normalized,
             'display_name' => $displayName,
             'role' => 'contact',
@@ -121,10 +139,12 @@ class WhatsappConversationService
 
     public function touchActivity(WhatsappConversation $conversation, string $preview, bool $incoming = false): void
     {
+        $unread = (int) ($conversation->unread_count ?? 0);
+
         $conversation->update([
             'last_message_preview' => mb_substr($preview, 0, 200),
             'last_activity_at' => now(),
-            'unread_count' => $incoming ? $conversation->unread_count + 1 : $conversation->unread_count,
+            'unread_count' => $incoming ? $unread + 1 : $unread,
         ]);
     }
 

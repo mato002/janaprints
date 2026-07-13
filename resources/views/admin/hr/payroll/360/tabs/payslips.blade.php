@@ -76,7 +76,7 @@
     @can('export', App\Models\Hr\PayrollRun::class)
         <x-admin.card class="mt-4">
             <h3 class="mb-3 text-sm font-semibold text-erp-primary">{{ __('Payment file exports') }}</h3>
-            <p class="mb-3 text-sm text-slate-600">{{ __('Placeholder exports for bank, EFT, and M-Pesa payroll disbursement files.') }}</p>
+            <p class="mb-3 text-sm text-slate-600">{{ __('Download bank, EFT, or M-Pesa payroll disbursement CSV files from employee payment details.') }}</p>
             <div class="flex flex-wrap gap-2">
                 @foreach (['bank' => __('Bank file'), 'eft' => __('EFT file'), 'mpesa' => __('M-Pesa file')] as $format => $label)
                     <a href="{{ route('admin.hr.payroll.export-payment', ['payrollRun' => $run, 'format' => $format]) }}" class="erp-btn-secondary">{{ $label }}</a>

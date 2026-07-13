@@ -6,6 +6,7 @@ enum CustomerPaymentStatus: string
 {
     case Draft = 'draft';
     case Posted = 'posted';
+    case Refunded = 'refunded';
     case Cancelled = 'cancelled';
 
     public function label(): string
@@ -13,6 +14,7 @@ enum CustomerPaymentStatus: string
         return match ($this) {
             self::Draft => __('Draft'),
             self::Posted => __('Posted'),
+            self::Refunded => __('Refunded'),
             self::Cancelled => __('Cancelled'),
         };
     }

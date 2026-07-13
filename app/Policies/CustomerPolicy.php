@@ -64,4 +64,10 @@ class CustomerPolicy
     {
         return $user->can('receivables.aging.view');
     }
+
+    public function viewReceivablesReconciliation(User $user): bool
+    {
+        return $user->can('receivables.reconciliation.view')
+            || $user->can('receivables.ledger.view');
+    }
 }

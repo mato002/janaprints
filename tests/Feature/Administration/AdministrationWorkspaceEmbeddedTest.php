@@ -213,24 +213,28 @@ class AdministrationWorkspaceEmbeddedTest extends TestCase
             ->assertSee(__('Document Types'), false);
     }
 
-    public function test_embedded_document_types_query_does_not_redirect_to_workspace_shell(): void
+    public function test_embedded_document_types_query_without_turbo_frame_redirects_to_workspace_shell(): void
     {
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
             ->get(route('admin.settings.document-types.index', ['embedded' => '1']))
-            ->assertOk()
-            ->assertSee('id="module-workspace-content"', false);
+            ->assertRedirect(route('admin.workspaces.administration.section', [
+                'section' => 'configuration',
+                'tab' => 'document-types',
+            ]));
     }
 
-    public function test_embedded_form_controls_without_turbo_header_renders_workspace_frame(): void
+    public function test_embedded_form_controls_without_turbo_header_redirects_to_workspace_shell(): void
     {
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
             ->get(route('admin.settings.forms.index', ['embedded' => '1']))
-            ->assertOk()
-            ->assertSee('id="module-workspace-content"', false);
+            ->assertRedirect(route('admin.workspaces.administration.section', [
+                'section' => 'configuration',
+                'tab' => 'form-controls',
+            ]));
     }
 
     public function test_permission_matrix_role_filter_stays_in_embedded_workspace(): void

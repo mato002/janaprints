@@ -1,25 +1,33 @@
 <x-admin-layout :title="__('SMS Credit Ledger')" :breadcrumbs="[['label' => __('Communications'), 'url' => route('admin.workspaces.communications')], ['label' => __('Credit ledger')]]">
     @include('admin.communications.sms.partials.nav')
-    <x-admin.page-header :title="__('SMS credit ledger')" />
+    <x-admin.page-header
+        :title="__('SMS credit ledger')"
+        :description="__('CRM wallet balance and local purchase/usage history. Top-ups are paid through Pradytec M-Pesa STK.')"
+    >
+        <x-slot:actions>
+            @can('audit', App\Models\Communications\SmsCampaign::class)
+                <button type="button" class="erp-btn-primary" onclick="window.dispatchEvent(new CustomEvent('open-sms-crm-topup'))">{{ __('Top up with M-Pesa') }}</button>
+            @endcan
+        </x-slot:actions>
+    </x-admin.page-header>
+
+    @if (session('status'))
+        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
+    @endif
+    @if (session('info'))
+        <x-admin.alert variant="info" class="mb-4">{{ session('info') }}</x-admin.alert>
+    @endif
 
     <div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <x-admin.stat-card
+            :label="($live['source'] ?? 'local') === 'crm' ? __('CRM balance') : __('Remaining')"
+            :value="number_format((float) ($live['balance'] ?? $balance->remaining_credits), 0)"
+        />
         <x-admin.stat-card :label="__('Opening')" :value="number_format($balance->opening_credits, 0)" />
         <x-admin.stat-card :label="__('Purchased')" :value="number_format($balance->purchased_credits, 0)" />
         <x-admin.stat-card :label="__('Used')" :value="number_format($balance->used_credits, 0)" />
-        <x-admin.stat-card :label="__('Remaining')" :value="number_format($balance->remaining_credits, 0)" />
-        <x-admin.stat-card :label="__('Cost / segment')" :value="number_format($balance->cost_per_sms, 2)" />
+        <x-admin.stat-card :label="__('Cost / segment')" :value="number_format((float) ($live['price_per_unit'] ?? $balance->cost_per_sms), 2)" />
     </div>
-
-    @can('audit', App\Models\Communications\SmsCampaign::class)
-        <form method="POST" action="{{ route('admin.communications.sms.credits.purchase') }}" class="erp-card mb-4 flex flex-wrap items-end gap-2" data-turbo-frame="erp-main">
-            @csrf
-            <div>
-                <label class="erp-label text-xs">{{ __('Purchase credits') }}</label>
-                <input type="number" name="credits" class="erp-input" min="1" step="1" required>
-            </div>
-            <button type="submit" class="erp-btn erp-btn--primary">{{ __('Add credits') }}</button>
-        </form>
-    @endcan
 
     <div class="erp-card overflow-hidden p-0">
         <table class="erp-table w-full text-sm">
@@ -52,4 +60,6 @@
             <div class="border-t px-4 py-3">{{ $transactions->links() }}</div>
         @endif
     </div>
+
+    @include('admin.communications.sms.partials.topup-modal', ['topupConfig' => $topupConfig ?? []])
 </x-admin-layout>

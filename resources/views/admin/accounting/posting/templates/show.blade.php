@@ -7,7 +7,19 @@
         <x-slot name="meta">
             <span class="erp-badge">{{ $template->module->label() }}</span>
             @if ($template->is_system)<span class="erp-badge">{{ __('System') }}</span>@endif
+            @if (! $template->is_active)<span class="erp-badge">{{ __('Inactive') }}</span>@endif
         </x-slot>
+        @can('manage', $template)
+            <div class="flex gap-2">
+                @unless ($template->is_system)
+                    <a href="{{ route('admin.accounting.posting.templates.edit', $template) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
+                @endunless
+                <form method="POST" action="{{ route('admin.accounting.posting.templates.toggle', $template) }}">
+                    @csrf
+                    <button class="erp-btn-secondary">{{ $template->is_active ? __('Deactivate') : __('Activate') }}</button>
+                </form>
+            </div>
+        @endcan
     </x-admin.page-header>
 
     <div class="erp-card">

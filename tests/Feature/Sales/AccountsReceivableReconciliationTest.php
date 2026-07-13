@@ -180,7 +180,7 @@ class AccountsReceivableReconciliationTest extends TestCase
         $this->postInvoice();
 
         $payment = app(CustomerPaymentService::class)->create($this->customer, $this->user->id, [
-            'payment_date' => now()->toDateString(),
+            'payment_date' => $this->period->end_date->toDateString(),
             'payment_method' => CustomerPaymentMethod::Cash,
             'amount' => 250,
             'is_deposit' => true,
