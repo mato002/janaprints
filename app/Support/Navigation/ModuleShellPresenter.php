@@ -452,6 +452,7 @@ class ModuleShellPresenter
         $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module);
         $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
         $contentUrl = $this->resolveContentUrl($activeSecondary)
+            ?? $this->resolveSectionHubContentUrl($catalog, $activePrimary)
             ?? $this->resolvePrimaryContentUrl($catalog, $activePrimary, $module);
 
         return $this->presentDeskPayload(
@@ -767,6 +768,28 @@ class ModuleShellPresenter
     }
 
     /**
+     * @param  array<string, mixed>  $catalog
+     * @param  array<string, mixed>|null  $activePrimary
+     */
+    protected function resolveSectionHubContentUrl(array $catalog, ?array $activePrimary): ?string
+    {
+        if ($activePrimary === null) {
+            return null;
+        }
+
+        $section = $catalog['sections'][$activePrimary['key'] ?? ''] ?? null;
+
+        if ($section === null || ($section['presentation'] ?? '') !== 'hub') {
+            return null;
+        }
+
+        return $this->embeddedFeatureUrl(
+            $section['hub_route'] ?? null,
+            $section['hub_route_params'] ?? [],
+        );
+    }
+
+    /**
      * @param  array<string, mixed>  $params
      */
     protected function appendQuery(string $url, array $params): string
@@ -860,6 +883,10 @@ class ModuleShellPresenter
         $section = $catalog['sections'][$primaryKey] ?? null;
 
         if ($section === null) {
+            return false;
+        }
+
+        if (($section['presentation'] ?? '') === 'hub') {
             return false;
         }
 

@@ -233,6 +233,49 @@ class AdministrationWorkspaceEmbeddedTest extends TestCase
             ->assertSee('id="module-workspace-content"', false);
     }
 
+    public function test_permission_matrix_role_filter_stays_in_embedded_workspace(): void
+    {
+        $user = $this->superAdmin();
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.access-control.matrix', [
+                'embedded' => '1',
+                'role' => 'Super Admin',
+            ]))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false)
+            ->assertSee(__('Super Admin'), false)
+            ->assertSee(__('Modules'), false);
+    }
+
+    public function test_permission_matrix_role_filter_redirect_preserves_workspace_tab(): void
+    {
+        $user = $this->superAdmin();
+
+        $response = $this->actingAs($user)
+            ->get(route('admin.access-control.matrix', ['role' => 'Super Admin']));
+
+        $response->assertRedirect();
+        $location = $response->headers->get('Location');
+        $this->assertStringContainsString('tab=permissions', $location);
+        $this->assertStringContainsString('role=Super', $location);
+    }
+
+    protected function superAdmin(): User
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+        ]);
+        $user->assignRole('Super Admin');
+
+        return $user;
+    }
+
     protected function companyAdmin(): User
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();

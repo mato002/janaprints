@@ -65,8 +65,8 @@
             data-turbo-action="advance"
             @class([
                 'flex min-h-0 flex-1 flex-col',
-                'overflow-hidden' => $compactPage,
-                'overflow-x-hidden overflow-y-auto' => ! $compactPage,
+                'overflow-hidden' => $compactPage || $compactWorkspace,
+                'overflow-x-hidden overflow-y-auto' => ! $compactPage && ! $compactWorkspace,
             ])
         >
             @php
@@ -100,7 +100,7 @@
             <main @class([
                 'flex min-h-0 flex-1 flex-col',
                 'overflow-hidden p-2' => $compactPage,
-                'p-3 sm:p-4' => ! $compactPage && $compactWorkspace,
+                'overflow-hidden p-2 sm:p-3' => ! $compactPage && $compactWorkspace,
                 'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
             ])>
                 @unless ($compactPage)

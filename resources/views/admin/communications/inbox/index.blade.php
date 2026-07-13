@@ -4,7 +4,10 @@
     :compact-page="true"
 >
     <div
-        class="shared-inbox-page"
+        @class([
+            'shared-inbox-page',
+            'shared-inbox-page--standalone' => ! \App\Support\Navigation\WorkspaceEmbed::rendersEmbeddedFragment(),
+        ])
         x-data="{
             mobilePanel: 'thread',
             drawerOpen: false,

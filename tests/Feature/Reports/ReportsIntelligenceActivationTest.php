@@ -56,6 +56,23 @@ class ReportsIntelligenceActivationTest extends TestCase
         $response->assertSee(route('admin.reports.executive', ['embedded' => '1']), false);
     }
 
+    public function test_commercial_reports_workspace_shows_hub_cards_without_duplicate_secondary_tabs(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser([
+            'reports.view',
+            'commercial.reports.sales.view',
+            'intelligence.commercial.view',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $response = $this->actingAs($user)->get(route('admin.workspaces.reports.section', ['section' => 'commercial']));
+
+        $response->assertOk();
+        $response->assertSee(route('admin.reports.commercial', ['embedded' => '1']), false);
+        $response->assertDontSee('module-workspace-switcher--secondary', false);
+    }
+
     #[DataProvider('reportPageProvider')]
     public function test_report_pages_render_read_only_placeholders(string $routeName, string $heading): void
     {

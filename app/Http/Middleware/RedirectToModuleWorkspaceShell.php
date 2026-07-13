@@ -51,19 +51,17 @@ class RedirectToModuleWorkspaceShell
 
         unset($query['embedded']);
 
-        if ($query !== []) {
-            $existing = [];
+        $existing = [];
 
-            if (($queryPos = strpos($deskUrl, '?')) !== false) {
-                parse_str(substr($deskUrl, $queryPos + 1), $existing);
-                $deskUrl = substr($deskUrl, 0, $queryPos);
-            }
+        if (($queryPos = strpos($deskUrl, '?')) !== false) {
+            parse_str(substr($deskUrl, $queryPos + 1), $existing);
+            $deskUrl = substr($deskUrl, 0, $queryPos);
+        }
 
-            $query = array_diff_key($query, $existing);
+        $merged = array_merge($existing, $query);
 
-            if ($query !== []) {
-                $deskUrl .= (str_contains($deskUrl, '?') ? '&' : '?').http_build_query($query);
-            }
+        if ($merged !== []) {
+            $deskUrl .= '?'.http_build_query($merged);
         }
 
         return redirect()->to($deskUrl);

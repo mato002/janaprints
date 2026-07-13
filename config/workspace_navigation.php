@@ -34,6 +34,7 @@ return [
         'expiry_status',
         'customer_type',
         'activity_status',
+        'role',
     ],
 
 ];

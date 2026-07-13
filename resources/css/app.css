@@ -281,6 +281,11 @@
         @apply w-full min-w-0;
     }
 
+    .module-workspace-content,
+    .module-workspace-embedded {
+        @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+    }
+
     .compact-workspace-header__row {
         @apply flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between;
     }
@@ -386,7 +391,7 @@
     }
 
     .module-workspace-content__frame {
-        @apply block w-full min-w-0;
+        @apply flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden;
     }
 
     .module-workspace-content__loading {
@@ -399,10 +404,6 @@
 
     .module-workspace-content__skeleton-panel {
         @apply h-24 w-full;
-    }
-
-    .module-workspace-embedded {
-        @apply w-full min-w-0;
     }
 
     .module-workspace-embedded > :first-child:not([class*='mb-']) {
@@ -1675,11 +1676,19 @@
 
     /* Shared Inbox — premium workspace polish */
     .shared-inbox-page {
-        @apply flex h-full min-h-0 flex-1 flex-col overflow-hidden px-1 py-1 sm:px-2;
+        @apply flex h-full min-h-0 flex-1 flex-col overflow-hidden;
+    }
+
+    .shared-inbox-page--standalone {
+        @apply px-1 py-1 sm:px-2;
     }
 
     .shared-inbox {
-        @apply mx-auto flex h-full min-h-0 w-full max-w-[1600px] flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm;
+        @apply flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden bg-white;
+    }
+
+    .shared-inbox-page--standalone .shared-inbox {
+        @apply mx-auto max-w-[1600px] rounded-2xl border border-slate-200 shadow-sm;
     }
 
     .shared-inbox__toolbar {
