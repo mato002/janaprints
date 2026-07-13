@@ -227,10 +227,34 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:hr.recruitment.view')->group(function () {
-            Route::get('recruitment/requisitions', [JobRequisitionController::class, 'index'])->name('recruitment.requisitions.index');
-            Route::get('recruitment/vacancies', [VacancyController::class, 'index'])->name('recruitment.vacancies.index');
-            Route::get('recruitment/applications', [JobApplicationController::class, 'index'])->name('recruitment.applications.index');
-            Route::get('recruitment/applications/pipeline', [JobApplicationController::class, 'pipeline'])->name('recruitment.applications.pipeline');
+            Route::get('recruitment/requisitions', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.recruitment.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'requisitions'],
+                ));
+            })->name('recruitment.requisitions.index');
+
+            Route::get('recruitment/vacancies', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.recruitment.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'vacancies'],
+                ));
+            })->name('recruitment.vacancies.index');
+
+            Route::get('recruitment/applications', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.recruitment.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'applications'],
+                ));
+            })->name('recruitment.applications.index');
+
+            Route::get('recruitment/applications/pipeline', function (\Illuminate\Http\Request $request) {
+                return redirect()->route('admin.hr.recruitment.dashboard', array_merge(
+                    $request->query(),
+                    ['tab' => 'pipeline'],
+                ));
+            })->name('recruitment.applications.pipeline');
+
             Route::get('recruitment/requisitions/{jobRequisition}', [JobRequisitionController::class, 'show'])->name('recruitment.requisitions.show');
             Route::get('recruitment/vacancies/{vacancy}', [VacancyController::class, 'show'])->name('recruitment.vacancies.show');
             Route::get('recruitment/applications/{jobApplication}', [JobApplicationController::class, 'show'])->name('recruitment.applications.show');

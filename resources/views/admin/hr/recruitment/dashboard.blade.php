@@ -1,54 +1,76 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+    $turboFrame = WorkspaceEmbed::turboFrame();
+@endphp
+
 <x-admin-layout :title="__('Recruitment')" :breadcrumbs="[['label' => __('HR'), 'url' => route('admin.workspaces.hr')], ['label' => __('Recruitment')]]">
     <x-admin.page-header :title="__('Recruitment & Hiring')" :description="__('Job requisitions, vacancies, candidate pipeline, interviews, offers, and onboarding.')">
         <x-slot name="actions">
-            @can('create', App\Models\Hr\Vacancy::class)
-                <a href="{{ route('admin.hr.recruitment.vacancies.create') }}" class="erp-btn-primary">{{ __('New vacancy') }}</a>
-            @endcan
-            <a href="{{ route('admin.hr.recruitment.applications.pipeline') }}" class="erp-btn-secondary">{{ __('Pipeline') }}</a>
+            @if (($tab ?? 'pipeline') === 'requisitions')
+                @can('create', App\Models\Hr\JobRequisition::class)
+                    <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.requisitions.create')) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New requisition') }}</a>
+                @endcan
+            @elseif (($tab ?? 'pipeline') === 'vacancies')
+                @can('create', App\Models\Hr\Vacancy::class)
+                    <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.vacancies.create')) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New vacancy') }}</a>
+                @endcan
+            @else
+                @can('create', App\Models\Hr\JobApplication::class)
+                    <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.applications.create')) }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('New application') }}</a>
+                @endcan
+                @can('create', App\Models\Hr\Vacancy::class)
+                    <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.vacancies.create')) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('New vacancy') }}</a>
+                @endcan
+            @endif
         </x-slot>
     </x-admin.page-header>
 
+    @if (session('status'))
+        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+    @endif
+
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        @foreach ([
-            ['label' => __('Open Vacancies'), 'value' => $stats['open_vacancies'], 'icon' => 'briefcase'],
-            ['label' => __('Active Applications'), 'value' => $stats['active_applications'], 'icon' => 'users'],
-            ['label' => __('Upcoming Interviews'), 'value' => $stats['upcoming_interviews'], 'icon' => 'calendar'],
-            ['label' => __('Pending Onboarding'), 'value' => $stats['pending_onboarding'], 'icon' => 'clipboard-check'],
-        ] as $card)
-            <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+        <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => 'vacancies']))) }}" data-turbo-frame="{{ $turboFrame }}" class="block rounded-lg transition hover:ring-2 hover:ring-erp-accent/30">
+            <x-admin.kpi-widget :label="__('Open Vacancies')" :value="$stats['open_vacancies']" icon="briefcase" />
+        </a>
+        <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => 'applications']))) }}" data-turbo-frame="{{ $turboFrame }}" class="block rounded-lg transition hover:ring-2 hover:ring-erp-accent/30">
+            <x-admin.kpi-widget :label="__('Active Applications')" :value="$stats['active_applications']" icon="users" />
+        </a>
+        <a href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => 'pipeline']))) }}" data-turbo-frame="{{ $turboFrame }}" class="block rounded-lg transition hover:ring-2 hover:ring-erp-accent/30">
+            <x-admin.kpi-widget :label="__('Upcoming Interviews')" :value="$stats['upcoming_interviews']" icon="calendar" />
+        </a>
+        <x-admin.kpi-widget :label="__('Pending Onboarding')" :value="$stats['pending_onboarding']" icon="clipboard-check" />
+    </div>
+
+    <nav class="mt-6 mb-4 flex flex-wrap gap-2 border-b border-slate-200 pb-2" aria-label="{{ __('Recruitment sections') }}">
+        @php
+            $recruitmentTabs = [
+                'pipeline' => __('Pipeline'),
+                'applications' => __('Applications'),
+                'vacancies' => __('Vacancies'),
+                'requisitions' => __('Requisitions'),
+            ];
+        @endphp
+        @foreach ($recruitmentTabs as $id => $label)
+            <a
+                href="{{ WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => $id]))) }}"
+                data-turbo-frame="{{ $turboFrame }}"
+                @class([
+                    'rounded-md px-3 py-1.5 text-sm font-medium',
+                    'bg-erp-primary text-white' => $tab === $id,
+                    'text-slate-600 hover:bg-slate-100' => $tab !== $id,
+                ])
+            >{{ $label }}</a>
         @endforeach
-    </div>
+    </nav>
 
-    <div class="mt-6 grid gap-4 lg:grid-cols-2">
-        <x-admin.card :title="__('Pipeline Snapshot')">
-            <div class="grid grid-cols-2 gap-2 text-sm">
-                @foreach ($pipeline as $stage => $count)
-                    <div class="flex justify-between rounded border border-erp-border/60 px-3 py-2">
-                        <span class="text-slate-600">{{ \App\Enums\RecruitmentPipelineStage::from($stage)->label() }}</span>
-                        <span class="font-medium tabular-nums">{{ $count }}</span>
-                    </div>
-                @endforeach
-            </div>
-            <a href="{{ route('admin.hr.recruitment.applications.pipeline') }}" class="erp-btn-secondary mt-4 inline-block text-xs">{{ __('View pipeline') }}</a>
-        </x-admin.card>
-
-        <x-admin.card :title="__('Recent Applications')">
-            @forelse ($recentApplications as $application)
-                <div class="border-b border-slate-100 py-2 text-sm last:border-0">
-                    <a href="{{ route('admin.hr.recruitment.applications.show', $application) }}" class="font-medium text-erp-primary hover:underline">
-                        {{ $application->candidate->full_name }}
-                    </a>
-                    <p class="text-xs text-slate-500">{{ $application->vacancy->title }} · {{ $application->stage->label() }}</p>
-                </div>
-            @empty
-                <p class="text-sm text-slate-500">{{ __('No applications yet.') }}</p>
-            @endforelse
-        </x-admin.card>
-    </div>
-
-    <div class="mt-6 flex flex-wrap gap-2">
-        <a href="{{ route('admin.hr.recruitment.requisitions.index') }}" class="erp-btn-secondary text-xs">{{ __('Requisitions') }}</a>
-        <a href="{{ route('admin.hr.recruitment.vacancies.index') }}" class="erp-btn-secondary text-xs">{{ __('Vacancies') }}</a>
-        <a href="{{ route('admin.hr.recruitment.applications.index') }}" class="erp-btn-secondary text-xs">{{ __('Applications') }}</a>
-    </div>
+    @if ($tab === 'applications')
+        @include('admin.hr.recruitment.partials.workspace-applications')
+    @elseif ($tab === 'vacancies')
+        @include('admin.hr.recruitment.partials.workspace-vacancies')
+    @elseif ($tab === 'requisitions')
+        @include('admin.hr.recruitment.partials.workspace-requisitions')
+    @else
+        @include('admin.hr.recruitment.partials.workspace-pipeline')
+    @endif
 </x-admin-layout>

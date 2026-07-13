@@ -3,7 +3,7 @@
     :breadcrumbs="[
         ['label' => __('HR'), 'url' => route('admin.workspaces.hr')],
         ['label' => __('Recruitment'), 'url' => route('admin.hr.recruitment.dashboard')],
-        ['label' => __('Requisitions'), 'url' => route('admin.hr.recruitment.requisitions.index')],
+        ['label' => __('Requisitions'), 'url' => route('admin.hr.recruitment.dashboard', ['tab' => 'requisitions'])],
         ['label' => __('New')],
     ]"
     maxWidth="3xl"

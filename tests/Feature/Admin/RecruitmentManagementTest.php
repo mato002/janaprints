@@ -197,8 +197,10 @@ class RecruitmentManagementTest extends TestCase
         $viewer->assignRole($role);
 
         $this->actingAs($viewer)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
             ->get(route('admin.hr.recruitment.dashboard'))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee(__('Pipeline'));
 
         $this->actingAs($viewer)
             ->get(route('admin.hr.recruitment.vacancies.create'))
@@ -208,6 +210,34 @@ class RecruitmentManagementTest extends TestCase
         $this->actingAs($hr)
             ->get(route('admin.hr.recruitment.vacancies.create'))
             ->assertOk();
+    }
+
+    public function test_recruitment_workspace_tabs_render(): void
+    {
+        $hr = $this->hrUser();
+
+        $this->actingAs($hr)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.recruitment.dashboard', ['tab' => 'pipeline']))
+            ->assertOk()
+            ->assertSee(__('Pipeline'))
+            ->assertSee(__('Applications'))
+            ->assertSee(__('Vacancies'))
+            ->assertSee(__('Requisitions'));
+
+        $this->actingAs($hr)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.hr.recruitment.dashboard', ['tab' => 'vacancies']))
+            ->assertOk()
+            ->assertSee(__('Vacancies'));
+
+        $this->actingAs($hr)
+            ->get(route('admin.hr.recruitment.applications.index'))
+            ->assertRedirect(route('admin.hr.recruitment.dashboard', ['tab' => 'applications']));
+
+        $this->actingAs($hr)
+            ->get(route('admin.hr.recruitment.applications.pipeline'))
+            ->assertRedirect(route('admin.hr.recruitment.dashboard', ['tab' => 'pipeline']));
     }
 
     public function test_http_vacancy_and_application_flow(): void

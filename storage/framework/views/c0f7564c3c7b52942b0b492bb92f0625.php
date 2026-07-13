@@ -1,3 +1,8 @@
+<?php
+    use App\Support\Navigation\WorkspaceEmbed;
+    $turboFrame = WorkspaceEmbed::turboFrame();
+?>
+
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal91fdd17964e43374ae18c674f95cdaa3 = $attributes; } ?>
 <?php $component = App\View\Components\AdminLayout::resolve(['title' => __('Recruitment'),'breadcrumbs' => [['label' => __('HR'), 'url' => route('admin.workspaces.hr')], ['label' => __('Recruitment')]]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -19,10 +24,22 @@
 <?php endif; ?>
 <?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Recruitment & Hiring')),'description' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Job requisitions, vacancies, candidate pipeline, interviews, offers, and onboarding.'))]); ?>
          <?php $__env->slot('actions', null, []); ?> 
-            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Hr\Vacancy::class)): ?>
-                <a href="<?php echo e(route('admin.hr.recruitment.vacancies.create')); ?>" class="erp-btn-primary"><?php echo e(__('New vacancy')); ?></a>
+            <?php if(($tab ?? 'pipeline') === 'requisitions'): ?>
+                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Hr\JobRequisition::class)): ?>
+                    <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.requisitions.create'))); ?>" class="erp-btn-primary" data-erp-modal-open><?php echo e(__('New requisition')); ?></a>
+                <?php endif; ?>
+            <?php elseif(($tab ?? 'pipeline') === 'vacancies'): ?>
+                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Hr\Vacancy::class)): ?>
+                    <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.vacancies.create'))); ?>" class="erp-btn-primary" data-erp-modal-open><?php echo e(__('New vacancy')); ?></a>
+                <?php endif; ?>
+            <?php else: ?>
+                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Hr\JobApplication::class)): ?>
+                    <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.applications.create'))); ?>" class="erp-btn-secondary" data-erp-modal-open><?php echo e(__('New application')); ?></a>
+                <?php endif; ?>
+                <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Hr\Vacancy::class)): ?>
+                    <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.vacancies.create'))); ?>" class="erp-btn-primary" data-erp-modal-open><?php echo e(__('New vacancy')); ?></a>
+                <?php endif; ?>
             <?php endif; ?>
-            <a href="<?php echo e(route('admin.hr.recruitment.applications.pipeline')); ?>" class="erp-btn-secondary"><?php echo e(__('Pipeline')); ?></a>
          <?php $__env->endSlot(); ?>
      <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
@@ -35,23 +52,22 @@
 <?php unset($__componentOriginalcb19cb35a534439097b02b8af91726ee); ?>
 <?php endif; ?>
 
+    <?php if(session('status')): ?>
+        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><?php echo e(session('status')); ?></div>
+    <?php endif; ?>
+
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <?php $__currentLoopData = [
-            ['label' => __('Open Vacancies'), 'value' => $stats['open_vacancies'], 'icon' => 'briefcase'],
-            ['label' => __('Active Applications'), 'value' => $stats['active_applications'], 'icon' => 'users'],
-            ['label' => __('Upcoming Interviews'), 'value' => $stats['upcoming_interviews'], 'icon' => 'calendar'],
-            ['label' => __('Pending Onboarding'), 'value' => $stats['pending_onboarding'], 'icon' => 'clipboard-check'],
-        ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+        <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => 'vacancies'])))); ?>" data-turbo-frame="<?php echo e($turboFrame); ?>" class="block rounded-lg transition hover:ring-2 hover:ring-erp-accent/30">
             <?php if (isset($component)) { $__componentOriginal6d3db93990d768743336ad0c9a75de7b = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal6d3db93990d768743336ad0c9a75de7b = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.kpi-widget','data' => ['label' => $card['label'],'value' => $card['value'],'icon' => $card['icon']]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.kpi-widget','data' => ['label' => __('Open Vacancies'),'value' => $stats['open_vacancies'],'icon' => 'briefcase']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.kpi-widget'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($card['label']),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($card['value']),'icon' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($card['icon'])]); ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Open Vacancies')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($stats['open_vacancies']),'icon' => 'briefcase']); ?>
 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
@@ -62,78 +78,104 @@
 <?php $component = $__componentOriginal6d3db93990d768743336ad0c9a75de7b; ?>
 <?php unset($__componentOriginal6d3db93990d768743336ad0c9a75de7b); ?>
 <?php endif; ?>
+        </a>
+        <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => 'applications'])))); ?>" data-turbo-frame="<?php echo e($turboFrame); ?>" class="block rounded-lg transition hover:ring-2 hover:ring-erp-accent/30">
+            <?php if (isset($component)) { $__componentOriginal6d3db93990d768743336ad0c9a75de7b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6d3db93990d768743336ad0c9a75de7b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.kpi-widget','data' => ['label' => __('Active Applications'),'value' => $stats['active_applications'],'icon' => 'users']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.kpi-widget'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Active Applications')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($stats['active_applications']),'icon' => 'users']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
+<?php $attributes = $__attributesOriginal6d3db93990d768743336ad0c9a75de7b; ?>
+<?php unset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
+<?php $component = $__componentOriginal6d3db93990d768743336ad0c9a75de7b; ?>
+<?php unset($__componentOriginal6d3db93990d768743336ad0c9a75de7b); ?>
+<?php endif; ?>
+        </a>
+        <a href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => 'pipeline'])))); ?>" data-turbo-frame="<?php echo e($turboFrame); ?>" class="block rounded-lg transition hover:ring-2 hover:ring-erp-accent/30">
+            <?php if (isset($component)) { $__componentOriginal6d3db93990d768743336ad0c9a75de7b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6d3db93990d768743336ad0c9a75de7b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.kpi-widget','data' => ['label' => __('Upcoming Interviews'),'value' => $stats['upcoming_interviews'],'icon' => 'calendar']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.kpi-widget'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Upcoming Interviews')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($stats['upcoming_interviews']),'icon' => 'calendar']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
+<?php $attributes = $__attributesOriginal6d3db93990d768743336ad0c9a75de7b; ?>
+<?php unset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
+<?php $component = $__componentOriginal6d3db93990d768743336ad0c9a75de7b; ?>
+<?php unset($__componentOriginal6d3db93990d768743336ad0c9a75de7b); ?>
+<?php endif; ?>
+        </a>
+        <?php if (isset($component)) { $__componentOriginal6d3db93990d768743336ad0c9a75de7b = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal6d3db93990d768743336ad0c9a75de7b = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.kpi-widget','data' => ['label' => __('Pending Onboarding'),'value' => $stats['pending_onboarding'],'icon' => 'clipboard-check']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.kpi-widget'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Pending Onboarding')),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($stats['pending_onboarding']),'icon' => 'clipboard-check']); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
+<?php $attributes = $__attributesOriginal6d3db93990d768743336ad0c9a75de7b; ?>
+<?php unset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
+<?php $component = $__componentOriginal6d3db93990d768743336ad0c9a75de7b; ?>
+<?php unset($__componentOriginal6d3db93990d768743336ad0c9a75de7b); ?>
+<?php endif; ?>
+    </div>
+
+    <nav class="mt-6 mb-4 flex flex-wrap gap-2 border-b border-slate-200 pb-2" aria-label="<?php echo e(__('Recruitment sections')); ?>">
+        <?php
+            $recruitmentTabs = [
+                'pipeline' => __('Pipeline'),
+                'applications' => __('Applications'),
+                'vacancies' => __('Vacancies'),
+                'requisitions' => __('Requisitions'),
+            ];
+        ?>
+        <?php $__currentLoopData = $recruitmentTabs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $id => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <a
+                href="<?php echo e(WorkspaceEmbed::url(route('admin.hr.recruitment.dashboard', WorkspaceEmbed::queryParams(['tab' => $id])))); ?>"
+                data-turbo-frame="<?php echo e($turboFrame); ?>"
+                class="<?php echo \Illuminate\Support\Arr::toCssClasses([
+                    'rounded-md px-3 py-1.5 text-sm font-medium',
+                    'bg-erp-primary text-white' => $tab === $id,
+                    'text-slate-600 hover:bg-slate-100' => $tab !== $id,
+                ]); ?>"
+            ><?php echo e($label); ?></a>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-    </div>
+    </nav>
 
-    <div class="mt-6 grid gap-4 lg:grid-cols-2">
-        <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['title' => __('Pipeline Snapshot')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.card'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Pipeline Snapshot'))]); ?>
-            <div class="grid grid-cols-2 gap-2 text-sm">
-                <?php $__currentLoopData = $pipeline; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stage => $count): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <div class="flex justify-between rounded border border-erp-border/60 px-3 py-2">
-                        <span class="text-slate-600"><?php echo e(\App\Enums\RecruitmentPipelineStage::from($stage)->label()); ?></span>
-                        <span class="font-medium tabular-nums"><?php echo e($count); ?></span>
-                    </div>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </div>
-            <a href="<?php echo e(route('admin.hr.recruitment.applications.pipeline')); ?>" class="erp-btn-secondary mt-4 inline-block text-xs"><?php echo e(__('View pipeline')); ?></a>
-         <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-
-        <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['title' => __('Recent Applications')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.card'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Recent Applications'))]); ?>
-            <?php $__empty_1 = true; $__currentLoopData = $recentApplications; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $application): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                <div class="border-b border-slate-100 py-2 text-sm last:border-0">
-                    <a href="<?php echo e(route('admin.hr.recruitment.applications.show', $application)); ?>" class="font-medium text-erp-primary hover:underline">
-                        <?php echo e($application->candidate->full_name); ?>
-
-                    </a>
-                    <p class="text-xs text-slate-500"><?php echo e($application->vacancy->title); ?> · <?php echo e($application->stage->label()); ?></p>
-                </div>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                <p class="text-sm text-slate-500"><?php echo e(__('No applications yet.')); ?></p>
-            <?php endif; ?>
-         <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-    </div>
-
-    <div class="mt-6 flex flex-wrap gap-2">
-        <a href="<?php echo e(route('admin.hr.recruitment.requisitions.index')); ?>" class="erp-btn-secondary text-xs"><?php echo e(__('Requisitions')); ?></a>
-        <a href="<?php echo e(route('admin.hr.recruitment.vacancies.index')); ?>" class="erp-btn-secondary text-xs"><?php echo e(__('Vacancies')); ?></a>
-        <a href="<?php echo e(route('admin.hr.recruitment.applications.index')); ?>" class="erp-btn-secondary text-xs"><?php echo e(__('Applications')); ?></a>
-    </div>
+    <?php if($tab === 'applications'): ?>
+        <?php echo $__env->make('admin.hr.recruitment.partials.workspace-applications', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php elseif($tab === 'vacancies'): ?>
+        <?php echo $__env->make('admin.hr.recruitment.partials.workspace-vacancies', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php elseif($tab === 'requisitions'): ?>
+        <?php echo $__env->make('admin.hr.recruitment.partials.workspace-requisitions', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php else: ?>
+        <?php echo $__env->make('admin.hr.recruitment.partials.workspace-pipeline', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php endif; ?>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal91fdd17964e43374ae18c674f95cdaa3)): ?>
