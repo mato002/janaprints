@@ -77,6 +77,7 @@
         <x-slot name="body">
             @forelse ($employees as $employee)
                 @php
+                    $showUrl = route('admin.hr.employees.show', $employee);
                     $rowActivationStatus = $activationManagement->activationDisplayStatus($employee);
                     $assignedRoles = $employee->user?->roles->pluck('name')->all() ?? [];
                     $roleLabel = filled($assignedRoles)
@@ -86,9 +87,20 @@
                             : '—');
                     $rowSearch = strtolower($employee->employee_number.' '.$employee->full_name.' '.$employee->branch->name.' '.($employee->email ?? '').' '.$roleLabel);
                 @endphp
-                <tr data-row-id="{{ $employee->id }}" x-show="rowVisible(@js($rowSearch))">
+                <tr
+                    data-row-id="{{ $employee->id }}"
+                    data-href="{{ $showUrl }}"
+                    data-turbo-frame="erp-main"
+                    role="link"
+                    tabindex="0"
+                    aria-label="{{ __('Open :name', ['name' => $employee->full_name]) }}"
+                    class="cursor-pointer"
+                    x-show="rowVisible(@js($rowSearch))"
+                    @click="if (!$event.target.closest('[data-erp-row-actions], .erp-table-checkbox-col, a, button, input, label')) { window.erpVisitUrl?.($el.dataset.href); }"
+                    @keydown.enter.prevent="if (!$event.target.closest('[data-erp-row-actions], .erp-table-checkbox-col, a, button, input, label')) { window.erpVisitUrl?.($el.dataset.href); }"
+                >
                     @can('email', App\Models\Employee::class)
-                        <td class="erp-table-checkbox-col">
+                        <td class="erp-table-checkbox-col" @click.stop>
                             @if ($employee->email)
                                 <input
                                     type="checkbox"
@@ -115,8 +127,15 @@
                     <td class="hidden lg:table-cell text-sm text-slate-600">{{ $roleLabel }}</td>
                     <td class="hidden lg:table-cell text-sm text-slate-600">{{ ucfirst($rowActivationStatus) }}</td>
                     <td class="hidden sm:table-cell">{{ $employee->branch->name }}</td>
-                    <td class="erp-table-actions-col">
+                    <td class="erp-table-actions-col" @click.stop>
                         <x-admin.table-row-actions>
+                            @can('view', $employee)
+                                <x-admin.table-row-action
+                                    :href="$showUrl"
+                                    data-turbo-frame="erp-main"
+                                    data-turbo-action="advance"
+                                >{{ __('View 360') }}</x-admin.table-row-action>
+                            @endcan
                             @can('update', $employee)
                                 <x-admin.table-row-action :href="route('admin.employees.edit', $employee)">{{ __('Edit') }}</x-admin.table-row-action>
                             @endcan

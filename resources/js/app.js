@@ -6072,6 +6072,7 @@ function shouldPromoteWorkspaceLinkToMain(href) {
             || /\/admin\/quotations\/list\/[0-9A-Za-z]{16}(\/document)?$/.test(path)
             || /\/admin\/payments\/[0-9A-Za-z]{16}(\/receipt)?$/.test(path)
             || /\/admin\/sales-orders\/list\/[0-9A-Za-z]{16}$/.test(path)
+            || /\/admin\/hr\/employees\/\d+$/.test(path)
             || /\/admin\/employees\/email\/compose$/.test(path);
     } catch {
         return false;
@@ -6302,7 +6303,9 @@ function wireEmbeddedWorkspaceLinks(root) {
                 return;
             }
 
-            const targetUrl = element.getAttribute('href') ?? element.getAttribute('action');
+            const targetUrl = element.getAttribute('href')
+                ?? element.getAttribute('data-href')
+                ?? element.getAttribute('action');
 
             if (targetUrl && shouldPromoteWorkspaceLinkToMain(targetUrl)) {
                 return;
