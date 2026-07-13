@@ -27,11 +27,23 @@
                             <td>{{ optional($row['submitted_at'])->format('Y-m-d H:i') ?: '—' }}</td>
                             <td><x-admin.enum-status-badge :status="$row['status']" /></td>
                             <td class="erp-table-actions-col">
-                                @if ($row['route'])
-                                    <a href="{{ $row['route'] }}" class="text-erp-primary hover:underline">{{ __('Open') }}</a>
-                                @else
-                                    —
-                                @endif
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @if ($row['route'])
+                                        <a href="{{ $row['route'] }}" class="text-erp-primary hover:underline">{{ __('Open') }}</a>
+                                    @endif
+                                    @if (! empty($row['can_act']) && ! empty($row['run_id']))
+                                        <form method="POST" action="{{ route('admin.procurement.approvals.approve', $row['run_id']) }}" class="inline-flex items-center gap-1">
+                                            @csrf
+                                            <input type="hidden" name="notes" value="">
+                                            <button type="submit" class="text-emerald-700 hover:underline">{{ __('Approve') }}</button>
+                                        </form>
+                                        <form method="POST" action="{{ route('admin.procurement.approvals.reject', $row['run_id']) }}" class="inline-flex items-center gap-1" onsubmit="return confirm(@js(__('Reject this approval?')));">
+                                            @csrf
+                                            <input type="text" name="reason" class="erp-toolbar-input w-28" placeholder="{{ __('Reason') }}" required>
+                                            <button type="submit" class="text-rose-700 hover:underline">{{ __('Reject') }}</button>
+                                        </form>
+                                    @endif
+                                </div>
                             </td>
                         </tr>
                     @endforeach

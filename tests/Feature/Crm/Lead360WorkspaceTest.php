@@ -34,7 +34,7 @@ class Lead360WorkspaceTest extends TestCase
     public function test_lead_360_renders_all_tabs(): void
     {
         [$company, $branch, $user, $lead] = $this->leadContext([
-            'crm.leads.view', 'crm.activities.create', 'quotations.view',
+            'crm.leads.view', 'commercial.activities.create', 'quotations.view',
             'quotations.create', 'crm.customers.create',
         ]);
 
@@ -71,7 +71,7 @@ class Lead360WorkspaceTest extends TestCase
     public function test_lead_activity_can_be_logged_from_workspace(): void
     {
         [$company, $branch, $user, $lead] = $this->leadContext([
-            'crm.leads.view', 'crm.activities.create',
+            'crm.leads.view', 'commercial.activities.create',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -93,7 +93,7 @@ class Lead360WorkspaceTest extends TestCase
     public function test_lead_360_displays_logged_activities(): void
     {
         [$company, $branch, $user, $lead] = $this->leadContext([
-            'crm.leads.view', 'crm.activities.create',
+            'crm.leads.view', 'commercial.activities.create',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);

@@ -40,6 +40,7 @@ class CommercialSalesOrderReportQueries
             SalesOrderStatus::Confirmed->value,
             SalesOrderStatus::ReadyForProduction->value,
             SalesOrderStatus::InProduction->value,
+            SalesOrderStatus::ReadyForDispatch->value,
             SalesOrderStatus::OnHold->value,
         ];
     }

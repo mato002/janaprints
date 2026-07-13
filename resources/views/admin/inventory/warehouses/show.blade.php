@@ -3,7 +3,7 @@
         <x-slot name="actions">
             <x-admin.status-badge :variant="$warehouse->is_active ? 'success' : 'neutral'">{{ $warehouse->is_active ? __('Active') : __('Inactive') }}</x-admin.status-badge>
             @if ($warehouse->is_active && auth()->user()?->can('inventory.issue'))
-                <a href="{{ route('admin.inventory.issues.create', ['warehouse_id' => $warehouse->id]) }}" class="erp-btn-secondary">{{ __('New Stock Issue') }}</a>
+                <a href="{{ route('admin.inventory.issues.create', ['warehouse_id' => $warehouse->id]) }}" class="erp-btn-secondary">{{ __('New stock issue') }}</a>
             @endif
             <x-admin.table-row-actions>
                 <x-admin.table-row-action :href="route('admin.inventory.warehouses.show', $warehouse)">{{ __('View warehouse') }}</x-admin.table-row-action>

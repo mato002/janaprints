@@ -14,11 +14,7 @@
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    @if ($canManage)
+@if ($canManage)
         <x-admin.card class="mb-4" x-data="{ open: {{ $errors->any() && ! request()->query('edit') ? 'true' : 'false' }} }">
             <div class="flex items-center justify-between gap-3 mb-3">
                 <h3 class="font-medium">{{ __('Create Ink Profile') }}</h3>

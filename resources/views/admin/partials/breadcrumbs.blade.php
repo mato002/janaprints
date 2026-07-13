@@ -20,7 +20,8 @@
                 <li class="flex items-center gap-1.5" aria-current="{{ empty($crumb['url']) ? 'page' : false }}">
                     <span class="text-slate-300" aria-hidden="true">/</span>
                     @if (! empty($crumb['url']))
-                        <a href="{{ WorkspaceEmbed::url($crumb['url']) ?? $crumb['url'] }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="transition-colors hover:text-erp-accent">{{ $crumb['label'] }}</a>
+                        {{-- Breadcrumbs always target erp-main; never keep embedded=1 on those URLs. --}}
+                        <a href="{{ WorkspaceEmbed::mainUrl($crumb['url']) ?? $crumb['url'] }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="transition-colors hover:text-erp-accent">{{ $crumb['label'] }}</a>
                     @else
                         <span class="font-medium text-erp-primary">{{ $crumb['label'] }}</span>
                     @endif

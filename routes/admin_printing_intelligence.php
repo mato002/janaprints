@@ -135,4 +135,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::get('configuration', [PrintingIntelligenceController::class, 'configuration'])
             ->middleware('permission:printing.intelligence.configure')
             ->name('configuration');
+
+        Route::post('configuration', [PrintingIntelligenceController::class, 'updateConfiguration'])
+            ->middleware('permission:printing.intelligence.configure')
+            ->name('configuration.update');
     });

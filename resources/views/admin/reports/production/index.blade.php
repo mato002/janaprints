@@ -19,12 +19,6 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <x-admin.card class="mb-4 border-emerald-200 bg-emerald-50 text-sm text-emerald-800">
-            {{ session('status') }}
-        </x-admin.card>
-    @endif
-
     @include('admin.reports.production.partials.filters', [
         'filters' => $filters,
         'branches' => $branches,

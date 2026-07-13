@@ -140,6 +140,13 @@ class QueueReadinessService
             ['command' => 'communications:follow-up-due', 'schedule' => __('Hourly'), 'configured' => true],
             ['command' => 'communications:dispatch-scheduled-email-campaigns', 'schedule' => __('Every 5 minutes'), 'configured' => true],
             ['command' => 'printing-intelligence:generate-profitability-snapshots', 'schedule' => __('Recommended nightly'), 'configured' => false],
+            ['command' => 'printing:profitability:generate --days=90', 'schedule' => __('Daily at 01:30'), 'configured' => true],
+            ['command' => 'printing:forecast:generate', 'schedule' => __('Daily at 02:00'), 'configured' => true],
+            ['command' => 'printing:advisor:generate', 'schedule' => __('Daily at 02:15'), 'configured' => true],
+            ['command' => 'printing:estimate:compare-actuals --limit=100', 'schedule' => __('Daily at 01:00'), 'configured' => true],
+            ['command' => 'printing:calibration:recommend', 'schedule' => __('Weekly Monday 03:00'), 'configured' => true],
+            ['command' => 'communications:dispatch-scheduled-events', 'schedule' => __('Recommended hourly'), 'configured' => false],
+            ['command' => 'communications:dispatch-payment-reminders', 'schedule' => __('Recommended daily'), 'configured' => false],
         ];
     }
 

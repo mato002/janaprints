@@ -11,12 +11,12 @@
         :description="__('Storefront contact form submissions from guest visitors.')"
     />
 
-    <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <x-admin.kpi-strip>
         <x-admin.kpi-widget :label="__('Unread')" :value="$stats['unread_contact_messages']" icon="inbox" />
-        <x-admin.kpi-widget :label="__('New today')" :value="$stats['new_contact_messages']" icon="mail" />
+        <x-admin.kpi-widget :label="__('New today')" :value="$stats['new_contact_messages']" icon="bell" />
         <x-admin.kpi-widget :label="__('Pending quotes')" :value="$stats['pending_quote_requests']" icon="document-text" />
         <x-admin.kpi-widget :label="__('New quotes today')" :value="$stats['new_quote_requests']" icon="sparkles" />
-    </div>
+    </x-admin.kpi-strip>
 
     <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="route('admin.public-contact-messages.index')" :reset-url="route('admin.public-contact-messages.index')">
@@ -32,61 +32,56 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('Received') }}</th>
-                        <th>{{ __('From') }}</th>
-                        <th>{{ __('Subject') }}</th>
-                        <th>{{ __('Contact') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th class="erp-table-actions-col">{{ __('Actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($contactMessages as $contactMessage)
-                        <tr>
-                            <td class="whitespace-nowrap">{{ $contactMessage->created_at->format('Y-m-d H:i') }}</td>
-                            <td>
-                                <div class="font-medium">{{ $contactMessage->name }}</div>
-                                @if ($contactMessage->company)
-                                    <div class="text-xs text-slate-500">{{ $contactMessage->company }}</div>
-                                @endif
-                            </td>
-                            <td class="max-w-xs truncate">{{ $contactMessage->subject }}</td>
-                            <td>
-                                <div>{{ $contactMessage->email }}</div>
-                                @if ($contactMessage->phone)
-                                    <div class="text-xs text-slate-500">{{ $contactMessage->phone }}</div>
-                                @endif
-                            </td>
-                            <td>
-                                <x-admin.status-badge :variant="$contactMessage->status->badgeVariant()">
-                                    {{ $contactMessage->status->label() }}
-                                </x-admin.status-badge>
-                            </td>
-                            <td class="erp-table-actions-col">
-                                <a href="{{ route('admin.public-contact-messages.show', $contactMessage) }}" class="erp-btn-secondary text-xs">{{ __('View') }}</a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="6" class="py-12 text-center text-slate-500">
-                                <p class="font-medium">{{ __('No contact messages yet') }}</p>
-                                <p class="mt-1 text-xs">{{ __('Guest contact form submissions from the storefront will appear here.') }}</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        @if ($contactMessages->hasPages())
-            <div class="border-t border-slate-100 p-4">
-                {{ $contactMessages->links() }}
-            </div>
-        @endif
-    </x-admin.card>
+    <x-admin.data-table
+        :searchable="false"
+        export-filename="contact-messages"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Received') }}</th>
+                <th scope="col">{{ __('From') }}</th>
+                <th scope="col">{{ __('Subject') }}</th>
+                <th scope="col">{{ __('Contact') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($contactMessages as $contactMessage)
+                <tr>
+                    <td class="whitespace-nowrap">{{ $contactMessage->created_at->format('Y-m-d H:i') }}</td>
+                    <td>
+                        <div class="font-medium">{{ $contactMessage->name }}</div>
+                        @if ($contactMessage->company)
+                            <div class="text-xs text-slate-500">{{ $contactMessage->company }}</div>
+                        @endif
+                    </td>
+                    <td class="max-w-xs truncate">{{ $contactMessage->subject }}</td>
+                    <td>
+                        <div>{{ $contactMessage->email }}</div>
+                        @if ($contactMessage->phone)
+                            <div class="text-xs text-slate-500">{{ $contactMessage->phone }}</div>
+                        @endif
+                    </td>
+                    <td>
+                        <x-admin.status-badge :variant="$contactMessage->status->badgeVariant()">
+                            {{ $contactMessage->status->label() }}
+                        </x-admin.status-badge>
+                    </td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.public-contact-messages.show', $contactMessage)">{{ __('View') }}</x-admin.table-row-action>
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6">
+                        <x-admin.empty-state icon="inbox" :title="__('No contact messages yet')" :description="__('Guest contact form submissions from the storefront will appear here.')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$contactMessages" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

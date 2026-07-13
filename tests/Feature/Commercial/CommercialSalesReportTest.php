@@ -32,7 +32,7 @@ class CommercialSalesReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales.index'))
+            ->get(route('admin.commercial.reports.sales.index'))
             ->assertForbidden();
     }
 
@@ -43,7 +43,7 @@ class CommercialSalesReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales.index'))
+            ->get(route('admin.commercial.reports.sales.index'))
             ->assertOk()
             ->assertSee(__('Sales Reports'), false)
             ->assertSee(__('Sales Dashboard'), false)
@@ -66,7 +66,7 @@ class CommercialSalesReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales.index'))
+            ->get(route('admin.commercial.reports.sales.index'))
             ->assertOk()
             ->assertSee(__('Total Sales'), false)
             ->assertSee('25,000', false);
@@ -79,7 +79,7 @@ class CommercialSalesReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales.index', [
+            ->get(route('admin.commercial.reports.sales.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
@@ -100,7 +100,7 @@ class CommercialSalesReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertForbidden();
     }
 
@@ -110,13 +110,13 @@ class CommercialSalesReportTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.sales.view',
-            'commercial.reports.export',
+            'commercial.reports.sales.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertRedirect()
             ->assertSessionHas('export_id');
 

@@ -11,7 +11,7 @@
             {{ trans_choice(':count row|:count rows', $rowCount, ['count' => $rowCount]) }}
         </span>
     </div>
-    <div class="overflow-x-auto">
+    <div class="erp-table-scroll">
         <table class="erp-table w-full text-sm">
             <thead>
                 <tr>

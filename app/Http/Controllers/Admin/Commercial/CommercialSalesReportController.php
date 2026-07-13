@@ -29,7 +29,7 @@ class CommercialSalesReportController extends Controller
 
     public function export(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->can('commercial.reports.export'), 403);
+        abort_unless($request->user()?->can('commercial.reports.sales.export'), 403);
 
         $format = $request->input('format', 'csv');
         if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
@@ -44,7 +44,7 @@ class CommercialSalesReportController extends Controller
             module: 'sales',
             tab: $resolved['scope']->tab,
             format: $format,
-            redirectRoute: 'commercial.reports.sales.index',
+            redirectRoute: 'admin.commercial.reports.sales.index',
         );
     }
 

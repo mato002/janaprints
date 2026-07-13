@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Stock issues')">
         <x-slot name="actions">
             @if (auth()->user()?->can('inventory.issue'))
-                <a href="{{ route('admin.inventory.issues.create') }}" class="erp-btn-primary">{{ __('New Stock Issue') }}</a>
+                <a href="{{ route('admin.inventory.issues.create') }}" class="erp-btn-primary">{{ __('New stock issue') }}</a>
             @endif
         </x-slot>
     </x-admin.page-header>

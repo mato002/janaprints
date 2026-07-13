@@ -68,6 +68,15 @@
             @can('printing.executive.view')
                 <a href="{{ route('admin.printing-intelligence.executive-intelligence') }}" class="erp-btn-secondary text-xs">{{ __('Executive Intelligence') }}</a>
             @endcan
+            @can('printing.advisor.view')
+                <a href="{{ route('admin.printing-intelligence.operations-advisor') }}" class="erp-btn-secondary text-xs">{{ __('Operations Advisor') }}</a>
+            @endcan
+            @can('printing.ink-profiles.view')
+                <a href="{{ route('admin.printing-intelligence.ink-profiles.index') }}" class="erp-btn-secondary text-xs">{{ __('Ink Profiles') }}</a>
+            @endcan
+            @can('printing.intelligence.configure')
+                <a href="{{ route('admin.printing-intelligence.configuration') }}" class="erp-btn-secondary text-xs">{{ __('Configuration') }}</a>
+            @endcan
         </div>
         <p class="mt-4 text-xs text-slate-500">{{ __('Read-only intelligence — no inventory, accounting, or production mutations from this workspace.') }}</p>
     </x-admin.card>

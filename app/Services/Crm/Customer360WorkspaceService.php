@@ -422,7 +422,7 @@ class Customer360WorkspaceService
             ];
         }
 
-        if ($user?->can('crm.activities.create')) {
+        if ($user?->can('commercial.activities.create')) {
             $actions[] = [
                 'label' => __('Log Activity'),
                 'url' => route('admin.crm.customers.show', ['customer' => $customer, 'tab' => self::TAB_ACTIVITIES]),

@@ -32,7 +32,8 @@ class CommercialPosReportPresenter
             'report_ready' => $resolved['report_ready'],
             'dashboard_kpis' => $resolved['report_ready'] ? $this->cachedDashboardKpis($scope) : $this->emptyDashboardKpis(),
             'metrics' => $resolved['report_ready'] ? $this->cachedMetrics($scope) : $this->emptyMetrics(),
-            'tabs' => $this->tabs(),
+            'report_views' => $this->tabs(),
+            'report_label' => collect($this->tabs())->firstWhere('key', $scope->tab)['label'] ?? __('Report'),
             'active_tab' => $scope->tab,
             'tab_data' => $this->presentTab($scope),
         ];

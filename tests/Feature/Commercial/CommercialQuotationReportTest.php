@@ -32,7 +32,7 @@ class CommercialQuotationReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.quotations.index'))
+            ->get(route('admin.commercial.reports.quotations.index'))
             ->assertForbidden();
     }
 
@@ -43,7 +43,7 @@ class CommercialQuotationReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.quotations.index'))
+            ->get(route('admin.commercial.reports.quotations.index'))
             ->assertOk()
             ->assertSee(__('Quotation Reports'), false)
             ->assertSee(__('Quotation Dashboard'), false)
@@ -66,7 +66,7 @@ class CommercialQuotationReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.quotations.index'))
+            ->get(route('admin.commercial.reports.quotations.index'))
             ->assertOk()
             ->assertSee(__('Quotes Issued'), false)
             ->assertSee('50,000', false);
@@ -79,7 +79,7 @@ class CommercialQuotationReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.quotations.index', [
+            ->get(route('admin.commercial.reports.quotations.index', [
                 'from_date' => '2026-02-01',
                 'to_date' => '2026-02-28',
                 'expiry_status' => 'valid',
@@ -99,7 +99,7 @@ class CommercialQuotationReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.quotations.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.quotations.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertForbidden();
     }
 
@@ -109,13 +109,13 @@ class CommercialQuotationReportTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.quotations.view',
-            'commercial.reports.export',
+            'commercial.reports.quotations.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.quotations.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.quotations.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertRedirect()
             ->assertSessionHas('export_id');
 

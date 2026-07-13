@@ -7,7 +7,7 @@
                 $query = array_merge($filters, ['tab' => $tab['key'], 'page' => 1]);
             @endphp
             <a
-                href="{{ route('commercial.reports.sales.index', $query) }}"
+                href="{{ \App\Support\Navigation\WorkspaceEmbed::url(route('admin.commercial.reports.sales.index', $query)) }}"
                 role="tab"
                 @class([
                     'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -15,7 +15,7 @@
                     'text-slate-600 hover:bg-erp-page hover:text-erp-primary' => $active_tab !== $tab['key'],
                 ])
                 @if ($active_tab === $tab['key']) aria-selected="true" @else aria-selected="false" @endif
-                data-turbo-frame="erp-main"
+                data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" data-turbo-action="advance"
             >
                 {{ $tab['label'] }}
             </a>

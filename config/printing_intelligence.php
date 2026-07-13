@@ -203,4 +203,6 @@ return [
     'advisor_enabled' => true,
 
     'advisor_formula_version' => 'PI10-V1',
+
+    'async_analysis_enabled' => env('PRINTING_INTELLIGENCE_ASYNC', true),
 ];

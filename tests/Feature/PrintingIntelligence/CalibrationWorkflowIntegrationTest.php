@@ -30,9 +30,9 @@ class CalibrationWorkflowIntegrationTest extends TestCase
 
     public function test_submit_review_approve_writes_history_without_auto_applying_to_profiles(): void
     {
-        [$rule, $approver] = $this->draftRule();
+        [$rule, $submitter, $approver] = $this->draftRule();
 
-        app(CalibrationApprovalService::class)->submitForReview($rule, $approver);
+        app(CalibrationApprovalService::class)->submitForReview($rule, $submitter);
         $rule->refresh();
         $this->assertSame(CalibrationRuleStatus::PendingReview, $rule->status);
 
@@ -50,18 +50,25 @@ class CalibrationWorkflowIntegrationTest extends TestCase
     }
 
     /**
-     * @return array{0: PrintCalibrationRule, 1: User}
+     * @return array{0: PrintCalibrationRule, 1: User, 2: User}
      */
     protected function draftRule(): array
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
         $branch = Branch::query()->where('company_id', $company->id)->firstOrFail();
 
+        $submitter = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+        ]);
+        Role::findByName('Storekeeper', 'web')->syncPermissions(['printing.calibration.manage']);
+        $submitter->assignRole('Storekeeper');
+
         $approver = User::factory()->create([
             'company_id' => $company->id,
             'default_branch_id' => $branch->id,
         ]);
-        Role::findByName('Storekeeper', 'web')->syncPermissions(['printing.calibration.approve', 'printing.calibration.manage', 'printing.calibration.review']);
+        Role::findByName('Storekeeper', 'web')->syncPermissions(['printing.calibration.approve', 'printing.calibration.review']);
         $approver->assignRole('Storekeeper');
 
         $rule = PrintCalibrationRule::query()->create([
@@ -75,6 +82,6 @@ class CalibrationWorkflowIntegrationTest extends TestCase
             'rule_version' => 'PI3-V2',
         ]);
 
-        return [$rule, $approver];
+        return [$rule, $submitter, $approver];
     }
 }

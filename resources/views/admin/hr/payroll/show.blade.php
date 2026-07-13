@@ -33,11 +33,7 @@
             @endforeach
         </nav>
 
-        @if (session('status'))
-            <div hidden data-erp-flash-status>{{ session('status') }}</div>
-        @endif
-
-        @if ($errors->any())
+@if ($errors->any())
             <div hidden data-erp-validation-errors>
                 @foreach ($errors->all() as $error)
                     <span>{{ $error }}</span>

@@ -18,7 +18,7 @@ class JobProfitabilityReportController extends Controller
         ProductProfitabilityService $products,
         SalespersonProfitabilityService $salespersons,
     ): View {
-        abort_unless(auth()->user()?->can('reports.job_profitability.view'), 403);
+        abort_unless(auth()->user()?->can('reports.costing.view|reports.view'), 403);
 
         $companyId = (int) tenant()->companyId();
         $branchId = tenant()->branchId();

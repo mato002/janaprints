@@ -9,9 +9,7 @@
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
+@include('admin.printing-intelligence.partials.environment-warnings', ['environment' => $environment ?? []])
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         @can('printing.artwork.analyze')

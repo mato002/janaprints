@@ -13,11 +13,7 @@
         </x-slot:actions>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <div class="workspace-kpi-grid grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
+<div class="workspace-kpi-grid grid grid-cols-1 gap-4 sm:grid-cols-3 mb-6">
         <x-admin.kpi-widget :label="__('Subtotal')" :value="number_format($salesOrder->subtotal, 2)" icon="currency-dollar" />
         <x-admin.kpi-widget :label="__('Tax')" :value="number_format($salesOrder->tax_amount, 2)" icon="receipt-tax" />
         <x-admin.kpi-widget :label="__('Total')" :value="number_format($salesOrder->total_amount, 2)" icon="calculator" />

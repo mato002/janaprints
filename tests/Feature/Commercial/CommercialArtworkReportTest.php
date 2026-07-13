@@ -33,7 +33,7 @@ class CommercialArtworkReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.artwork.index'))
+            ->get(route('admin.commercial.reports.artwork.index'))
             ->assertForbidden();
     }
 
@@ -44,7 +44,7 @@ class CommercialArtworkReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.artwork.index'))
+            ->get(route('admin.commercial.reports.artwork.index'))
             ->assertOk()
             ->assertSee(__('Artwork Reports'), false)
             ->assertSee(__('Artwork Dashboard'), false)
@@ -66,7 +66,7 @@ class CommercialArtworkReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.artwork.index'))
+            ->get(route('admin.commercial.reports.artwork.index'))
             ->assertOk()
             ->assertSee(__('Total Artwork Requests'), false)
             ->assertSee(__('Approved Artwork'), false);
@@ -79,7 +79,7 @@ class CommercialArtworkReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.artwork.index', [
+            ->get(route('admin.commercial.reports.artwork.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'tab' => 'pending',
@@ -97,7 +97,7 @@ class CommercialArtworkReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.artwork.export', ['format' => 'csv']))
+            ->post(route('admin.commercial.reports.artwork.export', ['format' => 'csv']))
             ->assertForbidden();
     }
 
@@ -107,13 +107,13 @@ class CommercialArtworkReportTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.artwork.view',
-            'commercial.reports.export',
+            'commercial.reports.artwork.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.artwork.export', ['format' => 'csv', 'tab' => 'requests']))
+            ->post(route('admin.commercial.reports.artwork.export', ['format' => 'csv', 'tab' => 'requests']))
             ->assertRedirect()
             ->assertSessionHas('export_id');
 

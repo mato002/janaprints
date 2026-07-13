@@ -86,7 +86,7 @@ class InboxCustomerContextService
             ['label' => __('Invoice'), 'route' => 'admin.invoices.index', 'permission' => 'invoices.create', 'params' => []],
             ['label' => __('Payment'), 'route' => 'admin.payments.create', 'permission' => 'payments.create', 'params' => $customerId],
             ['label' => __('Delivery'), 'route' => null, 'permission' => null, 'params' => []],
-            ['label' => __('Follow-up'), 'route' => 'admin.commercial.activities.create', 'permission' => 'crm.activities.create', 'params' => $customerId],
+            ['label' => __('Follow-up'), 'route' => 'admin.commercial.activities.create', 'permission' => 'commercial.activities.create', 'params' => $customerId],
         ], fn (array $item) => ! empty($item['route'])));
     }
 

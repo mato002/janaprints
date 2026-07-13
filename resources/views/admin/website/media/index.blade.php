@@ -11,11 +11,7 @@
         :description="__('Replace storefront images by section. Each slot maps to a specific public page area. Uploads override config fallbacks without deleting static files.')"
     />
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+<div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <x-admin.stat-card :label="__('Total slots')" :value="(string) $summary['total']" />
         <x-admin.stat-card :label="__('Uploaded images')" :value="(string) $summary['uploaded']" />
         <x-admin.stat-card :label="__('Inactive slots')" :value="(string) $summary['inactive']" />

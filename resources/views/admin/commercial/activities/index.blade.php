@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Customer activities')" :description="__('Calls, meetings, emails, and touchpoints.')">
         <x-slot name="actions">
             @can('create', App\Models\Crm\CustomerActivity::class)
-                <a href="{{ route('admin.commercial.activities.create') }}" class="erp-btn-primary">{{ __('Log activity') }}</a>
+                <a href="{{ route('admin.commercial.activities.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Log activity') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -44,54 +44,59 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('When') }}</th>
-                        <th>{{ __('Type') }}</th>
-                        <th>{{ __('Subject') }}</th>
-                        <th>{{ __('Customer / Lead') }}</th>
-                        <th>{{ __('Assigned') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th class="erp-table-actions-col">{{ __('Actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($activities as $activity)
-                        <tr>
-                            <td class="whitespace-nowrap">{{ $activity->activity_at->format('Y-m-d H:i') }}</td>
-                            <td>{{ ucfirst(str_replace('_', ' ', $activity->activity_type->value)) }}</td>
-                            <td class="font-medium">{{ $activity->subject }}</td>
-                            <td>
-                                @if ($activity->customer)
-                                    {{ $activity->customer->company_name }}
-                                @elseif ($activity->lead)
-                                    {{ $activity->lead->lead_name }}
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td>{{ $activity->user?->name ?? '—' }}</td>
-                            <td><x-admin.enum-status-badge :status="$activity->status->value" /></td>
-                            <td class="erp-table-actions-col">
-                                <x-admin.table-row-actions>
-                                    <x-admin.table-row-action :href="route('admin.commercial.activities.show', $activity)">{{ __('View') }}</x-admin.table-row-action>
-                                    @can('update', $activity)
-                                        <x-admin.table-row-action :href="route('admin.commercial.activities.edit', $activity)">{{ __('Edit') }}</x-admin.table-row-action>
-                                    @endcan
-                                </x-admin.table-row-actions>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7" class="py-8 text-center text-slate-500">{{ __('No activities found.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="border-t border-erp-border px-4 py-3">
-            <x-admin.table-pagination :paginator="$activities" />
-        </div>
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search activities…')"
+        export-filename="customer-activities"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('When') }}</th>
+                <th scope="col">{{ __('Type') }}</th>
+                <th scope="col">{{ __('Subject') }}</th>
+                <th scope="col">{{ __('Customer / Lead') }}</th>
+                <th scope="col">{{ __('Assigned') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($activities as $activity)
+                @php
+                    $party = $activity->customer?->company_name ?? $activity->lead?->lead_name ?? '';
+                    $search = strtolower($activity->subject.' '.$activity->activity_type->value.' '.$party.' '.($activity->user?->name ?? '').' '.$activity->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td class="whitespace-nowrap">{{ $activity->activity_at->format('Y-m-d H:i') }}</td>
+                    <td>{{ ucfirst(str_replace('_', ' ', $activity->activity_type->value)) }}</td>
+                    <td class="font-medium">{{ $activity->subject }}</td>
+                    <td>
+                        @if ($activity->customer)
+                            {{ $activity->customer->company_name }}
+                        @elseif ($activity->lead)
+                            {{ $activity->lead->lead_name }}
+                        @else
+                            —
+                        @endif
+                    </td>
+                    <td>{{ $activity->user?->name ?? '—' }}</td>
+                    <td><x-admin.enum-status-badge :status="$activity->status->value" /></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.commercial.activities.show', $activity)">{{ __('View') }}</x-admin.table-row-action>
+                            @can('update', $activity)
+                                <x-admin.table-row-action :href="route('admin.commercial.activities.edit', $activity)">{{ __('Edit') }}</x-admin.table-row-action>
+                            @endcan
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7">
+                        <x-admin.empty-state icon="clipboard-list" :title="__('No activities found')" :description="__('Log a call, meeting, or email to start the trail.')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$activities" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

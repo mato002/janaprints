@@ -32,7 +32,7 @@ class CommercialSalesOrderReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales_orders.index'))
+            ->get(route('admin.commercial.reports.sales_orders.index'))
             ->assertForbidden();
     }
 
@@ -43,7 +43,7 @@ class CommercialSalesOrderReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales_orders.index'))
+            ->get(route('admin.commercial.reports.sales_orders.index'))
             ->assertOk()
             ->assertSee(__('Sales Order Reports'), false)
             ->assertSee(__('Order Dashboard'), false)
@@ -66,7 +66,7 @@ class CommercialSalesOrderReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales_orders.index'))
+            ->get(route('admin.commercial.reports.sales_orders.index'))
             ->assertOk()
             ->assertSee(__('Total Orders'), false)
             ->assertSee('45,000', false);
@@ -79,7 +79,7 @@ class CommercialSalesOrderReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales_orders.index', [
+            ->get(route('admin.commercial.reports.sales_orders.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
@@ -101,7 +101,7 @@ class CommercialSalesOrderReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.sales_orders.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.sales_orders.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertForbidden();
     }
 
@@ -111,18 +111,60 @@ class CommercialSalesOrderReportTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.sales_orders.view',
-            'commercial.reports.export',
+            'commercial.reports.sales_orders.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.sales_orders.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.sales_orders.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertRedirect()
             ->assertSessionHas('export_id');
 
         Queue::assertPushed(ProcessCommercialReportExportJob::class);
         $this->assertNotNull(CommercialReportExport::query()->find(session('export_id')));
+    }
+
+    public function test_default_date_range_includes_orders_from_recent_months(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['commercial.reports.sales_orders.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => SalesOrderStatus::Confirmed,
+            'order_date' => now()->subMonths(2)->toDateString(),
+            'total_amount' => 12000,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.reports.sales_orders.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('12,000', false);
+    }
+
+    public function test_ready_for_dispatch_orders_appear_in_open_tab(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['commercial.reports.sales_orders.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'status' => SalesOrderStatus::ReadyForDispatch,
+            'order_date' => now()->toDateString(),
+            'total_amount' => 8800,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.reports.sales_orders.index', ['tab' => 'open', 'embedded' => '1']))
+            ->assertOk()
+            ->assertSee($order->order_number, false);
     }
 
     /**

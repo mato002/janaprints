@@ -24,7 +24,7 @@ class AdminIndexToolbarTest extends TestCase
 
     public function test_activities_index_renders_compact_toolbar_without_apply_button(): void
     {
-        [$company, $branch, $user] = $this->tenantUser(['crm.activities.view']);
+        [$company, $branch, $user] = $this->tenantUser(['commercial.activities.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -38,7 +38,7 @@ class AdminIndexToolbarTest extends TestCase
 
     public function test_activities_status_filter_persists_in_query_string(): void
     {
-        [$company, $branch, $user] = $this->tenantUser(['crm.activities.view']);
+        [$company, $branch, $user] = $this->tenantUser(['commercial.activities.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 

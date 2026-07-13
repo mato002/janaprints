@@ -249,7 +249,9 @@ class InventoryValuationService
                 $glBalance = LedgerSignedBalance::balanceSheetAmount(
                     (float) $agg->total_debit,
                     (float) $agg->total_credit,
-                    NormalBalance::from($account->normal_balance),
+                    $account->normal_balance instanceof NormalBalance
+                        ? $account->normal_balance
+                        : NormalBalance::from($account->normal_balance),
                 );
             }
         }

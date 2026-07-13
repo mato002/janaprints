@@ -3,7 +3,7 @@
 ## Implementation Report
 
 **Module:** Commercial → Point Of Sale → POS Intelligence  
-**Route:** `commercial.pos.reports.index`  
+**Route:** `admin.commercial.pos.reports.index`  
 **Audience:** Branch Manager, Sales, Cashiers (view), Company Admin (view + export)  
 **Scope:** Departmental POS operational intelligence — not Executive Intelligence.
 
@@ -34,8 +34,8 @@ KPIs show `—` with hint when core sources are not ready. Returns metrics fall 
 
 | Method | URI | Name | Permission |
 |--------|-----|------|------------|
-| GET | `/admin/commercial/pos/intelligence` | `commercial.pos.reports.index` | `commercial.pos.reports.view` |
-| POST | `/admin/commercial/pos/intelligence/export` | `commercial.pos.reports.export` | `commercial.pos.reports.export` |
+| GET | `/admin/commercial/pos/intelligence` | `admin.commercial.pos.reports.index` | `admin.commercial.pos.reports.view` |
+| POST | `/admin/commercial/pos/intelligence/export` | `admin.commercial.pos.reports.export` | `admin.commercial.pos.reports.export` |
 
 **File:** `routes/admin_commercial.php`  
 **Middleware:** `auth`, `verified`, `tenant`, `CaptureWorkspaceNavigationQuery`
@@ -108,8 +108,8 @@ Branch scoping follows tenant branch unless user has `commercial.pos.sessions.ad
 
 | Permission | Purpose |
 |------------|---------|
-| `commercial.pos.reports.view` | Access POS Intelligence workspace |
-| `commercial.pos.reports.export` | Queue PDF/Excel/CSV exports |
+| `admin.commercial.pos.reports.view` | Access POS Intelligence workspace |
+| `admin.commercial.pos.reports.export` | Queue PDF/Excel/CSV exports |
 
 **Seeder:** `database/seeders/RolesAndPermissionsSeeder.php`  
 **Catalog:** `config/permission_catalog.php` → `commercial.pos` extras

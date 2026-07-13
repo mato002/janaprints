@@ -53,8 +53,8 @@ class CommercialSalesOrderReportScopeResolver
         $scope = new CommercialSalesOrderReportScope(
             companyId: (int) $companyId,
             branchId: $branchId,
-            fromDate: (string) $request->input('from_date', now()->startOfMonth()->toDateString()),
-            toDate: (string) $request->input('to_date', now()->toDateString()),
+            fromDate: (string) $request->input('from_date', CommercialReportDateDefaults::defaultFromDate()),
+            toDate: (string) $request->input('to_date', CommercialReportDateDefaults::defaultToDate()),
             customerId: $request->filled('customer_id') ? (int) $request->input('customer_id') : null,
             salespersonId: $request->filled('salesperson_id') ? (int) $request->input('salesperson_id') : null,
             status: $request->filled('status') ? (string) $request->input('status') : null,
@@ -99,7 +99,7 @@ class CommercialSalesOrderReportScopeResolver
             'branches' => $branches,
             'customers' => $customers,
             'salespersons' => $salespersons,
-            'can_export' => $user?->can('commercial.reports.export') ?? false,
+            'can_export' => $user?->can('commercial.reports.sales_orders.export') ?? false,
             'filters' => [
                 'from_date' => $scope->fromDate,
                 'to_date' => $scope->toDate,

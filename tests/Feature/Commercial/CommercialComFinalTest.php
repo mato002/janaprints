@@ -42,7 +42,7 @@ class CommercialComFinalTest extends TestCase
         $service->assertOk();
         $service->assertSee(route('admin.commercial.complaints.index'), false);
         $service->assertSee(route('admin.commercial.support-tickets.index'), false);
-        $service->assertSee(__('Select a customer to view profile'), false);
+        $service->assertDontSee(__('Customer 360'), false);
         $service->assertDontSee(__('Coming Soon'), false);
     }
 
@@ -60,7 +60,7 @@ class CommercialComFinalTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(__('Commercial 360'), false);
-        $response->assertSee(route('commercial.reports.sales.index'), false);
+        $response->assertSee(route('admin.commercial.reports.sales.index'), false);
         $response->assertDontSee(__('Placeholder — module not connected yet'), false);
     }
 

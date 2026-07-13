@@ -62,6 +62,11 @@ class SetTenantContext
             isSuperAdmin: $isSuperAdmin,
         ));
 
+        if ($company) {
+            app(\App\Services\PrintingIntelligence\PrintingIntelligenceConfigurationService::class)
+                ->applyRuntimeOverrides((int) $company->id);
+        }
+
         return $next($request);
     }
 }

@@ -26,6 +26,16 @@
         </div>
 
         <div class="qr-360__pi-modal-body">
+            <template x-if="piSummary?.environment?.warnings?.length">
+                <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 mb-4">
+                    <ul class="list-disc space-y-1 pl-4">
+                        <template x-for="warning in piSummary.environment.warnings" :key="warning">
+                            <li x-text="warning"></li>
+                        </template>
+                    </ul>
+                </div>
+            </template>
+
             <div x-show="piAnalysisLoading" class="qr-360__pi-modal-loading">
                 <p class="text-sm text-slate-500">{{ __('Running analysis…') }}</p>
             </div>
@@ -549,6 +559,17 @@
                         @csrf
                         <button type="submit" class="crm-360__btn crm-360__btn--ghost crm-360__btn--sm" :disabled="piAnalysisLoading">{{ __('Quotation') }}</button>
                     </form>
+                @endcan
+                @can('printing.quotation.apply-estimate')
+                    <template x-if="piSummary?.quotation_estimate?.can_apply">
+                        <form method="POST" :action="piApplyUrl" class="inline" @submit.prevent="submitPiForm($event)">
+                            @csrf
+                            <input type="hidden" name="confirm_apply" value="1">
+                            <button type="submit" class="crm-360__btn crm-360__btn--outline crm-360__btn--sm" :disabled="piAnalysisLoading">
+                                {{ __('Apply to quotation') }}
+                            </button>
+                        </form>
+                    </template>
                 @endcan
             </div>
 

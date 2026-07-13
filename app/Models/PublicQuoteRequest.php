@@ -84,6 +84,11 @@ class PublicQuoteRequest extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
+    public function quotation(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Sales\Quotation::class);
+    }
+
     public function notes(): HasMany
     {
         return $this->hasMany(PublicQuoteRequestNote::class)->latest();

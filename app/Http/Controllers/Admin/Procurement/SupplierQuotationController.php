@@ -73,6 +73,44 @@ class SupplierQuotationController extends Controller
         return view('admin.procurement.quotations.show', compact('quotation'));
     }
 
+    public function edit(SupplierQuotation $quotation): View
+    {
+        $this->authorize('update', $quotation);
+
+        $quotation->load(['items.inventoryItem', 'vendor']);
+
+        return view('admin.procurement.quotations.edit', array_merge(
+            ['quotation' => $quotation],
+            $this->formMeta(),
+        ));
+    }
+
+    public function update(Request $request, SupplierQuotation $quotation): RedirectResponse
+    {
+        $this->authorize('update', $quotation);
+
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
+        $header = $this->validateHeader($request, $companyId);
+        $lines = $this->validateLines($request, $companyId, $branchId);
+        $subtotal = collect($lines)->sum(fn (array $line) => (float) $line['line_total']);
+
+        $quotation->update([
+            ...$header,
+            'subtotal' => $subtotal,
+            'total_amount' => $subtotal,
+        ]);
+
+        $quotation->items()->delete();
+
+        foreach ($lines as $line) {
+            $quotation->items()->create($line);
+        }
+
+        return redirect()
+            ->route('admin.procurement.quotations.show', $quotation)
+            ->with('status', __('Supplier quotation updated.'));
+    }
+
     public function destroy(SupplierQuotation $quotation): RedirectResponse
     {
         $this->authorize('delete', $quotation);

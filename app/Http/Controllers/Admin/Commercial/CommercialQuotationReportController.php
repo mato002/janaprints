@@ -28,7 +28,7 @@ class CommercialQuotationReportController extends Controller
 
     public function export(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->can('commercial.reports.export'), 403);
+        abort_unless($request->user()?->can('commercial.reports.quotations.export'), 403);
 
         $format = $request->input('format', 'csv');
         if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
@@ -43,7 +43,7 @@ class CommercialQuotationReportController extends Controller
             module: 'quotations',
             tab: $resolved['scope']->tab,
             format: $format,
-            redirectRoute: 'commercial.reports.quotations.index',
+            redirectRoute: 'admin.commercial.reports.quotations.index',
         );
     }
 

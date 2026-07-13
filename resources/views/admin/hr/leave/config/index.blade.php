@@ -16,11 +16,7 @@
             </x-slot>
         </x-admin.page-header>
 
-        @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-        @endif
-
-        <div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
             @foreach ([
                 ['label' => __('Leave Types'), 'value' => $stats['leave_types']],
                 ['label' => __('Holidays'), 'value' => $stats['holidays']],

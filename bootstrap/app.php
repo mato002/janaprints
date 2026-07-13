@@ -69,6 +69,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\PromoteEmbeddedWorkspaceRequest::class,
             \App\Http\Middleware\RedirectToModuleWorkspaceShell::class,
             \App\Http\Middleware\HandleModalFormResponse::class,
+            \App\Http\Middleware\EnsureAdminMutationFlash::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
@@ -79,6 +80,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('communications:payment-reminders')->dailyAt('08:00');
         $schedule->command('communications:follow-up-due')->hourly();
         $schedule->command('communications:dispatch-scheduled-email-campaigns')->everyFiveMinutes();
+
+        $schedule->command('printing:estimate:compare-actuals --limit=100')->dailyAt('01:00');
+        $schedule->command('printing:profitability:generate --days=90')->dailyAt('01:30');
+        $schedule->command('printing:forecast:generate')->dailyAt('02:00');
+        $schedule->command('printing:advisor:generate')->dailyAt('02:15');
+        $schedule->command('printing:calibration:recommend')->weeklyOn(1, '03:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

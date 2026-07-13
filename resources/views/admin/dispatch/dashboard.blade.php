@@ -1,6 +1,9 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $d = $dashboard;
     $focus = request('focus', 'ready');
+    $listFrame = WorkspaceEmbed::turboFrame();
 @endphp
 <x-admin-layout
     :title="__('Dispatch Desk')"
@@ -13,10 +16,12 @@
         :title="__('Dispatch Desk')"
         :description="__('Ready jobs and delivery notes in one place — create notes, dispatch, and confirm delivery.')"
     >
+        <x-slot name="secondary">
+            <a href="{{ WorkspaceEmbed::url(route('admin.dispatch.calendar')) }}" class="erp-btn-secondary" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('Calendar') }}</a>
+        </x-slot>
         <x-slot name="actions">
-            <a href="{{ route('admin.dispatch.calendar', ['embedded' => request('embedded')]) }}" class="erp-btn-secondary" data-turbo-frame="module-workspace-content">{{ __('Calendar') }}</a>
             @can('viewAny', App\Models\Dispatch\DeliveryNote::class)
-                <a href="{{ route('admin.dispatch.delivery-notes.index', ['embedded' => request('embedded')]) }}" class="erp-btn-primary" data-turbo-frame="module-workspace-content">{{ __('All delivery notes') }}</a>
+                <a href="{{ WorkspaceEmbed::url(route('admin.dispatch.delivery-notes.index')) }}" class="erp-btn-primary" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('All delivery notes') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -24,9 +29,10 @@
     <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         @foreach ($d['summary'] as $card)
             <a
-                href="{{ route('admin.dispatch.dashboard', array_merge(request()->only('embedded'), $card['filter'] ?? [])) }}"
+                href="{{ WorkspaceEmbed::url(route('admin.dispatch.dashboard', $card['filter'] ?? [])) }}"
                 class="block transition-opacity hover:opacity-90"
-                data-turbo-frame="module-workspace-content"
+                data-turbo-frame="{{ $listFrame }}"
+                data-turbo-action="advance"
             >
                 <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" />
             </a>
@@ -56,7 +62,7 @@
                     @forelse ($d['ready_jobs'] as $job)
                         <tr>
                             <td class="font-mono text-xs whitespace-nowrap">
-                                <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch', 'embedded' => request('embedded')]) }}" class="text-erp-accent hover:underline" data-turbo-frame="erp-main">
+                                <a href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl(route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch'])) }}" class="text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">
                                     {{ $job->job_card_number }}
                                 </a>
                             </td>
@@ -77,7 +83,7 @@
                                         <button type="submit" class="erp-btn-primary text-xs py-1">{{ __('Create delivery note') }}</button>
                                     </form>
                                 @else
-                                    <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch', 'embedded' => request('embedded')]) }}" class="text-sm text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('Open job') }}</a>
+                                    <a href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl(route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch'])) }}" class="text-sm text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open job') }}</a>
                                 @endif
                             </td>
                         </tr>
@@ -148,8 +154,8 @@
     <p class="mt-4 text-xs text-slate-500">
         {{ __('Invoice-ready delivered notes: :count', ['count' => $d['invoice_ready']]) }}
         ·
-        <a href="{{ route('admin.dispatch.reports.transit-inventory', ['embedded' => request('embedded')]) }}" class="erp-link" data-turbo-frame="module-workspace-content">{{ __('Transit inventory') }}</a>
+        <a href="{{ WorkspaceEmbed::url(route('admin.dispatch.reports.transit-inventory')) }}" class="erp-link" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('Transit inventory') }}</a>
         ·
-        <a href="{{ route('admin.dispatch.reports.cogs-postings', ['embedded' => request('embedded')]) }}" class="erp-link" data-turbo-frame="module-workspace-content">{{ __('COGS postings') }}</a>
+        <a href="{{ WorkspaceEmbed::url(route('admin.dispatch.reports.cogs-postings')) }}" class="erp-link" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('COGS postings') }}</a>
     </p>
 </x-admin-layout>

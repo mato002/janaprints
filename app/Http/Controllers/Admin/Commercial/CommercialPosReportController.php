@@ -45,7 +45,7 @@ class CommercialPosReportController extends Controller
             module: 'pos',
             tab: $resolved['scope']->tab,
             format: $format,
-            redirectRoute: 'commercial.pos.reports.index',
+            redirectRoute: 'admin.commercial.pos.reports.index',
         );
     }
 

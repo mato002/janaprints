@@ -63,6 +63,12 @@ class CalibrationApprovalService
             ]);
         }
 
+        if ((int) $rule->reviewed_by === (int) $user->id) {
+            throw ValidationException::withMessages([
+                'approval' => __('You cannot approve a calibration rule you submitted for review.'),
+            ]);
+        }
+
         $run = $this->engine->latestRun($rule);
         if ($run !== null && $run->status === ApprovalChainRunStatus::Pending) {
             $this->engine->recordApproval($rule, $user, $notes);

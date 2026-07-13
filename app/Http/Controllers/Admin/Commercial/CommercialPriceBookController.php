@@ -87,9 +87,16 @@ class CommercialPriceBookController extends Controller
 
         $priceBook->load(['items.inventoryItem:id,item_name,sku', 'customerAssignments.customer:id,company_name', 'branch:id,name']);
 
+        $assignedCustomerIds = $priceBook->customerAssignments->pluck('customer_id')->filter()->values();
+
         return view('admin.commercial.price-books.show', [
             'priceBook' => $priceBook,
             'inventoryItems' => InventoryItem::query()->forTenant()->orderBy('item_name')->limit(200)->get(['id', 'item_name', 'sku']),
+            'customers' => Customer::query()
+                ->where('company_id', $priceBook->company_id)
+                ->when($assignedCustomerIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $assignedCustomerIds))
+                ->orderBy('company_name')
+                ->get(['id', 'company_name']),
         ]);
     }
 
@@ -137,14 +144,16 @@ class CommercialPriceBookController extends Controller
         $this->authorize('update', $priceBook);
 
         $validated = $request->validate([
-            'inventory_item_id' => ['nullable', 'exists:inventory_items,id'],
-            'service_code' => ['nullable', 'string', 'max:60'],
+            'inventory_item_id' => ['nullable', 'required_without:service_code', 'exists:inventory_items,id'],
+            'service_code' => ['nullable', 'required_without:inventory_item_id', 'string', 'max:60'],
             'description' => ['nullable', 'string', 'max:255'],
             'unit_price' => ['required', 'numeric', 'min:0'],
             'minimum_quantity' => ['nullable', 'numeric', 'min:0'],
             'discount_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
-            'status' => ['required', Rule::enum(CommercialPriceBookStatus::class)],
+            'status' => ['nullable', Rule::enum(CommercialPriceBookStatus::class)],
         ]);
+
+        $validated['status'] = $validated['status'] ?? CommercialPriceBookStatus::Active;
 
         $priceBook->items()->create($validated);
 

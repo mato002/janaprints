@@ -39,7 +39,7 @@ class CommercialWorkspaceRestructureTest extends TestCase
     public function test_crm_section_renders_workspace_switchers_and_embedded_content(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
-            'crm.customers.view', 'crm.leads.view', 'crm.activities.view',
+            'crm.customers.view', 'crm.leads.view', 'commercial.activities.view',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -70,7 +70,7 @@ class CommercialWorkspaceRestructureTest extends TestCase
     public function test_user_without_pos_permission_cannot_see_pos_workspace_tab(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
-            'crm.activities.view', 'crm.customers.view',
+            'commercial.activities.view', 'crm.customers.view',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);

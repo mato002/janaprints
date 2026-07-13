@@ -2,7 +2,7 @@
 
 namespace App\Http\Requests\Admin\Production;
 
-use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionOutput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +10,7 @@ class StoreProductionOutputRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->can('production.outputs.post') ?? false;
+        return $this->user()?->can('post', ProductionOutput::class) ?? false;
     }
 
     /**

@@ -142,7 +142,7 @@ class ProductionHubFoundationTest extends TestCase
         $user = $this->productionHubUser(['production.quality.view']);
 
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index'))
+            ->get(route('admin.production.quality.index', ['embedded' => 1]))
             ->assertOk()
             ->assertSee(__('Quality Control'), false);
     }
@@ -153,7 +153,7 @@ class ProductionHubFoundationTest extends TestCase
 
         $this->actingAs($user)->get(route('admin.production.queue.index'))->assertForbidden();
         $this->actingAs($user)->get(route('admin.production.scheduling.index'))->assertForbidden();
-        $this->actingAs($user)->get(route('admin.production.quality.index'))->assertForbidden();
+        $this->actingAs($user)->get(route('admin.production.quality.index', ['embedded' => 1]))->assertForbidden();
     }
 
     public function test_active_route_patterns_include_production_module_routes(): void

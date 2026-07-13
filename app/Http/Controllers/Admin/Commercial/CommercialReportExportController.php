@@ -68,10 +68,10 @@ class CommercialReportExportController extends Controller
             'expired' => $export->isExpired(),
             'error' => $export->error_message,
             'download_url' => $export->isDownloadable()
-                ? route('commercial.reports.exports.download', $export)
+                ? route('admin.commercial.reports.exports.download', $export)
                 : null,
             'filename' => $export->filename,
-            'history_url' => route('commercial.reports.exports.index'),
+            'history_url' => route('admin.commercial.reports.exports.index'),
         ]);
     }
 }

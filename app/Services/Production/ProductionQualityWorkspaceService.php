@@ -64,7 +64,7 @@ class ProductionQualityWorkspaceService
             ->with([
                 'checker:id,name',
                 'jobCard' => fn ($q) => $q
-                    ->select(['id', 'job_card_number', 'customer_id', 'status', 'production_type', 'planned_end_date'])
+                    ->select(['id', 'public_id', 'job_card_number', 'customer_id', 'status', 'production_type', 'planned_end_date'])
                     ->with([
                         'customer:id,company_name',
                         'salesOrder.items:id,sales_order_id,item_name,description,quantity',

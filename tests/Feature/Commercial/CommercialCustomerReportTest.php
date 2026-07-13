@@ -33,7 +33,7 @@ class CommercialCustomerReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.customers.index'))
+            ->get(route('admin.commercial.reports.customers.index'))
             ->assertForbidden();
     }
 
@@ -44,7 +44,7 @@ class CommercialCustomerReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.customers.index'))
+            ->get(route('admin.commercial.reports.customers.index'))
             ->assertOk()
             ->assertSee(__('Customer Reports'), false)
             ->assertSee(__('Customer Dashboard'), false)
@@ -73,7 +73,7 @@ class CommercialCustomerReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.customers.index'))
+            ->get(route('admin.commercial.reports.customers.index'))
             ->assertOk()
             ->assertSee(__('Total Customers'), false)
             ->assertSee(__('Top Customer Revenue'), false)
@@ -87,7 +87,7 @@ class CommercialCustomerReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.customers.index', [
+            ->get(route('admin.commercial.reports.customers.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
@@ -109,7 +109,7 @@ class CommercialCustomerReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.customers.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.customers.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertForbidden();
     }
 
@@ -119,18 +119,40 @@ class CommercialCustomerReportTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.customers.view',
-            'commercial.reports.export',
+            'commercial.reports.customers.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.customers.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.customers.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertRedirect()
             ->assertSessionHas('export_id');
 
         Queue::assertPushed(ProcessCommercialReportExportJob::class);
         $this->assertNotNull(CommercialReportExport::query()->find(session('export_id')));
+    }
+
+    public function test_customer_list_tab_renders_enum_labels(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['commercial.reports.customers.view']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'company_name' => 'Enum Test Customer',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.commercial.reports.customers.index', [
+                'tab' => 'active',
+                'embedded' => '1',
+            ]))
+            ->assertOk()
+            ->assertSee('Enum Test Customer', false)
+            ->assertSee('Corporate', false);
     }
 
     /**

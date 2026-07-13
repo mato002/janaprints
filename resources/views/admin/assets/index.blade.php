@@ -18,7 +18,7 @@
     >
         @if ($can_create ?? false)
             <x-slot name="actions">
-                <a href="{{ route('admin.assets.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register Asset') }}</a>
+                <a href="{{ route('admin.assets.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register asset') }}</a>
             </x-slot>
         @endif
     </x-admin.page-header>
@@ -129,6 +129,7 @@
                         <th class="text-right">{{ __('Book Value') }}</th>
                         <th>{{ __('Status') }}</th>
                         <th>{{ __('Created') }}</th>
+                        <th class="erp-table-actions-col">{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -137,28 +138,35 @@
                             @if ($hasBulk)
                                 <td><input type="checkbox" name="asset_ids[]" value="{{ $asset->id }}" class="asset-row-checkbox" form="asset-bulk-form"></td>
                             @endif
-                            <td><a href="{{ route('admin.assets.show', $asset) }}" class="erp-link font-medium">{{ $asset->asset_number }}</a></td>
+                            <td class="font-medium">{{ $asset->asset_number }}</td>
                             <td>{{ $asset->asset_name }}</td>
                             <td>{{ $asset->category?->name }}</td>
                             <td>{{ $asset->branch?->name ?? '—' }}</td>
                             <td>{{ $asset->assignedUser?->name ?? '—' }}</td>
-                            <td class="text-right">{{ number_format($asset->acquisition_cost, 2) }}</td>
-                            <td class="text-right">{{ number_format($asset->netBookValue(), 2) }}</td>
+                            <td class="text-right tabular-nums">{{ number_format($asset->acquisition_cost, 2) }}</td>
+                            <td class="text-right tabular-nums">{{ number_format($asset->netBookValue(), 2) }}</td>
                             <td><x-admin.status-badge :variant="$asset->status->badgeVariant()">{{ $asset->status->label() }}</x-admin.status-badge></td>
-                            <td>{{ $asset->created_at?->format('Y-m-d') }}</td>
+                            <td class="whitespace-nowrap">{{ $asset->created_at?->format('Y-m-d') }}</td>
+                            <td class="erp-table-actions-col">
+                                <x-admin.table-row-actions>
+                                    <x-admin.table-row-action :href="route('admin.assets.show', $asset)">{{ __('View') }}</x-admin.table-row-action>
+                                </x-admin.table-row-actions>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ $hasBulk ? 10 : 9 }}" class="py-8 text-center text-slate-500">{{ __('No assets found.') }}</td>
+                            <td colspan="{{ $hasBulk ? 11 : 10 }}">
+                                <x-admin.empty-state icon="cube" :title="__('No assets found')" :description="__('Register an asset to start tracking the company register.')" />
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
 
-        @if ($assets->hasPages())
-            <div class="mt-4 border-t border-erp-border pt-3">{{ $assets->links() }}</div>
-        @endif
+        <div class="border-t border-erp-border bg-white">
+            <x-admin.table-pagination :paginator="$assets" />
+        </div>
     </x-admin.card>
 
     @if ($hasBulk)

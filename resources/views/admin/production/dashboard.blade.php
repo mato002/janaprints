@@ -1,4 +1,7 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $listFrame = WorkspaceEmbed::turboFrame();
     $snapshot = $dashboard['snapshot'] ?? [];
     $pipeline = $dashboard['pipeline'] ?? [];
     $urgent = $dashboard['urgent'] ?? [];
@@ -32,7 +35,7 @@
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                 @foreach ($queueWidgets as $card)
                     @if ($card['clickable'] ?? false)
-                        <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                        <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">
                             <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
                         </a>
                     @else
@@ -50,7 +53,7 @@
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                 @foreach ($qcWidgets as $card)
                     @if ($card['clickable'] ?? false)
-                        <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                        <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">
                             <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'clipboard-check'" />
                         </a>
                     @else
@@ -67,7 +70,7 @@
         <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             @foreach ($snapshot as $card)
                 @if ($card['clickable'] ?? false)
-                    <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                    <a href="{{ $card['url'] }}" class="block transition-opacity hover:opacity-90" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">
                         <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon'] ?? 'chart-pie'" />
                     </a>
                 @else
@@ -84,7 +87,7 @@
             <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
                 @foreach ($pipeline as $stage)
                     @if ($stage['url'] ?? null)
-                        <a href="{{ $stage['url'] }}" class="rounded-lg border border-erp-border bg-slate-50 px-3 py-4 text-center transition-colors hover:border-erp-accent hover:bg-white" data-turbo-frame="erp-main">
+                        <a href="{{ $stage['url'] }}" class="rounded-lg border border-erp-border bg-slate-50 px-3 py-4 text-center transition-colors hover:border-erp-accent hover:bg-white" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">
                             <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ $stage['label'] }}</p>
                             <p class="mt-1 text-2xl font-bold tabular-nums text-erp-primary">{{ $stage['count'] }}</p>
                         </a>
@@ -109,7 +112,7 @@
                     <div class="mb-3 flex items-center justify-between gap-2">
                         <h3 class="text-sm font-semibold text-erp-primary">{{ $section['title'] ?? '' }}</h3>
                         @if (! empty($section['view_all_url']))
-                            <a href="{{ $section['view_all_url'] }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('View All') }}</a>
+                            <a href="{{ $section['view_all_url'] }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('View All') }}</a>
                         @endif
                     </div>
                     @if (! empty($section['empty']))
@@ -119,7 +122,7 @@
                             @foreach ($section['records'] ?? [] as $record)
                                 <li class="py-2.5">
                                     @if ($record['url'] ?? null)
-                                        <a href="{{ $record['url'] }}" class="font-mono font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $record['job_number'] }}</a>
+                                        <a href="{{ $record['url'] }}" class="font-mono font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ $record['job_number'] }}</a>
                                     @else
                                         <span class="font-mono font-medium text-erp-primary">{{ $record['job_number'] }}</span>
                                     @endif
@@ -166,7 +169,7 @@
                     <h2 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Department Capacity') }}</h2>
                     @can('production.work-centers.view')
                         @if (Route::has('admin.production.work-centers.index'))
-                            <a href="{{ route('admin.production.work-centers.index') }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ __('Work Centers') }}</a>
+                            <a href="{{ route('admin.production.work-centers.index') }}" class="text-xs text-erp-accent hover:underline" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('Work Centers') }}</a>
                         @endif
                     @endcan
                 </div>
@@ -227,7 +230,7 @@
                             <li class="flex items-center justify-between gap-2 py-2">
                                 <div class="min-w-0">
                                     @if ($machine['url'] ?? null)
-                                        <a href="{{ $machine['url'] }}" class="font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $machine['name'] }}</a>
+                                        <a href="{{ $machine['url'] }}" class="font-medium text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ $machine['name'] }}</a>
                                     @else
                                         <span class="font-medium text-erp-primary">{{ $machine['name'] }}</span>
                                     @endif
@@ -266,7 +269,7 @@
                             <div class="min-w-0">
                                 <p class="font-medium text-erp-primary">
                                     @if ($event['job_url'] ?? null)
-                                        <a href="{{ $event['job_url'] }}" class="font-mono text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $event['job_number'] ?? '—' }}</a>
+                                        <a href="{{ $event['job_url'] }}" class="font-mono text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ $event['job_number'] ?? '—' }}</a>
                                     @else
                                         <span class="font-mono">{{ $event['job_number'] ?? '—' }}</span>
                                     @endif
@@ -295,7 +298,7 @@
                     <a
                         href="{{ $action['url'] }}"
                         class="{{ ! empty($action['primary']) ? 'erp-btn-primary' : 'erp-btn-secondary' }}"
-                        data-turbo-frame="erp-main"
+                        data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance"
                     >{{ $action['label'] }}</a>
                 @empty
                     <p class="text-sm text-slate-500">{{ __('No quick actions available for your role.') }}</p>

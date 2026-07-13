@@ -29,7 +29,7 @@ class ProductionQualityWorkspaceTest extends TestCase
         [, , $user, $job] = $this->qualityContext(permissions: ['production.view']);
 
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index'))
+            ->get($this->qualityIndex())
             ->assertForbidden();
     }
 
@@ -46,9 +46,7 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
-        $response = $this->actingAs($user)->get(route('admin.production.quality.index'));
+        $response = $this->actingAs($user)->get($this->qualityIndex());
 
         $response->assertOk();
         $response->assertSee(__('Quality Control'), false);
@@ -89,10 +87,8 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index', ['status' => 'failed']))
+            ->get($this->qualityIndex(['status' => 'failed']))
             ->assertOk()
             ->assertSee($failedJob->job_card_number, false)
             ->assertDontSee($job->job_card_number, false);
@@ -104,10 +100,8 @@ class ProductionQualityWorkspaceTest extends TestCase
 
         $job->update(['status' => ProductionJobCardStatus::QualityCheck]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index', ['status' => 'pending']))
+            ->get($this->qualityIndex(['status' => 'pending']))
             ->assertOk()
             ->assertSee(__('Pending'), false)
             ->assertSee($job->job_card_number, false)
@@ -127,10 +121,8 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index'))
+            ->get($this->qualityIndex())
             ->assertOk()
             ->assertDontSee(__('Analytics'), false)
             ->assertDontSee(__('Pass Rate'), false)
@@ -179,10 +171,8 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index'))
+            ->get($this->qualityIndex())
             ->assertOk()
             ->assertSee(__('Product'), false)
             ->assertSee(__('Status'), false)
@@ -205,15 +195,13 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index', ['search' => $job->job_card_number]))
+            ->get($this->qualityIndex(['search' => $job->job_card_number]))
             ->assertOk()
             ->assertSee($job->job_card_number, false);
 
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index', ['search' => 'NO-MATCH-XYZ']))
+            ->get($this->qualityIndex(['search' => 'NO-MATCH-XYZ']))
             ->assertOk()
             ->assertSee(__('No inspections recorded'), false);
     }
@@ -252,10 +240,8 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index'))
+            ->get($this->qualityIndex())
             ->assertOk()
             ->assertViewHas('kpis', fn (array $kpis) => $kpis['pending_inspections'] === 1
                 && $kpis['passed'] === 1
@@ -299,10 +285,8 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index', [
+            ->get($this->qualityIndex([
                 'date' => now()->subDays(2)->toDateString(),
             ]))
             ->assertOk()
@@ -310,7 +294,7 @@ class ProductionQualityWorkspaceTest extends TestCase
             ->assertDontSee($otherJob->job_card_number, false);
 
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index', [
+            ->get($this->qualityIndex([
                 'inspector' => $user->id,
             ]))
             ->assertOk()
@@ -331,10 +315,8 @@ class ProductionQualityWorkspaceTest extends TestCase
             'checked_at' => now(),
         ]);
 
-        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
-
         $this->actingAs($user)
-            ->get(route('admin.production.quality.index'))
+            ->get($this->qualityIndex())
             ->assertOk()
             ->assertSee(route('admin.production.job-cards.show', $job), false);
     }
@@ -364,6 +346,16 @@ class ProductionQualityWorkspaceTest extends TestCase
             'branch_id' => $branch->id,
         ]);
 
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
         return [$company, $branch, $user, $job];
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    protected function qualityIndex(array $query = []): string
+    {
+        return route('admin.production.quality.index', array_merge(['embedded' => 1], $query));
     }
 }

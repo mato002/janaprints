@@ -68,8 +68,8 @@ export default {
                 'body-lg': ['1.125rem', { lineHeight: '1.75', fontWeight: '400' }],
                 'dashboard-title': ['1.75rem', { lineHeight: '2.25rem', fontWeight: '700' }],
                 'section-title': ['1.125rem', { lineHeight: '1.5rem', fontWeight: '600' }],
-                'card-title': ['0.8125rem', { lineHeight: '1.125rem', fontWeight: '500' }],
-                'card-value': ['1.625rem', { lineHeight: '2rem', fontWeight: '700' }],
+                'card-title': ['0.6875rem', { lineHeight: '1rem', fontWeight: '500' }],
+                'card-value': ['1.25rem', { lineHeight: '1.5rem', fontWeight: '700' }],
             },
             boxShadow: {
                 card: '0 1px 2px 0 rgb(49 51 156 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.04)',

@@ -53,6 +53,14 @@
                     </form>
                 @endif
             @endcan
+
+            @can('delete', $jobCard)
+                <form method="POST" action="{{ route('admin.production.job-cards.destroy', $jobCard) }}" class="inline" onsubmit="return confirm(@js(__('Permanently delete this job card? This cannot be undone.')))">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="text-sm text-red-700 hover:underline">{{ __('Delete job') }}</button>
+                </form>
+            @endcan
         </div>
 
         @if (count($links) > 0)

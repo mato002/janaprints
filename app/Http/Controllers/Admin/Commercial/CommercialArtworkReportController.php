@@ -29,7 +29,7 @@ class CommercialArtworkReportController extends Controller
 
     public function export(Request $request): RedirectResponse
     {
-        abort_unless($request->user()?->can('commercial.reports.export'), 403);
+        abort_unless($request->user()?->can('commercial.reports.artwork.export'), 403);
 
         $format = $request->input('format', 'csv');
         if (! in_array($format, ['csv', 'excel', 'pdf'], true)) {
@@ -44,7 +44,7 @@ class CommercialArtworkReportController extends Controller
             module: 'artwork',
             tab: $resolved['scope']->tab,
             format: $format,
-            redirectRoute: 'commercial.reports.artwork.index',
+            redirectRoute: 'admin.commercial.reports.artwork.index',
         );
     }
 

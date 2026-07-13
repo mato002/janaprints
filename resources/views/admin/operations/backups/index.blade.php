@@ -31,13 +31,7 @@
             </x-slot>
         </x-admin.page-header>
 
-        @if (session('success'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <x-admin.kpi-widget :label="__('Total Backups')" :value="$metrics['total']" icon="archive" />
             <x-admin.kpi-widget :label="__('Database')" :value="$metrics['database']" icon="chip" />
             <x-admin.kpi-widget :label="__('File')" :value="$metrics['file']" icon="document-text" />

@@ -29,6 +29,9 @@ use App\Http\Controllers\Admin\Inventory\InventoryVarianceController;
 use App\Http\Controllers\Admin\Inventory\InventoryReconciliationController;
 use App\Http\Controllers\Admin\Inventory\InventoryIntelligenceController;
 use App\Http\Controllers\Admin\Inventory\InventoryVarianceReasonCodeController;
+use App\Http\Controllers\Admin\Inventory\ReorderAlertController;
+use App\Http\Controllers\Admin\Inventory\UnitOfMeasureController;
+use App\Http\Controllers\Admin\Inventory\WarehouseReorderSettingController;
 use App\Http\Controllers\Admin\Export\SupplyChainListingExportController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,10 +67,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('store/balances', StoreBalanceController::class)->name('store.balances');
             Route::get('store/permissions', StorePermissionController::class)->name('store.permissions');
             Route::get('warehouses', [WarehouseController::class, 'index'])->name('warehouses.index');
-            Route::get('warehouses/{warehouse}', [WarehouseController::class, 'show'])->name('warehouses.show');
-            Route::get('warehouses/{warehouse}/balances', [WarehouseController::class, 'balances'])->name('warehouses.balances');
             Route::get('transfers', [StoreTransferController::class, 'index'])->name('transfers.index');
-            Route::get('transfers/{transfer}', [StoreTransferController::class, 'show'])->name('transfers.show');
             Route::get('movements', [InventoryMovementController::class, 'index'])->name('movements.index');
             Route::get('receipts', [StockReceiptController::class, 'index'])->name('receipts.index');
             Route::get('issues', [StockIssueController::class, 'index'])->name('issues.index');
@@ -87,6 +87,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('catalogue/attributes', [ItemAttributeController::class, 'index'])->name('catalogue.attributes.index');
             Route::get('catalogue/price-lists', [PriceListController::class, 'index'])->name('catalogue.price-lists.index');
             Route::get('items', [InventoryItemController::class, 'index'])->name('items.index');
+            Route::get('catalogue/units', [UnitOfMeasureController::class, 'index'])->name('catalogue.units.index');
+            Route::get('catalogue/units/{unit}', [UnitOfMeasureController::class, 'show'])->whereNumber('unit')->name('catalogue.units.show');
         });
 
         Route::middleware('permission:catalogue.create')->group(function () {
@@ -102,6 +104,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('catalogue/price-lists', [PriceListController::class, 'store'])->name('catalogue.price-lists.store');
             Route::get('items/create', [InventoryItemController::class, 'create'])->name('items.create');
             Route::post('items', [InventoryItemController::class, 'store'])->name('items.store');
+            Route::get('catalogue/units/create', [UnitOfMeasureController::class, 'create'])->name('catalogue.units.create');
+            Route::post('catalogue/units', [UnitOfMeasureController::class, 'store'])->name('catalogue.units.store');
         });
 
         Route::middleware('permission:catalogue.view')->group(function () {
@@ -124,6 +128,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::delete('items/{item}/images/{image}', [InventoryItemImageController::class, 'destroy'])->name('items.images.destroy');
             Route::get('items/{item}/edit', [InventoryItemController::class, 'edit'])->name('items.edit');
             Route::put('items/{item}', [InventoryItemController::class, 'update'])->name('items.update');
+            Route::get('catalogue/units/{unit}/edit', [UnitOfMeasureController::class, 'edit'])->whereNumber('unit')->name('catalogue.units.edit');
+            Route::put('catalogue/units/{unit}', [UnitOfMeasureController::class, 'update'])->whereNumber('unit')->name('catalogue.units.update');
+            Route::patch('catalogue/units/{unit}/deactivate', [UnitOfMeasureController::class, 'deactivate'])->whereNumber('unit')->name('catalogue.units.deactivate');
         });
 
         Route::middleware('permission:catalogue.delete')->group(function () {
@@ -133,24 +140,52 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::delete('catalogue/attributes/{attribute}', [ItemAttributeController::class, 'destroy'])->whereNumber('attribute')->name('catalogue.attributes.destroy');
             Route::delete('catalogue/price-lists/{priceList}', [PriceListController::class, 'destroy'])->whereNumber('priceList')->name('catalogue.price-lists.destroy');
             Route::delete('items/{item}', [InventoryItemController::class, 'destroy'])->name('items.destroy');
+            Route::delete('catalogue/units/{unit}', [UnitOfMeasureController::class, 'destroy'])->whereNumber('unit')->name('catalogue.units.destroy');
+        });
+
+        Route::middleware('permission:inventory.reorder.view|inventory.view')->group(function () {
+            Route::get('alerts', [ReorderAlertController::class, 'index'])->name('alerts.index');
+        });
+
+        Route::middleware('permission:inventory.edit')->group(function () {
+            Route::post('alerts/{alert}/acknowledge', [ReorderAlertController::class, 'acknowledge'])->name('alerts.acknowledge');
+            Route::post('alerts/{alert}/resolve', [ReorderAlertController::class, 'resolve'])->name('alerts.resolve');
+        });
+
+        Route::middleware('permission:procurement.requests.create')->group(function () {
+            Route::post('alerts/{alert}/purchase-request', [ReorderAlertController::class, 'createPurchaseRequest'])->name('alerts.purchase-request');
+        });
+
+        Route::middleware('permission:inventory.reorder.configure')->group(function () {
+            Route::get('reorder-settings/create', [WarehouseReorderSettingController::class, 'create'])->name('reorder-settings.create');
+            Route::post('reorder-settings', [WarehouseReorderSettingController::class, 'store'])->name('reorder-settings.store');
+            Route::get('reorder-settings', [WarehouseReorderSettingController::class, 'index'])->name('reorder-settings.index');
         });
 
         Route::middleware('permission:inventory.create')->group(function () {
             Route::get('warehouses/create', [WarehouseController::class, 'create'])->name('warehouses.create');
             Route::post('warehouses', [WarehouseController::class, 'store'])->name('warehouses.store');
+            Route::get('transfers/create', [StoreTransferController::class, 'create'])->name('transfers.create');
+            Route::post('transfers', [StoreTransferController::class, 'store'])->name('transfers.store');
+        });
+
+        Route::middleware('permission:inventory.view')->group(function () {
+            Route::get('warehouses/{warehouse}', [WarehouseController::class, 'show'])->whereNumber('warehouse')->name('warehouses.show');
+            Route::get('warehouses/{warehouse}/balances', [WarehouseController::class, 'balances'])->whereNumber('warehouse')->name('warehouses.balances');
+            Route::get('transfers/{transfer}', [StoreTransferController::class, 'show'])->whereNumber('transfer')->name('transfers.show');
         });
 
         Route::middleware('permission:inventory.edit')->group(function () {
-            Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
-            Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])->name('warehouses.update');
-            Route::patch('warehouses/{warehouse}/deactivate', [WarehouseController::class, 'deactivate'])->name('warehouses.deactivate');
-            Route::patch('warehouses/{warehouse}/reactivate', [WarehouseController::class, 'reactivate'])->name('warehouses.reactivate');
-            Route::get('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'edit'])->name('warehouses.managers.edit');
-            Route::put('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'update'])->name('warehouses.managers.update');
+            Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->whereNumber('warehouse')->name('warehouses.edit');
+            Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])->whereNumber('warehouse')->name('warehouses.update');
+            Route::patch('warehouses/{warehouse}/deactivate', [WarehouseController::class, 'deactivate'])->whereNumber('warehouse')->name('warehouses.deactivate');
+            Route::patch('warehouses/{warehouse}/reactivate', [WarehouseController::class, 'reactivate'])->whereNumber('warehouse')->name('warehouses.reactivate');
+            Route::get('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'edit'])->whereNumber('warehouse')->name('warehouses.managers.edit');
+            Route::put('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'update'])->whereNumber('warehouse')->name('warehouses.managers.update');
         });
 
         Route::middleware('permission:inventory.delete')->group(function () {
-            Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->name('warehouses.destroy');
+            Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->whereNumber('warehouse')->name('warehouses.destroy');
         });
 
         Route::middleware('permission:inventory.receive')->group(function () {
@@ -166,14 +201,14 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:inventory.transfer')->group(function () {
-            Route::get('transfers/create', [StoreTransferController::class, 'create'])->name('transfers.create');
-            Route::post('transfers', [StoreTransferController::class, 'store'])->name('transfers.store');
-            Route::post('transfers/{transfer}/post', [StoreTransferController::class, 'post'])->name('transfers.post');
+            Route::post('transfers/{transfer}/post', [StoreTransferController::class, 'post'])->whereNumber('transfer')->name('transfers.post');
         });
 
         Route::middleware('permission:inventory.adjust')->group(function () {
             Route::get('adjustments/create', [StockAdjustmentController::class, 'create'])->name('adjustments.create');
             Route::post('adjustments', [StockAdjustmentController::class, 'store'])->name('adjustments.store');
+            Route::post('adjustments/{adjustment}/submit', [StockAdjustmentController::class, 'submit'])->name('adjustments.submit');
+            Route::post('adjustments/{adjustment}/approve', [StockAdjustmentController::class, 'approve'])->name('adjustments.approve');
             Route::post('adjustments/{adjustment}/post', [StockAdjustmentController::class, 'post'])->name('adjustments.post');
         });
 

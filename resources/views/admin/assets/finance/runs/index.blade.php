@@ -2,31 +2,52 @@
     <x-admin.page-header :title="__('Depreciation Runs')">
         <x-slot name="actions">
             @can('run', \App\Models\Assets\DepreciationRun::class)
-                <a href="{{ route('admin.assets.finance.runs.create') }}" class="erp-btn-primary">{{ __('New Run') }}</a>
+                <a href="{{ route('admin.assets.finance.runs.create') }}" class="erp-btn-primary">{{ __('New run') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead><tr><th>{{ __('Run No') }}</th><th>{{ __('Period') }}</th><th>{{ __('Status') }}</th><th>{{ __('Total') }}</th><th>{{ __('Assets') }}</th><th>{{ __('Run Date') }}</th></tr></thead>
-                <tbody>
-                    @forelse ($runs as $run)
-                        <tr>
-                            <td><a href="{{ route('admin.assets.finance.runs.show', $run) }}" class="erp-link font-mono">{{ $run->run_number }}</a></td>
-                            <td>{{ $run->period }}</td>
-                            <td><x-admin.status-badge :variant="$run->status->badgeVariant()">{{ $run->status->label() }}</x-admin.status-badge></td>
-                            <td>{{ number_format($run->total_depreciation, 2) }}</td>
-                            <td>{{ $run->assets_processed }}</td>
-                            <td>{{ $run->run_date?->format('Y-m-d') }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="py-8 text-center text-slate-500">{{ __('No depreciation runs yet.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @if ($runs->hasPages())<div class="mt-4">{{ $runs->links() }}</div>@endif
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search runs…')"
+        export-filename="depreciation-runs"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Run no') }}</th>
+                <th scope="col">{{ __('Period') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col">{{ __('Total') }}</th>
+                <th scope="col">{{ __('Assets') }}</th>
+                <th scope="col">{{ __('Run date') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($runs as $run)
+                @php
+                    $search = strtolower(($run->run_number ?? '').' '.($run->period ?? '').' '.$run->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td class="font-mono font-medium">{{ $run->run_number }}</td>
+                    <td>{{ $run->period }}</td>
+                    <td><x-admin.status-badge :variant="$run->status->badgeVariant()">{{ $run->status->label() }}</x-admin.status-badge></td>
+                    <td class="tabular-nums">{{ number_format($run->total_depreciation, 2) }}</td>
+                    <td>{{ $run->assets_processed }}</td>
+                    <td class="whitespace-nowrap">{{ $run->run_date?->format('Y-m-d') }}</td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.assets.finance.runs.show', $run)">{{ __('View') }}</x-admin.table-row-action>
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7">
+                        <x-admin.empty-state icon="clipboard-list" :title="__('No depreciation runs yet')" :description="__('Start a depreciation run to post period depreciation.')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$runs" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

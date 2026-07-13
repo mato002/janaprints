@@ -31,14 +31,14 @@ class EstimateActualWorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.estimate-vs-actual'))
+            ->get(route('admin.printing-intelligence.estimate-vs-actual', ['embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Estimate vs Actual'))
             ->assertSee(__('Average accuracy score'));
 
         $this->actingAs($user)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.estimate-vs-actual.show', $comparison))
+            ->get(route('admin.printing-intelligence.estimate-vs-actual.show', [$comparison, 'embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Cost breakdown'))
             ->assertSee(__('Material'));
@@ -58,7 +58,7 @@ class EstimateActualWorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.estimate-vs-actual'))
+            ->get(route('admin.printing-intelligence.estimate-vs-actual', ['embedded' => '1']))
             ->assertForbidden();
     }
 

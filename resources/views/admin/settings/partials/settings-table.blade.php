@@ -1,4 +1,4 @@
-<div class="erp-table-scroll overflow-x-auto">
+<div class="erp-table-scroll">
     <table class="erp-table erp-table--grid min-w-full text-sm">
         <thead>
             <tr>

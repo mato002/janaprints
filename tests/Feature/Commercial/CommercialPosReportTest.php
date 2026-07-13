@@ -39,7 +39,7 @@ class CommercialPosReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.pos.reports.index'))
+            ->get(route('admin.commercial.pos.reports.index'))
             ->assertForbidden();
     }
 
@@ -50,10 +50,10 @@ class CommercialPosReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.pos.reports.index'))
+            ->get(route('admin.commercial.pos.reports.index'))
             ->assertOk()
             ->assertSee(__('POS Intelligence'), false)
-            ->assertSee(__('POS Dashboard'), false)
+            ->assertSee(__('Overview'), false)
             ->assertSee(__('Sales By Cashier'), false);
     }
 
@@ -67,9 +67,9 @@ class CommercialPosReportTest extends TestCase
         $this->createPaidSale($company, $branch, $user, $session, 500.00);
 
         $this->actingAs($user)
-            ->get(route('commercial.pos.reports.index'))
+            ->get(route('admin.commercial.pos.reports.index'))
             ->assertOk()
-            ->assertSee(__('POS Dashboard'), false)
+            ->assertSee(__('Overview'), false)
             ->assertSee('500.00', false)
             ->assertSee(e($user->name), false);
     }
@@ -99,7 +99,7 @@ class CommercialPosReportTest extends TestCase
         $this->assertSame(900.0, $queries->todaySalesValue($scope));
 
         $this->actingAs($userA)
-            ->get(route('commercial.pos.reports.index', ['cashier_id' => $userB->id]))
+            ->get(route('admin.commercial.pos.reports.index', ['cashier_id' => $userB->id]))
             ->assertOk()
             ->assertSee(e($userB->name), false)
             ->assertSee('900.00', false);
@@ -112,7 +112,7 @@ class CommercialPosReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.pos.reports.export', ['format' => 'csv']))
+            ->post(route('admin.commercial.pos.reports.export', ['format' => 'csv']))
             ->assertForbidden();
     }
 
@@ -128,7 +128,7 @@ class CommercialPosReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.pos.reports.export', ['format' => 'csv', 'tab' => 'sales_by_cashier']))
+            ->post(route('admin.commercial.pos.reports.export', ['format' => 'csv', 'tab' => 'sales_by_cashier']))
             ->assertRedirect()
             ->assertSessionHas('export_id');
 
@@ -168,7 +168,7 @@ class CommercialPosReportTest extends TestCase
         $this->assertSame(0, $queries->todaySalesCount($scopeA));
 
         $this->actingAs($userA)
-            ->get(route('commercial.pos.reports.index'))
+            ->get(route('admin.commercial.pos.reports.index'))
             ->assertOk()
             ->assertDontSee('POS-BR-B-001', false);
     }

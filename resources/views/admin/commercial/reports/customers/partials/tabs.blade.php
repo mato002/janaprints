@@ -7,8 +7,8 @@
                 $query = array_merge($filters, ['tab' => $tab['key'], 'page' => 1]);
             @endphp
             <a
-                href="{{ route('commercial.reports.customers.index', $query) }}"
-                data-turbo-frame="erp-main"
+                href="{{ \App\Support\Navigation\WorkspaceEmbed::url(route('admin.commercial.reports.customers.index', $query)) }}"
+                data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" data-turbo-action="advance"
                 @class([
                     'whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
                     'border-erp-accent text-erp-accent' => $active_tab === $tab['key'],

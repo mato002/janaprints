@@ -2,7 +2,7 @@
 
 namespace App\Models\Inventory;
 
-use App\Enums\InventoryDocumentStatus;
+use App\Enums\StockAdjustmentStatus;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasPublicHash;
 use App\Models\User;
@@ -18,14 +18,18 @@ class StockAdjustment extends Model
 
     protected $fillable = [
         'company_id', 'branch_id', 'warehouse_id', 'adjustment_number',
-        'adjustment_date', 'status', 'reason', 'adjusted_by', 'posted_at',
+        'adjustment_date', 'status', 'reason', 'adjusted_by',
+        'submitted_by', 'submitted_at', 'approved_by', 'approved_at', 'approval_reason',
+        'posted_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'status' => InventoryDocumentStatus::class,
+            'status' => StockAdjustmentStatus::class,
             'adjustment_date' => 'date',
+            'submitted_at' => 'datetime',
+            'approved_at' => 'datetime',
             'posted_at' => 'datetime',
         ];
     }
@@ -38,6 +42,16 @@ class StockAdjustment extends Model
     public function adjuster(): BelongsTo
     {
         return $this->belongsTo(User::class, 'adjusted_by');
+    }
+
+    public function submitter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     public function items(): HasMany

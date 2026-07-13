@@ -5,43 +5,37 @@
     <x-admin.page-header
         :title="__('Estimate vs Actual')"
         :description="__('Audit-safe comparison of Printing Intelligence estimates against actual production and job costing outcomes (PI6).')"
-    />
+    >
+        <x-slot name="export">
+            <x-admin.export-dropdown :csv-url="route('admin.printing-intelligence.estimate-vs-actual.export', $filters ?? [])" />
+        </x-slot>
+        <x-slot name="actions">
+            @can('printing.estimate-actual.compare')
+                <form method="post" action="{{ route('admin.printing-intelligence.estimate-vs-actual.compare') }}">
+                    @csrf
+                    <button type="submit" class="erp-btn-primary">{{ __('Run batch comparison') }}</button>
+                </form>
+            @endcan
+        </x-slot>
+    </x-admin.page-header>
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <x-admin.card class="mb-4">
-        <form method="get" action="{{ route('admin.printing-intelligence.estimate-vs-actual') }}" class="flex flex-wrap items-end gap-3">
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar
+            :action="route('admin.printing-intelligence.estimate-vs-actual')"
+            :reset-url="route('admin.printing-intelligence.estimate-vs-actual', ['tab' => $tab ?? 'overview'])"
+        >
             <input type="hidden" name="tab" value="{{ $tab ?? 'overview' }}">
-            <div>
-                <label class="text-xs text-slate-500">{{ __('From') }}</label>
-                <input type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="erp-input text-sm">
-            </div>
-            <div>
-                <label class="text-xs text-slate-500">{{ __('To') }}</label>
-                <input type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="erp-input text-sm">
-            </div>
-            <div>
-                <label class="text-xs text-slate-500">{{ __('Variance class') }}</label>
-                <select name="variance_class" class="erp-input text-sm">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach (['accurate', 'minor', 'moderate', 'major', 'critical'] as $class)
-                        <option value="{{ $class }}" @selected(($filters['variance_class'] ?? '') === $class)>{{ ucfirst($class) }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="erp-btn erp-btn-secondary text-sm">{{ __('Filter') }}</button>
-            <a href="{{ route('admin.printing-intelligence.estimate-vs-actual.export', $filters ?? []) }}" class="erp-btn erp-btn-secondary text-sm">{{ __('Export CSV') }}</a>
-        </form>
-        @can('printing.estimate-actual.compare')
-            <form method="post" action="{{ route('admin.printing-intelligence.estimate-vs-actual.compare') }}" class="mt-3">
-                @csrf
-                <button type="submit" class="erp-btn erp-btn-primary text-sm">{{ __('Run Latest Comparison') }}</button>
-            </form>
-        @endcan
+            <x-admin.filter-pill-date name="from" :label="__('From')" :value="$filters['from'] ?? ''" />
+            <x-admin.filter-pill-date name="to" :label="__('To')" :value="$filters['to'] ?? ''" />
+            <select name="variance_class" class="erp-toolbar-select" aria-label="{{ __('Variance class') }}">
+                <option value="">{{ __('All variance classes') }}</option>
+                @foreach (['accurate', 'minor', 'moderate', 'major', 'critical'] as $class)
+                    <option value="{{ $class }}" @selected(($filters['variance_class'] ?? '') === $class)>{{ ucfirst($class) }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     @php

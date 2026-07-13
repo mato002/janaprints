@@ -60,12 +60,13 @@
                     {{ $pagination }}
                 @endisset
 
-                @isset($actions)
-                    {{ $actions }}
-                @endisset
-
+                {{-- Export sits left of page-level toolbar actions for consistent placement --}}
                 @isset($export)
                     {{ $export }}
+                @endisset
+
+                @isset($actions)
+                    {{ $actions }}
                 @endisset
             </div>
         </div>

@@ -50,7 +50,7 @@ class PosSessionShiftControlTest extends TestCase
 
     public function test_prevent_duplicate_open_session(): void
     {
-        [$company, $branch, $user] = $this->tenantUser(['pos.sessions.open']);
+        [$company, $branch, $user] = $this->tenantUser(['commercial.pos.sessions.open']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -245,9 +245,9 @@ class PosSessionShiftControlTest extends TestCase
     protected function cashierPermissions(): array
     {
         return [
-            'pos.sessions.view',
-            'pos.sessions.open',
-            'pos.sessions.close',
+            'commercial.pos.sessions.view',
+            'commercial.pos.sessions.open',
+            'commercial.pos.sessions.close',
             'pos.counter_sales.view',
             'pos.counter_sales.create',
             'pos.counter_sales.complete',
@@ -260,11 +260,11 @@ class PosSessionShiftControlTest extends TestCase
     protected function managerPermissions(): array
     {
         return [
-            'pos.sessions.view',
-            'pos.sessions.open',
-            'pos.sessions.close',
-            'pos.sessions.approve_variance',
-            'pos.sessions.export',
+            'commercial.pos.sessions.view',
+            'commercial.pos.sessions.open',
+            'commercial.pos.sessions.close',
+            'commercial.pos.sessions.audit',
+            'commercial.pos.sessions.audit',
             'commercial.pos.reconciliation.view',
         ];
     }

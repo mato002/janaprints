@@ -399,10 +399,10 @@ return [
                 'activities' => [
                     'label' => 'Activities',
                     'permissions' => [
-                        'view' => 'crm.activities.view',
-                        'create' => 'crm.activities.create',
-                        'edit' => 'crm.activities.edit',
-                        'delete' => 'crm.activities.delete',
+                        'view' => 'commercial.activities.view',
+                        'create' => 'commercial.activities.create',
+                        'edit' => 'commercial.activities.edit',
+                        'delete' => 'commercial.activities.delete',
                     ],
                 ],
             ],
@@ -449,15 +449,10 @@ return [
                         'refund' => 'pos.refund',
                     ],
                     'extra' => [
-                        ['label' => 'View sessions', 'permission' => 'pos.sessions.view'],
-                        ['label' => 'Open sessions', 'permission' => 'pos.sessions.open'],
-                        ['label' => 'Close sessions', 'permission' => 'pos.sessions.close'],
-                        ['label' => 'Approve session variance', 'permission' => 'pos.sessions.approve_variance'],
-                        ['label' => 'Export session summary', 'permission' => 'pos.sessions.export'],
-                        ['label' => 'View sessions (legacy)', 'permission' => 'commercial.pos.sessions.view'],
-                        ['label' => 'Open sessions (legacy)', 'permission' => 'commercial.pos.sessions.open'],
-                        ['label' => 'Close sessions (legacy)', 'permission' => 'commercial.pos.sessions.close'],
-                        ['label' => 'Session audit', 'permission' => 'commercial.pos.sessions.audit'],
+                        ['label' => 'View sessions', 'permission' => 'commercial.pos.sessions.view'],
+                        ['label' => 'Open sessions', 'permission' => 'commercial.pos.sessions.open'],
+                        ['label' => 'Close sessions', 'permission' => 'commercial.pos.sessions.close'],
+                        ['label' => 'Session audit (variance approval & export)', 'permission' => 'commercial.pos.sessions.audit'],
                         ['label' => 'Session admin', 'permission' => 'commercial.pos.sessions.admin'],
                         ['label' => 'View reconciliation', 'permission' => 'commercial.pos.reconciliation.view'],
                         ['label' => 'Submit reconciliation', 'permission' => 'commercial.pos.reconciliation.create'],
@@ -658,6 +653,15 @@ return [
                         'configure' => 'inventory.intelligence.configure',
                     ],
                 ],
+                'reorder' => [
+                    'label' => 'Reorder Intelligence',
+                    'permissions' => [
+                        'view' => 'inventory.reorder.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Configure reorder levels', 'permission' => 'inventory.reorder.configure'],
+                    ],
+                ],
             ],
         ],
 
@@ -799,6 +803,15 @@ return [
                     ],
                     'extra' => [
                         ['label' => 'Export', 'permission' => 'procurement.performance.export'],
+                    ],
+                ],
+                'approvals' => [
+                    'label' => 'Procurement Approvals',
+                    'permissions' => [
+                        'view' => 'procurement.approvals.view',
+                    ],
+                    'extra' => [
+                        ['label' => 'Take action', 'permission' => 'procurement.approvals.action'],
                     ],
                 ],
             ],
@@ -1301,7 +1314,6 @@ return [
                 'report_exports' => [
                     'label' => 'Report Export Framework',
                     'permissions' => [
-                        'export' => 'commercial.reports.export',
                         'view' => 'commercial.reports.exports.view',
                     ],
                     'extra' => [

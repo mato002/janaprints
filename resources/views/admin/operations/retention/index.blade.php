@@ -11,13 +11,7 @@
         :description="__('Retention and archival governance — control how long ERP records remain active before archive and deletion.')"
     />
 
-    @if (session('success'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {{ session('success') }}
-        </div>
-    @endif
-
-    <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+<div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <x-admin.kpi-widget :label="__('Retention Policies')" :value="$metrics['total']" icon="archive" />
         <x-admin.kpi-widget :label="__('Legal Holds')" :value="$metrics['legal_holds']" icon="shield-check" />
         <x-admin.kpi-widget :label="__('Longest Retention')" :value="trans_choice(':count day|:count days', $metrics['longest_retention'], ['count' => $metrics['longest_retention']])" icon="clock" />

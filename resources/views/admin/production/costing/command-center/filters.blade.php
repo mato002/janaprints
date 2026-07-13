@@ -3,7 +3,7 @@
 @endphp
 
 <x-admin.card :padding="false">
-    <form method="GET" action="{{ $dashboardUrl }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="border-b border-erp-border px-4 py-3" data-turbo-frame="erp-main">
+    <form method="GET" action="{{ $dashboardUrl }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="border-b border-erp-border px-4 py-3" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">
         <div class="flex flex-wrap items-center gap-2">
             <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Date from') }}">
             <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Date to') }}">
@@ -31,7 +31,7 @@
                     <option value="{{ $value }}" @selected(($filters['margin_category'] ?? '') === $value)>{{ $label }}</option>
                 @endforeach
             </select>
-            <a href="{{ $dashboardUrl }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
+            <a href="{{ $dashboardUrl }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">{{ __('Reset') }}</a>
         </div>
     </form>
 
@@ -39,7 +39,7 @@
         <div class="flex flex-wrap items-center gap-2 border-t border-erp-border px-4 py-2">
             <span class="text-xs font-medium text-slate-500">{{ __('Active filters') }}:</span>
             @foreach ($activeChips as $chip)
-                <a href="{{ $chip['url'] }}" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200" data-turbo-frame="erp-main">
+                <a href="{{ $chip['url'] }}" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700 hover:bg-slate-200" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">
                     {{ $chip['label'] }}
                     <span aria-hidden="true">×</span>
                 </a>

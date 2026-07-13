@@ -3,39 +3,56 @@
         <x-slot name="actions">
             @can('manage', \App\Models\Assets\AssetWriteOff::class)
                 <x-admin.form-modal-link :href="route('admin.assets.finance.write-offs.create')">
-                    {{ __('Create Write-Off') }}
+                    {{ __('New write-off') }}
                 </x-admin.form-modal-link>
             @endcan
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <x-admin.card>
-        <table class="erp-table w-full text-sm">
-            <thead><tr><th>{{ __('No') }}</th><th>{{ __('Asset') }}</th><th>{{ __('Reason') }}</th><th>{{ __('NBV') }}</th><th>{{ __('Status') }}</th><th></th></tr></thead>
-            <tbody>
-                @foreach ($writeOffs as $writeOff)
-                    <tr>
-                        <td class="font-mono">{{ $writeOff->writeoff_no }}</td>
-                        <td>{{ $writeOff->asset?->asset_number }}</td>
-                        <td>{{ $writeOff->reason->label() }}</td>
-                        <td>{{ number_format($writeOff->nbv_at_writeoff, 2) }}</td>
-                        <td><x-admin.status-badge :variant="$writeOff->status->badgeVariant()">{{ $writeOff->status->label() }}</x-admin.status-badge></td>
-                        <td class="space-x-2">
+    <x-admin.data-table
+        :search-placeholder="__('Search write-offs…')"
+        export-filename="asset-write-offs"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('No') }}</th>
+                <th scope="col">{{ __('Asset') }}</th>
+                <th scope="col">{{ __('Reason') }}</th>
+                <th scope="col">{{ __('NBV') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($writeOffs as $writeOff)
+                @php
+                    $search = strtolower(($writeOff->writeoff_no ?? '').' '.($writeOff->asset?->asset_number ?? '').' '.($writeOff->reason->value ?? '').' '.$writeOff->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td class="font-mono font-medium">{{ $writeOff->writeoff_no }}</td>
+                    <td>{{ $writeOff->asset?->asset_number }}</td>
+                    <td>{{ $writeOff->reason->label() }}</td>
+                    <td class="tabular-nums">{{ number_format($writeOff->nbv_at_writeoff, 2) }}</td>
+                    <td><x-admin.status-badge :variant="$writeOff->status->badgeVariant()">{{ $writeOff->status->label() }}</x-admin.status-badge></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
                             @if ($writeOff->status === \App\Enums\AssetWriteOffStatus::PendingApproval)
-                                <form method="POST" action="{{ route('admin.assets.finance.write-offs.approve', $writeOff) }}" class="inline">@csrf<button class="erp-link">{{ __('Approve') }}</button></form>
+                                <x-admin.table-row-action method="POST" :action="route('admin.assets.finance.write-offs.approve', $writeOff)">{{ __('Approve') }}</x-admin.table-row-action>
                             @endif
                             @if ($writeOff->status === \App\Enums\AssetWriteOffStatus::Approved)
-                                <form method="POST" action="{{ route('admin.assets.finance.write-offs.post', $writeOff) }}" class="inline">@csrf<button class="erp-link">{{ __('Post') }}</button></form>
+                                <x-admin.table-row-action method="POST" :action="route('admin.assets.finance.write-offs.post', $writeOff)">{{ __('Post') }}</x-admin.table-row-action>
                             @endif
-                        </td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
-        @if ($writeOffs->hasPages())<div class="mt-4">{{ $writeOffs->links() }}</div>@endif
-    </x-admin.card>
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6">
+                        <x-admin.empty-state icon="clipboard-list" :title="__('No write-offs yet')" :description="__('Create a write-off when an asset is retired from the register.')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$writeOffs" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

@@ -6,17 +6,17 @@
         <div
             class="mb-4 rounded-xl border border-erp-border bg-erp-page p-4"
             id="commercial-report-export"
-            data-status-url="{{ route('commercial.reports.exports.status', $export) }}"
+            data-status-url="{{ route('admin.commercial.reports.exports.status', $export) }}"
             data-initial-ready="{{ $export->isDownloadable() ? '1' : '0' }}"
         >
             @if ($export->isDownloadable())
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <p class="text-sm text-erp-text">{{ __('Your export is ready.') }}</p>
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('commercial.reports.exports.download', $export) }}" class="erp-btn-primary text-xs">
+                        <a href="{{ route('admin.commercial.reports.exports.download', $export) }}" class="erp-btn-primary text-xs">
                             {{ __('Download :filename', ['filename' => $export->filename]) }}
                         </a>
-                        <a href="{{ route('commercial.reports.exports.index') }}" class="erp-btn-secondary text-xs">
+                        <a href="{{ route('admin.commercial.reports.exports.index') }}" class="erp-btn-secondary text-xs">
                             {{ __('Export History') }}
                         </a>
                     </div>
@@ -33,7 +33,7 @@
                     <p class="text-sm text-erp-muted" id="commercial-report-export-message">
                         {{ __('Your export is queued and processing in the background…') }}
                     </p>
-                    <a href="{{ route('commercial.reports.exports.index') }}" class="erp-btn-secondary text-xs">
+                    <a href="{{ route('admin.commercial.reports.exports.index') }}" class="erp-btn-secondary text-xs">
                         {{ __('View Export History') }}
                     </a>
                 </div>

@@ -229,6 +229,15 @@ class PosReturnTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_returns_create_path_does_not_match_show_route(): void
+    {
+        $matched = app('router')->getRoutes()->match(
+            \Illuminate\Http\Request::create('/admin/commercial/pos/returns/create', 'GET')
+        );
+
+        $this->assertSame('admin.commercial.pos.returns.create', $matched->getName());
+    }
+
     /**
      * @param  array<int, array{description: string, quantity: float|int, unit_price: float|int, line_total: float|int}>  $lines
      * @return array{0: Company, 1: Branch, 2: User, 3: PosSale}

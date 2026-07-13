@@ -14,28 +14,17 @@
         'filters' => $filters,
         'branches' => $branches,
         'cashiers' => $cashiers,
+        'report_views' => $report_views,
     ])
 
     @include('admin.commercial.pos.intelligence.partials.kpi-strip', [
-        'title' => __('POS Dashboard'),
-        'kpis' => $dashboard_kpis,
-    ])
-
-    @include('admin.commercial.pos.intelligence.partials.kpi-strip', [
-        'title' => __('Operational Metrics'),
-        'kpis' => $metrics,
-    ])
-
-    @include('admin.commercial.pos.intelligence.partials.tabs', [
-        'tabs' => $tabs,
-        'active_tab' => $active_tab,
-        'filters' => $filters,
+        'title' => __('Overview'),
+        'kpis' => array_merge($dashboard_kpis, $metrics),
     ])
 
     @include('admin.commercial.pos.intelligence.partials.tab-content', [
         'tab_data' => $tab_data,
-        'active_tab' => $active_tab,
-        'tabs' => $tabs,
+        'report_label' => $report_label,
         'filters' => $filters,
     ])
 </x-admin-layout>

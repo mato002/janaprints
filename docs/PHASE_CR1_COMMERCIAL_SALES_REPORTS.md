@@ -3,7 +3,7 @@
 ## Implementation Report
 
 **Module:** Commercial → Reports → Sales Reports  
-**Route:** `commercial.reports.sales.index`  
+**Route:** `admin.commercial.reports.sales.index`  
 **Audience:** Sales Team, Commercial Manager, Branch Sales Manager, Customer Service  
 **Scope:** Commercial department reporting only — not Executive Intelligence, Financial Intelligence, or Executive 360.
 
@@ -33,8 +33,8 @@ KPIs show `—` with hint when core sources are not ready. Tabs remain accessibl
 
 | Method | URI | Name | Permission |
 |--------|-----|------|------------|
-| GET | `/admin/commercial/reports/sales` | `commercial.reports.sales.index` | `commercial.reports.sales.view` |
-| POST | `/admin/commercial/reports/sales/export` | `commercial.reports.sales.export` | `commercial.reports.sales.export` |
+| GET | `/admin/commercial/reports/sales` | `admin.commercial.reports.sales.index` | `admin.commercial.reports.sales.view` |
+| POST | `/admin/commercial/reports/sales/export` | `admin.commercial.reports.sales.export` | `admin.commercial.reports.sales.export` |
 
 **File:** `routes/admin_commercial.php`  
 **Middleware:** `auth`, `verified`, `tenant`, `CaptureWorkspaceNavigationQuery`
@@ -92,9 +92,9 @@ Reads from existing tables only:
 
 | Permission | Purpose |
 |------------|---------|
-| `commercial.reports.sales.view` | Access workspace |
-| `commercial.reports.sales.export` | Queue PDF/Excel/CSV exports |
-| `commercial.reports.sales.manage` | Reserved for future report configuration |
+| `admin.commercial.reports.sales.view` | Access workspace |
+| `admin.commercial.reports.sales.export` | Queue PDF/Excel/CSV exports |
+| `admin.commercial.reports.sales.manage` | Reserved for future report configuration |
 
 **Seeder:** `database/seeders/RolesAndPermissionsSeeder.php`  
 **Catalog:** `config/permission_catalog.php` → `commercial.sales_reports`

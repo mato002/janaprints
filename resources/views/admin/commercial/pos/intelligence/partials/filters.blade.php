@@ -1,4 +1,4 @@
-@props(['filters', 'branches', 'cashiers'])
+@props(['filters', 'branches', 'cashiers', 'report_views'])
 
 @php
     use App\Enums\PosPaymentMethod;
@@ -7,12 +7,16 @@
 
 <x-admin.card :padding="false" class="mb-4">
     <x-admin.index-toolbar
-        :action="route('commercial.pos.reports.index')"
-        :reset-url="route('commercial.pos.reports.index')"
+        :action="route('admin.commercial.pos.reports.index')"
+        :reset-url="route('admin.commercial.pos.reports.index')"
         :show-reset="false"
-        turbo-frame="erp-main"
+        turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}"
     >
-        <input type="hidden" name="tab" value="{{ $filters['tab'] ?? 'sales_by_cashier' }}">
+        <select id="tab" name="tab" class="erp-toolbar-select min-w-[11rem]" aria-label="{{ __('Report view') }}" data-erp-auto-submit>
+            @foreach ($report_views as $view)
+                <option value="{{ $view['key'] }}" @selected(($filters['tab'] ?? 'sales_by_cashier') === $view['key'])>{{ $view['label'] }}</option>
+            @endforeach
+        </select>
         <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">
         <select id="branch_id" name="branch_id" class="erp-toolbar-select" aria-label="{{ __('Branch') }}">
@@ -42,9 +46,9 @@
                 @endforeach
             </select>
             <a
-                href="{{ route('commercial.pos.reports.index') }}"
+                href="{{ route('admin.commercial.pos.reports.index') }}"
                 class="erp-btn-ghost shrink-0 py-1 text-xs text-slate-500"
-                data-turbo-frame="erp-main"
+                data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}"
             >{{ __('Reset') }}</a>
         </x-slot>
 

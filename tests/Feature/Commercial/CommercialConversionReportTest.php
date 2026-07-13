@@ -36,7 +36,7 @@ class CommercialConversionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.conversion.index'))
+            ->get(route('admin.commercial.reports.conversion.index'))
             ->assertForbidden();
     }
 
@@ -47,7 +47,7 @@ class CommercialConversionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.conversion.index'))
+            ->get(route('admin.commercial.reports.conversion.index'))
             ->assertOk()
             ->assertSee(__('Conversion Reports'), false)
             ->assertSee(__('Conversion Dashboard'), false)
@@ -87,7 +87,7 @@ class CommercialConversionReportTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.conversion.index'))
+            ->get(route('admin.commercial.reports.conversion.index'))
             ->assertOk()
             ->assertSee(__('Leads'), false)
             ->assertSee(__('Quotes'), false)
@@ -101,7 +101,7 @@ class CommercialConversionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.conversion.index', [
+            ->get(route('admin.commercial.reports.conversion.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
@@ -122,7 +122,7 @@ class CommercialConversionReportTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.conversion.export', ['tab' => 'full_funnel']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.conversion.export', ['tab' => 'full_funnel']), ['format' => 'csv'])
             ->assertForbidden();
     }
 
@@ -132,13 +132,13 @@ class CommercialConversionReportTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.conversion.view',
-            'commercial.reports.export',
+            'commercial.reports.conversion.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.conversion.export', ['tab' => 'full_funnel']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.conversion.export', ['tab' => 'full_funnel']), ['format' => 'csv'])
             ->assertRedirect()
             ->assertSessionHas('export_id');
 

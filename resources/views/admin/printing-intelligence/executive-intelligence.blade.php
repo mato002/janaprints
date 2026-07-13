@@ -5,15 +5,23 @@
     <x-admin.page-header
         :title="__('Executive Intelligence')"
         :description="__('Executive-level forecasting and scenario simulation (PI9). Read-only — no inventory, accounting, or pricing mutations.')"
-    />
+    >
+        <x-slot name="export">
+            <x-admin.export-dropdown :csv-url="route('admin.printing-intelligence.executive-intelligence.export')" />
+        </x-slot>
+        <x-slot name="secondary">
+            @can('printing.executive.forecast')
+                <form method="post" action="{{ route('admin.printing-intelligence.executive.generate') }}">
+                    @csrf
+                    <button type="submit" class="erp-btn-secondary">{{ __('Generate forecasts') }}</button>
+                </form>
+            @endcan
+        </x-slot>
+    </x-admin.page-header>
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    @php
+@php
         $tabs = [
             'dashboard' => __('Executive Dashboard'),
             'revenue' => __('Revenue Forecast'),
@@ -27,8 +35,8 @@
         ];
     @endphp
 
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <x-admin.card class="flex-1 min-w-0">
+    <div class="mb-4">
+        <x-admin.card>
             <nav class="flex flex-wrap gap-2">
                 @foreach ($tabs as $key => $label)
                     <a href="{{ route('admin.printing-intelligence.executive-intelligence', array_merge($filters ?? [], ['tab' => $key])) }}"
@@ -42,13 +50,6 @@
                 @endforeach
             </nav>
         </x-admin.card>
-
-        @can('printing.executive.forecast')
-            <form method="post" action="{{ route('admin.printing-intelligence.executive.generate') }}">
-                @csrf
-                <button type="submit" class="erp-btn-secondary text-xs">{{ __('Generate forecasts') }}</button>
-            </form>
-        @endcan
     </div>
 
     @if (($tab ?? 'dashboard') === 'dashboard')
@@ -85,40 +86,88 @@
         </x-admin.card>
     @endif
 
-    @if (($tab ?? 'dashboard') === 'revenue' && $revenue)
-        @include('admin.printing-intelligence.partials.executive-forecast-periods', ['data' => $revenue, 'metric' => __('Revenue')])
+    @if (($tab ?? 'dashboard') === 'revenue')
+        @if ($hasExecutiveAnalytics ?? false)
+            @if ($revenue)
+                @include('admin.printing-intelligence.partials.executive-forecast-periods', ['data' => $revenue, 'metric' => __('Revenue')])
+            @else
+                <x-admin.card><p class="text-sm text-slate-500">{{ __('No revenue forecast data available yet.') }}</p></x-admin.card>
+            @endif
+        @else
+            <x-admin.card><p class="text-sm text-slate-500">{{ __('Executive analytics permission required to view revenue forecasts.') }}</p></x-admin.card>
+        @endif
     @endif
 
-    @if (($tab ?? 'dashboard') === 'profit' && $profit)
-        <div class="grid gap-4 lg:grid-cols-2">
-            <x-admin.card>
-                <h3 class="font-medium mb-3">{{ __('Forecast Profit') }}</h3>
-                @include('admin.printing-intelligence.partials.executive-forecast-single', ['forecast' => $profit['forecast_profit'] ?? []])
-            </x-admin.card>
-            <x-admin.card>
-                <h3 class="font-medium mb-3">{{ __('Forecast Margin') }}</h3>
-                @include('admin.printing-intelligence.partials.executive-forecast-single', ['forecast' => $profit['forecast_margin_percent'] ?? [], 'suffix' => '%'])
-            </x-admin.card>
-        </div>
+    @if (($tab ?? 'dashboard') === 'profit')
+        @if ($hasExecutiveAnalytics ?? false)
+            @if ($profit)
+                <div class="grid gap-4 lg:grid-cols-2">
+                    <x-admin.card>
+                        <h3 class="font-medium mb-3">{{ __('Forecast Profit') }}</h3>
+                        @include('admin.printing-intelligence.partials.executive-forecast-single', ['forecast' => $profit['forecast_profit'] ?? []])
+                    </x-admin.card>
+                    <x-admin.card>
+                        <h3 class="font-medium mb-3">{{ __('Forecast Margin') }}</h3>
+                        @include('admin.printing-intelligence.partials.executive-forecast-single', ['forecast' => $profit['forecast_margin_percent'] ?? [], 'suffix' => '%'])
+                    </x-admin.card>
+                </div>
+            @else
+                <x-admin.card><p class="text-sm text-slate-500">{{ __('No profit forecast data available yet.') }}</p></x-admin.card>
+            @endif
+        @else
+            <x-admin.card><p class="text-sm text-slate-500">{{ __('Executive analytics permission required to view profit forecasts.') }}</p></x-admin.card>
+        @endif
     @endif
 
-    @if (($tab ?? 'dashboard') === 'capacity' && $capacity)
-        <x-admin.card class="mb-4">
-            @include('admin.printing-intelligence.partials.executive-forecast-single', ['forecast' => $capacity['overall_utilization_forecast'] ?? [], 'suffix' => '%'])
-        </x-admin.card>
-        @include('admin.printing-intelligence.partials.executive-capacity-table', ['rows' => $capacity['machines'] ?? []])
+    @if (($tab ?? 'dashboard') === 'capacity')
+        @if ($hasExecutiveAnalytics ?? false)
+            @if ($capacity)
+                <x-admin.card class="mb-4">
+                    @include('admin.printing-intelligence.partials.executive-forecast-single', ['forecast' => $capacity['overall_utilization_forecast'] ?? [], 'suffix' => '%'])
+                </x-admin.card>
+                @include('admin.printing-intelligence.partials.executive-capacity-table', ['rows' => $capacity['machines'] ?? []])
+            @else
+                <x-admin.card><p class="text-sm text-slate-500">{{ __('No capacity forecast data available yet.') }}</p></x-admin.card>
+            @endif
+        @else
+            <x-admin.card><p class="text-sm text-slate-500">{{ __('Executive analytics permission required to view capacity forecasts.') }}</p></x-admin.card>
+        @endif
     @endif
 
-    @if (($tab ?? 'dashboard') === 'demand' && $demand)
-        @include('admin.printing-intelligence.partials.executive-demand-table', ['rows' => $demand['products'] ?? []])
+    @if (($tab ?? 'dashboard') === 'demand')
+        @if ($hasExecutiveAnalytics ?? false)
+            @if ($demand)
+                @include('admin.printing-intelligence.partials.executive-demand-table', ['rows' => $demand['products'] ?? []])
+            @else
+                <x-admin.card><p class="text-sm text-slate-500">{{ __('No demand forecast data available yet.') }}</p></x-admin.card>
+            @endif
+        @else
+            <x-admin.card><p class="text-sm text-slate-500">{{ __('Executive analytics permission required to view demand forecasts.') }}</p></x-admin.card>
+        @endif
     @endif
 
-    @if (($tab ?? 'dashboard') === 'inventory' && $inventory)
-        @include('admin.printing-intelligence.partials.executive-inventory-risk-table', ['rows' => $inventory['categories'] ?? []])
+    @if (($tab ?? 'dashboard') === 'inventory')
+        @if ($hasExecutiveAnalytics ?? false)
+            @if ($inventory)
+                @include('admin.printing-intelligence.partials.executive-inventory-risk-table', ['rows' => $inventory['categories'] ?? []])
+            @else
+                <x-admin.card><p class="text-sm text-slate-500">{{ __('No inventory risk forecast data available yet.') }}</p></x-admin.card>
+            @endif
+        @else
+            <x-admin.card><p class="text-sm text-slate-500">{{ __('Executive analytics permission required to view inventory risk forecasts.') }}</p></x-admin.card>
+        @endif
     @endif
 
-    @if (($tab ?? 'dashboard') === 'customers' && $customers)
-        @include('admin.printing-intelligence.partials.executive-customer-trends-table', ['rows' => $customers['rankings'] ?? []])
+    @if (($tab ?? 'dashboard') === 'customers')
+        @if ($hasExecutiveAnalytics ?? false)
+            @if ($customers)
+                @include('admin.printing-intelligence.partials.executive-customer-trends-table', ['rows' => $customers['rankings'] ?? []])
+            @else
+                <x-admin.card><p class="text-sm text-slate-500">{{ __('No customer trend data available yet.') }}</p></x-admin.card>
+            @endif
+        @else
+            <x-admin.card><p class="text-sm text-slate-500">{{ __('Executive analytics permission required to view customer trends.') }}</p></x-admin.card>
+        @endif
     @endif
 
     @if (($tab ?? 'dashboard') === 'scenarios')

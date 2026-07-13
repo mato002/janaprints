@@ -133,7 +133,7 @@ class Job360WorkspaceTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality']))
             ->assertOk()
-            ->assertSee(__('Quality checks'), false)
+            ->assertSee(__('Inspection history'), false)
             ->assertSee('Defect found');
     }
 
@@ -204,7 +204,7 @@ class Job360WorkspaceTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', $jobCardB))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_no_duplicate_job_show_routes(): void

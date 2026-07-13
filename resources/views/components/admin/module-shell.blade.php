@@ -5,6 +5,7 @@
     'activePrimary' => null,
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
+    'secondaryToolbarActions' => [],
     'contentUrl' => null,
     'showContent' => true,
 ])
@@ -30,11 +31,40 @@
         />
     @endif
 
-    @if (count($secondaryWorkspaces) > 0)
-        <x-admin.workspace-sub-tabs
-            :workspaces="$secondaryWorkspaces"
-            :active="$activeSecondary"
-        />
+    @if (count($secondaryWorkspaces) > 1 || count($secondaryToolbarActions) > 0)
+        <div class="module-workspace-secondary-bar">
+            @if (count($secondaryWorkspaces) > 1)
+                <x-admin.workspace-sub-tabs
+                    class="module-workspace-secondary-bar__tabs"
+                    :workspaces="$secondaryWorkspaces"
+                    :active="$activeSecondary"
+                />
+            @else
+                <div class="module-workspace-secondary-bar__tabs"></div>
+            @endif
+
+            @if (count($secondaryToolbarActions) > 0)
+                <div class="module-workspace-secondary-bar__actions">
+                    @foreach ($secondaryToolbarActions as $action)
+                        @if ($action['modal'] ?? false)
+                            <x-admin.form-modal-link
+                                :href="$action['href']"
+                                :variant="$action['variant'] ?? 'primary'"
+                                class="shrink-0"
+                            >{{ $action['label'] }}</x-admin.form-modal-link>
+                        @else
+                            <a
+                                href="{{ $action['href'] }}"
+                                @class([
+                                    'shrink-0',
+                                    ($action['variant'] ?? 'primary') === 'secondary' ? 'erp-btn-secondary' : 'erp-btn-primary',
+                                ])
+                            >{{ $action['label'] }}</a>
+                        @endif
+                    @endforeach
+                </div>
+            @endif
+        </div>
     @endif
 
     @isset($kpis)

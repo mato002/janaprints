@@ -42,7 +42,7 @@ class ConsolidatedViewGovernanceTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branchA->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales.index'))
+            ->get(route('admin.commercial.reports.sales.index'))
             ->assertOk()
             ->assertDontSee(__('All branches'), false);
     }
@@ -70,7 +70,7 @@ class ConsolidatedViewGovernanceTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branchA->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.sales.index'))
+            ->get(route('admin.commercial.reports.sales.index'))
             ->assertOk()
             ->assertSee(__('All branches'), false);
     }

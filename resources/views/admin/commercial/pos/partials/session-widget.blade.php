@@ -18,19 +18,14 @@
                 <p class="mt-1 text-sm text-slate-500">{{ __('No active cashier session.') }}</p>
             @endif
         </div>
-        <div class="flex flex-wrap gap-2">
-            @can('open', App\Models\Pos\PosSession::class)
-                @unless ($currentSession)
-                    <a href="{{ route('admin.commercial.pos.sessions.create') }}" class="erp-btn-primary">{{ __('Open session') }}</a>
-                @endunless
-            @endcan
-            @if ($currentSession)
+        @if ($currentSession)
+            <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.commercial.pos.sessions.show', $currentSession) }}" class="erp-btn-secondary">{{ __('View session') }}</a>
                 @can('close', $currentSession)
                     <a href="{{ route('admin.commercial.pos.sessions.close', $currentSession) }}" class="erp-btn-secondary">{{ __('Close session') }}</a>
                 @endcan
-            @endif
-        </div>
+            </div>
+        @endif
     </div>
 
     @if ($currentSession && $sessionMetrics)

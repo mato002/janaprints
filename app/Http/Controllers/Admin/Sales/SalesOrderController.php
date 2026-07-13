@@ -428,17 +428,17 @@ class SalesOrderController extends Controller
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds(request());
 
-        $eligible = Quotation::query()
+        $eligibleQuotations = Quotation::query()
             ->forTenant()
-            ->eligibleForSalesOrderConversion()
+            ->availableForSalesOrderCreation()
             ->with('customer')
             ->orderByDesc('quotation_date')
             ->get();
 
         return [
             'formFields' => $this->formSettings->resolvedFields('sales_order', $companyId, $branchId),
-            'eligibleQuotations' => $eligible,
-            'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']),
+            'eligibleQuotations' => $eligibleQuotations,
+            'customers' => Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'public_id', 'company_name']),
         ];
     }
 }

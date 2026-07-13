@@ -20,16 +20,16 @@
             <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $group_labels[$groupKey] ?? ucfirst($groupKey) }}</h2>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 @foreach ($cards as $card)
-                    <x-admin.card class="relative overflow-hidden">
-                        <div class="flex items-start justify-between gap-2">
+                    <x-admin.card :padding="false" class="erp-kpi relative overflow-hidden">
+                        <div class="flex items-start justify-between gap-2 px-3 py-2.5">
                             <div class="min-w-0 flex-1">
-                                <p class="text-card-title text-erp-primary">{{ $card['name'] }}</p>
-                                <p class="mt-1 text-card-value tabular-nums text-erp-primary">{{ $card['value'] }}</p>
-                                <p class="mt-1 text-xs text-slate-500">{{ $card['hint'] }}</p>
-                                <p class="mt-2 text-[10px] font-medium uppercase tracking-wide text-slate-400">{{ $card['source'] }}</p>
+                                <p class="text-card-title text-erp-muted">{{ $card['name'] }}</p>
+                                <p class="mt-0.5 text-card-value tabular-nums text-erp-primary">{{ $card['value'] }}</p>
+                                <p class="mt-0.5 text-[11px] leading-tight text-slate-500">{{ $card['hint'] }}</p>
+                                <p class="mt-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">{{ $card['source'] }}</p>
                             </div>
                             <span @class([
-                                'shrink-0 rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                                'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
                                 'bg-emerald-50 text-emerald-700' => $card['status'] === 'good',
                                 'bg-amber-50 text-amber-700' => $card['status'] === 'watch',
                                 'bg-red-50 text-red-700' => $card['status'] === 'critical',

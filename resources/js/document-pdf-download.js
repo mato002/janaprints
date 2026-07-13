@@ -101,7 +101,8 @@ function bindDocumentPdfDownloadButton(button) {
             await downloadDocumentPdf(url, fallbackFilename);
         } catch (error) {
             console.error('documentPdfDownload', error);
-            window.alert('PDF download failed. Please try again.');
+            window.showErpSweetAlert?.('PDF download failed. Please try again.', 'error')
+                ?? window.alert('PDF download failed. Please try again.');
         } finally {
             button.dataset.downloading = '0';
             setButtonLoadingState(button, false);

@@ -14,11 +14,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <div class="mb-6 grid gap-4 lg:grid-cols-3">
+<div class="mb-6 grid gap-4 lg:grid-cols-3">
         <x-admin.card>
             <dl class="space-y-2 text-sm">
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Status') }}</dt><dd><x-admin.enum-status-badge :status="$note->status->value" /></dd></div>

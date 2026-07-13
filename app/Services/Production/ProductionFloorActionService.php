@@ -104,7 +104,7 @@ class ProductionFloorActionService
         }
 
         if ($user->can('production.outputs.post') && ($this->completion->eligibility($jobCard)['eligible'] ?? false)) {
-            return $this->action(__('Post finished goods'), 'panel', route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'finish']).'#outputs', 'secondary');
+            return $this->action(__('Post finished goods'), 'panel', route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']).'#outputs', 'secondary');
         }
 
         return null;
@@ -168,7 +168,7 @@ class ProductionFloorActionService
             $tab = match ($fragment) {
                 'quality' => 'quality',
                 'fulfilment' => 'dispatch',
-                'outputs', 'finish' => 'finish',
+                'outputs' => 'outputs',
                 'queue-form' => 'operations',
                 default => 'overview',
             };

@@ -29,11 +29,7 @@
         'branchEmptyLabel' => __('Company-wide'),
     ])
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <div class="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+<div class="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <x-admin.kpi-widget :label="__('Total Rules')" :value="$metrics['total']" icon="exclamation" />
         <x-admin.kpi-widget :label="__('Active')" :value="$metrics['active']" icon="badge-check" />
         <x-admin.kpi-widget :label="__('Reminder Rules')" :value="$metrics['reminder_rules']" icon="bell" />

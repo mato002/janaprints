@@ -29,11 +29,7 @@
         'branchEmptyLabel' => __('Company-wide'),
     ])
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <x-admin.card>
+<x-admin.card>
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p class="text-sm text-slate-600">
                 {{ __(':count delegations configured', ['count' => count($rows)]) }}

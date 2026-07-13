@@ -12,7 +12,7 @@
         ['label' => $header['code']],
     ]"
 >
-    <div class="spec-workspace w-full min-w-0 space-y-4" data-turbo-frame="erp-main">
+    <div class="spec-workspace w-full min-w-0 space-y-4">
         @include('admin.crm.customers.print-specifications.workspace.header', [
             'customer' => $customer,
             'specification' => $specification,

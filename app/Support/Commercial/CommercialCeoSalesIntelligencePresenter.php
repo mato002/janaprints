@@ -155,8 +155,8 @@ class CommercialCeoSalesIntelligencePresenter
             'win_rate' => auth()->user()?->can('quotations.view')
                 ? $this->quotationQueries->conversionPercent($scope)
                 : null,
-            'href' => Route::has('commercial.reports.conversion.index')
-                ? route('commercial.reports.conversion.index')
+            'href' => Route::has('admin.commercial.reports.conversion.index')
+                ? route('admin.commercial.reports.conversion.index')
                 : null,
         ];
     }
@@ -191,8 +191,8 @@ class CommercialCeoSalesIntelligencePresenter
             'top_customers' => $topCustomers,
             'top_products' => auth()->user()?->can('sales_orders.view') ? $this->topProducts($scope) : [],
             'top_categories' => auth()->user()?->can('quotations.view') ? $this->topCategories($scope) : [],
-            'href' => Route::has('commercial.reports.sales.index')
-                ? route('commercial.reports.sales.index')
+            'href' => Route::has('admin.commercial.reports.sales.index')
+                ? route('admin.commercial.reports.sales.index')
                 : null,
         ];
     }
@@ -317,8 +317,8 @@ class CommercialCeoSalesIntelligencePresenter
 
         return [
             'summary' => $items,
-            'href' => Route::has('commercial.reports.sales.index')
-                ? route('commercial.reports.sales.index', ['tab' => 'lost'])
+            'href' => Route::has('admin.commercial.reports.sales.index')
+                ? route('admin.commercial.reports.sales.index', ['tab' => 'lost'])
                 : null,
         ];
     }
@@ -351,8 +351,8 @@ class CommercialCeoSalesIntelligencePresenter
             'delayed_label' => (string) max($delayed, $ordersBlocked),
             'avg_approval_time' => $this->artworkQueries->formatHours($avgHours),
             'avg_approval_hours' => $avgHours,
-            'href' => Route::has('commercial.reports.artwork.index')
-                ? route('commercial.reports.artwork.index')
+            'href' => Route::has('admin.commercial.reports.artwork.index')
+                ? route('admin.commercial.reports.artwork.index')
                 : null,
         ];
     }

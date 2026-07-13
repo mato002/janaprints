@@ -7,15 +7,23 @@
     'comingSoon' => false,
 ])
 
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    // Module desk cards always navigate the outer shell (section changes / desk hops).
+    $resolvedHref = $href ? WorkspaceEmbed::mainUrl($href) : null;
+@endphp
+
 <a
-    @if ($href && ! $comingSoon)
-        href="{{ $href }}"
+    @if ($resolvedHref && ! $comingSoon)
+        href="{{ $resolvedHref }}"
         data-turbo-frame="erp-main"
+        data-turbo-action="advance"
     @endif
     {{ $attributes->merge([
-        'class' => 'module-workspace-card'.($comingSoon || ! $href ? ' module-workspace-card--disabled' : ''),
+        'class' => 'module-workspace-card'.($comingSoon || ! $resolvedHref ? ' module-workspace-card--disabled' : ''),
     ]) }}
-    @if ($comingSoon || ! $href) aria-disabled="true" tabindex="-1" @endif
+    @if ($comingSoon || ! $resolvedHref) aria-disabled="true" tabindex="-1" @endif
 >
     <span class="module-workspace-card__icon">
         <x-admin.icon :name="$icon" class="h-5 w-5" />

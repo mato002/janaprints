@@ -1,5 +1,5 @@
-<div class="erp-card overflow-x-auto">
-    <table class="erp-table w-full text-sm">
+<div class="erp-card erp-table-scroll">
+    <table class="erp-table erp-table--grid w-full text-sm">
         <thead>
             <tr>
                 <th>{{ __('Job') }}</th>
@@ -88,7 +88,10 @@
                                     <button type="submit" class="erp-btn-primary text-xs py-1 px-2">{{ $action['label'] }}</button>
                                 </form>
                             @elseif ($action['type'] === 'panel')
-                                <button type="button" class="erp-btn-primary text-xs py-1 px-2" @click="openPanel(@js($row['public_id']))">
+                                @php
+                                    $panelFragment = parse_url($action['url'], PHP_URL_FRAGMENT) ?: '';
+                                @endphp
+                                <button type="button" class="erp-btn-primary text-xs py-1 px-2" @click="openPanel(@js($row['public_id']), @js($panelFragment))">
                                     {{ $action['label'] }}
                                 </button>
                             @else

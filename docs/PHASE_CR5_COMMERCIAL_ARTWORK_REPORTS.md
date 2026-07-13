@@ -3,7 +3,7 @@
 ## Implementation Report
 
 **Module:** Commercial → Reports → Artwork Reports  
-**Route:** `commercial.reports.artwork.index`  
+**Route:** `admin.commercial.reports.artwork.index`  
 **Audience:** Commercial Manager, Branch Manager, Sales, Designers  
 **Scope:** Commercial artwork reporting only — reads operational artwork tables; no Production module changes.
 
@@ -35,8 +35,8 @@ KPIs show `—` with hint when core sources are not ready. Tabs remain accessibl
 
 | Method | URI | Name | Permission |
 |--------|-----|------|------------|
-| GET | `/admin/commercial/reports/artwork` | `commercial.reports.artwork.index` | `commercial.reports.artwork.view` |
-| POST | `/admin/commercial/reports/artwork/export` | `commercial.reports.artwork.export` | `commercial.reports.artwork.export` |
+| GET | `/admin/commercial/reports/artwork` | `admin.commercial.reports.artwork.index` | `admin.commercial.reports.artwork.view` |
+| POST | `/admin/commercial/reports/artwork/export` | `admin.commercial.reports.artwork.export` | `admin.commercial.reports.artwork.export` |
 
 **File:** `routes/admin_commercial.php`  
 **Middleware:** `auth`, `verified`, `tenant`, `CaptureWorkspaceNavigationQuery`
@@ -104,8 +104,8 @@ KPIs show `—` with hint when core sources are not ready. Tabs remain accessibl
 
 | Permission | Purpose |
 |------------|---------|
-| `commercial.reports.artwork.view` | Access workspace |
-| `commercial.reports.artwork.export` | Queue PDF/Excel/CSV exports |
+| `admin.commercial.reports.artwork.view` | Access workspace |
+| `admin.commercial.reports.artwork.export` | Queue PDF/Excel/CSV exports |
 
 **Seeder:** `database/seeders/RolesAndPermissionsSeeder.php`  
 **Catalog:** `config/permission_catalog.php` → `commercial.artwork_reports`

@@ -118,16 +118,16 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::delete('leads/{lead}', [LeadController::class, 'destroy'])->name('leads.destroy');
         });
 
-        Route::middleware('permission:crm.activities.create')->group(function () {
+        Route::middleware('permission:commercial.activities.create')->group(function () {
             Route::post('customers/{customer}/activities', [CustomerActivityController::class, 'storeForCustomer'])->name('customers.activities.store');
             Route::post('leads/{lead}/activities', [CustomerActivityController::class, 'storeForLead'])->name('leads.activities.store');
         });
 
-        Route::middleware('permission:crm.activities.delete')->group(function () {
+        Route::middleware('permission:commercial.activities.delete')->group(function () {
             Route::delete('activities/{activity}', [CustomerActivityController::class, 'destroy'])->name('activities.destroy');
         });
 
         Route::redirect('activities', '/admin/commercial/activities')
-            ->middleware('permission:crm.activities.view')
+            ->middleware('permission:commercial.activities.view')
             ->name('activities.index');
     });

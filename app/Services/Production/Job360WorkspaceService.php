@@ -883,7 +883,9 @@ class Job360WorkspaceService
             'can_assign' => auth()->user()?->can('start', $jobCard) && $this->controls->operatorAssignmentAvailable(),
             'can_complete_op' => auth()->user()?->can('complete', $jobCard) ?? false,
             'can_queue' => auth()->user()?->can('create', [ProductionQueue::class, $jobCard]) ?? false,
-            'queues' => $jobCard->queues,
+            'can_manage_queue' => auth()->user()?->can('schedule', $jobCard) ?? false,
+            'queue_statuses' => \App\Enums\ProductionQueueStatus::cases(),
+            'queues' => $jobCard->queues()->with('workCenter:id,name')->get(),
             'controls' => $this->controls,
         ];
     }

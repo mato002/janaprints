@@ -35,15 +35,7 @@
         'branchEmptyLabel' => __('Company-wide default'),
     ])
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    @if (session('error'))
-        <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ session('error') }}</div>
-    @endif
-
-    <div class="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
+<div class="mb-6 grid grid-cols-1 gap-4 xl:grid-cols-3">
         <x-admin.card class="xl:col-span-2">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>

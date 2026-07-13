@@ -6,28 +6,18 @@
     ];
 @endphp
 <x-admin-layout :title="__('Reorder Configuration')" :breadcrumbs="$breadcrumbs">
-    <x-admin.page-header :title="__('Warehouse reorder configuration')" :description="__('Per-warehouse min/max levels, safety stock, and reorder quantities.')" />
-
-    @can('create', App\Models\Inventory\InventoryItemWarehouseReorderSetting::class)
-        <x-admin.card class="mb-6">
-            <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Add / update rule') }}</h3>
-            <form method="POST" action="{{ route('admin.inventory.reorder-settings.store') }}" class="grid grid-cols-1 gap-3 md:grid-cols-3 lg:grid-cols-6">
-                @csrf
-                <select name="warehouse_id" class="erp-input text-sm" required>
-                    <option value="">{{ __('Warehouse') }}</option>
-                    @foreach ($warehouses as $warehouse)
-                        <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
-                    @endforeach
-                </select>
-                <input type="number" name="inventory_item_id" class="erp-input text-sm" placeholder="{{ __('Item ID') }}" required>
-                <input type="number" step="0.001" name="min_level" class="erp-input text-sm" placeholder="{{ __('Min level') }}" required>
-                <input type="number" step="0.001" name="max_level" class="erp-input text-sm" placeholder="{{ __('Max level') }}">
-                <input type="number" step="0.001" name="reorder_quantity" class="erp-input text-sm" placeholder="{{ __('Reorder qty') }}" required>
-                <input type="number" step="0.001" name="safety_stock" class="erp-input text-sm" placeholder="{{ __('Safety stock') }}" required>
-                <button type="submit" class="erp-btn-primary text-sm md:col-span-3 lg:col-span-6">{{ __('Save configuration') }}</button>
-            </form>
-        </x-admin.card>
-    @endcan
+    <x-admin.page-header
+        :title="__('Warehouse reorder configuration')"
+        :description="__('Per-warehouse min/max levels, safety stock, and reorder quantities.')"
+    >
+        <x-slot name="actions">
+            @can('create', App\Models\Inventory\InventoryItemWarehouseReorderSetting::class)
+                <a href="{{ route('admin.inventory.reorder-settings.create') }}" class="erp-btn-primary" data-erp-modal-open>
+                    {{ __('Add reorder rule') }}
+                </a>
+            @endcan
+        </x-slot>
+    </x-admin.page-header>
 
     <x-admin.data-table>
         <x-slot name="head">

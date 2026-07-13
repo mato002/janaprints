@@ -55,7 +55,7 @@
                     @endphp
                     <a
                         href="{{ route('admin.accounting.posting.rules.index', $linkFilters) }}"
-                        data-turbo-frame="erp-main"
+                        data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}"
                         class="posting-module-card rounded-lg border px-3 py-2.5 transition-colors {{ $isActive ? 'border-erp-accent bg-erp-accent/5 ring-1 ring-erp-accent/30' : 'border-erp-border bg-white hover:border-erp-accent/40' }}"
                     >
                         <p class="text-sm font-semibold text-erp-primary">{{ $module['label'] }}</p>
@@ -79,7 +79,7 @@
         </div>
 
         {{-- Section 9: Filters --}}
-        <form method="GET" action="{{ route('admin.accounting.posting.rules.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="erp-card mb-4" data-turbo-frame="erp-main">
+        <form method="GET" action="{{ route('admin.accounting.posting.rules.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="erp-card mb-4" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">
             <div class="flex flex-wrap items-center gap-2 p-4">
                 <input id="filter-q" type="search" name="q" value="{{ $activeFilters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Event, name, template…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
                 <select id="filter-module" name="module" class="erp-toolbar-select" aria-label="{{ __('Module') }}">
@@ -116,7 +116,7 @@
                 <input id="filter-created-to" type="date" name="created_to" value="{{ $activeFilters['created_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Created to') }}">
                 <input id="filter-updated-from" type="date" name="updated_from" value="{{ $activeFilters['updated_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Updated from') }}">
                 <input id="filter-updated-to" type="date" name="updated_to" value="{{ $activeFilters['updated_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('Updated to') }}">
-                <a href="{{ route('admin.accounting.posting.rules.index') }}" data-turbo-frame="erp-main" class="erp-btn-ghost py-1 text-xs text-slate-500">{{ __('Reset') }}</a>
+                <a href="{{ route('admin.accounting.posting.rules.index') }}" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" class="erp-btn-ghost py-1 text-xs text-slate-500">{{ __('Reset') }}</a>
             </div>
             @if ($activeFilters !== [])
                 <div class="mt-3 flex flex-wrap gap-1.5">
@@ -171,6 +171,7 @@
                                 <a
                                     href="{{ route('admin.accounting.posting.templates.show', $rule->template) }}"
                                     data-turbo-frame="erp-main"
+                                    data-turbo-action="advance"
                                     class="text-erp-accent"
                                     @click.stop
                                 >{{ $rule->template->code }}</a>
@@ -235,7 +236,7 @@
                     <h3 class="posting-drawer-section-title">{{ __('Rule details') }}</h3>
                     <dl class="mt-2 grid gap-2 text-sm sm:grid-cols-2">
                         <div><dt class="text-slate-500">{{ __('Module') }}</dt><dd x-text="rule?.module_label"></dd></div>
-                        <div><dt class="text-slate-500">{{ __('Template') }}</dt><dd><a :href="rule?.template?.url" data-turbo-frame="erp-main" class="text-erp-accent" x-text="rule?.template?.code" x-show="rule?.template"></a><span x-show="!rule?.template">—</span></dd></div>
+                        <div><dt class="text-slate-500">{{ __('Template') }}</dt><dd><a :href="rule?.template?.url" data-turbo-frame="erp-main" data-turbo-action="advance" class="text-erp-accent" x-text="rule?.template?.code" x-show="rule?.template"></a><span x-show="!rule?.template">—</span></dd></div>
                         <div><dt class="text-slate-500">{{ __('Auto post') }}</dt><dd x-text="rule?.auto_post_label"></dd></div>
                         <div><dt class="text-slate-500">{{ __('Status') }}</dt><dd x-text="rule?.status_label"></dd></div>
                         <div><dt class="text-slate-500">{{ __('Rule type') }}</dt><dd x-text="rule?.rule_type_label"></dd></div>

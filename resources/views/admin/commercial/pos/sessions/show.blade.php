@@ -16,11 +16,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    @if ($session->status === App\Enums\PosSessionStatus::PendingApproval)
+@if ($session->status === App\Enums\PosSessionStatus::PendingApproval)
         <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             {{ __('Cash variance exceeds tolerance of :amount. Manager approval is required before the session is fully closed.', ['amount' => number_format($varianceTolerance, 2)]) }}
         </div>

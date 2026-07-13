@@ -62,6 +62,7 @@ class ProductionWastageTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('admin.production.job-cards.wastage.store', $jobCard), [
+                'flow_type' => 'waste',
                 'inventory_item_id' => $paper->id,
                 'warehouse_id' => $warehouse->id,
                 'quantity' => 5,
@@ -82,6 +83,29 @@ class ProductionWastageTest extends TestCase
             'warehouse_id' => $warehouse->id,
             'reference_type' => ProductionJobCard::class,
             'reference_id' => $jobCard->id,
+        ]);
+    }
+
+    public function test_material_return_via_wastage_route(): void
+    {
+        [$company, $branch, $user, $paper, $warehouse, $jobCard] = $this->wastageContext();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->post(route('admin.production.job-cards.wastage.store', $jobCard), [
+                'flow_type' => 'return',
+                'inventory_item_id' => $paper->id,
+                'warehouse_id' => $warehouse->id,
+                'quantity' => 3,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('production_wastage_records', [
+            'production_job_card_id' => $jobCard->id,
+            'inventory_item_id' => $paper->id,
+            'flow_type' => 'returned',
+            'quantity' => 3,
         ]);
     }
 
@@ -187,7 +211,6 @@ class ProductionWastageTest extends TestCase
     {
         [$company, $branch, $user, $paper, $warehouse, $jobCard] = $this->wastageContext([
             'production.view',
-            'production.wastage.view',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -238,9 +261,7 @@ class ProductionWastageTest extends TestCase
     {
         $permissions = $permissions ?: [
             'production.view',
-            'production.wastage.view',
             'production.wastage.record',
-            'production.wastage.report',
             'inventory.view',
             'inventory.receive',
             'inventory.issue',

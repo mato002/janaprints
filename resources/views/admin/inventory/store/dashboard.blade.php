@@ -5,7 +5,7 @@
                 <a href="{{ route('admin.inventory.warehouses.create') }}" class="erp-btn-primary">{{ __('New warehouse') }}</a>
             @endcan
             @if (auth()->user()?->can('inventory.issue'))
-                <a href="{{ route('admin.inventory.issues.create') }}" class="erp-btn-secondary">{{ __('New Stock Issue') }}</a>
+                <a href="{{ route('admin.inventory.issues.create') }}" class="erp-btn-secondary">{{ __('New stock issue') }}</a>
             @endif
             @if (auth()->user()?->can('inventory.transfer'))
                 <a href="{{ route('admin.inventory.transfers.create') }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('Transfer stock') }}</a>
@@ -20,9 +20,15 @@
             ['label' => __('Active Stores'), 'value' => $stats['active_stores'], 'icon' => 'badge-check'],
             ['label' => __('Store Managers'), 'value' => $stats['store_managers'], 'icon' => 'users'],
             ['label' => __('Pending Transfers'), 'value' => $stats['pending_transfers'], 'icon' => 'truck'],
-            ['label' => __('Reorder Alerts'), 'value' => $stats['reorder_alerts'], 'icon' => 'bell'],
+            ['label' => __('Reorder Alerts'), 'value' => $stats['reorder_alerts'], 'icon' => 'bell', 'route' => 'admin.inventory.alerts.index'],
         ] as $card)
-            <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+            @if (! empty($card['route']))
+                <a href="{{ route($card['route']) }}" class="block">
+                    <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+                </a>
+            @else
+                <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+            @endif
         @endforeach
     </div>
 

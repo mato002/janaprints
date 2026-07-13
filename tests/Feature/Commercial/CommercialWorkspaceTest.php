@@ -42,7 +42,7 @@ class CommercialWorkspaceTest extends TestCase
     public function test_activity_creation_works_for_permitted_user(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
-            'crm.activities.view', 'crm.activities.create',
+            'commercial.activities.view', 'commercial.activities.create',
         ]);
 
         $customer = Customer::factory()->create([
@@ -85,7 +85,7 @@ class CommercialWorkspaceTest extends TestCase
         ]);
 
         $user = $this->tenantUser([
-            'crm.activities.view',
+            'commercial.activities.view',
         ], $companyA, $branchA)[2];
 
         session(['active_company_id' => $companyA->id, 'active_branch_id' => $branchA->id]);
@@ -191,7 +191,7 @@ class CommercialWorkspaceTest extends TestCase
     public function test_crm_section_shows_activities_as_active(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
-            'crm.activities.view',
+            'commercial.activities.view',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -223,17 +223,17 @@ class CommercialWorkspaceTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(__('Sales Reports'), false);
-        $response->assertSee(route('commercial.reports.sales.index'), false);
+        $response->assertSee(route('admin.commercial.reports.sales.index'), false);
         $response->assertSee(__('Quotation Reports'), false);
-        $response->assertSee(route('commercial.reports.quotations.index'), false);
+        $response->assertSee(route('admin.commercial.reports.quotations.index'), false);
         $response->assertSee(__('Sales Order Reports'), false);
-        $response->assertSee(route('commercial.reports.sales_orders.index'), false);
+        $response->assertSee(route('admin.commercial.reports.sales_orders.index'), false);
         $response->assertSee(__('Customer Reports'), false);
-        $response->assertSee(route('commercial.reports.customers.index'), false);
+        $response->assertSee(route('admin.commercial.reports.customers.index'), false);
         $response->assertSee(__('Artwork Reports'), false);
-        $response->assertSee(route('commercial.reports.artwork.index'), false);
+        $response->assertSee(route('admin.commercial.reports.artwork.index'), false);
         $response->assertSee(__('Conversion Reports'), false);
-        $response->assertSee(route('commercial.reports.conversion.index'), false);
+        $response->assertSee(route('admin.commercial.reports.conversion.index'), false);
         $response->assertDontSee(__('Coming Soon'), false);
     }
 
@@ -249,7 +249,7 @@ class CommercialWorkspaceTest extends TestCase
                 'tab' => 'customer-reports',
             ]))
             ->assertOk()
-            ->assertSee(route('commercial.reports.customers.index', ['embedded' => '1']), false)
+            ->assertSee(route('admin.commercial.reports.customers.index', ['embedded' => '1']), false)
             ->assertSee('module-workspace-content', false);
     }
 
@@ -260,7 +260,7 @@ class CommercialWorkspaceTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.customers.index', ['embedded' => '1']))
+            ->get(route('admin.commercial.reports.customers.index', ['embedded' => '1']))
             ->assertOk()
             ->assertSee('id="module-workspace-content"', false);
     }
@@ -272,7 +272,7 @@ class CommercialWorkspaceTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.conversion.index', ['embedded' => '1']))
+            ->get(route('admin.commercial.reports.conversion.index', ['embedded' => '1']))
             ->assertOk()
             ->assertSee('id="module-workspace-content"', false);
     }
@@ -280,7 +280,7 @@ class CommercialWorkspaceTest extends TestCase
     public function test_user_without_pos_permission_cannot_see_pos_on_section(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
-            'crm.activities.view', 'crm.customers.view',
+            'commercial.activities.view', 'crm.customers.view',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);

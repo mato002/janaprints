@@ -10,6 +10,7 @@
         :active-primary="$shell['active_primary']"
         :secondary-workspaces="$shell['secondary_workspaces']"
         :active-secondary="$shell['active_secondary']"
+        :secondary-toolbar-actions="$shell['secondary_toolbar_actions'] ?? []"
         :content-url="$shell['content_url']"
     >
         <x-slot:search>

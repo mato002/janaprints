@@ -5,11 +5,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="mb-6 grid gap-6 lg:grid-cols-2">
+<div class="mb-6 grid gap-6 lg:grid-cols-2">
         <x-admin.card>
             <h3 class="mb-3 text-sm font-semibold text-erp-primary">{{ __('Return Summary') }}</h3>
             <dl class="grid grid-cols-2 gap-3 text-sm">

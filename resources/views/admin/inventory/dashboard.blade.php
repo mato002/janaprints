@@ -7,9 +7,15 @@
             ['label' => __('Inventory Value'), 'value' => number_format($stats['inventory_value'], 2), 'icon' => 'currency-dollar'],
             ['label' => __('Recent Receipts'), 'value' => $stats['recent_receipts'], 'icon' => 'archive'],
             ['label' => __('Recent Issues'), 'value' => $stats['recent_issues'], 'icon' => 'switch-horizontal'],
-            ['label' => __('Reorder Alerts'), 'value' => $stats['reorder_alerts'], 'icon' => 'bell'],
+            ['label' => __('Reorder Alerts'), 'value' => $stats['reorder_alerts'], 'icon' => 'bell', 'route' => 'admin.inventory.alerts.index'],
         ] as $card)
-            <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+            @if (! empty($card['route']))
+                <a href="{{ route($card['route']) }}" class="block">
+                    <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+                </a>
+            @else
+                <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :icon="$card['icon']" />
+            @endif
         @endforeach
     </div>
 

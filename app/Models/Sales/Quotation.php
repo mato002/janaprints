@@ -110,12 +110,18 @@ class Quotation extends Model
         return $this->hasOne(ArtworkRequest::class)->latestOfMany();
     }
 
-    public function scopeEligibleForSalesOrderConversion(Builder $query): Builder
+    public function scopeAvailableForSalesOrderCreation(Builder $query): Builder
     {
         return $query
             ->where('status', QuotationStatus::Accepted)
             ->whereNotNull('customer_id')
-            ->whereDoesntHave('salesOrder')
+            ->whereDoesntHave('salesOrder');
+    }
+
+    public function scopeEligibleForSalesOrderConversion(Builder $query): Builder
+    {
+        return $query
+            ->availableForSalesOrderCreation()
             ->whereHas('artworkRequests', function (Builder $artworkQuery) {
                 $artworkQuery
                     ->where('status', ArtworkRequestStatus::Approved)
@@ -132,6 +138,25 @@ class Quotation extends Model
                             });
                     });
             });
+    }
+
+    public function isReadyForSalesOrderConversion(): bool
+    {
+        return static::query()
+            ->whereKey($this->id)
+            ->eligibleForSalesOrderConversion()
+            ->exists();
+    }
+
+    public function salesOrderConversionLabel(): string
+    {
+        $label = trim($this->quotation_number.' — '.($this->customer?->company_name ?? ''));
+
+        if (! $this->isReadyForSalesOrderConversion()) {
+            return $label.' ('.__('pending artwork approval').')';
+        }
+
+        return $label;
     }
 
     public function conversion(): HasOne

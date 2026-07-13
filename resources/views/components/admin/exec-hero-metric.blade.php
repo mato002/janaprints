@@ -7,8 +7,15 @@
     'empty' => false,
 ])
 
-@if ($href)
-    <a href="{{ $href }}" data-turbo-frame="erp-main" data-turbo-action="advance" {{ $attributes->merge(['class' => 'exec-hero-metric exec-hero-metric--link']) }}>
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $resolvedHref = $href ? (WorkspaceEmbed::url($href) ?? $href) : null;
+    $turboFrame = WorkspaceEmbed::turboFrame();
+@endphp
+
+@if ($resolvedHref)
+    <a href="{{ $resolvedHref }}" data-turbo-frame="{{ $turboFrame }}" data-turbo-action="advance" {{ $attributes->merge(['class' => 'exec-hero-metric exec-hero-metric--link']) }}>
 @else
     <div {{ $attributes->merge(['class' => 'exec-hero-metric']) }}>
 @endif
@@ -20,7 +27,7 @@
     @if ($hint)
         <span class="exec-hero-metric__hint">{{ $hint }}</span>
     @endif
-@if ($href)
+@if ($resolvedHref)
     </a>
 @else
     </div>

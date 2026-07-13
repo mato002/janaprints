@@ -36,7 +36,7 @@ class CommercialComFormsFinalTest extends TestCase
             ->get(route('admin.workspaces.commercial.section', ['section' => 'crm']));
 
         $response->assertOk();
-        $response->assertSee(__('Create Customer'), false);
+        $response->assertSee(__('Create customer'), false);
         $response->assertSee(route('admin.crm.customers.create', ['from' => 'commercial']), false);
     }
 
@@ -174,8 +174,7 @@ class CommercialComFormsFinalTest extends TestCase
             ->get(route('admin.workspaces.commercial.section', ['section' => 'sales']));
 
         $response->assertOk();
-        $response->assertSee(__('Sales orders are created from accepted quotations.'), false);
-        $response->assertSee(route('admin.sales-orders.dashboard'), false);
+        $response->assertSee(route('admin.sales-orders.index', ['embedded' => '1']), false);
     }
 
     /**

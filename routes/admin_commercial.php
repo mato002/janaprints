@@ -25,26 +25,34 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin/commercial')
     ->name('admin.commercial.')
     ->group(function () {
-        Route::middleware('permission:crm.activities.view')->group(function () {
+        Route::middleware('permission:commercial.activities.view')->group(function () {
             Route::get('activities', [CommercialActivityController::class, 'index'])->name('activities.index');
         });
 
-        Route::middleware('permission:crm.activities.create')->group(function () {
+        Route::middleware('permission:commercial.activities.create')->group(function () {
             Route::get('activities/create', [CommercialActivityController::class, 'create'])->name('activities.create');
             Route::post('activities', [CommercialActivityController::class, 'store'])->name('activities.store');
         });
 
-        Route::middleware('permission:crm.activities.view')->group(function () {
-            Route::get('activities/{activity}', [CommercialActivityController::class, 'show'])->name('activities.show');
+        Route::middleware('permission:commercial.activities.view')->group(function () {
+            Route::get('activities/{activity}', [CommercialActivityController::class, 'show'])
+                ->whereNumber('activity')
+                ->name('activities.show');
         });
 
-        Route::middleware('permission:crm.activities.edit')->group(function () {
-            Route::get('activities/{activity}/edit', [CommercialActivityController::class, 'edit'])->name('activities.edit');
-            Route::put('activities/{activity}', [CommercialActivityController::class, 'update'])->name('activities.update');
+        Route::middleware('permission:commercial.activities.edit')->group(function () {
+            Route::get('activities/{activity}/edit', [CommercialActivityController::class, 'edit'])
+                ->whereNumber('activity')
+                ->name('activities.edit');
+            Route::put('activities/{activity}', [CommercialActivityController::class, 'update'])
+                ->whereNumber('activity')
+                ->name('activities.update');
         });
 
-        Route::middleware('permission:crm.activities.delete')->group(function () {
-            Route::delete('activities/{activity}', [CommercialActivityController::class, 'destroy'])->name('activities.destroy');
+        Route::middleware('permission:commercial.activities.delete')->group(function () {
+            Route::delete('activities/{activity}', [CommercialActivityController::class, 'destroy'])
+                ->whereNumber('activity')
+                ->name('activities.destroy');
         });
 
         Route::middleware('permission:commercial.price_books.create')->group(function () {
@@ -136,16 +144,19 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('pos/counter-sales/sales/{sale}/receipt', [PosCounterSalesController::class, 'receiptPayload'])->name('pos.counter-sales.receipt');
         });
 
-        Route::middleware('permission:pos.sessions.open|commercial.pos.sessions.open')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.open')->group(function () {
             Route::post('pos/counter-sales/session/open', [PosCounterSalesController::class, 'openSession'])->name('pos.counter-sales.session.open');
+            Route::get('pos/sessions/open', [PosSessionController::class, 'create'])->name('pos.sessions.create');
+            Route::post('pos/sessions', [PosSessionController::class, 'store'])->name('pos.sessions.store');
         });
 
-        Route::middleware('permission:pos.sessions.close|commercial.pos.sessions.close')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.close')->group(function () {
             Route::post('pos/counter-sales/session/close', [PosCounterSalesController::class, 'closeSession'])->name('pos.counter-sales.session.close');
+            Route::get('pos/sessions/{session}/close', [PosSessionController::class, 'closeForm'])->name('pos.sessions.close');
+            Route::post('pos/sessions/{session}/close', [PosSessionController::class, 'close'])->name('pos.sessions.close.store');
         });
 
         Route::middleware('permission:pos.create|pos.counter_sales.create')->group(function () {
-            Route::get('pos/new', [PosSaleController::class, 'create'])->name('pos.create');
             Route::post('pos/sales', [PosSaleController::class, 'store'])->name('pos.store');
         });
 
@@ -173,7 +184,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:commercial.pos.returns.view')->group(function () {
-            Route::get('pos/returns/{return}', [PosReturnController::class, 'show'])->name('pos.returns.show');
+            Route::get('pos/returns/{return}', [PosReturnController::class, 'show'])
+                ->whereNumber('return')
+                ->name('pos.returns.show');
         });
 
         Route::middleware('permission:commercial.pos.returns.approve')->group(function () {
@@ -181,27 +194,14 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('pos/returns/{return}/reject', [PosReturnController::class, 'reject'])->name('pos.returns.reject');
         });
 
-        Route::middleware('permission:commercial.pos.sessions.open|pos.sessions.open')->group(function () {
-            Route::get('pos/sessions/open', [PosSessionController::class, 'create'])->name('pos.sessions.create');
-            Route::post('pos/sessions', [PosSessionController::class, 'store'])->name('pos.sessions.store');
-        });
-
-        Route::middleware('permission:commercial.pos.sessions.view|pos.sessions.view')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.view')->group(function () {
             Route::get('pos/sessions', [PosSessionController::class, 'index'])->name('pos.sessions.index');
             Route::get('pos/sessions/{session}/summary', [PosSessionController::class, 'summary'])->name('pos.sessions.summary');
             Route::get('pos/sessions/{session}', [PosSessionController::class, 'show'])->name('pos.sessions.show');
         });
 
-        Route::middleware('permission:commercial.pos.sessions.close|pos.sessions.close')->group(function () {
-            Route::get('pos/sessions/{session}/close', [PosSessionController::class, 'closeForm'])->name('pos.sessions.close');
-            Route::post('pos/sessions/{session}/close', [PosSessionController::class, 'close'])->name('pos.sessions.close.store');
-        });
-
-        Route::middleware('permission:commercial.pos.sessions.audit|pos.sessions.approve_variance')->group(function () {
+        Route::middleware('permission:commercial.pos.sessions.audit')->group(function () {
             Route::post('pos/sessions/{session}/approve-variance', [PosSessionController::class, 'approveVariance'])->name('pos.sessions.approve-variance');
-        });
-
-        Route::middleware('permission:commercial.pos.sessions.audit|pos.sessions.export')->group(function () {
             Route::get('pos/sessions/{session}/export', [PosSessionController::class, 'export'])->name('pos.sessions.export');
         });
 
@@ -221,88 +221,82 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('pos/reconciliation/{reconciliation}/reject', [PosCashReconciliationController::class, 'reject'])->name('pos.reconciliation.reject');
         });
 
-    });
+        Route::middleware(['permission:commercial.pos.certification.view', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
+            ->get('pos/certification', [PosCertificationController::class, 'index'])
+            ->name('pos.certification.index');
 
-Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
-    ->prefix('admin/commercial/pos/certification')
-    ->group(function () {
-        Route::get('/', [PosCertificationController::class, 'index'])
-            ->middleware('permission:commercial.pos.certification.view')
-            ->name('admin.commercial.pos.certification.index');
-    });
+        Route::middleware(['permission:commercial.pos.reports.view', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
+            ->prefix('pos/intelligence')
+            ->name('pos.reports.')
+            ->group(function () {
+                Route::get('/', [CommercialPosReportController::class, 'index'])->name('index');
+                Route::post('export', [CommercialPosReportController::class, 'export'])
+                    ->middleware('permission:commercial.pos.reports.export')
+                    ->name('export');
+            });
 
-Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
-    ->prefix('admin/commercial/pos/intelligence')
-    ->group(function () {
-        Route::get('/', [CommercialPosReportController::class, 'index'])
-            ->middleware('permission:commercial.pos.reports.view')
-            ->name('commercial.pos.reports.index');
+        Route::middleware(\App\Http\Middleware\CaptureWorkspaceNavigationQuery::class)
+            ->prefix('reports')
+            ->name('reports.')
+            ->group(function () {
+                Route::get('sales', [CommercialSalesReportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.sales.view')
+                    ->name('sales.index');
 
-        Route::post('export', [CommercialPosReportController::class, 'export'])
-            ->middleware('permission:commercial.pos.reports.export')
-            ->name('commercial.pos.reports.export');
-    });
+                Route::post('sales/export', [CommercialSalesReportController::class, 'export'])
+                    ->middleware('permission:commercial.reports.sales.export')
+                    ->name('sales.export');
 
-Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWorkspaceNavigationQuery::class])
-    ->prefix('admin/commercial/reports')
-    ->group(function () {
-        Route::get('sales', [CommercialSalesReportController::class, 'index'])
-            ->middleware('permission:commercial.reports.sales.view')
-            ->name('commercial.reports.sales.index');
+                Route::get('quotations', [CommercialQuotationReportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.quotations.view')
+                    ->name('quotations.index');
 
-        Route::post('sales/export', [CommercialSalesReportController::class, 'export'])
-            ->middleware('permission:commercial.reports.export')
-            ->name('commercial.reports.sales.export');
+                Route::post('quotations/export', [CommercialQuotationReportController::class, 'export'])
+                    ->middleware('permission:commercial.reports.quotations.export')
+                    ->name('quotations.export');
 
-        Route::get('quotations', [CommercialQuotationReportController::class, 'index'])
-            ->middleware('permission:commercial.reports.quotations.view')
-            ->name('commercial.reports.quotations.index');
+                Route::get('sales-orders', [CommercialSalesOrderReportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.sales_orders.view')
+                    ->name('sales_orders.index');
 
-        Route::post('quotations/export', [CommercialQuotationReportController::class, 'export'])
-            ->middleware('permission:commercial.reports.export')
-            ->name('commercial.reports.quotations.export');
+                Route::post('sales-orders/export', [CommercialSalesOrderReportController::class, 'export'])
+                    ->middleware('permission:commercial.reports.sales_orders.export')
+                    ->name('sales_orders.export');
 
-        Route::get('sales-orders', [CommercialSalesOrderReportController::class, 'index'])
-            ->middleware('permission:commercial.reports.sales_orders.view')
-            ->name('commercial.reports.sales_orders.index');
+                Route::get('customers', [CommercialCustomerReportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.customers.view')
+                    ->name('customers.index');
 
-        Route::post('sales-orders/export', [CommercialSalesOrderReportController::class, 'export'])
-            ->middleware('permission:commercial.reports.export')
-            ->name('commercial.reports.sales_orders.export');
+                Route::post('customers/export', [CommercialCustomerReportController::class, 'export'])
+                    ->middleware('permission:commercial.reports.customers.export')
+                    ->name('customers.export');
 
-        Route::get('customers', [CommercialCustomerReportController::class, 'index'])
-            ->middleware('permission:commercial.reports.customers.view')
-            ->name('commercial.reports.customers.index');
+                Route::get('artwork', [CommercialArtworkReportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.artwork.view')
+                    ->name('artwork.index');
 
-        Route::post('customers/export', [CommercialCustomerReportController::class, 'export'])
-            ->middleware('permission:commercial.reports.export')
-            ->name('commercial.reports.customers.export');
+                Route::post('artwork/export', [CommercialArtworkReportController::class, 'export'])
+                    ->middleware('permission:commercial.reports.artwork.export')
+                    ->name('artwork.export');
 
-        Route::get('artwork', [CommercialArtworkReportController::class, 'index'])
-            ->middleware('permission:commercial.reports.artwork.view')
-            ->name('commercial.reports.artwork.index');
+                Route::get('conversion', [CommercialConversionReportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.conversion.view')
+                    ->name('conversion.index');
 
-        Route::post('artwork/export', [CommercialArtworkReportController::class, 'export'])
-            ->middleware('permission:commercial.reports.export')
-            ->name('commercial.reports.artwork.export');
+                Route::post('conversion/export', [CommercialConversionReportController::class, 'export'])
+                    ->middleware('permission:commercial.reports.conversion.export')
+                    ->name('conversion.export');
 
-        Route::get('conversion', [CommercialConversionReportController::class, 'index'])
-            ->middleware('permission:commercial.reports.conversion.view')
-            ->name('commercial.reports.conversion.index');
+                Route::get('exports', [CommercialReportExportController::class, 'index'])
+                    ->middleware('permission:commercial.reports.exports.view')
+                    ->name('exports.index');
 
-        Route::post('conversion/export', [CommercialConversionReportController::class, 'export'])
-            ->middleware('permission:commercial.reports.export')
-            ->name('commercial.reports.conversion.export');
+                Route::get('exports/{export}/download', [CommercialReportExportController::class, 'download'])
+                    ->middleware('permission:commercial.reports.exports.download')
+                    ->name('exports.download');
 
-        Route::get('exports', [CommercialReportExportController::class, 'index'])
-            ->middleware('permission:commercial.reports.exports.view')
-            ->name('commercial.reports.exports.index');
-
-        Route::get('exports/{export}/download', [CommercialReportExportController::class, 'download'])
-            ->middleware('permission:commercial.reports.exports.download')
-            ->name('commercial.reports.exports.download');
-
-        Route::get('exports/{export}/status', [CommercialReportExportController::class, 'status'])
-            ->middleware('permission:commercial.reports.exports.view')
-            ->name('commercial.reports.exports.status');
+                Route::get('exports/{export}/status', [CommercialReportExportController::class, 'status'])
+                    ->middleware('permission:commercial.reports.exports.view')
+                    ->name('exports.status');
+            });
     });

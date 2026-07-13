@@ -7,39 +7,27 @@
 
     @include('admin.inventory.intelligence.partials.nav')
 
-    <x-admin.card class="mb-4">
-        <form method="GET" class="grid grid-cols-1 gap-3 md:grid-cols-4">
-            <label class="text-xs font-medium text-slate-600">
-                {{ __('Warehouse') }}
-                <select name="warehouse_id" class="erp-select mt-1 w-full">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($warehouses as $warehouse)
-                        <option value="{{ $warehouse->id }}" @selected(($filters['warehouse_id'] ?? '') == $warehouse->id)>{{ $warehouse->name }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label class="text-xs font-medium text-slate-600">
-                {{ __('Stock role') }}
-                <select name="stock_role" class="erp-select mt-1 w-full">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach (\App\Enums\InventoryStockRole::cases() as $role)
-                        <option value="{{ $role->value }}" @selected(($filters['stock_role'] ?? '') === $role->value)>{{ $role->label() }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <label class="text-xs font-medium text-slate-600">
-                {{ __('Category') }}
-                <select name="category_id" class="erp-select mt-1 w-full">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach ($categories as $category)
-                        <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == $category->id)>{{ $category->name }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <div class="flex items-end">
-                <button type="submit" class="erp-btn-secondary">{{ __('Filter') }}</button>
-            </div>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
+            <select name="warehouse_id" class="erp-toolbar-select" aria-label="{{ __('Warehouse') }}">
+                <option value="">{{ __('All warehouses') }}</option>
+                @foreach ($warehouses as $warehouse)
+                    <option value="{{ $warehouse->id }}" @selected(($filters['warehouse_id'] ?? '') == $warehouse->id)>{{ $warehouse->name }}</option>
+                @endforeach
+            </select>
+            <select name="stock_role" class="erp-toolbar-select" aria-label="{{ __('Stock role') }}">
+                <option value="">{{ __('All stock roles') }}</option>
+                @foreach (\App\Enums\InventoryStockRole::cases() as $role)
+                    <option value="{{ $role->value }}" @selected(($filters['stock_role'] ?? '') === $role->value)>{{ $role->label() }}</option>
+                @endforeach
+            </select>
+            <select name="category_id" class="erp-toolbar-select" aria-label="{{ __('Category') }}">
+                <option value="">{{ __('All categories') }}</option>
+                @foreach ($categories as $category)
+                    <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? '') == $category->id)>{{ $category->name }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
     </x-admin.card>
 
     @include('admin.inventory.intelligence.partials.dead-stock-table', [

@@ -28,16 +28,16 @@ class ExecutiveAnalyticsPermissionTest extends TestCase
 
         $this->actingAs($viewer)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.executive-intelligence', ['tab' => 'revenue']))
+            ->get(route('admin.printing-intelligence.executive-intelligence', ['tab' => 'revenue', 'embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Revenue Forecast'))
-            ->assertDontSee('<th>'.__('Period').'</th>', false);
+            ->assertSee(__('Executive analytics permission required to view revenue forecasts.'));
 
         [, , $analyst] = $this->userWith(['printing.executive.view', 'printing.executive.analytics']);
 
         $this->actingAs($analyst)
             ->withSession(['active_company_id' => $company->id, 'active_branch_id' => $branch->id])
-            ->get(route('admin.printing-intelligence.executive-intelligence', ['tab' => 'revenue']))
+            ->get(route('admin.printing-intelligence.executive-intelligence', ['tab' => 'revenue', 'embedded' => '1']))
             ->assertOk()
             ->assertSee(__('Revenue Forecast'))
             ->assertSee(__('Period'), false);

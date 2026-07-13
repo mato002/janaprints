@@ -28,11 +28,7 @@
         </div>
     @endif
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <x-admin.card>
+<x-admin.card>
         <form
             method="POST"
             action="{{ $updateRoute }}"

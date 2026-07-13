@@ -482,8 +482,8 @@ class CommercialCustomerReportQueries
             $base = [
                 'customer' => $row->company_name,
                 'code' => $row->customer_code,
-                'type' => ucfirst((string) $row->customer_type),
-                'status' => ucfirst((string) $row->status),
+                'type' => $this->displayLabel($row->customer_type),
+                'status' => $this->displayLabel($row->status),
                 'orders' => (string) $row->orders,
                 'revenue' => $this->money((float) $row->revenue),
             ];
@@ -639,7 +639,7 @@ class CommercialCustomerReportQueries
             return [
                 'customer' => $row->company_name,
                 'code' => $row->customer_code,
-                'status' => ucfirst((string) $row->status),
+                'status' => $this->displayLabel($row->status),
                 'last_order' => $row->last_order ? Carbon::parse($row->last_order)->format('d M Y') : '—',
                 'days_inactive' => $row->last_order
                     ? (string) Carbon::parse($row->last_order)->diffInDays(Carbon::parse($scope->toDate))
@@ -691,7 +691,7 @@ class CommercialCustomerReportQueries
 
         return $paginator->through(fn ($row) => [
             'customer' => $row->company_name,
-            'type' => ucfirst((string) $row->activity_type),
+            'type' => $this->displayLabel($row->activity_type),
             'subject' => $row->subject,
             'date' => Carbon::parse($row->activity_at)->format('d M Y H:i'),
         ]);
@@ -880,5 +880,16 @@ class CommercialCustomerReportQueries
             'pgsql' => "to_char({$column}, 'YYYY-MM')",
             default => "DATE_FORMAT({$column}, '%Y-%m')",
         };
+    }
+
+    protected function displayLabel(mixed $value): string
+    {
+        if ($value instanceof \BackedEnum) {
+            $value = $value->value;
+        } elseif ($value instanceof \UnitEnum) {
+            $value = $value->name;
+        }
+
+        return ucfirst(str_replace('_', ' ', (string) ($value ?? '')));
     }
 }

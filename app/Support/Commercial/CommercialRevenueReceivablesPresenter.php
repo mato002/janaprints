@@ -123,7 +123,7 @@ class CommercialRevenueReceivablesPresenter
             'label' => $period['label'],
             'value' => $this->money($this->sumRevenueBetween($scope, $period['from'], $period['to'])),
             'icon' => $period['icon'],
-            'href' => Route::has('commercial.reports.sales.index') ? route('commercial.reports.sales.index') : null,
+            'href' => Route::has('admin.commercial.reports.sales.index') ? route('admin.commercial.reports.sales.index') : null,
         ], $periods);
     }
 

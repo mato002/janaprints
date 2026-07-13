@@ -32,9 +32,15 @@ class WarehouseReorderSettingController extends Controller
 
         return view('admin.inventory.reorder-settings.index', [
             'settings' => $settings,
-            'warehouses' => Warehouse::query()->forTenant()->orderBy('name')->get(['id', 'name']),
             'filters' => $request->only(['warehouse_id']),
         ]);
+    }
+
+    public function create(): View
+    {
+        $this->authorize('create', InventoryItemWarehouseReorderSetting::class);
+
+        return view('admin.inventory.reorder-settings.create', $this->formMeta());
     }
 
     public function store(Request $request): RedirectResponse
@@ -72,5 +78,26 @@ class WarehouseReorderSettingController extends Controller
         \App\Support\InventoryStockService::syncReorderAlerts($item, $setting->warehouse_id);
 
         return back()->with('status', __('Warehouse reorder settings saved.'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function formMeta(): array
+    {
+        return [
+            'warehouses' => Warehouse::query()->forTenant()->orderBy('name')->get(['id', 'name']),
+            'items' => InventoryItem::query()
+                ->forTenant()
+                ->where('is_active', true)
+                ->orderBy('item_name')
+                ->get(['id', 'sku', 'item_name'])
+                ->map(fn (InventoryItem $item) => [
+                    'value' => $item->id,
+                    'label' => trim($item->item_name.($item->sku ? " ({$item->sku})" : '')),
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 }

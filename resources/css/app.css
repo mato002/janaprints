@@ -38,6 +38,33 @@
     opacity: 1;
 }
 
+body.erp-navigating {
+    cursor: progress;
+}
+
+.erp-frame--busy {
+    position: relative;
+    transition: opacity 120ms ease-out;
+}
+
+.erp-frame--busy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgb(248 250 252 / 0.35), rgb(248 250 252 / 0.12));
+}
+
+#module-workspace-content.erp-frame--busy {
+    min-height: 12rem;
+}
+
+/* Nested content uses skeleton placeholders — avoid a heavy wash that feels like a full-page load */
+#module-workspace-content.erp-frame--busy::after {
+    background: transparent;
+}
+
 @layer components {
     .erp-input {
         @apply block w-full rounded-lg border-erp-border bg-white text-sm text-slate-700 shadow-sm transition-colors duration-150;
@@ -53,7 +80,10 @@
     }
 
     .erp-table {
-        @apply w-full min-w-full border-collapse text-sm;
+        @apply w-full min-w-full text-sm;
+        /* separate + spacing 0 keeps sticky <th> reliable across browsers */
+        border-collapse: separate;
+        border-spacing: 0;
         table-layout: auto;
     }
 
@@ -66,20 +96,24 @@
         @apply border border-erp-border;
     }
 
-    .erp-table thead {
-        @apply sticky top-0 z-10;
-    }
-
     .erp-table--grid thead {
         background-color: #31339C;
     }
 
     .erp-table th {
         @apply h-12 px-3 text-left text-xs font-semibold uppercase tracking-wide text-white;
-        background-color: inherit;
     }
 
-    .erp-table:not(.erp-table--grid) th {
+    .erp-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        /* Opaque paint so rows do not show through while stuck */
+        background-color: #31339C;
+        box-shadow: inset 0 -1px 0 rgb(15 39 68 / 0.18);
+    }
+
+    .erp-table:not(.erp-table--grid) thead th {
         @apply bg-erp-primary text-white;
     }
 
@@ -108,11 +142,35 @@
         @apply font-medium text-erp-accent transition-colors hover:text-erp-accent-hover;
     }
 
-    .erp-table-scroll {
+    /*
+     * Sticky headers need a real vertical scrollport. Wrappers that only set
+     * overflow-x:auto silently become overflow-y:auto too, which traps sticky
+     * and makes thead scroll away with the page. Give table hosts an explicit
+     * max-height so thead can stick at the top of the table region.
+     *
+     * overscroll-behavior: auto (default) chains wheel scroll to the page once
+     * the table hits top/bottom. Scrollbars are hidden; scrolling still works.
+     */
+    .erp-table-scroll,
+    .erp-card:has(> .erp-table),
+    .overflow-x-auto:has(> .erp-table),
+    .overflow-x-auto:has(> table.erp-table) {
         @apply relative w-full max-w-full;
-        overflow-x: auto;
-        overflow-y: visible;
+        max-height: calc(100dvh - var(--erp-sticky-table-offset, 12rem));
+        overflow: auto;
         -webkit-overflow-scrolling: touch;
+        overscroll-behavior: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .erp-table-scroll::-webkit-scrollbar,
+    .erp-card:has(> .erp-table)::-webkit-scrollbar,
+    .overflow-x-auto:has(> .erp-table)::-webkit-scrollbar,
+    .overflow-x-auto:has(> table.erp-table)::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
     }
 
     .erp-data-grid {
@@ -256,8 +314,29 @@
         @apply px-3 py-2 text-xs;
     }
 
-    .erp-btn--xs {
-        @apply px-2 py-1 text-[11px];
+    .workspace-page-header__actions > .erp-btn-primary,
+    .workspace-page-header__actions > a.erp-btn-primary,
+    .workspace-page-header__actions > button.erp-btn-primary {
+        @apply order-last;
+    }
+
+    .workspace-page-header__actions .erp-btn-secondary,
+    .workspace-page-header__actions .erp-btn-primary,
+    .workspace-page-header__actions .erp-btn-ghost {
+        @apply py-2 text-sm;
+    }
+
+    .module-kpi-strip {
+        @apply mb-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6;
+    }
+
+    .erp-kpi {
+        @apply min-w-0;
+    }
+
+    /* Raw listing tables that have not yet migrated to data-table still share chrome */
+    .erp-listing-table {
+        @apply erp-table w-full text-sm;
     }
 
     .workspace-segment {
@@ -316,6 +395,22 @@
     .module-workspace-switcher,
     .workspace-pill-tabs {
         @apply w-full min-w-0;
+    }
+
+    .module-workspace-secondary-bar {
+        @apply flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .module-workspace-secondary-bar__tabs {
+        @apply min-w-0 flex-1;
+    }
+
+    .module-workspace-secondary-bar__tabs.workspace-pill-tabs {
+        @apply w-auto;
+    }
+
+    .module-workspace-secondary-bar__actions {
+        @apply flex shrink-0 items-center gap-2;
     }
 
     .module-workspace-switcher__track,
@@ -3791,6 +3886,379 @@
         @apply border-indigo-300 bg-indigo-50 text-indigo-800 ring-1 ring-indigo-200/80;
     }
 
+    /* Commercial — Activity detail */
+    .activity-show__toolbar {
+        @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between;
+    }
+
+    .activity-show__back {
+        @apply inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-erp-accent;
+    }
+
+    .activity-show__toolbar-actions {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .activity-show__hero {
+        @apply flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-start sm:p-5;
+    }
+
+    .activity-show__type-icon {
+        @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl;
+    }
+
+    .activity-show__type-icon svg {
+        @apply h-6 w-6;
+    }
+
+    .activity-show__type-icon--call {
+        @apply bg-sky-100 text-sky-700;
+    }
+
+    .activity-show__type-icon--meeting {
+        @apply bg-indigo-100 text-indigo-700;
+    }
+
+    .activity-show__type-icon--email {
+        @apply bg-blue-100 text-blue-700;
+    }
+
+    .activity-show__type-icon--whatsapp {
+        @apply bg-emerald-100 text-emerald-700;
+    }
+
+    .activity-show__type-icon--sms {
+        @apply bg-teal-100 text-teal-700;
+    }
+
+    .activity-show__type-icon--visit {
+        @apply bg-amber-100 text-amber-700;
+    }
+
+    .activity-show__type-icon--follow-up {
+        @apply bg-violet-100 text-violet-700;
+    }
+
+    .activity-show__type-icon--note {
+        @apply bg-slate-100 text-slate-700;
+    }
+
+    .activity-show__hero-body {
+        @apply min-w-0 flex-1;
+    }
+
+    .activity-show__hero-badges {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .activity-show__type-chip {
+        @apply inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .activity-show__title {
+        @apply mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+    }
+
+    .activity-show__hero-meta {
+        @apply mt-2 flex flex-wrap items-center gap-x-2 text-sm text-slate-500;
+    }
+
+    .activity-show__when {
+        @apply font-medium text-slate-700;
+    }
+
+    .activity-show__meta-dot {
+        @apply hidden text-slate-300 sm:inline;
+    }
+
+    .activity-show__assignee {
+        @apply flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 sm:min-w-[11rem];
+    }
+
+    .activity-show__assignee-avatar {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-erp-primary/10 text-sm font-semibold text-erp-primary;
+    }
+
+    .activity-show__assignee-copy {
+        @apply min-w-0;
+    }
+
+    .activity-show__assignee-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .activity-show__assignee-name {
+        @apply block truncate text-sm font-semibold text-slate-900;
+    }
+
+    .activity-show__layout {
+        @apply grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(18rem,1fr)] lg:items-start;
+    }
+
+    .activity-show__panel {
+        @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .activity-show__panel--danger {
+        @apply border-red-200 bg-red-50/30;
+    }
+
+    .activity-show__panel-head {
+        @apply border-b border-slate-100 px-4 py-3 sm:px-5;
+    }
+
+    .activity-show__panel-title {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .activity-show__panel-body {
+        @apply px-4 py-4 sm:px-5 sm:py-5;
+    }
+
+    .activity-show__notes {
+        @apply whitespace-pre-wrap text-sm leading-relaxed text-slate-700;
+    }
+
+    .activity-show__empty {
+        @apply rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500;
+    }
+
+    .activity-show__links {
+        @apply space-y-2;
+    }
+
+    .activity-show__link-card {
+        @apply flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-3 transition hover:border-erp-accent/30 hover:bg-white;
+    }
+
+    .activity-show__link-icon {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-lg;
+    }
+
+    .activity-show__link-icon svg {
+        @apply h-4 w-4;
+    }
+
+    .activity-show__link-icon--customer {
+        @apply bg-indigo-100 text-indigo-700;
+    }
+
+    .activity-show__link-icon--lead {
+        @apply bg-amber-100 text-amber-700;
+    }
+
+    .activity-show__link-copy {
+        @apply min-w-0 flex-1;
+    }
+
+    .activity-show__link-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .activity-show__link-value {
+        @apply block truncate text-sm font-semibold text-slate-900;
+    }
+
+    .activity-show__link-chevron {
+        @apply h-4 w-4 shrink-0 text-slate-400;
+    }
+
+    .activity-show__details {
+        @apply divide-y divide-slate-100 px-4 sm:px-5;
+    }
+
+    .activity-show__detail {
+        @apply grid gap-1 py-3 sm:grid-cols-[7rem_minmax(0,1fr)] sm:items-center sm:gap-4;
+    }
+
+    .activity-show__detail dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .activity-show__detail dd {
+        @apply text-sm font-medium text-slate-800;
+    }
+
+    .activity-show__danger-copy {
+        @apply mb-3 text-sm text-slate-600;
+    }
+
+    .activity-show__aside {
+        @apply space-y-4;
+    }
+
+    /* Commercial — Price book detail */
+    .price-book-show__toolbar {
+        @apply flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between;
+    }
+
+    .price-book-show__back {
+        @apply inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-erp-accent;
+    }
+
+    .price-book-show__hero {
+        @apply rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:px-5;
+    }
+
+    .price-book-show__hero-main {
+        @apply min-w-0;
+    }
+
+    .price-book-show__hero-top {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .price-book-show__title {
+        @apply text-lg font-bold tracking-tight text-slate-900 sm:text-xl;
+    }
+
+    .price-book-show__chip {
+        @apply inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700;
+    }
+
+    .price-book-show__description {
+        @apply mt-1 line-clamp-2 text-sm text-slate-600;
+    }
+
+    .price-book-show__meta {
+        @apply mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 sm:grid-cols-4;
+    }
+
+    .price-book-show__meta-item {
+        @apply min-w-0;
+    }
+
+    .price-book-show__meta-item dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .price-book-show__meta-item dd {
+        @apply truncate text-sm font-semibold text-slate-900;
+    }
+
+    .price-book-show__layout {
+        @apply grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)] lg:items-start;
+    }
+
+    .price-book-show__panel {
+        @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm;
+    }
+
+    .price-book-show__panel-head {
+        @apply flex items-center justify-between gap-2 border-b border-slate-100 px-3 py-2 sm:px-4;
+    }
+
+    .price-book-show__panel-title {
+        @apply text-xs font-semibold uppercase tracking-wide text-erp-primary;
+    }
+
+    .price-book-show__panel-count {
+        @apply inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[10px] font-semibold tabular-nums text-slate-600;
+    }
+
+    .price-book-show__inline-form {
+        @apply flex flex-col gap-2 border-b border-slate-100 px-3 py-2 sm:flex-row sm:items-center sm:px-4;
+    }
+
+    .price-book-show__input {
+        @apply h-9 min-w-0 text-sm;
+    }
+
+    .price-book-show__input--price {
+        @apply sm:w-28;
+    }
+
+    .price-book-show__input--qty {
+        @apply sm:w-24;
+    }
+
+    .price-book-show__assign-form {
+        @apply flex gap-2 border-b border-slate-100 px-3 py-2 sm:px-4;
+    }
+
+    .price-book-show__table-wrap {
+        @apply overflow-x-auto;
+    }
+
+    .price-book-show__table {
+        table-layout: fixed;
+    }
+
+    .price-book-show__col-item {
+        width: 38%;
+    }
+
+    .price-book-show__col-price {
+        width: 14%;
+    }
+
+    .price-book-show__col-qty {
+        width: 12%;
+    }
+
+    .price-book-show__col-status {
+        width: 14%;
+    }
+
+    .price-book-show__col-actions {
+        width: 5.5rem;
+    }
+
+    .price-book-show__table th,
+    .price-book-show__table td {
+        @apply px-3 py-2 sm:px-4;
+    }
+
+    .price-book-show__table td {
+        @apply max-w-none;
+    }
+
+    .price-book-show__table td:first-child {
+        @apply max-w-0 truncate;
+    }
+
+    .price-book-show__table th {
+        @apply h-9 text-[10px] font-semibold uppercase tracking-wide;
+    }
+
+    .price-book-show__table th.price-book-show__col--numeric,
+    .price-book-show__table td.price-book-show__col--numeric {
+        text-align: right;
+    }
+
+    .price-book-show__table th.erp-table-actions-col,
+    .price-book-show__table td.erp-table-actions-col {
+        text-align: right;
+    }
+
+    .price-book-show__remove {
+        @apply text-xs font-semibold text-red-600 transition hover:text-red-700;
+    }
+
+    .price-book-show__assignments {
+        @apply divide-y divide-slate-100;
+    }
+
+    .price-book-show__assignment {
+        @apply px-3 py-2 sm:px-4;
+    }
+
+    .price-book-show__assignment-copy {
+        @apply flex min-w-0 items-center justify-between gap-2;
+    }
+
+    .price-book-show__assignment-name {
+        @apply truncate text-sm font-medium text-slate-900;
+    }
+
+    .price-book-show__assignment-status {
+        @apply shrink-0 text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .price-book-show__empty {
+        @apply px-3 py-6 text-center text-sm text-slate-500 sm:px-4;
+    }
+
     .crm-customers .erp-table--grid {
         @apply border-0;
     }
@@ -3799,8 +4267,10 @@
         @apply bg-slate-50;
     }
 
-    .crm-customers .erp-table th {
+    .crm-customers .erp-table th,
+    .crm-customers .erp-table thead th {
         @apply h-11 bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-600;
+        box-shadow: inset 0 -1px 0 rgb(226 232 240);
     }
 
     .crm-customers .erp-table--grid th,
@@ -4027,7 +4497,12 @@
     }
 
     .erp-toast-host {
-        @apply pointer-events-none fixed bottom-4 right-4 z-[70] flex max-w-sm flex-col gap-2;
+        @apply pointer-events-none fixed bottom-4 right-4 z-[10050] flex max-w-sm flex-col gap-2;
+    }
+
+    /* Keep SweetAlert above shell chrome / modals / busy overlays */
+    .erp-swal-container.swal2-container {
+        z-index: 10050 !important;
     }
 
     .erp-toast {

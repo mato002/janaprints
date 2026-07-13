@@ -13,32 +13,28 @@
         </x-slot:actions>
     </x-admin.workspace-content-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <x-admin.card :padding="false" class="mb-4">
+<x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="route('admin.hr.performance.index')" :reset-url="route('admin.hr.performance.index')">
             <select name="employee_id" class="erp-toolbar-select" aria-label="{{ __('Employee') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All employees') }}</option>
                 @foreach ($formData['employees'] as $employee)
                     <option value="{{ $employee->id }}" @selected((int) ($filters['employee_id'] ?? 0) === $employee->id)>{{ $employee->full_name }}</option>
                 @endforeach
             </select>
             <select name="cycle" class="erp-toolbar-select" aria-label="{{ __('Cycle') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All cycles') }}</option>
                 @foreach ($formData['cycles'] as $cycle)
                     <option value="{{ $cycle->value }}" @selected(($filters['cycle'] ?? '') === $cycle->value)>{{ $cycle->label() }}</option>
                 @endforeach
             </select>
             <select name="rating" class="erp-toolbar-select" aria-label="{{ __('Rating') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All ratings') }}</option>
                 @foreach ($formData['ratings'] as $rating)
                     <option value="{{ $rating->value }}" @selected(($filters['rating'] ?? '') === $rating->value)>{{ $rating->label() }}</option>
                 @endforeach
             </select>
             <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All statuses') }}</option>
                 @foreach ($formData['statuses'] as $status)
                     <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
                 @endforeach

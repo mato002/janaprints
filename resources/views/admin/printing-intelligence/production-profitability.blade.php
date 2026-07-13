@@ -5,15 +5,23 @@
     <x-admin.page-header
         :title="__('Production Profitability')"
         :description="__('Analytical profitability intelligence by job, customer, machine, and product (PI8). Reporting only — no pricing or formula changes.')"
-    />
+    >
+        <x-slot name="export">
+            <x-admin.export-dropdown :csv-url="route('admin.printing-intelligence.production-profitability.export', $filters ?? [])" />
+        </x-slot>
+        <x-slot name="secondary">
+            @can('printing.profitability.generate')
+                <form method="post" action="{{ route('admin.printing-intelligence.profitability.generate') }}">
+                    @csrf
+                    <button type="submit" class="erp-btn-secondary">{{ __('Generate snapshots') }}</button>
+                </form>
+            @endcan
+        </x-slot>
+    </x-admin.page-header>
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    @php
+@php
         $tabs = [
             'overview' => __('Overview'),
             'jobs' => __('Jobs'),
@@ -26,8 +34,8 @@
         $summary = $overview['summary'] ?? [];
     @endphp
 
-    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <x-admin.card class="flex-1 min-w-0">
+    <div class="mb-4">
+        <x-admin.card>
             <nav class="flex flex-wrap gap-2">
                 @foreach ($tabs as $key => $label)
                     <a href="{{ route('admin.printing-intelligence.production-profitability', array_merge($filters ?? [], ['tab' => $key])) }}"
@@ -41,13 +49,6 @@
                 @endforeach
             </nav>
         </x-admin.card>
-
-        @can('printing.profitability.generate')
-            <form method="post" action="{{ route('admin.printing-intelligence.profitability.generate') }}">
-                @csrf
-                <button type="submit" class="erp-btn-secondary text-xs">{{ __('Generate snapshots') }}</button>
-            </form>
-        @endcan
     </div>
 
     @if (($tab ?? 'overview') === 'overview')

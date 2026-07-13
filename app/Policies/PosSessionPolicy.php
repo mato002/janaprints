@@ -12,7 +12,7 @@ class PosSessionPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('commercial.pos.sessions.view') || $user->can('pos.sessions.view');
+        return $user->can('commercial.pos.sessions.view');
     }
 
     public function view(User $user, PosSession $session): bool
@@ -30,12 +30,12 @@ class PosSessionPolicy
 
     public function open(User $user): bool
     {
-        return $user->can('commercial.pos.sessions.open') || $user->can('pos.sessions.open');
+        return $user->can('commercial.pos.sessions.open');
     }
 
     public function close(User $user, PosSession $session): bool
     {
-        if (! $user->can('commercial.pos.sessions.close') && ! $user->can('pos.sessions.close')) {
+        if (! $user->can('commercial.pos.sessions.close')) {
             return false;
         }
 
@@ -48,8 +48,7 @@ class PosSessionPolicy
 
     public function approveVariance(User $user, PosSession $session): bool
     {
-        if (! $user->can('commercial.pos.sessions.audit')
-            && ! $user->can('pos.sessions.approve_variance')) {
+        if (! $user->can('commercial.pos.sessions.audit')) {
             return false;
         }
 
@@ -58,8 +57,7 @@ class PosSessionPolicy
 
     public function export(User $user, PosSession $session): bool
     {
-        if (! $user->can('commercial.pos.sessions.audit')
-            && ! $user->can('pos.sessions.export')) {
+        if (! $user->can('commercial.pos.sessions.audit')) {
             return false;
         }
 
@@ -68,8 +66,7 @@ class PosSessionPolicy
 
     public function audit(User $user, PosSession $session): bool
     {
-        return ($user->can('commercial.pos.sessions.audit') || $user->can('pos.sessions.export'))
-            && $this->view($user, $session);
+        return $user->can('commercial.pos.sessions.audit') && $this->view($user, $session);
     }
 
     protected function sameCompany(User $user, PosSession $session): bool

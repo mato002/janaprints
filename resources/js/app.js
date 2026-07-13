@@ -10,6 +10,10 @@ const ErpToast = Swal.mixin({
     showConfirmButton: false,
     timer: 4500,
     timerProgressBar: true,
+    heightAuto: false,
+    customClass: {
+        container: 'erp-swal-container',
+    },
     didOpen: (toast) => {
         toast.addEventListener('mouseenter', Swal.stopTimer);
         toast.addEventListener('mouseleave', Swal.resumeTimer);
@@ -48,12 +52,13 @@ function showErpSweetAlert(message, variant = 'success', options = {}) {
     }
 
     const icon = ['success', 'error', 'warning', 'info'].includes(variant) ? variant : 'info';
+    const { timer: optionTimer, ...restOptions } = options ?? {};
 
     ErpToast.fire({
         icon,
-        title: message,
-        timer: options.timer ?? 4500,
-        ...options,
+        title: String(message),
+        timer: optionTimer ?? 4500,
+        ...restOptions,
     });
 }
 
@@ -954,7 +959,11 @@ const erpModalManager = {
         const target = typeof redirect === 'string' ? redirect.trim() : '';
 
         if (target && ! this.isModalFormUrl(target)) {
-            window.Turbo.visit(target);
+            if (typeof window.erpVisitUrl === 'function') {
+                window.erpVisitUrl(target);
+            } else {
+                window.Turbo.visit(target, { frame: 'erp-main', action: 'advance' });
+            }
 
             return;
         }
@@ -1032,9 +1041,8 @@ const erpModalManager = {
             return false;
         }
 
-        const purpose = typeof headers.get === 'function'
-            ? headers.get('X-Sec-Purpose')
-            : headers['X-Sec-Purpose'];
+        const read = (name) => (typeof headers.get === 'function' ? headers.get(name) : headers[name]);
+        const purpose = (read('Purpose') || read('Sec-Purpose') || read('X-Sec-Purpose') || '').toLowerCase();
 
         return purpose === 'prefetch';
     },
@@ -1550,29 +1558,213 @@ erpLookupManager.bind();
 erpLookupManager.hideOverlay();
 
 const progressBar = () => document.getElementById('turbo-progress');
+const NAVIGATION_FRAME_IDS = new Set(['erp-main', 'module-workspace-content']);
+const PROGRESS_FRAME_IDS = new Set(['erp-main']);
+const PROGRESS_SAFETY_MS = 12000;
+let navigationDepth = 0;
+let progressPulseTimer = null;
+let progressHideTimer = null;
+let progressSafetyTimer = null;
 
-document.addEventListener('turbo:visit', () => {
+function headerValue(headers, name) {
+    if (! headers) {
+        return null;
+    }
+
+    if (typeof headers.get === 'function') {
+        return headers.get(name);
+    }
+
+    return headers[name] ?? headers[name.toLowerCase()] ?? null;
+}
+
+function isPrefetchFetchEvent(event) {
+    const headers = event.detail?.fetchOptions?.headers;
+    const purpose = (
+        headerValue(headers, 'Purpose')
+        || headerValue(headers, 'Sec-Purpose')
+        || headerValue(headers, 'X-Sec-Purpose')
+        || ''
+    ).toLowerCase();
+
+    return purpose === 'prefetch';
+}
+
+function navigationFrameFromEvent(event) {
+    const target = event.target;
+
+    if (target instanceof Element && NAVIGATION_FRAME_IDS.has(target.id)) {
+        return target;
+    }
+
+    return null;
+}
+
+function frameCountsForProgress(frame) {
+    return ! frame || PROGRESS_FRAME_IDS.has(frame.id);
+}
+
+function clearProgressSafetyTimer() {
+    window.clearTimeout(progressSafetyTimer);
+    progressSafetyTimer = null;
+}
+
+function armProgressSafetyTimer() {
+    clearProgressSafetyTimer();
+    progressSafetyTimer = window.setTimeout(() => {
+        navigationDepth = 0;
+        document.body.classList.remove('erp-navigating');
+        hideTurboProgress();
+        document.querySelectorAll('.erp-frame--busy').forEach((busyFrame) => {
+            markFrameBusy(busyFrame, false);
+        });
+    }, PROGRESS_SAFETY_MS);
+}
+
+function showTurboProgress(startWidth = 28) {
     const bar = progressBar();
 
-    if (bar) {
-        bar.classList.add('turbo-progress--visible');
-        bar.style.width = '30%';
+    if (! bar) {
+        return;
+    }
+
+    window.clearTimeout(progressHideTimer);
+    bar.classList.add('turbo-progress--visible');
+    bar.setAttribute('aria-hidden', 'false');
+
+    const current = Number.parseFloat(bar.style.width || '0') || 0;
+    bar.style.width = `${Math.max(current, startWidth)}%`;
+
+    window.clearInterval(progressPulseTimer);
+    progressPulseTimer = window.setInterval(() => {
+        const width = Number.parseFloat(bar.style.width || '0') || 0;
+
+        if (width >= 86) {
+            return;
+        }
+
+        bar.style.width = `${width + Math.max(1.2, (86 - width) * 0.08)}%`;
+    }, 180);
+
+    armProgressSafetyTimer();
+}
+
+function hideTurboProgress() {
+    const bar = progressBar();
+
+    window.clearInterval(progressPulseTimer);
+    progressPulseTimer = null;
+    clearProgressSafetyTimer();
+
+    if (! bar) {
+        return;
+    }
+
+    bar.style.width = '100%';
+    progressHideTimer = window.setTimeout(() => {
+        bar.classList.remove('turbo-progress--visible');
+        bar.style.width = '0';
+        bar.setAttribute('aria-hidden', 'true');
+    }, 180);
+}
+
+function markFrameBusy(frame, busy) {
+    if (! (frame instanceof Element)) {
+        return;
+    }
+
+    frame.classList.toggle('erp-frame--busy', busy);
+    frame.setAttribute('aria-busy', busy ? 'true' : 'false');
+}
+
+function beginErpNavigation(frame = null) {
+    // Nested workspace content already shows a skeleton — do not hold the global
+    // magenta progress bar across the second round-trip (that felt like a long wait).
+    if (frameCountsForProgress(frame)) {
+        navigationDepth += 1;
+        document.body.classList.add('erp-navigating');
+        showTurboProgress(navigationDepth === 1 ? 28 : 48);
+    }
+
+    if (frame) {
+        markFrameBusy(frame, true);
+    }
+}
+
+function endErpNavigation(frame = null) {
+    if (frameCountsForProgress(frame)) {
+        navigationDepth = Math.max(0, navigationDepth - 1);
+    }
+
+    if (frame) {
+        markFrameBusy(frame, false);
+    }
+
+    if (navigationDepth === 0) {
+        document.body.classList.remove('erp-navigating');
+        hideTurboProgress();
+        document.querySelectorAll('.erp-frame--busy').forEach((busyFrame) => {
+            markFrameBusy(busyFrame, false);
+        });
+    }
+}
+
+function ensureWorkspaceContentFrameLoads(root = document) {
+    const frame = root.querySelector?.('#module-workspace-content')
+        ?? (root?.id === 'module-workspace-content' ? root : null);
+
+    if (! (frame instanceof HTMLElement)) {
+        return;
+    }
+
+    // Legacy shells may still ship with loading="lazy", which delays nested content
+    // until an intersection observer fires — making sidebar navigation look broken.
+    if (frame.getAttribute('loading') === 'lazy') {
+        frame.removeAttribute('loading');
+    }
+}
+
+document.addEventListener('turbo:before-fetch-request', (event) => {
+    if (isPrefetchFetchEvent(event)) {
+        return;
+    }
+
+    const frame = navigationFrameFromEvent(event);
+
+    if (frame) {
+        beginErpNavigation(frame);
+
+        return;
+    }
+
+    if (event.target === document || event.target === document.documentElement) {
+        beginErpNavigation(document.getElementById('erp-main'));
+    }
+});
+
+document.addEventListener('turbo:fetch-request-error', (event) => {
+    const frame = navigationFrameFromEvent(event);
+
+    if (frame || navigationDepth > 0) {
+        endErpNavigation(frame);
     }
 });
 
 document.addEventListener('turbo:frame-render', (event) => {
-    const bar = progressBar();
+    const frame = event.target instanceof Element ? event.target : null;
 
-    if (bar) {
-        bar.style.width = '100%';
-        window.setTimeout(() => {
-            bar.classList.remove('turbo-progress--visible');
-            bar.style.width = '0';
-        }, 200);
+    if (frame && NAVIGATION_FRAME_IDS.has(frame.id)) {
+        endErpNavigation(frame);
+    }
+
+    // Promote flash as soon as frame HTML is in the DOM (before frame-load handlers).
+    if (frame?.id === 'erp-main' || frame?.id === 'module-workspace-content') {
+        promoteFlashAlertsToToast(frame);
     }
 
     if (event.target?.id === 'erp-main') {
         syncShellFromFrame();
+        window.requestAnimationFrame(() => ensureWorkspaceContentFrameLoads(event.target));
     }
 
     if (event.target?.id === 'erp-form-modal' || event.target?.id === 'erp-preview-drawer') {
@@ -1586,6 +1778,16 @@ document.addEventListener('turbo:frame-render', (event) => {
     if (event.target?.querySelector?.('[data-inbox-list-panel]')) {
         initSharedInboxListPoll(event.target);
     }
+});
+
+document.addEventListener('turbo:load', () => {
+    navigationDepth = 0;
+    document.body.classList.remove('erp-navigating');
+    hideTurboProgress();
+    document.querySelectorAll('.erp-frame--busy').forEach((busyFrame) => {
+        markFrameBusy(busyFrame, false);
+    });
+    promoteFlashAlertsToToast(document);
 });
 
 function discoveryTokenize(value) {
@@ -3357,7 +3559,7 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async openPanel(jobKey) {
+        async openPanel(jobKey, hash = '') {
             this.panelOpen = true;
             this.panelLoading = true;
             this.panel = null;
@@ -3372,9 +3574,28 @@ document.addEventListener('alpine:init', () => {
 
                 if (response.ok) {
                     this.panel = await response.json();
+                    if (hash) {
+                        this.$nextTick(() => this.scrollToPanelSection(`#${hash}`));
+                    }
                 }
             } finally {
                 this.panelLoading = false;
+            }
+        },
+
+        scrollToPanelSection(urlOrHash) {
+            const hash = String(urlOrHash || '').includes('#')
+                ? String(urlOrHash).split('#').pop()
+                : String(urlOrHash || '').replace(/^#/, '');
+
+            if (! hash) {
+                return;
+            }
+
+            const section = document.getElementById(hash);
+
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         },
 
@@ -3971,8 +4192,10 @@ document.addEventListener('alpine:init', () => {
         },
 
         openRole(url) {
-            if (window.Turbo) {
-                window.Turbo.visit(url, { action: 'advance' });
+            if (typeof window.erpVisitUrl === 'function') {
+                window.erpVisitUrl(url);
+            } else if (window.Turbo) {
+                window.Turbo.visit(url, { frame: 'erp-main', action: 'advance' });
             } else {
                 window.location.href = url;
             }
@@ -6007,7 +6230,7 @@ document.addEventListener('alpine:init', () => {
         piModalUrl: config.modalUrl ?? '',
         piRunUrl: config.runUrl ?? '',
         piRerunUrl: config.rerunUrl ?? '',
-        piCsrf: config.csrf ?? '',
+        piApplyUrl: config.applyUrl ?? '',
         piActiveTab: 'overview',
         piShowCmykBreakdown: true,
         piShowInkCmykMl: false,
@@ -6066,6 +6289,11 @@ document.addEventListener('alpine:init', () => {
 
             const data = await response.json();
             this.piSummary = data.summary ?? null;
+            if (data.environment && this.piSummary) {
+                this.piSummary.environment = data.environment;
+            } else if (data.environment) {
+                this.piSummary = { ...(this.piSummary ?? {}), environment: data.environment };
+            }
         },
 
         async submitPiForm(event) {
@@ -6095,9 +6323,16 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 this.piSummary = data.summary ?? null;
+                if (data.environment && this.piSummary) {
+                    this.piSummary.environment = data.environment;
+                }
                 this.piWarnings = data.warnings ?? [];
                 this.piStatusMessage = data.message ?? null;
-                this.piActiveTab = this.resolvePiTabFromAction(erpFormActionUrl(form));
+                this.piActiveTab = this.resolvePiTabFromAction(form.action);
+
+                if (data.queued && this.piModalUrl) {
+                    window.setTimeout(() => this.refreshPiSummary(), 3000);
+                }
             } catch (error) {
                 this.piWarnings = [error?.message || 'Unable to run analysis.'];
             } finally {
@@ -6260,6 +6495,60 @@ function shellScrollContainer() {
     return null;
 }
 
+const ERP_TABLE_SCROLL_SELECTOR = [
+    '.erp-table-scroll',
+    '.erp-card:has(> .erp-table)',
+    '.overflow-x-auto:has(> .erp-table)',
+    '.overflow-x-auto:has(> table.erp-table)',
+].join(', ');
+
+/**
+ * When a table region hits its top/bottom edge, forward wheel deltas to the
+ * page shell so users do not need to move the cursor outside the table.
+ */
+function bindTableScrollChaining(root = document) {
+    if (! root?.querySelectorAll) {
+        return;
+    }
+
+    root.querySelectorAll(ERP_TABLE_SCROLL_SELECTOR).forEach((el) => {
+        if (el.dataset.erpTableScrollBound === '1') {
+            return;
+        }
+
+        el.dataset.erpTableScrollBound = '1';
+
+        el.addEventListener('wheel', (event) => {
+            if (Math.abs(event.deltaX) > Math.abs(event.deltaY) || event.deltaY === 0) {
+                return;
+            }
+
+            const maxScroll = Math.max(0, el.scrollHeight - el.clientHeight);
+            const atTop = el.scrollTop <= 1;
+            const atBottom = el.scrollTop >= maxScroll - 1;
+            const scrollingDown = event.deltaY > 0;
+            const scrollingUp = event.deltaY < 0;
+
+            // Table can still scroll in this direction — keep native behavior.
+            if ((scrollingDown && ! atBottom) || (scrollingUp && ! atTop)) {
+                return;
+            }
+
+            const parent = shellScrollContainer()
+                || el.parentElement?.closest('.overflow-y-auto, .overflow-auto')
+                || document.scrollingElement
+                || document.documentElement;
+
+            if (! parent || parent === el) {
+                return;
+            }
+
+            event.preventDefault();
+            parent.scrollTop += event.deltaY;
+        }, { passive: false });
+    });
+}
+
 function shellScrollY() {
     const container = shellScrollContainer();
 
@@ -6374,45 +6663,33 @@ function cleanupRowActionMenus(root = document) {
     window.__erpOpenRowMenu = null;
 }
 
-function promoteFlashAlertsToToast(root) {
-    if (! root) {
+function promoteFlashAlertsToToast(root = document) {
+    if (! root?.querySelectorAll) {
         return;
     }
 
-    root.querySelectorAll('[data-erp-flash-status]').forEach((alert) => {
-        const message = alert.textContent?.trim();
+    const promote = (selector, variant) => {
+        root.querySelectorAll(selector).forEach((alert) => {
+            const items = [...alert.querySelectorAll('li, span')]
+                .map((item) => item.textContent?.trim())
+                .filter(Boolean);
+            const message = items.length > 0
+                ? items.join('\n')
+                : alert.textContent?.trim();
 
-        if (message) {
-            showErpSweetAlert(message, 'success');
-        }
+            if (message) {
+                showErpSweetAlert(message, variant);
+            }
 
-        alert.remove();
-    });
+            alert.remove();
+        });
+    };
 
-    root.querySelectorAll('[data-erp-flash-error]').forEach((alert) => {
-        const message = alert.textContent?.trim();
-
-        if (message) {
-            showErpSweetAlert(message, 'error');
-        }
-
-        alert.remove();
-    });
-
-    root.querySelectorAll('[data-erp-validation-errors]').forEach((alert) => {
-        const items = [...alert.querySelectorAll('li')]
-            .map((item) => item.textContent?.trim())
-            .filter(Boolean);
-        const message = items.length > 0
-            ? items.join('\n')
-            : alert.textContent?.trim();
-
-        if (message) {
-            showErpSweetAlert(message, 'error');
-        }
-
-        alert.remove();
-    });
+    promote('[data-erp-flash-status], [data-erp-flash-success]', 'success');
+    promote('[data-erp-flash-error], [data-erp-flash-danger]', 'error');
+    promote('[data-erp-flash-warning]', 'warning');
+    promote('[data-erp-flash-info]', 'info');
+    promote('[data-erp-validation-errors]', 'error');
 }
 
 const FORM_SETTINGS_SCROLL_KEY = 'erp.formSettings.scrollTop';
@@ -6708,6 +6985,7 @@ function refreshFrameAlpine(frame) {
     wireMainFrameLinks(frame);
     promoteFlashAlertsToToast(frame);
     initSubmitFeedbackForms(frame);
+    bindTableScrollChaining(frame);
     syncShellFromFrame();
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
@@ -6926,12 +7204,29 @@ function shouldPromoteWorkspaceLinkToMain(href) {
     try {
         const path = new URL(href, window.location.origin).pathname;
 
-        return /\/admin\/invoices\/[0-9A-Za-z]{16}(\/document)?$/.test(path)
+        // Keep parity with AdminLayout::routeShouldPromoteToMainShell — detail/create
+        // surfaces must leave the nested workspace frame and load into erp-main.
+        if (
+            /\/admin\/invoices\/[0-9A-Za-z]{16}(\/document)?$/.test(path)
             || /\/admin\/quotations\/list\/[0-9A-Za-z]{16}(\/document)?$/.test(path)
             || /\/admin\/payments\/[0-9A-Za-z]{16}(\/receipt)?$/.test(path)
             || /\/admin\/sales-orders\/list\/[0-9A-Za-z]{16}$/.test(path)
             || /\/admin\/hr\/employees\/\d+$/.test(path)
-            || /\/admin\/employees\/email\/compose$/.test(path);
+            || /\/admin\/employees\/email\/compose$/.test(path)
+        ) {
+            return true;
+        }
+
+        if (/\/(create|edit|compose|document|receipt|pdf)(\/|$)/.test(path)) {
+            return true;
+        }
+
+        // Public-hash resource show URLs (and common document suffixes).
+        if (/\/admin\/(?:[\w-]+\/)+[0-9A-Za-z]{16}(?:\/(?:document|receipt|pdf|edit))?$/.test(path)) {
+            return true;
+        }
+
+        return false;
     } catch {
         return false;
     }
@@ -6941,8 +7236,6 @@ function wireMainFrameLinks(root) {
     if (! root || root.id !== 'erp-main') {
         return;
     }
-
-    const workspaceFrame = document.getElementById('module-workspace-content');
 
     root.querySelectorAll('a[href]').forEach((link) => {
         if (link.closest('#module-workspace-content')) {
@@ -6985,10 +7278,9 @@ function wireMainFrameLinks(root) {
                 // Keep the original href when it cannot be parsed.
             }
         } else if (! link.hasAttribute('data-turbo-frame')) {
-            link.setAttribute(
-                'data-turbo-frame',
-                workspaceFrame && root.contains(workspaceFrame) ? 'module-workspace-content' : 'erp-main',
-            );
+            // Default shell navigation to erp-main. Nested workspace content must
+            // opt in explicitly (secondary tabs / workspace-link / WorkspaceEmbed).
+            link.setAttribute('data-turbo-frame', 'erp-main');
         }
 
         if (! link.hasAttribute('data-turbo-action')) {
@@ -7055,10 +7347,9 @@ function wireEmbeddedWorkspaceLinks(root) {
         }
 
         const turboFrame = link.getAttribute('data-turbo-frame');
-        const promoteToMain = shouldPromoteWorkspaceLinkToMain(link.href)
-            || (! insideWorkspaceContent && turboFrame === 'erp-main');
+        const promoteToMain = shouldPromoteWorkspaceLinkToMain(link.href);
 
-        if (promoteToMain) {
+        if (promoteToMain || turboFrame === 'erp-main') {
             link.setAttribute('data-turbo-frame', 'erp-main');
 
             try {
@@ -7075,15 +7366,9 @@ function wireEmbeddedWorkspaceLinks(root) {
             return;
         }
 
-        if (insideWorkspaceContent && turboFrame === 'erp-main') {
-            link.setAttribute('data-turbo-frame', 'module-workspace-content');
-        }
-
-        const targetsWorkspaceContent = link.getAttribute('data-turbo-frame') === 'module-workspace-content';
-
         if (! link.hasAttribute('data-turbo-frame')) {
             link.setAttribute('data-turbo-frame', 'module-workspace-content');
-        } else if (! targetsWorkspaceContent) {
+        } else if (link.getAttribute('data-turbo-frame') !== 'module-workspace-content') {
             return;
         }
 
@@ -7203,6 +7488,7 @@ function refreshEmbeddedWorkspaceFrame(frame) {
     wireEmbeddedWorkspaceLinks(frame);
     promoteFlashAlertsToToast(frame);
     initSubmitFeedbackForms(frame);
+    bindTableScrollChaining(frame);
     bindFormSettingsForms(frame);
     bindIndexFilterForms(frame);
     bindWebsiteSettingsForms(frame);
@@ -7280,6 +7566,7 @@ document.addEventListener('turbo:frame-load', (event) => {
         syncSecondaryWorkspaceTabActiveState();
         bindFormSettingsForms(event.target);
         initDocumentPdfDownload(event.target);
+        ensureWorkspaceContentFrameLoads(event.target);
     }
 
     if (event.target.id === 'module-workspace-content') {
@@ -7298,25 +7585,41 @@ document.addEventListener('turbo:frame-missing', async (event) => {
         event.preventDefault();
 
         const response = event.detail?.response;
+        const status = response?.status ?? 0;
+        // before-fetch-request already incremented depth for this frame; frame-render
+        // will not run after preventDefault, so always clear busy/progress here.
+        endErpNavigation(event.target);
 
-        if (response) {
-            try {
-                const html = await response.clone().text();
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const sourceFrame = doc.querySelector('turbo-frame#module-workspace-content');
+        // Never promote error responses into erp-main — that reloads the shell,
+        // re-fetches the broken content URL, and loops forever on the skeleton.
+        if (! response || status >= 400) {
+            const message = status >= 500
+                ? 'This workspace page failed to load. Please refresh and try again.'
+                : 'Unable to load workspace content. Please refresh the page.';
+            showFormSettingsSweetAlert(message, 'error');
+            event.target.innerHTML = `<div class="rounded-lg border border-rose-200 bg-rose-50 px-4 py-6 text-sm text-rose-800">${message}</div>`;
+            // Clear src so a later erp-main reload does not re-fetch the broken URL.
+            event.target.removeAttribute('src');
 
-                if (sourceFrame) {
-                    event.target.innerHTML = sourceFrame.innerHTML;
-                    refreshEmbeddedWorkspaceFrame(event.target);
-
-                    return;
-                }
-            } catch {
-                // Fall back to full-frame navigation below.
-            }
+            return;
         }
 
-        if (! promoteEmbeddedWorkspaceNavigation(event.target, event.detail?.response?.url)) {
+        try {
+            const html = await response.clone().text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const sourceFrame = doc.querySelector('turbo-frame#module-workspace-content');
+
+            if (sourceFrame) {
+                event.target.innerHTML = sourceFrame.innerHTML;
+                refreshEmbeddedWorkspaceFrame(event.target);
+
+                return;
+            }
+        } catch {
+            // Fall through to a one-shot promote only for successful HTML without a frame.
+        }
+
+        if (! promoteEmbeddedWorkspaceNavigation(event.target, response.url)) {
             showFormSettingsSweetAlert('Unable to load workspace content. Please refresh the page.', 'error');
         }
 
@@ -7328,10 +7631,11 @@ document.addEventListener('turbo:frame-missing', async (event) => {
     }
 
     event.preventDefault();
+    endErpNavigation(event.target);
 
     const response = event.detail?.response;
 
-    if (! response) {
+    if (! response || response.status >= 400) {
         return;
     }
 
@@ -7448,6 +7752,8 @@ document.addEventListener('turbo:load', () => {
         syncShellFromFrame();
     }
 
+    promoteFlashAlertsToToast(document);
+
     const workspaceFrame = document.getElementById('module-workspace-content');
 
     if (workspaceFrame) {
@@ -7460,6 +7766,7 @@ document.addEventListener('turbo:load', () => {
     bindFormSettingsForms(document.getElementById('erp-main'));
     bindIndexFilterForms(document);
     bindWebsiteSettingsForms(document);
+    bindTableScrollChaining(document);
     syncSecondaryWorkspaceTabActiveState();
     initDocumentPdfDownload();
     initSubmitFeedbackForms();

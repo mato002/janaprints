@@ -28,11 +28,7 @@
         ])
     @endunless
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+<div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <x-admin.card>
             <h2 class="text-base font-semibold text-erp-primary">{{ __('Mailbox details') }}</h2>
 

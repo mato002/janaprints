@@ -32,6 +32,7 @@
     @class([
         'font-sans antialiased bg-erp-page text-erp-primary overflow-hidden',
     ])
+    style="--erp-sticky-table-offset: {{ $compactPage ? '6.5rem' : ($compactWorkspace ? '10.5rem' : '12rem') }}"
     x-data="erpShell()"
     @keydown.escape.window="if (paletteOpen) { closePalette(); } else { closeMobileNav(); }"
     @close-nav.window="closeMobileNav()"
@@ -106,9 +107,8 @@
                 @unless ($compactPage)
                     @include('admin.partials.breadcrumbs', ['compact' => $compactWorkspace])
                 @endunless
-                @if (! $compactPage)
-                    @include('admin.partials.alerts')
-                @endif
+                {{-- Always emit flash markers (including compact pages like Shared Inbox). --}}
+                @include('admin.partials.alerts')
 
                 @isset($header)
                     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -166,7 +166,7 @@
         <turbo-frame id="erp-preview-drawer"></turbo-frame>
     </div>
 
-    <div id="erp-toast-host" class="sr-only" data-turbo-permanent aria-hidden="true"></div>
+    <div id="erp-toast-host" class="erp-toast-host" data-turbo-permanent aria-live="polite"></div>
 
     <x-admin.command-palette />
 </body>

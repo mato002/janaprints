@@ -53,6 +53,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 ->name('public-quote-requests.printing-analysis.quotation');
         });
 
+        Route::middleware('permission:printing.quotation.apply-estimate')->group(function () {
+            Route::post('public-quote-requests/{publicQuoteRequest}/artwork/{artworkFile}/printing-analysis/apply-quotation', [QrArtworkAnalysisController::class, 'applyQuotationEstimate'])
+                ->name('public-quote-requests.printing-analysis.apply-quotation');
+        });
+
         Route::middleware('permission:public_leads.quote_requests.manage')->group(function () {
             Route::patch('public-quote-requests/{publicQuoteRequest}/status', [PublicQuoteRequestController::class, 'updateStatus'])
                 ->name('public-quote-requests.update-status');

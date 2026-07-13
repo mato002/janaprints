@@ -25,5 +25,6 @@
         <a class="erp-btn-secondary justify-center" href="{{ route('admin.inventory.catalogue.subcategories.index') }}">{{ __('Subcategories') }}</a>
         <a class="erp-btn-secondary justify-center" href="{{ route('admin.inventory.catalogue.brands.index') }}">{{ __('Brands') }}</a>
         <a class="erp-btn-secondary justify-center" href="{{ route('admin.inventory.catalogue.attributes.index') }}">{{ __('Attributes') }}</a>
+        <a class="erp-btn-secondary justify-center" href="{{ route('admin.inventory.catalogue.units.index') }}">{{ __('Units of Measure') }}</a>
     </div>
 </x-admin-layout>

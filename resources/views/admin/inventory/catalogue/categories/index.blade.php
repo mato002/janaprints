@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Categories')">
         <x-slot name="actions">
             @if (auth()->user()?->can('catalogue.create'))
-                <a href="{{ route('admin.inventory.catalogue.categories.create') }}" class="erp-btn-primary">{{ __('New Category') }}</a>
+                <a href="{{ route('admin.inventory.catalogue.categories.create') }}" class="erp-btn-primary">{{ __('New category') }}</a>
             @endif
         </x-slot>
     </x-admin.page-header>

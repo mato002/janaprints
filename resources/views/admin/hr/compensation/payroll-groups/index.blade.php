@@ -14,11 +14,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <x-admin.data-table :searchable="false" :exportable="false">
+<x-admin.data-table :searchable="false" :exportable="false">
         <x-slot name="head">
             <tr>
                 <th>{{ __('Group') }}</th>

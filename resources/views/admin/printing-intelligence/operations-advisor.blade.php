@@ -9,11 +9,7 @@
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    @php
+@php
         $tabs = [
             'overview' => __('Overview'),
             'quotations' => __('Quotations'),
@@ -107,19 +103,21 @@
     @php
         $recommendations = ($tab ?? 'overview') === 'overview'
             ? ($overview['recommendations'] ?? collect())
-            : collect($liveRecommendations ?? [])->map(fn ($rec) => (object) [
-                'id' => null,
-                'title' => $rec['title'] ?? '',
-                'summary' => $rec['summary'] ?? '',
-                'recommendation_text' => $rec['recommendation_text'] ?? '',
-                'severity' => \App\Enums\AdvisorSeverity::tryFrom($rec['severity']?->value ?? $rec['severity'] ?? 'info'),
-                'recommendation_type' => \App\Enums\AdvisorRecommendationType::tryFrom($rec['recommendation_type']?->value ?? $rec['recommendation_type'] ?? 'quotation'),
-                'confidence_score' => $rec['confidence_score'] ?? 0,
-                'recommended_action' => $rec['recommended_action'] ?? null,
-                'source_module' => $rec['source_module'] ?? '',
-                'status' => \App\Enums\AdvisorRecommendationStatus::Open,
-                'comment' => null,
-            ]);
+            : (($tabRecommendations ?? collect())->isNotEmpty()
+                ? $tabRecommendations
+                : collect($liveRecommendations ?? [])->map(fn ($rec) => (object) [
+                    'id' => null,
+                    'title' => $rec['title'] ?? '',
+                    'summary' => $rec['summary'] ?? '',
+                    'recommendation_text' => $rec['recommendation_text'] ?? '',
+                    'severity' => \App\Enums\AdvisorSeverity::tryFrom($rec['severity']?->value ?? $rec['severity'] ?? 'info'),
+                    'recommendation_type' => \App\Enums\AdvisorRecommendationType::tryFrom($rec['recommendation_type']?->value ?? $rec['recommendation_type'] ?? 'quotation'),
+                    'confidence_score' => $rec['confidence_score'] ?? 0,
+                    'recommended_action' => $rec['recommended_action'] ?? null,
+                    'source_module' => $rec['source_module'] ?? '',
+                    'status' => \App\Enums\AdvisorRecommendationStatus::Open,
+                    'comment' => null,
+                ]));
     @endphp
 
     <x-admin.card>
@@ -134,6 +132,9 @@
         @if ($recommendations->isEmpty())
             <p class="text-sm text-slate-500">{{ __('No recommendations yet. Run generation to analyze PI3–PI9 signals.') }}</p>
         @else
+            @if (($tab ?? 'overview') !== 'overview' && ($tabRecommendations ?? collect())->isEmpty() && ! empty($liveRecommendations))
+                <p class="mb-3 text-xs text-amber-700">{{ __('Showing live signals — generate recommendations to persist and acknowledge them.') }}</p>
+            @endif
             <div class="space-y-3">
                 @foreach ($recommendations as $rec)
                     <div class="rounded-lg border border-slate-200 p-4 text-sm">

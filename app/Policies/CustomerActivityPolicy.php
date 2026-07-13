@@ -12,26 +12,26 @@ class CustomerActivityPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('crm.activities.view');
+        return $user->can('commercial.activities.view');
     }
 
     public function view(User $user, CustomerActivity $activity): bool
     {
-        return $user->can('crm.activities.view') && $this->sameTenant($user, $activity);
+        return $user->can('commercial.activities.view') && $this->sameTenant($user, $activity);
     }
 
     public function create(User $user): bool
     {
-        return $user->can('crm.activities.create');
+        return $user->can('commercial.activities.create');
     }
 
     public function update(User $user, CustomerActivity $activity): bool
     {
-        return $user->can('crm.activities.edit') && $this->sameTenant($user, $activity);
+        return $user->can('commercial.activities.edit') && $this->sameTenant($user, $activity);
     }
 
     public function delete(User $user, CustomerActivity $activity): bool
     {
-        return $user->can('crm.activities.delete') && $this->sameTenant($user, $activity);
+        return $user->can('commercial.activities.delete') && $this->sameTenant($user, $activity);
     }
 }

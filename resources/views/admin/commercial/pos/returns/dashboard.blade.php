@@ -2,9 +2,9 @@
     <x-admin.page-header :title="__('Returns Dashboard')" :description="__('Process retail sale corrections via reversal returns.')">
         <x-slot name="actions">
             @can('create', App\Models\Pos\PosReturn::class)
-                <a href="{{ route('admin.commercial.pos.returns.create') }}" class="erp-btn-primary">{{ __('Create Return') }}</a>
+                <a href="{{ \App\Support\Navigation\WorkspaceEmbed::url(route('admin.commercial.pos.returns.create')) }}" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" data-turbo-action="advance" class="erp-btn-primary">{{ __('Create Return') }}</a>
             @endcan
-            <a href="{{ route('admin.commercial.pos.returns.index') }}" class="erp-btn-secondary">{{ __('Return History') }}</a>
+            <a href="{{ \App\Support\Navigation\WorkspaceEmbed::url(route('admin.commercial.pos.returns.index')) }}" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" data-turbo-action="advance" class="erp-btn-secondary">{{ __('Return History') }}</a>
         </x-slot>
     </x-admin.page-header>
 

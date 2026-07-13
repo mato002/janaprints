@@ -28,37 +28,37 @@ class CommercialNavigationAlignmentService
             [
                 'label' => __('Sales Reports'),
                 'description' => __('Revenue, orders, and sales performance.'),
-                'route' => 'commercial.reports.sales.index',
+                'route' => 'admin.commercial.reports.sales.index',
                 'permission' => 'commercial.reports.sales.view',
             ],
             [
                 'label' => __('Quotation Reports'),
                 'description' => __('Quote pipeline, win rates, and value.'),
-                'route' => 'commercial.reports.quotations.index',
+                'route' => 'admin.commercial.reports.quotations.index',
                 'permission' => 'commercial.reports.quotations.view',
             ],
             [
                 'label' => __('Sales Order Reports'),
                 'description' => __('Order pipeline, status, and conversion.'),
-                'route' => 'commercial.reports.sales_orders.index',
+                'route' => 'admin.commercial.reports.sales_orders.index',
                 'permission' => 'commercial.reports.sales_orders.view',
             ],
             [
                 'label' => __('Customer Reports'),
                 'description' => __('Customer counts, revenue, and growth.'),
-                'route' => 'commercial.reports.customers.index',
+                'route' => 'admin.commercial.reports.customers.index',
                 'permission' => 'commercial.reports.customers.view',
             ],
             [
                 'label' => __('Artwork Reports'),
                 'description' => __('Design throughput and approval metrics.'),
-                'route' => 'commercial.reports.artwork.index',
+                'route' => 'admin.commercial.reports.artwork.index',
                 'permission' => 'commercial.reports.artwork.view',
             ],
             [
                 'label' => __('Conversion Reports'),
                 'description' => __('Lead-to-quote and quote-to-order conversion.'),
-                'route' => 'commercial.reports.conversion.index',
+                'route' => 'admin.commercial.reports.conversion.index',
                 'permission' => 'commercial.reports.conversion.view',
             ],
             [

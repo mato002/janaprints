@@ -1,24 +1,28 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $activeOnPage = $customers->filter(fn ($c) => $c->status->value === 'active')->count();
     $inactiveOnPage = $customers->filter(fn ($c) => $c->status->value === 'inactive')->count();
 @endphp
 
 <x-admin-layout :title="__('Customers')" :breadcrumbs="[['label' => __('CRM')], ['label' => __('Customers')]]">
     <div class="crm-customers w-full min-w-0 space-y-4">
-        <header class="crm-customers__header">
-            <div class="crm-customers__header-main">
-                <div>
-                    <h1 class="crm-customers__title">{{ __('Customers') }}</h1>
-                    <p class="crm-customers__subtitle">{{ __('Customer accounts, contacts, and communication history.') }}</p>
+        @unless (WorkspaceEmbed::inWorkspaceContext())
+            <header class="crm-customers__header">
+                <div class="crm-customers__header-main">
+                    <div>
+                        <h1 class="crm-customers__title">{{ __('Customers') }}</h1>
+                        <p class="crm-customers__subtitle">{{ __('Customer accounts, contacts, and communication history.') }}</p>
+                    </div>
+                    @can('create', App\Models\Crm\Customer::class)
+                        <x-admin.form-modal-link
+                            :href="route('admin.crm.customers.create')"
+                            class="shrink-0"
+                        >{{ __('Create customer') }}</x-admin.form-modal-link>
+                    @endcan
                 </div>
-                @can('create', App\Models\Crm\Customer::class)
-                    <x-admin.form-modal-link
-                        :href="route('admin.crm.customers.create')"
-                        class="shrink-0"
-                    >{{ __('Create customer') }}</x-admin.form-modal-link>
-                @endcan
-            </div>
-        </header>
+            </header>
+        @endunless
 
         <section class="crm-customers__kpi-strip" aria-label="{{ __('Customer list summary') }}">
             <div class="crm-customers__kpi">

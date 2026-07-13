@@ -43,7 +43,7 @@ class CustomerActivityController extends Controller
 
         $activity->loadMissing(['lead:id,public_id', 'customer:id,public_id']);
 
-        $redirect = auth()->user()?->can('crm.activities.view')
+        $redirect = auth()->user()?->can('commercial.activities.view')
             ? route('admin.commercial.activities.index')
             : ($activity->lead
                 ? route('admin.crm.leads.show', $activity->lead)

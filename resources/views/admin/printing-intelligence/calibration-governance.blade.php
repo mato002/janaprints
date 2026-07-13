@@ -6,20 +6,21 @@
         :title="__('Cost Accuracy Governance')"
         :description="__('Controlled calibration governance — recommendations require human review and approval. No automatic formula changes.')"
     >
-        @can('printing.calibration.manage')
-            <form method="POST" action="{{ route('admin.printing-intelligence.calibration.generate') }}">@csrf
-                <button type="submit" class="erp-btn-secondary">{{ __('Generate recommendations') }}</button>
-            </form>
-        @endcan
+        <x-slot name="export">
+            <x-admin.export-dropdown :csv-url="route('admin.printing-intelligence.calibration-governance.export')" />
+        </x-slot>
+        <x-slot name="secondary">
+            @can('printing.calibration.manage')
+                <form method="POST" action="{{ route('admin.printing-intelligence.calibration.generate') }}">@csrf
+                    <button type="submit" class="erp-btn-secondary">{{ __('Generate recommendations') }}</button>
+                </form>
+            @endcan
+        </x-slot>
     </x-admin.page-header>
 
     @include('admin.printing-intelligence.partials.nav')
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    @php
+@php
         $tabs = [
             'overview' => __('Overview'),
             'recommendations' => __('Recommendations'),

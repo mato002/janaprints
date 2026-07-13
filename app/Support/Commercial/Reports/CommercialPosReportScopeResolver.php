@@ -58,8 +58,8 @@ class CommercialPosReportScopeResolver
         $scope = new CommercialPosReportScope(
             companyId: (int) $companyId,
             branchId: $branchId,
-            fromDate: (string) $request->input('from_date', now()->startOfMonth()->toDateString()),
-            toDate: (string) $request->input('to_date', now()->toDateString()),
+            fromDate: (string) $request->input('from_date', CommercialReportDateDefaults::defaultFromDate()),
+            toDate: (string) $request->input('to_date', CommercialReportDateDefaults::defaultToDate()),
             cashierId: $request->filled('cashier_id') ? (int) $request->input('cashier_id') : null,
             paymentMethod: $paymentMethod,
             status: $status,

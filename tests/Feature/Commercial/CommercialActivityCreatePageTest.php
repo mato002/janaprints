@@ -31,7 +31,7 @@ class CommercialActivityCreatePageTest extends TestCase
             'is_active' => true,
         ]);
         $role = Role::findByName('Sales', 'web');
-        $role->syncPermissions(['crm.activities.view', 'crm.activities.create']);
+        $role->syncPermissions(['commercial.activities.view', 'commercial.activities.create']);
         $user->assignRole('Sales');
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -54,7 +54,7 @@ class CommercialActivityCreatePageTest extends TestCase
             'is_active' => true,
         ]);
         $role = Role::findByName('Sales', 'web');
-        $role->syncPermissions(['crm.activities.view', 'crm.activities.create']);
+        $role->syncPermissions(['commercial.activities.view', 'commercial.activities.create']);
         $user->assignRole('Sales');
 
         $customer = \App\Models\Crm\Customer::factory()->create([

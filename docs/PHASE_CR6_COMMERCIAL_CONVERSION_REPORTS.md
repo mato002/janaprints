@@ -3,7 +3,7 @@
 ## Implementation Report
 
 **Module:** Commercial → Reports → Conversion Reports  
-**Route:** `commercial.reports.conversion.index`  
+**Route:** `admin.commercial.reports.conversion.index`  
 **Audience:** Sales Team, Commercial Manager, Branch Sales Manager  
 **Scope:** Departmental commercial funnel conversion — not Executive Intelligence or Executive 360.
 
@@ -37,8 +37,8 @@ KPIs show `—` with hint when core sources are not ready. Production/dispatch s
 
 | Method | URI | Name | Permission |
 |--------|-----|------|------------|
-| GET | `/admin/commercial/reports/conversion` | `commercial.reports.conversion.index` | `commercial.reports.conversion.view` |
-| POST | `/admin/commercial/reports/conversion/export` | `commercial.reports.conversion.export` | `commercial.reports.conversion.export` |
+| GET | `/admin/commercial/reports/conversion` | `admin.commercial.reports.conversion.index` | `admin.commercial.reports.conversion.view` |
+| POST | `/admin/commercial/reports/conversion/export` | `admin.commercial.reports.conversion.export` | `admin.commercial.reports.conversion.export` |
 
 **File:** `routes/admin_commercial.php`  
 **Middleware:** `auth`, `verified`, `tenant`, `CaptureWorkspaceNavigationQuery`
@@ -109,8 +109,8 @@ Each tab shows funnel cards, stage drop-off table, branch conversion table, and 
 
 | Permission | Purpose |
 |------------|---------|
-| `commercial.reports.conversion.view` | Access workspace |
-| `commercial.reports.conversion.export` | Queue PDF/Excel/CSV exports |
+| `admin.commercial.reports.conversion.view` | Access workspace |
+| `admin.commercial.reports.conversion.export` | Queue PDF/Excel/CSV exports |
 
 ### Role Assignments
 

@@ -3,20 +3,16 @@
         <x-slot name="actions">
             @can('assets.assign')
                 <x-admin.form-modal-link :href="route('admin.assets.custody.assignments.create')">
-                    {{ __('New Assignment') }}
+                    {{ __('New assignment') }}
                 </x-admin.form-modal-link>
             @endcan
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
-    @endif
-
     <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
             <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All statuses') }}</option>
                 @foreach ($statuses as $status)
                     <option value="{{ $status->value }}" @selected(request('status') === $status->value)>{{ $status->label() }}</option>
                 @endforeach
@@ -24,44 +20,57 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('Asset') }}</th>
-                        <th>{{ __('Type') }}</th>
-                        <th>{{ __('Assigned To') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th>{{ __('Expected Return') }}</th>
-                        <th>{{ __('Assigned At') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($assignments as $assignment)
-                        <tr>
-                            <td>
-                                <a href="{{ route('admin.assets.show', $assignment->asset) }}" class="erp-link">{{ $assignment->asset?->asset_number }}</a>
-                                — {{ $assignment->asset?->asset_name }}
-                            </td>
-                            <td>{{ ucfirst($assignment->assignment_type->value) }}</td>
-                            <td>
-                                {{ $assignment->assignedEmployee?->full_name
-                                    ?? $assignment->assignedDepartment?->name
-                                    ?? $assignment->assignedUser?->name
-                                    ?? $assignment->assignedBranch?->name
-                                    ?? '—' }}
-                            </td>
-                            <td><x-admin.status-badge :variant="$assignment->status->badgeVariant()">{{ $assignment->status->label() }}</x-admin.status-badge></td>
-                            <td>{{ $assignment->expected_return_date?->format('Y-m-d') ?? '—' }}</td>
-                            <td>{{ $assignment->assigned_at?->format('Y-m-d H:i') }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="py-8 text-center text-slate-500">{{ __('No assignments yet.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        @if ($assignments->hasPages())<div class="mt-4">{{ $assignments->links() }}</div>@endif
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search assignments…')"
+        export-filename="asset-assignments"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Asset') }}</th>
+                <th scope="col">{{ __('Type') }}</th>
+                <th scope="col">{{ __('Assigned to') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col">{{ __('Expected return') }}</th>
+                <th scope="col">{{ __('Assigned at') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($assignments as $assignment)
+                @php
+                    $assignee = $assignment->assignedEmployee?->full_name
+                        ?? $assignment->assignedDepartment?->name
+                        ?? $assignment->assignedUser?->name
+                        ?? $assignment->assignedBranch?->name
+                        ?? '';
+                    $search = strtolower(($assignment->asset?->asset_number ?? '').' '.($assignment->asset?->asset_name ?? '').' '.$assignee.' '.$assignment->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td>
+                        <span class="font-medium">{{ $assignment->asset?->asset_number }}</span>
+                        <span class="text-slate-500"> — {{ $assignment->asset?->asset_name }}</span>
+                    </td>
+                    <td>{{ ucfirst($assignment->assignment_type->value) }}</td>
+                    <td>{{ $assignee !== '' ? $assignee : '—' }}</td>
+                    <td><x-admin.status-badge :variant="$assignment->status->badgeVariant()">{{ $assignment->status->label() }}</x-admin.status-badge></td>
+                    <td>{{ $assignment->expected_return_date?->format('Y-m-d') ?? '—' }}</td>
+                    <td class="whitespace-nowrap">{{ $assignment->assigned_at?->format('Y-m-d H:i') }}</td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            @if ($assignment->asset)
+                                <x-admin.table-row-action :href="route('admin.assets.show', $assignment->asset)">{{ __('View asset') }}</x-admin.table-row-action>
+                            @endif
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7">
+                        <x-admin.empty-state icon="clipboard-list" :title="__('No assignments yet')" :description="__('Assign an asset to an employee or department to start custody tracking.')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$assignments" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

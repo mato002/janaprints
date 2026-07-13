@@ -84,10 +84,64 @@ class WorkspaceTurboNavigationTest extends TestCase
         );
 
         $this->assertStringContainsString('data-turbo-frame="erp-main"', $sidebar);
+        $this->assertStringContainsString('data-turbo-preload="hover"', $sidebar);
         $this->assertStringContainsString(route('admin.workspaces.commercial'), $sidebar);
     }
 
-    public function test_workspace_search_uses_embedded_urls_for_same_module_features(): void
+    public function test_workspace_content_frame_loads_eagerly(): void
+    {
+        $html = view('components.admin.workspace-content', [
+            'url' => '/admin/crm/customers?embedded=1',
+        ])->render();
+
+        $this->assertStringContainsString('id="module-workspace-content"', $html);
+        $this->assertStringContainsString('src="/admin/crm/customers?embedded=1"', $html);
+        $this->assertStringNotContainsString('loading="lazy"', $html);
+        $this->assertStringNotContainsString('data-turbo-action="advance"', $html);
+    }
+
+    public function test_main_url_strips_embedded_query_for_shell_navigation(): void
+    {
+        $this->assertSame(
+            '/admin/crm/customers?tab=list',
+            \App\Support\Navigation\WorkspaceEmbed::mainUrl('/admin/crm/customers?embedded=1&tab=list'),
+        );
+        $this->assertSame(
+            '/admin/dashboard',
+            \App\Support\Navigation\WorkspaceEmbed::mainUrl('/admin/dashboard?embedded=1'),
+        );
+    }
+
+    public function test_turbo_frame_targets_nested_frame_only_for_fragment_requests(): void
+    {
+        $this->assertSame('erp-main', \App\Support\Navigation\WorkspaceEmbed::turboFrame());
+
+        request()->merge(['embedded' => '1']);
+        $this->assertSame(
+            'erp-main',
+            \App\Support\Navigation\WorkspaceEmbed::turboFrame(),
+            'Full-page ?embedded=1 still renders inside erp-main.',
+        );
+
+        request()->headers->set('Turbo-Frame', 'module-workspace-content');
+        $this->assertSame('module-workspace-content', \App\Support\Navigation\WorkspaceEmbed::turboFrame());
+    }
+
+    public function test_breadcrumbs_target_erp_main_without_embedded_query(): void
+    {
+        $html = view('admin.partials.breadcrumbs', [
+            'breadcrumbs' => [
+                ['label' => 'CRM', 'url' => '/admin/workspaces/commercial/section/crm?embedded=1'],
+                ['label' => 'Customers'],
+            ],
+        ])->render();
+
+        $this->assertStringContainsString('data-turbo-frame="erp-main"', $html);
+        $this->assertStringContainsString('/admin/workspaces/commercial/section/crm"', $html);
+        $this->assertStringNotContainsString('embedded=1', $html);
+    }
+
+    public function test_workspace_search_uses_desk_or_embedded_urls_for_same_module_features(): void
     {
         $this->actingAs($this->companyAdmin());
 
@@ -95,9 +149,16 @@ class WorkspaceTurboNavigationTest extends TestCase
             ->first(fn (array $entry) => $entry['label'] === 'Form Controls');
 
         $this->assertNotNull($match);
-        $this->assertStringContainsString('embedded=1', $match['url']);
-        $this->assertStringContainsString('/admin/settings/forms', $match['url']);
-        $this->assertSame('module-workspace-content', $match['turbo_frame']);
+        $this->assertNotEmpty($match['url']);
+        $this->assertContains($match['turbo_frame'], ['erp-main', 'module-workspace-content']);
+
+        if ($match['turbo_frame'] === 'module-workspace-content') {
+            $this->assertStringContainsString('embedded=1', $match['url']);
+            $this->assertStringContainsString('/admin/settings/forms', $match['url']);
+        } else {
+            // Desk-routed features load the module shell in erp-main, then the nested frame.
+            $this->assertStringContainsString('/admin/workspaces/administration', $match['url']);
+        }
     }
 
     public function test_direct_feature_url_redirects_into_workspace_shell(): void
@@ -286,7 +347,7 @@ class WorkspaceTurboNavigationTest extends TestCase
 
         $html = view('admin.inventory.intelligence.partials.nav')->render();
 
-        $this->assertStringContainsString('data-turbo-frame="erp-main"', $html);
+        $this->assertMatchesRegularExpression('/data-turbo-frame="(erp-main|module-workspace-content)"/', $html);
         $this->assertStringContainsString('data-turbo-action="advance"', $html);
         $this->assertStringContainsString(route('admin.inventory.intelligence.stockout-risk'), $html);
     }

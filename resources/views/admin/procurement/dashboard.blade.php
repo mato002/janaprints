@@ -22,6 +22,12 @@
         @can('create', App\Models\Procurement\Vendor::class)
             <a href="{{ route('admin.procurement.vendors.create') }}" class="erp-btn-primary">{{ __('New vendor') }}</a>
         @endcan
+        @can('viewAny', App\Models\Procurement\PurchaseRequest::class)
+            <a href="{{ route('admin.procurement.requests.index') }}" class="erp-btn-secondary">{{ __('Purchase requests') }}</a>
+        @endcan
+        @if (auth()->user()?->can('procurement.approvals.view'))
+            <a href="{{ route('admin.procurement.approvals.index') }}" class="erp-btn-secondary">{{ __('Approvals queue') }}</a>
+        @endif
         @can('create', App\Models\Procurement\PurchaseRequest::class)
             <a href="{{ route('admin.procurement.requests.create') }}" class="erp-btn-secondary">{{ __('Purchase request') }}</a>
         @endcan

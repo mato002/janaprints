@@ -5,11 +5,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-5">
+<div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-5">
         <x-admin.kpi-widget :label="__('Opening Float')" :value="number_format($reconciliation->opening_float, 2)" icon="cash" />
         <x-admin.kpi-widget :label="__('Cash Sales')" :value="number_format($reconciliation->cash_sales, 2)" icon="currency-dollar" />
         <x-admin.kpi-widget :label="__('M-Pesa Sales')" :value="number_format($reconciliation->mpesa_sales, 2)" icon="device-mobile" />

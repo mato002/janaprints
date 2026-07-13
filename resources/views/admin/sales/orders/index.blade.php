@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Sales orders')">
         @can('create', App\Models\Sales\SalesOrder::class)
             <x-admin.form-modal-link :href="route('admin.sales-orders.create')">
-                {{ __('New from quotation') }}
+                {{ __('New sales order') }}
             </x-admin.form-modal-link>
         @endcan
     </x-admin.page-header>

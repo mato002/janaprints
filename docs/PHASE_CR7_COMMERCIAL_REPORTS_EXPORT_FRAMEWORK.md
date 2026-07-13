@@ -3,7 +3,7 @@
 ## Implementation Report
 
 **Module:** Commercial → Reports → Export Framework  
-**Route:** `commercial.reports.exports.index`  
+**Route:** `admin.commercial.reports.exports.index`  
 **Scope:** Reusable queued export pipeline for all six commercial report groups — does not rebuild report workspaces.
 
 ---
@@ -101,9 +101,9 @@ flowchart LR
 
 | Method | URI | Name | Permission |
 |--------|-----|------|------------|
-| GET | `/admin/commercial/reports/exports` | `commercial.reports.exports.index` | `commercial.reports.exports.view` |
-| GET | `/admin/commercial/reports/exports/{export}/download` | `commercial.reports.exports.download` | `commercial.reports.exports.download` |
-| GET | `/admin/commercial/reports/exports/{export}/status` | `commercial.reports.exports.status` | `commercial.reports.exports.view` |
+| GET | `/admin/commercial/reports/exports` | `admin.commercial.reports.exports.index` | `admin.commercial.reports.exports.view` |
+| GET | `/admin/commercial/reports/exports/{export}/download` | `admin.commercial.reports.exports.download` | `admin.commercial.reports.exports.download` |
+| GET | `/admin/commercial/reports/exports/{export}/status` | `admin.commercial.reports.exports.status` | `admin.commercial.reports.exports.view` |
 | POST | `/admin/commercial/reports/{module}/export` | `commercial.reports.*.export` | `commercial.reports.export` |
 
 **File:** `routes/admin_commercial.php`
@@ -115,8 +115,8 @@ flowchart LR
 | Permission | Purpose |
 |------------|---------|
 | `commercial.reports.export` | Queue exports from any commercial report workspace |
-| `commercial.reports.exports.view` | Export History page + status polling |
-| `commercial.reports.exports.download` | Download completed files |
+| `admin.commercial.reports.exports.view` | Export History page + status polling |
+| `admin.commercial.reports.exports.download` | Download completed files |
 
 Seeded in `RolesAndPermissionsSeeder` for Admin and Manager roles. Per-module `.export` permissions retained for backward compatibility in the catalog but routes use the framework permission.
 

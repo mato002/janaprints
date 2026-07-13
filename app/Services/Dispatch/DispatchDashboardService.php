@@ -45,7 +45,7 @@ class DispatchDashboardService
             ->latest('created_at')
             ->latest('id')
             ->limit(25)
-            ->get(['id', 'job_card_number', 'customer_id', 'inventory_item_id', 'sales_order_id', 'required_date', 'status']);
+            ->get(['id', 'public_id', 'job_card_number', 'customer_id', 'inventory_item_id', 'sales_order_id', 'required_date', 'status']);
 
         $notesQuery = (clone $notes)
             ->with(['customer:id,company_name', 'productionJobCard:id,job_card_number'])

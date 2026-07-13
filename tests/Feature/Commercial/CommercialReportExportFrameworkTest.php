@@ -33,7 +33,7 @@ class CommercialReportExportFrameworkTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.exports.index'))
+            ->get(route('admin.commercial.reports.exports.index'))
             ->assertForbidden();
     }
 
@@ -58,7 +58,7 @@ class CommercialReportExportFrameworkTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.exports.index'))
+            ->get(route('admin.commercial.reports.exports.index'))
             ->assertOk()
             ->assertSee(__('Export History'));
     }
@@ -69,13 +69,13 @@ class CommercialReportExportFrameworkTest extends TestCase
 
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.sales.view',
-            'commercial.reports.export',
+            'commercial.reports.sales.export',
         ]);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->post(route('commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
+            ->post(route('admin.commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
             ->assertRedirect()
             ->assertSessionHas('export_id');
 
@@ -90,7 +90,7 @@ class CommercialReportExportFrameworkTest extends TestCase
     {
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.sales.view',
-            'commercial.reports.export',
+            'commercial.reports.sales.export',
             'commercial.reports.exports.view',
             'commercial.reports.exports.download',
         ]);
@@ -120,7 +120,7 @@ class CommercialReportExportFrameworkTest extends TestCase
         Storage::disk('local')->assertExists($export->storage_path);
 
         $this->actingAs($user)
-            ->get(route('commercial.reports.exports.download', $export))
+            ->get(route('admin.commercial.reports.exports.download', $export))
             ->assertOk();
     }
 

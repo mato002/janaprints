@@ -1,4 +1,6 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $nav = [
         ['label' => __('Overview'), 'route' => 'admin.printing-intelligence.overview', 'permission' => 'printing.intelligence.view'],
         ['label' => __('Artwork Analysis'), 'route' => 'admin.printing-intelligence.artwork-analysis.index', 'permission' => 'printing.intelligence.view'],
@@ -16,4 +18,6 @@
     ];
 @endphp
 
-<x-admin.workspace-nav :links="$nav" variant="compact" class="mb-4 rounded-lg border border-slate-200 bg-white p-3" />
+@unless (WorkspaceEmbed::isEmbedded())
+    <x-admin.workspace-nav :links="$nav" variant="compact" class="mb-4 rounded-lg border border-slate-200 bg-white p-3" />
+@endunless

@@ -329,7 +329,7 @@ class ProductionDashboardCommandCenterService
         $centers = WorkCenter::query()
             ->forTenant()
             ->where('is_active', true)
-            ->get(['id', 'name', 'code']);
+            ->get(['id', 'public_id', 'name', 'code']);
 
         if ($centers->isEmpty()) {
             return collect(self::DEPARTMENTS)
@@ -446,7 +446,7 @@ class ProductionDashboardCommandCenterService
             ->forTenant()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'code', 'public_id']);
+            ->get(['id', 'public_id', 'name', 'code']);
 
         if ($centers->isEmpty()) {
             return [

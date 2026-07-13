@@ -3,9 +3,8 @@
 namespace Tests\Feature\Inventory;
 
 use App\Enums\ApprovalRuleType;
-use App\Enums\InventoryDocumentStatus;
-use App\Enums\StockAdjustmentDirection;
 use App\Enums\StockAdjustmentStatus;
+use App\Enums\StockAdjustmentDirection;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Inventory\InventoryItem;
@@ -118,8 +117,6 @@ class InventoryGovernanceTest extends TestCase
 
     public function test_adjustment_approval_workflow_and_audit_history(): void
     {
-        $this->markTestSkipped('Stock adjustment submit/approve workflow is not implemented on StockAdjustmentService.');
-
         [$company, $branch, $submitter, $approver, $item, $warehouse] = $this->approvalActors();
 
         $adjustment = $this->makeAdjustment($company, $branch, $submitter, $warehouse, $item, quantity: 200, unitCost: 10);
@@ -168,7 +165,7 @@ class InventoryGovernanceTest extends TestCase
         foreach ([
             'warehouses' => 'admin.inventory.warehouses.index',
             'inventory-categories' => 'admin.inventory.catalogue.categories.index',
-            'units-of-measure' => 'admin.master-data.index',
+            'units-of-measure' => 'admin.inventory.catalogue.units.index',
         ] as $cardId => $routeName) {
             $card = $cards->get($cardId);
 
@@ -267,8 +264,10 @@ class InventoryGovernanceTest extends TestCase
             [
                 'is_enabled' => true,
                 'min_approvers' => 1,
-                'tiers' => [
-                    ['threshold_amount' => 500, 'threshold_percent' => null, 'approver_role' => 'Storekeeper', 'approver_permission' => 'inventory.adjust'],
+                'settings_json' => [
+                    'tiers' => [
+                        ['threshold_amount' => 500, 'threshold_percent' => null, 'approver_role' => 'Storekeeper', 'approver_permission' => 'inventory.adjust'],
+                    ],
                 ],
             ],
         );
@@ -291,7 +290,7 @@ class InventoryGovernanceTest extends TestCase
             'warehouse_id' => $warehouse->id,
             'adjustment_number' => 'SA-GOV-'.uniqid(),
             'adjustment_date' => now()->toDateString(),
-            'status' => InventoryDocumentStatus::Draft,
+            'status' => StockAdjustmentStatus::Draft,
             'reason' => 'Governance test adjustment',
             'adjusted_by' => $user->id,
         ]);

@@ -13,11 +13,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <x-admin.card>
+<x-admin.card>
         <dl class="grid gap-3 text-sm md:grid-cols-2">
             <div><dt class="text-slate-500">{{ __('Department') }}</dt><dd>{{ $requisition->department?->name ?? '—' }}</dd></div>
             <div><dt class="text-slate-500">{{ __('Job Title') }}</dt><dd>{{ $requisition->jobTitle?->title ?? '—' }}</dd></div>

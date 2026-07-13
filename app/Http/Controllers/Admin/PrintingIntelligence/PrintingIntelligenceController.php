@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\PrintingIntelligence;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\PrintingIntelligence\UpdatePrintingIntelligenceConfigurationRequest;
 use App\Models\PrintingIntelligence\PrintAdvisorRecommendation;
 use App\Models\PrintingIntelligence\PrintCalibrationRule;
 use App\Models\PrintingIntelligence\PrintEstimateActualComparison;
@@ -12,7 +13,10 @@ use App\Services\PrintingIntelligence\CalibrationApprovalService;
 use App\Services\PrintingIntelligence\CalibrationImpactSimulationService;
 use App\Services\PrintingIntelligence\CalibrationRecommendationService;
 use App\Services\PrintingIntelligence\EstimateAccuracyAnalyticsService;
+use App\Services\PrintingIntelligence\EstimateActualBatchComparisonService;
 use App\Services\PrintingIntelligence\EstimateActualComparisonService;
+use App\Services\PrintingIntelligence\PrintingIntelligenceConfigurationService;
+use App\Services\PrintingIntelligence\PrintingIntelligenceEnvironmentService;
 use App\Services\PrintingIntelligence\PrintingIntelligenceGateway;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -166,37 +170,87 @@ class PrintingIntelligenceController extends Controller
     {
         abort_unless(auth()->user()?->can('printing.estimate-actual.compare'), 403);
 
+        [$companyId] = $this->tenantScope();
         $service = app(EstimateActualComparisonService::class);
 
         if ($estimateId = $request->input('estimate_id')) {
             $estimate = \App\Models\PrintingIntelligence\PrintQuotationEstimate::query()
-                ->where('company_id', tenant()->companyId() ?? auth()->user()?->company_id)
+                ->where('company_id', $companyId)
                 ->findOrFail((int) $estimateId);
             $service->compareEstimate($estimate);
-        } elseif ($jobId = $request->input('job_id')) {
+
+            return redirect()
+                ->route('admin.printing-intelligence.estimate-vs-actual', ['tab' => 'comparisons'])
+                ->with('status', __('Estimate vs actual comparison completed.'));
+        }
+
+        if ($jobId = $request->input('job_id')) {
             $job = \App\Models\Production\ProductionJobCard::query()
-                ->where('company_id', tenant()->companyId() ?? auth()->user()?->company_id)
+                ->where('company_id', $companyId)
                 ->findOrFail((int) $jobId);
             $service->compareJob($job);
-        } elseif ($quotationId = $request->input('quotation_id')) {
+
+            return redirect()
+                ->route('admin.printing-intelligence.estimate-vs-actual', ['tab' => 'comparisons'])
+                ->with('status', __('Estimate vs actual comparison completed.'));
+        }
+
+        if ($quotationId = $request->input('quotation_id')) {
             $quotation = \App\Models\Sales\Quotation::query()
-                ->where('company_id', tenant()->companyId() ?? auth()->user()?->company_id)
+                ->where('company_id', $companyId)
                 ->findOrFail((int) $quotationId);
             $service->compareQuotation($quotation);
+
+            return redirect()
+                ->route('admin.printing-intelligence.estimate-vs-actual', ['tab' => 'comparisons'])
+                ->with('status', __('Estimate vs actual comparison completed.'));
+        }
+
+        $summary = app(EstimateActualBatchComparisonService::class)
+            ->compareLatestForCompany($companyId, max(1, (int) $request->input('limit', 50)));
+
+        if ($summary['processed'] === 0) {
+            return redirect()
+                ->route('admin.printing-intelligence.estimate-vs-actual', ['tab' => 'comparisons'])
+                ->with('status', __('No comparison candidates matched the criteria.'));
         }
 
         return redirect()
             ->route('admin.printing-intelligence.estimate-vs-actual', ['tab' => 'comparisons'])
-            ->with('status', __('Estimate vs actual comparison completed.'));
+            ->with('status', __('Processed :processed comparison(s): :completed completed, :failed failed.', [
+                'processed' => $summary['processed'],
+                'completed' => $summary['completed'],
+                'failed' => $summary['failed'],
+            ]));
     }
 
     public function configuration(): View
     {
         abort_unless(auth()->user()?->can('printing.intelligence.configure'), 403);
 
+        [$companyId] = $this->tenantScope();
+        $configService = app(PrintingIntelligenceConfigurationService::class);
+        $environment = app(PrintingIntelligenceEnvironmentService::class)->diagnostics();
+
         return view('admin.printing-intelligence.configuration', [
-            'config' => config('printing_intelligence'),
+            'config' => $configService->effectiveConfig($companyId),
+            'rows' => $configService->formRows($companyId),
+            'environment' => $environment,
         ]);
+    }
+
+    public function updateConfiguration(UpdatePrintingIntelligenceConfigurationRequest $request): RedirectResponse
+    {
+        [$companyId] = $this->tenantScope();
+
+        app(PrintingIntelligenceConfigurationService::class)->save(
+            $companyId,
+            $request->validated(),
+        );
+
+        return redirect()
+            ->route('admin.printing-intelligence.configuration')
+            ->with('status', __('Printing Intelligence settings saved.'));
     }
 
     public function calibrationGovernance(Request $request): View
@@ -404,6 +458,7 @@ class PrintingIntelligenceController extends Controller
             'alerts' => $alerts,
             'filters' => $filters,
             'config' => config('printing_intelligence'),
+            'hasExecutiveAnalytics' => $hasAnalytics,
         ]);
     }
 
@@ -459,17 +514,32 @@ class PrintingIntelligenceController extends Controller
             : null;
 
         $live = null;
-        if ($tab !== 'overview') {
-            $live = match ($tab) {
-                'quotations' => $this->gateway->quotationRecommendations($filters),
-                'artwork' => $this->gateway->artworkRecommendations($filters),
-                'machines' => $this->gateway->machineRecommendations($filters),
-                'inventory' => $this->gateway->inventoryRecommendations($filters),
-                'customers' => $this->gateway->customerRecommendations($filters),
-                'profitability' => $this->gateway->profitabilityRecommendations($filters),
-                'forecasts' => $this->gateway->forecastRecommendations($filters),
-                default => null,
-            };
+        $tabRecommendations = collect();
+
+        if ($tab === 'overview') {
+            $tabRecommendations = $overview['recommendations'] ?? collect();
+        } else {
+            $tabRecommendations = PrintAdvisorRecommendation::query()
+                ->where('company_id', $companyId)
+                ->when($branchId, fn ($query) => $query->where('branch_id', $branchId))
+                ->when($typeFilter, fn ($query) => $query->where('recommendation_type', $typeFilter))
+                ->where('status', \App\Enums\AdvisorRecommendationStatus::Open)
+                ->latest('id')
+                ->limit(50)
+                ->get();
+
+            if ($tabRecommendations->isEmpty()) {
+                $live = match ($tab) {
+                    'quotations' => $this->gateway->quotationRecommendations($filters),
+                    'artwork' => $this->gateway->artworkRecommendations($filters),
+                    'machines' => $this->gateway->machineRecommendations($filters),
+                    'inventory' => $this->gateway->inventoryRecommendations($filters),
+                    'customers' => $this->gateway->customerRecommendations($filters),
+                    'profitability' => $this->gateway->profitabilityRecommendations($filters),
+                    'forecasts' => $this->gateway->forecastRecommendations($filters),
+                    default => null,
+                };
+            }
         }
 
         return view('admin.printing-intelligence.operations-advisor', [
@@ -477,6 +547,7 @@ class PrintingIntelligenceController extends Controller
             'overview' => $overview,
             'executiveSummary' => $executiveSummary,
             'liveRecommendations' => $live,
+            'tabRecommendations' => $tabRecommendations,
             'filters' => $filters,
             'config' => config('printing_intelligence'),
         ]);
@@ -497,8 +568,7 @@ class PrintingIntelligenceController extends Controller
     public function acknowledgeAdvisorRecommendation(Request $request, PrintAdvisorRecommendation $recommendation): RedirectResponse
     {
         abort_unless(auth()->user()?->can('printing.advisor.manage'), 403);
-        [$companyId] = $this->tenantScope();
-        abort_unless((int) $recommendation->company_id === $companyId, 404);
+        $this->authorize('update', $recommendation);
 
         app(AdvisorRecommendationWorkflowService::class)->acknowledge(
             $recommendation,
@@ -514,8 +584,7 @@ class PrintingIntelligenceController extends Controller
     public function dismissAdvisorRecommendation(Request $request, PrintAdvisorRecommendation $recommendation): RedirectResponse
     {
         abort_unless(auth()->user()?->can('printing.advisor.manage'), 403);
-        [$companyId] = $this->tenantScope();
-        abort_unless((int) $recommendation->company_id === $companyId, 404);
+        $this->authorize('update', $recommendation);
 
         app(AdvisorRecommendationWorkflowService::class)->dismiss(
             $recommendation,

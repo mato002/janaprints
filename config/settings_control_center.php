@@ -230,7 +230,7 @@ return [
                     'description' => 'Stock units, conversions, and packaging definitions.',
                     'icon' => 'switch-horizontal',
                     'keywords' => ['unit', 'measure', 'uom', 'conversion', 'packaging'],
-                    'link' => ['type' => 'route', 'name' => 'admin.master-data.index'],
+                    'link' => ['type' => 'route', 'name' => 'admin.inventory.catalogue.units.index'],
                 ],
                 [
                     'id' => 'stock-policies',

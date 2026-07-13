@@ -2,7 +2,7 @@
     <x-admin.page-header :title="__('Return History')" :description="__('All POS return transactions and reversal trail.')">
         <x-slot name="actions">
             @can('create', App\Models\Pos\PosReturn::class)
-                <a href="{{ route('admin.commercial.pos.returns.create') }}" class="erp-btn-primary">{{ __('Create Return') }}</a>
+                <a href="{{ \App\Support\Navigation\WorkspaceEmbed::url(route('admin.commercial.pos.returns.create')) }}" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" data-turbo-action="advance" class="erp-btn-primary">{{ __('New return') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
@@ -10,13 +10,13 @@
     <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
             <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All statuses') }}</option>
                 @foreach ($statuses as $status)
                     <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
                 @endforeach
             </select>
-            <select name="return_type" class="erp-toolbar-select" aria-label="{{ __('Return Type') }}">
-                <option value="">{{ __('All') }}</option>
+            <select name="return_type" class="erp-toolbar-select" aria-label="{{ __('Return type') }}">
+                <option value="">{{ __('All types') }}</option>
                 @foreach ($returnTypes as $type)
                     <option value="{{ $type->value }}" @selected(($filters['return_type'] ?? '') === $type->value)>{{ $type->label() }}</option>
                 @endforeach
@@ -25,39 +25,49 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead>
-                    <tr class="border-b border-erp-border text-left text-slate-500">
-                        <th class="py-2 pr-4">{{ __('Return #') }}</th>
-                        <th class="py-2 pr-4">{{ __('Sale') }}</th>
-                        <th class="py-2 pr-4">{{ __('Type') }}</th>
-                        <th class="py-2 pr-4">{{ __('Status') }}</th>
-                        <th class="py-2 pr-4">{{ __('Refund') }}</th>
-                        <th class="py-2 pr-4">{{ __('Created By') }}</th>
-                        <th class="py-2">{{ __('Date') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($returns as $return)
-                        <tr class="border-b border-erp-border/60">
-                            <td class="py-2 pr-4">
-                                <a href="{{ route('admin.commercial.pos.returns.show', $return) }}" class="font-medium text-erp-accent">{{ $return->return_number }}</a>
-                            </td>
-                            <td class="py-2 pr-4">{{ $return->sale?->sale_number }}</td>
-                            <td class="py-2 pr-4">{{ $return->return_type->label() }}</td>
-                            <td class="py-2 pr-4"><x-admin.enum-status-badge :status="$return->status->value" /></td>
-                            <td class="py-2 pr-4 tabular-nums">{{ number_format($return->refund_amount, 2) }}</td>
-                            <td class="py-2 pr-4">{{ $return->creator?->name }}</td>
-                            <td class="py-2">{{ $return->created_at?->format('Y-m-d H:i') }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="7" class="py-4 text-slate-500">{{ __('No returns found.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4">{{ $returns->links() }}</div>
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search returns…')"
+        export-filename="pos-returns"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Return #') }}</th>
+                <th scope="col">{{ __('Sale') }}</th>
+                <th scope="col">{{ __('Type') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col">{{ __('Refund') }}</th>
+                <th scope="col">{{ __('Created by') }}</th>
+                <th scope="col">{{ __('Date') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($returns as $return)
+                @php
+                    $search = strtolower($return->return_number.' '.($return->sale?->sale_number ?? '').' '.$return->return_type->value.' '.$return->status->value.' '.($return->creator?->name ?? ''));
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td class="font-medium">{{ $return->return_number }}</td>
+                    <td>{{ $return->sale?->sale_number ?? '—' }}</td>
+                    <td>{{ $return->return_type->label() }}</td>
+                    <td><x-admin.enum-status-badge :status="$return->status->value" /></td>
+                    <td class="tabular-nums">{{ number_format($return->refund_amount, 2) }}</td>
+                    <td>{{ $return->creator?->name ?? '—' }}</td>
+                    <td class="whitespace-nowrap">{{ $return->created_at?->format('Y-m-d H:i') }}</td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.commercial.pos.returns.show', $return)">{{ __('View') }}</x-admin.table-row-action>
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="8">
+                        <x-admin.empty-state icon="receipt-tax" :title="__('No returns found')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$returns" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

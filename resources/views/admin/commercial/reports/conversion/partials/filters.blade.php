@@ -6,7 +6,7 @@
 @endphp
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('commercial.reports.conversion.index')" :reset-url="route('commercial.reports.conversion.index')">
+    <x-admin.index-toolbar :action="route('admin.commercial.reports.conversion.index')" :reset-url="route('admin.commercial.reports.conversion.index')">
         <input type="hidden" name="tab" value="{{ $filters['tab'] ?? 'full_funnel' }}">
         <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">

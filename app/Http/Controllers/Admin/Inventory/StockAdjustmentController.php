@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin\Inventory;
 
 use App\Enums\DocumentType;
-use App\Enums\InventoryDocumentStatus;
+use App\Enums\StockAdjustmentStatus;
 use App\Enums\StockAdjustmentDirection;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
@@ -78,7 +78,7 @@ class StockAdjustmentController extends Controller
                 $companyId,
                 $branchId,
             ),
-            'status' => InventoryDocumentStatus::Draft,
+            'status' => StockAdjustmentStatus::Draft,
             'adjusted_by' => auth()->id(),
         ]);
 
@@ -97,9 +97,35 @@ class StockAdjustmentController extends Controller
     {
         $this->authorize('view', $adjustment);
 
-        $adjustment->load(['warehouse', 'adjuster', 'items.inventoryItem']);
+        $adjustment->load(['warehouse', 'adjuster', 'items.inventoryItem', 'submitter', 'approver']);
 
         return view('admin.inventory.adjustments.show', compact('adjustment'));
+    }
+
+    public function submit(StockAdjustment $adjustment): RedirectResponse
+    {
+        $this->authorize('submit', $adjustment);
+
+        try {
+            StockAdjustmentService::submit($adjustment, (int) auth()->id());
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('status', __('Adjustment submitted for approval.'));
+    }
+
+    public function approve(StockAdjustment $adjustment): RedirectResponse
+    {
+        $this->authorize('approve', $adjustment);
+
+        try {
+            StockAdjustmentService::approve($adjustment, (int) auth()->id(), request()->input('approval_reason'));
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('status', __('Adjustment approved.'));
     }
 
     public function post(StockAdjustment $adjustment): RedirectResponse

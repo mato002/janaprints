@@ -347,15 +347,15 @@ class PosCounterSalesWorkstationTest extends TestCase
             ->assertSessionHasErrors('session');
     }
 
-    public function test_new_sale_route_redirects_to_counter_sales(): void
+    public function test_counter_sales_workstation_is_reachable(): void
     {
         [$company, $branch, $user] = $this->tenantUser($this->cashierPermissions());
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.commercial.pos.create'))
-            ->assertRedirect(route('admin.commercial.pos.counter-sales'));
+            ->get(route('admin.commercial.pos.counter-sales'))
+            ->assertOk();
     }
 
     /**

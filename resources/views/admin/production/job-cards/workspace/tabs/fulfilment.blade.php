@@ -131,6 +131,29 @@
 
         @if ($canFulfil && $ready && ! in_array($fulfilment?->status?->value, ['delivered', 'collected'], true))
             @if (in_array($fulfilment?->status?->value, ['pending', null], true))
+                @if ($fulfilment && $fulfilment->recipient_name)
+                    <form method="POST" action="{{ route('admin.production.job-cards.fulfilment.prepare-delivery', [$jobCard, $fulfilment]) }}" class="space-y-3 max-w-lg mb-4">
+                        @csrf
+                        <p class="text-xs text-slate-500">{{ __('Update saved delivery details before dispatch.') }}</p>
+                        <div>
+                            <label class="erp-label">{{ __('Recipient name') }}</label>
+                            <input type="text" name="recipient_name" class="erp-input w-full" value="{{ old('recipient_name', $fulfilment->recipient_name) }}" required>
+                        </div>
+                        <div>
+                            <label class="erp-label">{{ __('Recipient phone') }}</label>
+                            <input type="text" name="recipient_phone" class="erp-input w-full" value="{{ old('recipient_phone', $fulfilment->recipient_phone) }}">
+                        </div>
+                        <div>
+                            <label class="erp-label">{{ __('Delivery address') }}</label>
+                            <textarea name="delivery_address" class="erp-input w-full" rows="3" required>{{ old('delivery_address', $fulfilment->delivery_address) }}</textarea>
+                        </div>
+                        <div>
+                            <label class="erp-label">{{ __('Dispatch date') }}</label>
+                            <input type="date" name="dispatch_date" class="erp-input w-full" value="{{ old('dispatch_date', $fulfilment->dispatch_date?->format('Y-m-d') ?? now()->toDateString()) }}">
+                        </div>
+                        <x-primary-button type="submit">{{ __('Save delivery details') }}</x-primary-button>
+                    </form>
+                @endif
                 <form method="POST" action="{{ route('admin.production.job-cards.fulfilment.create-delivery', $jobCard) }}" class="space-y-3 max-w-lg">
                     @csrf
                     <div>

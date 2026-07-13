@@ -9,14 +9,19 @@
     @php
         $fields = $formFields ?? [];
         $contextUrl = route('admin.sales-orders.customer-order-context', ['customer' => '__CUSTOMER__']);
+        $customerRouteKeys = $customers->mapWithKeys(
+            fn ($customer) => [(string) $customer->id => $customer->public_id],
+        );
     @endphp
 
     <div
         x-data="{
             tab: @js(old('entry_mode') === 'direct' ? 'direct' : ($defaultTab ?? 'quotation')),
             customerId: @js((string) old('customer_id', $selectedCustomerId ?? '')),
+            customerRouteKeys: @js($customerRouteKeys),
             selectedSpecId: @js((string) old('customer_print_specification_id', $selectedSpecificationId ?? '')),
             context: null,
+            contextError: null,
             loadingContext: false,
             form: {
                 quantity: @js(old('quantity', '1')),
@@ -52,21 +57,30 @@
             },
             syncCustomerFromSelect() {
                 const sel = this.$el.querySelector('[name=customer_id]');
-                if (sel?.value && String(sel.value) !== String(this.customerId)) {
+                if (sel?.value) {
                     this.onCustomerChanged(sel.value);
+                }
+            },
+            handleFieldChange(event) {
+                if (event.target?.name === 'customer_id') {
+                    this.onCustomerChanged(event.target.value);
                 }
             },
             async loadContext() {
                 if (!this.customerId) {
                     this.context = null;
+                    this.contextError = null;
                     this.selectedSpecId = '';
                     return;
                 }
                 this.loadingContext = true;
+                this.contextError = null;
                 try {
-                    const url = @js($contextUrl).replace('__CUSTOMER__', this.customerId) + '?scope=direct-order';
+                    const routeKey = this.customerRouteKeys[this.customerId] ?? this.customerId;
+                    const url = @js($contextUrl).replace('__CUSTOMER__', routeKey) + '?scope=direct-order';
                     const response = await fetch(url, {
                         headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
                     });
                     if (response.ok) {
                         this.context = await response.json();
@@ -75,7 +89,13 @@
                         )) {
                             this.selectedSpecId = '';
                         }
+                    } else {
+                        this.context = null;
+                        this.contextError = @js(__('Unable to load customer order details. Please try again.'));
                     }
+                } catch (error) {
+                    this.context = null;
+                    this.contextError = @js(__('Unable to load customer order details. Please try again.'));
                 } finally {
                     this.loadingContext = false;
                 }
@@ -99,6 +119,7 @@
             }
         "
         @erp-lookup-changed="if ($event.detail.name === 'customer_id') { onCustomerChanged($event.detail.value) }"
+        @change="handleFieldChange($event)"
         class="space-y-4"
     >
         <nav class="flex flex-wrap gap-1 border-b border-erp-border" role="tablist">
@@ -120,12 +141,14 @@
                             <option value="">{{ __('Select quotation') }}</option>
                             @foreach ($eligibleQuotations as $quotation)
                                 <option value="{{ $quotation->id }}" @selected(old('quotation_id', $selectedQuotationId ?? null) == $quotation->id)>
-                                    {{ $quotation->quotation_number }} — {{ $quotation->customer?->company_name }}
+                                    {{ $quotation->salesOrderConversionLabel() }}
                                 </option>
                             @endforeach
                         </select>
                         @if ($eligibleQuotations->isEmpty())
-                            <p class="mt-2 text-sm text-slate-500">{{ __('No quotations are ready for conversion.') }}</p>
+                            <p class="mt-2 text-sm text-slate-500">{{ __('No accepted quotations are available. Accept a quotation first, or use Direct Order.') }}</p>
+                        @elseif ($eligibleQuotations->every(fn ($quotation) => ! $quotation->isReadyForSalesOrderConversion()))
+                            <p class="mt-2 text-sm text-amber-700">{{ __('Selected quotations still need approved artwork before conversion.') }}</p>
                         @endif
                     </div>
                 @endif
@@ -162,6 +185,14 @@
 
                 <template x-if="loadingContext">
                     <p class="text-sm text-slate-400">{{ __('Loading…') }}</p>
+                </template>
+
+                <template x-if="contextError && !loadingContext">
+                    <p class="text-sm text-red-600" x-text="contextError"></p>
+                </template>
+
+                <template x-if="customerId && !loadingContext && !contextError && context && !context.print_specifications?.length">
+                    <p class="text-sm text-slate-500">{{ __('No active print specifications for this customer.') }}</p>
                 </template>
 
                 <template x-if="context && !loadingContext">

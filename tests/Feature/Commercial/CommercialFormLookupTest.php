@@ -134,7 +134,7 @@ class CommercialFormLookupTest extends TestCase
     public function test_activity_create_has_customer_plus_button(): void
     {
         [$company, $branch, $user] = $this->salesUser();
-        $user->givePermissionTo('crm.activities.create');
+        $user->givePermissionTo('commercial.activities.create');
 
         $this->actingAs($user)
             ->withHeader('Turbo-Frame', 'erp-form-modal')

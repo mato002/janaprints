@@ -13,7 +13,7 @@
 
     <x-admin.card class="mb-6">
         <h3 class="mb-3 font-medium">{{ __('Step 1: Locate Sale') }}</h3>
-        <form method="GET" action="{{ route('admin.commercial.pos.returns.create') }}" class="flex flex-wrap gap-3">
+        <form method="GET" action="{{ \App\Support\Navigation\WorkspaceEmbed::url(route('admin.commercial.pos.returns.create')) }}" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}" class="flex flex-wrap gap-3">
             <input type="text" name="sale" value="{{ $search }}" placeholder="{{ __('Sale number e.g. POS-20260604-0001') }}" class="erp-input min-w-[16rem]">
             <button type="submit" class="erp-btn-secondary">{{ __('Find Sale') }}</button>
         </form>

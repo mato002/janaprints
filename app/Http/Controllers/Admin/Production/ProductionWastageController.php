@@ -17,36 +17,29 @@ class ProductionWastageController extends Controller
         protected ProductionWastageService $wastageService,
     ) {}
 
-    public function storeWaste(Request $request, ProductionJobCard $jobCard): RedirectResponse
+    public function store(Request $request, ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('view', $jobCard);
         abort_unless(auth()->user()?->can('production.wastage.record'), 403);
 
-        $validated = $this->validatePayload($request, $jobCard, requireWasteType: true);
+        $flowType = $request->input('flow_type', 'waste');
+        $isReturn = $flowType === 'return';
+
+        $validated = $this->validatePayload($request, $jobCard, requireWasteType: ! $isReturn);
 
         try {
-            $this->wastageService->recordWaste($jobCard, $validated, (int) auth()->id());
+            if ($isReturn) {
+                $this->wastageService->recordReturn($jobCard, $validated, (int) auth()->id());
+            } else {
+                $this->wastageService->recordWaste($jobCard, $validated, (int) auth()->id());
+            }
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
         }
 
-        return back()->with('status', __('Production waste recorded.'));
-    }
-
-    public function storeReturn(Request $request, ProductionJobCard $jobCard): RedirectResponse
-    {
-        $this->authorize('view', $jobCard);
-        abort_unless(auth()->user()?->can('production.wastage.record'), 403);
-
-        $validated = $this->validatePayload($request, $jobCard, requireWasteType: false);
-
-        try {
-            $this->wastageService->recordReturn($jobCard, $validated, (int) auth()->id());
-        } catch (ValidationException $e) {
-            return back()->withErrors($e->errors());
-        }
-
-        return back()->with('status', __('Material return recorded.'));
+        return back()->with('status', $isReturn
+            ? __('Material return recorded.')
+            : __('Production waste recorded.'));
     }
 
     /**
@@ -55,6 +48,7 @@ class ProductionWastageController extends Controller
     protected function validatePayload(Request $request, ProductionJobCard $jobCard, bool $requireWasteType): array
     {
         $rules = [
+            'flow_type' => ['nullable', Rule::in(['waste', 'return'])],
             'inventory_item_id' => ['required', Rule::exists('inventory_items', 'id')
                 ->where('company_id', $jobCard->company_id)
                 ->where('branch_id', $jobCard->branch_id)],

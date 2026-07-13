@@ -20,7 +20,7 @@
                 <label class="text-xs font-medium text-slate-600">
                     {{ __('Status') }}
                     <select class="erp-select mt-1" x-model="filterValues.status">
-                        <option value="all">{{ __('All') }}</option>
+                        <option value="all">{{ __('All statuses') }}</option>
                         <option value="active">{{ __('Active') }}</option>
                         <option value="inactive">{{ __('Inactive') }}</option>
                     </select>
@@ -28,7 +28,7 @@
                 <label class="text-xs font-medium text-slate-600">
                     {{ __('Branch') }}
                     <select class="erp-select mt-1" x-model="filterValues.branch">
-                        <option value="all">{{ __('All') }}</option>
+                        <option value="all">{{ __('All branches') }}</option>
                         @foreach ($branches as $branch)
                             <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                         @endforeach
@@ -37,7 +37,7 @@
                 <label class="text-xs font-medium text-slate-600">
                     {{ __('Managers') }}
                     <select class="erp-select mt-1" x-model="filterValues.manager">
-                        <option value="all">{{ __('All') }}</option>
+                        <option value="all">{{ __('All managers') }}</option>
                         <option value="assigned">{{ __('Assigned') }}</option>
                         <option value="unassigned">{{ __('Unassigned') }}</option>
                     </select>

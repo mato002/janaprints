@@ -10,6 +10,8 @@
 
     @include('admin.printing-intelligence.partials.nav')
 
+@include('admin.printing-intelligence.partials.environment-warnings', ['environment' => $environment ?? []])
+
     <div class="mb-4 flex flex-wrap items-center gap-3">
         <a href="{{ route('admin.printing-intelligence.artwork-analysis.index') }}"
            class="text-xs font-medium text-slate-600 hover:text-slate-900">&larr; {{ __('Back to list') }}</a>
@@ -43,11 +45,7 @@
         @endcan
     </div>
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <x-admin.card>
             <h3 class="mb-3 text-sm font-semibold text-slate-900">{{ __('File info') }}</h3>
             <dl class="grid grid-cols-2 gap-3 text-sm">

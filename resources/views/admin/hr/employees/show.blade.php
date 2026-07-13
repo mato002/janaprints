@@ -30,11 +30,7 @@
             @endforeach
         </nav>
 
-        @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-        @endif
-
-        <div class="employee-360__panels">
+<div class="employee-360__panels">
             @foreach ($tabs as $tabDef)
                 <div x-show="tab === @js($tabDef['id'])" @if ($tabDef['id'] !== 'overview') x-cloak @endif>
                     @include('admin.hr.employees.360.tabs.'.$tabDef['id'])

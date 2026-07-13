@@ -48,8 +48,8 @@ class CommercialConversionReportScopeResolver
         $scope = new CommercialConversionReportScope(
             companyId: (int) $companyId,
             branchId: $branchId,
-            fromDate: (string) $request->input('from_date', now()->startOfMonth()->toDateString()),
-            toDate: (string) $request->input('to_date', now()->toDateString()),
+            fromDate: (string) $request->input('from_date', CommercialReportDateDefaults::defaultFromDate()),
+            toDate: (string) $request->input('to_date', CommercialReportDateDefaults::defaultToDate()),
             salespersonId: $request->filled('salesperson_id') ? (int) $request->input('salesperson_id') : null,
             leadSourceId: $request->filled('lead_source_id') ? (int) $request->input('lead_source_id') : null,
             customerType: $request->filled('customer_type') ? (string) $request->input('customer_type') : null,
@@ -105,7 +105,7 @@ class CommercialConversionReportScopeResolver
             'branches' => $branches,
             'lead_sources' => $leadSources,
             'salespersons' => $salespersons,
-            'can_export' => $user?->can('commercial.reports.export') ?? false,
+            'can_export' => $user?->can('commercial.reports.conversion.export') ?? false,
             'filters' => [
                 'from_date' => $scope->fromDate,
                 'to_date' => $scope->toDate,

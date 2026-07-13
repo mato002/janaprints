@@ -18,7 +18,7 @@ return [
             'route_params' => ['section' => 'commercial'],
             'permission' => 'reports.view',
             'icon' => 'shopping-cart',
-            'active_routes' => ['admin.workspaces.reports.section:commercial', 'admin.reports.commercial', 'admin.reports.commercial360', 'commercial.reports.*'],
+            'active_routes' => ['admin.workspaces.reports.section:commercial', 'admin.reports.commercial', 'admin.reports.commercial360', 'admin.commercial.reports.*'],
         ],
         [
             'label' => 'Production',
@@ -96,6 +96,14 @@ return [
             'presentation' => 'hub',
             'hub_route' => 'admin.reports.commercial',
             'groups' => [],
+            'groups' => [[
+                'label' => 'Commercial',
+                'items' => [
+                    ['key' => 'commercial-reports', 'label' => 'Commercial Reports', 'description' => 'Hub for departmental commercial reports.', 'route' => 'admin.reports.commercial', 'permission' => 'reports.view', 'icon' => 'document-text', 'active_routes' => ['admin.reports.commercial', 'admin.commercial.reports.*']],
+                    ['key' => 'commercial-360', 'label' => 'Commercial 360', 'description' => 'Sales and customer management intelligence.', 'route' => 'admin.reports.commercial360', 'permission' => 'intelligence.commercial.view|reports.view', 'icon' => 'document-text', 'active_routes' => ['admin.reports.commercial360']],
+                    ['key' => 'commercial-intelligence', 'label' => 'Commercial Intelligence', 'description' => 'Job, customer, product profitability, waste, and outsource analysis.', 'route' => 'admin.reports.commercial-intelligence', 'permission' => 'intelligence.commercial.view|reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.reports.commercial-intelligence']],
+                ],
+            ]],
         ],
         'production' => [
             'title' => 'Production',

@@ -56,6 +56,9 @@
                         @if ($tabData['can_consume'] ?? false)
                             <th></th>
                         @endif
+                        @if ($tabData['can_reserve'] ?? false)
+                            <th></th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -77,6 +80,18 @@
                                             @csrf
                                             <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-20 text-xs" value="{{ $row['remaining'] }}">
                                             <button type="submit" class="erp-btn-primary text-xs">{{ __('Consume') }}</button>
+                                        </form>
+                                    @else
+                                        <span class="text-xs text-slate-400">—</span>
+                                    @endif
+                                </td>
+                            @endif
+                            @if ($tabData['can_reserve'] ?? false)
+                                <td class="whitespace-nowrap">
+                                    @if ($row['can_reserve'] ?? false)
+                                        <form method="POST" action="{{ route('admin.production.job-cards.materials.reserve', [$jobCard, $row['requirement']]) }}" class="inline">
+                                            @csrf
+                                            <button type="submit" class="erp-btn-secondary text-xs">{{ __('Reserve') }}</button>
                                         </form>
                                     @else
                                         <span class="text-xs text-slate-400">—</span>

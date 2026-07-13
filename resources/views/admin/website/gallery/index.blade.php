@@ -22,11 +22,7 @@
         @endcan
     </x-admin.page-header>
 
-    @if (session('status'))
-        <x-admin.alert variant="success" class="mb-4">{{ session('status') }}</x-admin.alert>
-    @endif
-
-    <x-admin.card :padding="false" class="mb-4">
+<x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="route('admin.website.gallery.index')" :reset-url="route('admin.website.gallery.index')">
             <input type="search" name="q" value="{{ $filters['q'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Search title, description, location…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
             <select name="category" class="erp-toolbar-select" aria-label="{{ __('Category') }}">

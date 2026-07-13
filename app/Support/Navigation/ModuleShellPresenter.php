@@ -2,6 +2,7 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Platform\ModalFormRoutes;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
@@ -562,6 +563,7 @@ class ModuleShellPresenter
             'active_primary' => $activePrimary,
             'secondary_workspaces' => $secondaryWorkspaces,
             'active_secondary' => $activeSecondary,
+            'secondary_toolbar_actions' => $this->presentToolbarActions($activeSecondary['toolbar_actions'] ?? []),
             'content_url' => $contentUrl,
             'hub_route' => $module['hub_route'] ?? null,
             'section_route' => $module['section_route'] ?? null,
@@ -676,6 +678,7 @@ class ModuleShellPresenter
                     'turbo_frame' => $deskHref !== null ? 'erp-main' : 'module-workspace-content',
                     'badge' => $item['count'] ?? null,
                     'coming_soon' => (bool) ($item['coming_soon'] ?? false),
+                    'toolbar_actions' => $item['toolbar_actions'] ?? [],
                     'active' => false,
                 ];
             }
@@ -1076,5 +1079,41 @@ class ModuleShellPresenter
         }
 
         return $user->can($permission);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $actions
+     * @return list<array<string, mixed>>
+     */
+    protected function presentToolbarActions(array $actions): array
+    {
+        $presented = [];
+
+        foreach ($actions as $action) {
+            if (! empty($action['coming_soon'])) {
+                continue;
+            }
+
+            $route = $action['route'] ?? null;
+
+            if (! $route || ! Route::has($route)) {
+                continue;
+            }
+
+            if (! empty($action['permission']) && ! $this->userCan($action['permission'])) {
+                continue;
+            }
+
+            $params = $action['route_params'] ?? [];
+
+            $presented[] = [
+                'label' => $action['label'] ?? '',
+                'href' => $this->navigation->appendPreservedQuery(route($route, $params)),
+                'modal' => (bool) ($action['modal'] ?? ModalFormRoutes::supports($route)),
+                'variant' => $action['variant'] ?? 'primary',
+            ];
+        }
+
+        return $presented;
     }
 }

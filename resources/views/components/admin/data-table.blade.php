@@ -177,7 +177,7 @@
             </details>
         @endif
 
-        <div class="erp-table-scroll overflow-x-auto max-w-full">
+        <div class="erp-table-scroll max-w-full">
             <table id="{{ $tableId }}" class="erp-table erp-table--grid">
                 @isset($head)
                     <thead>{{ $head }}</thead>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\Procurement\GoodsReceiptController;
+use App\Http\Controllers\Admin\Procurement\ProcurementApprovalQueueController;
 use App\Http\Controllers\Admin\Procurement\ProcurementDashboardController;
 use App\Http\Controllers\Admin\Procurement\ProcurementReportController;
 use App\Http\Controllers\Admin\Procurement\PurchaseOrderController;
@@ -121,6 +122,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:procurement.orders.edit')->group(function () {
             Route::get('orders/{order}/edit', [PurchaseOrderController::class, 'edit'])->name('orders.edit');
             Route::put('orders/{order}', [PurchaseOrderController::class, 'update'])->name('orders.update');
+            Route::get('quotations/{quotation}/edit', [SupplierQuotationController::class, 'edit'])->name('quotations.edit');
+            Route::put('quotations/{quotation}', [SupplierQuotationController::class, 'update'])->name('quotations.update');
             Route::post('orders/{order}/submit', [PurchaseOrderController::class, 'submit'])->name('orders.submit');
             Route::post('orders/{order}/send', [PurchaseOrderController::class, 'send'])->name('orders.send');
             Route::post('orders/{order}/cancel', [PurchaseOrderController::class, 'cancel'])->name('orders.cancel');
@@ -190,5 +193,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('supplier-performance/export', [SupplierPerformanceController::class, 'export'])
                 ->middleware('permission:procurement.performance.export')
                 ->name('supplier-performance.export');
+
+            Route::middleware('permission:procurement.approvals.view')->group(function () {
+                Route::get('approvals', [ProcurementApprovalQueueController::class, 'index'])->name('approvals.index');
+                Route::post('approvals/{run}/approve', [ProcurementApprovalQueueController::class, 'approve'])->name('approvals.approve');
+                Route::post('approvals/{run}/reject', [ProcurementApprovalQueueController::class, 'reject'])->name('approvals.reject');
+            });
         });
     });

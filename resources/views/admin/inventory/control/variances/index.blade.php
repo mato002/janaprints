@@ -19,19 +19,19 @@
         <x-slot name="filters">
             <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2">
                 <select name="warehouse_id" class="erp-toolbar-select" aria-label="{{ __('Warehouse') }}">
-                    <option value="">{{ __('All') }}</option>
+                    <option value="">{{ __('All warehouses') }}</option>
                     @foreach ($warehouses as $w)
                         <option value="{{ $w->id }}" @selected(($filters['warehouse_id'] ?? '') == $w->id)>{{ $w->name }}</option>
                     @endforeach
                 </select>
                 <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
-                    <option value="">{{ __('All') }}</option>
+                    <option value="">{{ __('All statuses') }}</option>
                     @foreach ($statuses as $status)
                         <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->value }}</option>
                     @endforeach
                 </select>
                 <select name="variance_type" class="erp-toolbar-select" aria-label="{{ __('Variance') }}">
-                    <option value="">{{ __('All') }}</option>
+                    <option value="">{{ __('All variance types') }}</option>
                     <option value="positive" @selected(($filters['variance_type'] ?? '') === 'positive')>{{ __('Positive') }}</option>
                     <option value="negative" @selected(($filters['variance_type'] ?? '') === 'negative')>{{ __('Negative') }}</option>
                 </select>

@@ -284,9 +284,9 @@ class PosCounterSalesUxTest extends TestCase
             'pos.counter_sales.complete',
             'pos.counter_sales.cancel',
             'pos.receipts.reprint',
-            'pos.sessions.view',
-            'pos.sessions.open',
-            'pos.sessions.close',
+            'commercial.pos.sessions.view',
+            'commercial.pos.sessions.open',
+            'commercial.pos.sessions.close',
         ];
     }
 

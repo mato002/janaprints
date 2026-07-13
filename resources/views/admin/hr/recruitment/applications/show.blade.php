@@ -8,11 +8,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="mb-6 grid gap-4 md:grid-cols-3">
+<div class="mb-6 grid gap-4 md:grid-cols-3">
         <x-admin.kpi-widget :label="__('Vacancy')" :value="$application->vacancy->title" icon="briefcase" />
         <x-admin.kpi-widget :label="__('Email')" :value="$application->candidate->email ?? '—'" icon="mail" />
         <x-admin.kpi-widget :label="__('Applied')" :value="$application->applied_at->format('M j, Y')" icon="calendar" />

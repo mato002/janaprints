@@ -20,11 +20,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+<div class="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <x-admin.kpi-widget :label="__('Duration')" :value="number_format($program->duration_hours, 1).' '.__('hrs')" icon="clock" />
         <x-admin.kpi-widget :label="__('Budget')" :value="$program->budget_amount ? number_format($program->budget_amount, 0) : '—'" icon="currency-dollar" />
         <x-admin.kpi-widget :label="__('Assignments')" :value="$stats['assignments_count']" icon="users" />

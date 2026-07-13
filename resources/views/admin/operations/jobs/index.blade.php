@@ -31,13 +31,7 @@
             </x-slot>
         </x-admin.page-header>
 
-        @if (session('success'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        @include('admin.operations.jobs.partials.queue-readiness', ['queueReadiness' => $queueReadiness])
+@include('admin.operations.jobs.partials.queue-readiness', ['queueReadiness' => $queueReadiness])
 
         <div class="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <x-admin.kpi-widget :label="__('Total Jobs')" :value="$metrics['total']" icon="switch-horizontal" />

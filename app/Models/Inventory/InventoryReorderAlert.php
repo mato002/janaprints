@@ -92,4 +92,15 @@ class InventoryReorderAlert extends Model
     {
         return $this->alert_type === config('inventory_intelligence.velocity_alert_type', 'velocity_stockout_risk');
     }
+
+    public function alertAgeDays(): int
+    {
+        $alertedAt = $this->alerted_at ?? $this->created_at;
+
+        if ($alertedAt === null) {
+            return 0;
+        }
+
+        return max(0, (int) $alertedAt->diffInDays(now()));
+    }
 }

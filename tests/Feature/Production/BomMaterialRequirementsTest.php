@@ -86,7 +86,7 @@ class BomMaterialRequirementsTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.production.boms.index'))
+            ->get(route('admin.production.boms.index', ['embedded' => 1]))
             ->assertForbidden();
     }
 

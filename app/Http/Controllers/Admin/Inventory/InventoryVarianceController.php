@@ -64,4 +64,9 @@ class InventoryVarianceController extends Controller
 
         return $this->exports->export($format, $companyId, $branchId, $filters, $request->user());
     }
+
+    public function exportPdf(Request $request): StreamedResponse
+    {
+        return $this->export($request, 'pdf');
+    }
 }

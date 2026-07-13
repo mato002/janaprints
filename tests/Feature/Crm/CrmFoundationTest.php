@@ -109,7 +109,7 @@ class CrmFoundationTest extends TestCase
         $this->seedCompanyCrm($company);
 
         $user = $this->userWithRole('Sales', $company, $branch, [
-            'crm.customers.view', 'crm.customers.edit', 'crm.activities.create',
+            'crm.customers.view', 'crm.customers.edit', 'commercial.activities.create',
         ]);
 
         $customer = Customer::factory()->create([

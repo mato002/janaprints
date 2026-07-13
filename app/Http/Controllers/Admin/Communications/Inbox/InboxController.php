@@ -135,7 +135,7 @@ class InboxController extends Controller
         return redirect()->route('admin.communications.inbox.index', [
             'conversation' => $inboxConversation->id,
             'channel' => $request->get('channel'),
-        ]);
+        ])->with('status', __('Tags updated.'));
     }
 
     public function startFromPicker(Request $request): RedirectResponse
@@ -163,7 +163,7 @@ class InboxController extends Controller
         return redirect()->route('admin.communications.inbox.index', [
             'conversation' => $conversation->id,
             'view' => $request->get('view', 'customer'),
-        ]);
+        ])->with('status', __('Conversation opened.'));
     }
 
     public function reply(Request $request, CommunicationConversation $inboxConversation): RedirectResponse
@@ -187,7 +187,7 @@ class InboxController extends Controller
         }
 
         return $this->redirectToConversation($inboxConversation, $request)
-            ->with('inbox_reply_sent', true);
+            ->with('status', __('Message sent.'));
     }
 
     public function storeNote(Request $request, CommunicationConversation $inboxConversation): RedirectResponse
@@ -202,7 +202,8 @@ class InboxController extends Controller
         $tags = array_filter(array_map('trim', explode(',', $validated['tags'] ?? '')));
         $this->notes->add($inboxConversation, $validated['body'], $request->user()->id, tags: $tags);
 
-        return $this->redirectToConversation($inboxConversation, $request);
+        return $this->redirectToConversation($inboxConversation, $request)
+            ->with('status', __('Note added.'));
     }
 
     public function assign(Request $request, CommunicationConversation $inboxConversation): RedirectResponse
@@ -253,7 +254,17 @@ class InboxController extends Controller
             ),
         };
 
-        return redirect()->route('admin.communications.inbox.index', ['conversation' => $inboxConversation->id]);
+        return redirect()->route('admin.communications.inbox.index', ['conversation' => $inboxConversation->id])
+            ->with('status', match ($validated['action']) {
+                'take' => __('Conversation taken.'),
+                'release' => __('Conversation released.'),
+                'escalate' => __('Conversation escalated.'),
+                'add_watcher' => __('Watcher added.'),
+                'remove_watcher' => __('Watcher removed.'),
+                'assign_department' => __('Department assigned.'),
+                'assign_branch' => __('Branch assigned.'),
+                default => __('Conversation assigned.'),
+            });
     }
 
     public function updateStatus(Request $request, CommunicationConversation $inboxConversation): RedirectResponse
@@ -262,13 +273,17 @@ class InboxController extends Controller
 
         if ($request->input('status') === 'reopen') {
             $this->assignments->reopen($inboxConversation, $request->user()->id);
+            $statusMessage = __('Conversation reopened.');
         } elseif ($status = InboxConversationStatus::tryFrom($request->input('status', ''))) {
             $this->assignments->setStatus($inboxConversation, $status, $request->user()->id);
+            $statusMessage = __('Conversation status updated.');
         } else {
             $this->assignments->close($inboxConversation, $request->user()->id);
+            $statusMessage = __('Conversation closed.');
         }
 
-        return redirect()->route('admin.communications.inbox.index', ['conversation' => $inboxConversation->id]);
+        return redirect()->route('admin.communications.inbox.index', ['conversation' => $inboxConversation->id])
+            ->with('status', $statusMessage);
     }
 
     public function storeAttachment(Request $request, CommunicationConversation $inboxConversation): RedirectResponse
@@ -317,7 +332,7 @@ class InboxController extends Controller
         ]);
 
         return redirect()->route('admin.communications.inbox.index', ['conversation' => $inboxConversation->id])
-            ->with('inbox_attachment_sent', true);
+            ->with('status', __('Attachment uploaded.'));
     }
 
     public function threadFeed(Request $request, CommunicationConversation $inboxConversation): JsonResponse
@@ -374,7 +389,8 @@ class InboxController extends Controller
 
         $this->messages->archiveMessage($message, $request->user()->id);
 
-        return $this->redirectToConversation($inboxConversation, $request);
+        return $this->redirectToConversation($inboxConversation, $request)
+            ->with('status', __('Message archived.'));
     }
 
     public function destroyAttachment(
@@ -388,7 +404,8 @@ class InboxController extends Controller
 
         $this->messages->archiveAttachment($attachment, $request->user()->id);
 
-        return $this->redirectToConversation($inboxConversation, $request);
+        return $this->redirectToConversation($inboxConversation, $request)
+            ->with('status', __('Attachment archived.'));
     }
 
     protected function redirectToConversation(CommunicationConversation $conversation, Request $request): RedirectResponse

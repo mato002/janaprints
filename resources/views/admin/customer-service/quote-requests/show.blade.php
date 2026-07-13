@@ -18,7 +18,7 @@
             modalUrl: @js(route('admin.public-quote-requests.printing-analysis.modal', [$quoteRequest, $artworkFileId])),
             runUrl: @js(route('admin.public-quote-requests.printing-analysis.run', [$quoteRequest, $artworkFileId])),
             rerunUrl: @js(route('admin.public-quote-requests.printing-analysis.rerun', [$quoteRequest, $artworkFileId])),
-            csrf: @js(csrf_token()),
+            applyUrl: @js(route('admin.public-quote-requests.printing-analysis.apply-quotation', [$quoteRequest, $artworkFileId])),
             activeArtwork: @js($workspace['artwork_files'][0]['id'] ?? 'primary'),
         })"
     >

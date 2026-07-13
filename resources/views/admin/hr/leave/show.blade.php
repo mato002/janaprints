@@ -1,9 +1,5 @@
 <x-admin-layout :title="__('Leave Request')" :breadcrumbs="[['label' => __('Leave'), 'url' => route('admin.hr.leave.dashboard')], ['label' => $request->reference ?? __('Request')]]">
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="grid gap-6 lg:grid-cols-3">
+<div class="grid gap-6 lg:grid-cols-3">
         <div class="lg:col-span-2 bg-white shadow rounded-lg p-6">
             <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
                 <div>

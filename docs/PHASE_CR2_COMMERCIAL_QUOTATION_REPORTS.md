@@ -3,7 +3,7 @@
 ## Implementation Report
 
 **Module:** Commercial → Reports → Quotation Reports  
-**Route:** `commercial.reports.quotations.index`  
+**Route:** `admin.commercial.reports.quotations.index`  
 **Scope:** Commercial department quotation analytics — not Executive Intelligence.
 
 ---
@@ -28,8 +28,8 @@ Rendered before KPIs/tabs via shared readiness partial.
 
 | Method | URI | Name | Permission |
 |--------|-----|------|------------|
-| GET | `/admin/commercial/reports/quotations` | `commercial.reports.quotations.index` | `commercial.reports.quotations.view` |
-| POST | `/admin/commercial/reports/quotations/export` | `commercial.reports.quotations.export` | `commercial.reports.quotations.export` |
+| GET | `/admin/commercial/reports/quotations` | `admin.commercial.reports.quotations.index` | `admin.commercial.reports.quotations.view` |
+| POST | `/admin/commercial/reports/quotations/export` | `admin.commercial.reports.quotations.export` | `admin.commercial.reports.quotations.export` |
 
 ---
 
@@ -95,8 +95,8 @@ CSV · Excel (TSV) · PDF (HTML) via `ExportCommercialQuotationReportJob` on `ex
 
 | Permission | Roles |
 |------------|-------|
-| `commercial.reports.quotations.view` | Company Admin, Branch Manager, Sales |
-| `commercial.reports.quotations.export` | Company Admin, Branch Manager |
+| `admin.commercial.reports.quotations.view` | Company Admin, Branch Manager, Sales |
+| `admin.commercial.reports.quotations.export` | Company Admin, Branch Manager |
 
 ---
 

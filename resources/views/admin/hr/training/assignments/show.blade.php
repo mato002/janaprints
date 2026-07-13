@@ -5,11 +5,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="grid gap-4 lg:grid-cols-2">
+<div class="grid gap-4 lg:grid-cols-2">
         <x-admin.card :title="__('Assignment Details')">
             <dl class="space-y-3 text-sm">
                 <div><dt class="text-slate-500">{{ __('Employee') }}</dt><dd>{{ $assignment->employee->full_name }}</dd></div>

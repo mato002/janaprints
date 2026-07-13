@@ -1,41 +1,30 @@
 <x-admin-layout :title="__('Training Calendar')">
     <x-admin.page-header :title="__('Training Calendar')" :description="__('Scheduled training programs.')">
-        <x-slot name="actions">
+        <x-slot name="secondary">
             <a href="{{ route('admin.hr.training.dashboard') }}" class="erp-btn-secondary">{{ __('Dashboard') }}</a>
         </x-slot>
     </x-admin.page-header>
 
-    <x-admin.card>
-        <form method="GET" action="{{ route('admin.hr.training.calendar') }}" class="mb-4 flex flex-wrap items-end gap-3">
-            <div>
-                <label class="erp-label text-xs" for="month">{{ __('Month') }}</label>
-                <input type="number" id="month" name="month" min="1" max="12" value="{{ $month }}" class="erp-toolbar-input w-20">
-            </div>
-            <div>
-                <label class="erp-label text-xs" for="year">{{ __('Year') }}</label>
-                <input type="number" id="year" name="year" value="{{ $year }}" class="erp-toolbar-input w-24">
-            </div>
-            <div>
-                <label class="erp-label text-xs" for="status">{{ __('Status') }}</label>
-                <select id="status" name="status" class="erp-toolbar-input">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach (\App\Enums\TrainingProgramStatus::cases() as $status)
-                        <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label text-xs" for="type">{{ __('Type') }}</label>
-                <select id="type" name="type" class="erp-toolbar-input">
-                    <option value="">{{ __('All') }}</option>
-                    @foreach (\App\Enums\TrainingType::cases() as $type)
-                        <option value="{{ $type->value }}" @selected(($filters['type'] ?? '') === $type->value)>{{ $type->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="erp-btn-secondary text-xs">{{ __('Filter') }}</button>
-        </form>
+    <x-admin.card :padding="false" class="mb-4">
+        <x-admin.index-toolbar :action="route('admin.hr.training.calendar')" :reset-url="route('admin.hr.training.calendar')">
+            <input type="number" name="month" min="1" max="12" value="{{ $month }}" class="erp-toolbar-input w-20" aria-label="{{ __('Month') }}">
+            <input type="number" name="year" value="{{ $year }}" class="erp-toolbar-input w-24" aria-label="{{ __('Year') }}">
+            <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
+                <option value="">{{ __('All statuses') }}</option>
+                @foreach (\App\Enums\TrainingProgramStatus::cases() as $status)
+                    <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ $status->label() }}</option>
+                @endforeach
+            </select>
+            <select name="type" class="erp-toolbar-select" aria-label="{{ __('Type') }}">
+                <option value="">{{ __('All types') }}</option>
+                @foreach (\App\Enums\TrainingType::cases() as $type)
+                    <option value="{{ $type->value }}" @selected(($filters['type'] ?? '') === $type->value)>{{ $type->label() }}</option>
+                @endforeach
+            </select>
+        </x-admin.index-toolbar>
+    </x-admin.card>
 
+    <x-admin.card>
         <div class="space-y-3">
             @forelse ($programs as $program)
                 <div class="rounded-lg border border-erp-border/70 p-4">
@@ -56,7 +45,7 @@
                     @endif
                 </div>
             @empty
-                <p class="text-sm text-slate-500">{{ __('No scheduled programs for this period.') }}</p>
+                <x-admin.empty-state icon="calendar" :title="__('No scheduled programs')" :description="__('No scheduled programs for this period.')" />
             @endforelse
         </div>
     </x-admin.card>

@@ -1,15 +1,11 @@
 <x-admin-layout :title="__('Cash Reconciliation')">
     <x-admin.page-header :title="__('Cash Reconciliation')" :description="__('End-of-day cash counts, variances, and approval workflow.')">
-        <x-slot name="actions">
+        <x-slot name="secondary">
             <a href="{{ route('admin.commercial.pos.reconciliation.history') }}" class="erp-btn-secondary">{{ __('History') }}</a>
         </x-slot>
     </x-admin.page-header>
 
-    @if (session('status'))
-        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">{{ session('status') }}</div>
-    @endif
-
-    <div class="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7">
+    <x-admin.kpi-strip class="xl:grid-cols-7">
         <x-admin.kpi-widget :label="__('Today\'s Reconciliations')" :value="$stats['today_count']" icon="clipboard-list" />
         <x-admin.kpi-widget :label="__('Pending Reviews')" :value="$stats['pending_reviews']" icon="clock" />
         <x-admin.kpi-widget :label="__('Variance Cases')" :value="$stats['variance_cases']" icon="exclamation" />
@@ -17,9 +13,9 @@
         <x-admin.kpi-widget :label="__('Total Cash')" :value="number_format($stats['total_cash'], 2)" icon="cash" />
         <x-admin.kpi-widget :label="__('Total M-Pesa')" :value="number_format($stats['total_mpesa'], 2)" icon="device-mobile" />
         <x-admin.kpi-widget :label="__('Total Card')" :value="number_format($stats['total_card'], 2)" icon="credit-card" />
-    </div>
+    </x-admin.kpi-strip>
 
-    <x-admin.card :padding="false" class="mb-6">
+    <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar :action="route('admin.commercial.pos.reconciliation.index')" :reset-url="route('admin.commercial.pos.reconciliation.index')">
             <select id="status" name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
                 <option value="">{{ __('All statuses') }}</option>
@@ -50,41 +46,51 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-erp-border text-left text-[11px] uppercase tracking-wide text-slate-500">
-                        <th class="px-3 py-2">{{ __('Reconciliation') }}</th>
-                        <th class="px-3 py-2">{{ __('Session') }}</th>
-                        <th class="px-3 py-2">{{ __('Cashier') }}</th>
-                        <th class="px-3 py-2">{{ __('Branch') }}</th>
-                        <th class="px-3 py-2">{{ __('Expected') }}</th>
-                        <th class="px-3 py-2">{{ __('Actual') }}</th>
-                        <th class="px-3 py-2">{{ __('Variance') }}</th>
-                        <th class="px-3 py-2">{{ __('Status') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($reconciliations as $reconciliation)
-                        <tr class="border-b border-erp-border/60">
-                            <td class="px-3 py-2">
-                                <a href="{{ route('admin.commercial.pos.reconciliation.show', $reconciliation) }}" class="font-medium text-erp-accent">{{ $reconciliation->reconciliation_number }}</a>
-                            </td>
-                            <td class="px-3 py-2">{{ $reconciliation->session?->session_number ?? '—' }}</td>
-                            <td class="px-3 py-2">{{ $reconciliation->cashier?->name ?? '—' }}</td>
-                            <td class="px-3 py-2">{{ $reconciliation->branch?->name ?? '—' }}</td>
-                            <td class="px-3 py-2 tabular-nums">{{ number_format($reconciliation->expected_cash, 2) }}</td>
-                            <td class="px-3 py-2 tabular-nums">{{ number_format($reconciliation->actual_cash, 2) }}</td>
-                            <td class="px-3 py-2 tabular-nums">{{ number_format($reconciliation->variance, 2) }}</td>
-                            <td class="px-3 py-2">{{ ucfirst(str_replace('_', ' ', $reconciliation->status->value)) }}</td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="8" class="px-3 py-6 text-center text-slate-500">{{ __('No reconciliations found.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4">{{ $reconciliations->links() }}</div>
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search reconciliations…')"
+        export-filename="pos-reconciliations"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Reconciliation') }}</th>
+                <th scope="col">{{ __('Session') }}</th>
+                <th scope="col">{{ __('Cashier') }}</th>
+                <th scope="col">{{ __('Branch') }}</th>
+                <th scope="col">{{ __('Expected') }}</th>
+                <th scope="col">{{ __('Actual') }}</th>
+                <th scope="col">{{ __('Variance') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($reconciliations as $reconciliation)
+                @php
+                    $search = strtolower($reconciliation->reconciliation_number.' '.($reconciliation->session?->session_number ?? '').' '.($reconciliation->cashier?->name ?? '').' '.($reconciliation->branch?->name ?? '').' '.$reconciliation->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td class="font-medium">{{ $reconciliation->reconciliation_number }}</td>
+                    <td>{{ $reconciliation->session?->session_number ?? '—' }}</td>
+                    <td>{{ $reconciliation->cashier?->name ?? '—' }}</td>
+                    <td>{{ $reconciliation->branch?->name ?? '—' }}</td>
+                    <td class="tabular-nums">{{ number_format($reconciliation->expected_cash, 2) }}</td>
+                    <td class="tabular-nums">{{ number_format($reconciliation->actual_cash, 2) }}</td>
+                    <td class="tabular-nums">{{ number_format($reconciliation->variance, 2) }}</td>
+                    <td><x-admin.enum-status-badge :status="$reconciliation->status->value" /></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.commercial.pos.reconciliation.show', $reconciliation)">{{ __('View') }}</x-admin.table-row-action>
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="9">
+                        <x-admin.empty-state icon="clipboard-list" :title="__('No reconciliations found')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$reconciliations" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

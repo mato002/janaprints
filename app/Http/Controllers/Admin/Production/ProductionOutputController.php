@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin\Production;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\Production\StoreProductionOutputRequest;
-use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionOutput;
 use App\Services\Production\ProductionCompletionService;
@@ -22,7 +21,7 @@ class ProductionOutputController extends Controller
 
     public function index(): View
     {
-        abort_unless(auth()->user()?->can('production.outputs.view'), 403);
+        $this->authorize('viewAny', ProductionOutput::class);
 
         $outputs = $this->scopeToTenant(
             ProductionOutput::query()
@@ -38,6 +37,8 @@ class ProductionOutputController extends Controller
         StoreProductionOutputRequest $request,
         ProductionJobCard $jobCard,
     ): RedirectResponse {
+        $this->authorize('post', ProductionOutput::class);
+
         $allowManualCost = $request->user()?->can('production.outputs.manual-cost') ?? false;
 
         $output = $this->completion->post(

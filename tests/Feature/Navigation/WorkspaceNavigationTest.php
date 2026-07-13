@@ -99,9 +99,8 @@ class WorkspaceNavigationTest extends TestCase
         $desk = $this->actingAs($user)->get(route('admin.workspaces.commercial.section', ['section' => 'sales']));
 
         $desk->assertOk();
-        $desk->assertSee(__('Quotations'), false);
+        $desk->assertSee(route('admin.quotations.index', ['embedded' => '1']), false);
         $desk->assertDontSee(route('admin.workspaces.commercial.section', ['section' => 'crm']), false);
-        $desk->assertSee(route('admin.quotations.dashboard', ['embedded' => '1']), false);
         $desk->assertDontSee(route('admin.crm.customers.index', ['embedded' => '1']), false);
     }
 

@@ -20,7 +20,7 @@
                 <label class="text-xs font-medium text-slate-600">
                     {{ __('Status') }}
                     <select class="erp-select mt-1" x-model="filterValues.status">
-                        <option value="all">{{ __('All') }}</option>
+                        <option value="all">{{ __('All statuses') }}</option>
                         @foreach ($statuses as $status)
                             <option value="{{ $status->value }}">{{ $status->name }}</option>
                         @endforeach
@@ -29,7 +29,7 @@
                 <label class="text-xs font-medium text-slate-600">
                     {{ __('Source warehouse') }}
                     <select class="erp-select mt-1" x-model="filterValues.source">
-                        <option value="all">{{ __('All') }}</option>
+                        <option value="all">{{ __('All warehouses') }}</option>
                         @foreach ($warehouses as $warehouse)
                             <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
                         @endforeach
@@ -38,7 +38,7 @@
                 <label class="text-xs font-medium text-slate-600">
                     {{ __('Destination warehouse') }}
                     <select class="erp-select mt-1" x-model="filterValues.destination">
-                        <option value="all">{{ __('All') }}</option>
+                        <option value="all">{{ __('All warehouses') }}</option>
                         @foreach ($warehouses as $warehouse)
                             <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
                         @endforeach

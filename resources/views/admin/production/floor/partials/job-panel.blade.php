@@ -29,6 +29,15 @@
                             ></button>
                         </form>
                     </template>
+                    <template x-if="action.type === 'panel'">
+                        <button
+                            type="button"
+                            class="production-operator-btn"
+                            :class="action.variant === 'primary' ? 'erp-btn-primary' : (action.variant === 'ghost' ? 'erp-btn-ghost' : 'erp-btn-secondary')"
+                            x-text="action.label"
+                            @click="scrollToPanelSection(action.url)"
+                        ></button>
+                    </template>
                     <template x-if="action.type === 'link'">
                         <a
                             :href="action.url"
@@ -57,6 +66,15 @@
                                 <input type="hidden" name="_token" :value="csrf">
                                 <button type="submit" class="erp-btn-primary text-sm" x-text="panel.primary_action.label"></button>
                             </form>
+                        </template>
+                        <template x-if="panel.primary_action?.type === 'panel'">
+                            <button type="button" class="erp-btn-primary text-sm" x-text="panel.primary_action.label" @click="scrollToPanelSection(panel.primary_action.url)"></button>
+                        </template>
+                        <template x-if="panel.primary_action?.type === 'link'">
+                            <a :href="panel.primary_action.url" class="erp-btn-primary text-sm" data-turbo-frame="erp-main" x-text="panel.primary_action.label"></a>
+                        </template>
+                        <template x-if="panel.header?.label_url">
+                            <a :href="panel.header.label_url" target="_blank" rel="noopener" class="erp-btn-secondary text-sm">{{ __('Print label') }}</a>
                         </template>
                         <template x-if="panel.links?.job">
                             <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Full job workspace') }}</a>
@@ -132,6 +150,20 @@
                         <template x-if="!panel.outsource?.vendor && !panel.outsource?.can_outsource && !panel.outsource?.can_return">
                             <p class="text-xs text-slate-500">{{ __('Not currently at a vendor.') }}</p>
                         </template>
+                    </section>
+
+                    <section id="fulfilment" class="rounded-lg border border-erp-border p-4">
+                        <h3 class="mb-2 text-sm font-semibold text-erp-primary">{{ __('Fulfilment') }}</h3>
+                        <p class="mb-2 text-xs text-slate-600">
+                            {{ __('Status') }}:
+                            <span x-text="panel.fulfilment?.status_label ?? '—'"></span>
+                        </p>
+                        <a
+                            x-show="panel.links?.job"
+                            :href="panel.links.job + '?tab=fulfilment'"
+                            class="text-sm text-erp-accent hover:underline"
+                            data-turbo-frame="erp-main"
+                        >{{ __('Open fulfilment tab') }}</a>
                     </section>
 
                     <section id="quality" class="rounded-lg border border-erp-border p-4">

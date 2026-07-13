@@ -1,5 +1,5 @@
 @php
-    $turboFrame = request('embedded') ? 'module-workspace-content' : 'erp-main';
+    use App\Support\Navigation\WorkspaceEmbed;
 @endphp
 
 <x-admin-layout :title="__('Payments')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Payments')]]">
@@ -29,19 +29,17 @@
         <x-slot name="body">
             @forelse ($payments as $payment)
                 @php
-                    $showUrl = route('admin.payments.show', $payment);
-                    if (request('embedded')) {
-                        $showUrl .= str_contains($showUrl, '?') ? '&embedded=1' : '?embedded=1';
-                    }
+                    // Detail pages always promote into erp-main (never the nested workspace frame).
+                    $showUrl = WorkspaceEmbed::mainUrl(route('admin.payments.show', $payment));
                 @endphp
                 <tr
                     class="cursor-pointer transition-colors hover:bg-slate-50/80"
                     data-href="{{ $showUrl }}"
-                    data-turbo-frame="{{ $turboFrame }}"
+                    data-turbo-frame="erp-main"
                     role="link"
                     tabindex="0"
                     aria-label="{{ __('Open payment :number', ['number' => $payment->payment_number]) }}"
-                    @click="if (! $event.target.closest('a, button, [data-erp-row-actions]')) { const url = $el.dataset.href; const frame = $el.dataset.turboFrame || 'erp-main'; if (window.Turbo) { window.Turbo.visit(url, { frame }); } else { window.location.href = url; } }"
+                    @click="if (! $event.target.closest('a, button, [data-erp-row-actions]')) { const url = $el.dataset.href; if (typeof window.erpVisitUrl === 'function') { window.erpVisitUrl(url); } else if (window.Turbo) { window.Turbo.visit(url, { frame: 'erp-main', action: 'advance' }); } else { window.location.href = url; } }"
                     @keydown.enter.prevent="if (! $event.target.closest('a, button, [data-erp-row-actions]')) { $el.click(); }"
                 >
                     <td class="font-mono text-erp-accent">{{ $payment->payment_number }}</td>

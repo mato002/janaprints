@@ -158,11 +158,7 @@
             </div>
         </div>
 
-        @if (session('success'))
-            <x-admin.alert variant="success">{{ session('success') }}</x-admin.alert>
-        @endif
-
-        {{-- Executive status strip --}}
+{{-- Executive status strip --}}
         <x-admin.health.health-summary-strip :items="$summaryItems" />
 
         {{-- Overall health hero --}}

@@ -16,11 +16,16 @@ use App\Models\Procurement\Rfq;
 use App\Models\Procurement\SupplierBill;
 use App\Models\Procurement\SupplierPayment;
 use App\Models\Assets\AssetCapitalizationCandidate;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 class ProcurementApprovalQueueService
 {
+    public function __construct(
+        protected ProcurementApprovalActionService $actions,
+    ) {}
+
     /**
      * @return list<ApprovalRuleType>
      */
@@ -45,17 +50,17 @@ class ProcurementApprovalQueueService
      *     rejected: Collection<int, array<string, mixed>>,
      * }
      */
-    public function present(int $companyId, ?int $branchId = null): array
+    public function present(int $companyId, ?int $branchId = null, ?User $user = null): array
     {
         $pendingRuns = $this->pendingRuns($companyId, $branchId);
-        $pending = $pendingRuns->map(fn (ApprovalChainRun $run) => $this->mapRun($run, 'pending'));
+        $pending = $pendingRuns->map(fn (ApprovalChainRun $run) => $this->mapRun($run, 'pending', $user));
         $aging = $pendingRuns
             ->filter(fn (ApprovalChainRun $run) => $run->created_at?->lte(now()->subDays(3)))
-            ->map(fn (ApprovalChainRun $run) => $this->mapRun($run, 'aging'));
+            ->map(fn (ApprovalChainRun $run) => $this->mapRun($run, 'aging', $user));
         $escalated = $this->escalatedSteps($companyId, $branchId)
-            ->map(fn (ApprovalChainStepRecord $record) => $this->mapEscalatedStep($record));
+            ->map(fn (ApprovalChainStepRecord $record) => $this->mapEscalatedStep($record, $user));
         $rejected = $this->rejectedRuns($companyId, $branchId)
-            ->map(fn (ApprovalChainRun $run) => $this->mapRun($run, 'rejected'));
+            ->map(fn (ApprovalChainRun $run) => $this->mapRun($run, 'rejected', $user));
 
         return [
             'pending' => $pending->values(),
@@ -119,7 +124,7 @@ class ProcurementApprovalQueueService
     /**
      * @return array<string, mixed>
      */
-    protected function mapRun(ApprovalChainRun $run, string $bucket): array
+    protected function mapRun(ApprovalChainRun $run, string $bucket, ?User $user = null): array
     {
         $subject = $run->subject;
         $document = $this->documentLabel($subject);
@@ -136,13 +141,14 @@ class ProcurementApprovalQueueService
             'age_days' => $run->created_at?->diffInDays(now()),
             'route' => $document['route'],
             'status' => $run->status->value,
+            'can_act' => $user !== null && $this->actions->userCanAct($run, $user),
         ];
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function mapEscalatedStep(ApprovalChainStepRecord $record): array
+    protected function mapEscalatedStep(ApprovalChainStepRecord $record, ?User $user = null): array
     {
         $run = $record->run;
         $subject = $run?->subject;
@@ -159,6 +165,7 @@ class ProcurementApprovalQueueService
             'submitted_at' => $record->created_at,
             'route' => $document['route'],
             'status' => $record->status->value,
+            'can_act' => $user !== null && $run !== null && $this->actions->userCanAct($run, $user),
         ];
     }
 
@@ -191,12 +198,12 @@ class ProcurementApprovalQueueService
             $subject instanceof SupplierBill => [
                 'number' => $subject->bill_number,
                 'label' => __('Supplier Bill'),
-                'route' => null,
+                'route' => route('admin.payables.bills.show', $subject),
             ],
             $subject instanceof SupplierPayment => [
                 'number' => $subject->payment_number,
                 'label' => __('Supplier Payment'),
-                'route' => null,
+                'route' => route('admin.payables.payments.show', $subject),
             ],
             $subject instanceof AssetCapitalizationCandidate => [
                 'number' => $subject->candidate_number,

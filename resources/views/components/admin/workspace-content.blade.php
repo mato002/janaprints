@@ -11,7 +11,6 @@
             class="module-workspace-content__frame flex min-h-0 flex-1 flex-col overflow-hidden"
             data-turbo-action="replace"
             data-turbo-cache="false"
-            loading="lazy"
         >
             <div class="module-workspace-content__loading" aria-live="polite">
                 <div class="erp-skeleton module-workspace-content__skeleton-bar"></div>

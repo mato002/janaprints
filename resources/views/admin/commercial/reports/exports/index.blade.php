@@ -30,7 +30,7 @@
                             <td class="px-3 py-2 text-slate-600">{{ $export->row_count ?? '—' }}</td>
                             <td class="px-3 py-2">
                                 @if ($can_download && $export->isDownloadable())
-                                    <a href="{{ route('commercial.reports.exports.download', $export) }}" class="erp-btn-primary text-xs">
+                                    <a href="{{ route('admin.commercial.reports.exports.download', $export) }}" class="erp-btn-primary text-xs">
                                         {{ __('Download') }}
                                     </a>
                                 @elseif ($export->status->value === 'failed')
@@ -38,7 +38,7 @@
                                 @elseif ($export->isExpired())
                                     <span class="text-xs text-slate-500">{{ __('Expired') }}</span>
                                 @elseif (in_array($export->status->value, ['queued', 'processing'], true))
-                                    <span class="text-xs text-slate-500 export-pending" data-status-url="{{ route('commercial.reports.exports.status', $export) }}">{{ __('Processing…') }}</span>
+                                    <span class="text-xs text-slate-500 export-pending" data-status-url="{{ route('admin.commercial.reports.exports.status', $export) }}">{{ __('Processing…') }}</span>
                                 @else
                                     <span class="text-xs text-slate-500">—</span>
                                 @endif

@@ -2,27 +2,49 @@
     ['label' => __('Printing Intelligence'), 'url' => route('admin.printing-intelligence.overview')],
     ['label' => __('Configuration')],
 ]">
-    <x-admin.page-header :title="__('Printing Intelligence Configuration')" :description="__('Read-only view of printing intelligence settings (config/printing_intelligence.php).')" />
+    <x-admin.page-header
+        :title="__('Printing Intelligence Configuration')"
+        :description="__('Company-level settings override file defaults. Changes apply immediately for your organization.')"
+    />
+
     @include('admin.printing-intelligence.partials.nav')
 
-    <x-admin.card>
-        <dl class="grid grid-cols-1 gap-4 md:grid-cols-2 text-sm">
-            @foreach ([
-                __('Default margin %') => $config['default_margin_percent'] ?? '—',
-                __('Electricity rate (per kWh)') => $config['electricity_rate_per_kwh'] ?? '—',
-                __('Labour hourly rate') => $config['labour_hourly_rate'] ?? '—',
-                __('Default estimation confidence') => $config['default_estimation_confidence'] ?? '—',
-                __('Supported print methods') => implode(', ', $config['supported_print_methods'] ?? []),
-                __('Supported ink types') => implode(', ', $config['supported_ink_types'] ?? []),
-                __('Future artwork analysis') => ($config['future_artwork_analysis_enabled'] ?? false) ? __('Enabled') : __('Disabled'),
-                __('Future AI analysis') => ($config['future_ai_analysis_enabled'] ?? false) ? __('Enabled') : __('Disabled'),
-                __('Future estimate learning') => ($config['future_estimate_learning_enabled'] ?? false) ? __('Enabled') : __('Disabled'),
-            ] as $label => $value)
-                <div>
-                    <dt class="text-xs font-medium text-slate-500">{{ $label }}</dt>
-                    <dd class="mt-1 font-medium text-slate-900">{{ $value }}</dd>
-                </div>
-            @endforeach
-        </dl>
-    </x-admin.card>
+@include('admin.printing-intelligence.partials.environment-warnings', ['environment' => $environment ?? []])
+
+    <form method="POST" action="{{ route('admin.printing-intelligence.configuration.update') }}" class="space-y-6">
+        @csrf
+
+        @foreach (['pricing' => __('Pricing'), 'costing' => __('Costing'), 'features' => __('Features'), 'operations' => __('Operations')] as $group => $heading)
+            <x-admin.card>
+                <h3 class="mb-4 text-sm font-semibold text-slate-900">{{ $heading }}</h3>
+                <dl class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    @foreach (collect($rows)->where('group', $group) as $row)
+                        <div>
+                            <label for="pi-{{ $row['key'] }}" class="block text-xs font-medium text-slate-500">{{ $row['label'] }}</label>
+                            @if ($row['type'] === 'boolean')
+                                <select id="pi-{{ $row['key'] }}" name="{{ $row['key'] }}" class="erp-input mt-1 w-full text-sm">
+                                    <option value="1" @selected((bool) $row['value'])>{{ __('Enabled') }}</option>
+                                    <option value="0" @selected(! (bool) $row['value'])>{{ __('Disabled') }}</option>
+                                </select>
+                            @else
+                                <input
+                                    id="pi-{{ $row['key'] }}"
+                                    type="number"
+                                    step="{{ $row['type'] === 'float' ? '0.01' : '1' }}"
+                                    name="{{ $row['key'] }}"
+                                    value="{{ $row['value'] }}"
+                                    class="erp-input mt-1 w-full text-sm"
+                                />
+                            @endif
+                            <p class="mt-1 text-xs text-slate-400">{{ __('Default') }}: {{ is_bool($row['default']) ? ($row['default'] ? __('Enabled') : __('Disabled')) : $row['default'] }}</p>
+                        </div>
+                    @endforeach
+                </dl>
+            </x-admin.card>
+        @endforeach
+
+        <div class="flex justify-end">
+            <button type="submit" class="erp-btn-primary">{{ __('Save settings') }}</button>
+        </div>
+    </form>
 </x-admin-layout>

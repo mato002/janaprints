@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin\Commercial;
 use App\Http\Controllers\Admin\Concerns\HandlesModuleWorkspaceDesk;
 use App\Http\Controllers\Controller;
 use App\Services\Commercial\PublicQuoteRequestCountService;
-use App\Support\Commercial\CommercialDashboardPresenter;
 use App\Support\Commercial\PublicLeadsDashboardPresenter;
 use App\Support\Navigation\CommercialWorkspacePresenter;
 use Illuminate\Http\Request;
@@ -17,7 +16,6 @@ class CommercialWorkspaceController extends Controller
 
     public function __construct(
         protected CommercialWorkspacePresenter $presenter,
-        protected CommercialDashboardPresenter $dashboard,
         protected PublicLeadsDashboardPresenter $publicLeads,
     ) {}
 

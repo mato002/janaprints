@@ -11,7 +11,7 @@
         <x-admin.index-toolbar :action="url()->current()" :reset-url="url()->current()">
             <input type="date" name="date" value="{{ $filters['date'] ?? today()->toDateString() }}" class="erp-toolbar-input" aria-label="{{ __('Date') }}">
             <select name="status" class="erp-toolbar-select" aria-label="{{ __('Status') }}">
-                <option value="">{{ __('All') }}</option>
+                <option value="">{{ __('All statuses') }}</option>
                 @foreach (App\Enums\PosSaleStatus::cases() as $status)
                     <option value="{{ $status->value }}" @selected(($filters['status'] ?? '') === $status->value)>{{ ucfirst($status->value) }}</option>
                 @endforeach
@@ -19,42 +19,49 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <x-admin.card>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('Sale #') }}</th>
-                        <th>{{ __('Customer') }}</th>
-                        <th>{{ __('Cashier') }}</th>
-                        <th>{{ __('Total') }}</th>
-                        <th>{{ __('Status') }}</th>
-                        <th class="erp-table-actions-col">{{ __('Actions') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($sales as $sale)
-                        <tr>
-                            <td class="font-mono">{{ $sale->sale_number }}</td>
-                            <td>{{ $sale->is_walk_in ? __('Walk-in') : ($sale->customer?->company_name ?? '—') }}</td>
-                            <td>{{ $sale->cashier?->name }}</td>
-                            <td class="tabular-nums">{{ number_format($sale->total_amount, 2) }}</td>
-                            <td><x-admin.enum-status-badge :status="$sale->status->value" /></td>
-                            <td class="erp-table-actions-col">
-                                <x-admin.table-row-actions>
-                                    <x-admin.table-row-action :href="route('admin.commercial.pos.show', $sale)">{{ __('View') }}</x-admin.table-row-action>
-                                    @if ($sale->status === App\Enums\PosSaleStatus::Paid)
-                                        <x-admin.table-row-action :href="route('admin.commercial.pos.receipt', $sale)">{{ __('Receipt') }}</x-admin.table-row-action>
-                                    @endif
-                                </x-admin.table-row-actions>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="py-8 text-center text-slate-500">{{ __('No sales for this day.') }}</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="border-t border-erp-border px-4 py-3"><x-admin.table-pagination :paginator="$sales" /></div>
-    </x-admin.card>
+    <x-admin.data-table
+        :search-placeholder="__('Search sales…')"
+        export-filename="pos-daily-sales"
+    >
+        <x-slot name="head">
+            <tr>
+                <th scope="col">{{ __('Sale #') }}</th>
+                <th scope="col">{{ __('Customer') }}</th>
+                <th scope="col">{{ __('Cashier') }}</th>
+                <th scope="col">{{ __('Total') }}</th>
+                <th scope="col">{{ __('Status') }}</th>
+                <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
+            </tr>
+        </x-slot>
+        <x-slot name="body">
+            @forelse ($sales as $sale)
+                @php
+                    $customer = $sale->is_walk_in ? __('Walk-in') : ($sale->customer?->company_name ?? '—');
+                    $search = strtolower($sale->sale_number.' '.$customer.' '.($sale->cashier?->name ?? '').' '.$sale->status->value);
+                @endphp
+                <tr x-show="rowVisible(@js($search))">
+                    <td class="font-mono font-medium">{{ $sale->sale_number }}</td>
+                    <td>{{ $customer }}</td>
+                    <td>{{ $sale->cashier?->name }}</td>
+                    <td class="tabular-nums">{{ number_format($sale->total_amount, 2) }}</td>
+                    <td><x-admin.enum-status-badge :status="$sale->status->value" /></td>
+                    <td class="erp-table-actions-col">
+                        <x-admin.table-row-actions>
+                            <x-admin.table-row-action :href="route('admin.commercial.pos.show', $sale)">{{ __('View') }}</x-admin.table-row-action>
+                            @if ($sale->status === App\Enums\PosSaleStatus::Paid)
+                                <x-admin.table-row-action :href="route('admin.commercial.pos.receipt', $sale)">{{ __('Receipt') }}</x-admin.table-row-action>
+                            @endif
+                        </x-admin.table-row-actions>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6">
+                        <x-admin.empty-state icon="cash" :title="__('No sales for this day')" :description="__('Sales recorded for the selected date will appear here.')" />
+                    </td>
+                </tr>
+            @endforelse
+        </x-slot>
+        <x-slot name="footer"><x-admin.table-pagination :paginator="$sales" /></x-slot>
+    </x-admin.data-table>
 </x-admin-layout>

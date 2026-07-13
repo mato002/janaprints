@@ -39,6 +39,34 @@ trait HasPublicHash
         return $this->publicHashColumn();
     }
 
+    /**
+     * Ensure route generation still works when a partial SELECT omitted public_id.
+     * Prefer including public_id in the query; this is a safe fallback to avoid Turbo frame 500 loops.
+     */
+    public function getRouteKey(): mixed
+    {
+        $column = $this->getRouteKeyName();
+        $value = $this->getAttribute($column);
+
+        if (filled($value)) {
+            return $value;
+        }
+
+        if ($this->exists && $this->getKey() !== null && ! array_key_exists($column, $this->attributes)) {
+            $fetched = $this->newQueryWithoutScopes()
+                ->where($this->getKeyName(), $this->getKey())
+                ->value($column);
+
+            if (filled($fetched)) {
+                $this->setAttribute($column, $fetched);
+
+                return $fetched;
+            }
+        }
+
+        return $value;
+    }
+
     public function scopeWherePublicHash(Builder $query, string $hash): Builder
     {
         return $query->where($this->publicHashColumn(), $hash);

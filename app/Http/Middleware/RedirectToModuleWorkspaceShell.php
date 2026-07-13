@@ -64,6 +64,12 @@ class RedirectToModuleWorkspaceShell
             $deskUrl .= '?'.http_build_query($merged);
         }
 
+        // The feature GET that should display flash is redirected to the desk shell.
+        // Reflash so SweetAlert markers survive the extra hop.
+        if ($request->hasSession()) {
+            $request->session()->reflash();
+        }
+
         return redirect()->to($deskUrl);
     }
 

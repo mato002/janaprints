@@ -9,8 +9,32 @@
         <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Production queue') }}</h3>
         @forelse ($queues as $entry)
             <div class="border-b border-erp-border py-2 text-sm last:border-0">
-                <span class="font-medium">{{ $entry->workCenter?->name }}</span>
-                <span class="text-slate-500"> — #{{ $entry->queue_position }} ({{ str_replace('_', ' ', $entry->status->value) }})</span>
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <span class="font-medium">{{ $entry->workCenter?->name }}</span>
+                        <span class="text-slate-500"> — #{{ $entry->queue_position }} ({{ str_replace('_', ' ', $entry->status->value) }})</span>
+                    </div>
+                    @if ($tabData['can_manage_queue'] ?? false)
+                        <div class="flex flex-wrap items-center gap-2">
+                            <form method="POST" action="{{ route('admin.production.queues.update', [$jobCard, $entry]) }}" class="inline-flex flex-wrap items-center gap-1">
+                                @csrf
+                                @method('PUT')
+                                <input type="number" name="queue_position" class="erp-input w-16 text-xs py-1" value="{{ $entry->queue_position }}" min="1" required>
+                                <select name="status" class="erp-input text-xs py-1">
+                                    @foreach ($tabData['queue_statuses'] ?? [] as $status)
+                                        <option value="{{ $status->value }}" @selected($entry->status === $status)>{{ $status->label() }}</option>
+                                    @endforeach
+                                </select>
+                                <button type="submit" class="erp-btn-secondary text-xs">{{ __('Update') }}</button>
+                            </form>
+                            <form method="POST" action="{{ route('admin.production.queues.destroy', [$jobCard, $entry]) }}" class="inline" onsubmit="return confirm(@js(__('Remove this queue entry?')))">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-xs text-red-600 hover:underline">{{ __('Remove') }}</button>
+                            </form>
+                        </div>
+                    @endif
+                </div>
             </div>
         @empty
             <p class="text-sm text-slate-500">{{ __('No queue entries.') }}</p>

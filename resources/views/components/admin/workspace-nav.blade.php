@@ -8,7 +8,7 @@
 @php
     use App\Support\Navigation\WorkspaceEmbed;
 
-    if ($hideInWorkspace && WorkspaceEmbed::inWorkspaceContext()) {
+    if ($hideInWorkspace && WorkspaceEmbed::rendersEmbeddedFragment()) {
         return;
     }
 

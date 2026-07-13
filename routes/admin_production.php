@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\Production\ProductionJobCardController;
 use App\Http\Controllers\Admin\Production\ProductionOperationController;
 use App\Http\Controllers\Admin\Production\ProductionJobCardScanController;
 use App\Http\Controllers\Admin\Production\ProductionQueueController;
+use App\Http\Controllers\Admin\Production\ProductionQualityController;
 use App\Http\Controllers\Admin\Production\ProductionSchedulingController;
 use App\Http\Controllers\Admin\Production\QualityCheckController;
 use App\Http\Controllers\Admin\Production\ProductionMaterialIssueController;

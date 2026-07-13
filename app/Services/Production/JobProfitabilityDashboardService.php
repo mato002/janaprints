@@ -329,7 +329,7 @@ class JobProfitabilityDashboardService
             ->where('job_cost_sheets.gross_profit', '>', 0)
             ->orderByDesc('job_cost_sheets.gross_profit')
             ->limit($limit)
-            ->with(['jobCard.customer:id,company_name', 'jobCard:id,job_card_number,customer_id'])
+            ->with(['jobCard.customer:id,company_name', 'jobCard:id,public_id,job_card_number,customer_id'])
             ->get()
             ->values()
             ->map(fn (JobCostSheet $sheet, int $index) => $this->presentJobRow($sheet, $index + 1));
@@ -344,7 +344,7 @@ class JobProfitabilityDashboardService
             ->where('job_cost_sheets.gross_profit', '<', 0)
             ->orderBy('job_cost_sheets.gross_profit')
             ->limit($limit)
-            ->with(['jobCard.customer:id,company_name', 'jobCard:id,job_card_number,customer_id'])
+            ->with(['jobCard.customer:id,company_name', 'jobCard:id,public_id,job_card_number,customer_id'])
             ->get()
             ->values()
             ->map(fn (JobCostSheet $sheet) => $this->presentJobRow($sheet, null, true));

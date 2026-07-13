@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\Reports\CommercialIntelligenceReportController;
 use App\Http\Controllers\Admin\Reports\IntelligenceReportController;
+use App\Http\Controllers\Admin\Reports\JobProfitabilityReportController;
 use App\Http\Controllers\Admin\Reports\OperationalRegisterController;
 use App\Http\Controllers\Admin\Reports\ProductionReportController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,10 @@ Route::middleware(['auth', 'verified', 'tenant', \App\Http\Middleware\CaptureWor
             Route::middleware('permission:reports.export')->group(function () {
                 Route::get('operational-registers/export', [OperationalRegisterController::class, 'export'])->name('operational-registers.export');
             });
+            Route::middleware('permission:reports.costing.view|reports.view')
+                ->get('job-profitability', [JobProfitabilityReportController::class, 'index'])
+                ->name('job-profitability.index');
+
             Route::get('production', [ProductionReportController::class, 'index'])->name('production');
             Route::get('production/print', [ProductionReportController::class, 'print'])->name('production.print');
             Route::post('production/export', [ProductionReportController::class, 'export'])->name('production.export');

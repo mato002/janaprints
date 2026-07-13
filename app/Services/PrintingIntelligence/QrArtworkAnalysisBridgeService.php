@@ -25,6 +25,7 @@ class QrArtworkAnalysisBridgeService
         protected InkEstimationService $inkEstimation,
         protected ProductionEstimationService $productionEstimation,
         protected QuotationEstimationService $quotationEstimation,
+        protected PrintingIntelligenceEnvironmentService $environment,
     ) {}
 
     /**
@@ -160,6 +161,20 @@ class QrArtworkAnalysisBridgeService
      * @param  array<string, mixed>  $file
      * @param  array<string, mixed>  $options
      */
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    public function ensureAnalysis(
+        PublicQuoteRequest $quoteRequest,
+        string $artworkFileId = 'primary',
+        array $options = [],
+    ): PrintArtworkAnalysis {
+        $companyId = $this->resolveCompanyId($quoteRequest);
+        $file = $this->resolveArtworkFile($quoteRequest, $artworkFileId);
+
+        return $this->resolveOrCreateAnalysis($quoteRequest, $file, $companyId, $options);
+    }
+
     public function resolveOrCreateAnalysis(
         PublicQuoteRequest $quoteRequest,
         array $file,
@@ -328,7 +343,14 @@ class QrArtworkAnalysisBridgeService
                 'warnings' => array_values($productionEstimate->warnings ?? []),
             ] : null,
             'quotation_estimate' => $quotationEstimate ? [
+                'id' => $quotationEstimate->id,
                 'status_label' => $quotationEstimate->estimation_status?->label(),
+                'can_apply' => config('printing_intelligence.allow_apply_to_quotation', true)
+                    && in_array($quotationEstimate->estimation_status, [
+                        \App\Enums\QuotationEstimationStatus::Completed,
+                        \App\Enums\QuotationEstimationStatus::ManualReview,
+                    ], true)
+                    && $analysis->quotation_id !== null,
                 'quantity' => $quotationEstimate->quantity,
                 'estimated_total_cost' => $quotationEstimate->estimated_total_cost,
                 'minimum_selling_price' => $quotationEstimate->minimum_selling_price,
@@ -351,7 +373,7 @@ class QrArtworkAnalysisBridgeService
                 $quotationEstimate?->warnings ?? [],
             ))),
             'show_url' => route('admin.printing-intelligence.artwork-analysis.show', $analysis),
-            'exists' => true,
+            'environment' => $this->environment->diagnostics(),
         ];
     }
 
