@@ -9,6 +9,7 @@
                 <a
                     href="<?php echo e($desk['url']); ?>"
                     data-turbo-frame="_top"
+                    data-turbo="false"
                     class="exec-operator-desks__card"
                 >
                     <span class="exec-operator-desks__icon" aria-hidden="true">

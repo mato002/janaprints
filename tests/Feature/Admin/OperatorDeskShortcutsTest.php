@@ -30,7 +30,7 @@ class OperatorDeskShortcutsTest extends TestCase
             ->get(route('admin.sales.desk'))
             ->assertOk()
             ->assertSee(__('Sales desk'))
-            ->assertSee(__("Today's sales work"), false);
+            ->assertSee(__('Quote requests'));
 
         $this->actingAs($admin)
             ->get(route('admin.production.floor', ['desk' => 1]))

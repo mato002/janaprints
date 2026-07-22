@@ -78,7 +78,6 @@
         <?php endif; ?>
 
         <?php echo $__env->make('admin.sales.desk.partials.summary-strip', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-        <?php echo $__env->make('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         <?php echo $__env->make('admin.sales.desk.partials.fast-actions', ['fastActions' => $fastActions], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
         <nav class="mb-4 flex flex-wrap gap-2" aria-label="<?php echo e(__('Walk-in steps')); ?>">
@@ -718,6 +717,8 @@
 <?php endif; ?>
             </aside>
         </div>
+
+        <?php echo $__env->make('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>

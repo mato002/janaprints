@@ -7,7 +7,9 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\WorkCenter;
 use App\Models\User;
+use App\Support\Production\ProductionQueueService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -34,7 +36,11 @@ class ProductionFloorTest extends TestCase
             ->get(route('admin.production.floor', ['embedded' => 1]))
             ->assertOk()
             ->assertSee(__('Production Floor'), false)
-            ->assertSee(__('At vendor'), false);
+            ->assertSee(__('At vendor'), false)
+            ->assertSee('production-floor-shell', false)
+            ->assertSee('production-floor-command-sticky', false)
+            ->assertSee('production-floor-col-job', false)
+            ->assertSee(__('Group by'), false);
     }
 
     public function test_floor_panel_returns_job_context_json(): void
@@ -48,7 +54,53 @@ class ProductionFloorTest extends TestCase
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
             ->assertJsonPath('header.job_number', $jobCard->job_card_number)
-            ->assertJsonStructure(['primary_action', 'outsource', 'fulfilment', 'links']);
+            ->assertJsonStructure(['primary_action', 'outsource', 'fulfilment', 'quality', 'links']);
+    }
+
+    public function test_floor_panel_exposes_qc_form_for_quality_check_jobs(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $user->givePermissionTo('production.qc');
+        $this->releaseJobToFloor($jobCard);
+        $jobCard->update(['status' => ProductionJobCardStatus::QualityCheck]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $response = $this->actingAs($user)
+            ->getJson(route('admin.production.floor.panel', $jobCard))
+            ->assertOk()
+            ->assertJsonPath('primary_action.label', __('Record QC'))
+            ->assertJsonPath('primary_action.type', 'modal')
+            ->assertJsonPath('primary_action.target', 'qc')
+            ->assertJsonStructure(['quality' => ['checklist_items']])
+            ->assertJsonPath('quality.can_record', true)
+            ->assertJsonPath('quality.store_url', route('admin.production.quality-checks.store', $jobCard));
+
+        $this->assertNotEmpty($response->json('quality.checklist_items'));
+        $this->assertSame(__('Correct Quantity'), $response->json('quality.checklist_items.0.label'));
+    }
+
+    public function test_floor_qc_store_returns_to_floor_when_requested(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $user->givePermissionTo('production.qc');
+        $this->releaseJobToFloor($jobCard);
+        $jobCard->update(['status' => ProductionJobCardStatus::QualityCheck]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->post(route('admin.production.quality-checks.store', $jobCard), [
+                'from' => 'production-floor',
+                'result' => 'passed',
+                'comments' => 'Floor inspection pass',
+            ])
+            ->assertRedirect(route('admin.production.floor', ['job' => $jobCard->public_id]))
+            ->assertSessionHas('status');
     }
 
     public function test_floor_filters_at_vendor_stage(): void
@@ -64,6 +116,58 @@ class ProductionFloorTest extends TestCase
             ->get(route('admin.production.floor', ['stage' => 'at_vendor', 'embedded' => 1]))
             ->assertOk()
             ->assertSee($jobCard->job_card_number, false);
+    }
+
+    public function test_draft_jobs_are_excluded_from_production_floor(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.floor', ['embedded' => 1]))
+            ->assertOk()
+            ->assertDontSee($jobCard->job_card_number, false);
+    }
+
+    public function test_queued_job_on_floor_offers_assign_machine_not_add_to_queue(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $this->releaseJobToFloor($jobCard);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->getJson(route('admin.production.floor.panel', $jobCard))
+            ->assertOk()
+            ->assertJsonPath('primary_action.label', __('Assign machine'))
+            ->assertJsonPath('primary_action.type', 'modal')
+            ->assertJsonPath('primary_action.target', 'machine')
+            ->assertJsonMissing(['primary_action' => ['label' => __('Add to queue')]]);
+    }
+
+    public function test_queued_job_with_machine_offers_start_job(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $machine = \App\Models\Assets\FixedAsset::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
+        $this->releaseJobToFloor($jobCard);
+        $jobCard->update(['assigned_machine_asset_id' => $machine->id]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->getJson(route('admin.production.floor.panel', $jobCard))
+            ->assertOk()
+            ->assertJsonPath('primary_action.label', __('Start job'));
     }
 
     public function test_floor_lists_newest_job_cards_first(): void
@@ -84,6 +188,7 @@ class ProductionFloorTest extends TestCase
             'created_at' => now()->subDay(),
             'required_date' => now()->addDays(3),
         ]);
+        $this->releaseJobToFloor($older);
 
         $newer = ProductionJobCard::factory()->create([
             'company_id' => $company->id,
@@ -94,6 +199,7 @@ class ProductionFloorTest extends TestCase
             'created_at' => now(),
             'required_date' => now()->addDays(10),
         ]);
+        $this->releaseJobToFloor($newer);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
         app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
@@ -142,5 +248,18 @@ class ProductionFloorTest extends TestCase
         ]);
 
         return [$company, $branch, $customer, $user, $jobCard];
+    }
+
+    protected function releaseJobToFloor(ProductionJobCard $jobCard): void
+    {
+        $workCenter = WorkCenter::query()->create([
+            'company_id' => $jobCard->company_id,
+            'branch_id' => $jobCard->branch_id,
+            'code' => 'WC-'.substr(md5((string) $jobCard->id), 0, 6),
+            'name' => 'Floor test WC',
+            'is_active' => true,
+        ]);
+
+        app(ProductionQueueService::class)->enqueue($jobCard, $workCenter->id, 1);
     }
 }

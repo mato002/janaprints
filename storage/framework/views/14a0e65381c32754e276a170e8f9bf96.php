@@ -1,12 +1,23 @@
 <?php
     $operatorMode = (bool) ($operatorMode ?? false);
+    $machineMeta = $machineMeta ?? collect();
 ?>
 
-<div class="erp-card erp-table-scroll">
-    <table class="erp-table erp-table--grid w-full text-sm">
+<div class="production-floor-register__table erp-card erp-table-scroll" x-ref="queueTable">
+    <table class="erp-table erp-table--grid production-floor-queue-table w-full text-sm">
         <thead>
             <tr>
-                <th><?php echo e(__('Job')); ?></th>
+                <th class="production-floor-col-select w-10">
+                    <input
+                        type="checkbox"
+                        class="rounded border-slate-300"
+                        aria-label="<?php echo e(__('Select all jobs on this page')); ?>"
+                        @change="toggleSelectAll($event.target.checked)"
+                        :checked="allVisibleSelected"
+                        :indeterminate="someVisibleSelected && !allVisibleSelected"
+                    >
+                </th>
+                <th class="production-floor-col-job"><?php echo e(__('Job')); ?></th>
                 <th><?php echo e(__('Customer')); ?></th>
                 <th><?php echo e(__('Product')); ?></th>
                 <th><?php echo e(__('Stage')); ?></th>
@@ -17,17 +28,72 @@
                 <th class="erp-table-actions-col"><?php echo e(__('Next step')); ?></th>
             </tr>
         </thead>
-        <tbody>
+        <tbody x-ref="queueBody">
             <?php $__empty_1 = true; $__currentLoopData = $rows; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                <?php
+                    $rowClasses = ['production-floor-row', 'cursor-pointer', 'hover:bg-slate-50'];
+                    if ($row['is_overdue']) {
+                        $rowClasses[] = 'production-floor-row--overdue';
+                    }
+                    if ($row['stage'] === 'qc') {
+                        $rowClasses[] = 'production-floor-row--qc';
+                    }
+                    if ($row['stage'] === 'at_vendor') {
+                        $rowClasses[] = 'production-floor-row--vendor';
+                    }
+                    if ($row['stage'] === 'out') {
+                        $rowClasses[] = 'production-floor-row--completed';
+                    }
+                    if ($row['stage'] === 'on_hold') {
+                        $rowClasses[] = 'production-floor-row--hold';
+                    }
+                ?>
                 <tr
-                    class="cursor-pointer hover:bg-slate-50 <?php echo e($row['is_overdue'] ? 'bg-amber-50/60' : ''); ?>"
+                    class="<?php echo e(implode(' ', $rowClasses)); ?>"
+                    data-floor-row
+                    data-job-key="<?php echo e($row['public_id']); ?>"
+                    data-filter-search="<?php echo e(strtolower(implode(' ', array_filter([
+                        $row['job_number'] ?? '',
+                        $row['customer'] ?? '',
+                        $row['product'] ?? '',
+                        $row['sku'] ?? '',
+                    ])))); ?>"
+                    data-filter-stage="<?php echo e($row['stage']); ?>"
+                    data-filter-machine-id="<?php echo e($row['machine_id'] ?? ''); ?>"
+                    data-filter-vendor="<?php echo e(strtolower(trim($row['vendor'] ?? ''))); ?>"
+                    data-filter-priority="<?php echo e($row['priority']); ?>"
+                    data-filter-overdue="<?php echo e($row['is_overdue'] ? '1' : '0'); ?>"
+                    data-group-machine="<?php echo e($row['machine'] ?? __('Unassigned')); ?>"
+                    data-group-stage="<?php echo e($row['stage_label']); ?>"
+                    data-group-priority="<?php echo e($row['priority_label']); ?>"
+                    data-group-vendor="<?php echo e($row['vendor'] ?? __('No vendor')); ?>"
+                    data-group-due="<?php echo e($row['required_date'] ?? __('No date')); ?>"
+                    data-group-operator="<?php echo e($row['work_center'] ?? __('Unassigned')); ?>"
+                    data-group-customer="<?php echo e($row['customer'] ?? __('Unknown')); ?>"
+                    :class="{ 'production-floor-row--selected': selectedJobs.includes(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>) }"
                     @click="openPanel(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>)"
                 >
-                    <td class="font-mono text-xs whitespace-nowrap">
-                        <button type="button" class="text-erp-accent hover:underline" @click.stop="openPanel(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>)">
+                    <td class="production-floor-col-select" @click.stop>
+                        <input
+                            type="checkbox"
+                            class="rounded border-slate-300"
+                            aria-label="<?php echo e(__('Select job')); ?> <?php echo e($row['job_number']); ?>"
+                            :checked="selectedJobs.includes(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>)"
+                            @change="toggleJobSelection(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>, $event.target.checked)"
+                        >
+                    </td>
+                    <td class="production-floor-col-job font-mono text-xs">
+                        <button type="button" class="break-all text-left text-erp-accent hover:underline" @click.stop="openPanel(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>)">
                             <?php echo e($row['job_number']); ?>
 
                         </button>
+                        <?php if($row['is_overdue']): ?>
+                            <span class="production-floor-row__overdue-badge" title="<?php echo e(__('Overdue')); ?>">
+                                <span aria-hidden="true">⏰</span>
+                                <?php echo e(__('Overdue')); ?>
+
+                            </span>
+                        <?php endif; ?>
                     </td>
                     <td><?php echo e($row['customer'] ?? '—'); ?></td>
                     <td>
@@ -37,17 +103,14 @@
                         <?php endif; ?>
                     </td>
                     <td>
-                        <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide
-                            <?php if($row['stage'] === 'at_vendor'): ?> bg-violet-100 text-violet-800
-                            <?php elseif($row['is_overdue']): ?> bg-amber-100 text-amber-900
-                            <?php else: ?> bg-slate-100 text-slate-700 <?php endif; ?>">
-                            <?php echo e($row['stage_label']); ?>
-
-                        </span>
+                        <?php echo $__env->make('admin.production.floor.partials.stage-badge', [
+                            'stage' => $row['stage'],
+                            'label' => $row['stage_label'],
+                        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                     </td>
                     <td @click.stop>
                         <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('machines.assign')): ?>
-                            <form method="POST" action="<?php echo e(route('admin.production.floor.assign-machine', $row['public_id'])); ?>" class="min-w-[9rem]" <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>>
+                            <form method="POST" action="<?php echo e(route('admin.production.floor.assign-machine', $row['public_id'])); ?>" class="w-full max-w-full" <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>>
                                 <?php echo csrf_field(); ?>
                                 <?php $__currentLoopData = $filters; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $value): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <?php if($value !== '' && $value !== null): ?>
@@ -59,13 +122,24 @@
                                 <?php endif; ?>
                                 <select
                                     name="assigned_machine_asset_id"
-                                    class="erp-select w-full text-xs"
+                                    class="erp-select production-floor-machine-select w-full text-xs"
                                     onchange="this.form.submit()"
                                 >
                                     <option value=""><?php echo e(__('Unassigned')); ?></option>
                                     <?php $__currentLoopData = $filter_options['machines']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $machine): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($machine['value']); ?>" <?php if((string) $row['machine_id'] === $machine['value']): echo 'selected'; endif; ?>>
-                                            <?php echo e($machine['label']); ?>
+                                        <?php
+                                            $meta = $machineMeta[(string) $machine['value']] ?? null;
+                                            $optionLabel = $machine['label'];
+                                            if ($meta) {
+                                                $optionLabel = trim(($meta['icon'] ?? '').' '.$machine['label'].' · '.($meta['status_label'] ?? ''));
+                                            }
+                                        ?>
+                                        <option
+                                            value="<?php echo e($machine['value']); ?>"
+                                            <?php if((string) $row['machine_id'] === $machine['value']): echo 'selected'; endif; ?>
+                                            <?php if($meta && $meta['status']): ?> data-status="<?php echo e($meta['status']); ?>" <?php endif; ?>
+                                        >
+                                            <?php echo e($optionLabel); ?>
 
                                         </option>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -86,40 +160,24 @@
                             —
                         <?php endif; ?>
                     </td>
-                    <td class="whitespace-nowrap text-xs <?php echo e($row['is_overdue'] ? 'font-semibold text-amber-800' : ''); ?>">
+                    <td class="whitespace-nowrap text-xs <?php echo e($row['is_overdue'] ? 'font-semibold text-red-800' : ''); ?>">
                         <?php echo e($row['required_date'] ?? '—'); ?>
 
                     </td>
-                    <td class="text-xs capitalize"><?php echo e($row['priority_label']); ?></td>
+                    <td>
+                        <?php echo $__env->make('admin.production.floor.partials.priority-badge', [
+                            'priority' => $row['priority'],
+                            'label' => $row['priority_label'],
+                        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                    </td>
                     <td class="erp-table-actions-col" @click.stop>
                         <?php if($row['primary_action']): ?>
-                            <?php $action = $row['primary_action']; ?>
-                            <?php if($action['type'] === 'post'): ?>
-                                <form method="POST" action="<?php echo e($action['url']); ?>" <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>>
-                                    <?php echo csrf_field(); ?>
-                                    <?php if($operatorMode): ?>
-                                        <input type="hidden" name="from" value="production-floor">
-                                    <?php endif; ?>
-                                    <button type="submit" class="erp-btn-primary text-xs py-1 px-2"><?php echo e($action['label']); ?></button>
-                                </form>
-                            <?php elseif($action['type'] === 'panel'): ?>
-                                <?php
-                                    $panelFragment = parse_url($action['url'], PHP_URL_FRAGMENT) ?: '';
-                                ?>
-                                <button type="button" class="erp-btn-primary text-xs py-1 px-2" @click="openPanel(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>, <?php echo \Illuminate\Support\Js::from($panelFragment)->toHtml() ?>)">
-                                    <?php echo e($action['label']); ?>
-
-                                </button>
-                            <?php else: ?>
-                                <?php
-                                    $linkUrl = $action['url'];
-                                    if ($operatorMode) {
-                                        $linkUrl .= str_contains($linkUrl, '?') ? '&' : '?';
-                                        $linkUrl .= 'from=production-floor';
-                                    }
-                                ?>
-                                <a href="<?php echo e($linkUrl); ?>" class="erp-btn-secondary text-xs py-1 px-2" <?php if($operatorMode): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" <?php endif; ?>><?php echo e($action['label']); ?></a>
-                            <?php endif; ?>
+                            <?php echo $__env->make('admin.production.floor.partials.next-step-action', [
+                                'action' => $row['primary_action'],
+                                'jobKey' => $row['public_id'],
+                                'operatorMode' => $operatorMode,
+                                'buttonClass' => 'erp-btn-primary text-xs py-1 px-2',
+                            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                         <?php else: ?>
                             <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="openPanel(<?php echo \Illuminate\Support\Js::from($row['public_id'])->toHtml() ?>)"><?php echo e(__('Open')); ?></button>
                         <?php endif; ?>
@@ -127,8 +185,16 @@
                 </tr>
             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                 <tr>
-                    <td colspan="9" class="py-10 text-center text-slate-500">
+                    <td colspan="10" class="py-10 text-center text-slate-500">
                         <?php echo e(__('No jobs match the current filters.')); ?>
+
+                    </td>
+                </tr>
+            <?php endif; ?>
+            <?php if($rows->isNotEmpty()): ?>
+                <tr class="production-floor-live-empty" x-ref="liveFilterEmpty" hidden>
+                    <td colspan="10" class="py-10 text-center text-slate-500">
+                        <?php echo e(__('No jobs match the current filters on this page.')); ?>
 
                     </td>
                 </tr>

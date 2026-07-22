@@ -9,12 +9,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\QualityCheck;
 use App\Support\Production\QualityInspectionService;
+use App\Support\Production\ReturnsToProductionFloor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class QualityCheckController extends Controller
 {
+    use ReturnsToProductionFloor;
+
     public function __construct(
         protected QualityInspectionService $inspections,
     ) {}
@@ -46,6 +49,10 @@ class QualityCheckController extends Controller
         }
 
         $this->inspections->recordInspection($jobCard, $validated, (int) auth()->id());
+
+        if ($this->wantsProductionFloorReturn($request)) {
+            return $this->redirectAfterProductionFloorAction($jobCard, __('Quality inspection recorded.'));
+        }
 
         return back()->with('status', __('Quality inspection recorded.'));
     }

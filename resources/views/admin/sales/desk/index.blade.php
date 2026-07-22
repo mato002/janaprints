@@ -71,7 +71,6 @@
         @endif
 
         @include('admin.sales.desk.partials.summary-strip', ['workQueue' => $workQueue])
-        @include('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue])
         @include('admin.sales.desk.partials.fast-actions', ['fastActions' => $fastActions])
 
         <nav class="mb-4 flex flex-wrap gap-2" aria-label="{{ __('Walk-in steps') }}">
@@ -480,5 +479,7 @@
                 </x-admin.card>
             </aside>
         </div>
+
+        @include('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue])
     </div>
 </x-admin-layout>

@@ -1,5 +1,45 @@
 <?php
     $operatorMode = (bool) ($operatorMode ?? false);
+
+    use App\Models\Assets\FixedAsset;
+
+    $machineMeta = FixedAsset::query()
+        ->forTenant()
+        ->whereHas('machineProfile')
+        ->with('machineProfile:id,fixed_asset_id,production_status')
+        ->orderBy('asset_name')
+        ->get(['id', 'asset_name'])
+        ->mapWithKeys(function ($machine) {
+            $status = $machine->machineProfile?->production_status;
+
+            return [
+                (string) $machine->id => [
+                    'status' => $status?->value,
+                    'status_label' => $status?->label(),
+                    'icon' => match ($status?->value) {
+                        'available' => '🟢',
+                        'running', 'idle' => '🟡',
+                        'maintenance' => '🔴',
+                        'offline', 'retired' => '⚪',
+                        default => '⚪',
+                    },
+                ],
+            ];
+        });
+
+    $machinesForUi = collect($filter_options['machines'] ?? [])->map(function ($machine) use ($machineMeta) {
+        $meta = $machineMeta[(string) $machine['value']] ?? null;
+        $label = $machine['label'];
+
+        if ($meta) {
+            $label = trim(($meta['icon'] ?? '').' '.$machine['label'].' · '.($meta['status_label'] ?? ''));
+        }
+
+        return [
+            'value' => $machine['value'],
+            'label' => $label,
+        ];
+    })->values()->all();
 ?>
 
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
@@ -62,81 +102,95 @@
             <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><?php echo e(session('status')); ?></div>
         <?php endif; ?>
 
-        <?php echo $__env->make('admin.production.floor.partials.summary-strip', ['summary' => $summary], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-
         <div
             class="production-floor"
             x-data="productionFloor(<?php echo \Illuminate\Support\Js::from([
                 'panelBase' => url('admin/production/floor/jobs'),
                 'initialJobKey' => request('job'),
+                'assignMachineUrl' => url('admin/production/floor/jobs'),
+                'labelUrl' => url('admin/production/job-cards'),
+                'jobCardUrl' => url('admin/production/job-cards'),
+                'csrf' => csrf_token(),
+                'machines' => $machinesForUi,
+                'modalTitles' => [
+                    'machine' => __('Assign machine'),
+                    'outsource-send' => __('Send to vendor'),
+                    'outsource-return' => __('Mark returned from vendor'),
+                    'qc' => __('Record inspection'),
+                    'fulfilment' => __('Hand off'),
+                    'default' => __('Next step'),
+                ],
             ])->toHtml() ?>)"
             x-cloak
         >
-            <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
+            <div class="production-floor-command-sticky" x-ref="commandBar">
+                <?php echo $__env->make('admin.production.floor.partials.summary-strip', ['summary' => $summary], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+                <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['padding' => false,'class' => 'mb-4']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['padding' => false,'class' => 'mb-0 shadow-sm']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.card'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['padding' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false),'class' => 'mb-4']); ?>
-                <?php if (isset($component)) { $__componentOriginal9577df2686262fb25ceb19a81119823d = $component; } ?>
+<?php $component->withAttributes(['padding' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false),'class' => 'mb-0 shadow-sm']); ?>
+                    <?php if (isset($component)) { $__componentOriginal9577df2686262fb25ceb19a81119823d = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal9577df2686262fb25ceb19a81119823d = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.index-toolbar','data' => ['action' => route('admin.production.floor'),'resetUrl' => route('admin.production.floor')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.index-toolbar','data' => ['action' => route('admin.production.floor'),'resetUrl' => route('admin.production.floor'),'dataProductionFloorLiveFilters' => true,'@input' => 'onLiveFilterInput($event)','@change' => 'onLiveFilterChange($event)']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.index-toolbar'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['action' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('admin.production.floor')),'reset-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('admin.production.floor'))]); ?>
-                    <input
-                        type="search"
-                        name="search"
-                        value="<?php echo e($filters['search']); ?>"
-                        class="erp-toolbar-input min-w-[12rem] flex-1"
-                        placeholder="<?php echo e(__('Job, customer, or product…')); ?>"
-                        aria-label="<?php echo e(__('Search')); ?>"
-                        data-erp-auto-search
-                    >
-                    <select name="stage" class="erp-toolbar-select" aria-label="<?php echo e(__('Stage')); ?>">
-                        <option value=""><?php echo e(__('All active stages')); ?></option>
-                        <?php $__currentLoopData = $filter_options['stages']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stage): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($stage['value']); ?>" <?php if($filters['stage'] === $stage['value']): echo 'selected'; endif; ?>>
-                                <?php echo e($stage['label']); ?>
+<?php $component->withAttributes(['action' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('admin.production.floor')),'reset-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('admin.production.floor')),'data-production-floor-live-filters' => true,'@input' => 'onLiveFilterInput($event)','@change' => 'onLiveFilterChange($event)']); ?>
+                        <input
+                            type="search"
+                            name="search"
+                            value="<?php echo e($filters['search']); ?>"
+                            class="erp-toolbar-input min-w-[12rem] flex-1"
+                            placeholder="<?php echo e(__('Job, customer, or product…')); ?>"
+                            aria-label="<?php echo e(__('Search')); ?>"
+                            data-erp-auto-search
+                        >
+                        <select name="stage" class="erp-toolbar-select" aria-label="<?php echo e(__('Stage')); ?>">
+                            <option value=""><?php echo e(__('All active stages')); ?></option>
+                            <?php $__currentLoopData = $filter_options['stages']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $stage): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($stage['value']); ?>" <?php if($filters['stage'] === $stage['value']): echo 'selected'; endif; ?>>
+                                    <?php echo e($stage['label']); ?>
 
-                                <?php if(($stage_counts[$stage['value']] ?? 0) > 0): ?>
-                                    (<?php echo e($stage_counts[$stage['value']]); ?>)
-                                <?php endif; ?>
-                            </option>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </select>
-                    <select name="machine_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Machine')); ?>">
-                        <option value=""><?php echo e(__('All machines')); ?></option>
-                        <?php $__currentLoopData = $filter_options['machines']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $machine): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($machine['value']); ?>" <?php if($filters['machine_id'] === $machine['value']): echo 'selected'; endif; ?>><?php echo e($machine['label']); ?></option>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </select>
-                    <select name="vendor_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Vendor')); ?>">
-                        <option value=""><?php echo e(__('All vendors')); ?></option>
-                        <?php $__currentLoopData = $filter_options['vendors']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $vendor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($vendor['value']); ?>" <?php if($filters['vendor_id'] === $vendor['value']): echo 'selected'; endif; ?>><?php echo e($vendor['label']); ?></option>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </select>
-                    <select name="priority" class="erp-toolbar-select" aria-label="<?php echo e(__('Priority')); ?>">
-                        <option value=""><?php echo e(__('All priorities')); ?></option>
-                        <?php $__currentLoopData = $filter_options['priorities']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $priority): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($priority['value']); ?>" <?php if($filters['priority'] === $priority['value']): echo 'selected'; endif; ?>><?php echo e($priority['label']); ?></option>
-                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                    </select>
-                    <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
-                        <input type="checkbox" name="overdue" value="1" class="rounded border-slate-300" <?php if($filters['overdue'] === '1'): echo 'checked'; endif; ?>>
-                        <?php echo e(__('Overdue only')); ?>
+                                    <?php if(($stage_counts[$stage['value']] ?? 0) > 0): ?>
+                                        (<?php echo e($stage_counts[$stage['value']]); ?>)
+                                    <?php endif; ?>
+                                </option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                        <select name="machine_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Machine')); ?>">
+                            <option value=""><?php echo e(__('All machines')); ?></option>
+                            <?php $__currentLoopData = $filter_options['machines']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $machine): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($machine['value']); ?>" <?php if($filters['machine_id'] === $machine['value']): echo 'selected'; endif; ?>><?php echo e($machine['label']); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                        <select name="vendor_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Vendor')); ?>">
+                            <option value=""><?php echo e(__('All vendors')); ?></option>
+                            <?php $__currentLoopData = $filter_options['vendors']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $vendor): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($vendor['value']); ?>" <?php if($filters['vendor_id'] === $vendor['value']): echo 'selected'; endif; ?>><?php echo e($vendor['label']); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                        <select name="priority" class="erp-toolbar-select" aria-label="<?php echo e(__('Priority')); ?>">
+                            <option value=""><?php echo e(__('All priorities')); ?></option>
+                            <?php $__currentLoopData = $filter_options['priorities']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $priority): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($priority['value']); ?>" <?php if($filters['priority'] === $priority['value']): echo 'selected'; endif; ?>><?php echo e($priority['label']); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                        <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
+                            <input type="checkbox" name="overdue" value="1" class="rounded border-slate-300" <?php if($filters['overdue'] === '1'): echo 'checked'; endif; ?>>
+                            <?php echo e(__('Overdue only')); ?>
 
-                    </label>
-                 <?php echo $__env->renderComponent(); ?>
+                        </label>
+                     <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginal9577df2686262fb25ceb19a81119823d)): ?>
 <?php $attributes = $__attributesOriginal9577df2686262fb25ceb19a81119823d; ?>
@@ -146,7 +200,23 @@
 <?php $component = $__componentOriginal9577df2686262fb25ceb19a81119823d; ?>
 <?php unset($__componentOriginal9577df2686262fb25ceb19a81119823d); ?>
 <?php endif; ?>
-             <?php echo $__env->renderComponent(); ?>
+
+                    <div class="production-floor-toolbar-extras">
+                        <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
+                            <span class="font-medium text-slate-700"><?php echo e(__('Group by')); ?></span>
+                            <select class="erp-toolbar-select text-xs" x-model="groupBy" @change="applyGrouping()" aria-label="<?php echo e(__('Group queue by')); ?>">
+                                <option value=""><?php echo e(__('None')); ?></option>
+                                <option value="machine"><?php echo e(__('Machine')); ?></option>
+                                <option value="stage"><?php echo e(__('Stage')); ?></option>
+                                <option value="priority"><?php echo e(__('Priority')); ?></option>
+                                <option value="vendor"><?php echo e(__('Vendor')); ?></option>
+                                <option value="due"><?php echo e(__('Due date')); ?></option>
+                                <option value="operator"><?php echo e(__('Operator / work center')); ?></option>
+                                <option value="customer"><?php echo e(__('Customer')); ?></option>
+                            </select>
+                        </label>
+                    </div>
+                 <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
 <?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
@@ -156,12 +226,54 @@
 <?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
 <?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
 <?php endif; ?>
+            </div>
+
+            <div
+                class="production-floor-batch-bar"
+                x-ref="batchBar"
+                x-show="selectedJobs.length > 0"
+                x-cloak
+            >
+                <span class="production-floor-batch-bar__count" x-text="`${selectedJobs.length} <?php echo e(__('selected')); ?>`"></span>
+                <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="openBatchMachineAssign()"><?php echo e(__('Assign machine')); ?></button>
+                <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="batchPrintLabels()"><?php echo e(__('Print labels')); ?></button>
+                <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="batchPrintJobCards()"><?php echo e(__('Print job cards')); ?></button>
+                <button type="button" class="erp-btn-ghost text-xs py-1 px-2" @click="clearSelection()"><?php echo e(__('Clear')); ?></button>
+            </div>
+
+            <div
+                x-show="batchMachineOpen"
+                x-cloak
+                class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                @keydown.escape.window="batchMachineOpen = false"
+            >
+                <div class="absolute inset-0 bg-slate-900/40" @click="batchMachineOpen = false"></div>
+                <div class="relative z-10 w-full max-w-md rounded-lg border border-erp-border bg-white p-4 shadow-xl">
+                    <h3 class="mb-3 text-sm font-semibold text-erp-primary"><?php echo e(__('Assign machine to selected jobs')); ?></h3>
+                    <select class="erp-select w-full text-sm" x-model="batchMachineId">
+                        <option value=""><?php echo e(__('Unassigned')); ?></option>
+                        <template x-for="machine in machines" :key="machine.value">
+                            <option :value="machine.value" x-text="machine.label"></option>
+                        </template>
+                    </select>
+                    <div class="mt-4 flex justify-end gap-2">
+                        <button type="button" class="erp-btn-secondary text-sm" @click="batchMachineOpen = false"><?php echo e(__('Cancel')); ?></button>
+                        <button type="button" class="erp-btn-primary text-sm" @click="submitBatchMachineAssign()" :disabled="batchSubmitting">
+                            <span x-show="!batchSubmitting"><?php echo e(__('Apply')); ?></span>
+                            <span x-show="batchSubmitting"><?php echo e(__('Applying…')); ?></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <?php echo $__env->make('admin.production.floor.partials.action-modal', ['operatorMode' => $operatorMode], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
             <?php echo $__env->make('admin.production.floor.partials.table', [
                 'rows' => $rows,
                 'filter_options' => $filter_options,
                 'filters' => $filters,
                 'operatorMode' => $operatorMode,
+                'machineMeta' => $machineMeta,
             ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
             <div class="mt-4 pb-6"><?php echo e($jobs->links()); ?></div>

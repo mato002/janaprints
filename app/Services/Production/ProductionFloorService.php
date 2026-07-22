@@ -6,12 +6,17 @@ use App\Enums\FulfilmentStatus;
 use App\Enums\ProductionFloorStage;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionPriority;
+use App\Enums\ProductionQueueStatus;
+use App\Enums\QualityFailReason;
+use App\Enums\QualityReworkReason;
 use App\Models\Assets\FixedAsset;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\QualityCheck;
 use App\Models\Production\WorkCenter;
 use App\Models\Procurement\Vendor;
 use App\Models\User;
 use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\ProductQcChecklistService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -93,9 +98,9 @@ class ProductionFloorService
                     ?? $jobCard->salesOrder?->required_date?->toDateString(),
                 'label_url' => route('admin.production.job-cards.label', $jobCard),
             ],
-            'primary_action' => $this->actions->primaryAction($jobCard),
+            'primary_action' => $this->actions->primaryAction($jobCard, forFloor: true),
             'secondary_actions' => $this->actions->secondaryActions($jobCard),
-            'operator_actions' => $this->actions->operatorActions($jobCard),
+            'operator_actions' => $this->actions->operatorActions($jobCard, forFloor: true),
             'outsource' => $outsource,
             'fulfilment' => [
                 'status' => $jobCard->fulfilment?->status?->value,
@@ -115,6 +120,7 @@ class ProductionFloorService
                     : null,
             ],
             'machines' => $this->machinesForPanel(),
+            'quality' => $this->qualityPanelData($jobCard),
             'blockers' => app(JobProductionControlService::class)->dispatchEligibility($jobCard)['blockers'] ?? [],
         ];
     }
@@ -126,7 +132,19 @@ class ProductionFloorService
     {
         $query = ProductionJobCard::query()
             ->forTenant()
-            ->whereNot('status', ProductionJobCardStatus::Cancelled);
+            ->whereNotIn('status', [
+                ProductionJobCardStatus::Cancelled,
+                ProductionJobCardStatus::Draft,
+            ])
+            ->where(function (Builder $q) {
+                $q->where('status', '!=', ProductionJobCardStatus::Queued)
+                    ->orWhereHas('queues', function (Builder $queue) {
+                        $queue->whereIn('status', array_map(
+                            fn (ProductionQueueStatus $status) => $status->value,
+                            ProductionQueueStatus::activeStatuses(),
+                        ));
+                    });
+            });
 
         if ($filters['stage'] === ProductionFloorStage::Out->value) {
             $query->whereHas('fulfilment', fn (Builder $q) => $q->whereIn('status', [
@@ -183,10 +201,7 @@ class ProductionFloorService
     protected function applyStageFilter(Builder $query, ProductionFloorStage $stage): void
     {
         match ($stage) {
-            ProductionFloorStage::Waiting => $query->whereIn('status', [
-                ProductionJobCardStatus::Draft,
-                ProductionJobCardStatus::Queued,
-            ]),
+            ProductionFloorStage::Waiting => $query->where('status', ProductionJobCardStatus::Queued),
             ProductionFloorStage::OnPress => $query->whereIn('status', [
                 ProductionJobCardStatus::InProduction,
                 ProductionJobCardStatus::Rework,
@@ -257,7 +272,7 @@ class ProductionFloorService
             'vendor_expected_return' => $jobCard->outsource_expected_return?->toDateString(),
             'vendor_quoted_cost' => $jobCard->outsource_quoted_cost !== null ? (float) $jobCard->outsource_quoted_cost : null,
             'work_center' => $jobCard->queues->first()?->workCenter?->name,
-            'primary_action' => $this->actions->primaryAction($jobCard),
+            'primary_action' => $this->actions->primaryAction($jobCard, forFloor: true),
             'panel_url' => route('admin.production.floor.panel', $jobCard),
             'job_url' => route('admin.production.job-cards.show', $jobCard),
         ];
@@ -408,6 +423,32 @@ class ProductionFloorService
                 ->orderBy('vendor_name')
                 ->get(['id', 'vendor_name'])
                 ->map(fn ($v) => ['id' => $v->id, 'vendor_name' => $v->vendor_name])
+                ->values()
+                ->all(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function qualityPanelData(ProductionJobCard $jobCard): array
+    {
+        $user = auth()->user();
+        $canRecord = $user?->can('create', [QualityCheck::class, $jobCard]) ?? false;
+        $snapshot = app(ProductQcChecklistService::class)->snapshotForJobCard($jobCard);
+
+        return [
+            'can_record' => $canRecord,
+            'store_url' => route('admin.production.quality-checks.store', $jobCard),
+            'quick_pass_url' => route('admin.production.floor.quick-pass-qc', $jobCard),
+            'can_quick_pass' => $canRecord && $user?->can('complete', $jobCard),
+            'checklist_items' => $snapshot->checklist_items ?? [],
+            'fail_reasons' => collect(QualityFailReason::cases())
+                ->map(fn (QualityFailReason $reason) => ['value' => $reason->value, 'label' => $reason->label()])
+                ->values()
+                ->all(),
+            'rework_reasons' => collect(QualityReworkReason::cases())
+                ->map(fn (QualityReworkReason $reason) => ['value' => $reason->value, 'label' => $reason->label()])
                 ->values()
                 ->all(),
         ];

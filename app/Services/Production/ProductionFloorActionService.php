@@ -26,12 +26,12 @@ class ProductionFloorActionService
      *
      * @return list<array<string, mixed>>
      */
-    public function operatorActions(ProductionJobCard $jobCard, ?User $user = null): array
+    public function operatorActions(ProductionJobCard $jobCard, ?User $user = null, bool $forFloor = false): array
     {
         $user ??= auth()->user();
         $actions = [];
 
-        $primary = $this->primaryAction($jobCard, $user);
+        $primary = $this->primaryAction($jobCard, $user, $forFloor);
         if ($primary) {
             $actions[] = $primary;
         }
@@ -46,7 +46,7 @@ class ProductionFloorActionService
     /**
      * @return array<string, mixed>|null
      */
-    public function primaryAction(ProductionJobCard $jobCard, ?User $user = null): ?array
+    public function primaryAction(ProductionJobCard $jobCard, ?User $user = null, bool $forFloor = false): ?array
     {
         $user ??= auth()->user();
 
@@ -58,7 +58,13 @@ class ProductionFloorActionService
             return $this->action(__('Resume'), 'post', route('admin.production.job-cards.resume', $jobCard), 'primary');
         }
 
-        if ($user->can('schedule', $jobCard) && $jobCard->status === ProductionJobCardStatus::Draft) {
+        if ($forFloor && $jobCard->status === ProductionJobCardStatus::Queued) {
+            if (! $jobCard->assigned_machine_asset_id && $user->can('machines.assign')) {
+                return $this->floorModal(__('Assign machine'), 'machine', $jobCard, 'primary');
+            }
+        }
+
+        if (! $forFloor && $user->can('schedule', $jobCard) && $jobCard->status === ProductionJobCardStatus::Draft) {
             if ($this->queues->hasActiveQueue($jobCard)) {
                 return $this->action(__('Queue job'), 'post', route('admin.production.job-cards.queue', $jobCard), 'secondary');
             }
@@ -80,14 +86,26 @@ class ProductionFloorActionService
         }
 
         if ($user->can('update', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced)) {
+            if ($forFloor) {
+                return $this->floorModal(__('Send to vendor'), 'outsource-send', $jobCard, 'secondary');
+            }
+
             return $this->action(__('Send to vendor'), 'panel', route('admin.production.floor.panel', $jobCard).'#outsource', 'secondary');
         }
 
         if ($user->can('update', $jobCard) && $jobCard->status === ProductionJobCardStatus::Outsourced) {
+            if ($forFloor) {
+                return $this->floorModal(__('Mark returned'), 'outsource-return', $jobCard, 'primary');
+            }
+
             return $this->action(__('Mark returned'), 'panel', route('admin.production.floor.panel', $jobCard).'#outsource', 'primary');
         }
 
         if ($user->can('create', [\App\Models\Production\QualityCheck::class, $jobCard]) && $jobCard->status === ProductionJobCardStatus::QualityCheck) {
+            if ($forFloor) {
+                return $this->floorModal(__('Record QC'), 'qc', $jobCard, 'primary');
+            }
+
             return $this->action(__('Record QC'), 'panel', route('admin.production.floor.panel', $jobCard).'#quality', 'primary');
         }
 
@@ -100,6 +118,10 @@ class ProductionFloorActionService
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
+            if ($forFloor) {
+                return $this->floorModal(__('Hand off'), 'fulfilment', $jobCard, 'primary');
+            }
+
             return $this->action(__('Hand off'), 'panel', route('admin.production.floor.panel', $jobCard).'#fulfilment', 'primary');
         }
 
@@ -196,13 +218,27 @@ class ProductionFloorActionService
     /**
      * @return array<string, mixed>
      */
-    protected function action(string $label, string $type, string $url, string $variant): array
+    protected function floorModal(string $label, string $target, ProductionJobCard $jobCard, string $variant): array
     {
-        return [
+        return $this->action($label, 'modal', route('admin.production.floor.panel', $jobCard), $variant, $target);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function action(string $label, string $type, string $url, string $variant, ?string $target = null): array
+    {
+        $action = [
             'label' => $label,
             'type' => $type,
             'url' => $url,
             'variant' => $variant,
         ];
+
+        if ($target !== null) {
+            $action['target'] = $target;
+        }
+
+        return $action;
     }
 }

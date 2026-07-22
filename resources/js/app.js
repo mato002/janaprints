@@ -2187,6 +2187,13 @@ function ensureIndexFilterFormContext(form) {
 const indexFilterFormControllers = new WeakMap();
 let indexFilterFormListenersBound = false;
 
+function isProductionFloorLiveFilterForm(form) {
+    return Boolean(
+        form?.hasAttribute?.('data-production-floor-live-filters')
+        && form?.closest?.('.production-floor'),
+    );
+}
+
 function createIndexFilterFormController(form) {
     return {
         form,
@@ -2264,6 +2271,10 @@ function createIndexFilterFormController(form) {
         },
 
         onFieldChange(event) {
+            if (isProductionFloorLiveFilterForm(this.form)) {
+                return;
+            }
+
             const target = event.target;
 
             if (! target?.name || target.hasAttribute('data-erp-auto-search')) {
@@ -2358,7 +2369,7 @@ function bindIndexFilterFormListeners() {
 
         const form = event.target.closest('form.erp-index-toolbar-form');
 
-        if (! form) {
+        if (! form || isProductionFloorLiveFilterForm(form)) {
             return;
         }
 
@@ -3730,15 +3741,443 @@ document.addEventListener('alpine:init', () => {
         panelLoading: false,
         panel: null,
         panelBase: config.panelBase ?? '',
-        csrf: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        csrf: config.csrf ?? document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        assignMachineUrl: config.assignMachineUrl ?? '',
+        labelUrl: config.labelUrl ?? '',
+        jobCardUrl: config.jobCardUrl ?? '',
+        machines: config.machines ?? [],
+        selectedJobs: [],
+        groupBy: '',
+        batchMachineOpen: false,
+        batchMachineId: '',
+        batchSubmitting: false,
+        actionModalOpen: false,
+        actionModalLoading: false,
+        actionModalPanel: null,
+        actionModalTarget: '',
+        actionModalMachineId: '',
+        qcDecision: 'passed',
+        modalTitles: config.modalTitles ?? {},
+        stickyObserver: null,
+        serverFilterTimer: null,
+
+        get visibleJobKeys() {
+            const tbody = this.$refs.queueBody;
+
+            if (! tbody) {
+                return [];
+            }
+
+            return Array.from(tbody.querySelectorAll('tr[data-floor-row]'))
+                .filter((row) => ! row.hidden)
+                .map((row) => row.dataset.jobKey)
+                .filter(Boolean);
+        },
+
+        get allVisibleSelected() {
+            const visible = this.visibleJobKeys;
+
+            return visible.length > 0 && visible.every((key) => this.selectedJobs.includes(key));
+        },
+
+        get someVisibleSelected() {
+            return this.visibleJobKeys.some((key) => this.selectedJobs.includes(key));
+        },
 
         init() {
             if (config.initialJobKey) {
                 this.openPanel(config.initialJobKey);
             }
+
+            this.initStickyOffset();
+            this.initLiveFilters();
+
+            this.$watch('selectedJobs', () => {
+                this.$nextTick(() => this.updateStickyOffset());
+            });
+        },
+
+        initLiveFilters() {
+            this.$nextTick(() => {
+                this.applyLiveFilters();
+            });
+        },
+
+        getFilterForm() {
+            return this.$el?.querySelector('form[data-production-floor-live-filters]') ?? null;
+        },
+
+        readLiveFilterState() {
+            const form = this.getFilterForm();
+
+            if (! form) {
+                return null;
+            }
+
+            const vendorSelect = form.elements.vendor_id;
+            let vendorName = '';
+
+            if (vendorSelect?.value && vendorSelect.selectedIndex >= 0) {
+                vendorName = vendorSelect.options[vendorSelect.selectedIndex].text.trim().toLowerCase();
+            }
+
+            return {
+                search: String(form.elements.search?.value ?? '').trim().toLowerCase(),
+                stage: String(form.elements.stage?.value ?? ''),
+                machineId: String(form.elements.machine_id?.value ?? ''),
+                vendorName,
+                priority: String(form.elements.priority?.value ?? ''),
+                overdueOnly: Boolean(form.elements.overdue?.checked),
+            };
+        },
+
+        rowMatchesLiveFilters(row, filters) {
+            if (! filters) {
+                return true;
+            }
+
+            if (filters.search) {
+                const haystack = row.dataset.filterSearch ?? '';
+
+                if (! haystack.includes(filters.search)) {
+                    return false;
+                }
+            }
+
+            if (filters.stage && row.dataset.filterStage !== filters.stage) {
+                return false;
+            }
+
+            if (filters.machineId && row.dataset.filterMachineId !== filters.machineId) {
+                return false;
+            }
+
+            if (filters.vendorName) {
+                const rowVendor = row.dataset.filterVendor ?? '';
+
+                if (rowVendor !== filters.vendorName) {
+                    return false;
+                }
+            }
+
+            if (filters.priority && row.dataset.filterPriority !== filters.priority) {
+                return false;
+            }
+
+            if (filters.overdueOnly && row.dataset.filterOverdue !== '1') {
+                return false;
+            }
+
+            return true;
+        },
+
+        applyLiveFilters() {
+            const tbody = this.$refs.queueBody;
+
+            if (! tbody) {
+                return;
+            }
+
+            const filters = this.readLiveFilterState();
+            const rows = tbody.querySelectorAll('tr[data-floor-row]');
+            let visibleCount = 0;
+
+            rows.forEach((row) => {
+                const visible = this.rowMatchesLiveFilters(row, filters);
+                row.hidden = ! visible;
+
+                if (visible) {
+                    visibleCount += 1;
+                }
+            });
+
+            tbody.querySelectorAll('.production-floor-group-header').forEach((header) => {
+                let sibling = header.nextElementSibling;
+                let groupVisible = false;
+
+                while (sibling && ! sibling.classList.contains('production-floor-group-header')) {
+                    if (sibling.hasAttribute('data-floor-row') && ! sibling.hidden) {
+                        groupVisible = true;
+                        break;
+                    }
+
+                    sibling = sibling.nextElementSibling;
+                }
+
+                header.hidden = ! groupVisible;
+            });
+
+            const emptyRow = this.$refs.liveFilterEmpty;
+
+            if (emptyRow) {
+                emptyRow.hidden = visibleCount > 0 || rows.length === 0;
+            }
+        },
+
+        onLiveFilterInput(event) {
+            if (! event.target?.name) {
+                return;
+            }
+
+            this.applyLiveFilters();
+
+            const delay = event.target.hasAttribute('data-erp-auto-search') ? 400 : 150;
+            this.scheduleServerFilter(delay);
+        },
+
+        onLiveFilterChange(event) {
+            if (! event.target?.name) {
+                return;
+            }
+
+            this.applyLiveFilters();
+            this.scheduleServerFilter(120);
+        },
+
+        scheduleServerFilter(delay = 200) {
+            clearTimeout(this.serverFilterTimer);
+            this.serverFilterTimer = setTimeout(() => {
+                const form = this.getFilterForm();
+
+                if (! form) {
+                    return;
+                }
+
+                getIndexFilterFormController(form)?.submitFilterForm();
+            }, delay);
+        },
+
+        initStickyOffset() {
+            this.$nextTick(() => {
+                this.updateStickyOffset();
+
+                if (typeof ResizeObserver === 'undefined' || ! this.$refs.commandBar) {
+                    return;
+                }
+
+                this.stickyObserver?.disconnect();
+                this.stickyObserver = new ResizeObserver(() => this.updateStickyOffset());
+                this.stickyObserver.observe(this.$refs.commandBar);
+            });
+        },
+
+        updateStickyOffset() {
+            const bar = this.$refs.commandBar;
+            const batchBar = this.$refs.batchBar;
+            const shell = this.$el?.closest('.production-floor-shell');
+
+            if (! bar || ! shell) {
+                return;
+            }
+
+            shell.style.setProperty('--production-floor-sticky-offset', `${bar.offsetHeight}px`);
+
+            const batchHeight = batchBar && this.selectedJobs.length > 0 && batchBar.offsetHeight
+                ? batchBar.offsetHeight
+                : 0;
+
+            shell.style.setProperty('--production-floor-batch-height', `${batchHeight}px`);
+            shell.style.setProperty(
+                '--production-floor-table-sticky-offset',
+                `${bar.offsetHeight + batchHeight}px`,
+            );
+        },
+
+        toggleJobSelection(jobKey, checked) {
+            if (checked) {
+                if (! this.selectedJobs.includes(jobKey)) {
+                    this.selectedJobs = [...this.selectedJobs, jobKey];
+                }
+            } else {
+                this.selectedJobs = this.selectedJobs.filter((key) => key !== jobKey);
+            }
+        },
+
+        toggleSelectAll(checked) {
+            const visible = this.visibleJobKeys;
+
+            if (checked) {
+                this.selectedJobs = Array.from(new Set([...this.selectedJobs, ...visible]));
+            } else {
+                this.selectedJobs = this.selectedJobs.filter((key) => ! visible.includes(key));
+            }
+        },
+
+        clearSelection() {
+            this.selectedJobs = [];
+        },
+
+        openBatchMachineAssign() {
+            if (this.selectedJobs.length === 0) {
+                return;
+            }
+
+            this.batchMachineId = '';
+            this.batchMachineOpen = true;
+        },
+
+        async submitBatchMachineAssign() {
+            if (this.selectedJobs.length === 0 || this.batchSubmitting) {
+                return;
+            }
+
+            this.batchSubmitting = true;
+
+            try {
+                for (const jobKey of this.selectedJobs) {
+                    const body = new FormData();
+                    body.append('_token', this.csrf);
+                    body.append('assigned_machine_asset_id', this.batchMachineId);
+                    body.append('from', 'production-floor');
+
+                    await fetch(`${this.assignMachineUrl}/${jobKey}/assign-machine`, {
+                        method: 'POST',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body,
+                    });
+                }
+
+                this.batchMachineOpen = false;
+                window.location.reload();
+            } finally {
+                this.batchSubmitting = false;
+            }
+        },
+
+        batchPrintLabels() {
+            this.selectedJobs.forEach((jobKey) => {
+                window.open(`${this.labelUrl}/${jobKey}/label`, '_blank', 'noopener');
+            });
+        },
+
+        batchPrintJobCards() {
+            this.selectedJobs.forEach((jobKey) => {
+                window.open(`${this.jobCardUrl}/${jobKey}/floor-display`, '_blank', 'noopener');
+            });
+        },
+
+        applyGrouping() {
+            const tbody = this.$refs.queueBody;
+
+            if (! tbody) {
+                return;
+            }
+
+            tbody.querySelectorAll('.production-floor-group-header').forEach((row) => row.remove());
+
+            const rows = Array.from(tbody.querySelectorAll('tr[data-floor-row]'));
+
+            if (! this.groupBy) {
+                rows.sort((a, b) => Number(a.dataset.originalIndex ?? 0) - Number(b.dataset.originalIndex ?? 0))
+                    .forEach((row) => tbody.appendChild(row));
+
+                this.applyLiveFilters();
+
+                return;
+            }
+
+            const attribute = `group${this.groupBy.charAt(0).toUpperCase()}${this.groupBy.slice(1)}`;
+
+            rows.forEach((row, index) => {
+                if (! row.dataset.originalIndex) {
+                    row.dataset.originalIndex = String(index);
+                }
+            });
+
+            const groups = rows.reduce((carry, row) => {
+                const key = row.dataset[attribute] || '—';
+                carry[key] = carry[key] || [];
+                carry[key].push(row);
+
+                return carry;
+            }, {});
+
+            Object.keys(groups)
+                .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+                .forEach((groupLabel) => {
+                    const header = document.createElement('tr');
+                    header.className = 'production-floor-group-header';
+                    header.innerHTML = `<td colspan="10">${groupLabel}</td>`;
+                    tbody.appendChild(header);
+                    groups[groupLabel].forEach((row) => tbody.appendChild(row));
+                });
+
+            this.applyLiveFilters();
+        },
+
+        actionModalSubtitle() {
+            const titles = this.modalTitles ?? {};
+
+            return titles[this.actionModalTarget] ?? titles.default ?? 'Next step';
+        },
+
+        async openActionModal(jobKey, target) {
+            this.closePanel();
+            this.actionModalTarget = target;
+            this.qcDecision = 'passed';
+            this.actionModalMachineId = '';
+            this.actionModalOpen = true;
+            this.actionModalLoading = true;
+            this.actionModalPanel = null;
+
+            try {
+                const response = await fetch(`${this.panelBase}/${jobKey}/panel`, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (response.ok) {
+                    this.actionModalPanel = await response.json();
+
+                    if (target === 'machine') {
+                        this.actionModalMachineId = String(this.actionModalPanel?.job?.machine_id ?? '');
+                    }
+
+                    if (target === 'outsource-send'
+                        && this.actionModalPanel?.outsource?.can_return
+                        && ! this.actionModalPanel?.outsource?.can_outsource) {
+                        this.actionModalTarget = 'outsource-return';
+                    }
+                }
+            } finally {
+                this.actionModalLoading = false;
+            }
+        },
+
+        openQcModal(jobKey) {
+            return this.openActionModal(jobKey, 'qc');
+        },
+
+        closeActionModal() {
+            this.actionModalOpen = false;
+            this.actionModalPanel = null;
+            this.actionModalTarget = '';
+            this.actionModalMachineId = '';
+            this.qcDecision = 'passed';
+        },
+
+        closeQcModal() {
+            this.closeActionModal();
         },
 
         async openPanel(jobKey, hash = '') {
+            const modalTarget = {
+                quality: 'qc',
+                fulfilment: 'fulfilment',
+                outsource: 'outsource-send',
+            }[hash] ?? null;
+
+            if (modalTarget) {
+                await this.openActionModal(jobKey, modalTarget);
+
+                return;
+            }
+
             this.panelOpen = true;
             this.panelLoading = true;
             this.panel = null;

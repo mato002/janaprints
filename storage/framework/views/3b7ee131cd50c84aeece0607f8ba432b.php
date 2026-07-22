@@ -14,7 +14,7 @@
             <div>
                 <p class="text-xs uppercase tracking-wide text-slate-500"><?php echo e(__('Job panel')); ?></p>
                 <h2 class="text-lg font-semibold text-erp-primary" x-text="panel?.header?.job_number ?? '—'"></h2>
-                <p class="text-sm font-medium text-slate-700" x-text="panel?.header?.status ?? ''"></p>
+                <p class="text-sm font-medium text-slate-700" x-text="panel?.header?.stage ?? ''"></p>
             </div>
             <button type="button" class="production-operator-btn erp-btn-secondary" @click="closePanel()"><?php echo e(__('Close')); ?></button>
         </div>
@@ -36,13 +36,22 @@
                             ></button>
                         </form>
                     </template>
+                    <template x-if="action.type === 'modal' || action.type === 'qc'">
+                        <button
+                            type="button"
+                            class="production-operator-btn"
+                            :class="action.variant === 'primary' ? 'erp-btn-primary' : (action.variant === 'ghost' ? 'erp-btn-ghost' : 'erp-btn-secondary')"
+                            x-text="action.label"
+                            @click="openActionModal(panel.job.public_id, action.target ?? 'qc')"
+                        ></button>
+                    </template>
                     <template x-if="action.type === 'panel'">
                         <button
                             type="button"
                             class="production-operator-btn"
                             :class="action.variant === 'primary' ? 'erp-btn-primary' : (action.variant === 'ghost' ? 'erp-btn-ghost' : 'erp-btn-secondary')"
                             x-text="action.label"
-                            @click="scrollToPanelSection(action.url)"
+                            @click="openActionModal(panel.job.public_id, action.target ?? 'machine')"
                         ></button>
                     </template>
                     <template x-if="action.type === 'link'">
@@ -60,47 +69,105 @@
         <div class="flex-1 overflow-y-auto p-4" x-show="!panelLoading">
             <template x-if="panel">
                 <div class="space-y-4">
-                    <dl class="grid grid-cols-2 gap-3 text-sm">
-                        <div><dt class="text-slate-500"><?php echo e(__('Customer')); ?></dt><dd class="font-medium" x-text="panel.header.customer ?? '—'"></dd></div>
-                        <div><dt class="text-slate-500"><?php echo e(__('Product')); ?></dt><dd class="font-medium" x-text="panel.header.product ?? '—'"></dd></div>
-                        <div><dt class="text-slate-500"><?php echo e(__('Stage')); ?></dt><dd x-text="panel.header.stage ?? '—'"></dd></div>
-                        <div><dt class="text-slate-500"><?php echo e(__('Required')); ?></dt><dd x-text="panel.header.required_date ?? '—'"></dd></div>
-                    </dl>
+                    <section class="production-floor-panel-hero">
+                        <dl>
+                            <div class="sm:col-span-2">
+                                <dt class="text-slate-500"><?php echo e(__('Customer')); ?></dt>
+                                <dd class="text-base font-semibold text-erp-primary" x-text="panel.header.customer ?? '—'"></dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-slate-500"><?php echo e(__('Product')); ?></dt>
+                                <dd class="font-medium" x-text="panel.header.product ?? '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500"><?php echo e(__('Current stage')); ?></dt>
+                                <dd class="font-medium" x-text="panel.header.stage ?? '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500"><?php echo e(__('Due date')); ?></dt>
+                                <dd class="font-medium" x-text="panel.header.required_date ?? '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500"><?php echo e(__('Machine')); ?></dt>
+                                <dd x-text="panel.job?.machine ?? '—'"></dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500"><?php echo e(__('Work center')); ?></dt>
+                                <dd x-text="panel.job?.work_center ?? '—'"></dd>
+                            </div>
+                        </dl>
+                    </section>
 
-                    <div class="flex flex-wrap gap-2">
-                        <template x-if="panel.primary_action?.type === 'post'">
-                            <form :action="panel.primary_action.url" method="POST" <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>>
-                                <input type="hidden" name="_token" :value="csrf">
-                                <?php if($operatorMode): ?>
-                                    <input type="hidden" name="from" value="production-floor">
-                                <?php endif; ?>
-                                <button type="submit" class="erp-btn-primary text-sm" x-text="panel.primary_action.label"></button>
-                            </form>
-                        </template>
-                        <template x-if="panel.primary_action?.type === 'panel'">
-                            <button type="button" class="erp-btn-primary text-sm" x-text="panel.primary_action.label" @click="scrollToPanelSection(panel.primary_action.url)"></button>
-                        </template>
-                        <template x-if="panel.primary_action?.type === 'link'">
-                            <a :href="panel.primary_action.url" class="erp-btn-primary text-sm" <?php if($operatorMode): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" <?php endif; ?> x-text="panel.primary_action.label"></a>
-                        </template>
-                        <template x-if="panel.header?.label_url">
-                            <a :href="panel.header.label_url" target="_blank" rel="noopener" class="erp-btn-secondary text-sm"><?php echo e(__('Print label')); ?></a>
-                        </template>
-                        <?php if($operatorMode): ?>
-                            <template x-if="panel.links?.job">
-                                <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Preview job')); ?></a>
+                    <div class="production-floor-panel-status-grid">
+                        <div class="production-floor-panel-status-card">
+                            <dt><?php echo e(__('Production status')); ?></dt>
+                            <dd x-text="panel.header.status ?? '—'"></dd>
+                        </div>
+                        <div class="production-floor-panel-status-card">
+                            <dt><?php echo e(__('Artwork / job status')); ?></dt>
+                            <dd x-text="panel.job?.status_label ?? '—'"></dd>
+                        </div>
+                        <div class="production-floor-panel-status-card">
+                            <dt><?php echo e(__('Material / fulfilment')); ?></dt>
+                            <dd x-text="panel.fulfilment?.status_label ?? '—'"></dd>
+                        </div>
+                        <div class="production-floor-panel-status-card">
+                            <dt><?php echo e(__('Quality / handoff')); ?></dt>
+                            <dd x-text="panel.header?.status ?? '—'"></dd>
+                        </div>
+                        <div class="production-floor-panel-status-card">
+                            <dt><?php echo e(__('Vendor status')); ?></dt>
+                            <dd x-text="panel.outsource?.vendor?.vendor_name ?? <?php echo \Illuminate\Support\Js::from(__('Not at vendor'))->toHtml() ?>"></dd>
+                        </div>
+                        <div class="production-floor-panel-status-card">
+                            <dt><?php echo e(__('Priority')); ?></dt>
+                            <dd class="capitalize" x-text="panel.job?.priority_label ?? '—'"></dd>
+                        </div>
+                    </div>
+
+                    <div class="rounded-lg border border-erp-border bg-white p-3">
+                        <h3 class="mb-2 text-xs font-semibold uppercase tracking-wide text-erp-primary"><?php echo e(__('Next required action')); ?></h3>
+                        <div class="flex flex-wrap gap-2">
+                            <template x-if="panel.primary_action?.type === 'post'">
+                                <form :action="panel.primary_action.url" method="POST" <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>>
+                                    <input type="hidden" name="_token" :value="csrf">
+                                    <?php if($operatorMode): ?>
+                                        <input type="hidden" name="from" value="production-floor">
+                                    <?php endif; ?>
+                                    <button type="submit" class="erp-btn-primary text-sm" x-text="panel.primary_action.label"></button>
+                                </form>
                             </template>
-                            <template x-if="panel.links?.sales_order">
-                                <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Sales order')); ?></a>
+                            <template x-if="panel.primary_action?.type === 'modal' || panel.primary_action?.type === 'qc'">
+                                <button type="button" class="erp-btn-primary text-sm" x-text="panel.primary_action.label" @click="openActionModal(panel.job.public_id, panel.primary_action.target ?? 'qc')"></button>
                             </template>
-                        <?php else: ?>
-                            <template x-if="panel.links?.job">
-                                <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Full job workspace')); ?></a>
+                            <template x-if="panel.primary_action?.type === 'panel'">
+                                <button type="button" class="erp-btn-primary text-sm" x-text="panel.primary_action.label" @click="openActionModal(panel.job.public_id, panel.primary_action.target ?? 'machine')"></button>
                             </template>
-                            <template x-if="panel.links?.sales_order">
-                                <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Sales order')); ?></a>
+                            <template x-if="panel.primary_action?.type === 'link'">
+                                <a :href="panel.primary_action.url" class="erp-btn-primary text-sm" <?php if($operatorMode): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" <?php endif; ?> x-text="panel.primary_action.label"></a>
                             </template>
-                        <?php endif; ?>
+                            <template x-if="!panel.primary_action">
+                                <p class="text-sm text-slate-500"><?php echo e(__('No immediate action — review job details below.')); ?></p>
+                            </template>
+                            <template x-if="panel.header?.label_url">
+                                <a :href="panel.header.label_url" target="_blank" rel="noopener" class="erp-btn-secondary text-sm"><?php echo e(__('Print label')); ?></a>
+                            </template>
+                            <?php if($operatorMode): ?>
+                                <template x-if="panel.links?.job">
+                                    <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Preview job')); ?></a>
+                                </template>
+                                <template x-if="panel.links?.sales_order">
+                                    <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Sales order')); ?></a>
+                                </template>
+                            <?php else: ?>
+                                <template x-if="panel.links?.job">
+                                    <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Full job workspace')); ?></a>
+                                </template>
+                                <template x-if="panel.links?.sales_order">
+                                    <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Sales order')); ?></a>
+                                </template>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     <template x-if="panel.blockers?.length">
@@ -193,12 +260,92 @@
                         <?php endif; ?>
                     </section>
 
-                    <section id="quality" class="rounded-lg border border-erp-border p-4">
+                    <section id="quality" class="rounded-lg border border-erp-border p-4" x-data="{ qcDecision: 'passed' }">
                         <h3 class="mb-2 text-sm font-semibold text-erp-primary"><?php echo e(__('Quality & handoff')); ?></h3>
-                        <p class="mb-2 text-xs text-slate-600">
+                        <p class="mb-3 text-xs text-slate-600">
                             <?php echo e(__('Fulfilment')); ?>:
                             <span x-text="panel.fulfilment?.status_label ?? '—'"></span>
                         </p>
+
+                        <template x-if="panel.quality?.can_record">
+                            <div class="mb-4 rounded-lg border border-purple-200 bg-purple-50/40 p-3">
+                                <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-purple-900"><?php echo e(__('Record inspection')); ?></h4>
+                                <form
+                                    :action="panel.quality.store_url"
+                                    method="POST"
+                                    class="space-y-3"
+                                    <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>
+                                >
+                                    <input type="hidden" name="_token" :value="csrf">
+                                    <?php if($operatorMode): ?>
+                                        <input type="hidden" name="from" value="production-floor">
+                                    <?php endif; ?>
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                        <div>
+                                            <label class="erp-label text-xs"><?php echo e(__('Inspection date')); ?></label>
+                                            <input type="date" name="inspection_date" class="erp-input w-full text-sm" :value="new Date().toISOString().slice(0, 10)">
+                                        </div>
+                                        <div>
+                                            <label class="erp-label text-xs"><?php echo e(__('Decision')); ?></label>
+                                            <select name="result" class="erp-select w-full text-sm" required x-model="qcDecision">
+                                                <option value="passed"><?php echo e(__('Pass')); ?></option>
+                                                <option value="failed"><?php echo e(__('Fail')); ?></option>
+                                                <option value="conditional_pass"><?php echo e(__('Conditional pass')); ?></option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div x-show="qcDecision === 'conditional_pass'" x-cloak>
+                                        <label class="inline-flex items-center gap-2 text-xs">
+                                            <input type="checkbox" name="requires_customer_approval" value="1">
+                                            <?php echo e(__('Requires customer approval')); ?>
+
+                                        </label>
+                                    </div>
+                                    <?php echo $__env->make('admin.production.floor.partials.qc-checklist-table', [
+                                        'itemsExpression' => 'panel.quality.checklist_items',
+                                    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                                    <div class="grid grid-cols-1 gap-2 sm:grid-cols-2" x-show="qcDecision === 'failed' || qcDecision === 'conditional_pass'" x-cloak>
+                                        <div>
+                                            <label class="erp-label text-xs"><?php echo e(__('Fail reason')); ?></label>
+                                            <select name="fail_reason" class="erp-select w-full text-sm">
+                                                <option value=""><?php echo e(__('—')); ?></option>
+                                                <template x-for="reason in panel.quality.fail_reasons ?? []" :key="reason.value">
+                                                    <option :value="reason.value" x-text="reason.label"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="erp-label text-xs"><?php echo e(__('Rework reason')); ?></label>
+                                            <select name="rework_reason" class="erp-select w-full text-sm">
+                                                <option value=""><?php echo e(__('—')); ?></option>
+                                                <template x-for="reason in panel.quality.rework_reasons ?? []" :key="reason.value">
+                                                    <option :value="reason.value" x-text="reason.label"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="erp-label text-xs"><?php echo e(__('Notes')); ?></label>
+                                        <textarea name="comments" class="erp-input w-full text-sm" rows="2"></textarea>
+                                    </div>
+                                    <button type="submit" class="erp-btn-primary text-sm"><?php echo e(__('Save inspection')); ?></button>
+                                </form>
+                                <template x-if="panel.quality?.can_quick_pass">
+                                    <form :action="panel.quality.quick_pass_url" method="POST" class="mt-2" <?php if($operatorMode): ?> data-erp-desk-form <?php endif; ?>>
+                                        <input type="hidden" name="_token" :value="csrf">
+                                        <?php if($operatorMode): ?>
+                                            <input type="hidden" name="from" value="production-floor">
+                                        <?php endif; ?>
+                                        <button type="submit" class="erp-btn-secondary text-sm"><?php echo e(__('Quick pass')); ?></button>
+                                    </form>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="panel.quality?.can_record === false">
+                            <p class="mb-3 text-xs text-slate-500"><?php echo e(__('This job is not awaiting a new inspection.')); ?></p>
+                        </template>
+
                         <?php if (! ($operatorMode)): ?>
                         <div class="flex flex-wrap gap-3 text-sm">
                             <a
