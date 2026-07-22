@@ -30,6 +30,7 @@ use App\Support\QuotationRevisionService;
 use App\Support\Sales\CustomerOrderContextService;
 use App\Support\Sales\QuotationApprovalService;
 use App\Support\Sales\QuotationArtworkLinkService;
+use App\Support\Sales\ReturnsToSalesDesk;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -40,7 +41,7 @@ use Illuminate\View\View;
 
 class QuotationController extends Controller
 {
-    use HandlesFormCustomFields, HandlesModalFormResponses, ManagesQuotationItems, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ManagesQuotationItems, ResolvesCrmTenant, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -131,9 +132,19 @@ class QuotationController extends Controller
         $this->quotationApprovals->publishOnCreate($quotation->fresh(), (int) auth()->id());
         $this->maybeLinkArtworkOnCreate($request, $quotation->fresh());
 
+        $redirect = redirect()->route('admin.quotations.show', $quotation);
+
+        if ($this->wantsSalesDeskReturn($request) && $quotation->customer_id) {
+            $customer = Customer::query()->find($quotation->customer_id);
+            $redirect = redirect()->route('admin.sales.desk', [
+                'customer' => $customer?->getRouteKey(),
+                'step' => 2,
+            ]);
+        }
+
         return $this->modalOrRedirect(
             __('Quotation created and published to the client.'),
-            redirect()->route('admin.quotations.show', $quotation),
+            $redirect,
         );
     }
 

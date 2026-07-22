@@ -115,8 +115,23 @@ class DesignerOperatorModeTest extends TestCase
             ->assertOk()
             ->assertSee(__('Designer desk'))
             ->assertSee('AW-DESK-001')
-            ->assertSee('data-erp-modal-open', false)
-            ->assertSee('from=designer-desk', false);
+            ->assertSee(__('My Work Queue'), false)
+            ->assertSee(__('Operational'), false)
+            ->assertSee(__('Performance'), false)
+            ->assertSee('designerDesk', false);
+
+        $this->actingAs($designer)
+            ->getJson(route('admin.artwork.desk.panel', $request))
+            ->assertOk()
+            ->assertJsonPath('header.request_number', 'AW-DESK-001')
+            ->assertJsonStructure([
+                'context',
+                'specifications',
+                'files',
+                'revision_notes',
+                'readiness',
+                'primary_actions',
+            ]);
 
         $this->actingAs($designer)
             ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])

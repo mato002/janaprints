@@ -4,6 +4,8 @@ namespace App\Support\Sales;
 
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
+use App\Models\Production\ProductionJobCard;
+use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Support\Crm\CustomerPrintSpecificationService;
 use Illuminate\Http\Request;
@@ -13,6 +15,7 @@ class SalesDeskPageBuilder
     public function __construct(
         protected SalesDeskService $desk,
         protected CustomerPrintSpecificationService $printSpecifications,
+        protected SalesDeskWorkQueueService $workQueue,
     ) {}
 
     /**
@@ -48,6 +51,10 @@ class SalesDeskPageBuilder
             'specification' => $specification,
             'order' => $order,
             'orderPresentation' => $order ? $this->desk->presentOrder($order) : null,
+            'customerContext' => $this->desk->presentCustomerContext($customer, $specification),
+            'workQueue' => $this->workQueue->present($request),
+            'fastActions' => $this->desk->fastActions($customer, $specification, $order),
+            'deskUrls' => $this->desk->deskUrls($customer, $specification),
             'printSpecifications' => $specs,
             'specificationNotice' => $notice['message'],
             'searchUrl' => route('admin.sales.desk.customers.search'),

@@ -89,6 +89,7 @@ class OperatorDeskShortcutsPresenter
                 'label' => __('Production Floor'),
                 'description' => __('Shop floor jobs and next-step actions'),
                 'route' => 'admin.production.floor',
+                'route_params' => ['desk' => 1],
                 'icon' => 'cog',
                 'permissions' => ['production.view'],
             ],

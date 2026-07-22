@@ -6,7 +6,7 @@
     name="customer_id"
     :label="__('Customer')"
     :options="$customers"
-    :value="old('customer_id', $model?->customer_id)"
+    :value="old('customer_id', $model?->customer_id ?? ($presetCustomerId ?? null))"
     :required="($fields['customer_id']['required'] ?? true)"
     :readonly="($fields['customer_id']['read_only'] ?? false)"
     create-route="admin.crm.customers.quick-create"

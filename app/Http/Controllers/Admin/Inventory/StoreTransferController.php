@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\Warehouse;
+use App\Support\Inventory\ReturnsToStoreDesk;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockIssueService;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
 
 class StoreTransferController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ReturnsToStoreDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -51,11 +52,14 @@ class StoreTransferController extends Controller
         return view('admin.inventory.transfers.index', compact('transfers', 'warehouses', 'statuses'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         abort_unless(auth()->user()?->can('inventory.transfer'), 403);
 
-        return view('admin.inventory.transfers.create', $this->formMeta());
+        return view('admin.inventory.transfers.create', [
+            ...$this->formMeta(),
+            'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -88,6 +92,10 @@ class StoreTransferController extends Controller
         }
 
         $this->syncCustomFields($transfer, 'store_transfer.create', $customData, $companyId);
+
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Store transfer created.'));
+        }
 
         return redirect()->route('admin.inventory.transfers.show', $transfer)->with('status', __('Store transfer created.'));
     }

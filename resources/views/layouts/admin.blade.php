@@ -12,6 +12,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @php
         $erpModalFormConfig = [
+            'backLabel' => __('Back'),
             'blockedPathFragments' => [
                 '/commercial/pos/',
                 'counter-sales',

@@ -10,4 +10,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::get('desk', [DesignerDeskController::class, 'index'])
             ->middleware('permission:artwork.view')
             ->name('desk');
+
+        Route::get('desk/requests/{artworkRequest}/panel', [DesignerDeskController::class, 'panel'])
+            ->middleware('permission:artwork.view')
+            ->name('desk.panel');
     });

@@ -34,7 +34,7 @@ class ArtworkCommentController extends Controller
         ]);
 
         if ($this->wantsDesignerDeskReturn($request)) {
-            return redirect()->to($this->designerDeskUrl())
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
                 ->with('status', __('Comment added.'));
         }
 

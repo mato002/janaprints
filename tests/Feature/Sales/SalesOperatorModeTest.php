@@ -248,6 +248,43 @@ class SalesOperatorModeTest extends TestCase
             ->assertDontSee('Wrong Client Co');
     }
 
+    public function test_sales_desk_shows_work_queue_and_unified_search(): void
+    {
+        $sales = $this->userWithRole('Sales');
+        $companyId = $sales->company_id;
+        $branchId = $sales->default_branch_id;
+        session(['active_company_id' => $companyId, 'active_branch_id' => $branchId]);
+
+        $customer = Customer::factory()->create([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'company_name' => 'Queue Test Client',
+            'status' => CustomerStatus::Active,
+        ]);
+
+        $this->actingAs($sales)
+            ->get(route('admin.sales.desk'))
+            ->assertOk()
+            ->assertSee(__("Today's sales work"))
+            ->assertSee(__('Quote requests'))
+            ->assertSee(__('New quote'));
+
+        $this->actingAs($sales)
+            ->getJson(route('admin.sales.desk.customers.search', ['q' => 'Queue Test']))
+            ->assertOk()
+            ->assertJsonPath('results.0.kind', 'customer')
+            ->assertJsonPath('results.0.label', 'Queue Test Client');
+
+        $this->actingAs($sales)
+            ->get(route('admin.sales.desk', [
+                'customer' => $customer->getRouteKey(),
+                'step' => 2,
+            ]))
+            ->assertOk()
+            ->assertSee('Queue Test Client')
+            ->assertSee(__('Contact'), false);
+    }
+
     protected function userWithRole(string $role): User
     {
         $user = User::factory()->create([

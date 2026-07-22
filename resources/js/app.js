@@ -146,6 +146,112 @@ const erpModalManager = {
     pendingDrawerLoad: false,
     modalLoadSeq: 0,
     modalAbortController: null,
+    modalStack: [],
+    currentModalUrl: null,
+
+    isModalVisible() {
+        const overlay = this.overlay();
+
+        return Boolean(overlay && ! overlay.hidden);
+    },
+
+    captureModalState() {
+        const frame = this.modalFrame();
+        const panel = frame?.querySelector('[data-erp-form-modal-panel]');
+
+        if (! panel) {
+            return null;
+        }
+
+        return {
+            url: this.currentModalUrl,
+            html: panel.outerHTML,
+        };
+    },
+
+    pushModalState() {
+        const state = this.captureModalState();
+
+        if (state?.html) {
+            this.modalStack.push(state);
+        }
+    },
+
+    restoreModalState(state) {
+        const frame = this.modalFrame();
+
+        if (! frame || ! state?.html) {
+            return;
+        }
+
+        frame.innerHTML = state.html;
+        this.currentModalUrl = state.url ?? null;
+
+        const panel = frame.querySelector('[data-erp-form-modal-panel]');
+
+        if (panel) {
+            this.prepareModalFormContent(panel, state.url ?? undefined);
+            Alpine.initTree(frame);
+        }
+
+        this.syncModalNavigation();
+        this.showOverlay();
+    },
+
+    popModal() {
+        const state = this.modalStack.pop();
+
+        if (state) {
+            this.restoreModalState(state);
+
+            return true;
+        }
+
+        return false;
+    },
+
+    dismissModal() {
+        if (this.popModal()) {
+            return;
+        }
+
+        this.closeModal();
+    },
+
+    syncModalNavigation() {
+        const frame = this.modalFrame();
+        const panel = frame?.querySelector('[data-erp-form-modal-panel]');
+        const header = panel?.querySelector('.erp-form-modal__header');
+
+        if (! header) {
+            return;
+        }
+
+        const title = header.querySelector('.erp-form-modal__title');
+        let backButton = header.querySelector('[data-erp-form-modal-back]');
+        const canGoBack = this.modalStack.length > 0;
+        const backLabel = this.modalConfig().backLabel ?? 'Back';
+
+        if (canGoBack) {
+            if (! backButton) {
+                backButton = document.createElement('button');
+                backButton.type = 'button';
+                backButton.className = 'erp-form-modal__back erp-btn-secondary shrink-0 !px-2.5 !py-1.5 text-xs';
+                backButton.setAttribute('data-erp-form-modal-back', '');
+                backButton.setAttribute('aria-label', backLabel);
+            }
+
+            backButton.textContent = backLabel;
+
+            if (title) {
+                header.insertBefore(backButton, title);
+            } else {
+                header.prepend(backButton);
+            }
+        } else if (backButton) {
+            backButton.remove();
+        }
+    },
 
     overlay() {
         return document.getElementById('erp-modal-overlay');
@@ -233,12 +339,12 @@ const erpModalManager = {
             return false;
         }
 
-        if (link.closest('#erp-form-modal') || link.closest('#erp-lookup-modal-overlay')) {
-            return false;
-        }
-
         if (link.hasAttribute('data-erp-modal-open')) {
             return true;
+        }
+
+        if (link.closest('#erp-form-modal') || link.closest('#erp-lookup-modal-overlay')) {
+            return false;
         }
 
         if (link.getAttribute('data-turbo') === 'false') {
@@ -471,6 +577,15 @@ const erpModalManager = {
             return;
         }
 
+        const hasOpenPanel = Boolean(frame.querySelector('[data-erp-form-modal-panel]'));
+
+        if (this.isModalVisible() && hasOpenPanel && url !== this.currentModalUrl) {
+            this.pushModalState();
+        } else if (! this.isModalVisible()) {
+            this.modalStack = [];
+            this.currentModalUrl = null;
+        }
+
         this.abortModalLoad();
         const loadId = ++this.modalLoadSeq;
         this.modalAbortController = new AbortController();
@@ -503,9 +618,11 @@ const erpModalManager = {
 
             this.prepareModalFormContent(panel, url);
             frame.replaceChildren(panel);
+            this.currentModalUrl = url;
             this.pendingModalLoad = false;
             this.modalAbortController = null;
             this.showOverlay();
+            this.syncModalNavigation();
 
             await new Promise((resolve) => window.requestAnimationFrame(resolve));
             Alpine.initTree(frame);
@@ -530,6 +647,8 @@ const erpModalManager = {
         this.modalLoadSeq += 1;
         this.abortModalLoad();
         this.pendingModalLoad = false;
+        this.modalStack = [];
+        this.currentModalUrl = null;
 
         const frame = this.modalFrame();
 
@@ -1004,7 +1123,6 @@ const erpModalManager = {
             inModalLink?.href
             && ! inModalLink.hasAttribute('data-no-modal')
             && inModalLink.getAttribute('target') !== '_blank'
-            && ! inModalLink.hasAttribute('data-erp-modal-open')
         ) {
             try {
                 const parsed = new URL(inModalLink.href, window.location.origin);
@@ -1029,13 +1147,22 @@ const erpModalManager = {
         }
 
         const closeTrigger = event.target.closest('[data-erp-form-modal-close]');
+        const backTrigger = event.target.closest('[data-erp-form-modal-back]');
+
+        if (backTrigger) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.popModal();
+
+            return;
+        }
 
         if (closeTrigger) {
             event.preventDefault();
             event.stopPropagation();
 
             if (! this.isLookupOverlayOpen()) {
-                this.closeModal();
+                this.dismissModal();
             }
         }
 
@@ -3657,30 +3784,254 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('designerDesk', (config = {}) => ({
+        selectedKey: null,
+        panelLoading: false,
+        panel: null,
+        panelBase: config.panelBase ?? '',
+        csrf: document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+        activeFilter: null,
+
+        init() {
+            if (config.initialRequestKey) {
+                this.selectRequest(config.initialRequestKey);
+            }
+        },
+
+        async selectRequest(requestKey, scrollTarget = '') {
+            if (! requestKey) {
+                return;
+            }
+
+            this.selectedKey = requestKey;
+            this.panelLoading = true;
+            this.panel = null;
+
+            try {
+                const response = await fetch(`${this.panelBase}/${requestKey}/panel`, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                if (response.ok) {
+                    this.panel = await response.json();
+
+                    this.$nextTick(() => {
+                        const workspace = document.querySelector('.designer-desk-workspace');
+
+                        if (workspace) {
+                            workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+
+                        if (scrollTarget) {
+                            this.scrollToSection(scrollTarget);
+                        }
+                    });
+                }
+            } finally {
+                this.panelLoading = false;
+            }
+        },
+
+        clearSelection() {
+            this.selectedKey = null;
+            this.panel = null;
+        },
+
+        scrollToSection(id) {
+            const section = document.getElementById(id);
+
+            if (section) {
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        },
+
+        filterUrgent(key) {
+            this.activeFilter = this.activeFilter === key ? null : key;
+        },
+
+        clearFilter() {
+            this.activeFilter = null;
+        },
+
+        rowVisible(rowElement) {
+            if (! this.activeFilter) {
+                return true;
+            }
+
+            const map = {
+                due_today: 'data-urgency-due-today',
+                overdue: 'data-urgency-overdue',
+                waiting_customer: 'data-urgency-waiting',
+                new_assignment: 'data-urgency-new',
+            };
+
+            const attribute = map[this.activeFilter];
+
+            return attribute ? rowElement.getAttribute(attribute) === '1' : true;
+        },
+    }));
+
+    Alpine.data('storeDeskLookup', (config = {}) => ({
+        searchUrl: config.searchUrl ?? '',
+        query: '',
+        results: [],
+        selected: null,
+        open: false,
+        loading: false,
+        searchTimer: null,
+
+        formatQty(value) {
+            if (value === null || value === undefined) {
+                return '—';
+            }
+
+            const number = Number(value);
+
+            return Number.isInteger(number) ? String(number) : number.toFixed(2);
+        },
+
+        async openDropdown() {
+            this.open = true;
+            await this.fetchResults();
+        },
+
+        closeDropdown() {
+            this.open = false;
+        },
+
+        onInput() {
+            clearTimeout(this.searchTimer);
+            this.open = true;
+            this.searchTimer = setTimeout(() => this.fetchResults(), 200);
+        },
+
+        selectItem(row) {
+            this.selected = row;
+            this.open = false;
+        },
+
+        clearSelection() {
+            this.selected = null;
+        },
+
+        async fetchResults() {
+            if (! this.searchUrl) {
+                return;
+            }
+
+            this.loading = true;
+
+            try {
+                const response = await fetch(
+                    `${this.searchUrl}?q=${encodeURIComponent(this.query.trim())}`,
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
+                if (! response.ok) {
+                    this.results = [];
+
+                    return;
+                }
+
+                const payload = await response.json();
+                this.results = payload.results ?? [];
+
+                if (this.results.length === 1 && this.query.trim() !== '') {
+                    this.selected = this.results[0];
+                }
+            } catch (e) {
+                this.results = [];
+            } finally {
+                this.loading = false;
+            }
+        },
+    }));
+
     Alpine.data('salesDeskSearch', (config = {}) => ({
         searchUrl: config.searchUrl ?? '',
         deskUrl: config.deskUrl ?? '',
         query: '',
         results: [],
+        open: false,
+        loading: false,
+        searchTimer: null,
 
-        async search() {
-            const q = this.query.trim();
-            if (q.length < 2) {
-                this.results = [];
+        resultKindLabel(row) {
+            const labels = {
+                customer: 'Customer',
+                quotation: 'Quote',
+                order: 'Order',
+                job: 'Job',
+            };
+
+            return labels[row.kind] ?? row.kind ?? 'Record';
+        },
+
+        resultHref(row) {
+            if (row.url) {
+                return row.url;
+            }
+
+            if (row.kind === 'customer') {
+                return `${this.deskUrl}?customer=${encodeURIComponent(row.key || row.id)}&step=2`;
+            }
+
+            return '#';
+        },
+
+        async openDropdown() {
+            this.open = true;
+            await this.fetchResults();
+        },
+
+        closeDropdown() {
+            this.open = false;
+        },
+
+        onInput() {
+            clearTimeout(this.searchTimer);
+            this.open = true;
+            this.searchTimer = setTimeout(() => this.fetchResults(), 200);
+        },
+
+        async fetchResults() {
+            if (! this.searchUrl) {
                 return;
             }
 
+            this.loading = true;
+
             try {
-                const response = await fetch(`${this.searchUrl}?q=${encodeURIComponent(q)}`, {
-                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-                });
+                const response = await fetch(
+                    `${this.searchUrl}?q=${encodeURIComponent(this.query.trim())}`,
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    },
+                );
+
                 if (! response.ok) {
+                    this.results = [];
+
                     return;
                 }
+
                 const payload = await response.json();
                 this.results = payload.results ?? [];
             } catch (e) {
                 this.results = [];
+            } finally {
+                this.loading = false;
             }
         },
     }));

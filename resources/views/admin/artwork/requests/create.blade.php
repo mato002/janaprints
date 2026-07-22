@@ -4,7 +4,12 @@
     maxWidth="2xl"
 >
     <x-admin.form-shell :action="route('admin.artwork.store')" class="space-y-4">
-        @include('admin.artwork.requests.partials.form')
+        @if ($fromSalesDesk ?? false)
+            <input type="hidden" name="from" value="sales-desk">
+        @endif
+        @include('admin.artwork.requests.partials.form', [
+            'presetCustomerId' => $presetCustomerId ?? null,
+        ])
         <x-admin.form-modal-actions>
             <button type="submit" class="erp-btn-primary">{{ __('Create request') }}</button>
         </x-admin.form-modal-actions>

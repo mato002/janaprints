@@ -1,10 +1,16 @@
 @php($fields = $formFields ?? [])
+@php($fromStoreDesk = (bool) ($fromStoreDesk ?? request('from') === 'store-desk'))
 <x-admin.modal-form
     :title="__('Create transfer')"
-    :breadcrumbs="[['label' => __('Store Transfers'), 'url' => route('admin.inventory.transfers.index')], ['label' => __('Create')]]"
+    :breadcrumbs="$fromStoreDesk
+        ? [['label' => __('Store Desk'), 'url' => route('admin.store.desk')], ['label' => __('Transfer stock')]]
+        : [['label' => __('Store Transfers'), 'url' => route('admin.inventory.transfers.index')], ['label' => __('Create')]]"
     maxWidth="5xl"
 >
     <x-admin.form-shell :action="route('admin.inventory.transfers.store')">
+        @if ($fromStoreDesk)
+            <input type="hidden" name="from" value="store-desk">
+        @endif
         <div class="erp-form-grid">
             @if (($fields['warehouse_id']['visible'] ?? true))
                 <x-admin.form-field

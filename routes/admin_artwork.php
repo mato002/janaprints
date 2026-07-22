@@ -27,6 +27,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:artwork.view')->group(function () {
             Route::get('requests/{artworkRequest}', [ArtworkRequestController::class, 'show'])->name('show');
             Route::get('requests/{artworkRequest}/versions/{version}/preview', [ArtworkVersionController::class, 'preview'])->name('versions.preview');
+            Route::get('requests/{artworkRequest}/versions/{version}/download', [ArtworkVersionController::class, 'download'])->name('versions.download');
+            Route::get('requests/{artworkRequest}/files/{file}/download', [ArtworkFileController::class, 'download'])->name('files.download');
         });
 
         Route::middleware('permission:artwork.edit')->group(function () {

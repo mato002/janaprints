@@ -1,6 +1,6 @@
 <x-admin.modal-form :title="__('Catalogue')" maxWidth="5xl">
     <div class="space-y-4">
-        <p class="text-sm text-slate-600">{{ __('Browse inventory items without leaving the store desk.') }}</p>
+        <p class="text-sm text-slate-600">{{ __('Browse inventory items with operational stock status — without leaving the store desk.') }}</p>
 
         <form method="GET" action="{{ route('admin.store.desk.catalogue') }}" class="flex flex-wrap items-center gap-2">
             <input
@@ -22,16 +22,24 @@
                     <tr>
                         <th>{{ __('Item') }}</th>
                         <th>{{ __('SKU') }}</th>
+                        <th class="text-right">{{ __('Available') }}</th>
+                        <th class="text-right">{{ __('Reserved') }}</th>
+                        <th>{{ __('Warehouse') }}</th>
+                        <th>{{ __('Shelf') }}</th>
                         <th>{{ __('Category') }}</th>
                         <th>{{ __('Role') }}</th>
-                        <th class="text-right">{{ __('Reorder') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($items as $item)
+                    @forelse ($rows as $row)
+                        @php($item = $row['item'])
                         <tr>
                             <td class="font-medium">{{ $item->item_name }}</td>
                             <td class="font-mono text-xs">{{ $item->sku }}</td>
+                            <td class="text-right font-mono text-xs tabular-nums">{{ number_format($row['available'], 2) }}</td>
+                            <td class="text-right font-mono text-xs tabular-nums">{{ number_format($row['reserved'], 2) }}</td>
+                            <td>{{ $row['warehouse'] ?? '—' }}</td>
+                            <td>{{ $row['shelf'] ?? '—' }}</td>
                             <td>{{ $item->category?->name ?? '—' }}</td>
                             <td>
                                 @if ($item->stock_role)
@@ -40,11 +48,10 @@
                                     —
                                 @endif
                             </td>
-                            <td class="text-right font-mono text-xs">{{ number_format((float) $item->reorder_level, 2) }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="py-6 text-center text-sm text-slate-500">{{ __('No items match your search.') }}</td>
+                            <td colspan="8" class="py-6 text-center text-sm text-slate-500">{{ __('No items match your search.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

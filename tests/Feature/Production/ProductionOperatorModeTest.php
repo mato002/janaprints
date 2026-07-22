@@ -83,6 +83,17 @@ class ProductionOperatorModeTest extends TestCase
             ->assertDontSee(__('Operator mode'));
     }
 
+    public function test_admin_floor_desk_flag_opens_standalone_register(): void
+    {
+        $admin = $this->userWithRole('Company Admin');
+
+        $this->actingAs($admin)
+            ->get(route('admin.production.floor', ['desk' => 1]))
+            ->assertOk()
+            ->assertSee(__('Production Floor'), false)
+            ->assertSee(__('Shop floor register — filter by stage'), false);
+    }
+
     public function test_operator_production_workspace_redirects_to_floor(): void
     {
         $operator = $this->userWithRole('Production');

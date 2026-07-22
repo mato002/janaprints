@@ -29,7 +29,7 @@ class ArtworkVersionController extends Controller
         ArtworkVersionService::store($artworkRequest, $validated['file'], $validated['notes'] ?? null);
 
         if ($this->wantsDesignerDeskReturn($request)) {
-            return redirect()->to($this->designerDeskUrl())
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
                 ->with('status', __('New artwork version uploaded.'));
         }
 
@@ -48,5 +48,20 @@ class ArtworkVersionController extends Controller
             'Content-Type' => $version->mime_type ?? 'application/octet-stream',
             'Content-Disposition' => 'inline; filename="'.addslashes($version->original_name).'"',
         ]);
+    }
+
+    public function download(ArtworkRequest $artworkRequest, ArtworkVersion $version): BinaryFileResponse
+    {
+        abort_unless((int) $version->artwork_request_id === (int) $artworkRequest->id, 404);
+
+        $this->authorize('view', $version);
+
+        abort_unless($version->file_path && Storage::disk('local')->exists($version->file_path), 404);
+
+        return response()->download(
+            Storage::disk('local')->path($version->file_path),
+            $version->original_name,
+            ['Content-Type' => $version->mime_type ?? 'application/octet-stream'],
+        );
     }
 }

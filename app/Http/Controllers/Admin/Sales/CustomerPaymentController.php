@@ -9,14 +9,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Crm\Customer;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerPayment;
+use App\Models\Sales\SalesOrder;
 use App\Support\Sales\CustomerPaymentService;
+use App\Support\Sales\ReturnsToSalesDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class CustomerPaymentController extends Controller
 {
-    use ResolvesCrmTenant, ScopesToTenant;
+    use ResolvesCrmTenant, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected CustomerPaymentService $payments,
@@ -57,10 +60,37 @@ class CustomerPaymentController extends Controller
 
         $customers = Customer::query()->forTenant()->orderBy('company_name')->get(['id', 'company_name']);
 
-        return view('admin.sales.payments.create', compact('customer', 'customers', 'openInvoices', 'sourceInvoice'));
+        $salesOrder = null;
+        if ($request->filled('sales_order_id')) {
+            $salesOrder = SalesOrder::query()->forTenant()->find($request->integer('sales_order_id'));
+        }
+
+        $defaultAmount = $request->input('amount')
+            ?? $sourceInvoice?->balance_due
+            ?? $salesOrder?->total_amount;
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            return view('admin.sales.desk.payment-modal', compact(
+                'customer',
+                'customers',
+                'openInvoices',
+                'sourceInvoice',
+                'salesOrder',
+                'defaultAmount',
+            ));
+        }
+
+        return view('admin.sales.payments.create', compact(
+            'customer',
+            'customers',
+            'openInvoices',
+            'sourceInvoice',
+            'salesOrder',
+            'defaultAmount',
+        ));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', CustomerPayment::class);
 
@@ -73,6 +103,7 @@ class CustomerPaymentController extends Controller
 
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
+            'sales_order_id' => ['nullable', 'exists:sales_orders,id'],
             'payment_date' => ['required', 'date'],
             'payment_method' => ['required', 'in:cash,bank,mpesa'],
             'amount' => ['required', 'numeric', 'min:0.01'],
@@ -88,16 +119,38 @@ class CustomerPaymentController extends Controller
         ]);
 
         $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
+        unset($validated['sales_order_id']);
 
         $payment = $this->payments->create($customer, (int) auth()->id(), $validated);
+
+        $salesOrder = $request->filled('sales_order_id')
+            ? SalesOrder::query()->forTenant()->find($request->integer('sales_order_id'))
+            : null;
 
         if ($request->boolean('post_now')) {
             $this->authorize('post', $payment);
             $payment = $this->payments->post($payment, (int) auth()->id());
 
+            if ($this->wantsSalesDeskReturn($request) && $salesOrder) {
+                return redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'order' => $salesOrder->getRouteKey(),
+                    'step' => 4,
+                ])->with('status', __('Payment recorded and receipt generated.'))
+                    ->with('sales_desk_receipt_url', route('admin.payments.receipt', [$payment, 'from' => 'sales-desk']));
+            }
+
             return redirect()
                 ->route('admin.payments.receipt', $payment)
                 ->with('status', __('Payment recorded and receipt generated.'));
+        }
+
+        if ($this->wantsSalesDeskReturn($request) && $salesOrder) {
+            return redirect()->route('admin.sales.desk', [
+                'customer' => $customer->getRouteKey(),
+                'order' => $salesOrder->getRouteKey(),
+                'step' => 4,
+            ])->with('status', __('Payment saved as draft.'));
         }
 
         return redirect()

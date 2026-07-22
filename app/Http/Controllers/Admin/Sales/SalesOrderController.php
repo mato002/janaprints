@@ -226,7 +226,7 @@ class SalesOrderController extends Controller
         ]);
     }
 
-    public function edit(SalesOrder $salesOrder): View
+    public function edit(Request $request, SalesOrder $salesOrder): View
     {
         $this->authorize('update', $salesOrder);
 
@@ -242,7 +242,7 @@ class SalesOrderController extends Controller
                 ->get(['id', 'artwork_name', 'version_number'])
             : collect();
 
-        return view('admin.sales.orders.edit', [
+        $payload = [
             'salesOrder' => $salesOrder,
             'customerArtworks' => $customerArtworks,
             'catalogueItems' => \App\Models\Inventory\InventoryItem::query()
@@ -251,7 +251,13 @@ class SalesOrderController extends Controller
                 ->orderBy('item_name')
                 ->get(['id', 'item_name', 'sku']),
             ...$this->formMeta(),
-        ]);
+        ];
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            return view('admin.sales.desk.order-edit-modal', $payload);
+        }
+
+        return view('admin.sales.orders.edit', $payload);
     }
 
     public function update(Request $request, SalesOrder $salesOrder): RedirectResponse|Response
@@ -288,9 +294,19 @@ class SalesOrderController extends Controller
 
         app(\App\Support\Sales\SalesOrderFinancialStatusService::class)->syncDepositAmounts($salesOrder->fresh());
 
+        $redirect = redirect()->route('admin.sales-orders.show', $salesOrder);
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            $redirect = redirect()->route('admin.sales.desk', [
+                'customer' => $salesOrder->customer?->getRouteKey(),
+                'order' => $salesOrder->fresh()->getRouteKey(),
+                'step' => 4,
+            ]);
+        }
+
         return $this->modalOrRedirect(
             __('Sales order updated.'),
-            redirect()->route('admin.sales-orders.show', $salesOrder),
+            $redirect,
         );
     }
 

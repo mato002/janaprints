@@ -10,14 +10,9 @@ trait ReturnsToStoreDesk
 {
     use ReturnsToOperatorDesk;
 
-    protected function operatorDeskModeKey(): OperatorModeKey
-    {
-        return OperatorModeKey::Storekeeper;
-    }
-
     protected function wantsStoreDeskReturn(?Request $request = null): bool
     {
-        return $this->wantsOperatorDeskReturn($request);
+        return $this->wantsOperatorDeskReturn(OperatorModeKey::Storekeeper, $request);
     }
 
     /**
@@ -25,6 +20,6 @@ trait ReturnsToStoreDesk
      */
     protected function storeDeskUrl(array $params = []): string
     {
-        return $this->operatorDeskUrl($params);
+        return $this->operatorDeskUrl(OperatorModeKey::Storekeeper, $params);
     }
 }

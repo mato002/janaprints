@@ -13,6 +13,7 @@ use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\SalesOrder;
 use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use App\Support\Sales\CustomerInvoiceService;
+use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Sales\SalesDocumentEmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,7 @@ use Illuminate\View\View;
 
 class CustomerInvoiceController extends Controller
 {
-    use ManagesInvoiceItems, ResolvesCrmTenant, ScopesToTenant;
+    use ManagesInvoiceItems, ResolvesCrmTenant, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected CustomerInvoiceService $invoices,
@@ -39,7 +40,7 @@ class CustomerInvoiceController extends Controller
         return view('admin.sales.invoices.index', compact('invoices'));
     }
 
-    public function show(CustomerInvoice $invoice): View
+    public function show(Request $request, CustomerInvoice $invoice): View
     {
         $this->authorize('view', $invoice);
 
@@ -57,6 +58,10 @@ class CustomerInvoiceController extends Controller
             'poster',
             'paymentAllocations.payment',
         ]);
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            return view('admin.sales.desk.invoice-show-modal', compact('invoice'));
+        }
 
         return view('admin.sales.invoices.show', compact('invoice'));
     }
@@ -156,7 +161,7 @@ class CustomerInvoiceController extends Controller
         return back()->with('status', __('Invoice cancelled.'));
     }
 
-    public function createFromSalesOrder(SalesOrder $salesOrder): View
+    public function createFromSalesOrder(Request $request, SalesOrder $salesOrder): View
     {
         $this->authorize('create', CustomerInvoice::class);
         $this->authorize('view', $salesOrder);
@@ -165,7 +170,7 @@ class CustomerInvoiceController extends Controller
 
         $billingEligibilityService = app(\App\Support\Sales\SalesOrderBillingEligibilityService::class);
 
-        return view('admin.sales.invoices.create-from-order', [
+        $payload = [
             'salesOrder' => $salesOrder,
             'defaultTaxRate' => config('settings_registry.sections.company.settings.default_tax_rate.default', 16),
             'pendingInvoices' => $salesOrder->invoices()
@@ -181,7 +186,13 @@ class CustomerInvoiceController extends Controller
                 'deposit' => $billingEligibilityService->assess($salesOrder, CustomerInvoiceType::Deposit),
                 'progress' => $billingEligibilityService->assess($salesOrder, CustomerInvoiceType::Progress),
             ],
-        ]);
+        ];
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            return view('admin.sales.desk.invoice-modal', $payload);
+        }
+
+        return view('admin.sales.invoices.create-from-order', $payload);
     }
 
     public function storeFromSalesOrder(Request $request, SalesOrder $salesOrder): RedirectResponse
@@ -228,6 +239,14 @@ class CustomerInvoiceController extends Controller
         $flash = $result->wasExisting
             ? ($result->message ?? __('Existing invoice opened.'))
             : __('Invoice created from sales order.');
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            return redirect()->route('admin.sales.desk', [
+                'customer' => $salesOrder->customer?->getRouteKey(),
+                'order' => $salesOrder->getRouteKey(),
+                'step' => 4,
+            ])->with('status', $flash);
+        }
 
         return redirect()
             ->route('admin.invoices.show', $result->invoice)

@@ -4,6 +4,9 @@
     maxWidth="5xl"
 >
     <x-admin.form-shell :action="route('admin.quotations.store')" class="space-y-6">
+        @if (request('from') === 'sales-desk')
+            <input type="hidden" name="from" value="sales-desk">
+        @endif
         @php($fields = $formFields ?? [])
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             @if(($fields['customer_id']['visible'] ?? true))

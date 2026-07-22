@@ -261,6 +261,23 @@
                                     @endforeach
                                 </select>
                             </div>
+                            <div>
+                                <label class="erp-label" for="fulfilment_method">{{ __('Fulfilment') }}</label>
+                                <select id="fulfilment_method" name="fulfilment_method" class="erp-input w-full min-h-[2.75rem]" x-model="form.fulfilment_method">
+                                    @foreach (\App\Enums\FulfilmentMethod::cases() as $method)
+                                        <option value="{{ $method->value }}">{{ $method->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="erp-label" for="billing_type">{{ __('Billing type') }}</label>
+                                <select id="billing_type" name="billing_type" class="erp-input w-full min-h-[2.75rem]" x-model="form.billing_type">
+                                    <option value="">{{ __('Use customer default') }}</option>
+                                    @foreach (\App\Enums\SalesOrderBillingType::cases() as $type)
+                                        <option value="{{ $type->value }}">{{ $type->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
                             <div class="sm:col-span-2">
                                 <label class="erp-label" for="direct_notes">{{ __('Notes') }}</label>
                                 <textarea id="direct_notes" name="notes" class="erp-input w-full" rows="2" x-model="form.notes"></textarea>

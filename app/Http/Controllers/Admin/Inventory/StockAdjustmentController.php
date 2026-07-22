@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockAdjustment;
 use App\Models\Inventory\Warehouse;
+use App\Support\Inventory\ReturnsToStoreDesk;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockAdjustmentService;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
 
 class StockAdjustmentController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ReturnsToStoreDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -40,11 +41,14 @@ class StockAdjustmentController extends Controller
         return view('admin.inventory.adjustments.index', compact('adjustments'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', StockAdjustment::class);
 
-        return view('admin.inventory.adjustments.create', $this->formMeta());
+        return view('admin.inventory.adjustments.create', [
+            ...$this->formMeta(),
+            'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -89,6 +93,10 @@ class StockAdjustmentController extends Controller
         $this->syncCustomFields($adjustment, 'stock_adjustment.create', $customData, $companyId);
 
         \App\Support\ActivityLogger::log('inventory_adjusted', $adjustment);
+
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Adjustment created.'));
+        }
 
         return redirect()->route('admin.inventory.adjustments.show', $adjustment)->with('status', __('Adjustment created.'));
     }

@@ -10,14 +10,9 @@ trait ReturnsToDesignerDesk
 {
     use ReturnsToOperatorDesk;
 
-    protected function operatorDeskModeKey(): OperatorModeKey
-    {
-        return OperatorModeKey::Designer;
-    }
-
     protected function wantsDesignerDeskReturn(?Request $request = null): bool
     {
-        return $this->wantsOperatorDeskReturn($request);
+        return $this->wantsOperatorDeskReturn(OperatorModeKey::Designer, $request);
     }
 
     /**
@@ -25,6 +20,6 @@ trait ReturnsToDesignerDesk
      */
     protected function designerDeskUrl(array $params = []): string
     {
-        return $this->operatorDeskUrl($params);
+        return $this->operatorDeskUrl(OperatorModeKey::Designer, $params);
     }
 }

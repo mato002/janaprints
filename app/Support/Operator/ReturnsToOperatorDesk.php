@@ -6,12 +6,10 @@ use Illuminate\Http\Request;
 
 trait ReturnsToOperatorDesk
 {
-    abstract protected function operatorDeskModeKey(): OperatorModeKey;
-
-    protected function wantsOperatorDeskReturn(?Request $request = null): bool
+    protected function wantsOperatorDeskReturn(OperatorModeKey $mode, ?Request $request = null): bool
     {
         $request ??= request();
-        $config = OperatorModeRegistry::returnConfig($this->operatorDeskModeKey());
+        $config = OperatorModeRegistry::returnConfig($mode);
 
         return $request->input('from') === $config['from']
             || $request->boolean($config['flag']);
@@ -20,9 +18,9 @@ trait ReturnsToOperatorDesk
     /**
      * @param  array<string, mixed>  $params
      */
-    protected function operatorDeskUrl(array $params = []): string
+    protected function operatorDeskUrl(OperatorModeKey $mode, array $params = []): string
     {
-        $config = OperatorModeRegistry::returnConfig($this->operatorDeskModeKey());
+        $config = OperatorModeRegistry::returnConfig($mode);
 
         return route($config['route'], $params);
     }

@@ -59,7 +59,10 @@ class RedirectToModuleWorkspaceShell
             if (
                 $mode->key === OperatorModeKey::Production
                 && $mode->matchesDeskRoute($routeName)
-                && OperatorModeRegistry::enabledFor($user, $mode->key)
+                && (
+                    OperatorModeRegistry::enabledFor($user, $mode->key)
+                    || $request->boolean('desk')
+                )
             ) {
                 return $next($request);
             }

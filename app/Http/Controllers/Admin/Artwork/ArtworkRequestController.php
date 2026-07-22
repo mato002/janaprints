@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Enums\WorkflowRuleTrigger;
 use App\Support\Artwork\DesignerOperatorMode;
 use App\Support\Artwork\ReturnsToDesignerDesk;
+use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
@@ -30,7 +31,7 @@ use Illuminate\View\View;
 
 class ArtworkRequestController extends Controller
 {
-    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ReturnsToDesignerDesk, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ReturnsToDesignerDesk, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -57,6 +58,8 @@ class ArtworkRequestController extends Controller
 
         return view('admin.artwork.requests.create', array_merge($this->formMeta(), [
             'presetCustomerId' => $request->integer('customer_id') ?: null,
+            'presetPrintSpecificationId' => $request->integer('customer_print_specification_id') ?: null,
+            'fromSalesDesk' => $this->wantsSalesDeskReturn($request),
         ]));
     }
 
@@ -79,6 +82,18 @@ class ArtworkRequestController extends Controller
         ]);
 
         $this->syncCustomFields($artworkRequest, 'artwork', $customData, $companyId);
+
+        $customer = $artworkRequest->customer;
+
+        if ($this->wantsSalesDeskReturn($request) && $customer) {
+            return $this->modalOrRedirect(
+                __('Artwork request created.'),
+                redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'step' => 2,
+                ]),
+            );
+        }
 
         return $this->modalOrRedirect(
             __('Artwork request created.'),
@@ -179,7 +194,7 @@ class ArtworkRequestController extends Controller
         $artworkRequest->transitionTo(ArtworkRequestStatus::Submitted);
 
         if ($this->wantsDesignerDeskReturn()) {
-            return redirect()->to($this->designerDeskUrl())
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
                 ->with('status', __('Artwork submitted for approval.'));
         }
 
@@ -227,7 +242,8 @@ class ArtworkRequestController extends Controller
         string $message,
     ): RedirectResponse {
         if ($this->wantsDesignerDeskReturn($request)) {
-            return redirect()->to($this->designerDeskUrl())->with('status', $message);
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
+                ->with('status', $message);
         }
 
         return back()->with('status', $message);

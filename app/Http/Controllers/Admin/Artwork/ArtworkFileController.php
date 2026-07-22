@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Artwork\ArtworkFile;
 use App\Models\Artwork\ArtworkRequest;
 use App\Support\ArtworkFileHelper;
+use App\Support\Artwork\ReturnsToDesignerDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ArtworkFileController extends Controller
 {
+    use ReturnsToDesignerDesk;
     public function store(Request $request, ArtworkRequest $artworkRequest): RedirectResponse
     {
         $this->authorize('update', $artworkRequest);
@@ -45,10 +48,15 @@ class ArtworkFileController extends Controller
             'size' => $uploaded->getSize(),
         ]);
 
+        if ($this->wantsDesignerDeskReturn($request)) {
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
+                ->with('status', __('Reference file uploaded.'));
+        }
+
         return back()->with('status', __('Reference file uploaded.'));
     }
 
-    public function destroy(ArtworkRequest $artworkRequest, ArtworkFile $file): RedirectResponse
+    public function destroy(Request $request, ArtworkRequest $artworkRequest, ArtworkFile $file): RedirectResponse
     {
         $this->authorize('update', $artworkRequest);
 
@@ -62,6 +70,25 @@ class ArtworkFileController extends Controller
 
         $file->delete();
 
+        if ($this->wantsDesignerDeskReturn($request)) {
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
+                ->with('status', __('Reference file removed.'));
+        }
+
         return back()->with('status', __('Reference file removed.'));
+    }
+
+    public function download(ArtworkRequest $artworkRequest, ArtworkFile $file): BinaryFileResponse
+    {
+        $this->authorize('view', $artworkRequest);
+
+        abort_unless((int) $file->artwork_request_id === (int) $artworkRequest->id, 404);
+        abort_unless($file->path && Storage::disk('local')->exists($file->path), 404);
+
+        return response()->download(
+            Storage::disk('local')->path($file->path),
+            $file->original_name,
+            ['Content-Type' => $file->mime_type ?? 'application/octet-stream'],
+        );
     }
 }

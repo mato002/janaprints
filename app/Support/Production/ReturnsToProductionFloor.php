@@ -12,14 +12,9 @@ trait ReturnsToProductionFloor
 {
     use ReturnsToOperatorDesk;
 
-    protected function operatorDeskModeKey(): OperatorModeKey
-    {
-        return OperatorModeKey::Production;
-    }
-
     protected function wantsProductionFloorReturn(?Request $request = null): bool
     {
-        return $this->wantsOperatorDeskReturn($request);
+        return $this->wantsOperatorDeskReturn(OperatorModeKey::Production, $request);
     }
 
     /**
@@ -27,7 +22,7 @@ trait ReturnsToProductionFloor
      */
     protected function productionFloorUrl(array $params = []): string
     {
-        return $this->operatorDeskUrl($params);
+        return $this->operatorDeskUrl(OperatorModeKey::Production, $params);
     }
 
     protected function redirectAfterProductionFloorAction(ProductionJobCard $jobCard, string $message): RedirectResponse

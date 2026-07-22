@@ -50,7 +50,12 @@
         </div>
 
         @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                {{ session('status') }}
+                @if (session('sales_desk_receipt_url'))
+                    <a href="{{ session('sales_desk_receipt_url') }}" class="ml-2 font-medium underline" data-erp-modal-open>{{ __('View receipt') }}</a>
+                @endif
+            </div>
         @endif
         @if (! empty($specificationNotice))
             <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ $specificationNotice }}</div>
@@ -64,6 +69,10 @@
                 </ul>
             </div>
         @endif
+
+        @include('admin.sales.desk.partials.summary-strip', ['workQueue' => $workQueue])
+        @include('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue])
+        @include('admin.sales.desk.partials.fast-actions', ['fastActions' => $fastActions])
 
         <nav class="mb-4 flex flex-wrap gap-2" aria-label="{{ __('Walk-in steps') }}">
             @foreach ($stepLabels as $id => $label)
@@ -111,38 +120,80 @@
                     <x-admin.card>
                         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <h2 class="text-sm font-semibold text-slate-900">{{ __('1. Find or create customer') }}</h2>
-                            <x-admin.form-modal-link :href="$createCustomerUrl">
-                                {{ __('Create customer') }}
-                            </x-admin.form-modal-link>
+                            <div class="flex flex-wrap gap-2">
+                                <x-admin.form-modal-link :href="$createCustomerUrl">
+                                    {{ __('Create customer') }}
+                                </x-admin.form-modal-link>
+                                @if ($operatorMode && $customer && ($deskUrls['quotation'] ?? null))
+                                    <x-admin.form-modal-link :href="$deskUrls['quotation']" class="erp-btn-secondary text-xs">
+                                        {{ __('Quote first') }}
+                                    </x-admin.form-modal-link>
+                                @endif
+                            </div>
                         </div>
 
-                        <label class="erp-label" for="desk-customer-search">{{ __('Search existing') }}</label>
-                        <input
-                            id="desk-customer-search"
-                            type="search"
-                            class="erp-input w-full"
-                            placeholder="{{ __('Name, code, phone, or email…') }}"
-                            x-model="query"
-                            x-on:input.debounce.300ms="search()"
-                        >
-                        <ul class="mt-2 divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white" x-show="results.length" x-cloak>
-                            <template x-for="row in results" :key="row.id">
-                                <li>
-                                    <a
-                                        class="flex w-full items-start justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-slate-50"
-                                        :href="deskUrl + '?customer=' + encodeURIComponent(row.key || row.id) + '&step=2'"
-                                        data-turbo-frame="_top"
-                                    >
-                                        <span>
-                                            <span class="font-medium text-slate-900" x-text="row.label"></span>
-                                            <span class="block text-xs text-slate-500" x-text="[row.code, row.phone, row.email].filter(Boolean).join(' · ')"></span>
-                                        </span>
-                                        <span class="text-xs text-erp-accent">{{ __('Select') }}</span>
-                                    </a>
-                                </li>
-                            </template>
-                        </ul>
-                        <p class="mt-3 text-xs text-slate-500">{{ __('Select a customer above, or create a new one in the modal.') }}</p>
+                        <div class="relative" @click.outside="closeDropdown()">
+                            <label class="erp-label" for="desk-customer-search">{{ __('Search existing') }}</label>
+                            <div class="relative">
+                                <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <input
+                                    id="desk-customer-search"
+                                    type="text"
+                                    class="erp-input w-full py-2 pl-9 pr-3"
+                                    placeholder="{{ __('Customer, quote, order, job, phone…') }}"
+                                    autocomplete="off"
+                                    role="combobox"
+                                    aria-autocomplete="list"
+                                    aria-controls="desk-customer-search-list"
+                                    :aria-expanded="open"
+                                    x-model="query"
+                                    @focus="openDropdown()"
+                                    @click="openDropdown()"
+                                    @input="onInput()"
+                                    @keydown.escape.prevent="closeDropdown()"
+                                >
+                            </div>
+
+                            <div
+                                id="desk-customer-search-list"
+                                role="listbox"
+                                x-show="open"
+                                x-cloak
+                                class="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-erp-border bg-white shadow-lg"
+                            >
+                                <p x-show="loading" class="px-3 py-4 text-center text-sm text-slate-500">{{ __('Loading…') }}</p>
+
+                                <template x-if="! loading && results.length === 0">
+                                    <p class="px-3 py-4 text-center text-sm text-slate-500">
+                                        <span x-show="query.trim()">{{ __('No matches for your search.') }}</span>
+                                        <span x-show="! query.trim()">{{ __('No active customers yet.') }}</span>
+                                    </p>
+                                </template>
+
+                                <ul x-show="! loading && results.length" class="divide-y divide-slate-100">
+                                    <template x-for="row in results" :key="`${row.kind}-${row.id}`">
+                                        <li>
+                                            <a
+                                                role="option"
+                                                class="flex w-full items-start justify-between gap-2 px-3 py-2.5 text-left text-sm transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                                                :href="resultHref(row)"
+                                                :data-erp-modal-open="row.modal ? '' : null"
+                                                :data-turbo-frame="row.modal ? null : '_top'"
+                                                @click="closeDropdown()"
+                                            >
+                                                <span class="min-w-0">
+                                                    <span class="mb-0.5 inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600" x-text="resultKindLabel(row)"></span>
+                                                    <span class="block truncate font-medium text-slate-900" x-text="row.label"></span>
+                                                    <span class="block truncate text-xs text-slate-500" x-text="row.meta || ''"></span>
+                                                </span>
+                                                <span class="shrink-0 text-xs font-medium text-erp-accent">{{ __('Open') }}</span>
+                                            </a>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+                        <p class="mt-3 text-xs text-slate-500">{{ __('Search customers, quotes, orders, or jobs—or create a new customer to start a walk-in.') }}</p>
                     </x-admin.card>
                 @endif
 
@@ -153,9 +204,21 @@
                                 <h2 class="text-sm font-semibold text-slate-900">{{ __('2. Print specification') }}</h2>
                                 <p class="text-xs text-slate-600">{{ __('Customer') }}: <span class="font-medium text-slate-900">{{ $customer->name }}</span></p>
                             </div>
-                            <x-admin.form-modal-link :href="$createSpecificationUrl">
-                                {{ __('Create specification') }}
-                            </x-admin.form-modal-link>
+                            <div class="flex flex-wrap gap-2">
+                                <x-admin.form-modal-link :href="$createSpecificationUrl">
+                                    {{ __('Create specification') }}
+                                </x-admin.form-modal-link>
+                                @if ($operatorMode && ($deskUrls['artwork_request'] ?? null))
+                                    <x-admin.form-modal-link :href="$deskUrls['artwork_request']" class="erp-btn-secondary text-xs">
+                                        {{ __('Send to designer') }}
+                                    </x-admin.form-modal-link>
+                                @endif
+                                @if ($operatorMode && ($deskUrls['quotation'] ?? null))
+                                    <x-admin.form-modal-link :href="$deskUrls['quotation']" class="erp-btn-secondary text-xs">
+                                        {{ __('Quote first') }}
+                                    </x-admin.form-modal-link>
+                                @endif
+                            </div>
                         </div>
 
                         @if (count($printSpecifications))
@@ -203,6 +266,13 @@
                                                                 data-erp-modal-open
                                                                 title="{{ __('Upload artwork first') }}"
                                                             >{{ __('Upload artwork') }}</a>
+                                                            @if ($operatorMode && ($deskUrls['artwork_request'] ?? null))
+                                                                <a
+                                                                    class="erp-btn-secondary text-xs py-1 px-2"
+                                                                    href="{{ $deskUrls['artwork_request'] }}"
+                                                                    data-erp-modal-open
+                                                                >{{ __('Send to designer') }}</a>
+                                                            @endif
                                                         @endif
                                                         <a
                                                             class="erp-btn-secondary text-xs py-1 px-2"
@@ -276,6 +346,13 @@
                                             href="{{ route('admin.crm.customers.print-specifications.edit', [$customer, $specification, 'from' => 'sales-desk']) }}"
                                             data-erp-modal-open
                                         >{{ __('Upload artwork to spec') }}</a>
+                                        @if ($operatorMode && ($deskUrls['artwork_request'] ?? null))
+                                            <a
+                                                class="erp-btn-secondary mt-2 ml-2 inline-flex text-xs"
+                                                href="{{ $deskUrls['artwork_request'] }}"
+                                                data-erp-modal-open
+                                            >{{ __('Send to designer') }}</a>
+                                        @endif
                                     </div>
                                 @else
                                     <p class="mt-2 text-sm text-slate-600">{{ __('Open the order form in a modal. Customer and specification are pre-filled.') }}</p>
@@ -335,10 +412,11 @@
                         @endif
 
                         @if ($orderPresentation['job_card_id'])
-                            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
-                                <p class="font-medium">{{ __('Handed off to Production Floor') }}</p>
-                                <p class="mt-1 text-xs">{{ __('Sales handoff is complete. Production can queue and start this job from Operator Floor.') }}</p>
-                            </div>
+                            @include('admin.sales.desk.partials.production-handoff', ['orderPresentation' => $orderPresentation])
+                        @endif
+
+                        @if ($operatorMode)
+                            @include('admin.sales.desk.partials.order-actions', ['orderPresentation' => $orderPresentation])
                         @endif
 
                         <div class="flex flex-wrap gap-2">
@@ -353,6 +431,10 @@
             </div>
 
             <aside class="space-y-3">
+                @include('admin.sales.desk.partials.customer-context', [
+                    'customerContext' => $customerContext,
+                    'deskUrls' => $deskUrls,
+                ])
                 <x-admin.card>
                     <h3 class="mb-2 text-sm font-semibold text-slate-900">{{ __('Progress') }}</h3>
                     <dl class="space-y-2 text-sm">
@@ -371,11 +453,15 @@
                                     @if ($specification->activeArtworkVersion)
                                         <span class="text-emerald-700">{{ $specification->activeArtworkVersion->versionLabel() }} — {{ $specification->activeArtworkVersion->artwork_name }}</span>
                                     @else
-                                        <span class="text-slate-400">{{ __('—') }}</span>
+                                        <span class="text-amber-700">{{ __('Pending') }}</span>
                                     @endif
                                 </dd>
                             </div>
                         @endif
+                        <div>
+                            <dt class="text-xs text-slate-500">{{ __('Pricing') }}</dt>
+                            <dd class="font-medium text-slate-900">{{ $orderPresentation['total_amount'] ?? ($specification ? __('On order') : '—') }}</dd>
+                        </div>
                         <div>
                             <dt class="text-xs text-slate-500">{{ __('Order') }}</dt>
                             <dd class="font-medium text-slate-900">{{ $orderPresentation['order_number'] ?? '—' }}</dd>
@@ -384,6 +470,12 @@
                             <dt class="text-xs text-slate-500">{{ __('Production') }}</dt>
                             <dd class="font-medium text-slate-900">{{ $orderPresentation['job_card_number'] ?? '—' }}</dd>
                         </div>
+                        @if (! empty($orderPresentation['financial']['financial_status_label']))
+                            <div>
+                                <dt class="text-xs text-slate-500">{{ __('Deposit / payment') }}</dt>
+                                <dd class="font-medium text-slate-900">{{ $orderPresentation['financial']['financial_status_label'] }}</dd>
+                            </div>
+                        @endif
                     </dl>
                 </x-admin.card>
             </aside>

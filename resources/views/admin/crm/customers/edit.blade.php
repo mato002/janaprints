@@ -4,6 +4,9 @@
     maxWidth="4xl"
 >
     <x-admin.form-shell :action="route('admin.crm.customers.update', $customer)" method="PUT">
+        @if (request('from') === 'sales-desk')
+            <input type="hidden" name="from" value="sales-desk">
+        @endif
         @include('admin.crm.customers.form', ['customer' => $customer])
         <x-admin.form-modal-actions>
             <x-primary-button>{{ __('Update') }}</x-primary-button>

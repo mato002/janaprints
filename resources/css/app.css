@@ -4451,8 +4451,12 @@ body.erp-navigating {
         @apply sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-erp-border bg-white px-5 py-4;
     }
 
+    .erp-form-modal__back {
+        @apply mr-1;
+    }
+
     .erp-form-modal__title {
-        @apply text-lg font-semibold text-erp-primary;
+        @apply min-w-0 flex-1 text-lg font-semibold text-erp-primary;
     }
 
     .erp-form-modal__close {
@@ -4730,5 +4734,30 @@ body.erp-navigating {
     .production-operator-panel .erp-btn-secondary,
     .production-operator-panel .erp-btn-ghost {
         @apply min-h-11 px-4 py-2.5 text-sm font-semibold touch-manipulation;
+    }
+
+    /* Designer desk workspace */
+    .designer-desk-shell {
+        @apply pb-16;
+    }
+
+    .designer-desk-kpi {
+        @apply transition-shadow hover:shadow-md;
+    }
+
+    .designer-desk-shortcut-btn {
+        @apply min-h-10 px-3 py-2 text-xs font-semibold touch-manipulation;
+    }
+
+    .designer-desk-panel {
+        @apply shadow-sm;
+    }
+
+    .designer-desk-workspace {
+        scroll-margin-top: 1rem;
+    }
+
+    .designer-desk-action-btn {
+        @apply min-h-11 px-5 py-2.5 text-sm font-semibold touch-manipulation;
     }
 }

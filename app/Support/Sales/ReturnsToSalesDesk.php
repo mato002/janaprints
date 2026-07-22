@@ -10,14 +10,9 @@ trait ReturnsToSalesDesk
 {
     use ReturnsToOperatorDesk;
 
-    protected function operatorDeskModeKey(): OperatorModeKey
-    {
-        return OperatorModeKey::Sales;
-    }
-
     protected function wantsSalesDeskReturn(?Request $request = null): bool
     {
-        return $this->wantsOperatorDeskReturn($request);
+        return $this->wantsOperatorDeskReturn(OperatorModeKey::Sales, $request);
     }
 
     /**
@@ -25,6 +20,6 @@ trait ReturnsToSalesDesk
      */
     protected function salesDeskUrl(array $params = []): string
     {
-        return $this->operatorDeskUrl($params);
+        return $this->operatorDeskUrl(OperatorModeKey::Sales, $params);
     }
 }

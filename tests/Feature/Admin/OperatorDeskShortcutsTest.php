@@ -22,6 +22,23 @@ class OperatorDeskShortcutsTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
+    public function test_elevated_admin_sales_desk_shortcut_opens_standalone_desk(): void
+    {
+        $admin = $this->userWithRole('Super Admin');
+
+        $this->actingAs($admin)
+            ->get(route('admin.sales.desk'))
+            ->assertOk()
+            ->assertSee(__('Sales desk'))
+            ->assertSee(__("Today's sales work"), false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.production.floor', ['desk' => 1]))
+            ->assertOk()
+            ->assertSee(__('Production Floor'), false)
+            ->assertDontSee(__('Operator mode'));
+    }
+
     public function test_elevated_admin_sees_operator_desk_shortcuts_on_dashboard(): void
     {
         $admin = $this->userWithRole('Company Admin');
@@ -36,7 +53,7 @@ class OperatorDeskShortcutsTest extends TestCase
             ->assertSee(__('Store Desk'), false)
             ->assertSee(route('admin.sales.desk'), false)
             ->assertSee(route('admin.artwork.desk'), false)
-            ->assertSee(route('admin.production.floor'), false)
+            ->assertSee(route('admin.production.floor', ['desk' => 1]), false)
             ->assertSee(route('admin.store.desk'), false);
     }
 

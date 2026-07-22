@@ -31,7 +31,7 @@ class SalesDeskController extends Controller
         $this->authorize('viewAny', Customer::class);
 
         return response()->json([
-            'results' => $this->desk->searchCustomers((string) $request->query('q', '')),
+            'results' => $this->desk->searchDesk((string) $request->query('q', '')),
         ]);
     }
 }

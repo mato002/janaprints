@@ -11,6 +11,10 @@ Route::middleware(['auth', 'verified', 'tenant'])
             ->middleware('permission:inventory.view')
             ->name('desk');
 
+        Route::get('desk/items/search', [StoreDeskController::class, 'searchItems'])
+            ->middleware('permission:inventory.view')
+            ->name('desk.items.search');
+
         Route::get('desk/catalogue', [StoreDeskController::class, 'catalogue'])
             ->middleware('permission:inventory.view')
             ->name('desk.catalogue');
