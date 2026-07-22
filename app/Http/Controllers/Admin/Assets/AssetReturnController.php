@@ -22,29 +22,14 @@ class AssetReturnController extends Controller
         protected AssetReturnService $returns,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', AssetReturn::class);
 
-        $companyId = (int) tenant()->companyId();
-        $branchId = tenant()->branchId();
-
-        $returns = AssetReturn::query()
-            ->where('company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->with([
-                'asset:id,asset_name,asset_number',
-                'returnedByEmployee:id,first_name,last_name',
-                'receiver:id,name',
-            ])
-            ->when($request->filled('condition'), fn ($q) => $q->where('condition', $request->string('condition')))
-            ->latest('return_date')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('admin.assets.custody.returns.index', [
-            'returns' => $returns,
-        ]);
+        return redirect()->route('admin.assets.custody.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'returns'],
+        ));
     }
 
     public function create(): View
@@ -80,7 +65,7 @@ class AssetReturnController extends Controller
 
         return $this->modalOrRedirect(
             __('Asset return recorded.'),
-            redirect()->route('admin.assets.custody.returns.index'),
+            redirect()->route('admin.assets.custody.dashboard', ['tab' => 'returns']),
         );
     }
 }

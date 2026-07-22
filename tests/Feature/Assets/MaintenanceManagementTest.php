@@ -50,8 +50,21 @@ class MaintenanceManagementTest extends TestCase
         ]);
 
         $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
             ->get(route('admin.assets.maintenance.dashboard'))
             ->assertForbidden();
+    }
+
+    public function test_maintenance_hub_renders_for_authorized_user(): void
+    {
+        $user = $this->maintenanceManager();
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.assets.maintenance.dashboard'))
+            ->assertOk()
+            ->assertSee(__('Maintenance Operations'), false)
+            ->assertSee(__('Work Orders'), false);
     }
 
     public function test_work_order_creation_and_numbering(): void
@@ -103,7 +116,7 @@ class MaintenanceManagementTest extends TestCase
                 'frequency_type' => MaintenanceFrequencyType::Monthly->value,
                 'frequency_value' => 1,
             ])
-            ->assertRedirect(route('admin.assets.maintenance.plans.index'));
+            ->assertRedirect(route('admin.assets.maintenance.dashboard', ['tab' => 'plans']));
 
         $plan = MaintenancePlan::query()->first();
         $this->assertNotNull($plan);
@@ -237,9 +250,10 @@ class MaintenanceManagementTest extends TestCase
             'status' => MaintenanceWorkOrderStatus::Open,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.assets.maintenance.work-orders.show', $foreignOrder))
-            ->assertForbidden();
+        $response = $this->actingAs($user)
+            ->get(route('admin.assets.maintenance.work-orders.show', $foreignOrder));
+
+        $this->assertTrue(in_array($response->status(), [403, 404], true));
     }
 
     public function test_branch_isolation_on_work_order_listing(): void
@@ -262,7 +276,8 @@ class MaintenanceManagementTest extends TestCase
         session(['active_branch_id' => $branchB->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.assets.maintenance.work-orders.index'))
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.assets.maintenance.dashboard', ['tab' => 'work-orders']))
             ->assertOk()
             ->assertSee('MWO-B-001', false)
             ->assertDontSee('MWO-A-001', false);

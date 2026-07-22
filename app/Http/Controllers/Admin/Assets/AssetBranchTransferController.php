@@ -20,33 +20,14 @@ class AssetBranchTransferController extends Controller
         protected AssetBranchTransferService $transfers,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', AssetBranchTransfer::class);
 
-        $companyId = (int) tenant()->companyId();
-        $branchId = tenant()->branchId();
-
-        $transfers = AssetBranchTransfer::query()
-            ->where('company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where(function ($b) use ($branchId) {
-                $b->where('from_branch_id', $branchId)->orWhere('to_branch_id', $branchId);
-            }))
-            ->with([
-                'asset:id,asset_name,asset_number',
-                'fromBranch:id,name',
-                'toBranch:id,name',
-                'requester:id,name',
-            ])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->latest('requested_at')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('admin.assets.custody.transfers.index', [
-            'transfers' => $transfers,
-            'statuses' => AssetBranchTransferStatus::cases(),
-        ]);
+        return redirect()->route('admin.assets.custody.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'transfers'],
+        ));
     }
 
     public function create(): View

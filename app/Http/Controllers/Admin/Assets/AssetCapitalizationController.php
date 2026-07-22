@@ -98,7 +98,7 @@ class AssetCapitalizationController extends Controller
         );
 
         return redirect()
-            ->route('admin.assets.acquisitions.queue')
+            ->to(\App\Support\Navigation\WorkspaceEmbed::url(route('admin.assets.acquisitions.dashboard', \App\Support\Navigation\WorkspaceEmbed::queryParams(['tab' => 'queue']))))
             ->with('status', __(':count asset(s) capitalized.', ['count' => count($assets)]));
     }
 

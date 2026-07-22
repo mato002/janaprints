@@ -24,7 +24,7 @@ class AssetDashboardService
     {
         $cacheKey = $branchId ? "{$companyId}:{$branchId}" : "{$companyId}:all";
 
-        return $this->cache->remember('assets_dashboard', $cacheKey, function () use ($companyId, $branchId) {
+        $cached = $this->cache->remember('assets_dashboard', $cacheKey, function () use ($companyId, $branchId) {
             $base = FixedAsset::query()
                 ->where('company_id', $companyId)
                 ->whereNull('archived_at')
@@ -45,8 +45,6 @@ class AssetDashboardService
                 'by_category' => $this->byCategory($companyId, $branchId),
                 'by_branch' => $this->byBranch($companyId, $branchId),
                 'by_status' => $this->byStatus($companyId, $branchId),
-                'recently_added' => $this->recentlyAdded($companyId, $branchId),
-                'recently_assigned' => $this->recentlyAssigned($companyId, $branchId),
                 'maintenance' => [
                     'open_work_orders' => $maintStats['open_work_orders'] ?? 0,
                     'critical_failures' => $maintStats['critical_failures'] ?? 0,
@@ -54,12 +52,17 @@ class AssetDashboardService
                 ],
             ];
         }, config('platform.cache.dashboard', 60));
+
+        return array_merge($cached, [
+            'recently_added' => $this->recentlyAdded($companyId, $branchId),
+            'recently_assigned' => $this->recentlyAssigned($companyId, $branchId),
+        ]);
     }
 
     /**
-     * @return Collection<int, object>
+     * @return list<array{id: int, name: string, assets_count: int}>
      */
-    protected function byCategory(int $companyId, ?int $branchId): Collection
+    protected function byCategory(int $companyId, ?int $branchId): array
     {
         return AssetCategory::query()
             ->where('company_id', $companyId)
@@ -70,16 +73,22 @@ class AssetDashboardService
             ])
             ->orderByDesc('assets_count')
             ->limit(12)
-            ->get(['id', 'name']);
+            ->get(['id', 'name'])
+            ->map(fn (AssetCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->name,
+                'assets_count' => (int) $category->assets_count,
+            ])
+            ->all();
     }
 
     /**
-     * @return Collection<int, object>
+     * @return list<array{id: int, name: string, fixed_assets_count: int}>
      */
-    protected function byBranch(int $companyId, ?int $branchId): Collection
+    protected function byBranch(int $companyId, ?int $branchId): array
     {
         if ($branchId) {
-            return collect();
+            return [];
         }
 
         return Branch::query()
@@ -87,7 +96,13 @@ class AssetDashboardService
             ->withCount(['fixedAssets' => fn ($q) => $q->whereNull('archived_at')])
             ->orderByDesc('fixed_assets_count')
             ->limit(12)
-            ->get(['id', 'name']);
+            ->get(['id', 'name'])
+            ->map(fn (Branch $branch) => [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'fixed_assets_count' => (int) $branch->fixed_assets_count,
+            ])
+            ->all();
     }
 
     /**

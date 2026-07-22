@@ -56,7 +56,7 @@ class AssetRegisterFoundationTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.assets.index'))
+            ->getAssetManagement()
             ->assertForbidden();
     }
 
@@ -73,12 +73,30 @@ class AssetRegisterFoundationTest extends TestCase
             ->assertSee(__('Register asset'), false);
     }
 
+    public function test_asset_management_workspace_combines_register_categories_and_kpis(): void
+    {
+        $user = $this->companyAdmin();
+        $category = $this->makeCategory(['name' => 'Production Machines']);
+        $this->makeAsset($category, ['asset_name' => 'Heidelberg SM74']);
+
+        $this->actingAs($user)
+            ->getAssetManagement()
+            ->assertOk()
+            ->assertSee(__('Asset Management'), false)
+            ->assertSee(__('Total Assets'), false)
+            ->assertSee(__('Asset Categories'), false)
+            ->assertSee(__('Asset Register'), false)
+            ->assertSee('Production Machines', false)
+            ->assertSee('Heidelberg SM74', false);
+    }
+
     public function test_asset_register_index_links_open_create_in_modal(): void
     {
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
-            ->get(route('admin.assets.index'))
+            ->followingRedirects()
+            ->get(route('admin.workspaces.assets'))
             ->assertOk()
             ->assertSee('data-erp-modal-open', false)
             ->assertSee(route('admin.assets.create'), false);
@@ -150,14 +168,14 @@ class AssetRegisterFoundationTest extends TestCase
     {
         $user = $this->companyAdmin();
         $category = $this->makeCategory();
-        $this->makeAsset($category, ['status' => FixedAssetStatus::Active]);
+        $this->makeAsset($category, ['status' => FixedAssetStatus::Active, 'asset_name' => 'Active Only Asset']);
         $this->makeAsset($category, ['status' => FixedAssetStatus::Idle, 'asset_name' => 'Idle Asset']);
 
         $this->actingAs($user)
-            ->get(route('admin.assets.index', ['status' => FixedAssetStatus::Idle->value]))
+            ->getAssetManagement(['status' => FixedAssetStatus::Idle->value])
             ->assertOk()
             ->assertSee('Idle Asset', false)
-            ->assertDontSee('HP Indigo', false);
+            ->assertSee('Showing 1–1 of 1', false);
     }
 
     public function test_category_crud_and_archive(): void
@@ -225,7 +243,7 @@ class AssetRegisterFoundationTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.assets.show', $foreignAsset))
-            ->assertForbidden();
+            ->assertNotFound();
     }
 
     public function test_branch_context_limits_register_listing(): void
@@ -247,10 +265,16 @@ class AssetRegisterFoundationTest extends TestCase
         session(['active_branch_id' => $branchB->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.assets.index'))
+            ->getAssetManagement()
             ->assertOk()
             ->assertSee('Branch B Asset', false)
             ->assertDontSee('Branch A Asset', false);
+    }
+
+    protected function getAssetManagement(array $query = [])
+    {
+        return $this->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.assets.index', array_merge(['embedded' => '1'], $query)));
     }
 
     protected function companyAdmin(): User
@@ -265,9 +289,12 @@ class AssetRegisterFoundationTest extends TestCase
         return $user;
     }
 
-    protected function makeCategory(): AssetCategory
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    protected function makeCategory(array $overrides = []): AssetCategory
     {
-        return AssetCategory::query()->create([
+        return AssetCategory::query()->create(array_merge([
             'company_id' => Company::query()->first()->id,
             'name' => 'Printers',
             'code' => 'PRN',
@@ -276,7 +303,7 @@ class AssetRegisterFoundationTest extends TestCase
             'useful_life_years' => 5,
             'default_gl_code' => '1520',
             'is_active' => true,
-        ]);
+        ], $overrides));
     }
 
     /**

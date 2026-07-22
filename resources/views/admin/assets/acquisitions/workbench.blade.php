@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Capitalization Workbench')" :breadcrumbs="[['label' => __('Capitalization Queue'), 'url' => route('admin.assets.acquisitions.queue')], ['label' => $candidate->candidate_number]]">
+<x-admin-layout :title="__('Capitalization Workbench')" :breadcrumbs="[['label' => __('Acquisitions'), 'url' => route('admin.assets.acquisitions.dashboard', ['tab' => 'queue'])], ['label' => $candidate->candidate_number]]">
     <x-admin.page-header :title="__('Capitalization Workbench')" :description="__('Review and create fixed assets from procurement receipt.')" />
 
     @if ($requiresApproval && ! $candidate->approved_at)
@@ -93,7 +93,7 @@
                 </div>
                 <div class="flex gap-2">
                     <button type="submit" class="erp-btn-primary">{{ __('Capitalize Assets') }}</button>
-                    <a href="{{ route('admin.assets.acquisitions.queue') }}" class="erp-btn-secondary">{{ __('Back') }}</a>
+                    <a href="{{ route('admin.assets.acquisitions.dashboard', ['tab' => 'queue']) }}" class="erp-btn-secondary">{{ __('Back') }}</a>
                 </div>
             </form>
         </x-admin.card>

@@ -7,7 +7,7 @@
     :title="$header['asset_number'].' — '.__('Asset 360')"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Asset Register'), 'url' => route('admin.assets.index')],
+        ['label' => __('Asset Management'), 'url' => route('admin.assets.index')],
         ['label' => $header['asset_number'], 'url' => route('admin.assets.show', $asset)],
         ['label' => __('Asset 360')],
     ]"

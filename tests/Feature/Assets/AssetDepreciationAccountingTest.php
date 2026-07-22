@@ -58,6 +58,7 @@ class AssetDepreciationAccountingTest extends TestCase
         ]);
 
         $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
             ->get(route('admin.assets.finance.dashboard'))
             ->assertForbidden();
     }

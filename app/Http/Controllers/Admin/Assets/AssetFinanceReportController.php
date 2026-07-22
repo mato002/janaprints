@@ -4,47 +4,18 @@ namespace App\Http\Controllers\Admin\Assets;
 
 use App\Http\Controllers\Controller;
 use App\Models\Assets\DepreciationRun;
-use App\Services\Assets\AssetFinanceReportService;
-use App\Services\Assets\AssetReplacementService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
 
 class AssetFinanceReportController extends Controller
 {
-    public function __construct(
-        protected AssetFinanceReportService $reports,
-        protected AssetReplacementService $replacement,
-    ) {}
-
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', DepreciationRun::class);
 
-        $report = $request->string('report', 'register')->toString();
-        $companyId = (int) tenant()->companyId();
-        $filters = array_filter([
-            'branch_id' => tenant()->branchId(),
-            'category_id' => $request->integer('category_id') ?: null,
-            'from' => $request->string('from')->toString() ?: null,
-            'to' => $request->string('to')->toString() ?: null,
-        ]);
-
-        $data = match ($report) {
-            'valuation' => $this->reports->valuationReport($companyId, $filters),
-            'depreciation_schedule' => $this->reports->depreciationSchedule($companyId, $filters),
-            'fully_depreciated' => $this->reports->fullyDepreciated($companyId, tenant()->branchId()),
-            'near_end_of_life' => $this->reports->nearEndOfLife($companyId, tenant()->branchId()),
-            'maintenance' => $this->reports->maintenanceReport($companyId, $filters),
-            'custody' => $this->reports->custodyReport($companyId, $filters),
-            'warranty_expiry' => $this->reports->warrantyExpiryReport($companyId, $filters),
-            'replacement' => $this->replacement->candidates($companyId, tenant()->branchId(), 100),
-            default => $this->reports->registerReport($companyId, $filters),
-        };
-
-        return view('admin.assets.finance.reports.index', [
-            'report' => $report,
-            'data' => $data,
-            'filters' => $filters,
-        ]);
+        return redirect()->route('admin.assets.finance.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'reports'],
+        ));
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Assets;
 
-use App\Enums\AssetHandoverStatus;
 use App\Enums\AssetPhysicalCondition;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\AssetHandover;
@@ -21,32 +20,14 @@ class AssetHandoverController extends Controller
         protected AssetHandoverService $handovers,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', AssetHandover::class);
 
-        $companyId = (int) tenant()->companyId();
-        $branchId = tenant()->branchId();
-
-        $handovers = AssetHandover::query()
-            ->where('company_id', $companyId)
-            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-            ->with([
-                'asset:id,asset_name,asset_number',
-                'fromEmployee:id,first_name,last_name',
-                'toEmployee:id,first_name,last_name',
-                'fromBranch:id,name',
-                'toBranch:id,name',
-            ])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->latest('handover_date')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('admin.assets.custody.handovers.index', [
-            'handovers' => $handovers,
-            'statuses' => AssetHandoverStatus::cases(),
-        ]);
+        return redirect()->route('admin.assets.custody.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'handovers'],
+        ));
     }
 
     public function create(): View

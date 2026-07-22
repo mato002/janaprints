@@ -23,7 +23,7 @@
             <h3 class="mb-3 text-sm font-semibold">{{ __('Assets By Category') }}</h3>
             <ul class="space-y-2 text-sm">
                 @forelse ($stats['by_category'] as $row)
-                    <li class="flex justify-between"><span>{{ $row->name }}</span><span class="font-medium">{{ $row->assets_count }}</span></li>
+                    <li class="flex justify-between"><span>{{ $row['name'] ?? $row->name }}</span><span class="font-medium">{{ $row['assets_count'] ?? $row->assets_count }}</span></li>
                 @empty
                     <li class="text-slate-500">{{ __('No categories yet.') }}</li>
                 @endforelse
@@ -41,12 +41,12 @@
             </ul>
         </x-admin.card>
 
-        @if ($stats['by_branch']->isNotEmpty())
+        @if (count($stats['by_branch']) > 0)
             <x-admin.card>
                 <h3 class="mb-3 text-sm font-semibold">{{ __('Assets By Branch') }}</h3>
                 <ul class="space-y-2 text-sm">
                     @foreach ($stats['by_branch'] as $row)
-                        <li class="flex justify-between"><span>{{ $row->name }}</span><span class="font-medium">{{ $row->fixed_assets_count }}</span></li>
+                        <li class="flex justify-between"><span>{{ $row['name'] ?? $row->name }}</span><span class="font-medium">{{ $row['fixed_assets_count'] ?? $row->fixed_assets_count }}</span></li>
                     @endforeach
                 </ul>
             </x-admin.card>

@@ -14,19 +14,11 @@ class AssetReconciliationController extends Controller
         protected AssetReconciliationService $reconciliation,
     ) {}
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', AssetRegisterReconciliation::class);
 
-        $reconciliations = AssetRegisterReconciliation::query()
-            ->where('company_id', tenant()->companyId())
-            ->with('reconciler:id,name')
-            ->latest('reconciliation_date')
-            ->paginate(20);
-
-        return view('admin.assets.finance.reconciliation.index', [
-            'reconciliations' => $reconciliations,
-        ]);
+        return redirect()->route('admin.assets.finance.dashboard', ['tab' => 'reconciliation']);
     }
 
     public function store(): RedirectResponse

@@ -2,11 +2,9 @@
 
 namespace App\Http\Controllers\Admin\Assets;
 
-use App\Enums\AssetAssignmentStatus;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\AssetHandover;
-use App\Models\Assets\AssetAssignmentHistory;
 use App\Models\Assets\FixedAsset;
 use App\Models\Department;
 use App\Models\Employee;
@@ -24,35 +22,14 @@ class AssetCustodyAssignmentController extends Controller
         protected AssetCustodyAssignmentService $assignments,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', AssetHandover::class);
 
-        $companyId = (int) tenant()->companyId();
-        $branchId = tenant()->branchId();
-
-        $assignments = AssetAssignmentHistory::query()
-            ->whereHas('asset', function ($q) use ($companyId, $branchId) {
-                $q->where('company_id', $companyId)
-                    ->when($branchId, fn ($b) => $b->where('branch_id', $branchId));
-            })
-            ->with([
-                'asset:id,asset_name,asset_number,branch_id',
-                'assignedUser:id,name',
-                'assignedBranch:id,name',
-                'assignedEmployee:id,first_name,last_name',
-                'assignedDepartment:id,name',
-                'assigner:id,name',
-            ])
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->latest('assigned_at')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('admin.assets.custody.assignments.index', [
-            'assignments' => $assignments,
-            'statuses' => AssetAssignmentStatus::cases(),
-        ]);
+        return redirect()->route('admin.assets.custody.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'assignments'],
+        ));
     }
 
     public function create(): View
@@ -87,7 +64,7 @@ class AssetCustodyAssignmentController extends Controller
 
         return $this->modalOrRedirect(
             __('Asset assignment recorded.'),
-            redirect()->route('admin.assets.custody.assignments.index'),
+            redirect()->route('admin.assets.custody.dashboard', ['tab' => 'assignments']),
         );
     }
 

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Assets;
 
-use App\Enums\DepreciationRunStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\DepreciationRun;
 use App\Services\Assets\DepreciationRunService;
@@ -16,23 +15,14 @@ class DepreciationRunController extends Controller
         protected DepreciationRunService $runs,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', DepreciationRun::class);
 
-        $runs = DepreciationRun::query()
-            ->where('company_id', tenant()->companyId())
-            ->when(tenant()->branchId(), fn ($q) => $q->where('branch_id', tenant()->branchId()))
-            ->with('executor:id,name')
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')))
-            ->latest('run_date')
-            ->paginate(20)
-            ->withQueryString();
-
-        return view('admin.assets.finance.runs.index', [
-            'runs' => $runs,
-            'statuses' => DepreciationRunStatus::cases(),
-        ]);
+        return redirect()->route('admin.assets.finance.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'runs'],
+        ));
     }
 
     public function create(): View

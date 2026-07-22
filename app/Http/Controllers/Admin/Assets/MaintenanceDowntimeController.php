@@ -14,20 +14,14 @@ use App\Services\Assets\MaintenanceDowntimeService;
 
 class MaintenanceDowntimeController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', AssetDowntimeRecord::class);
 
-        $records = AssetDowntimeRecord::query()
-            ->forTenant()
-            ->with(['asset:id,asset_name,asset_number', 'workOrder:id,work_order_no'])
-            ->latest('start_time')
-            ->paginate(config('platform.pagination.default', 15))
-            ->withQueryString();
-
-        return view('admin.assets.maintenance.downtime.index', [
-            'records' => $records,
-        ]);
+        return redirect()->route('admin.assets.maintenance.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'downtime'],
+        ));
     }
 
     public function store(Request $request, MaintenanceDowntimeService $downtime): RedirectResponse

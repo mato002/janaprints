@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('New Depreciation Run')" :breadcrumbs="[['label' => __('Depreciation Runs'), 'url' => route('admin.assets.finance.runs.index')], ['label' => __('New')]]">
+<x-admin-layout :title="__('New Depreciation Run')" :breadcrumbs="[['label' => __('Finance'), 'url' => route('admin.assets.finance.dashboard', ['tab' => 'runs'])], ['label' => __('New')]]">
     <x-admin.page-header :title="__('Create Depreciation Run')" />
 
     <x-admin.alert variant="warning" class="mb-4">

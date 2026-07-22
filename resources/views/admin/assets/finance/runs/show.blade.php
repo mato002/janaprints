@@ -1,4 +1,4 @@
-<x-admin-layout :title="$run->run_number" :breadcrumbs="[['label' => __('Depreciation Runs'), 'url' => route('admin.assets.finance.runs.index')], ['label' => $run->run_number]]">
+<x-admin-layout :title="$run->run_number" :breadcrumbs="[['label' => __('Finance'), 'url' => route('admin.assets.finance.dashboard', ['tab' => 'runs'])], ['label' => $run->run_number]]">
     <x-admin.page-header :title="$run->run_number" :description="__('Period :period', ['period' => $run->period])">
         <x-slot name="actions">
             <x-admin.status-badge :variant="$run->status->badgeVariant()">{{ $run->status->label() }}</x-admin.status-badge>

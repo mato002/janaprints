@@ -27,11 +27,14 @@ class MaintenanceWorkOrderController extends Controller
         protected MaintenanceNotificationService $notifications,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', MaintenanceWorkOrder::class);
 
-        return view('admin.assets.maintenance.work-orders.index', $this->index->build($request));
+        return redirect()->route('admin.assets.maintenance.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'work-orders'],
+        ));
     }
 
     public function create(): View

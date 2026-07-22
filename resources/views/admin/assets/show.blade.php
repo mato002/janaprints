@@ -2,7 +2,7 @@
     :title="$asset->asset_number"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Asset Register'), 'url' => route('admin.assets.index')],
+        ['label' => __('Asset Management'), 'url' => route('admin.assets.index')],
         ['label' => $asset->asset_number],
     ]"
 >
@@ -135,7 +135,7 @@
                     <h3 class="text-sm font-semibold text-slate-900">{{ __('Maintenance Timeline') }}</h3>
                     @can('maintenance.view')
                         @if (Route::has('admin.assets.maintenance.work-orders.index'))
-                            <a href="{{ route('admin.assets.maintenance.work-orders.index', ['search' => $asset->asset_number]) }}" class="text-xs text-erp-accent hover:underline">{{ __('Work Orders') }}</a>
+                            <a href="{{ route('admin.assets.maintenance.dashboard', ['tab' => 'work-orders', 'search' => $asset->asset_number]) }}" class="text-xs text-erp-accent hover:underline">{{ __('Work Orders') }}</a>
                         @endif
                     @endcan
                 </div>

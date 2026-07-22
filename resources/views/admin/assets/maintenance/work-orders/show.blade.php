@@ -1,4 +1,4 @@
-<x-admin-layout :title="$workOrder->work_order_no" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Work Orders'), 'url' => route('admin.assets.maintenance.work-orders.index')], ['label' => $workOrder->work_order_no]]">
+<x-admin-layout :title="$workOrder->work_order_no" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Maintenance'), 'url' => route('admin.assets.maintenance.dashboard', ['tab' => 'work-orders'])], ['label' => $workOrder->work_order_no]]">
     <x-admin.page-header :title="$workOrder->work_order_no" :description="$workOrder->asset?->asset_name">
         <x-slot name="actions">
             <x-admin.status-badge :variant="$workOrder->priority->badgeVariant()">{{ $workOrder->priority->label() }}</x-admin.status-badge>

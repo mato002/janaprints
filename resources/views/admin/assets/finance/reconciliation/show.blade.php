@@ -1,4 +1,4 @@
-<x-admin-layout :title="$reconciliation->reconciliation_no" :breadcrumbs="[['label' => __('Reconciliation'), 'url' => route('admin.assets.finance.reconciliation.index')], ['label' => $reconciliation->reconciliation_no]]">
+<x-admin-layout :title="$reconciliation->reconciliation_no" :breadcrumbs="[['label' => __('Finance'), 'url' => route('admin.assets.finance.dashboard', ['tab' => 'reconciliation'])], ['label' => $reconciliation->reconciliation_no]]">
     <x-admin.page-header :title="$reconciliation->reconciliation_no">
         <x-slot name="actions"><x-admin.status-badge :variant="$reconciliation->status->badgeVariant()">{{ $reconciliation->status->label() }}</x-admin.status-badge></x-slot>
     </x-admin.page-header>

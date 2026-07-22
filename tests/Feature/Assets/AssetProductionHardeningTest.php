@@ -78,7 +78,7 @@ class AssetProductionHardeningTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('admin.assets.depreciate', $asset), ['period_date' => now()->toDateString()])
-            ->assertRedirect(route('admin.assets.finance.runs.index'));
+            ->assertRedirect(route('admin.assets.finance.dashboard', ['tab' => 'runs']));
     }
 
     public function test_depreciation_respects_start_date(): void

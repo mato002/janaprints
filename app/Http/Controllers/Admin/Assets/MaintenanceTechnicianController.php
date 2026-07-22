@@ -15,20 +15,14 @@ use Illuminate\View\View;
 
 class MaintenanceTechnicianController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', MaintenanceTechnician::class);
 
-        $technicians = MaintenanceTechnician::query()
-            ->forTenant()
-            ->with(['vendor:id,vendor_name', 'user:id,name'])
-            ->withCount('assignedWorkOrders')
-            ->orderBy('name')
-            ->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.assets.maintenance.technicians.index', [
-            'technicians' => $technicians,
-        ]);
+        return redirect()->route('admin.assets.maintenance.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'technicians'],
+        ));
     }
 
     public function store(Request $request): RedirectResponse
@@ -58,6 +52,8 @@ class MaintenanceTechnicianController extends Controller
             'status' => MaintenanceTechnicianStatus::Active,
         ]);
 
-        return back()->with('status', __('Technician registered.'));
+        return redirect()
+            ->route('admin.assets.maintenance.dashboard', ['tab' => 'technicians'])
+            ->with('status', __('Technician registered.'));
     }
 }

@@ -1,4 +1,4 @@
-<x-admin-layout :title="$transfer->transfer_no" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Branch Transfers'), 'url' => route('admin.assets.custody.transfers.index')], ['label' => $transfer->transfer_no]]">
+<x-admin-layout :title="$transfer->transfer_no" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Custody'), 'url' => route('admin.assets.custody.dashboard', ['tab' => 'transfers'])], ['label' => $transfer->transfer_no]]">
     <x-admin.page-header :title="$transfer->transfer_no" :description="$transfer->asset?->asset_name">
         <x-slot name="actions">
             <x-admin.status-badge :variant="$transfer->status->badgeVariant()">{{ $transfer->status->label() }}</x-admin.status-badge>

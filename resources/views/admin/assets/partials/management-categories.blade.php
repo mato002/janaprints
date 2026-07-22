@@ -71,5 +71,9 @@
                 </tbody>
             </table>
         </div>
+
+        <div class="border-t border-erp-border bg-white">
+            <x-admin.table-pagination :paginator="$categories" />
+        </div>
     </x-admin.card>
 @endif

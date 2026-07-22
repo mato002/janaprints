@@ -3,10 +3,9 @@
 namespace App\Services\Assets;
 
 use App\Models\Assets\AssetCategory;
-use App\Models\Assets\FixedAsset;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 class AssetManagementWorkspaceService
 {
@@ -25,7 +24,7 @@ class AssetManagementWorkspaceService
             $this->register->build($request, $user),
             [
                 'stats' => $this->dashboard->build($companyId, $branchId),
-                'categories' => $this->categories($user),
+                'categories' => $this->categories($request, $user),
                 'can_manage_categories' => $user?->can('create', AssetCategory::class) ?? false,
                 'can_view_categories' => $user?->can('viewAny', AssetCategory::class) ?? false,
             ],
@@ -33,12 +32,16 @@ class AssetManagementWorkspaceService
     }
 
     /**
-     * @return Collection<int, AssetCategory>
+     * @return LengthAwarePaginator<int, AssetCategory>
      */
-    protected function categories(?User $user): Collection
+    protected function categories(Request $request, ?User $user): LengthAwarePaginator
     {
         if (! $user?->can('viewAny', AssetCategory::class)) {
-            return collect();
+            return AssetCategory::query()->whereRaw('0 = 1')->paginate(
+                config('platform.pagination.table', 10),
+                ['*'],
+                'category_page',
+            );
         }
 
         return AssetCategory::query()
@@ -46,6 +49,11 @@ class AssetManagementWorkspaceService
             ->notArchived()
             ->withCount('assets')
             ->orderBy('name')
-            ->get();
+            ->paginate(
+                config('platform.pagination.table', 10),
+                ['*'],
+                'category_page',
+            )
+            ->withQueryString();
     }
 }

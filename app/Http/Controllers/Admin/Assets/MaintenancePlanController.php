@@ -18,23 +18,14 @@ class MaintenancePlanController extends Controller
         protected MaintenancePlanService $plans,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', MaintenancePlan::class);
 
-        $plans = MaintenancePlan::query()
-            ->forTenant()
-            ->with(['asset:id,asset_name,asset_number'])
-            ->when($request->query('active'), fn ($q, $v) => $q->where('is_active', $v === '1'))
-            ->orderBy('next_due_date')
-            ->paginate(config('platform.pagination.default', 15))
-            ->withQueryString();
-
-        return view('admin.assets.maintenance.plans.index', [
-            'plans' => $plans,
-            'upcoming' => $this->plans->upcomingSchedules((int) tenant()->companyId(), tenant()->branchId()),
-            'overdue' => $this->plans->overdue((int) tenant()->companyId(), tenant()->branchId()),
-        ]);
+        return redirect()->route('admin.assets.maintenance.dashboard', array_merge(
+            $request->query(),
+            ['tab' => 'plans'],
+        ));
     }
 
     public function create(): View
@@ -63,7 +54,7 @@ class MaintenancePlanController extends Controller
         $this->plans->create($validated, (int) tenant()->companyId(), tenant()->branchId());
 
         return redirect()
-            ->route('admin.assets.maintenance.plans.index')
+            ->route('admin.assets.maintenance.dashboard', ['tab' => 'plans'])
             ->with('status', __('Maintenance plan created.'));
     }
 }

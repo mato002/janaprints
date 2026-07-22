@@ -8,32 +8,30 @@ use App\Http\Controllers\Admin\Assets\FixedAssetAcquisitionController;
 use App\Http\Controllers\Admin\Assets\FixedAssetController;
 use App\Http\Controllers\Admin\Assets\MachineController;
 use App\Http\Controllers\Admin\Assets\MaintenanceCalendarController;
-use App\Http\Controllers\Admin\Assets\MaintenanceDashboardController;
 use App\Http\Controllers\Admin\Assets\MaintenanceDowntimeController;
 use App\Http\Controllers\Admin\Assets\MaintenancePlanController;
 use App\Http\Controllers\Admin\Assets\MaintenanceTechnicianController;
 use App\Http\Controllers\Admin\Assets\MaintenanceWorkOrderController;
+use App\Http\Controllers\Admin\Assets\MaintenanceWorkspaceController;
 use App\Http\Controllers\Admin\Assets\AssetBranchTransferController;
 use App\Http\Controllers\Admin\Assets\AssetCustodyAssignmentController;
-use App\Http\Controllers\Admin\Assets\AssetCustodyDashboardController;
+use App\Http\Controllers\Admin\Assets\CustodyWorkspaceController;
 use App\Http\Controllers\Admin\Assets\AssetHandoverController;
 use App\Http\Controllers\Admin\Assets\AssetReturnController;
-use App\Http\Controllers\Admin\Assets\AssetFinanceDashboardController;
+use App\Http\Controllers\Admin\Assets\FinanceWorkspaceController;
 use App\Http\Controllers\Admin\Assets\AssetFinanceReportController;
 use App\Http\Controllers\Admin\Assets\AssetReconciliationController;
 use App\Http\Controllers\Admin\Assets\AssetWriteOffController;
 use App\Http\Controllers\Admin\Assets\DepreciationEntryController;
 use App\Http\Controllers\Admin\Assets\DepreciationRunController;
 use App\Http\Controllers\Admin\Assets\FixedAssetFinancialController;
-use App\Http\Controllers\Admin\Assets\AssetAcquisitionDashboardController;
 use App\Http\Controllers\Admin\Assets\AssetCapitalizationController;
 use App\Http\Controllers\Admin\Assets\AssetCapitalizationRecoveryController;
 use App\Http\Controllers\Admin\Assets\AssetCapitalizationReconciliationController;
 use App\Http\Controllers\Admin\Assets\AssetWarrantyController;
+use App\Http\Controllers\Admin\Assets\AcquisitionsWorkspaceController;
+use App\Http\Controllers\Admin\Assets\AssetIntelligenceWorkspaceController;
 use App\Http\Controllers\Admin\Assets\Asset360Controller;
-use App\Http\Controllers\Admin\Assets\AssetExecutiveDashboardController;
-use App\Http\Controllers\Admin\Assets\AssetBranchIntelligenceController;
-use App\Http\Controllers\Admin\Assets\AssetAnalyticsController;
 use App\Http\Controllers\Admin\Assets\AssetDocumentController;
 use Illuminate\Support\Facades\Route;
 
@@ -125,7 +123,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:maintenance.view')->group(function () {
-                Route::get('/', MaintenanceDashboardController::class)->name('dashboard');
+                Route::get('/', MaintenanceWorkspaceController::class)->name('dashboard');
                 Route::get('work-orders', [MaintenanceWorkOrderController::class, 'index'])->name('work-orders.index');
                 Route::get('work-orders/{workOrder}', [MaintenanceWorkOrderController::class, 'show'])->name('work-orders.show');
                 Route::get('plans', [MaintenancePlanController::class, 'index'])->name('plans.index');
@@ -175,7 +173,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.custody.view')->group(function () {
-                Route::get('/', AssetCustodyDashboardController::class)->name('dashboard');
+                Route::get('/', CustodyWorkspaceController::class)->name('dashboard');
                 Route::get('assignments', [AssetCustodyAssignmentController::class, 'index'])->name('assignments.index');
                 Route::get('handovers', [AssetHandoverController::class, 'index'])->name('handovers.index');
                 Route::get('handovers/{handover}', [AssetHandoverController::class, 'show'])->name('handovers.show');
@@ -207,21 +205,22 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::prefix('intelligence')->name('intelligence.')->group(function () {
             Route::middleware('permission:assets.analytics.view')->group(function () {
-                Route::get('executive', AssetExecutiveDashboardController::class)->name('executive');
-                Route::get('branch', AssetBranchIntelligenceController::class)->name('branch');
-                Route::get('analytics', AssetAnalyticsController::class)->name('analytics');
+                Route::get('/', AssetIntelligenceWorkspaceController::class)->name('dashboard');
+                Route::get('executive', fn () => redirect()->route('admin.assets.intelligence.dashboard', array_merge(request()->query(), ['tab' => 'overview'])))->name('executive');
+                Route::get('branch', fn () => redirect()->route('admin.assets.intelligence.dashboard', array_merge(request()->query(), ['tab' => 'branch'])))->name('branch');
+                Route::get('analytics', fn () => redirect()->route('admin.assets.intelligence.dashboard', array_merge(request()->query(), ['tab' => 'analytics'])))->name('analytics');
             });
         });
 
         Route::prefix('acquisitions')->name('acquisitions.')->group(function () {
             Route::middleware('permission:assets.acquisition.view')->group(function () {
-                Route::get('/', AssetAcquisitionDashboardController::class)->name('dashboard');
-                Route::get('queue', [AssetCapitalizationController::class, 'index'])->name('queue');
+                Route::get('/', AcquisitionsWorkspaceController::class)->name('dashboard');
+                Route::get('queue', fn () => redirect()->route('admin.assets.acquisitions.dashboard', array_merge(request()->query(), ['tab' => 'queue'])))->name('queue');
                 Route::get('recovery', [AssetCapitalizationRecoveryController::class, 'index'])->name('recovery.index');
                 Route::get('recovery/{asset}/error', [AssetCapitalizationRecoveryController::class, 'error'])->name('recovery.error');
                 Route::get('recovery/{asset}/audit', [AssetCapitalizationRecoveryController::class, 'audit'])->name('recovery.audit');
-                Route::get('warranties', [AssetWarrantyController::class, 'index'])->name('warranties');
-                Route::get('reconciliation', [AssetCapitalizationReconciliationController::class, 'index'])->name('reconciliation.index');
+                Route::get('warranties', fn () => redirect()->route('admin.assets.acquisitions.dashboard', array_merge(request()->query(), ['tab' => 'warranties'])))->name('warranties');
+                Route::get('reconciliation', fn () => redirect()->route('admin.assets.acquisitions.dashboard', array_merge(request()->query(), ['tab' => 'reconciliation'])))->name('reconciliation.index');
                 Route::get('reconciliation/{reconciliation}', [AssetCapitalizationReconciliationController::class, 'show'])->name('reconciliation.show');
             });
 
@@ -262,7 +261,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             });
 
             Route::middleware('permission:assets.depreciation.view')->group(function () {
-                Route::get('/', AssetFinanceDashboardController::class)->name('dashboard');
+                Route::get('/', FinanceWorkspaceController::class)->name('dashboard');
                 Route::get('runs', [DepreciationRunController::class, 'index'])->name('runs.index');
                 Route::get('runs/{run}', [DepreciationRunController::class, 'show'])->name('runs.show');
                 Route::get('entries', [DepreciationEntryController::class, 'index'])->name('entries.index');

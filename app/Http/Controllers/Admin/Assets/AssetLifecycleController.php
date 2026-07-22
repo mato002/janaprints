@@ -39,7 +39,7 @@ class AssetLifecycleController extends Controller
         abort_unless(auth()->user()?->can('maintenance.view'), 403);
 
         return redirect()
-            ->route('admin.assets.maintenance.work-orders.index')
+            ->route('admin.assets.maintenance.dashboard', ['tab' => 'work-orders'])
             ->with('info', __('Use Maintenance Work Orders for preventive and corrective maintenance.'));
     }
 
@@ -95,7 +95,7 @@ class AssetLifecycleController extends Controller
         abort_unless(auth()->user()?->can('assets.depreciation.post'), 403);
 
         return redirect()
-            ->route('admin.assets.finance.runs.index')
+            ->route('admin.assets.finance.dashboard', ['tab' => 'runs'])
             ->with('warning', __('Ad-hoc depreciation is disabled. Use Depreciation Runs to post depreciation safely with period controls.'));
     }
 

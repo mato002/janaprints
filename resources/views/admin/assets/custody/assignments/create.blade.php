@@ -2,7 +2,7 @@
     :title="__('New Assignment')"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Assignments'), 'url' => route('admin.assets.custody.assignments.index')],
+        ['label' => __('Custody'), 'url' => route('admin.assets.custody.dashboard', ['tab' => 'assignments'])],
         ['label' => __('New Assignment')],
     ]"
     maxWidth="3xl"

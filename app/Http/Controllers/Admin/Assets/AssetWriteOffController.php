@@ -22,19 +22,11 @@ class AssetWriteOffController extends Controller
         protected AssetWriteOffService $writeOffs,
     ) {}
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', AssetWriteOff::class);
 
-        $writeOffs = AssetWriteOff::query()
-            ->where('company_id', tenant()->companyId())
-            ->with(['asset:id,asset_number,asset_name', 'creator:id,name'])
-            ->latest('write_off_date')
-            ->paginate(20);
-
-        return view('admin.assets.finance.write-offs.index', [
-            'writeOffs' => $writeOffs,
-        ]);
+        return redirect()->route('admin.assets.finance.dashboard', ['tab' => 'write-offs']);
     }
 
     public function create(): View
@@ -69,7 +61,7 @@ class AssetWriteOffController extends Controller
 
         return $this->modalOrRedirect(
             __('Write-off request created: :no', ['no' => $writeOff->writeoff_no]),
-            redirect()->route('admin.assets.finance.write-offs.index'),
+            redirect()->route('admin.assets.finance.dashboard', ['tab' => 'write-offs']),
         );
     }
 

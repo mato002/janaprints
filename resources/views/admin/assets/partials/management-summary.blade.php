@@ -22,11 +22,11 @@
             @forelse ($stats['by_category'] as $row)
                 <li class="flex justify-between gap-2">
                     <a
-                        href="{{ WorkspaceEmbed::url(route('admin.assets.index', WorkspaceEmbed::queryParams(['category_id' => $row->id]))) }}"
+                        href="{{ WorkspaceEmbed::url(route('admin.assets.index', WorkspaceEmbed::queryParams(['category_id' => $row['id'] ?? $row->id]))) }}"
                         data-turbo-frame="{{ $turboFrame }}"
                         class="erp-link truncate"
-                    >{{ $row->name }}</a>
-                    <span class="shrink-0 font-medium tabular-nums">{{ $row->assets_count }}</span>
+                    >{{ $row['name'] ?? $row->name }}</a>
+                    <span class="shrink-0 font-medium tabular-nums">{{ $row['assets_count'] ?? $row->assets_count }}</span>
                 </li>
             @empty
                 <li class="text-slate-500">{{ __('No categories yet.') }}</li>
@@ -52,18 +52,18 @@
         </ul>
     </x-admin.card>
 
-    @if ($stats['by_branch']->isNotEmpty())
+    @if (count($stats['by_branch']) > 0)
         <x-admin.card>
             <h3 class="mb-3 text-sm font-semibold">{{ __('Assets By Branch') }}</h3>
             <ul class="space-y-2 text-sm">
                 @foreach ($stats['by_branch'] as $row)
                     <li class="flex justify-between gap-2">
                         <a
-                            href="{{ WorkspaceEmbed::url(route('admin.assets.index', WorkspaceEmbed::queryParams(['branch_id' => $row->id]))) }}"
+                            href="{{ WorkspaceEmbed::url(route('admin.assets.index', WorkspaceEmbed::queryParams(['branch_id' => $row['id'] ?? $row->id]))) }}"
                             data-turbo-frame="{{ $turboFrame }}"
                             class="erp-link truncate"
-                        >{{ $row->name }}</a>
-                        <span class="shrink-0 font-medium tabular-nums">{{ $row->fixed_assets_count }}</span>
+                        >{{ $row['name'] ?? $row->name }}</a>
+                        <span class="shrink-0 font-medium tabular-nums">{{ $row['fixed_assets_count'] ?? $row->fixed_assets_count }}</span>
                     </li>
                 @endforeach
             </ul>

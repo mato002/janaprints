@@ -57,20 +57,26 @@ class AssetFinanceDashboardService
         }, config('platform.cache.asset_finance_dashboard', 60));
     }
 
-    protected function byCategory(Collection $assets): Collection
+    /**
+     * @return list<array{category: string|null, count: int, cost: float, nbv: float}>
+     */
+    protected function byCategory(Collection $assets): array
     {
         return $assets->groupBy('asset_category_id')->map(fn ($group) => [
             'category' => $group->first()->category?->name,
             'count' => $group->count(),
             'cost' => round($group->sum('acquisition_cost'), 2),
             'nbv' => round($group->sum(fn ($a) => $a->netBookValue()), 2),
-        ])->values();
+        ])->values()->all();
     }
 
-    protected function byBranch(int $companyId, ?int $branchId): Collection
+    /**
+     * @return list<array{branch_id: int, count: int, cost: float, accumulated: float}>
+     */
+    protected function byBranch(int $companyId, ?int $branchId): array
     {
         if ($branchId) {
-            return collect();
+            return [];
         }
 
         return FixedAsset::query()
@@ -79,6 +85,13 @@ class AssetFinanceDashboardService
             ->where('status', '!=', FixedAssetStatus::Disposed->value)
             ->selectRaw('branch_id, COUNT(*) as count, SUM(acquisition_cost) as cost, SUM(accumulated_depreciation) as accumulated')
             ->groupBy('branch_id')
-            ->get();
+            ->get()
+            ->map(fn ($row) => [
+                'branch_id' => (int) $row->branch_id,
+                'count' => (int) $row->count,
+                'cost' => round((float) $row->cost, 2),
+                'accumulated' => round((float) $row->accumulated, 2),
+            ])
+            ->all();
     }
 }

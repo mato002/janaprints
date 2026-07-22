@@ -22,9 +22,9 @@ class AssetAcquisitionDashboardService
      */
     public function build(int $companyId, ?int $branchId = null): array
     {
-        $key = sprintf('asset_acquisition_dashboard:%d:%s', $companyId, $branchId ?? 'all');
+        $cacheKey = $branchId ? "{$companyId}:{$branchId}" : "{$companyId}:all";
 
-        return $this->cache->remember($key, config('platform.cache.asset_acquisition_dashboard', 120), function () use ($companyId, $branchId) {
+        $cached = $this->cache->remember('asset_acquisition_dashboard', $cacheKey, function () use ($companyId, $branchId) {
             $now = now();
             $monthStart = $now->copy()->startOfMonth();
             $yearStart = $now->copy()->startOfYear();
@@ -43,7 +43,6 @@ class AssetAcquisitionDashboardService
             $byCategory = [];
             $byVendor = [];
             $byBranch = [];
-            $recent = collect();
 
             if (AssetSchema::supportsProcurementAssets()) {
                 $procurementAssets = FixedAsset::query()
@@ -104,15 +103,6 @@ class AssetAcquisitionDashboardService
                     ])
                     ->values()
                     ->all();
-
-                $recent = FixedAsset::query()
-                    ->where('company_id', $companyId)
-                    ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                    ->where('acquisition_source', AssetAcquisitionSource::Procurement)
-                    ->with(['vendor', 'category'])
-                    ->latest('capitalization_date')
-                    ->limit(8)
-                    ->get();
             }
 
             $warrantyExpiring = AssetSchema::count('asset_warranties', fn () => AssetWarranty::query()
@@ -129,8 +119,30 @@ class AssetAcquisitionDashboardService
                 'by_vendor' => $byVendor,
                 'by_branch' => $byBranch,
                 'warranty_expiring_soon' => $warrantyExpiring,
-                'recent_acquisitions' => $recent,
             ];
-        });
+        }, config('platform.cache.asset_acquisition_dashboard', 120));
+
+        return array_merge($cached, [
+            'recent_acquisitions' => $this->recentAcquisitions($companyId, $branchId),
+        ]);
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, FixedAsset>
+     */
+    protected function recentAcquisitions(int $companyId, ?int $branchId): \Illuminate\Support\Collection
+    {
+        if (! AssetSchema::supportsProcurementAssets()) {
+            return collect();
+        }
+
+        return FixedAsset::query()
+            ->where('company_id', $companyId)
+            ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
+            ->where('acquisition_source', AssetAcquisitionSource::Procurement)
+            ->with(['vendor', 'category'])
+            ->latest('capitalization_date')
+            ->limit(8)
+            ->get();
     }
 }

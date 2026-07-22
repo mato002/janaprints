@@ -2,7 +2,7 @@
     :title="$title"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Asset Register'), 'url' => route('admin.assets.index')],
+        ['label' => __('Asset Management'), 'url' => route('admin.assets.index')],
         ['label' => $title],
     ]"
 >

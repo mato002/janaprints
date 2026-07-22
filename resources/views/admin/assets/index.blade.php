@@ -19,14 +19,16 @@
         :title="__('Asset Management')"
         :description="__('Register, categories, and KPIs in one workspace.')"
     >
-        <x-slot name="actions">
-            @if ($can_create ?? false)
-                <a href="{{ WorkspaceEmbed::url(route('admin.assets.create')) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register asset') }}</a>
-            @endif
-            @can('create', \App\Models\Assets\AssetCategory::class)
-                <a href="{{ WorkspaceEmbed::url(route('admin.assets.categories.create')) }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('New category') }}</a>
-            @endcan
-        </x-slot>
+        @unless (WorkspaceEmbed::inWorkspaceContext())
+            <x-slot name="actions">
+                @if ($can_create ?? false)
+                    <a href="{{ route('admin.assets.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register asset') }}</a>
+                @endif
+                @can('create', \App\Models\Assets\AssetCategory::class)
+                    <a href="{{ route('admin.assets.categories.create') }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('New category') }}</a>
+                @endcan
+            </x-slot>
+        @endunless
     </x-admin.page-header>
 
     @if (session('status'))
@@ -37,9 +39,18 @@
 
     @include('admin.assets.partials.management-categories')
 
-    <div class="mb-3">
-        <h2 class="text-sm font-semibold">{{ __('Asset Register') }}</h2>
-        <p class="text-xs text-slate-500">{{ __('All company assets.') }}</p>
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div>
+            <h2 class="text-sm font-semibold">{{ __('Asset Register') }}</h2>
+            <p class="text-xs text-slate-500">{{ __('All company assets.') }}</p>
+        </div>
+        @if (WorkspaceEmbed::inWorkspaceContext())
+            <div class="flex flex-wrap gap-2">
+                @if ($can_create ?? false)
+                    <a href="{{ WorkspaceEmbed::url(route('admin.assets.create')) }}" class="erp-btn-primary erp-btn--sm" data-erp-modal-open>{{ __('Register asset') }}</a>
+                @endif
+            </div>
+        @endif
     </div>
 
     <x-admin.card :padding="false" class="mb-4">

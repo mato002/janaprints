@@ -1,4 +1,4 @@
-<x-admin-layout :title="$handover->handover_no" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Handovers'), 'url' => route('admin.assets.custody.handovers.index')], ['label' => $handover->handover_no]]">
+<x-admin-layout :title="$handover->handover_no" :breadcrumbs="[['label' => __('Assets'), 'url' => route('admin.workspaces.assets')], ['label' => __('Custody'), 'url' => route('admin.assets.custody.dashboard', ['tab' => 'handovers'])], ['label' => $handover->handover_no]]">
     <x-admin.page-header :title="$handover->handover_no" :description="$handover->asset?->asset_name">
         <x-slot name="actions">
             <x-admin.status-badge :variant="$handover->status->badgeVariant()">{{ $handover->status->label() }}</x-admin.status-badge>

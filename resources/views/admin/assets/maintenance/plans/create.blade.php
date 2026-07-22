@@ -1,14 +1,39 @@
-<x-admin-layout :title="__('New Plan')" :breadcrumbs="[['label' => __('Maintenance Plans'), 'url' => route('admin.assets.maintenance.plans.index')], ['label' => __('New')]]">
-    <x-admin.page-header :title="__('New Maintenance Plan')" />
-    <x-admin.card>
-        <form method="POST" action="{{ route('admin.assets.maintenance.plans.store') }}" class="grid grid-cols-1 gap-4 sm:grid-cols-2">@csrf
-            <div class="sm:col-span-2"><label class="erp-label">{{ __('Asset') }}</label><select name="fixed_asset_id" class="erp-select w-full" required>@foreach ($assets as $asset)<option value="{{ $asset->id }}">{{ $asset->asset_name }}</option>@endforeach</select></div>
-            <div class="sm:col-span-2"><label class="erp-label">{{ __('Plan Name') }}</label><input type="text" name="plan_name" class="erp-input w-full" required></div>
-            <div><label class="erp-label">{{ __('Frequency') }}</label><select name="frequency_type" class="erp-select w-full" required>@foreach ($frequencies as $f)<option value="{{ $f->value }}">{{ $f->label() }}</option>@endforeach</select></div>
-            <div><label class="erp-label">{{ __('Frequency Value') }}</label><input type="number" name="frequency_value" class="erp-input w-full" value="1" min="1" required></div>
-            <div><label class="erp-label">{{ __('Next Due Date') }}</label><input type="date" name="next_due_date" class="erp-input w-full"></div>
-            <div class="sm:col-span-2"><label class="erp-label">{{ __('Description') }}</label><textarea name="description" class="erp-input w-full" rows="2"></textarea></div>
-            <div class="sm:col-span-2"><button type="submit" class="erp-btn-primary">{{ __('Create Plan') }}</button></div>
-        </form>
-    </x-admin.card>
-</x-admin-layout>
+<x-admin.modal-form
+    :title="__('New maintenance plan')"
+    :breadcrumbs="[
+        ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
+        ['label' => __('Maintenance'), 'url' => route('admin.assets.maintenance.dashboard', ['tab' => 'plans'])],
+        ['label' => __('New')],
+    ]"
+    maxWidth="2xl"
+>
+    <x-admin.form-shell :action="route('admin.assets.maintenance.plans.store')">
+        <div class="erp-form-grid">
+            <x-admin.select name="fixed_asset_id" :label="__('Asset')" :required="true" class="md:col-span-2">
+                @foreach ($assets as $asset)
+                    <option value="{{ $asset->id }}" @selected(old('fixed_asset_id') == $asset->id)>
+                        {{ $asset->asset_name }} ({{ $asset->asset_number }})
+                    </option>
+                @endforeach
+            </x-admin.select>
+
+            <x-admin.input name="plan_name" :label="__('Plan name')" :required="true" :value="old('plan_name')" class="md:col-span-2" />
+
+            <x-admin.select name="frequency_type" :label="__('Frequency')" :required="true">
+                @foreach ($frequencies as $frequency)
+                    <option value="{{ $frequency->value }}" @selected(old('frequency_type') === $frequency->value)>{{ $frequency->label() }}</option>
+                @endforeach
+            </x-admin.select>
+
+            <x-admin.input name="frequency_value" type="number" min="1" :label="__('Frequency value')" :required="true" :value="old('frequency_value', 1)" />
+
+            <x-admin.input name="next_due_date" type="date" :label="__('Next due date')" :value="old('next_due_date')" class="md:col-span-2" />
+
+            <x-admin.textarea name="description" :label="__('Description')" :value="old('description')" class="md:col-span-2" rows="2" />
+        </div>
+
+        <x-admin.form-modal-actions>
+            <x-primary-button>{{ __('Create plan') }}</x-primary-button>
+        </x-admin.form-modal-actions>
+    </x-admin.form-shell>
+</x-admin.modal-form>

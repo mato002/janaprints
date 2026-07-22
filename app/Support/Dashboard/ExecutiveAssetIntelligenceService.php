@@ -101,7 +101,7 @@ class ExecutiveAssetIntelligenceService
         $definitions = [
             [
                 'label' => __('Asset Executive Dashboard'),
-                'route' => 'admin.assets.intelligence.executive',
+                'route' => 'admin.assets.intelligence.dashboard',
                 'permission' => ['assets.analytics.view', 'intelligence.assets.view'],
             ],
             [

@@ -47,7 +47,7 @@ class AssetRegisterIndexService
         $this->applyFilters($query, $request);
         $this->applySort($query, $request);
 
-        return $query->paginate(config('platform.pagination.admin', 20))->withQueryString();
+        return $query->paginate(config('platform.pagination.table', 10))->withQueryString();
     }
 
     /**

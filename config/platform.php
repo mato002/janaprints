@@ -91,6 +91,7 @@ return [
     'pagination' => [
         'default' => 15,
         'admin' => 20,
+        'table' => 10,
         'permissions' => 50,
     ],
 

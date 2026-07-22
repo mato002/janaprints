@@ -2,7 +2,7 @@
     :title="__('Create Write-Off')"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Write-Offs'), 'url' => route('admin.assets.finance.write-offs.index')],
+        ['label' => __('Finance'), 'url' => route('admin.assets.finance.dashboard', ['tab' => 'write-offs'])],
         ['label' => __('Create')],
     ]"
     maxWidth="2xl"
