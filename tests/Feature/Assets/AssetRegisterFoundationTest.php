@@ -34,9 +34,9 @@ class AssetRegisterFoundationTest extends TestCase
             ->followingRedirects()
             ->get(route('admin.workspaces.assets'))
             ->assertOk()
-            ->assertSee(__('Asset Register'), false)
-            ->assertSee(__('Asset Categories'), false)
-            ->assertSee(__('Asset Dashboard'), false);
+            ->assertSee(__('Asset Management'), false)
+            ->assertSee(__('Machines'), false)
+            ->assertDontSee(__('Asset Dashboard'), false);
     }
 
     public function test_supply_chain_assets_section_redirects_to_canonical_workspace(): void
@@ -172,7 +172,7 @@ class AssetRegisterFoundationTest extends TestCase
                 'useful_life_years' => 6,
                 'default_gl_code' => '1530',
             ])
-            ->assertRedirect(route('admin.assets.categories.index'));
+            ->assertRedirect(route('admin.assets.index').'#asset-categories');
 
         $category = AssetCategory::query()->where('code', 'TM')->first();
         $this->assertNotNull($category);
@@ -185,13 +185,13 @@ class AssetRegisterFoundationTest extends TestCase
                 'useful_life_years' => 7,
                 'is_active' => true,
             ])
-            ->assertRedirect(route('admin.assets.categories.index'));
+            ->assertRedirect(route('admin.assets.index').'#asset-categories');
 
         $this->assertSame('Test Machines Updated', $category->fresh()->name);
 
         $this->actingAs($user)
             ->post(route('admin.assets.categories.archive', $category))
-            ->assertRedirect(route('admin.assets.categories.index'));
+            ->assertRedirect(route('admin.assets.index').'#asset-categories');
 
         $this->assertNotNull($category->fresh()->archived_at);
     }

@@ -332,7 +332,7 @@ class ProductionQueueWorkspaceService
             ProductionJobCardStatus::Outsourced => ['label' => __('Outsourced'), 'variant' => 'warning'],
             ProductionJobCardStatus::QualityCheck => ['label' => __('Awaiting QC'), 'variant' => 'warning'],
             ProductionJobCardStatus::Rework => ['label' => __('Rework'), 'variant' => 'danger'],
-            ProductionJobCardStatus::ReadyForDispatch => ['label' => __('Dispatch ready'), 'variant' => 'success'],
+            ProductionJobCardStatus::ReadyForDispatch => ['label' => __('Ready for dispatch'), 'variant' => 'success'],
             ProductionJobCardStatus::Completed => ['label' => __('Completed'), 'variant' => 'success'],
             ProductionJobCardStatus::AwaitingCustomerApproval => ['label' => __('Customer approval pending'), 'variant' => 'warning'],
             ProductionJobCardStatus::OnHold => ['label' => __('Paused'), 'variant' => 'neutral'],

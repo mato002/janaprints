@@ -467,6 +467,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\Production\JobCardStatusChanged::class,
             [\App\Listeners\Production\NotifyProductionOperators::class, 'handle'],
         );
+        Event::listen(
+            \App\Events\Dispatch\DeliveryNoteDelivered::class,
+            [\App\Listeners\Dispatch\SyncSalesOrderFromDeliveryNote::class, 'handle'],
+        );
 
         ProductionJobCard::observe(\App\Observers\Production\ProductionJobCardObserver::class);
 

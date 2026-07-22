@@ -58,7 +58,9 @@ trait InteractsWithDispatchInventory
     protected function readyDispatchedDeliveryNote(): array
     {
         [$note, $finishedItem, $user, $jobCard] = $this->prepareDraftNoteWithFg();
-        app(DeliveryNoteService::class)->dispatch($note, $user->id);
+        $service = app(DeliveryNoteService::class);
+        $service->markPackaged($note, $user->id, ['package_count' => 1]);
+        $service->dispatch($note->fresh(), $user->id, ['courier_key' => 'in_house']);
 
         return [$note->fresh(['items']), $finishedItem, $user, $jobCard->fresh()];
     }

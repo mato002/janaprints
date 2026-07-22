@@ -146,6 +146,20 @@ class ProductionFulfilmentService
             ]);
         }
 
+        if ($fulfilment->delivery_note_id) {
+            $note = DeliveryNote::query()->findOrFail($fulfilment->delivery_note_id);
+
+            app(\App\Services\Dispatch\DeliveryNoteService::class)->deliver($note, $userId, [
+                'recipient_name' => $payload['received_by'] ?? $payload['recipient_name'] ?? $fulfilment->recipient_name,
+                'recipient_phone' => $payload['recipient_phone'] ?? $fulfilment->recipient_phone,
+                'recipient_signature' => $payload['signature_name'] ?? $payload['recipient_signature'] ?? null,
+                'delivery_notes' => $payload['delivery_remarks'] ?? $payload['remarks'] ?? null,
+                'pod_photo_path' => $payload['pod_photo_path'] ?? null,
+            ]);
+
+            return $fulfilment->fresh(['deliveryNote', 'jobCard.customer', 'salesOrder']);
+        }
+
         return DB::transaction(function () use ($fulfilment, $payload) {
             $fulfilment->update([
                 'status' => FulfilmentStatus::Delivered,
@@ -192,7 +206,19 @@ class ProductionFulfilmentService
             ]);
             $note = $result->note;
             $noteService = app(\App\Services\Dispatch\DeliveryNoteService::class);
-            $note = $noteService->dispatch($note, $userId, $fulfilment->delivery_address);
+            $noteService->markPackaged($note, $userId, [
+                'package_count' => (int) ($payload['package_count'] ?? 1),
+                'package_notes' => $payload['package_notes'] ?? null,
+                'delivery_address' => $fulfilment->delivery_address,
+            ]);
+            $noteService->dispatch($note->fresh(), $userId, [
+                'dispatch_notes' => $fulfilment->delivery_address,
+                'delivery_address' => $fulfilment->delivery_address,
+                'courier_key' => $payload['courier_key'] ?? null,
+                'courier_name' => $payload['courier_name'] ?? null,
+                'tracking_number' => $payload['tracking_number'] ?? null,
+                'waybill_number' => $payload['waybill_number'] ?? null,
+            ]);
 
             return $this->resolveForJobCard($jobCard)->fresh(['deliveryNote', 'dispatchedByUser', 'jobCard', 'salesOrder']);
         });

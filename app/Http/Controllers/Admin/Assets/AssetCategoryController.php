@@ -6,6 +6,7 @@ use App\Enums\AssetType;
 use App\Http\Controllers\Controller;
 use App\Models\Assets\AssetCategory;
 use App\Services\Assets\AssetCategoryService;
+use App\Support\Navigation\WorkspaceEmbed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,18 +17,11 @@ class AssetCategoryController extends Controller
         protected AssetCategoryService $categories,
     ) {}
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', AssetCategory::class);
 
-        $categories = AssetCategory::query()
-            ->forTenant()
-            ->notArchived()
-            ->withCount('assets')
-            ->orderBy('name')
-            ->get();
-
-        return view('admin.assets.categories.index', compact('categories'));
+        return redirect()->to(WorkspaceEmbed::url(route('admin.assets.index')).'#asset-categories');
     }
 
     public function create(): View
@@ -55,7 +49,7 @@ class AssetCategoryController extends Controller
 
         $this->categories->create($validated, (int) tenant()->companyId(), (int) auth()->id());
 
-        return redirect()->route('admin.assets.categories.index')->with('status', __('Category created.'));
+        return redirect()->to(WorkspaceEmbed::url(route('admin.assets.index')).'#asset-categories')->with('status', __('Category created.'));
     }
 
     public function edit(AssetCategory $category): View
@@ -85,7 +79,7 @@ class AssetCategoryController extends Controller
 
         $this->categories->update($category, $validated, (int) auth()->id());
 
-        return redirect()->route('admin.assets.categories.index')->with('status', __('Category updated.'));
+        return redirect()->to(WorkspaceEmbed::url(route('admin.assets.index')).'#asset-categories')->with('status', __('Category updated.'));
     }
 
     public function archive(AssetCategory $category): RedirectResponse
@@ -94,6 +88,6 @@ class AssetCategoryController extends Controller
 
         $this->categories->archive($category, (int) auth()->id());
 
-        return redirect()->route('admin.assets.categories.index')->with('status', __('Category archived.'));
+        return redirect()->to(WorkspaceEmbed::url(route('admin.assets.index')).'#asset-categories')->with('status', __('Category archived.'));
     }
 }

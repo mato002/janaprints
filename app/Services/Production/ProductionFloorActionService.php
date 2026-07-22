@@ -78,11 +78,11 @@ class ProductionFloorActionService
         }
 
         if ($user->can('start', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)) {
-            return $this->action(__('Start job'), 'post', route('admin.production.job-cards.start', $jobCard), 'primary');
+            return $this->action(__('Start'), 'post', route('admin.production.job-cards.start', $jobCard), 'primary');
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)) {
-            return $this->action(__('QC ready'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
+            return $this->action(__('Finish'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
         }
 
         if ($user->can('update', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced)) {
@@ -103,10 +103,10 @@ class ProductionFloorActionService
 
         if ($user->can('create', [\App\Models\Production\QualityCheck::class, $jobCard]) && $jobCard->status === ProductionJobCardStatus::QualityCheck) {
             if ($forFloor) {
-                return $this->floorModal(__('Record QC'), 'qc', $jobCard, 'primary');
+                return $this->floorModal(__('QC'), 'qc', $jobCard, 'primary');
             }
 
-            return $this->action(__('Record QC'), 'panel', route('admin.production.floor.panel', $jobCard).'#quality', 'primary');
+            return $this->action(__('QC'), 'panel', route('admin.production.floor.panel', $jobCard).'#quality', 'primary');
         }
 
         if (
@@ -114,7 +114,7 @@ class ProductionFloorActionService
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)
             && $this->controls->dispatchEligibility($jobCard)['eligible']
         ) {
-            return $this->action(__('Dispatch ready'), 'post', route('admin.production.job-cards.ready-for-dispatch', $jobCard), 'primary');
+            return $this->action(__('Ready for dispatch'), 'post', route('admin.production.job-cards.ready-for-dispatch', $jobCard), 'primary');
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {

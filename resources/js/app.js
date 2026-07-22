@@ -1100,6 +1100,51 @@ const erpModalManager = {
         return Boolean(lookupOverlay && ! lookupOverlay.hidden);
     },
 
+    handleInModalLink(event, link) {
+        if (! link?.href || link.hasAttribute('data-no-modal') || link.getAttribute('target') === '_blank') {
+            return false;
+        }
+
+        try {
+            const parsed = new URL(link.href, window.location.origin);
+
+            if (parsed.origin !== window.location.origin) {
+                return false;
+            }
+        } catch {
+            return false;
+        }
+
+        if (link.hasAttribute('data-erp-modal-open') || this.isModalFormUrl(link.href)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.loadForm(link.href);
+
+            return true;
+        }
+
+        const turboFrame = link.getAttribute('data-turbo-frame');
+
+        if (turboFrame === 'erp-main' || turboFrame === '_top') {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.closeModal();
+
+            if (typeof window.erpVisitUrl === 'function') {
+                window.erpVisitUrl(link.href);
+            } else {
+                window.Turbo.visit(link.href, {
+                    frame: turboFrame === '_top' ? '_top' : 'erp-main',
+                    action: 'advance',
+                });
+            }
+
+            return true;
+        }
+
+        return false;
+    },
+
     handleDocumentClick(event) {
         if (this.isLookupOverlayOpen()) {
             if (event.target.closest('#erp-lookup-modal-overlay')) {
@@ -1119,24 +1164,8 @@ const erpModalManager = {
 
         const inModalLink = event.target.closest('#erp-form-modal a[href]');
 
-        if (
-            inModalLink?.href
-            && ! inModalLink.hasAttribute('data-no-modal')
-            && inModalLink.getAttribute('target') !== '_blank'
-        ) {
-            try {
-                const parsed = new URL(inModalLink.href, window.location.origin);
-
-                if (parsed.origin === window.location.origin) {
-                    event.preventDefault();
-                    event.stopImmediatePropagation();
-                    this.loadForm(inModalLink.href);
-
-                    return;
-                }
-            } catch {
-                // ignore malformed URLs
-            }
+        if (this.handleInModalLink(event, inModalLink)) {
+            return;
         }
 
         const drawerLink = event.target.closest('a[data-turbo-frame="erp-preview-drawer"]');
@@ -2271,17 +2300,18 @@ function createIndexFilterFormController(form) {
         },
 
         onFieldChange(event) {
-            if (isProductionFloorLiveFilterForm(this.form)) {
-                return;
-            }
-
             const target = event.target;
 
             if (! target?.name || target.hasAttribute('data-erp-auto-search')) {
                 return;
             }
 
-            if (target.tagName === 'SELECT' || target.type === 'date' || target.type === 'number') {
+            if (
+                target.tagName === 'SELECT'
+                || target.type === 'date'
+                || target.type === 'number'
+                || target.type === 'checkbox'
+            ) {
                 this.submitFilterForm();
             }
         },
@@ -2369,7 +2399,7 @@ function bindIndexFilterFormListeners() {
 
         const form = event.target.closest('form.erp-index-toolbar-form');
 
-        if (! form || isProductionFloorLiveFilterForm(form)) {
+        if (! form) {
             return;
         }
 
@@ -3799,6 +3829,24 @@ document.addEventListener('alpine:init', () => {
 
         initLiveFilters() {
             this.$nextTick(() => {
+                const form = this.getFilterForm();
+
+                if (form && ! form.dataset.productionFloorLiveFiltersBound) {
+                    form.dataset.productionFloorLiveFiltersBound = '1';
+
+                    form.addEventListener('change', (event) => {
+                        if (event.target?.name) {
+                            this.applyLiveFilters();
+                        }
+                    });
+
+                    form.addEventListener('input', (event) => {
+                        if (event.target?.name) {
+                            this.applyLiveFilters();
+                        }
+                    });
+                }
+
                 this.applyLiveFilters();
             });
         },
@@ -4016,6 +4064,71 @@ document.addEventListener('alpine:init', () => {
             this.batchMachineOpen = true;
         },
 
+        refreshProductionFloor() {
+            if (window.Turbo) {
+                const workspaceFrame = document.getElementById('module-workspace-content');
+
+                if (workspaceFrame) {
+                    return window.Turbo.visit(window.location.href, {
+                        frame: 'module-workspace-content',
+                        action: 'replace',
+                    });
+                }
+            }
+
+            window.location.reload();
+        },
+
+        async assignMachineInline(jobKey, event) {
+            const select = event?.target;
+
+            if (! select || select.dataset.assigning === '1') {
+                return;
+            }
+
+            const machineId = select.value;
+            const previousValue = select.dataset.currentValue ?? '';
+
+            if (machineId === previousValue) {
+                return;
+            }
+
+            select.dataset.assigning = '1';
+            select.disabled = true;
+
+            try {
+                const body = new FormData();
+                body.append('_token', this.csrf);
+                body.append('assigned_machine_asset_id', machineId);
+
+                const response = await fetch(`${this.assignMachineUrl}/${jobKey}/assign-machine`, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body,
+                });
+
+                const payload = await response.json().catch(() => null);
+
+                if (! response.ok || ! payload?.ok) {
+                    select.value = previousValue;
+
+                    return;
+                }
+
+                select.dataset.currentValue = machineId;
+                await this.refreshProductionFloor();
+            } catch (error) {
+                console.error('productionFloor.assignMachineInline', error);
+                select.value = previousValue;
+            } finally {
+                delete select.dataset.assigning;
+                select.disabled = false;
+            }
+        },
+
         async submitBatchMachineAssign() {
             if (this.selectedJobs.length === 0 || this.batchSubmitting) {
                 return;
@@ -4041,7 +4154,7 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 this.batchMachineOpen = false;
-                window.location.reload();
+                await this.refreshProductionFloor();
             } finally {
                 this.batchSubmitting = false;
             }

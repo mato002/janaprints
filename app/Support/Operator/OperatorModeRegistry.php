@@ -96,6 +96,34 @@ final class OperatorModeRegistry
                 disabledWhen: [OperatorModeKey::Production],
             ),
             new OperatorModeDefinition(
+                key: OperatorModeKey::Dispatch,
+                role: 'Dispatch',
+                permissions: ['dispatch.view'],
+                homeRoute: 'admin.dispatch.dashboard',
+                fromKey: 'dispatch-desk',
+                returnQueryFlag: 'dispatch_desk_return',
+                navRemap: [
+                    'dashboard' => [
+                        'label' => 'Dispatch Desk',
+                        'route' => 'admin.dispatch.dashboard',
+                        'icon' => 'truck',
+                        'active_routes' => ['admin.dispatch.dashboard', 'admin.dispatch.*'],
+                    ],
+                    'production' => [
+                        'label' => 'Dispatch Desk',
+                        'route' => 'admin.dispatch.dashboard',
+                        'icon' => 'truck',
+                        'active_routes' => ['admin.dispatch.dashboard', 'admin.dispatch.*'],
+                    ],
+                    'dispatch' => [
+                        'label' => 'Dispatch Desk',
+                        'route' => 'admin.dispatch.dashboard',
+                        'icon' => 'truck',
+                        'active_routes' => ['admin.dispatch.dashboard', 'admin.dispatch.*'],
+                    ],
+                ],
+            ),
+            new OperatorModeDefinition(
                 key: OperatorModeKey::Storekeeper,
                 role: 'Storekeeper',
                 permissions: ['inventory.view'],

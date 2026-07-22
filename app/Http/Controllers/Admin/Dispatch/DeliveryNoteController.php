@@ -56,11 +56,14 @@ class DeliveryNoteController extends Controller
             'salesOrder',
             'productionJobCard',
             'dispatcher:id,name',
+            'packager:id,name',
             'deliverer:id,name',
             'activeInvoice',
             'invoicer:id,name',
             'postedJournal',
         ]);
+
+        $couriers = config('dispatch_couriers.couriers', []);
 
         $invoiceEligibility = $this->invoiceEligibility->check($deliveryNote);
         $partialDelivery = $this->invoiceEligibility->partialDeliverySummary($deliveryNote);
@@ -80,6 +83,7 @@ class DeliveryNoteController extends Controller
 
         return view('admin.dispatch.delivery-notes.show', [
             'note' => $deliveryNote,
+            'couriers' => $couriers,
             'invoiceEligibility' => $invoiceEligibility,
             'partialDelivery' => $partialDelivery,
             'inventoryImpact' => $inventoryImpact,
@@ -134,18 +138,38 @@ class DeliveryNoteController extends Controller
             ->with('status', $flash);
     }
 
+    public function package(Request $request, DeliveryNote $deliveryNote): RedirectResponse
+    {
+        $this->authorize('package', $deliveryNote);
+
+        $validated = $request->validate([
+            'package_count' => ['required', 'integer', 'min:1', 'max:999'],
+            'package_notes' => ['nullable', 'string', 'max:2000'],
+            'delivery_address' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $this->deliveryNotes->markPackaged($deliveryNote, (int) auth()->id(), $validated);
+
+        return back()->with('status', __('Delivery note packaged and ready for courier dispatch.'));
+    }
+
     public function dispatch(Request $request, DeliveryNote $deliveryNote): RedirectResponse
     {
         $this->authorize('dispatch', $deliveryNote);
 
         $validated = $request->validate([
             'dispatch_notes' => ['nullable', 'string'],
+            'courier_key' => ['nullable', 'string', 'max:50'],
+            'courier_name' => ['nullable', 'string', 'max:120'],
+            'tracking_number' => ['nullable', 'string', 'max:120'],
+            'waybill_number' => ['nullable', 'string', 'max:120'],
+            'delivery_address' => ['nullable', 'string', 'max:2000'],
         ]);
 
         $this->deliveryNotes->dispatch(
             $deliveryNote,
             (int) auth()->id(),
-            $validated['dispatch_notes'] ?? null,
+            $validated,
         );
 
         return back()->with('status', __('Delivery note dispatched.'));
@@ -156,15 +180,25 @@ class DeliveryNoteController extends Controller
         $this->authorize('deliver', $deliveryNote);
 
         $validated = $request->validate([
-            'recipient_name' => ['nullable', 'string', 'max:255'],
+            'recipient_name' => ['required', 'string', 'max:255'],
             'recipient_phone' => ['nullable', 'string', 'max:50'],
-            'recipient_signature' => ['nullable', 'string'],
+            'recipient_signature' => ['nullable', 'string', 'max:500'],
             'delivery_notes' => ['nullable', 'string'],
+            'pod_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
+
+        if ($request->hasFile('pod_photo')) {
+            $validated['pod_photo_path'] = $request->file('pod_photo')->store(
+                'delivery-notes/'.$deliveryNote->id.'/pod',
+                'local',
+            );
+        }
+
+        unset($validated['pod_photo']);
 
         $this->deliveryNotes->deliver($deliveryNote, (int) auth()->id(), $validated);
 
-        return back()->with('status', __('Delivery confirmed. Record is now immutable.'));
+        return back()->with('status', __('Delivery confirmed. Proof of delivery captured.'));
     }
 
     public function cancel(Request $request, DeliveryNote $deliveryNote): RedirectResponse

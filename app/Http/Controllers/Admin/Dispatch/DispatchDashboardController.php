@@ -19,6 +19,7 @@ class DispatchDashboardController extends Controller
 
         return view('admin.dispatch.dashboard', [
             'dashboard' => $dashboard->build($companyId, $branchId, $request),
+            'operatorMode' => $request->user()?->prefersDispatchOperatorMode() ?? false,
         ]);
     }
 }

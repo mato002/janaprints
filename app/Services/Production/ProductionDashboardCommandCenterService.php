@@ -600,7 +600,7 @@ class ProductionDashboardCommandCenterService
                 'permission' => 'production.scheduling.view',
             ],
             [
-                'label' => __('Record QC'),
+                'label' => __('QC'),
                 'route' => 'admin.production.quality.index',
                 'permission' => 'production.quality.view',
                 'query' => ['status' => 'pending'],

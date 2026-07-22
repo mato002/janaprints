@@ -70,9 +70,55 @@ class MachineProductionIntegrationTest extends TestCase
         $this->assertSame(1, $dashboard['available_machines']);
 
         $this->actingAs($user)
-            ->get(route('admin.assets.machines.dashboard'))
+            ->get(route('admin.assets.machines.index'))
             ->assertOk()
-            ->assertSee(__('Total Machines'), false);
+            ->assertSee(__('Machines'), false)
+            ->assertSee(__('Ready to run'), false);
+    }
+
+    public function test_machine_can_be_registered_from_machines_page(): void
+    {
+        $user = $this->productionManager();
+        $category = AssetCategory::query()->firstOrCreate(
+            ['company_id' => Company::query()->first()->id, 'code' => 'MCH'],
+            [
+                'name' => 'Machines',
+                'asset_type' => AssetType::Machine->value,
+                'useful_life_months' => 84,
+                'useful_life_years' => 7,
+                'is_active' => true,
+            ],
+        );
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.assets.machines.create'))
+            ->assertOk()
+            ->assertSee(__('Add machine'), false);
+
+        $response = $this->actingAs($user)
+            ->post(route('admin.assets.machines.store'), [
+                'asset_name' => 'Roland Versa',
+                'asset_category_id' => $category->id,
+                'machine_code' => 'ROL-01',
+                'machine_type' => 'Digital Press',
+                'shift_capacity' => 15,
+                'hourly_capacity' => 4,
+            ]);
+
+        $response->assertSessionHasNoErrors()->assertSuccessful();
+
+        $profile = MachineProfile::query()->where('machine_code', 'ROL-01')->first();
+        $this->assertNotNull($profile);
+        $this->assertSame('Roland Versa', $profile->asset?->asset_name);
+        $this->assertSame(ProductionMachineStatus::Available, $profile->production_status);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.assets.machines.index'))
+            ->assertOk()
+            ->assertSee('Roland Versa', false)
+            ->assertSee('ROL-01', false);
     }
 
     public function test_machine_capacity_service_metrics(): void

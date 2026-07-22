@@ -86,10 +86,20 @@ class ProductionFulfilmentController extends Controller
 
         $validated = $request->validate([
             'received_by' => ['required', 'string', 'max:120'],
+            'recipient_phone' => ['nullable', 'string', 'max:30'],
             'delivered_at' => ['nullable', 'date'],
             'signature_name' => ['nullable', 'string', 'max:120'],
+            'recipient_signature' => ['nullable', 'string', 'max:500'],
             'delivery_remarks' => ['nullable', 'string', 'max:2000'],
+            'pod_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
+
+        if ($request->hasFile('pod_photo')) {
+            $validated['pod_photo_path'] = $request->file('pod_photo')->store(
+                'fulfilment/'.$fulfilment->id.'/pod',
+                'local',
+            );
+        }
 
         $this->fulfilment->confirmDelivery($fulfilment, (int) auth()->id(), $validated);
 

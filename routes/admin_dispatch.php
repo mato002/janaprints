@@ -25,6 +25,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:dispatch.create')->group(function () {
             Route::post('job-cards/{jobCard}/delivery-notes', [DeliveryNoteController::class, 'storeFromJob'])
                 ->name('delivery-notes.store-from-job');
+            Route::post('delivery-notes/{deliveryNote}/package', [DeliveryNoteController::class, 'package'])
+                ->name('delivery-notes.package');
         });
 
         Route::middleware('permission:dispatch.dispatch')->group(function () {

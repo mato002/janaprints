@@ -32,6 +32,8 @@ readonly class OperatorModeDefinition
                 || str_starts_with($routeName, 'admin.store.desk.'),
             OperatorModeKey::Designer => $routeName === 'admin.artwork.desk'
                 || str_starts_with($routeName, 'admin.artwork.desk.'),
+            OperatorModeKey::Dispatch => $routeName === 'admin.dispatch.dashboard'
+                || str_starts_with($routeName, 'admin.dispatch.'),
         };
     }
 

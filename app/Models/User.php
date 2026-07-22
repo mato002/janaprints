@@ -100,6 +100,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return \App\Support\Operator\OperatorModeRegistry::enabledFor($this, \App\Support\Operator\OperatorModeKey::Designer);
     }
 
+    public function prefersDispatchOperatorMode(): bool
+    {
+        return \App\Support\Operator\OperatorModeRegistry::enabledFor($this, \App\Support\Operator\OperatorModeKey::Dispatch);
+    }
+
     public function hasOperatorDeskMode(): bool
     {
         return \App\Support\Operator\OperatorModeRegistry::hasAnyOperatorMode($this);

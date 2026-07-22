@@ -77,7 +77,7 @@ class DepreciationMethodGovernanceTest extends TestCase
                 'useful_life_years' => 5,
                 'depreciation_method' => DepreciationMethod::StraightLine->value,
             ])
-            ->assertRedirect(route('admin.assets.categories.index'));
+            ->assertRedirect(route('admin.assets.index').'#asset-categories');
 
         $this->assertDatabaseHas('asset_categories', [
             'name' => 'Office Equipment',

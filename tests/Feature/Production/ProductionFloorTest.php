@@ -71,7 +71,7 @@ class ProductionFloorTest extends TestCase
         $response = $this->actingAs($user)
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
-            ->assertJsonPath('primary_action.label', __('Record QC'))
+            ->assertJsonPath('primary_action.label', __('QC'))
             ->assertJsonPath('primary_action.type', 'modal')
             ->assertJsonPath('primary_action.target', 'qc')
             ->assertJsonStructure(['quality' => ['checklist_items']])
@@ -153,9 +153,21 @@ class ProductionFloorTest extends TestCase
     {
         [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
 
-        $machine = \App\Models\Assets\FixedAsset::factory()->create([
+        $category = \App\Models\Assets\AssetCategory::query()->create([
+            'company_id' => $company->id,
+            'code' => 'PRINT-'.substr(md5((string) $jobCard->id), 0, 4),
+            'name' => 'Print Equipment',
+        ]);
+
+        $machine = \App\Models\Assets\FixedAsset::query()->create([
             'company_id' => $company->id,
             'branch_id' => $branch->id,
+            'asset_category_id' => $category->id,
+            'asset_name' => 'Test Floor Press',
+            'asset_number' => 'FA-TEST-'.substr(md5((string) $jobCard->id), 0, 6),
+            'acquisition_date' => now()->toDateString(),
+            'acquisition_cost' => 100000,
+            'status' => \App\Enums\FixedAssetStatus::Active,
         ]);
 
         $this->releaseJobToFloor($jobCard);
@@ -167,7 +179,7 @@ class ProductionFloorTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
-            ->assertJsonPath('primary_action.label', __('Start job'));
+            ->assertJsonPath('primary_action.label', __('Start'));
     }
 
     public function test_floor_lists_newest_job_cards_first(): void
@@ -212,6 +224,44 @@ class ProductionFloorTest extends TestCase
             strpos($response->getContent(), $older->job_card_number),
             strpos($response->getContent(), $newer->job_card_number),
         );
+    }
+
+    public function test_floor_assign_machine_persists_via_json(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $category = \App\Models\Assets\AssetCategory::query()->create([
+            'company_id' => $company->id,
+            'code' => 'PRINT-'.substr(md5((string) $jobCard->id), 0, 4),
+            'name' => 'Print Equipment',
+        ]);
+
+        $machine = \App\Models\Assets\FixedAsset::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'asset_category_id' => $category->id,
+            'asset_name' => 'Test Floor Press',
+            'asset_number' => 'FA-TEST-'.substr(md5((string) $jobCard->id), 0, 6),
+            'acquisition_date' => now()->toDateString(),
+            'acquisition_cost' => 100000,
+            'status' => \App\Enums\FixedAssetStatus::Active,
+        ]);
+
+        $this->releaseJobToFloor($jobCard);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->postJson(route('admin.production.floor.assign-machine', $jobCard), [
+                'assigned_machine_asset_id' => $machine->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('machine_id', $machine->id)
+            ->assertJsonPath('machine_name', 'Test Floor Press');
+
+        $this->assertSame($machine->id, $jobCard->fresh()->assigned_machine_asset_id);
     }
 
     /**

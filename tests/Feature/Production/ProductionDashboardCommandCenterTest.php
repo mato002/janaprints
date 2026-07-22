@@ -122,7 +122,7 @@ class ProductionDashboardCommandCenterTest extends TestCase
 
         $this->assertContains(__('Create Job Card'), $labels);
         $this->assertContains(__('Schedule Job'), $labels);
-        $this->assertContains(__('Record QC'), $labels);
+        $this->assertContains(__('QC'), $labels);
         $this->assertContains(__('Create Delivery Note'), $labels);
     }
 
@@ -136,7 +136,7 @@ class ProductionDashboardCommandCenterTest extends TestCase
 
         $this->assertNotContains(__('Create Job Card'), $labels);
         $this->assertNotContains(__('Schedule Job'), $labels);
-        $this->assertNotContains(__('Record QC'), $labels);
+        $this->assertNotContains(__('QC'), $labels);
     }
 
     public function test_empty_states_render_safely(): void

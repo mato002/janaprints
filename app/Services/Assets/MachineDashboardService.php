@@ -60,6 +60,54 @@ class MachineDashboardService
     }
 
     /**
+     * Operational KPI strip for the unified machines page.
+     *
+     * @return list<array{key: string, label: string, value: string, hint: string, filter: array<string, string>}>
+     */
+    public function summaryStrip(int $companyId, ?int $branchId = null): array
+    {
+        $stats = $this->build($companyId, $branchId);
+
+        return [
+            [
+                'key' => 'total',
+                'label' => __('Total'),
+                'value' => (string) ($stats['total_machines'] ?? 0),
+                'hint' => __('Machines'),
+                'filter' => [],
+            ],
+            [
+                'key' => 'available',
+                'label' => __('Available'),
+                'value' => (string) ($stats['available_machines'] ?? 0),
+                'hint' => __('Ready to run'),
+                'filter' => ['status' => ProductionMachineStatus::Available->value],
+            ],
+            [
+                'key' => 'running',
+                'label' => __('Running'),
+                'value' => (string) ($stats['running_machines'] ?? 0),
+                'hint' => __('On jobs'),
+                'filter' => ['status' => ProductionMachineStatus::Running->value],
+            ],
+            [
+                'key' => 'maintenance',
+                'label' => __('Maintenance'),
+                'value' => (string) ($stats['maintenance_holds'] ?? 0),
+                'hint' => __('Out of service'),
+                'filter' => ['status' => ProductionMachineStatus::Maintenance->value],
+            ],
+            [
+                'key' => 'utilization',
+                'label' => __('Utilization'),
+                'value' => (string) ($stats['utilization_percent'] ?? 0),
+                'hint' => __('Fleet average'),
+                'filter' => [],
+            ],
+        ];
+    }
+
+    /**
      * @param  Collection<int, MachineProfile>  $profiles
      * @return list<array{branch_id: int|string|null, count: int}>
      */

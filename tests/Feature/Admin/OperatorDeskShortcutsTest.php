@@ -50,10 +50,12 @@ class OperatorDeskShortcutsTest extends TestCase
             ->assertSee(__('Sales Desk'), false)
             ->assertSee(__('Designer Desk'), false)
             ->assertSee(__('Production Floor'), false)
+            ->assertSee(__('Dispatch Desk'), false)
             ->assertSee(__('Store Desk'), false)
             ->assertSee(route('admin.sales.desk'), false)
             ->assertSee(route('admin.artwork.desk'), false)
             ->assertSee(route('admin.production.floor', ['desk' => 1]), false)
+            ->assertSee(route('admin.dispatch.dashboard'), false)
             ->assertSee(route('admin.store.desk'), false);
     }
 

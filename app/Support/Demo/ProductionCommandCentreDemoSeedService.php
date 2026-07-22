@@ -46,6 +46,7 @@ use App\Models\Sales\QuotationItem;
 use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SalesOrderItem;
 use App\Models\User;
+use App\Services\Assets\MachineProfileService;
 use App\Support\Production\ProductionSpecificationService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -77,6 +78,7 @@ class ProductionCommandCentreDemoSeedService
         $this->loadWorkCenters($ctx);
         $this->ensureCustomers($ctx);
         $this->ensureOutsourceVendor($ctx);
+        $this->ensureProductionMachineProfiles($ctx);
 
         DB::transaction(function () use ($ctx, $command) {
             foreach ($this->scenarios() as $index => $scenario) {
@@ -184,7 +186,7 @@ class ProductionCommandCentreDemoSeedService
 
     protected function ensureOutsourceVendor(OperationalDemoContext $ctx): void
     {
-        Vendor::query()->firstOrCreate(
+        $vendor = Vendor::query()->firstOrCreate(
             ['company_id' => $ctx->company->id, 'vendor_code' => 'VEND-OUTPRINT'],
             [
                 'vendor_name' => 'Premier Print Partners',
@@ -192,8 +194,40 @@ class ProductionCommandCentreDemoSeedService
                 'email' => 'jobs@premierprint.demo',
                 'payment_terms' => 'Net 14',
                 'status' => \App\Enums\VendorStatus::Active,
+                'is_production_vendor' => true,
             ],
         );
+
+        if (! $vendor->is_production_vendor) {
+            $vendor->update(['is_production_vendor' => true]);
+        }
+    }
+
+    protected function ensureProductionMachineProfiles(OperationalDemoContext $ctx): void
+    {
+        $profiles = [
+            'FA-PR-001' => ['machine_code' => 'CN910', 'machine_type' => 'Digital Press'],
+            'FA-PR-002' => ['machine_code' => 'RL640', 'machine_type' => 'Large Format'],
+        ];
+
+        $service = app(MachineProfileService::class);
+
+        foreach ($profiles as $assetNumber => $data) {
+            $asset = FixedAsset::query()
+                ->where('company_id', $ctx->company->id)
+                ->where('asset_number', $assetNumber)
+                ->first();
+
+            if (! $asset || $asset->machineProfile) {
+                continue;
+            }
+
+            $service->createForAsset($asset, [
+                ...$data,
+                'hourly_capacity' => 2,
+                'shift_capacity' => 10,
+            ], (int) $ctx->admin->id);
+        }
     }
 
     /**

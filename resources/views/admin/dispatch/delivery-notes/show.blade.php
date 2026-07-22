@@ -1,5 +1,6 @@
 @php
     $note = $note;
+    $step = $note->workflowStep();
 @endphp
 <x-admin-layout :title="$note->delivery_note_number" :breadcrumbs="[
     ['label' => __('Dispatch'), 'url' => route('admin.dispatch.dashboard')],
@@ -14,11 +15,29 @@
         </x-slot>
     </x-admin.page-header>
 
+    <div class="mb-4 flex flex-wrap gap-2 text-xs">
+        @foreach ([
+            'package' => __('1. Package'),
+            'courier' => __('2. Courier / Dispatch'),
+            'deliver' => __('3. Deliver / POD'),
+            'complete' => __('Complete'),
+        ] as $key => $label)
+            <span @class([
+                'rounded-full px-3 py-1 font-medium',
+                'bg-erp-accent text-white' => $step === $key,
+                'bg-emerald-100 text-emerald-800' => $step === 'complete' && $key === 'complete',
+                'bg-slate-100 text-slate-500' => $step !== $key && ! ($step === 'complete' && in_array($key, ['package', 'courier', 'deliver'], true)),
+                'bg-emerald-50 text-emerald-700 line-through' => $step === 'complete' && in_array($key, ['package', 'courier', 'deliver'], true),
+            ])>{{ $label }}</span>
+        @endforeach
+    </div>
+
 <div class="mb-6 grid gap-4 lg:grid-cols-3">
         <x-admin.card>
             <dl class="space-y-2 text-sm">
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Status') }}</dt><dd><x-admin.enum-status-badge :status="$note->status->value" /></dd></div>
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Delivery date') }}</dt><dd>{{ $note->delivery_date->format('M j, Y') }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Packages') }}</dt><dd>{{ $note->package_count ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Ready to invoice') }}</dt><dd>{{ $note->invoice_ready ? __('Yes') : __('No') }}</dd></div>
                 @if ($note->activeInvoice)
                     <div class="flex justify-between"><dt class="text-slate-500">{{ __('Invoice') }}</dt>
@@ -31,42 +50,87 @@
         </x-admin.card>
         <x-admin.card>
             <dl class="space-y-2 text-sm">
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Packaged') }}</dt><dd>{{ $note->packaged_at?->format('M j, Y H:i') ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Dispatched') }}</dt><dd>{{ $note->dispatched_at?->format('M j, Y H:i') ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Delivered') }}</dt><dd>{{ $note->delivered_at?->format('M j, Y H:i') ?? '—' }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Courier') }}</dt><dd>{{ $note->courier_name ?? '—' }}</dd></div>
+                <div class="flex justify-between"><dt class="text-slate-500">{{ __('Tracking') }}</dt><dd class="font-mono text-xs">{{ $note->tracking_number ?? '—' }}</dd></div>
                 <div class="flex justify-between"><dt class="text-slate-500">{{ __('Recipient') }}</dt><dd>{{ $note->recipient_name ?? '—' }}</dd></div>
             </dl>
         </x-admin.card>
         <x-admin.card>
-            <h3 class="mb-2 text-sm font-semibold">{{ __('Actions') }}</h3>
-            <div class="flex flex-wrap gap-2">
-                @can('dispatch', $note)
-                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.dispatch', $note) }}">
+            <h3 class="mb-2 text-sm font-semibold">{{ __('Workflow actions') }}</h3>
+            <div class="space-y-4">
+                @can('package', $note)
+                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.package', $note) }}" class="space-y-2 rounded-lg border border-erp-border p-3">
                         @csrf
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Package') }}</p>
+                        <input type="number" name="package_count" min="1" value="{{ old('package_count', $note->package_count ?? 1) }}" class="erp-input text-sm" placeholder="{{ __('Package count') }}" required>
+                        <textarea name="delivery_address" rows="2" class="erp-input text-sm" placeholder="{{ __('Delivery address') }}">{{ old('delivery_address', $note->delivery_address ?? $note->dispatch_notes) }}</textarea>
+                        <textarea name="package_notes" rows="2" class="erp-input text-sm" placeholder="{{ __('Package notes') }}">{{ old('package_notes', $note->package_notes) }}</textarea>
+                        <x-primary-button type="submit">{{ __('Mark packaged') }}</x-primary-button>
+                    </form>
+                @endcan
+
+                @can('dispatch', $note)
+                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.dispatch', $note) }}" class="space-y-2 rounded-lg border border-erp-border p-3">
+                        @csrf
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Courier / Dispatch') }}</p>
+                        <select name="courier_key" class="erp-input text-sm">
+                            <option value="">{{ __('Select courier') }}</option>
+                            @foreach ($couriers as $key => $label)
+                                <option value="{{ $key }}" @selected(old('courier_key') === $key)>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        <input type="text" name="tracking_number" class="erp-input text-sm" placeholder="{{ __('Tracking number') }}" value="{{ old('tracking_number', $note->tracking_number) }}">
+                        <input type="text" name="waybill_number" class="erp-input text-sm" placeholder="{{ __('Waybill number') }}" value="{{ old('waybill_number', $note->waybill_number) }}">
+                        <textarea name="dispatch_notes" rows="2" class="erp-input text-sm" placeholder="{{ __('Dispatch notes') }}">{{ old('dispatch_notes', $note->dispatch_notes) }}</textarea>
                         <x-primary-button type="submit">{{ __('Dispatch') }}</x-primary-button>
                     </form>
                 @endcan
+
                 @can('deliver', $note)
-                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.deliver', $note) }}" class="flex flex-col gap-2">
+                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.deliver', $note) }}" enctype="multipart/form-data" class="space-y-2 rounded-lg border border-erp-border p-3">
                         @csrf
-                        <input type="text" name="recipient_name" class="erp-input text-sm" placeholder="{{ __('Recipient name') }}" value="{{ $note->recipient_name }}">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Proof of delivery') }}</p>
+                        <input type="text" name="recipient_name" class="erp-input text-sm" placeholder="{{ __('Recipient name') }}" value="{{ old('recipient_name', $note->recipient_name) }}" required>
+                        <input type="text" name="recipient_phone" class="erp-input text-sm" placeholder="{{ __('Recipient phone') }}" value="{{ old('recipient_phone', $note->recipient_phone) }}">
+                        <input type="text" name="recipient_signature" class="erp-input text-sm" placeholder="{{ __('Signature / ID reference') }}" value="{{ old('recipient_signature', $note->recipient_signature) }}">
+                        <input type="file" name="pod_photo" accept="image/jpeg,image/png,image/webp" class="erp-input text-sm">
+                        <textarea name="delivery_notes" rows="2" class="erp-input text-sm" placeholder="{{ __('Delivery remarks') }}">{{ old('delivery_notes', $note->delivery_notes) }}</textarea>
                         <x-primary-button type="submit">{{ __('Confirm delivery') }}</x-primary-button>
                     </form>
                 @endcan
-                @can('cancel', $note)
-                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.cancel', $note) }}">
-                        @csrf
-                        <input type="hidden" name="reason" value="{{ __('Cancelled by user') }}">
-                        <x-danger-button type="submit">{{ __('Cancel') }}</x-danger-button>
-                    </form>
-                @endcan
-                @can('create', App\Models\Sales\CustomerInvoice::class)
-                    @if (($invoiceEligibility['eligible'] ?? false))
-                        <form method="POST" action="{{ route('admin.dispatch.delivery-notes.generate-invoice', $note) }}">
+
+                @if ($note->status === \App\Enums\Dispatch\DeliveryNoteStatus::Delivered)
+                    <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                        <p class="font-semibold">{{ __('Proof of delivery captured') }}</p>
+                        @if ($note->recipient_signature)
+                            <p class="mt-1">{{ __('Signature') }}: {{ $note->recipient_signature }}</p>
+                        @endif
+                        @if ($note->pod_photo_path)
+                            <p class="mt-1">{{ __('Photo on file') }}</p>
+                        @endif
+                    </div>
+                @endif
+
+                <div class="flex flex-wrap gap-2">
+                    @can('cancel', $note)
+                        <form method="POST" action="{{ route('admin.dispatch.delivery-notes.cancel', $note) }}">
                             @csrf
-                            <x-primary-button type="submit">{{ __('Generate invoice') }}</x-primary-button>
+                            <input type="hidden" name="reason" value="{{ __('Cancelled by user') }}">
+                            <x-danger-button type="submit">{{ __('Cancel') }}</x-danger-button>
                         </form>
-                    @endif
-                @endcan
+                    @endcan
+                    @can('create', App\Models\Sales\CustomerInvoice::class)
+                        @if (($invoiceEligibility['eligible'] ?? false))
+                            <form method="POST" action="{{ route('admin.dispatch.delivery-notes.generate-invoice', $note) }}">
+                                @csrf
+                                <x-primary-button type="submit">{{ __('Generate invoice') }}</x-primary-button>
+                            </form>
+                        @endif
+                    @endcan
+                </div>
             </div>
             @if (! empty($invoiceEligibility['warnings']))
                 <ul class="mt-2 list-disc ps-5 text-xs text-amber-800">

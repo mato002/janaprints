@@ -1,27 +1,46 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $filters = $filters ?? [];
     $filterOptions = $filter_options ?? [];
     $bulkActions = $bulk_actions ?? [];
     $hasBulk = count($bulkActions) > 0;
+    $turboFrame = WorkspaceEmbed::turboFrame();
 @endphp
 
 <x-admin-layout
-    :title="__('Asset register')"
+    :title="__('Asset Management')"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Asset Register')],
+        ['label' => __('Asset Management')],
     ]"
 >
     <x-admin.page-header
-        :title="__('Asset Register')"
-        :description="__('All company assets.')"
+        :title="__('Asset Management')"
+        :description="__('Register, categories, and KPIs in one workspace.')"
     >
-        @if ($can_create ?? false)
-            <x-slot name="actions">
-                <a href="{{ route('admin.assets.create') }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register asset') }}</a>
-            </x-slot>
-        @endif
+        <x-slot name="actions">
+            @if ($can_create ?? false)
+                <a href="{{ WorkspaceEmbed::url(route('admin.assets.create')) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Register asset') }}</a>
+            @endif
+            @can('create', \App\Models\Assets\AssetCategory::class)
+                <a href="{{ WorkspaceEmbed::url(route('admin.assets.categories.create')) }}" class="erp-btn-secondary" data-erp-modal-open>{{ __('New category') }}</a>
+            @endcan
+        </x-slot>
     </x-admin.page-header>
+
+    @if (session('status'))
+        <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+    @endif
+
+    @include('admin.assets.partials.management-summary')
+
+    @include('admin.assets.partials.management-categories')
+
+    <div class="mb-3">
+        <h2 class="text-sm font-semibold">{{ __('Asset Register') }}</h2>
+        <p class="text-xs text-slate-500">{{ __('All company assets.') }}</p>
+    </div>
 
     <x-admin.card :padding="false" class="mb-4">
         <x-admin.index-toolbar

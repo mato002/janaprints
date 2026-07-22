@@ -5,6 +5,7 @@ namespace App\Services\Dispatch;
 use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Enums\DocumentType;
 use App\Enums\ProductionJobCardStatus;
+use App\Events\Dispatch\DeliveryNoteDelivered;
 use App\Models\Dispatch\DeliveryNote;
 use App\Models\Dispatch\DeliveryNoteItem;
 use App\Enums\ProductionOutputStatus;
@@ -67,6 +68,7 @@ class DeliveryNoteService
                 'status' => DeliveryNoteStatus::Draft,
                 'recipient_name' => $attributes['recipient_name'] ?? null,
                 'recipient_phone' => $attributes['recipient_phone'] ?? null,
+                'delivery_address' => $attributes['delivery_address'] ?? $attributes['dispatch_notes'] ?? null,
                 'dispatch_notes' => $attributes['dispatch_notes'] ?? null,
             ]);
 
@@ -90,6 +92,7 @@ class DeliveryNoteService
                 'delivery_date' => $attributes['delivery_date'] ?? $note->delivery_date,
                 'recipient_name' => array_key_exists('recipient_name', $attributes) ? $attributes['recipient_name'] : $note->recipient_name,
                 'recipient_phone' => array_key_exists('recipient_phone', $attributes) ? $attributes['recipient_phone'] : $note->recipient_phone,
+                'delivery_address' => array_key_exists('delivery_address', $attributes) ? $attributes['delivery_address'] : $note->delivery_address,
                 'dispatch_notes' => array_key_exists('dispatch_notes', $attributes) ? $attributes['dispatch_notes'] : $note->dispatch_notes,
                 'delivery_notes' => array_key_exists('delivery_notes', $attributes) ? $attributes['delivery_notes'] : $note->delivery_notes,
             ]);
@@ -102,9 +105,54 @@ class DeliveryNoteService
         });
     }
 
-    public function dispatch(DeliveryNote $note, int $userId, ?string $dispatchNotes = null): DeliveryNote
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    public function markPackaged(DeliveryNote $note, int $userId, array $attributes = []): DeliveryNote
     {
         $this->assertStatus($note, DeliveryNoteStatus::Draft);
+
+        if ($note->isPackaged()) {
+            throw ValidationException::withMessages([
+                'status' => __('This delivery note is already packaged.'),
+            ]);
+        }
+
+        if ($note->items()->count() === 0) {
+            throw ValidationException::withMessages([
+                'items' => __('Delivery note must have at least one line item before packaging.'),
+            ]);
+        }
+
+        $note->update([
+            'package_count' => max(1, (int) ($attributes['package_count'] ?? 1)),
+            'package_notes' => $attributes['package_notes'] ?? null,
+            'packaged_by' => $userId,
+            'packaged_at' => now(),
+            'delivery_address' => $attributes['delivery_address'] ?? $note->delivery_address ?? $note->dispatch_notes,
+        ]);
+
+        return $note->fresh(['items', 'customer', 'productionJobCard', 'packager']);
+    }
+
+    /**
+     * @param  array<string, mixed>|string|null  $attributes
+     */
+    public function dispatch(DeliveryNote $note, int $userId, array|string|null $attributes = []): DeliveryNote
+    {
+        if (is_string($attributes)) {
+            $attributes = ['dispatch_notes' => $attributes];
+        }
+
+        $attributes ??= [];
+
+        $this->assertStatus($note, DeliveryNoteStatus::Draft);
+
+        if (! $note->isPackaged()) {
+            throw ValidationException::withMessages([
+                'status' => __('Package the delivery note before dispatch.'),
+            ]);
+        }
 
         if ($note->items()->count() === 0) {
             throw ValidationException::withMessages([
@@ -112,14 +160,23 @@ class DeliveryNoteService
             ]);
         }
 
-        return DB::transaction(function () use ($note, $userId, $dispatchNotes) {
+        return DB::transaction(function () use ($note, $userId, $attributes) {
             $this->dispatchInventory->dispatch($note, $userId);
+
+            $courierName = $attributes['courier_name'] ?? $note->courier_name;
+            if (isset($attributes['courier_key'])) {
+                $courierName = config('dispatch_couriers.couriers.'.$attributes['courier_key']) ?? $courierName;
+            }
 
             $note->update([
                 'status' => DeliveryNoteStatus::Dispatched,
                 'dispatched_by' => $userId,
                 'dispatched_at' => now(),
-                'dispatch_notes' => $dispatchNotes ?? $note->dispatch_notes,
+                'dispatch_notes' => $attributes['dispatch_notes'] ?? $note->dispatch_notes,
+                'delivery_address' => $attributes['delivery_address'] ?? $note->delivery_address,
+                'courier_name' => $courierName,
+                'tracking_number' => $attributes['tracking_number'] ?? $note->tracking_number,
+                'waybill_number' => $attributes['waybill_number'] ?? $note->waybill_number,
             ]);
 
             $note = $note->fresh(['items', 'items.inventoryItem', 'customer', 'productionJobCard', 'dispatcher']);
@@ -129,6 +186,9 @@ class DeliveryNoteService
         });
     }
 
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
     public function deliver(DeliveryNote $note, int $userId, array $attributes = []): DeliveryNote
     {
         $this->assertStatus($note, DeliveryNoteStatus::Dispatched);
@@ -144,11 +204,14 @@ class DeliveryNoteService
                 'recipient_phone' => $attributes['recipient_phone'] ?? $note->recipient_phone,
                 'recipient_signature' => $attributes['recipient_signature'] ?? $note->recipient_signature,
                 'delivery_notes' => $attributes['delivery_notes'] ?? $note->delivery_notes,
+                'pod_photo_path' => $attributes['pod_photo_path'] ?? $note->pod_photo_path,
+                'pod_captured_at' => ($attributes['pod_photo_path'] ?? $note->pod_photo_path) ? now() : $note->pod_captured_at,
                 'invoice_ready' => true,
             ]);
 
             $note = $note->fresh(['items', 'items.inventoryItem', 'postedJournal', 'customer', 'productionJobCard', 'deliverer']);
             app(\App\Support\Production\ProductionFulfilmentService::class)->syncFromDeliveryNote($note);
+            DeliveryNoteDelivered::dispatch($note);
 
             return $note;
         });

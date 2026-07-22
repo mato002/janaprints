@@ -14,6 +14,7 @@ use App\Models\Procurement\SupplierBill;
 use App\Models\Procurement\SupplierPayment;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerPayment;
+use App\Enums\CustomerInvoiceType;
 use App\Models\Tax\TaxAuditLog;
 use App\Models\Tax\TaxCode;
 use App\Models\Tax\TaxPeriod;
@@ -44,6 +45,7 @@ class AccountingListingExporter
     /** @var list<string> */
     protected array $listings = [
         'customer-invoices',
+        'customer-credit-notes',
         'customer-payments',
         'supplier-bills',
         'supplier-payments',
@@ -100,6 +102,7 @@ class AccountingListingExporter
 
         [$headers, $rows, $basename, $title] = match ($listing) {
             'customer-invoices' => $this->customerInvoices(),
+            'customer-credit-notes' => $this->customerCreditNotes(),
             'customer-payments' => $this->customerPayments(),
             'supplier-bills' => $this->supplierBills(),
             'supplier-payments' => $this->supplierPayments(),
@@ -141,7 +144,9 @@ class AccountingListingExporter
         Gate::authorize('viewAny', CustomerInvoice::class);
 
         $invoices = $this->scopeToTenant(
-            CustomerInvoice::query()->with(['customer', 'salesOrder'])
+            CustomerInvoice::query()
+                ->with(['customer', 'salesOrder'])
+                ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
         )->latest('invoice_date')->latest('id')->limit(5000)->get();
 
         $headers = [__('Number'), __('Customer'), __('Date'), __('Type'), __('Total'), __('Status')];
@@ -155,6 +160,32 @@ class AccountingListingExporter
         ])->all();
 
         return [$headers, $rows, 'customer-invoices', __('Customer invoices')];
+    }
+
+    /**
+     * @return array{0: list<string>, 1: list<list<string|float|int|null>>, 2: string, 3: string}
+     */
+    protected function customerCreditNotes(): array
+    {
+        Gate::authorize('viewAny', CustomerInvoice::class);
+
+        $creditNotes = $this->scopeToTenant(
+            CustomerInvoice::query()
+                ->with(['customer', 'creditedInvoice'])
+                ->where('invoice_type', CustomerInvoiceType::CreditNote)
+        )->latest('invoice_date')->latest('id')->limit(5000)->get();
+
+        $headers = [__('Number'), __('Customer'), __('Credits invoice'), __('Date'), __('Total'), __('Status')];
+        $rows = $creditNotes->map(fn (CustomerInvoice $creditNote) => [
+            $creditNote->invoice_number,
+            $creditNote->customer?->company_name ?? '',
+            $creditNote->creditedInvoice?->invoice_number ?? '',
+            $creditNote->invoice_date->format('Y-m-d'),
+            number_format((float) $creditNote->total_amount, 2, '.', ''),
+            $creditNote->status->label(),
+        ])->all();
+
+        return [$headers, $rows, 'customer-credit-notes', __('Customer credit notes')];
     }
 
     /**

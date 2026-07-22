@@ -31,7 +31,17 @@ class DeliveryNote extends Model
         'status',
         'recipient_name',
         'recipient_phone',
+        'delivery_address',
+        'package_count',
+        'package_notes',
+        'packaged_by',
+        'packaged_at',
+        'courier_name',
+        'tracking_number',
+        'waybill_number',
         'recipient_signature',
+        'pod_photo_path',
+        'pod_captured_at',
         'dispatch_notes',
         'delivery_notes',
         'dispatched_by',
@@ -49,8 +59,10 @@ class DeliveryNote extends Model
         return [
             'delivery_date' => 'date',
             'status' => DeliveryNoteStatus::class,
+            'packaged_at' => 'datetime',
             'dispatched_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'pod_captured_at' => 'datetime',
             'invoice_ready' => 'boolean',
             'invoiced_at' => 'datetime',
         ];
@@ -97,6 +109,11 @@ class DeliveryNote extends Model
         return $this->belongsTo(User::class, 'dispatched_by');
     }
 
+    public function packager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'packaged_by');
+    }
+
     public function deliverer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'delivered_by');
@@ -121,5 +138,20 @@ class DeliveryNote extends Model
         if ($this->status === DeliveryNoteStatus::Delivered) {
             $this->forceFill(['invoice_ready' => true])->save();
         }
+    }
+
+    public function isPackaged(): bool
+    {
+        return $this->packaged_at !== null;
+    }
+
+    public function workflowStep(): string
+    {
+        return match ($this->status) {
+            DeliveryNoteStatus::Draft => $this->isPackaged() ? 'courier' : 'package',
+            DeliveryNoteStatus::Dispatched => 'deliver',
+            DeliveryNoteStatus::Delivered => 'complete',
+            DeliveryNoteStatus::Cancelled => 'cancelled',
+        };
     }
 }

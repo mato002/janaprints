@@ -108,10 +108,41 @@ class MachineJobAssignmentService
 
         $machine = FixedAsset::query()
             ->forTenant()
-            ->whereHas('machineProfile')
             ->findOrFail($machineAssetId);
 
-        return $this->assignToJob($jobCard, $machine, $userId, $notes);
+        if ($machine->machineProfile) {
+            return $this->assignToJob($jobCard, $machine, $userId, $notes);
+        }
+
+        return $this->assignAssetWithoutProfile($jobCard, $machine, $userId, $notes);
+    }
+
+    protected function assignAssetWithoutProfile(
+        ProductionJobCard $jobCard,
+        FixedAsset $machine,
+        int $userId,
+        ?string $notes = null,
+    ): ProductionJobCard {
+        return DB::transaction(function () use ($jobCard, $machine, $userId, $notes) {
+            if ($jobCard->assigned_machine_asset_id && $jobCard->assigned_machine_asset_id !== $machine->id) {
+                MachineJobAssignment::query()
+                    ->where('production_job_card_id', $jobCard->id)
+                    ->whereNull('unassigned_at')
+                    ->update(['unassigned_at' => now()]);
+            }
+
+            $jobCard->update(['assigned_machine_asset_id' => $machine->id]);
+
+            MachineJobAssignment::query()->create([
+                'fixed_asset_id' => $machine->id,
+                'production_job_card_id' => $jobCard->id,
+                'assigned_by' => $userId,
+                'assigned_at' => now(),
+                'notes' => $notes,
+            ]);
+
+            return $jobCard->fresh(['assignedMachine']);
+        });
     }
 
     /**

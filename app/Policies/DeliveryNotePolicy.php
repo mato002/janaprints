@@ -33,11 +33,20 @@ class DeliveryNotePolicy
             && $note->status->isEditable();
     }
 
+    public function package(User $user, DeliveryNote $note): bool
+    {
+        return $user->can('dispatch.create')
+            && $this->sameTenant($user, $note)
+            && $note->status === DeliveryNoteStatus::Draft
+            && ! $note->isPackaged();
+    }
+
     public function dispatch(User $user, DeliveryNote $note): bool
     {
         return $user->can('dispatch.dispatch')
             && $this->sameTenant($user, $note)
-            && $note->status->canDispatch();
+            && $note->status->canDispatch()
+            && $note->isPackaged();
     }
 
     public function deliver(User $user, DeliveryNote $note): bool

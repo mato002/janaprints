@@ -4731,6 +4731,34 @@ body.erp-navigating {
         @apply sticky top-0 z-40 border-b border-erp-border/60 bg-erp-page pb-1;
     }
 
+    .production-floor-board__card .text-card-title {
+        @apply text-[10px] font-semibold uppercase tracking-wider text-slate-500;
+    }
+
+    .production-floor-board__card .text-card-value {
+        @apply text-2xl font-bold tabular-nums;
+    }
+
+    .production-floor-board__card .text-\[11px\] {
+        @apply text-xs font-medium text-slate-600;
+    }
+
+    .machines-board__card .text-card-title {
+        @apply text-[10px] font-semibold uppercase tracking-wider text-slate-500;
+    }
+
+    .machines-board__card .text-card-value {
+        @apply text-2xl font-bold tabular-nums;
+    }
+
+    .machines-board__card .text-\[11px\] {
+        @apply text-xs font-medium text-slate-600;
+    }
+
+    .machines-board__card--active {
+        @apply ring-2 ring-erp-primary/40 ring-offset-1;
+    }
+
     /* Fit all queue columns on one screen — wrap long text instead of horizontal scroll */
     .production-floor-shell .production-floor-register__table.erp-table-scroll {
         overflow-x: visible;
@@ -4847,6 +4875,14 @@ body.erp-navigating {
     .production-floor-shell .production-floor-machine-select {
         min-width: 0;
         max-width: 100%;
+    }
+
+    .production-floor-shell .production-floor-machine-select--pending {
+        @apply font-medium text-erp-accent;
+    }
+
+    .production-floor-shell .production-floor-machine-select--assigned {
+        @apply font-semibold text-erp-primary;
     }
 
     .production-floor-shell .production-floor-register__table .erp-table thead th {

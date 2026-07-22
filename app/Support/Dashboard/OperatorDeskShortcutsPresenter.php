@@ -94,6 +94,14 @@ class OperatorDeskShortcutsPresenter
                 'permissions' => ['production.view'],
             ],
             [
+                'key' => 'dispatch',
+                'label' => __('Dispatch Desk'),
+                'description' => __('Ready jobs, delivery notes, and confirmations'),
+                'route' => 'admin.dispatch.dashboard',
+                'icon' => 'truck',
+                'permissions' => ['dispatch.view'],
+            ],
+            [
                 'key' => 'store',
                 'label' => __('Store Desk'),
                 'description' => __('Receive, issue, and count stock'),

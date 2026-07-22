@@ -1,6 +1,5 @@
 @php
     $operatorMode = (bool) ($operatorMode ?? false);
-    $machineMeta = $machineMeta ?? collect();
 @endphp
 
 <div class="production-floor-register__table erp-card erp-table-scroll" x-ref="queueTable">
@@ -63,7 +62,7 @@
                     data-filter-vendor="{{ strtolower(trim($row['vendor'] ?? '')) }}"
                     data-filter-priority="{{ $row['priority'] }}"
                     data-filter-overdue="{{ $row['is_overdue'] ? '1' : '0' }}"
-                    data-group-machine="{{ $row['machine'] ?? __('Unassigned') }}"
+                    data-group-machine="{{ $row['machine'] ?? __('Assign') }}"
                     data-group-stage="{{ $row['stage_label'] }}"
                     data-group-priority="{{ $row['priority_label'] }}"
                     data-group-vendor="{{ $row['vendor'] ?? __('No vendor') }}"
@@ -106,42 +105,32 @@
                             'label' => $row['stage_label'],
                         ])
                     </td>
-                    <td @click.stop>
+                    <td @click.stop @mousedown.stop>
                         @can('machines.assign')
-                            <form method="POST" action="{{ route('admin.production.floor.assign-machine', $row['public_id']) }}" class="w-full max-w-full" @if ($operatorMode) data-erp-desk-form @endif>
-                                @csrf
-                                @foreach ($filters as $key => $value)
-                                    @if ($value !== '' && $value !== null)
-                                        <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-                                    @endif
-                                @endforeach
-                                @if ($operatorMode)
-                                    <input type="hidden" name="from" value="production-floor">
-                                @endif
+                            @if (count($filter_options['machines']) > 0)
                                 <select
                                     name="assigned_machine_asset_id"
-                                    class="erp-select production-floor-machine-select w-full text-xs"
-                                    onchange="this.form.submit()"
+                                    class="erp-select production-floor-machine-select w-full text-xs {{ $row['machine_id'] ? 'production-floor-machine-select--assigned' : 'production-floor-machine-select--pending' }}"
+                                    data-current-value="{{ $row['machine_id'] ?? '' }}"
+                                    @change="assignMachineInline(@js($row['public_id']), $event)"
+                                    @click.stop
+                                    @mousedown.stop
                                 >
-                                    <option value="">{{ __('Unassigned') }}</option>
+                                    <option value="">{{ __('Assign') }}</option>
                                     @foreach ($filter_options['machines'] as $machine)
-                                        @php
-                                            $meta = $machineMeta[(string) $machine['value']] ?? null;
-                                            $optionLabel = $machine['label'];
-                                            if ($meta) {
-                                                $optionLabel = trim(($meta['icon'] ?? '').' '.$machine['label'].' · '.($meta['status_label'] ?? ''));
-                                            }
-                                        @endphp
                                         <option
                                             value="{{ $machine['value'] }}"
                                             @selected((string) $row['machine_id'] === $machine['value'])
-                                            @if ($meta && $meta['status']) data-status="{{ $meta['status'] }}" @endif
                                         >
-                                            {{ $optionLabel }}
+                                            {{ $machine['label'] }}
                                         </option>
                                     @endforeach
                                 </select>
-                            </form>
+                            @elseif ($row['machine'])
+                                <span class="text-xs font-medium text-erp-primary">{{ $row['machine'] }}</span>
+                            @else
+                                <span class="text-xs text-slate-500">{{ __('No machines registered') }}</span>
+                            @endif
                         @else
                             {{ $row['machine'] ?? '—' }}
                         @endcan

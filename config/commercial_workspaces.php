@@ -23,7 +23,7 @@ return [
             'route_params' => ['section' => 'sales'],
             'permission' => 'quotations.view|artwork.view|sales_orders.view',
             'icon' => 'document-text',
-            'active_routes' => ['admin.workspaces.commercial.section:sales', 'admin.quotations.*', 'admin.artwork.*', 'admin.sales-orders.*'],
+            'active_routes' => ['admin.workspaces.commercial.section:sales', 'admin.quotations.*', 'admin.artwork.*', 'admin.sales-orders.*', 'admin.sales.desk', 'admin.sales.desk.*'],
         ],
         [
             'label' => 'Customer Service',
@@ -32,7 +32,7 @@ return [
             'route_params' => ['section' => 'customer-service'],
             'permission' => 'public_leads.quote_requests.view|public_leads.contact_messages.view|commercial.complaints.view|commercial.tickets.view|receivables.statement.view',
             'icon' => 'inbox',
-            'active_routes' => ['admin.workspaces.commercial.section:customer-service', 'admin.receivables.statement', 'admin.public-quote-requests.*', 'admin.public-contact-messages.*', 'admin.commercial.complaints.*', 'admin.commercial.support-tickets.*'],
+            'active_routes' => ['admin.workspaces.commercial.section:customer-service', 'admin.receivables.statement', 'admin.public-quote-requests.*', 'admin.public-contact-messages.*', 'admin.commercial.complaints.*', 'admin.commercial.support-tickets.*', 'admin.dispatch.dashboard', 'admin.dispatch.delivery-notes.*'],
         ],
         [
             'label' => 'Point Of Sale',
@@ -101,6 +101,7 @@ return [
             'description' => 'Quotations, artwork, orders, pricing, and approval workflows.',
             'icon' => 'document-text',
             'quick_actions' => [
+                ['label' => 'Open Sales Desk', 'route' => 'admin.sales.desk', 'route_params' => ['from' => 'commercial'], 'permission' => 'crm.customers.create|sales_orders.create'],
                 ['label' => 'Create Quotation', 'route' => 'admin.quotations.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'quotations.create'],
                 ['label' => 'Create Direct Order', 'route' => 'admin.sales-orders.create', 'route_params' => ['tab' => 'direct'], 'permission' => 'sales_orders.create'],
                 ['label' => 'Create Artwork Request', 'route' => 'admin.artwork.create', 'route_params' => ['from' => 'commercial'], 'permission' => 'artwork.create'],
@@ -113,6 +114,7 @@ return [
                 [
                     'label' => 'Sales',
                     'items' => [
+                        ['key' => 'sales-desk', 'label' => 'Sales Desk', 'description' => 'Walk-in flow: customer, specification, order, and release to production.', 'route' => 'admin.sales.desk', 'permission' => 'crm.customers.create|sales_orders.create', 'icon' => 'shopping-cart', 'active_routes' => ['admin.sales.desk', 'admin.sales.desk.*']],
                         ['label' => 'Quotations', 'description' => 'Quotes, pricing, and customer proposals.', 'route' => 'admin.quotations.index', 'permission' => 'quotations.view', 'icon' => 'document-text', 'active_routes' => ['admin.quotations.*']],
                         ['label' => 'Artwork', 'description' => 'Design requests, proofs, and approvals.', 'route' => 'admin.artwork.index', 'permission' => 'artwork.view', 'icon' => 'color-swatch', 'active_routes' => ['admin.artwork.*']],
                         ['label' => 'Sales Orders', 'description' => 'Confirmed orders ready for production.', 'route' => 'admin.sales-orders.index', 'permission' => 'sales_orders.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.sales-orders.*']],
@@ -139,6 +141,7 @@ return [
                         ['label' => 'Contact Messages', 'description' => 'Public contact form messages from the storefront.', 'route' => 'admin.public-contact-messages.index', 'permission' => 'public_leads.contact_messages.view', 'icon' => 'inbox', 'active_routes' => ['admin.public-contact-messages.*'], 'count_key' => 'unread_contact_messages'],
                         ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'route' => 'admin.commercial.complaints.index', 'permission' => 'commercial.complaints.view', 'icon' => 'exclamation', 'active_routes' => ['admin.commercial.complaints.*']],
                         ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'route' => 'admin.commercial.support-tickets.index', 'permission' => 'commercial.tickets.view', 'icon' => 'inbox', 'active_routes' => ['admin.commercial.support-tickets.*']],
+                        ['label' => 'Dispatch Desk', 'description' => 'Outbound delivery — package, courier, collect, and confirm delivery.', 'route' => 'admin.dispatch.dashboard', 'permission' => 'dispatch.view', 'icon' => 'truck', 'active_routes' => ['admin.dispatch.dashboard', 'admin.dispatch.delivery-notes.*', 'admin.dispatch.calendar']],
                         ['label' => 'Customer Statements', 'description' => 'Period statements of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],
                         ['label' => 'Customer 360', 'description' => 'Select a customer to view profile, quotations, jobs, invoices, payments, communications, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'skip_desk_redirect' => true, 'active_routes' => ['admin.crm.customers.*']],
                     ],

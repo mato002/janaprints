@@ -345,7 +345,7 @@ class DepartmentCommandCenterService
 
         $eligibility = $this->controls->dispatchEligibility($job);
 
-        return $eligibility['eligible'] ? __('Dispatch ready') : __('Not ready');
+        return $eligibility['eligible'] ? __('Ready for dispatch') : __('Not ready');
     }
 
     protected function dispatchVariant(?ProductionJobCard $job): string

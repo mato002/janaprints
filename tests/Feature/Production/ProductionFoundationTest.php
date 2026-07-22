@@ -79,8 +79,28 @@ class ProductionFoundationTest extends TestCase
             ->withHeader('Turbo-Frame', 'erp-form-modal')
             ->get(route('admin.production.job-cards.create'))
             ->assertOk()
-            ->assertSee(__('No sales orders are ready for a job card yet.'), false)
+            ->assertSee(__('No sales orders are ready for a job card.'), false)
+            ->assertSee('data-erp-modal-open', false)
+            ->assertSee(__('Create sales order'), false)
+            ->assertSee('data-turbo-frame="erp-main"', false)
+            ->assertSee(__('View sales orders'), false)
             ->assertSee(__('Create job card'), false);
+    }
+
+    public function test_create_job_card_form_from_production_floor_includes_sales_order_context(): void
+    {
+        $company = Company::factory()->create();
+        $branch = Branch::factory()->create(['company_id' => $company->id]);
+        $user = $this->productionUser($company, $branch, ['production.view', 'production.create', 'sales_orders.create']);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.production.job-cards.create', ['from' => 'production-floor']))
+            ->assertOk()
+            ->assertSee('from=production-floor', false)
+            ->assertSee('name="from" value="production-floor"', false);
     }
 
     public function test_ready_for_production_sales_order_appears_on_create_form(): void

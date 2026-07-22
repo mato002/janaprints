@@ -10,7 +10,7 @@ use App\Models\Assets\FixedAsset;
 use App\Models\Branch;
 use App\Models\User;
 use App\Services\Assets\AssetAssignmentService;
-use App\Services\Assets\AssetRegisterIndexService;
+use App\Services\Assets\AssetManagementWorkspaceService;
 use App\Services\Assets\AssetRegisterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,7 +19,7 @@ use Illuminate\View\View;
 class FixedAssetController extends Controller
 {
     public function __construct(
-        protected AssetRegisterIndexService $index,
+        protected AssetManagementWorkspaceService $workspace,
         protected AssetRegisterService $register,
         protected AssetAssignmentService $assignments,
     ) {}
@@ -28,7 +28,7 @@ class FixedAssetController extends Controller
     {
         $this->authorize('viewAny', FixedAsset::class);
 
-        return view('admin.assets.index', $this->index->build($request));
+        return view('admin.assets.index', $this->workspace->build($request));
     }
 
     public function create(): View

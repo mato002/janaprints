@@ -27,13 +27,16 @@ class DispatchDashboardService
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
 
         $readyCount = (clone $jobs)->where('status', ProductionJobCardStatus::ReadyForDispatch)->count();
-        $draftCount = (clone $notes)->where('status', DeliveryNoteStatus::Draft)->count();
+        $awaitingPackageCount = (clone $notes)
+            ->where('status', DeliveryNoteStatus::Draft)
+            ->whereNull('packaged_at')
+            ->count();
+        $awaitingDispatchCount = (clone $notes)
+            ->where('status', DeliveryNoteStatus::Draft)
+            ->whereNotNull('packaged_at')
+            ->count();
         $dispatchedCount = (clone $notes)->where('status', DeliveryNoteStatus::Dispatched)->count();
         $deliveredCount = (clone $notes)->where('status', DeliveryNoteStatus::Delivered)->count();
-        $deliveredToday = (clone $notes)
-            ->where('status', DeliveryNoteStatus::Delivered)
-            ->whereDate('delivered_at', now()->toDateString())
-            ->count();
 
         $readyJobs = (clone $jobs)
             ->where('status', ProductionJobCardStatus::ReadyForDispatch)
@@ -56,10 +59,10 @@ class DispatchDashboardService
         return [
             'summary' => [
                 ['label' => __('Jobs ready'), 'value' => (string) $readyCount, 'filter' => ['focus' => 'ready']],
-                ['label' => __('Draft notes'), 'value' => (string) $draftCount, 'filter' => ['status' => DeliveryNoteStatus::Draft->value, 'focus' => 'notes']],
+                ['label' => __('Awaiting package'), 'value' => (string) $awaitingPackageCount, 'filter' => ['status' => DeliveryNoteStatus::Draft->value, 'focus' => 'notes']],
+                ['label' => __('Awaiting dispatch'), 'value' => (string) $awaitingDispatchCount, 'filter' => ['status' => DeliveryNoteStatus::Draft->value, 'focus' => 'notes']],
                 ['label' => __('Dispatched'), 'value' => (string) $dispatchedCount, 'filter' => ['status' => DeliveryNoteStatus::Dispatched->value, 'focus' => 'notes']],
                 ['label' => __('Delivered'), 'value' => (string) $deliveredCount, 'filter' => ['status' => DeliveryNoteStatus::Delivered->value, 'focus' => 'notes']],
-                ['label' => __('Delivered today'), 'value' => (string) $deliveredToday, 'filter' => ['status' => DeliveryNoteStatus::Delivered->value, 'focus' => 'notes']],
             ],
             'ready_jobs' => $readyJobs,
             'ready_jobs_count' => $readyCount,

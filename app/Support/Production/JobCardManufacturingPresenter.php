@@ -203,7 +203,7 @@ class JobCardManufacturingPresenter
                 $jobCard->actual_end_date?->toDateTimeString(),
             ),
             $stage(
-                __('Dispatch ready'),
+                __('Ready for dispatch'),
                 $status === ProductionJobCardStatus::ReadyForDispatch,
                 false,
             ),

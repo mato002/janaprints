@@ -57,25 +57,14 @@
             <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p class="text-sm font-semibold text-erp-primary">{{ __('Operator mode') }}</p>
-                    <p class="text-xs text-slate-600">{{ __('Use Next step on each job. Preview orders and jobs in modals — stay on this floor.') }}</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    @if ($can_create && $create_url)
-                        <a href="{{ $create_url }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create job card') }}</a>
-                    @endif
+                    <p class="text-xs text-slate-600">{{ __('Work arrives here — use Next step on each job. Preview orders and jobs in modals without leaving the floor.') }}</p>
                 </div>
             </div>
         @else
             <x-admin.page-header
                 :title="__('Production Floor')"
-                :description="__('Shop floor register — filter by stage, assign machines, and take the next action without hunting through menus.')"
-            >
-                @if ($can_create && $create_url)
-                    <x-slot name="actions">
-                        <a href="{{ $create_url }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create job card') }}</a>
-                    </x-slot>
-                @endif
-            </x-admin.page-header>
+                :description="__('Production queue — work arrives here ready to run. Assign machines, execute stages, and dispatch.')"
+            />
         @endif
 
         @if (session('status'))
@@ -111,19 +100,20 @@
                         :action="route('admin.production.floor')"
                         :reset-url="route('admin.production.floor')"
                         data-production-floor-live-filters
-                        @input="onLiveFilterInput($event)"
-                        @change="onLiveFilterChange($event)"
                     >
+                        @if (request('desk'))
+                            <input type="hidden" name="desk" value="{{ request('desk') }}">
+                        @endif
                         <input
                             type="search"
                             name="search"
                             value="{{ $filters['search'] }}"
                             class="erp-toolbar-input min-w-[12rem] flex-1"
-                            placeholder="{{ __('Job, customer, or product…') }}"
+                            placeholder="{{ __('Job or product…') }}"
                             aria-label="{{ __('Search') }}"
                             data-erp-auto-search
                         >
-                        <select name="stage" class="erp-toolbar-select" aria-label="{{ __('Stage') }}">
+                        <select name="stage" class="erp-toolbar-select" aria-label="{{ __('Stage') }}" data-erp-auto-submit>
                             <option value="">{{ __('All active stages') }}</option>
                             @foreach ($filter_options['stages'] as $stage)
                                 <option value="{{ $stage['value'] }}" @selected($filters['stage'] === $stage['value'])>
@@ -134,26 +124,26 @@
                                 </option>
                             @endforeach
                         </select>
-                        <select name="machine_id" class="erp-toolbar-select" aria-label="{{ __('Machine') }}">
+                        <select name="machine_id" class="erp-toolbar-select" aria-label="{{ __('Machine') }}" data-erp-auto-submit>
                             <option value="">{{ __('All machines') }}</option>
                             @foreach ($filter_options['machines'] as $machine)
                                 <option value="{{ $machine['value'] }}" @selected($filters['machine_id'] === $machine['value'])>{{ $machine['label'] }}</option>
                             @endforeach
                         </select>
-                        <select name="vendor_id" class="erp-toolbar-select" aria-label="{{ __('Vendor') }}">
+                        <select name="vendor_id" class="erp-toolbar-select" aria-label="{{ __('Vendor') }}" data-erp-auto-submit>
                             <option value="">{{ __('All vendors') }}</option>
                             @foreach ($filter_options['vendors'] as $vendor)
                                 <option value="{{ $vendor['value'] }}" @selected($filters['vendor_id'] === $vendor['value'])>{{ $vendor['label'] }}</option>
                             @endforeach
                         </select>
-                        <select name="priority" class="erp-toolbar-select" aria-label="{{ __('Priority') }}">
+                        <select name="priority" class="erp-toolbar-select" aria-label="{{ __('Priority') }}" data-erp-auto-submit>
                             <option value="">{{ __('All priorities') }}</option>
                             @foreach ($filter_options['priorities'] as $priority)
                                 <option value="{{ $priority['value'] }}" @selected($filters['priority'] === $priority['value'])>{{ $priority['label'] }}</option>
                             @endforeach
                         </select>
                         <label class="inline-flex items-center gap-1.5 text-xs text-slate-600">
-                            <input type="checkbox" name="overdue" value="1" class="rounded border-slate-300" @checked($filters['overdue'] === '1')>
+                            <input type="checkbox" name="overdue" value="1" class="rounded border-slate-300" data-erp-auto-submit @checked($filters['overdue'] === '1')>
                             {{ __('Overdue only') }}
                         </label>
                     </x-admin.index-toolbar>
@@ -199,7 +189,7 @@
                 <div class="relative z-10 w-full max-w-md rounded-lg border border-erp-border bg-white p-4 shadow-xl">
                     <h3 class="mb-3 text-sm font-semibold text-erp-primary">{{ __('Assign machine to selected jobs') }}</h3>
                     <select class="erp-select w-full text-sm" x-model="batchMachineId">
-                        <option value="">{{ __('Unassigned') }}</option>
+                        <option value="">{{ __('Assign') }}</option>
                         <template x-for="machine in machines" :key="machine.value">
                             <option :value="machine.value" x-text="machine.label"></option>
                         </template>
@@ -216,12 +206,16 @@
 
             @include('admin.production.floor.partials.action-modal', ['operatorMode' => $operatorMode])
 
+            <div class="mb-2 flex items-center justify-between gap-3">
+                <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ __('Production Queue') }}</h2>
+                <p class="text-xs text-slate-400">{{ __('No creation — execution only.') }}</p>
+            </div>
+
             @include('admin.production.floor.partials.table', [
                 'rows' => $rows,
                 'filter_options' => $filter_options,
                 'filters' => $filters,
                 'operatorMode' => $operatorMode,
-                'machineMeta' => $machineMeta,
             ])
 
             <div class="mt-4 pb-6">{{ $jobs->links() }}</div>

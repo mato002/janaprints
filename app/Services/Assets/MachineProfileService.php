@@ -13,10 +13,36 @@ use Illuminate\Validation\ValidationException;
 class MachineProfileService
 {
     public function __construct(
+        protected AssetRegisterService $assetRegister,
         protected MachineTimelineService $timeline,
         protected MachineCapacityService $capacity,
         protected MachineStatusService $status,
     ) {}
+
+    /**
+     * Register a fixed asset and activate it as a production machine in one step.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function registerMachine(array $data, int $companyId, ?int $branchId, int $userId): MachineProfile
+    {
+        return DB::transaction(function () use ($data, $companyId, $branchId, $userId) {
+            $asset = $this->assetRegister->create([
+                'asset_category_id' => $data['asset_category_id'],
+                'asset_name' => $data['asset_name'],
+                'branch_id' => $data['branch_id'] ?? $branchId,
+                'serial_number' => $data['serial_number'] ?? null,
+                'manufacturer' => $data['manufacturer'] ?? null,
+                'model' => $data['model'] ?? null,
+                'acquisition_date' => $data['acquisition_date'] ?? now()->toDateString(),
+                'acquisition_cost' => $data['acquisition_cost'] ?? 0,
+                'residual_value' => 0,
+                'notes' => $data['notes'] ?? null,
+            ], $companyId, $branchId, $userId);
+
+            return $this->createForAsset($asset, $data, $userId);
+        });
+    }
 
     /**
      * @param  array<string, mixed>  $data

@@ -15,7 +15,7 @@
                 <x-admin.select name="sales_order_id" :label="__('Sales order')" :required="true">
                     <option value="">{{ __('Select sales order') }}</option>
                     @foreach ($eligibleOrders as $order)
-                        <option value="{{ $order->id }}" @selected(old('sales_order_id') == $order->id)>
+                        <option value="{{ $order->id }}" @selected(old('sales_order_id', $preselectedSalesOrderId ?? null) == $order->id)>
                             {{ $order->order_number }} — {{ $order->customer?->company_name }}
                         </option>
                     @endforeach
@@ -26,7 +26,7 @@
                     @if ($salesOrderCreateUrl || $salesOrdersUrl)
                         <div class="mt-2 flex flex-wrap gap-2">
                             @if ($salesOrderCreateUrl)
-                                <a href="{{ $salesOrderCreateUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">
+                                <a href="{{ $salesOrderCreateUrl }}" class="erp-btn-secondary text-sm" data-erp-modal-open>
                                     {{ __('Create sales order') }}
                                 </a>
                             @endif

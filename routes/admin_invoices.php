@@ -10,6 +10,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->group(function () {
         Route::middleware('permission:invoices.view')->group(function () {
             Route::get('/', [CustomerInvoiceController::class, 'index'])->name('index');
+            Route::get('credit-notes', [CustomerInvoiceController::class, 'creditNotesIndex'])->name('credit-notes.index');
         });
 
         Route::middleware('permission:invoices.create')->group(function () {

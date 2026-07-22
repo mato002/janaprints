@@ -2,7 +2,7 @@
     :title="$title"
     :breadcrumbs="[
         ['label' => __('Assets'), 'url' => route('admin.workspaces.assets')],
-        ['label' => __('Asset Categories'), 'url' => route('admin.assets.categories.index')],
+        ['label' => __('Asset Management'), 'url' => route('admin.assets.index')],
         ['label' => $title],
     ]"
 >
@@ -55,7 +55,7 @@
             @endif
             <div class="flex gap-2">
                 <button type="submit" class="erp-btn-primary">{{ __('Save') }}</button>
-                <a href="{{ route('admin.assets.categories.index') }}" class="erp-btn-secondary">{{ __('Cancel') }}</a>
+                <a href="{{ route('admin.assets.index') }}" class="erp-btn-secondary">{{ __('Cancel') }}</a>
             </div>
         </form>
     </x-admin.card>

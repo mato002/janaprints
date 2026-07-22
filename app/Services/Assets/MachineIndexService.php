@@ -12,6 +12,7 @@ class MachineIndexService
     public function __construct(
         protected MachineCapacityService $capacity,
         protected MachineAvailabilityService $availability,
+        protected MachineDashboardService $dashboard,
     ) {}
 
     /**
@@ -33,6 +34,10 @@ class MachineIndexService
             'machines' => $profiles,
             'filters' => $this->filtersFromRequest($request),
             'statuses' => ProductionMachineStatus::cases(),
+            'summary' => $this->dashboard->summaryStrip(
+                (int) tenant()->companyId(),
+                tenant()->branchId(),
+            ),
         ];
     }
 

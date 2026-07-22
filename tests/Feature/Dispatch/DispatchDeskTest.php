@@ -60,9 +60,9 @@ class DispatchDeskTest extends TestCase
             'default_branch_id' => $branch->id,
             'email_verified_at' => now(),
         ]);
-        $role = Role::findByName('Production', 'web');
-        $role->syncPermissions(['dispatch.view', 'dispatch.create', 'production.view']);
-        $user->assignRole('Production');
+        $role = Role::findByName('Dispatch', 'web');
+        $role->syncPermissions(['dispatch.view', 'dispatch.create', 'dispatch.dispatch', 'dispatch.deliver', 'production.view', 'sales_orders.view']);
+        $user->assignRole('Dispatch');
 
         $job = ProductionJobCard::factory()->create([
             'company_id' => $company->id,

@@ -2,16 +2,28 @@
     use App\Support\Navigation\WorkspaceEmbed;
 
     $d = $dashboard;
+    $operatorMode = (bool) ($operatorMode ?? false);
     $focus = request('focus', 'ready');
     $listFrame = WorkspaceEmbed::turboFrame();
 @endphp
 <x-admin-layout
     :title="__('Dispatch Desk')"
-    :breadcrumbs="[
-        ['label' => __('Production'), 'url' => route('admin.workspaces.production.section', ['section' => 'dispatch'])],
-        ['label' => __('Dispatch Desk')],
-    ]"
->
+    :breadcrumbs="$operatorMode
+        ? [['label' => __('Dispatch Desk')]]
+        : [
+            ['label' => __('Production'), 'url' => route('admin.workspaces.production.section', ['section' => 'dispatch'])],
+            ['label' => __('Dispatch Desk')],
+        ]"
+    >
+        @if ($operatorMode)
+            <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p class="text-sm font-semibold text-erp-primary">{{ __('Dispatch desk') }}</p>
+                    <p class="text-xs text-slate-600">{{ __('Package, dispatch, collect, and confirm delivery — stay on this desk.') }}</p>
+                </div>
+            </div>
+        @endif
+
     <x-admin.page-header
         :title="__('Dispatch Desk')"
         :description="__('Ready jobs and delivery notes in one place — create notes, dispatch, and confirm delivery.')"

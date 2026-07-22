@@ -20,7 +20,6 @@ use App\Support\Production\ProductQcChecklistService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Route;
 
 class ProductionFloorService
 {
@@ -61,12 +60,6 @@ class ProductionFloorService
             'jobs' => $jobs,
             'rows' => collect($jobs->items())->map(fn (ProductionJobCard $job) => $this->presentRow($job)),
             'filter_options' => $this->filterOptions(),
-            'can_create' => auth()->user()?->can('create', ProductionJobCard::class) ?? false,
-            'create_url' => Route::has('admin.production.job-cards.create')
-                ? route('admin.production.job-cards.create', array_filter([
-                    'from' => $operatorMode ? 'production-floor' : null,
-                ]))
-                : null,
         ];
     }
 
@@ -286,41 +279,54 @@ class ProductionFloorService
         $dashboard = $this->commandCenter->build();
         $snapshot = collect($dashboard['snapshot'] ?? [])->keyBy('key');
 
+        $openCount = (int) ($snapshot->get('open')['value'] ?? 0);
+        $onPressCount = (int) ($snapshot->get('in_production')['value'] ?? 0);
+        $atVendorCount = ProductionJobCard::query()->forTenant()->where('status', ProductionJobCardStatus::Outsourced)->count();
+        $qcCount = (int) ($snapshot->get('awaiting_qc')['value'] ?? 0);
+        $readyCount = (int) ($snapshot->get('ready_for_dispatch')['value'] ?? 0);
+        $overdueCount = (int) ($snapshot->get('delayed')['value'] ?? 0);
+
         return [
             [
                 'key' => 'open',
                 'label' => __('Open'),
-                'value' => $snapshot->get('open')['value'] ?? '0',
+                'value' => (string) $openCount,
+                'hint' => __('Jobs Waiting'),
                 'filter' => ['stage' => ProductionFloorStage::Waiting->value],
             ],
             [
                 'key' => 'in_production',
                 'label' => __('On press'),
-                'value' => $snapshot->get('in_production')['value'] ?? '0',
+                'value' => (string) $onPressCount,
+                'hint' => __('Machines Running'),
                 'filter' => ['stage' => ProductionFloorStage::OnPress->value],
             ],
             [
                 'key' => 'at_vendor',
                 'label' => __('At vendor'),
-                'value' => (string) ProductionJobCard::query()->forTenant()->where('status', ProductionJobCardStatus::Outsourced)->count(),
+                'value' => (string) $atVendorCount,
+                'hint' => __('Jobs Outsourced'),
                 'filter' => ['stage' => ProductionFloorStage::AtVendor->value],
             ],
             [
                 'key' => 'awaiting_qc',
                 'label' => __('QC'),
-                'value' => $snapshot->get('awaiting_qc')['value'] ?? '0',
+                'value' => (string) $qcCount,
+                'hint' => __('Waiting Inspection'),
                 'filter' => ['stage' => ProductionFloorStage::Qc->value],
             ],
             [
                 'key' => 'ready_for_dispatch',
                 'label' => __('Ready'),
-                'value' => $snapshot->get('ready_for_dispatch')['value'] ?? '0',
+                'value' => (string) $readyCount,
+                'hint' => __('Ready for Dispatch'),
                 'filter' => ['stage' => ProductionFloorStage::Ready->value],
             ],
             [
                 'key' => 'delayed',
                 'label' => __('Overdue'),
-                'value' => $snapshot->get('delayed')['value'] ?? '0',
+                'value' => (string) $overdueCount,
+                'hint' => __('Needs Attention'),
                 'filter' => ['overdue' => '1'],
             ],
         ];
@@ -362,6 +368,22 @@ class ProductionFloorService
      */
     protected function filterOptions(): array
     {
+        $registeredMachines = FixedAsset::query()
+            ->forTenant()
+            ->whereHas('machineProfile')
+            ->orderBy('asset_name')
+            ->get(['id', 'asset_name'])
+            ->map(fn ($m) => ['value' => (string) $m->id, 'label' => $m->asset_name])
+            ->all();
+
+        $registeredVendors = Vendor::query()
+            ->forTenant()
+            ->where('is_production_vendor', true)
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name'])
+            ->map(fn ($v) => ['value' => (string) $v->id, 'label' => $v->vendor_name])
+            ->all();
+
         return [
             'stages' => collect(ProductionFloorStage::activeStages())
                 ->map(fn (ProductionFloorStage $stage) => ['value' => $stage->value, 'label' => $stage->label()])
@@ -369,20 +391,8 @@ class ProductionFloorService
             'priorities' => collect(ProductionPriority::cases())
                 ->map(fn (ProductionPriority $priority) => ['value' => $priority->value, 'label' => ucfirst($priority->value)])
                 ->all(),
-            'machines' => FixedAsset::query()
-                ->forTenant()
-                ->whereHas('machineProfile')
-                ->orderBy('asset_name')
-                ->get(['id', 'asset_name'])
-                ->map(fn ($m) => ['value' => (string) $m->id, 'label' => $m->asset_name])
-                ->all(),
-            'vendors' => Vendor::query()
-                ->forTenant()
-                ->where('is_production_vendor', true)
-                ->orderBy('vendor_name')
-                ->get(['id', 'vendor_name'])
-                ->map(fn ($v) => ['value' => (string) $v->id, 'label' => $v->vendor_name])
-                ->all(),
+            'machines' => $this->mergeFilterOptions($registeredMachines, $this->machinesOnFloor()),
+            'vendors' => $this->mergeFilterOptions($registeredVendors, $this->vendorsOnFloor()),
             'work_centers' => WorkCenter::query()
                 ->forTenant()
                 ->where('is_active', true)
@@ -391,6 +401,105 @@ class ProductionFloorService
                 ->map(fn ($w) => ['value' => (string) $w->id, 'label' => $w->name])
                 ->all(),
         ];
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    protected function machinesOnFloor(): array
+    {
+        $ids = ProductionJobCard::query()
+            ->forTenant()
+            ->whereNotIn('status', [
+                ProductionJobCardStatus::Cancelled,
+                ProductionJobCardStatus::Draft,
+            ])
+            ->whereNotNull('assigned_machine_asset_id')
+            ->distinct()
+            ->pluck('assigned_machine_asset_id');
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return FixedAsset::query()
+            ->forTenant()
+            ->whereIn('id', $ids)
+            ->orderBy('asset_name')
+            ->get(['id', 'asset_name'])
+            ->map(fn ($m) => ['value' => (string) $m->id, 'label' => $m->asset_name])
+            ->all();
+    }
+
+    /**
+     * @return list<array{value: string, label: string}>
+     */
+    protected function vendorsOnFloor(): array
+    {
+        $ids = ProductionJobCard::query()
+            ->forTenant()
+            ->whereNotIn('status', [
+                ProductionJobCardStatus::Cancelled,
+                ProductionJobCardStatus::Draft,
+            ])
+            ->whereNotNull('outsource_vendor_id')
+            ->distinct()
+            ->pluck('outsource_vendor_id');
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        return Vendor::query()
+            ->forTenant()
+            ->whereIn('id', $ids)
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name'])
+            ->map(fn ($v) => ['value' => (string) $v->id, 'label' => $v->vendor_name])
+            ->all();
+    }
+
+    /**
+     * @param  list<array{value: string, label: string}>  $primary
+     * @param  list<array{value: string, label: string}>  $secondary
+     * @return list<array{value: string, label: string}>
+     */
+    protected function mergeFilterOptions(array $primary, array $secondary): array
+    {
+        return collect($primary)
+            ->merge($secondary)
+            ->unique('value')
+            ->sortBy('label', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{id: int, vendor_name: string}>
+     */
+    protected function productionVendorsForPanel(): array
+    {
+        $registered = Vendor::query()
+            ->forTenant()
+            ->where('is_production_vendor', true)
+            ->orderBy('vendor_name')
+            ->get(['id', 'vendor_name'])
+            ->map(fn ($v) => ['id' => $v->id, 'vendor_name' => $v->vendor_name])
+            ->all();
+
+        $onFloor = collect($this->vendorsOnFloor())
+            ->map(fn (array $vendor) => [
+                'id' => (int) $vendor['value'],
+                'vendor_name' => $vendor['label'],
+            ])
+            ->all();
+
+        return collect($registered)
+            ->merge($onFloor)
+            ->unique('id')
+            ->sortBy('vendor_name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
     }
 
     /**
@@ -417,14 +526,7 @@ class ProductionFloorService
                 && $jobCard->status === ProductionJobCardStatus::Outsourced,
             'outsource_url' => route('admin.production.job-cards.outsource', $jobCard),
             'return_url' => route('admin.production.job-cards.outsource.return', $jobCard),
-            'production_vendors' => Vendor::query()
-                ->forTenant()
-                ->where('is_production_vendor', true)
-                ->orderBy('vendor_name')
-                ->get(['id', 'vendor_name'])
-                ->map(fn ($v) => ['id' => $v->id, 'vendor_name' => $v->vendor_name])
-                ->values()
-                ->all(),
+            'production_vendors' => $this->productionVendorsForPanel(),
         ];
     }
 

@@ -73,6 +73,7 @@ class ProductionJobCardController extends Controller
         $this->authorize('create', ProductionJobCard::class);
 
         $eligibleOrders = $eligibility->eligibleSalesOrders();
+        $fromProductionFloor = $this->wantsProductionFloorReturn($request);
 
         return view('admin.production.job-cards.create', [
             'eligibleOrders' => $eligibleOrders,
@@ -82,9 +83,12 @@ class ProductionJobCardController extends Controller
                 ? route('admin.sales-orders.dashboard')
                 : null,
             'salesOrderCreateUrl' => Route::has('admin.sales-orders.create')
-                ? route('admin.sales-orders.create', ['tab' => 'direct'])
+                ? route('admin.sales-orders.create', array_filter([
+                    'tab' => 'direct',
+                    'from' => $fromProductionFloor ? 'production-floor' : null,
+                ]))
                 : null,
-            'fromProductionFloor' => $this->wantsProductionFloorReturn($request),
+            'fromProductionFloor' => $fromProductionFloor,
         ]);
     }
 

@@ -2,13 +2,11 @@
 
 use App\Http\Controllers\Admin\Assets\AssetBulkActionController;
 use App\Http\Controllers\Admin\Assets\AssetCategoryController;
-use App\Http\Controllers\Admin\Assets\AssetDashboardController;
 use App\Http\Controllers\Admin\Assets\AssetExportController;
 use App\Http\Controllers\Admin\Assets\AssetLifecycleController;
 use App\Http\Controllers\Admin\Assets\FixedAssetAcquisitionController;
 use App\Http\Controllers\Admin\Assets\FixedAssetController;
 use App\Http\Controllers\Admin\Assets\MachineController;
-use App\Http\Controllers\Admin\Assets\MachineDashboardController;
 use App\Http\Controllers\Admin\Assets\MaintenanceCalendarController;
 use App\Http\Controllers\Admin\Assets\MaintenanceDashboardController;
 use App\Http\Controllers\Admin\Assets\MaintenanceDowntimeController;
@@ -43,7 +41,9 @@ Route::middleware(['auth', 'verified', 'tenant'])
     ->prefix('admin/assets')
     ->name('admin.assets.')
     ->group(function () {
-        Route::get('/', AssetDashboardController::class)
+        Route::get('/', function () {
+            return redirect()->route('admin.assets.index', request()->query());
+        })
             ->middleware('permission:assets.view')
             ->name('dashboard');
 
@@ -94,13 +94,18 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:machines.view')->group(function () {
             Route::get('machines', [MachineController::class, 'index'])->name('machines.index');
-            Route::get('machines/dashboard', MachineDashboardController::class)->name('machines.dashboard');
-            Route::get('machines/{asset}', [MachineController::class, 'show'])->name('machines.show');
+            Route::get('machines/dashboard', fn () => redirect()->route('admin.assets.machines.index'))->name('machines.dashboard');
         });
 
         Route::middleware('permission:machines.manage')->group(function () {
+            Route::get('machines/create', [MachineController::class, 'create'])->name('machines.create');
+            Route::post('machines', [MachineController::class, 'store'])->name('machines.store');
             Route::post('machines/{asset}/activate', [MachineController::class, 'activate'])->name('machines.activate');
             Route::post('machines/{asset}/status', [MachineController::class, 'updateStatus'])->name('machines.status');
+        });
+
+        Route::middleware('permission:machines.view')->group(function () {
+            Route::get('machines/{asset}', [MachineController::class, 'show'])->name('machines.show');
         });
 
         Route::middleware('permission:machines.capacity.manage')->group(function () {

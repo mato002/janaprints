@@ -34,10 +34,25 @@ class CustomerInvoiceController extends Controller
         $this->authorize('viewAny', CustomerInvoice::class);
 
         $invoices = $this->scopeToTenant(
-            CustomerInvoice::query()->with(['customer', 'salesOrder'])
+            CustomerInvoice::query()
+                ->with(['customer', 'salesOrder'])
+                ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
         )->latest('invoice_date')->latest('id')->paginate(20);
 
         return view('admin.sales.invoices.index', compact('invoices'));
+    }
+
+    public function creditNotesIndex(): View
+    {
+        $this->authorize('viewAny', CustomerInvoice::class);
+
+        $creditNotes = $this->scopeToTenant(
+            CustomerInvoice::query()
+                ->with(['customer', 'salesOrder', 'creditedInvoice'])
+                ->where('invoice_type', CustomerInvoiceType::CreditNote)
+        )->latest('invoice_date')->latest('id')->paginate(20);
+
+        return view('admin.sales.invoices.credit-notes-index', ['creditNotes' => $creditNotes]);
     }
 
     public function show(Request $request, CustomerInvoice $invoice): View

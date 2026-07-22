@@ -38,7 +38,7 @@
                     method="POST"
                     :action="`${assignMachineUrl}/${actionModalPanel?.job?.public_id}/assign-machine`"
                     class="space-y-3"
-                    @if ($operatorMode) data-erp-desk-form @endif
+                    data-erp-desk-form
                 >
                     <input type="hidden" name="_token" :value="csrf">
                     @if ($operatorMode)
@@ -47,7 +47,7 @@
                     <div>
                         <label class="erp-label text-xs">{{ __('Machine') }}</label>
                         <select name="assigned_machine_asset_id" class="erp-select w-full text-sm" x-model="actionModalMachineId">
-                            <option value="">{{ __('Unassigned') }}</option>
+                            <option value="">{{ __('Assign') }}</option>
                             <template x-for="machine in machines" :key="machine.value">
                                 <option :value="machine.value" x-text="machine.label"></option>
                             </template>
@@ -136,7 +136,7 @@
                 </form>
             </div>
 
-            {{-- Record QC --}}
+            {{-- QC --}}
             <div x-show="!actionModalLoading && actionModalTarget === 'qc'" x-cloak>
                 <p
                     class="text-sm text-slate-500"
