@@ -1505,6 +1505,18 @@ function syncClientShellFromFrame() {
 
         link.classList.toggle('is-active', active);
     });
+
+    const bottomNav = document.querySelector('[data-client-bottom-nav]');
+    const moreBtn = document.querySelector('[data-client-bottom-nav-more]');
+
+    if (bottomNav && moreBtn) {
+        const patterns = (bottomNav.dataset.clientBottomNavPrimaryPatterns ?? '')
+            .split('|')
+            .filter(Boolean);
+        const onPrimary = patterns.some((pattern) => clientRouteIsActive(pattern, currentRoute));
+
+        moreBtn.classList.toggle('is-active', ! onPrimary);
+    }
 }
 
 function shouldWireClientTurboLink(link) {

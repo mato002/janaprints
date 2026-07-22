@@ -7,6 +7,7 @@ use App\Models\Artwork\ArtworkRequest;
 use App\Models\Artwork\ArtworkVersion;
 use App\Support\ArtworkFileHelper;
 use App\Support\ArtworkVersionService;
+use App\Support\Artwork\ReturnsToDesignerDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ArtworkVersionController extends Controller
 {
+    use ReturnsToDesignerDesk;
+
     public function store(Request $request, ArtworkRequest $artworkRequest): RedirectResponse
     {
         $this->authorize('create', [ArtworkVersion::class, $artworkRequest]);
@@ -24,6 +27,11 @@ class ArtworkVersionController extends Controller
         ]);
 
         ArtworkVersionService::store($artworkRequest, $validated['file'], $validated['notes'] ?? null);
+
+        if ($this->wantsDesignerDeskReturn($request)) {
+            return redirect()->to($this->designerDeskUrl())
+                ->with('status', __('New artwork version uploaded.'));
+        }
 
         return back()->with('status', __('New artwork version uploaded.'));
     }

@@ -111,6 +111,22 @@
 
         <div class="mt-4">{{ $printSpecifications->withQueryString()->links() }}</div>
     @else
-        <x-admin.empty-state :title="__('No print specifications yet')" :description="__('Create a specification to link a catalogue product, artwork versions, and serial settings for this customer.')" />
+        <x-admin.empty-state
+            icon="document-text"
+            :title="__('No print specifications yet')"
+            :description="__('Create a specification to link a catalogue product, artwork versions, and serial settings for this customer.')"
+        >
+            @can('update', $customer)
+                <x-slot:action>
+                    <x-admin.crm-btn
+                        variant="primary"
+                        size="sm"
+                        :href="route('admin.crm.customers.print-specifications.create', $customer)"
+                        data-turbo-frame="erp-form-modal"
+                        class="min-h-[2.75rem]"
+                    >{{ __('New specification') }}</x-admin.crm-btn>
+                </x-slot:action>
+            @endcan
+        </x-admin.empty-state>
     @endif
 </div>

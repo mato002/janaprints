@@ -149,7 +149,8 @@ class ProductionQueueWorkspaceService
                 'jobCard.salesOrder:id,public_id,order_number,status,required_date,total_amount',
                 'jobCard.salesOrder.items:id,sales_order_id,item_name,quantity,unit_price,line_total',
                 'jobCard.outsourceVendor:id,vendor_name',
-                'jobCard.productionSpecification:id,production_job_card_id,product_description,size,finished_size,sheet_size,quantity,unit,ups,estimated_sheets,paper_inventory_item_id,material_inventory_item_id,colour_mode,binding_type,lamination,finishing_type,production_type,print_product_template_id,spot_uv,foiling,embossing,die_cutting,eyelets',
+                'jobCard.productionSpecification:id,production_job_card_id,product_description,size,finished_size,sheet_size,quantity,unit,ups,estimated_sheets,paper_inventory_item_id,material_inventory_item_id,colour_mode,ink_type,binding_type,lamination,finishing_type,production_type,print_product_template_id,numbering_required,spot_uv,foiling,embossing,die_cutting,eyelets',
+                'jobCard.serialAllocation:id,production_job_card_id,serial_prefix,serial_padding_length,serial_start,serial_end',
                 'jobCard.productionSpecification.paperInventoryItem:id,item_name',
                 'jobCard.productionSpecification.materialInventoryItem:id,item_name',
                 'jobCard.productionSpecification.printProductTemplate.preferredWorkCenter:id,name,code',
@@ -537,10 +538,10 @@ class ProductionQueueWorkspaceService
             $this->departments->applyDepartmentScope($query, $department);
         }
 
-        return $this->applySharedFilters($query, $request, true);
+        return $this->applySharedFilters($query, $request, true, $department);
     }
 
-    protected function applySharedFilters(Builder $query, Request $request, bool $includeDepartmentPresets): Builder
+    protected function applySharedFilters(Builder $query, Request $request, bool $includeDepartmentPresets, ?string $department = null): Builder
     {
         if ($status = ProductionQueueStatus::tryFromFilter($request->query('status'))) {
             $query->where(self::STATUS_COLUMN, $status);
@@ -594,6 +595,21 @@ class ProductionQueueWorkspaceService
             $query->whereDate('production_queues.created_at', '<=', $toDate);
         }
 
+        if (
+            $includeDepartmentPresets
+            && in_array($department, ['digital', 'offset'], true)
+            && ! $request->boolean('all_dates')
+            && ! $request->filled('from_date')
+            && ! $request->filled('to_date')
+            && ! $request->filled('due')
+            && ! $request->filled('search')
+            && ! $request->filled('status')
+        ) {
+            $today = today()->toDateString();
+            $query->whereDate('production_queues.created_at', '>=', $today)
+                ->whereDate('production_queues.created_at', '<=', $today);
+        }
+
         if ($vendorId = $request->integer('vendor_id')) {
             $query->whereHas('jobCard', fn (Builder $q) => $q->where('outsource_vendor_id', $vendorId));
         }
@@ -643,6 +659,13 @@ class ProductionQueueWorkspaceService
             'priority' => $request->query('priority'),
             'stage_id' => $request->query('stage_id'),
             'date' => $request->query('date'),
+            'from_date' => $request->query('from_date', in_array($request->route('department'), ['digital', 'offset'], true) && ! $request->boolean('all_dates')
+                ? today()->toDateString()
+                : null),
+            'to_date' => $request->query('to_date', in_array($request->route('department'), ['digital', 'offset'], true) && ! $request->boolean('all_dates')
+                ? today()->toDateString()
+                : null),
+            'all_dates' => $request->boolean('all_dates'),
             'due' => $request->query('due'),
             'search' => $request->query('search'),
         ];

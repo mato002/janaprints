@@ -132,6 +132,7 @@ return [
                 [
                     'label' => 'Procurement',
                     'items' => [
+                        ['label' => 'Procurement Dashboard', 'description' => 'KPIs for requisitions, RFQs, purchase orders, and receipts.', 'route' => 'admin.procurement.dashboard', 'permission' => 'procurement.vendors.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.procurement.dashboard']],
                         ['label' => 'Purchase Requests', 'description' => 'Internal requisitions before RFQ or purchase order conversion.', 'route' => 'admin.procurement.requests.index', 'permission' => 'procurement.requests.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.procurement.requests.*']],
                         ['label' => 'Suppliers', 'description' => 'Supplier master data and contacts.', 'route' => 'admin.procurement.vendors.index', 'permission' => 'procurement.vendors.view', 'icon' => 'office-building', 'active_routes' => ['admin.procurement.vendors.*']],
                         ['label' => 'RFQs', 'description' => 'Request for quotation and vendor responses.', 'route' => 'admin.procurement.rfqs.index', 'permission' => 'procurement.rfq.view|procurement.vendors.view', 'icon' => 'document-text', 'active_routes' => ['admin.procurement.rfqs.*', 'admin.procurement.requests.rfq.*']],

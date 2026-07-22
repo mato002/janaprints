@@ -89,6 +89,15 @@ class CustomerPrintSpecificationTest extends TestCase
         ]);
     }
 
+    public function test_create_form_route_is_not_captured_by_show_binding(): void
+    {
+        $this->actingAs($this->user)
+            ->get(route('admin.crm.customers.print-specifications.create', $this->customer))
+            ->assertOk()
+            ->assertSee('Create print specification', false)
+            ->assertSee('Save specification', false);
+    }
+
     public function test_product_link_is_required(): void
     {
         $this->actingAs($this->user)

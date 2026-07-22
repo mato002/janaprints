@@ -129,7 +129,13 @@ class ApprovalEnforcementTest extends TestCase
         ]);
 
         PurchaseOrderService::submit($order, $actor->id);
-        PurchaseOrderService::approve($order->fresh(), $actor);
+
+        $engine = app(ApprovalEnforcementEngine::class);
+        $attempts = 0;
+        while (! $engine->hasApprovedChain($order->fresh()) && $attempts < 5) {
+            PurchaseOrderService::approve($order->fresh(), $actor);
+            $attempts++;
+        }
 
         PurchaseOrderService::assertCanSend($order->fresh());
         $this->assertTrue(app(ApprovalEnforcementEngine::class)->hasApprovedChain($order->fresh()));

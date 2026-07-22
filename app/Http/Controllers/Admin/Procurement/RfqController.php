@@ -124,10 +124,10 @@ class RfqController extends Controller
     public function compare(Rfq $rfq): RedirectResponse
     {
         $this->authorize('compare', $rfq);
-        VendorComparisonService::persistComparison($rfq, (int) auth()->id());
-        \App\Support\Procurement\RfqQuotationSyncService::syncAll($rfq->fresh());
 
-        return back()->with('status', __('Vendor comparison saved and supplier quotations synced.'));
+        return redirect()
+            ->route('admin.procurement.vendor-comparison.show', $rfq)
+            ->with('status', __('Use Vendor Comparison to score vendors and award this RFQ.'));
     }
 
     public function award(Request $request, Rfq $rfq): RedirectResponse

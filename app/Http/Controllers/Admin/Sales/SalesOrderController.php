@@ -15,6 +15,8 @@ use App\Models\Sales\SalesOrder;
 use App\Support\Platform\FormSettingsService;
 use App\Support\QuotationConversionService;
 use App\Support\Sales\DirectCustomerSalesOrderService;
+use App\Support\Sales\ReturnsToSalesDesk;
+use App\Support\Production\ReturnsToProductionFloor;
 use App\Support\Sales\SalesOrderWorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +25,7 @@ use Illuminate\View\View;
 
 class SalesOrderController extends Controller
 {
-    use HandlesModalFormResponses, ManagesSalesOrderItems, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesModalFormResponses, ManagesSalesOrderItems, ResolvesCrmTenant, ReturnsToProductionFloor, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -140,6 +142,14 @@ class SalesOrderController extends Controller
         $message = __('Direct sales order created.');
         $redirect = redirect()->route('admin.sales-orders.show', $salesOrder);
 
+        if ($this->wantsSalesDeskReturn($request)) {
+            $redirect = redirect()->route('admin.sales.desk', [
+                'customer' => $customer->getRouteKey(),
+                'order' => $salesOrder->getRouteKey(),
+                'step' => 4,
+            ]);
+        }
+
         if ($request->boolean('send_to_production')) {
             $this->authorize('production', $salesOrder);
 
@@ -148,7 +158,13 @@ class SalesOrderController extends Controller
                 $message = __('Direct sales order created and sent to production.');
 
                 $jobCard = $salesOrder->fresh('jobCard')->jobCard;
-                if ($jobCard !== null) {
+                if ($this->wantsSalesDeskReturn($request)) {
+                    $redirect = redirect()->route('admin.sales.desk', [
+                        'customer' => $customer->getRouteKey(),
+                        'order' => $salesOrder->fresh()->getRouteKey(),
+                        'step' => 4,
+                    ]);
+                } elseif ($jobCard !== null) {
                     $redirect = redirect()->route('admin.production.job-cards.show', $jobCard);
                 }
             } catch (\Illuminate\Validation\ValidationException $exception) {
@@ -161,15 +177,22 @@ class SalesOrderController extends Controller
         return $this->modalOrRedirect($message, $redirect);
     }
 
-    public function show(SalesOrder $salesOrder): View
+    public function show(Request $request, SalesOrder $salesOrder): View
     {
         $this->authorize('view', $salesOrder);
 
         $salesOrder->load([
             'customer', 'quotation', 'artworkRequest', 'branch', 'creator', 'jobCard',
-            'inventoryItem',
-            'items.productionSpecification.paperInventoryItem',
+            'inventoryItem', 'items',
+        ]);
+
+        if ($this->wantsSalesDeskReturn($request) || $this->wantsProductionFloorReturn($request)) {
+            return view('admin.sales.desk.order-modal', compact('salesOrder'));
+        }
+
+        $salesOrder->load([
             'invoices', 'orderNotes.user', 'attachments.uploader', 'conversion.converter',
+            'items.productionSpecification.paperInventoryItem',
         ]);
 
         $financial = app(\App\Support\Sales\SalesOrderFinancialStatusService::class)->snapshot($salesOrder);
@@ -334,6 +357,16 @@ class SalesOrderController extends Controller
             $workflow->releaseToProduction($salesOrder, (int) auth()->id());
         } catch (\Illuminate\Validation\ValidationException $exception) {
             return back()->withErrors($exception->errors());
+        }
+
+        if ($this->wantsSalesDeskReturn()) {
+            return redirect()
+                ->route('admin.sales.desk', [
+                    'customer' => $salesOrder->customer?->getRouteKey() ?? $salesOrder->customer_id,
+                    'order' => $salesOrder->fresh()->getRouteKey(),
+                    'step' => 4,
+                ])
+                ->with('status', __('Sales order sent to production.'));
         }
 
         return back()->with('status', __('Sales order sent to production.'));

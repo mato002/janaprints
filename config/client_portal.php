@@ -16,4 +16,18 @@ return [
         ['label' => 'Account', 'route' => 'client.account.edit', 'icon' => 'user'],
     ],
 
+    /*
+    | Mobile bottom bar: keep this short (max 3). All other nav items stay in the sidebar
+    | opened via the "More" control.
+    */
+    'bottom_nav_routes' => [
+        'client.dashboard',
+        'client.communications.index',
+    ],
+
+    'bottom_nav_labels' => [
+        'client.dashboard' => 'Home',
+        'client.communications.index' => 'Messages',
+    ],
+
 ];

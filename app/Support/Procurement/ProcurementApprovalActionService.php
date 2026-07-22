@@ -6,9 +6,11 @@ use App\Enums\ApprovalChainRunStatus;
 use App\Enums\ApprovalRuleType;
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\PurchaseRequestStatus;
+use App\Enums\SupplierBillStatus;
 use App\Models\Governance\ApprovalChainRun;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
+use App\Models\Procurement\SupplierBill;
 use App\Models\User;
 use App\Support\Governance\ApprovalChainEngine;
 use App\Support\Governance\ApprovalEnforcementEngine;
@@ -100,9 +102,18 @@ class ProcurementApprovalActionService
     protected function finalizeApproval(Model $subject, User $actor): void
     {
         match (true) {
-            $subject instanceof PurchaseRequest => $subject->update(['status' => PurchaseRequestStatus::Approved]),
+            $subject instanceof PurchaseRequest => $subject->update([
+                'status' => PurchaseRequestStatus::Approved,
+                'approved_by' => $actor->id,
+                'approved_at' => now(),
+            ]),
             $subject instanceof PurchaseOrder => $subject->update([
                 'status' => PurchaseOrderStatus::Approved,
+                'approved_by' => $actor->id,
+                'approved_at' => now(),
+            ]),
+            $subject instanceof SupplierBill => $subject->update([
+                'status' => SupplierBillStatus::Approved,
                 'approved_by' => $actor->id,
                 'approved_at' => now(),
             ]),
@@ -113,8 +124,14 @@ class ProcurementApprovalActionService
     protected function finalizeRejection(Model $subject, User $actor, string $reason): void
     {
         match (true) {
-            $subject instanceof PurchaseRequest => $subject->update(['status' => PurchaseRequestStatus::Closed]),
+            $subject instanceof PurchaseRequest => $subject->update([
+                'status' => PurchaseRequestStatus::Rejected,
+                'rejected_by' => $actor->id,
+                'rejected_at' => now(),
+                'rejection_reason' => $reason,
+            ]),
             $subject instanceof PurchaseOrder => $subject->update(['status' => PurchaseOrderStatus::Rejected]),
+            $subject instanceof SupplierBill => $subject->update(['status' => SupplierBillStatus::Cancelled]),
             default => null,
         };
 

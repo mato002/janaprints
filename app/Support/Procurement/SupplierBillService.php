@@ -2,6 +2,7 @@
 
 namespace App\Support\Procurement;
 
+use App\Enums\ApprovalRuleType;
 use App\Enums\GoodsReceiptStatus;
 use App\Enums\PostingEventCode;
 use App\Enums\PurchaseOrderStatus;
@@ -272,6 +273,37 @@ class SupplierBillService
             ]);
         }
 
+        $amount = (float) $bill->total_amount;
+        $coordinator = app(ProcurementGovernanceCoordinator::class);
+
+        if ($coordinator->requiresApproval(
+            ApprovalRuleType::VendorInvoiceApproval,
+            $amount,
+            (int) $bill->company_id,
+            $bill->branch_id,
+        )) {
+            $run = $coordinator->engine()->latestRun($bill);
+
+            if ($run === null) {
+                $coordinator->submit(
+                    $bill,
+                    ApprovalRuleType::VendorInvoiceApproval,
+                    $amount,
+                    $userId,
+                    'supplier_bill_submitted_for_approval',
+                );
+
+                throw ValidationException::withMessages([
+                    'approval' => __('This bill has been submitted to the procurement approval queue.'),
+                ]);
+            }
+
+            $coordinator->assertChainApproved(
+                $bill,
+                __('Supplier bill approval chain must be completed before approving.'),
+            );
+        }
+
         $bill->update([
             'status' => SupplierBillStatus::Approved,
             'approved_by' => $userId,
@@ -292,6 +324,13 @@ class SupplierBillService
         if ($bill->purchase_order_id) {
             $this->validatePurchaseOrderCap($bill->purchaseOrder, $bill);
         }
+
+        app(ProcurementGovernanceCoordinator::class)->assertChainApprovedForPosting(
+            $bill,
+            ApprovalRuleType::VendorInvoiceApproval,
+            (float) $bill->total_amount,
+            __('Supplier bill requires approval before posting.'),
+        );
 
         $bill->load('lines');
 

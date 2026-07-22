@@ -5352,7 +5352,7 @@
     /* ── Client portal: mobile-first polish ── */
     @media (max-width: 1023px) {
         .client-portal-page {
-            --client-bottom-nav-height: 4.25rem;
+            --client-bottom-nav-height: 3.75rem;
         }
 
         .client-portal-main {
@@ -5491,7 +5491,8 @@
         }
 
         .client-bottom-nav__inner {
-            @apply mx-auto grid max-w-lg grid-cols-5 gap-0 px-1;
+            @apply mx-auto grid max-w-lg gap-0 px-2;
+            grid-template-columns: repeat(var(--client-bottom-nav-cols, 3), minmax(0, 1fr));
             min-height: var(--client-bottom-nav-height);
         }
 

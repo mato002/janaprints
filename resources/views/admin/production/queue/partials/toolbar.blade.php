@@ -1,6 +1,14 @@
 <x-admin.index-toolbar :action="$indexRoute" :reset-url="$indexRoute" compact>
     <input id="search" type="search" name="search" value="{{ $filters['search'] }}" class="erp-toolbar-input min-w-[10rem] flex-1" placeholder="{{ __('Search jobs…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
 
+    <input id="from_date" type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="erp-toolbar-input hidden lg:inline-block" aria-label="{{ __('Logged from') }}" data-erp-auto-submit>
+    <input id="to_date" type="date" name="to_date" value="{{ $filters['to_date'] ?? '' }}" class="erp-toolbar-input hidden lg:inline-block" aria-label="{{ __('Logged to') }}" data-erp-auto-submit>
+
+    @if (filled($filters['from_date'] ?? null) || filled($filters['to_date'] ?? null))
+        <input type="hidden" name="all_dates" value="0">
+        <a href="{{ $indexRoute }}?all_dates=1" class="erp-toolbar-link text-xs whitespace-nowrap">{{ __('All logged dates') }}</a>
+    @endif
+
     <select id="due" name="due" class="erp-toolbar-select" aria-label="{{ __('Due date') }}" data-erp-auto-submit>
         <option value="">{{ __('All dates') }}</option>
         <option value="today" @selected($filters['due'] === 'today')>{{ __('Today') }}</option>

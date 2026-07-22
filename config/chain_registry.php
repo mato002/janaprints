@@ -13,7 +13,7 @@ return [
         ],
         'procurement' => [
             'label' => 'Procurement',
-            'rule_types' => ['procurement_approval'],
+            'rule_types' => ['purchase_request_approval', 'procurement_approval', 'rfq_approval', 'goods_receipt_approval', 'vendor_invoice_approval'],
         ],
         'finance' => [
             'label' => 'Finance',
@@ -30,7 +30,11 @@ return [
         'sales_order' => ['label' => 'Sales Order', 'module' => 'sales', 'rule_type' => 'quotation_approval'],
         'discount' => ['label' => 'Discount', 'module' => 'sales', 'rule_type' => 'discount_approval'],
         'stock_adjustment' => ['label' => 'Stock Adjustment', 'module' => 'inventory', 'rule_type' => 'stock_adjustment_approval'],
+        'purchase_request' => ['label' => 'Purchase Request', 'module' => 'procurement', 'rule_type' => 'purchase_request_approval'],
         'purchase_order' => ['label' => 'Purchase Order', 'module' => 'procurement', 'rule_type' => 'procurement_approval'],
+        'rfq' => ['label' => 'RFQ', 'module' => 'procurement', 'rule_type' => 'rfq_approval'],
+        'goods_receipt' => ['label' => 'Goods Receipt', 'module' => 'procurement', 'rule_type' => 'goods_receipt_approval'],
+        'vendor_invoice' => ['label' => 'Vendor Invoice', 'module' => 'procurement', 'rule_type' => 'vendor_invoice_approval'],
         'payment' => ['label' => 'Payment', 'module' => 'finance', 'rule_type' => 'payment_approval'],
         'payroll_run' => ['label' => 'Payroll Run', 'module' => 'hr', 'rule_type' => 'payroll_approval'],
     ],

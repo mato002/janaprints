@@ -84,10 +84,7 @@ class ProcurementFoundationTest extends TestCase
         $request = PurchaseRequest::query()->firstOrFail();
         $this->assertSame(PurchaseRequestStatus::Draft, $request->status);
 
-        PurchaseRequestService::submit($request);
-        $this->assertSame(PurchaseRequestStatus::Submitted, $request->fresh()->status);
-
-        PurchaseRequestService::approve($request->fresh());
+        PurchaseRequestService::submit($request, $user->id);
         $this->assertSame(PurchaseRequestStatus::Approved, $request->fresh()->status);
     }
 

@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
@@ -19,6 +21,25 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+    }
+
+    public function test_profile_page_shows_roles_permissions_and_sessions(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $user = User::factory()->create();
+        $user->assignRole(Role::findByName('Production', 'web'));
+
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertSee(__('Authentication'))
+            ->assertSee(__('Roles'))
+            ->assertSee('Production')
+            ->assertSee(__('Permissions'))
+            ->assertSee('production.view')
+            ->assertSee(__('Active devices & sessions'))
+            ->assertSee(__('Manage all sessions'));
     }
 
     public function test_profile_information_can_be_updated(): void

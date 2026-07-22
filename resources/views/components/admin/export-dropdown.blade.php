@@ -60,12 +60,12 @@
 @if (! $canExport)
     <button
         type="button"
-        class="erp-btn-secondary py-2 text-sm opacity-60"
+        class="erp-toolbar-export-btn erp-btn-secondary py-2 text-sm opacity-60"
         disabled
         title="{{ $disabledTitle }}"
     >
-        <x-admin.icon name="download" class="h-4 w-4" />
-        {{ __('Export') }}
+        <x-admin.icon name="download" class="h-4 w-4 shrink-0" />
+        <span class="erp-toolbar-export-btn__label">{{ __('Export') }}</span>
     </button>
 @elseif ($availableFormats === [])
     {{ $slot ?? '' }}
@@ -73,20 +73,21 @@
     <div class="relative" x-data="erpExportDropdown()" @click.outside="exportOpen = false">
         <button
             type="button"
-            class="erp-btn-secondary py-2 text-sm"
+            class="erp-toolbar-export-btn erp-btn-secondary py-2 text-sm"
             :disabled="exporting"
             @click.stop="!exporting && (exportOpen = !exportOpen)"
+            title="{{ __('Export') }}"
         >
             <span x-show="!exporting" class="inline-flex items-center gap-2">
-                <x-admin.icon name="download" class="h-4 w-4" />
-                {{ __('Export') }}
+                <x-admin.icon name="download" class="h-4 w-4 shrink-0" />
+                <span class="erp-toolbar-export-btn__label">{{ __('Export') }}</span>
             </span>
             <span x-show="exporting" x-cloak class="inline-flex items-center gap-2">
-                <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <svg class="h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                 </svg>
-                {{ __('Exporting…') }}
+                <span class="erp-toolbar-export-btn__label hidden sm:inline">{{ __('Exporting…') }}</span>
             </span>
         </button>
         <div

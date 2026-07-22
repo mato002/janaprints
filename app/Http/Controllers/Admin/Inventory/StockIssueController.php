@@ -13,6 +13,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ProductionConsumptionGovernance;
+use App\Support\Inventory\ReturnsToStoreDesk;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockIssueService;
@@ -24,7 +25,7 @@ use Illuminate\View\View;
 
 class StockIssueController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ReturnsToStoreDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -58,6 +59,7 @@ class StockIssueController extends Controller
         return view('admin.inventory.issues.create', [
             ...$this->formMeta($selectedWarehouseId),
             'selectedWarehouseId' => $selectedWarehouseId,
+            'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
         ]);
     }
 
@@ -93,6 +95,7 @@ class StockIssueController extends Controller
             ]);
         }
         $lines = $this->validateLines($request, $companyId, $branchId);
+        $shouldPost = $request->input('intent') === 'post';
 
         $issue = StockIssue::query()->create([
             ...$header,
@@ -117,29 +120,68 @@ class StockIssueController extends Controller
             );
         }
 
-        return redirect()->route('admin.inventory.issues.show', $issue)->with('status', __('Issue created.'));
+        $message = __('Issue saved as draft. Post it to update stock.');
+
+        if ($shouldPost) {
+            $this->authorize('post', $issue);
+
+            try {
+                StockIssueService::post($issue->fresh(['items', 'warehouse', 'toWarehouse']), (int) auth()->id());
+                $message = __('Materials issued and posted to stock.');
+            } catch (ValidationException $e) {
+                return $this->issueReturnRedirect($request, $issue)
+                    ->with('status', __('Issue saved as draft, but could not be posted.'))
+                    ->withErrors($e->errors());
+            }
+        }
+
+        return $this->issueReturnRedirect($request, $issue)->with('status', $message);
     }
 
-    public function show(StockIssue $issue): View
+    public function show(Request $request, StockIssue $issue): View
     {
         $this->authorize('view', $issue);
 
         $issue->load(['warehouse', 'toWarehouse', 'issuer', 'items.inventoryItem']);
 
-        return view('admin.inventory.issues.show', compact('issue'));
+        if ($this->wantsStoreDeskReturn($request)) {
+            return view('admin.store.desk.issue-modal', compact('issue'));
+        }
+
+        return view('admin.inventory.issues.show', [
+            'issue' => $issue,
+            'fromStoreDesk' => false,
+        ]);
     }
 
-    public function post(StockIssue $issue): RedirectResponse
+    public function post(Request $request, StockIssue $issue): RedirectResponse
     {
         $this->authorize('post', $issue);
 
         try {
             StockIssueService::post($issue, (int) auth()->id());
         } catch (ValidationException $e) {
-            return back()->withErrors($e->errors());
+            if ($this->wantsStoreDeskReturn($request)) {
+                return redirect()->to($this->storeDeskUrl())->withErrors($e->validator);
+            }
+
+            return back()->withErrors($e->validator);
+        }
+
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Issue posted to inventory.'));
         }
 
         return back()->with('status', __('Issue posted to inventory.'));
+    }
+
+    protected function issueReturnRedirect(Request $request, StockIssue $issue): RedirectResponse
+    {
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl());
+        }
+
+        return redirect()->route('admin.inventory.issues.show', $issue);
     }
 
     /**

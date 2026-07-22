@@ -17,6 +17,7 @@ use App\Support\Crm\CustomerArtworkService;
 use App\Support\Crm\CustomerPrintSpecificationLifecycleService;
 use App\Support\Crm\CustomerPrintSpecificationService;
 use App\Support\Crm\CustomerPrintSpecificationWorkspaceService;
+use App\Support\Sales\ReturnsToSalesDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -25,7 +26,7 @@ use Illuminate\View\View;
 
 class CustomerPrintSpecificationController extends Controller
 {
-    use HandlesModalFormResponses, ScopesToTenant;
+    use HandlesModalFormResponses, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected CustomerPrintSpecificationService $specifications,
@@ -110,7 +111,13 @@ class CustomerPrintSpecificationController extends Controller
 
         return $this->modalOrRedirect(
             __('Print specification created.'),
-            redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
+            $this->wantsSalesDeskReturn($request)
+                ? redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'specification' => $spec->id,
+                    'step' => 3,
+                ])
+                : redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
         );
     }
 
@@ -161,7 +168,13 @@ class CustomerPrintSpecificationController extends Controller
 
         return $this->modalOrRedirect(
             __('Print specification updated.'),
-            redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
+            $this->wantsSalesDeskReturn($request)
+                ? redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'specification' => $printSpecification->id,
+                    'step' => 2,
+                ])
+                : redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
         );
     }
 
@@ -187,7 +200,13 @@ class CustomerPrintSpecificationController extends Controller
 
         return $this->modalOrRedirect(
             __('Artwork version uploaded.'),
-            redirect()->route('admin.crm.customers.print-specifications.edit', [$customer, $printSpecification]),
+            $this->wantsSalesDeskReturn($request)
+                ? redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'specification' => $printSpecification->id,
+                    'step' => 2,
+                ])
+                : redirect()->route('admin.crm.customers.print-specifications.edit', [$customer, $printSpecification]),
         );
     }
 

@@ -8,6 +8,9 @@
     maxWidth="3xl"
 >
     <x-admin.form-shell :action="route('admin.crm.customers.print-specifications.store', $customer)" enctype="multipart/form-data">
+        @if (request('from') === 'sales-desk')
+            <input type="hidden" name="from" value="sales-desk">
+        @endif
         @include('admin.crm.customers.print-specifications.partials.form', [
             'customer' => $customer,
             'specification' => null,
@@ -17,6 +20,7 @@
             'billingTypes' => $billingTypes,
             'fulfilmentMethods' => $fulfilmentMethods,
             'artworkTypes' => $artworkTypes,
+            'defaultStatus' => request('from') === 'sales-desk' ? 'active' : 'draft',
         ])
         <x-admin.form-modal-actions class="erp-form-modal__actions--sticky">
             <x-primary-button class="min-h-[2.75rem]">{{ __('Save specification') }}</x-primary-button>

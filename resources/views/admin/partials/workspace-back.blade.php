@@ -11,7 +11,8 @@
             ])
         >
             <x-admin.icon name="chevron-left" class="h-4 w-4 shrink-0" />
-            <span>{{ __('Back to :workspace', ['workspace' => $workspaceNavigation['parent_workspace_title']]) }}</span>
+            <span class="sm:hidden">{{ __('Back') }}</span>
+            <span class="hidden sm:inline">{{ __('Back to :workspace', ['workspace' => $workspaceNavigation['parent_workspace_title']]) }}</span>
         </a>
     </div>
 @endif

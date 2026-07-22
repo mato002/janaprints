@@ -8,11 +8,14 @@ use App\Enums\ProductionType;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Models\Procurement\Vendor;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\WorkCenter;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
+use App\Support\Reports\OperationalRegisterQueries;
+use App\Support\Reports\OperationalRegisterScope;
 use Database\Seeders\ProductionFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -103,6 +106,60 @@ class OperationalRegisterTest extends TestCase
             ->assertOk()
             ->assertSee($order->order_number, false)
             ->assertSee($customer->company_name, false);
+    }
+
+    public function test_daily_sales_register_shows_outsource_provider_cost_and_margin(): void
+    {
+        [$company, $branch, $user] = $this->tenantUser(['reports.view']);
+
+        $customer = Customer::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+        ]);
+
+        $vendor = Vendor::factory()->create([
+            'company_id' => $company->id,
+            'vendor_name' => 'E-Print',
+        ]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'order_date' => today(),
+            'total_amount' => 3600,
+        ]);
+
+        ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sales_order_id' => $order->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'outsource_vendor_id' => $vendor->id,
+            'outsource_quoted_cost' => 1800,
+            'production_type' => ProductionType::LargeFormat,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $scope = new OperationalRegisterScope(
+            companyId: $company->id,
+            branchId: $branch->id,
+            fromDate: today()->toDateString(),
+            toDate: today()->toDateString(),
+        );
+
+        $register = app(OperationalRegisterQueries::class)->dailySalesRegister($scope, $user);
+        $values = collect($register['table']['rows'] ?? [])
+            ->flatMap(fn (array $row) => $row['values'] ?? [])
+            ->all();
+
+        $this->assertContains('E-Print', $values);
+        $this->assertContains('1,800.00', $values);
+        $this->assertContains('3,600.00', $values);
+        $this->assertSame('1,800.00', $register['table']['totals'][13] ?? null);
     }
 
     public function test_daily_sales_register_sorts_most_recent_first(): void

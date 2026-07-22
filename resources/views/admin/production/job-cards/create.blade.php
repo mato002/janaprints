@@ -7,6 +7,9 @@
     maxWidth="xl"
 >
     <x-admin.form-shell :action="route('admin.production.job-cards.store')">
+        @if ($fromProductionFloor ?? request('from') === 'production-floor')
+            <input type="hidden" name="from" value="production-floor">
+        @endif
         <div class="erp-form-grid">
             <div class="md:col-span-2 space-y-2">
                 <x-admin.select name="sales_order_id" :label="__('Sales order')" :required="true">

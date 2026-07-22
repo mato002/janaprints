@@ -1,3 +1,7 @@
+@php
+    $operatorMode = (bool) ($operatorMode ?? false);
+@endphp
+
 <div
     x-show="panelOpen"
     x-cloak
@@ -19,8 +23,11 @@
             <div class="flex flex-wrap gap-2">
                 <template x-for="(action, idx) in panel.operator_actions ?? []" :key="idx">
                     <template x-if="action.type === 'post'">
-                        <form :action="action.url" method="POST">
+                        <form :action="action.url" method="POST" @if ($operatorMode) data-erp-desk-form @endif>
                             <input type="hidden" name="_token" :value="csrf">
+                            @if ($operatorMode)
+                                <input type="hidden" name="from" value="production-floor">
+                            @endif
                             <button
                                 type="submit"
                                 class="production-operator-btn"
@@ -42,7 +49,7 @@
                         <a
                             :href="action.url"
                             class="production-operator-btn erp-btn-secondary"
-                            data-turbo-frame="erp-main"
+                            @if ($operatorMode) data-erp-modal-open @else data-turbo-frame="erp-main" @endif
                             x-text="action.label"
                         ></a>
                     </template>
@@ -62,8 +69,11 @@
 
                     <div class="flex flex-wrap gap-2">
                         <template x-if="panel.primary_action?.type === 'post'">
-                            <form :action="panel.primary_action.url" method="POST">
+                            <form :action="panel.primary_action.url" method="POST" @if ($operatorMode) data-erp-desk-form @endif>
                                 <input type="hidden" name="_token" :value="csrf">
+                                @if ($operatorMode)
+                                    <input type="hidden" name="from" value="production-floor">
+                                @endif
                                 <button type="submit" class="erp-btn-primary text-sm" x-text="panel.primary_action.label"></button>
                             </form>
                         </template>
@@ -71,17 +81,26 @@
                             <button type="button" class="erp-btn-primary text-sm" x-text="panel.primary_action.label" @click="scrollToPanelSection(panel.primary_action.url)"></button>
                         </template>
                         <template x-if="panel.primary_action?.type === 'link'">
-                            <a :href="panel.primary_action.url" class="erp-btn-primary text-sm" data-turbo-frame="erp-main" x-text="panel.primary_action.label"></a>
+                            <a :href="panel.primary_action.url" class="erp-btn-primary text-sm" @if ($operatorMode) data-erp-modal-open @else data-turbo-frame="erp-main" @endif x-text="panel.primary_action.label"></a>
                         </template>
                         <template x-if="panel.header?.label_url">
                             <a :href="panel.header.label_url" target="_blank" rel="noopener" class="erp-btn-secondary text-sm">{{ __('Print label') }}</a>
                         </template>
-                        <template x-if="panel.links?.job">
-                            <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Full job workspace') }}</a>
-                        </template>
-                        <template x-if="panel.links?.sales_order">
-                            <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Sales order') }}</a>
-                        </template>
+                        @if ($operatorMode)
+                            <template x-if="panel.links?.job">
+                                <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Preview job') }}</a>
+                            </template>
+                            <template x-if="panel.links?.sales_order">
+                                <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Sales order') }}</a>
+                            </template>
+                        @else
+                            <template x-if="panel.links?.job">
+                                <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Full job workspace') }}</a>
+                            </template>
+                            <template x-if="panel.links?.sales_order">
+                                <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Sales order') }}</a>
+                            </template>
+                        @endif
                     </div>
 
                     <template x-if="panel.blockers?.length">
@@ -106,8 +125,11 @@
                             </dl>
                         </template>
                         <template x-if="panel.outsource?.can_outsource">
-                            <form :action="panel.outsource.outsource_url" method="POST" class="grid grid-cols-1 gap-2 text-sm">
+                            <form :action="panel.outsource.outsource_url" method="POST" class="grid grid-cols-1 gap-2 text-sm" @if ($operatorMode) data-erp-desk-form @endif>
                                 <input type="hidden" name="_token" :value="csrf">
+                                @if ($operatorMode)
+                                    <input type="hidden" name="from" value="production-floor">
+                                @endif
                                 <div>
                                     <label class="erp-label text-xs">{{ __('Production vendor') }}</label>
                                     <select name="outsource_vendor_id" class="erp-select w-full" required>
@@ -138,8 +160,11 @@
                             </form>
                         </template>
                         <template x-if="panel.outsource?.can_return">
-                            <form :action="panel.outsource.return_url" method="POST" class="flex flex-wrap items-end gap-2">
+                            <form :action="panel.outsource.return_url" method="POST" class="flex flex-wrap items-end gap-2" @if ($operatorMode) data-erp-desk-form @endif>
                                 <input type="hidden" name="_token" :value="csrf">
+                                @if ($operatorMode)
+                                    <input type="hidden" name="from" value="production-floor">
+                                @endif
                                 <div class="min-w-[10rem] flex-1">
                                     <label class="erp-label text-xs">{{ __('Actual cost') }}</label>
                                     <input type="number" step="0.01" name="outsource_actual_cost" class="erp-input w-full">
@@ -158,12 +183,14 @@
                             {{ __('Status') }}:
                             <span x-text="panel.fulfilment?.status_label ?? '—'"></span>
                         </p>
+                        @unless ($operatorMode)
                         <a
                             x-show="panel.links?.job"
                             :href="panel.links.job + '?tab=fulfilment'"
                             class="text-sm text-erp-accent hover:underline"
                             data-turbo-frame="erp-main"
                         >{{ __('Open fulfilment tab') }}</a>
+                        @endunless
                     </section>
 
                     <section id="quality" class="rounded-lg border border-erp-border p-4">
@@ -172,6 +199,7 @@
                             {{ __('Fulfilment') }}:
                             <span x-text="panel.fulfilment?.status_label ?? '—'"></span>
                         </p>
+                        @unless ($operatorMode)
                         <div class="flex flex-wrap gap-3 text-sm">
                             <a
                                 x-show="panel.links?.job"
@@ -186,6 +214,7 @@
                                 data-turbo-frame="erp-main"
                             >{{ __('Fulfilment') }}</a>
                         </div>
+                        @endunless
                     </section>
                 </div>
             </template>

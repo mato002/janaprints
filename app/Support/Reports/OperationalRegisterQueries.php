@@ -127,6 +127,8 @@ class OperationalRegisterQueries
         $rows = $this->sortRegisterRows($rows);
 
         $totalAmount = $rows->sum(fn (array $row) => (float) ($row['amount_raw'] ?? 0));
+        $totalProviderCost = $rows->sum(fn (array $row) => (float) ($row['provider_cost_raw'] ?? 0));
+        $totalMargin = $rows->sum(fn (array $row) => (float) ($row['margin_raw'] ?? 0));
 
         return [
             'summary' => [
@@ -141,7 +143,10 @@ class OperationalRegisterQueries
                     __('Salesperson'), __('Production status'), __('Provider'), __('Provider cost'), __('Margin'), __('Remarks'),
                 ],
                 $rows->map(fn (array $row) => $this->stripInternalKeys($row))->all(),
-                [__('Total'), '', '', '', '', '', number_format($totalAmount, 2), '', '', '', '', '', '', '', ''],
+                [
+                    __('Total'), '', '', '', '', '', number_format($totalAmount, 2), '', '', '', '',
+                    '', number_format($totalProviderCost, 2), number_format($totalMargin, 2), '',
+                ],
             ),
         ];
     }
@@ -339,7 +344,13 @@ class OperationalRegisterQueries
         }
 
         $query = SalesOrder::query()
-            ->with(['customer:id,company_name', 'creator:id,name', 'items:id,sales_order_id,item_name'])
+            ->with([
+                'customer:id,company_name',
+                'creator:id,name',
+                'items:id,sales_order_id,item_name',
+                'jobCard.outsourceVendor:id,vendor_name',
+                'jobCard.costSheet:id,production_job_card_id,total_cost',
+            ])
             ->where('company_id', $scope->companyId)
             ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
             ->whereDate('order_date', '>=', $scope->fromDate)
@@ -361,8 +372,10 @@ class OperationalRegisterQueries
             ->get()
             ->map(function (SalesOrder $order) use ($user) {
             $financial = app(SalesOrderFinancialStatusService::class)->snapshot($order);
-            $job = ProductionJobCard::query()->where('sales_order_id', $order->id)->first();
+            $job = $order->jobCard;
             $product = $order->items->first()?->item_name ?? '—';
+            $revenue = (float) $order->total_amount;
+            $providerMetrics = $this->dailySalesProviderMetrics($job, $revenue);
 
             return [
                 'sort_date' => $order->order_date?->format('Y-m-d') ?? '',
@@ -375,14 +388,14 @@ class OperationalRegisterQueries
                     $product,
                     $job?->production_type?->value ? str_replace('_', ' ', ucfirst($job->production_type->value)) : '—',
                     '—',
-                    number_format((float) $order->total_amount, 2),
+                    number_format($revenue, 2),
                     $financial['financial_status_label'] ?? '—',
                     $order->status?->value ? str_replace('_', ' ', ucfirst($order->status->value)) : '—',
                     $order->creator?->name ?? '—',
                     $job?->status?->value ? str_replace('_', ' ', ucfirst($job->status->value)) : '—',
-                    '—',
-                    '—',
-                    '—',
+                    $providerMetrics['provider'],
+                    $providerMetrics['provider_cost'],
+                    $providerMetrics['margin'],
                     $order->notes ?? '—',
                 ],
                 'links' => array_filter([
@@ -391,7 +404,9 @@ class OperationalRegisterQueries
                     2 => ($user?->can('view', $order) && Route::has('admin.sales-orders.show'))
                         ? route('admin.sales-orders.show', $order) : null,
                 ]),
-                'amount_raw' => (float) $order->total_amount,
+                'amount_raw' => $revenue,
+                'provider_cost_raw' => $providerMetrics['provider_cost_raw'],
+                'margin_raw' => $providerMetrics['margin_raw'],
             ];
         })->all();
     }
@@ -788,9 +803,67 @@ class OperationalRegisterQueries
      */
     protected function stripInternalKeys(array $row): array
     {
-        unset($row['sort_date'], $row['sort_at'], $row['sort_id'], $row['amount_raw']);
+        unset(
+            $row['sort_date'],
+            $row['sort_at'],
+            $row['sort_id'],
+            $row['amount_raw'],
+            $row['provider_cost_raw'],
+            $row['margin_raw'],
+        );
 
         return $row;
+    }
+
+    /**
+     * @return array{
+     *     provider: string,
+     *     provider_cost: string,
+     *     margin: string,
+     *     provider_cost_raw: float|null,
+     *     margin_raw: float|null,
+     * }
+     */
+    protected function dailySalesProviderMetrics(?ProductionJobCard $job, float $revenue): array
+    {
+        if (! $job) {
+            return [
+                'provider' => '—',
+                'provider_cost' => '—',
+                'margin' => '—',
+                'provider_cost_raw' => null,
+                'margin_raw' => null,
+            ];
+        }
+
+        $providerCost = $job->outsource_actual_cost ?? $job->outsource_quoted_cost;
+        if ($providerCost === null && $job->costSheet) {
+            $providerCost = $job->costSheet->total_cost;
+        }
+
+        $provider = $job->outsourceVendor?->vendor_name
+            ?? ($providerCost !== null ? __('In-house') : '—');
+
+        if ($providerCost === null) {
+            return [
+                'provider' => $provider,
+                'provider_cost' => '—',
+                'margin' => '—',
+                'provider_cost_raw' => null,
+                'margin_raw' => null,
+            ];
+        }
+
+        $cost = (float) $providerCost;
+        $margin = $revenue - $cost;
+
+        return [
+            'provider' => $provider,
+            'provider_cost' => number_format($cost, 2),
+            'margin' => number_format($margin, 2),
+            'provider_cost_raw' => $cost,
+            'margin_raw' => $margin,
+        ];
     }
 
     /**

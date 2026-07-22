@@ -14,6 +14,7 @@
         </header>
 
         @include('admin.dashboard.partials.hero')
+        @include('admin.dashboard.partials.operator-desks')
         @include('admin.dashboard.partials.quote-requests-alert')
         @include('admin.dashboard.partials.health-strip')
         @include('admin.dashboard.partials.communication-health')

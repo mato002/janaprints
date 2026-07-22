@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin\Inventory;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryReorderAlert;
 use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ReorderAlertService;
+use App\Support\Inventory\ReturnsToStoreDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +17,7 @@ use Illuminate\View\View;
 
 class ReorderAlertController extends Controller
 {
-    use ResolvesInventoryTenant;
+    use HandlesModalFormResponses, ResolvesInventoryTenant, ReturnsToStoreDesk;
 
     public function __construct(
         protected ReorderAlertService $alerts,
@@ -38,7 +40,7 @@ class ReorderAlertController extends Controller
         ]);
     }
 
-    public function acknowledge(InventoryReorderAlert $alert): RedirectResponse
+    public function acknowledge(Request $request, InventoryReorderAlert $alert): RedirectResponse
     {
         $this->authorize('acknowledge', $alert);
 
@@ -48,10 +50,14 @@ class ReorderAlertController extends Controller
             return back()->withErrors($e->errors());
         }
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Alert acknowledged.'));
+        }
+
         return back()->with('status', __('Alert acknowledged.'));
     }
 
-    public function resolve(InventoryReorderAlert $alert): RedirectResponse
+    public function resolve(Request $request, InventoryReorderAlert $alert): RedirectResponse
     {
         $this->authorize('resolve', $alert);
 
@@ -59,6 +65,10 @@ class ReorderAlertController extends Controller
             $this->alerts->resolve($alert, (int) auth()->id());
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
+        }
+
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Alert resolved.'));
         }
 
         return back()->with('status', __('Alert resolved.'));

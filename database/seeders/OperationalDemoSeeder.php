@@ -21,7 +21,8 @@ class OperationalDemoSeeder extends Seeder
         $this->command?->newLine();
         $this->command?->info('Operational demo seed complete.');
         $this->command?->line('  Log in: admin@janaprints.local / password (or your DEMO_USER_PASSWORD)');
-        $this->command?->line('  Sales: sales@janaprints.local');
+        $this->command?->line('  Sales desk (walk-in → production): sales@janaprints.local');
+        $this->command?->line('  Production floor: production@janaprints.local');
         $this->command?->line('  Client portal: client.demo@janaprints.local');
     }
 }

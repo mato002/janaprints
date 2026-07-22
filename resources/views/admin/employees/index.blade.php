@@ -5,8 +5,7 @@
                 <a
                     href="{{ url()->route('admin.employees.email.compose', ['all' => 1]) }}"
                     class="erp-btn-secondary"
-                    data-turbo="false"
-                    data-leave-workspace
+                    data-erp-modal-open
                 >{{ __('Email all staff') }}</a>
             @endcan
             @can('create', App\Models\Employee::class)
@@ -46,7 +45,7 @@
                 <button
                     type="button"
                     class="erp-btn-secondary py-1 text-xs"
-                    @click="if (selected.size === 0) { window.showErpSweetAlert?.(@js(__('Select at least one employee.')), 'warning'); return; } const url = @js(url()->route('admin.employees.email.compose')).concat('?', [...selected].map((id) => 'employees[]=' + encodeURIComponent(id)).join('&')); window.top.location.href = url"
+                    @click="if (selected.size === 0) { window.showErpSweetAlert?.(@js(__('Select at least one employee.')), 'warning'); return; } const url = @js(url()->route('admin.employees.email.compose')).concat('?', [...selected].map((id) => 'employees[]=' + encodeURIComponent(id)).join('&')); window.erpModalManager?.openModal(url)"
                 >
                     {{ __('Email selected') }}
                 </button>
@@ -150,9 +149,7 @@
                                 @if ($employee->email)
                                     <x-admin.table-row-action
                                         :href="url()->route('admin.employees.email.compose', ['employees' => [$employee->id]])"
-                                        data-turbo="false"
-                                        data-leave-workspace
-                                        data-no-modal
+                                        data-erp-modal-open
                                     >{{ __('Email') }}</x-admin.table-row-action>
                                 @endif
                             @endcan

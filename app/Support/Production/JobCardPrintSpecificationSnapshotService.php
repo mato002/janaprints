@@ -53,7 +53,7 @@ class JobCardPrintSpecificationSnapshotService
         $salesOrder->loadMissing(['items']);
         $line = $this->resolveSnapshotLine($salesOrder);
 
-        if (! $line || ! $line->customer_print_specification_id) {
+        if (! $line) {
             return null;
         }
 
@@ -69,15 +69,26 @@ class JobCardPrintSpecificationSnapshotService
             return null;
         }
 
-        $spec = $this->specifications->createForSalesOrderItem($line, [
+        $payload = [
             'product_description' => $line->item_name ?? $line->description,
             'quantity' => $line->quantity,
+            'production_type' => $jobCard->production_type?->value,
             'production_notes' => $line->production_notes_snapshot,
             'artwork_reference' => $line->specification_code,
             'artwork_version' => $line->artwork_version_number !== null
                 ? (string) $line->artwork_version_number
                 : null,
-        ], $user);
+        ];
+
+        if ($line->customer_print_specification_id) {
+            $line->loadMissing('customerPrintSpecification');
+            $crmSpec = $line->customerPrintSpecification;
+            if ($crmSpec?->name) {
+                $payload['product_description'] = $crmSpec->name;
+            }
+        }
+
+        $spec = $this->specifications->createForSalesOrderItem($line, $payload, $user);
 
         return $this->specifications->linkToJobCard($spec, $jobCard);
     }

@@ -18,7 +18,7 @@
 >
     <x-admin.page-header
         :title="$pageTitle"
-        :description="__('Live department operational register — every row is a manufacturing job from the ERP.')"
+        :description="__('Daily department jobs register — defaults to jobs logged today, matching the legacy shop floor sheets.')"
     >
         <x-slot name="actions">
             <x-admin.export-dropdown

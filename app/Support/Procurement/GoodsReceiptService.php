@@ -2,6 +2,7 @@
 
 namespace App\Support\Procurement;
 
+use App\Enums\ApprovalRuleType;
 use App\Enums\DocumentType;
 use App\Enums\GoodsReceiptStatus;
 use App\Enums\InventoryDocumentStatus;
@@ -30,6 +31,18 @@ class GoodsReceiptService
                 'items' => __('Goods receipt must have at least one line.'),
             ]);
         }
+
+        $goodsReceipt->loadMissing('items');
+        $receiptValue = round($goodsReceipt->items->sum(
+            fn ($line) => (float) $line->quantity_received * (float) $line->unit_cost
+        ), 2);
+
+        app(ProcurementGovernanceCoordinator::class)->assertChainApprovedForPosting(
+            $goodsReceipt,
+            ApprovalRuleType::GoodsReceiptApproval,
+            $receiptValue,
+            __('Goods receipt requires approval before posting.'),
+        );
 
         return DB::transaction(function () use ($goodsReceipt, $userId) {
             $goodsReceipt->load(['items.purchaseOrderItem', 'purchaseOrder', 'warehouse']);

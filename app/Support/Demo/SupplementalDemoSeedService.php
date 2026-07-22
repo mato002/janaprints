@@ -126,40 +126,38 @@ class SupplementalDemoSeedService
         $all = $sections === [];
         $run = static fn (string $section): bool => $all || in_array($section, $sections, true);
 
-        Model::withoutEvents(function () use ($ctx, $command, $run) {
-            if ($run('sales')) {
-                $this->seedExtendedSalesPipeline($ctx, $command);
-            }
+        if ($run('sales')) {
+            $this->seedExtendedSalesPipeline($ctx, $command);
+        }
 
-            if ($run('accounting')) {
-                $this->seedAccounting($ctx, $command);
-            }
+        if ($run('accounting')) {
+            $this->seedAccounting($ctx, $command);
+        }
 
-            if ($run('hr')) {
-                $this->seedHr($ctx, $command);
-            }
+        if ($run('hr')) {
+            $this->seedHr($ctx, $command);
+        }
 
-            if ($run('supply_chain')) {
-                $this->seedSupplyChain($ctx, $command);
-            }
+        if ($run('supply_chain')) {
+            $this->seedSupplyChain($ctx, $command);
+        }
 
-            if ($run('assets')) {
-                $this->seedAssetDepreciation($ctx, $command);
-            }
+        if ($run('assets')) {
+            $this->seedAssetDepreciation($ctx, $command);
+        }
 
-            if ($run('commercial')) {
-                $this->seedCommercial($ctx, $command);
-            }
+        if ($run('commercial')) {
+            $this->seedCommercial($ctx, $command);
+        }
 
-            $command?->info(sprintf(
-                '  Totals: %d journals, %d supplier bills, %d payroll runs, %d sales orders, %d stock issues.',
-                Journal::query()->where('company_id', $ctx->company->id)->count(),
-                SupplierBill::query()->where('company_id', $ctx->company->id)->count(),
-                PayrollRun::query()->where('company_id', $ctx->company->id)->count(),
-                SalesOrder::query()->where('company_id', $ctx->company->id)->count(),
-                StockIssue::query()->where('company_id', $ctx->company->id)->count(),
-            ));
-        });
+        $command?->info(sprintf(
+            '  Totals: %d journals, %d supplier bills, %d payroll runs, %d sales orders, %d stock issues.',
+            Journal::query()->where('company_id', $ctx->company->id)->count(),
+            SupplierBill::query()->where('company_id', $ctx->company->id)->count(),
+            PayrollRun::query()->where('company_id', $ctx->company->id)->count(),
+            SalesOrder::query()->where('company_id', $ctx->company->id)->count(),
+            StockIssue::query()->where('company_id', $ctx->company->id)->count(),
+        ));
     }
 
     protected function resolveContext(): ?OperationalDemoContext

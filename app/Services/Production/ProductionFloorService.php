@@ -47,6 +47,8 @@ class ProductionFloorService
             ->paginate(25)
             ->withQueryString();
 
+        $operatorMode = $request->user()?->prefersProductionOperatorMode() ?? false;
+
         return [
             'summary' => $this->summaryStrip(),
             'stage_counts' => $this->stageCounts($filters),
@@ -56,7 +58,9 @@ class ProductionFloorService
             'filter_options' => $this->filterOptions(),
             'can_create' => auth()->user()?->can('create', ProductionJobCard::class) ?? false,
             'create_url' => Route::has('admin.production.job-cards.create')
-                ? route('admin.production.job-cards.create')
+                ? route('admin.production.job-cards.create', array_filter([
+                    'from' => $operatorMode ? 'production-floor' : null,
+                ]))
                 : null,
         ];
     }
@@ -64,7 +68,7 @@ class ProductionFloorService
     /**
      * @return array<string, mixed>
      */
-    public function panel(ProductionJobCard $jobCard): array
+    public function panel(ProductionJobCard $jobCard, bool $operatorMode = false): array
     {
         $jobCard->loadMissing([
             'customer:id,public_id,company_name,customer_code',
@@ -99,9 +103,15 @@ class ProductionFloorService
                 'method' => $jobCard->salesOrder?->fulfilment_method?->value,
             ],
             'links' => [
-                'job' => route('admin.production.job-cards.show', $jobCard),
+                'job' => route('admin.production.job-cards.show', array_filter([
+                    'jobCard' => $jobCard,
+                    'from' => $operatorMode ? 'production-floor' : null,
+                ])),
                 'sales_order' => $jobCard->salesOrder
-                    ? route('admin.sales-orders.show', $jobCard->salesOrder)
+                    ? route('admin.sales-orders.show', array_filter([
+                        'salesOrder' => $jobCard->salesOrder,
+                        'from' => $operatorMode ? 'production-floor' : null,
+                    ]))
                     : null,
             ],
             'machines' => $this->machinesForPanel(),

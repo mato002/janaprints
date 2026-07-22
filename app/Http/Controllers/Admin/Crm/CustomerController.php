@@ -17,6 +17,7 @@ use App\Support\Crm\CustomerOperationalGuard;
 use App\Services\Client\ClientPortalInvitationService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\FormStatusOptionService;
+use App\Support\Sales\ReturnsToSalesDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -26,7 +27,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CustomerController extends Controller
 {
-    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -124,7 +125,12 @@ class CustomerController extends Controller
 
         return $this->modalOrRedirect(
             __('Customer created.'),
-            redirect()->route('admin.crm.customers.show', $customer),
+            $this->wantsSalesDeskReturn($request)
+                ? redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'step' => 2,
+                ])
+                : redirect()->route('admin.crm.customers.show', $customer),
         );
     }
 
@@ -209,7 +215,12 @@ class CustomerController extends Controller
 
         return $this->modalOrRedirect(
             __('Customer updated.'),
-            redirect()->route('admin.crm.customers.show', $customer),
+            $this->wantsSalesDeskReturn($request)
+                ? redirect()->route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'step' => 2,
+                ])
+                : redirect()->route('admin.crm.customers.show', $customer),
         );
     }
 

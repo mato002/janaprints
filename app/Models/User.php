@@ -80,6 +80,31 @@ class User extends Authenticatable implements MustVerifyEmail
             && ! $this->can('employees.manage');
     }
 
+    public function prefersProductionOperatorMode(): bool
+    {
+        return \App\Support\Operator\OperatorModeRegistry::enabledFor($this, \App\Support\Operator\OperatorModeKey::Production);
+    }
+
+    public function prefersSalesOperatorMode(): bool
+    {
+        return \App\Support\Operator\OperatorModeRegistry::enabledFor($this, \App\Support\Operator\OperatorModeKey::Sales);
+    }
+
+    public function prefersStorekeeperOperatorMode(): bool
+    {
+        return \App\Support\Operator\OperatorModeRegistry::enabledFor($this, \App\Support\Operator\OperatorModeKey::Storekeeper);
+    }
+
+    public function prefersDesignerOperatorMode(): bool
+    {
+        return \App\Support\Operator\OperatorModeRegistry::enabledFor($this, \App\Support\Operator\OperatorModeKey::Designer);
+    }
+
+    public function hasOperatorDeskMode(): bool
+    {
+        return \App\Support\Operator\OperatorModeRegistry::hasAnyOperatorMode($this);
+    }
+
     public function managedWarehouses(): BelongsToMany
     {
         return $this->belongsToMany(Warehouse::class, 'user_warehouse')

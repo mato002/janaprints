@@ -133,6 +133,9 @@
 
         <div x-show="tab === 'quotation'" x-cloak>
             <x-admin.form-shell :action="route('admin.sales-orders.store')" class="space-y-4">
+                @if (request('from') === 'sales-desk')
+                    <input type="hidden" name="from" value="sales-desk">
+                @endif
                 <input type="hidden" name="entry_mode" value="quotation">
                 @if(($fields['quotation_id']['visible'] ?? true))
                     <div>
@@ -161,6 +164,9 @@
 
         <div x-show="tab === 'direct'" x-cloak>
             <x-admin.form-shell :action="route('admin.sales-orders.store')" class="space-y-4">
+                @if (request('from') === 'sales-desk')
+                    <input type="hidden" name="from" value="sales-desk">
+                @endif
                 <input type="hidden" name="entry_mode" value="direct">
                 <input type="hidden" name="customer_print_specification_id" :value="selectedSpecId">
 

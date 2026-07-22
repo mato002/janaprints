@@ -25,6 +25,7 @@ class ProcurementDashboardController extends Controller
             'active_vendors' => Vendor::query()->forTenant()->where('status', VendorStatus::Active)->count(),
             'pending_requests' => PurchaseRequest::query()->forTenant()->whereIn('status', [
                 PurchaseRequestStatus::Submitted->value,
+                PurchaseRequestStatus::PendingApproval->value,
                 PurchaseRequestStatus::Approved->value,
             ])->count(),
             'pending_orders' => PurchaseOrder::query()->forTenant()->whereIn('status', [

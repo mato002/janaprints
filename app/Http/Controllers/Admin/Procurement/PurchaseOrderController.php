@@ -12,9 +12,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\Vendor;
+use App\Support\Procurement\PurchaseOrderService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PurchaseOrderController extends Controller
@@ -117,30 +119,41 @@ class PurchaseOrderController extends Controller
     {
         $this->authorize('submit', $order);
 
-        $order->update(['status' => PurchaseOrderStatus::PendingApproval]);
+        try {
+            PurchaseOrderService::submit($order, (int) auth()->id());
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         return back()->with('status', __('Purchase order submitted for approval.'));
     }
 
-    public function approve(PurchaseOrder $order): RedirectResponse
+    public function approve(Request $httpRequest, PurchaseOrder $order): RedirectResponse
     {
         $this->authorize('approve', $order);
 
-        $order->update([
-            'status' => PurchaseOrderStatus::Approved,
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
-        \App\Support\ActivityLogger::log('purchase_approved', $order);
+        try {
+            PurchaseOrderService::approve($order, $httpRequest->user(), $httpRequest->input('notes'));
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         return back()->with('status', __('Purchase order approved.'));
     }
 
-    public function reject(PurchaseOrder $order): RedirectResponse
+    public function reject(Request $httpRequest, PurchaseOrder $order): RedirectResponse
     {
         $this->authorize('reject', $order);
 
-        $order->update(['status' => PurchaseOrderStatus::Rejected]);
+        $validated = $httpRequest->validate([
+            'reason' => ['required', 'string', 'max:2000'],
+        ]);
+
+        try {
+            PurchaseOrderService::reject($order, $httpRequest->user(), $validated['reason']);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         return back()->with('status', __('Purchase order rejected.'));
     }
@@ -148,6 +161,12 @@ class PurchaseOrderController extends Controller
     public function send(PurchaseOrder $order): RedirectResponse
     {
         $this->authorize('send', $order);
+
+        try {
+            PurchaseOrderService::assertCanSend($order);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
 
         $order->update(['status' => PurchaseOrderStatus::Sent]);
 

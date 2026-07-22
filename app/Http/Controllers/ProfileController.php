@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\UserSessionStatus;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Support\Branding\BrandingAssets;
+use App\Services\Security\UserSessionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,6 +16,7 @@ class ProfileController extends Controller
 {
     public function __construct(
         protected BrandingAssets $assets,
+        protected UserSessionService $userSessionService,
     ) {}
 
     /**
@@ -22,10 +25,23 @@ class ProfileController extends Controller
     public function edit(Request $request): View
     {
         $user = $request->user();
+        $user->loadMissing(['company', 'defaultBranch', 'employee', 'roles']);
+
+        $sessions = $this->userSessionService->sessionsForUser($user);
+        $activeSessions = $sessions->where('status', UserSessionStatus::Active)->values();
+        $permissions = $user->getAllPermissions()->pluck('name')->sort()->values();
 
         return view('profile.edit', [
             'user' => $user,
             'avatarUrl' => $this->assets->url($user->avatar_path),
+            'roles' => $user->getRoleNames()->sort()->values(),
+            'permissions' => $permissions,
+            'permissionsByModule' => $permissions->groupBy(
+                fn (string $permission) => explode('.', $permission)[0] ?: 'other',
+            ),
+            'activeSessions' => $activeSessions,
+            'currentSessionId' => $request->session()->getId(),
+            'activeSessionCount' => $activeSessions->count(),
         ]);
     }
 

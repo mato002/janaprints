@@ -57,6 +57,46 @@ class DemoUsersSeeder extends Seeder
             'designation' => 'Sales Representative',
             'role' => 'Sales',
         ],
+        [
+            'employee_number' => 'EMP-0005',
+            'first_name' => 'Daniel',
+            'last_name' => 'Kamau',
+            'email' => 'production@janaprints.local',
+            'designation' => 'Production Manager',
+            'role' => 'Production',
+        ],
+        [
+            'employee_number' => 'EMP-0006',
+            'first_name' => 'Kevin',
+            'last_name' => 'Njoroge',
+            'email' => 'designer@janaprints.local',
+            'designation' => 'Graphic Designer',
+            'role' => 'Designer',
+        ],
+        [
+            'employee_number' => 'EMP-0007',
+            'first_name' => 'Mary',
+            'last_name' => 'Achieng',
+            'email' => 'store@janaprints.local',
+            'designation' => 'Storekeeper',
+            'role' => 'Storekeeper',
+        ],
+        [
+            'employee_number' => 'EMP-0008',
+            'first_name' => 'Joseph',
+            'last_name' => 'Mutua',
+            'email' => 'accounts@janaprints.local',
+            'designation' => 'Accountant',
+            'role' => 'Accountant',
+        ],
+        [
+            'employee_number' => 'EMP-0009',
+            'first_name' => 'Lucy',
+            'last_name' => 'Wairimu',
+            'email' => 'hr@janaprints.local',
+            'designation' => 'HR Officer',
+            'role' => 'HR',
+        ],
     ];
 
     public function run(): void

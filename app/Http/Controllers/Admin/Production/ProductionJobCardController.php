@@ -15,6 +15,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
 use App\Services\Assets\MachineJobAssignmentService;
 use App\Services\Production\Job360WorkspaceService;
+use App\Services\Production\ProductionFloorService;
 use App\Services\Production\JobProductionControlService;
 use App\Services\Production\ProductionJobCardIndexService;
 use App\Enums\WorkflowRuleTrigger;
@@ -22,6 +23,8 @@ use App\Support\Governance\WorkflowRulesService;
 use App\Support\Export\TabularExportWriter;
 use App\Support\Production\ProductionJobCardEligibilityService;
 use App\Support\Production\ProductionQueueService;
+use App\Support\Production\ReturnsToProductionFloor;
+use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,7 +37,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionJobCardController extends Controller
 {
-    use HandlesModalFormResponses, ScopesToTenant;
+    use HandlesModalFormResponses, ReturnsToProductionFloor, ReturnsToSalesDesk, ScopesToTenant;
 
     public function index(Request $request, ProductionJobCardIndexService $index): View
     {
@@ -65,7 +68,7 @@ class ProductionJobCardController extends Controller
         );
     }
 
-    public function create(ProductionJobCardEligibilityService $eligibility): View
+    public function create(Request $request, ProductionJobCardEligibilityService $eligibility): View
     {
         $this->authorize('create', ProductionJobCard::class);
 
@@ -81,6 +84,7 @@ class ProductionJobCardController extends Controller
             'salesOrderCreateUrl' => Route::has('admin.sales-orders.create')
                 ? route('admin.sales-orders.create', ['tab' => 'direct'])
                 : null,
+            'fromProductionFloor' => $this->wantsProductionFloorReturn($request),
         ]);
     }
 
@@ -110,13 +114,26 @@ class ProductionJobCardController extends Controller
 
         return $this->modalOrRedirect(
             __('Job card created.'),
-            redirect()->route('admin.production.floor', ['job' => $jobCard->public_id]),
+            $this->wantsProductionFloorReturn($request)
+                ? redirect()->route('admin.production.floor', ['job' => $jobCard->public_id])
+                : redirect()->route('admin.production.job-cards.show', $jobCard),
         );
     }
 
-    public function show(Request $request, ProductionJobCard $jobCard, Job360WorkspaceService $workspace): View
-    {
+    public function show(
+        Request $request,
+        ProductionJobCard $jobCard,
+        Job360WorkspaceService $workspace,
+        ProductionFloorService $floor,
+    ): View {
         $this->authorize('view', $jobCard);
+
+        if ($this->wantsSalesDeskReturn($request) || $this->wantsProductionFloorReturn($request)) {
+            return view('admin.production.floor.job-modal', [
+                'jobCard' => $jobCard,
+                'panel' => $floor->panel($jobCard, true),
+            ]);
+        }
 
         $payload = $workspace->build(
             $jobCard,
@@ -182,7 +199,7 @@ class ProductionJobCardController extends Controller
                 $jobCard->transitionTo(ProductionJobCardStatus::Queued);
             }
 
-            return back()->with('status', __('Job card queued.'));
+            return $this->redirectAfterProductionFloorAction($jobCard, __('Job card queued.'));
         }
 
         $validated = $request->validate($queues->queueValidationRules($jobCard));
@@ -194,7 +211,7 @@ class ProductionJobCardController extends Controller
             isset($validated['assigned_operator_id']) ? (int) $validated['assigned_operator_id'] : null,
         );
 
-        return back()->with('status', __('Job card queued.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Job card queued.'));
     }
 
     public function start(ProductionJobCard $jobCard): RedirectResponse
@@ -211,7 +228,7 @@ class ProductionJobCardController extends Controller
             $jobCard->salesOrder->transitionTo(SalesOrderStatus::InProduction);
         }
 
-        return back()->with('status', __('Production started.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Production started.'));
     }
 
     public function sendToQc(ProductionJobCard $jobCard): RedirectResponse
@@ -221,7 +238,7 @@ class ProductionJobCardController extends Controller
         $jobCard->transitionTo(ProductionJobCardStatus::QualityCheck);
         app(\App\Support\Production\ProductQcChecklistService::class)->snapshotForJobCard($jobCard);
 
-        return back()->with('status', __('Job sent to quality check.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Job sent to quality check.'));
     }
 
     public function markCompleted(ProductionJobCard $jobCard): RedirectResponse
@@ -237,7 +254,7 @@ class ProductionJobCardController extends Controller
             } elseif ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)) {
                 $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch);
 
-                return back()->with('status', __('Job ready for dispatch.'));
+                return $this->redirectAfterProductionFloorAction($jobCard, __('Job ready for dispatch.'));
             }
         }
 
@@ -248,7 +265,7 @@ class ProductionJobCardController extends Controller
         ]);
         app(WorkflowRulesService::class)->dispatch(WorkflowRuleTrigger::Completed, $jobCard->fresh(), auth()->user());
 
-        return back()->with('status', __('Job card completed.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Job card completed.'));
     }
 
     public function readyForDispatch(ProductionJobCard $jobCard, JobProductionControlService $controls): RedirectResponse
@@ -265,7 +282,7 @@ class ProductionJobCardController extends Controller
             $jobCard->salesOrder->transitionTo(SalesOrderStatus::Completed);
         }
 
-        return back()->with('status', __('Job ready for dispatch.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Job ready for dispatch.'));
     }
 
     public function hold(ProductionJobCard $jobCard): RedirectResponse
@@ -274,7 +291,7 @@ class ProductionJobCardController extends Controller
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold), 403);
         $jobCard->transitionTo(ProductionJobCardStatus::OnHold);
 
-        return back()->with('status', __('Job card on hold.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Job card on hold.'));
     }
 
     public function pause(ProductionJobCard $jobCard): RedirectResponse
@@ -284,7 +301,7 @@ class ProductionJobCardController extends Controller
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold), 403);
         $jobCard->transitionTo(ProductionJobCardStatus::OnHold);
 
-        return back()->with('status', __('Production paused.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Production paused.'));
     }
 
     public function resume(ProductionJobCard $jobCard): RedirectResponse
@@ -299,7 +316,7 @@ class ProductionJobCardController extends Controller
         abort_unless($jobCard->status->canTransitionTo($target), 403);
         $jobCard->transitionTo($target);
 
-        return back()->with('status', __('Production resumed.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Production resumed.'));
     }
 
     public function cancel(ProductionJobCard $jobCard): RedirectResponse
@@ -308,7 +325,7 @@ class ProductionJobCardController extends Controller
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Cancelled), 403);
         $jobCard->transitionTo(ProductionJobCardStatus::Cancelled);
 
-        return back()->with('status', __('Job card cancelled.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Job card cancelled.'));
     }
 
     public function schedule(Request $request, ProductionJobCard $jobCard): RedirectResponse
@@ -320,7 +337,7 @@ class ProductionJobCardController extends Controller
             'planned_end_date' => ['required', 'date', 'after_or_equal:planned_start_date'],
         ]));
 
-        return back()->with('status', __('Schedule updated.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Schedule updated.'));
     }
 
     public function assignMachine(
@@ -343,6 +360,6 @@ class ProductionJobCardController extends Controller
             $validated['notes'] ?? null,
         );
 
-        return back()->with('status', __('Machine assigned to job card.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Machine assigned to job card.'));
     }
 }

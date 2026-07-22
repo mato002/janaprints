@@ -12,6 +12,7 @@
         'qc_status' => 'qc_status_variant',
         'dispatch_status' => 'dispatch_status_variant',
         'payment_status' => 'payment_status_variant',
+        'order_status' => 'order_status_variant',
     ];
 
     $displayColumns = $columns !== [] ? $columns : [

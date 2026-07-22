@@ -68,7 +68,15 @@ class EmployeeEmailTest extends TestCase
             ->get(route('admin.employees.email.compose', ['employees' => [$employee->id]]))
             ->assertOk()
             ->assertSee('alice@example.com')
-            ->assertSee('EMP-MAIL-01');
+            ->assertSee('EMP-MAIL-01')
+            ->assertSee(__('Send emails'));
+
+        $this->actingAs($this->hrUser)
+            ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])
+            ->get(route('admin.employees.email.compose', ['employees' => [$employee->id]]))
+            ->assertOk()
+            ->assertSee('erp-form-modal', false)
+            ->assertSee('alice@example.com');
     }
 
     public function test_single_employee_email_queues_message_from_hr_mailbox(): void

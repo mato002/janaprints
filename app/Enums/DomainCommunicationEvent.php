@@ -85,6 +85,8 @@ enum DomainCommunicationEvent: string
             self::PaymentReceived => NotificationType::PaymentReceived,
             self::InvoiceOverdue => NotificationType::InvoiceOverdue,
             self::DeliveryCompleted => NotificationType::Delivered,
+            self::JobQueued => NotificationType::JobCardCreated,
+            self::ProductionStarted => NotificationType::ProductionStarted,
             default => null,
         };
     }

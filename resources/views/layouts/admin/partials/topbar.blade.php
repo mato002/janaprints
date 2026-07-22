@@ -1,18 +1,18 @@
-<header id="erp-topbar" class="z-30 flex h-16 min-w-0 shrink-0 items-center gap-2 overflow-visible border-b border-erp-border bg-erp-card px-3 sm:gap-3 sm:px-4 lg:px-6">
+<header id="erp-topbar" class="erp-topbar z-30 flex h-14 min-w-0 shrink-0 items-center gap-1.5 border-b border-erp-border bg-erp-card px-2 sm:h-16 sm:gap-2 sm:px-4 lg:px-6">
     <button
         type="button"
-        class="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page lg:hidden"
+        class="erp-topbar__menu shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page lg:hidden"
         @click="toggleMobileNav()"
         aria-label="{{ __('Open menu') }}"
     >
-        <x-admin.icon name="menu" class="w-5 h-5" />
+        <x-admin.icon name="menu" class="h-5 w-5" />
     </button>
 
-    <div class="hidden min-w-0 max-w-[7rem] shrink sm:block md:max-w-[9rem] lg:max-w-xs xl:max-w-sm">
+    <div class="erp-topbar__title min-w-0 flex-1 truncate sm:max-w-[8rem] sm:flex-none md:max-w-[10rem] lg:max-w-xs xl:max-w-sm">
         <h1 id="erp-page-title" class="truncate text-sm font-semibold text-erp-primary sm:text-base lg:text-lg">{{ $title ?? __('Admin') }}</h1>
     </div>
 
-    <div class="hidden min-w-0 flex-1 md:block">
+    <div class="erp-topbar__search hidden min-w-0 flex-1 md:block">
         <button
             type="button"
             class="relative flex w-full min-w-0 max-w-xl items-center rounded-lg border border-erp-border bg-erp-page py-2 pl-9 pr-14 text-left text-sm text-slate-500 transition-colors hover:border-erp-accent/40 hover:bg-white lg:mx-auto lg:max-w-2xl xl:pr-16"
@@ -29,16 +29,16 @@
         </button>
     </div>
 
-    <button
-        type="button"
-        class="shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page md:hidden"
-        @click="openPalette()"
-        aria-label="{{ __('Open feature finder') }}"
-    >
-        <x-admin.icon name="search" class="h-5 w-5" />
-    </button>
+    <div class="erp-topbar__actions flex shrink-0 items-center gap-0.5 sm:gap-1.5 lg:gap-2">
+        <button
+            type="button"
+            class="erp-topbar__search-trigger shrink-0 rounded-lg p-2 text-slate-500 hover:bg-erp-page md:hidden"
+            @click="openPalette()"
+            aria-label="{{ __('Open feature finder') }}"
+        >
+            <x-admin.icon name="search" class="h-5 w-5" />
+        </button>
 
-    <div class="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2 lg:gap-3">
         @php
             $companies = auth()->user()->hasRole('Super Admin')
                 ? \App\Models\Company::query()->where('is_active', true)->orderBy('name')->get()
@@ -49,7 +49,7 @@
         @endphp
 
         @if ($companies->isNotEmpty())
-            <form method="POST" action="{{ route('admin.context.update') }}" data-turbo-frame="_top" class="hidden items-center gap-2 sm:flex">
+            <form method="POST" action="{{ route('admin.context.update') }}" data-turbo-frame="_top" class="erp-topbar__context hidden items-center gap-2 sm:flex">
                 @csrf
                 <select name="company_id" onchange="this.form.submit()" class="erp-select max-w-[9rem] py-1.5 text-xs sm:max-w-[11rem] sm:text-sm" aria-label="{{ __('Company') }}">
                     @foreach ($companies as $company)
@@ -80,11 +80,11 @@
                 target="_blank"
                 rel="noopener noreferrer"
                 data-turbo="false"
-                class="erp-btn erp-btn--secondary erp-btn--sm inline-flex items-center gap-1.5"
+                class="erp-topbar__website erp-btn erp-btn--secondary erp-btn--sm hidden items-center gap-1.5 md:inline-flex"
                 title="{{ __('View public website') }}"
             >
                 <x-admin.icon name="external-link" class="h-4 w-4 shrink-0" />
-                <span class="hidden sm:inline">{{ __('Website') }}</span>
+                <span class="hidden lg:inline">{{ __('Website') }}</span>
             </a>
         @endif
 
@@ -92,16 +92,16 @@
 
         <x-dropdown align="right" width="48">
             <x-slot name="trigger">
-                <button type="button" class="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium text-slate-700 hover:bg-erp-page">
+                <button type="button" class="erp-topbar__user inline-flex items-center gap-1 rounded-lg p-1 text-sm font-medium text-slate-700 hover:bg-erp-page sm:gap-2 sm:px-2 sm:py-1.5">
                     @if (! empty($userAvatarUrl))
-                        <img src="{{ $userAvatarUrl }}" alt="" class="hidden h-8 w-8 rounded-full border border-erp-border object-cover sm:block">
+                        <img src="{{ $userAvatarUrl }}" alt="" class="h-8 w-8 shrink-0 rounded-full border border-erp-border object-cover">
                     @else
-                        <span class="hidden h-8 w-8 items-center justify-center rounded-full bg-erp-accent/10 text-xs font-semibold text-erp-accent sm:flex">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-erp-accent/10 text-xs font-semibold text-erp-accent">
                             {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
                         </span>
                     @endif
                     <span class="hidden max-w-[8rem] truncate md:inline">{{ auth()->user()->name }}</span>
-                    <x-admin.icon name="chevron-down" class="w-4 h-4 text-slate-400" />
+                    <x-admin.icon name="chevron-down" class="hidden h-4 w-4 text-slate-400 sm:block" />
                 </button>
             </x-slot>
             <x-slot name="content">
@@ -110,6 +110,7 @@
                     <p class="text-sm font-medium text-erp-primary">{{ auth()->user()->name }}</p>
                 </div>
                 <x-dropdown-link :href="route('profile.edit')" data-turbo-frame="_top">{{ __('Profile') }}</x-dropdown-link>
+                <x-dropdown-link :href="route('profile.sessions.index')" data-turbo-frame="_top">{{ __('My Sessions') }}</x-dropdown-link>
                 <form method="POST" action="{{ route('logout') }}" data-turbo-frame="_top">
                     @csrf
                     <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">

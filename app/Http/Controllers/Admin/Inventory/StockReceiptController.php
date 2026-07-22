@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\Warehouse;
+use App\Support\Inventory\ReturnsToStoreDesk;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockReceiptService;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
 
 class StockReceiptController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ReturnsToStoreDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -40,11 +41,14 @@ class StockReceiptController extends Controller
         return view('admin.inventory.receipts.index', compact('receipts'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', StockReceipt::class);
 
-        return view('admin.inventory.receipts.create', $this->formMeta());
+        return view('admin.inventory.receipts.create', [
+            ...$this->formMeta(),
+            'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -55,6 +59,7 @@ class StockReceiptController extends Controller
         $header = $this->validateHeader($request, $companyId, $branchId);
         [$header, $customData] = $this->partitionCustomFields('stock_receipt.create', $header, $companyId, $branchId);
         $lines = $this->validateLines($request, $companyId, $branchId);
+        $shouldPost = $request->input('intent') === 'post';
 
         $receipt = StockReceipt::query()->create([
             ...$header,
@@ -71,19 +76,41 @@ class StockReceiptController extends Controller
 
         $this->syncCustomFields($receipt, 'stock_receipt.create', $customData, $companyId);
 
-        return redirect()->route('admin.inventory.receipts.show', $receipt)->with('status', __('Receipt created.'));
+        $message = __('Receipt saved as draft. Post it to update stock.');
+
+        if ($shouldPost) {
+            $this->authorize('post', $receipt);
+
+            try {
+                StockReceiptService::post($receipt->fresh(['items', 'warehouse']), (int) auth()->id());
+                $message = __('Goods received and posted to stock.');
+            } catch (ValidationException $e) {
+                return $this->receiptReturnRedirect($request, $receipt)
+                    ->with('status', __('Receipt saved as draft, but could not be posted.'))
+                    ->withErrors($e->errors());
+            }
+        }
+
+        return $this->receiptReturnRedirect($request, $receipt)->with('status', $message);
     }
 
-    public function show(StockReceipt $receipt): View
+    public function show(Request $request, StockReceipt $receipt): View
     {
         $this->authorize('view', $receipt);
 
         $receipt->load(['warehouse', 'receiver', 'items.inventoryItem']);
 
-        return view('admin.inventory.receipts.show', compact('receipt'));
+        if ($this->wantsStoreDeskReturn($request)) {
+            return view('admin.store.desk.receipt-modal', compact('receipt'));
+        }
+
+        return view('admin.inventory.receipts.show', [
+            'receipt' => $receipt,
+            'fromStoreDesk' => false,
+        ]);
     }
 
-    public function post(StockReceipt $receipt): RedirectResponse
+    public function post(Request $request, StockReceipt $receipt): RedirectResponse
     {
         $this->authorize('post', $receipt);
 
@@ -93,7 +120,20 @@ class StockReceiptController extends Controller
             return back()->withErrors($e->errors());
         }
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Receipt posted to inventory.'));
+        }
+
         return back()->with('status', __('Receipt posted to inventory.'));
+    }
+
+    protected function receiptReturnRedirect(Request $request, StockReceipt $receipt): RedirectResponse
+    {
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl());
+        }
+
+        return redirect()->route('admin.inventory.receipts.show', $receipt);
     }
 
     /**

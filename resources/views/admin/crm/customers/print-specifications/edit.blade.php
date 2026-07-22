@@ -9,6 +9,9 @@
 >
     <x-admin.artwork-preview-lightbox>
         <x-admin.form-shell :action="route('admin.crm.customers.print-specifications.update', [$customer, $specification])" method="PUT">
+            @if (request('from') === 'sales-desk')
+                <input type="hidden" name="from" value="sales-desk">
+            @endif
             @include('admin.crm.customers.print-specifications.partials.form', [
                 'customer' => $customer,
                 'specification' => $specification,
@@ -31,6 +34,9 @@
             <h3 class="mb-3 text-sm font-semibold text-slate-900">{{ __('Upload new artwork version') }}</h3>
             <form method="POST" action="{{ route('admin.crm.customers.print-specifications.artworks.store', [$customer, $specification]) }}" enctype="multipart/form-data" class="space-y-3">
                 @csrf
+                @if (request('from') === 'sales-desk')
+                    <input type="hidden" name="from" value="sales-desk">
+                @endif
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div>
                         <label class="erp-label">{{ __('File') }}</label>

@@ -6,7 +6,7 @@
 @endphp
 
 <x-admin-layout :title="__('Customers')" :breadcrumbs="[['label' => __('CRM')], ['label' => __('Customers')]]">
-    <div class="crm-customers w-full min-w-0 space-y-4">
+    <div class="crm-customers w-full min-w-0 space-y-3 sm:space-y-4">
         @unless (WorkspaceEmbed::inWorkspaceContext())
             <header class="crm-customers__header">
                 <div class="crm-customers__header-main">
@@ -66,7 +66,7 @@
                     <th scope="col">{{ __('Customer') }}</th>
                     <th scope="col" class="hidden md:table-cell">{{ __('Branch') }}</th>
                     <th scope="col" class="hidden lg:table-cell">{{ __('Contact') }}</th>
-                    <th scope="col">{{ __('Status') }}</th>
+                    <th scope="col" class="hidden sm:table-cell">{{ __('Status') }}</th>
                     <th scope="col" class="erp-table-actions-col"><span class="sr-only">{{ __('Actions') }}</span></th>
                 </tr>
             </x-slot>
@@ -100,6 +100,7 @@
                                 <div class="min-w-0">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <div class="truncate font-semibold text-slate-900 group-hover:text-indigo-800">{{ $customer->company_name }}</div>
+                                        <span class="crm-customers__status {{ $statusClass }} sm:hidden">{{ ucfirst($customer->status->value) }}</span>
                                         @if ($customer->portalUser)
                                             <span class="crm-customers__portal-badge">{{ __('Portal') }}</span>
                                         @endif
@@ -122,7 +123,7 @@
                                 @endif
                             </div>
                         </td>
-                        <td>
+                        <td class="hidden sm:table-cell">
                             <span class="crm-customers__status {{ $statusClass }}">{{ ucfirst($customer->status->value) }}</span>
                         </td>
                         <td class="erp-table-actions-col" @click.stop>

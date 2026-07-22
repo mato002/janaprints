@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:procurement.requests.approve')->group(function () {
             Route::post('requests/{request}/approve', [PurchaseRequestController::class, 'approve'])->name('requests.approve');
+            Route::post('requests/{request}/reject', [PurchaseRequestController::class, 'reject'])->name('requests.reject');
         });
 
         Route::middleware('permission:procurement.rfq.create')->group(function () {

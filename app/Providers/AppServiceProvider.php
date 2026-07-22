@@ -463,6 +463,10 @@ class AppServiceProvider extends ServiceProvider
             \App\Events\Production\JobCardStatusChanged::class,
             [\App\Listeners\Production\DispatchProductionCommunication::class, 'handle'],
         );
+        Event::listen(
+            \App\Events\Production\JobCardStatusChanged::class,
+            [\App\Listeners\Production\NotifyProductionOperators::class, 'handle'],
+        );
 
         ProductionJobCard::observe(\App\Observers\Production\ProductionJobCardObserver::class);
 
@@ -556,9 +560,13 @@ class AppServiceProvider extends ServiceProvider
                 return $item;
             })->all();
 
+            $navItems = $this->applyOperatorModeNavigation($navItems, $user);
+            $adminHomeUrl = $this->operatorHomeUrl($user) ?? route('admin.dashboard');
+
             $view->with([
                 'navItems' => $navItems,
                 'navRouteUrls' => $navigation['navRouteUrls'],
+                'adminHomeUrl' => $adminHomeUrl,
                 'featureDiscoverySearchUrl' => route('admin.feature-discovery.search'),
             ]);
         });
@@ -616,7 +624,11 @@ class AppServiceProvider extends ServiceProvider
             $dashboard['quote_requests_alert'] = $presenter->quoteRequestsAlert();
             $dashboard['sales_opportunities'] = $presenter->salesOpportunities();
 
-            $view->with('dashboard', $dashboard);
+            $view->with([
+                'dashboard' => $dashboard,
+                'operatorDeskShortcuts' => app(\App\Support\Dashboard\OperatorDeskShortcutsPresenter::class)
+                    ->forUser(auth()->user()),
+            ]);
         });
     }
 
@@ -672,6 +684,68 @@ class AppServiceProvider extends ServiceProvider
         }
 
         return $filtered;
+    }
+
+    /**
+     * Remap workspace hubs to focused operator desks so staff can navigate without a guide.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function applyOperatorModeNavigation(array $items, ?User $user): array
+    {
+        $remap = \App\Support\Operator\OperatorModeRegistry::navigationRemap($user);
+
+        if ($remap === null) {
+            return $items;
+        }
+
+        return $this->remapOperatorNav($items, $remap);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @param  array<string, array<string, mixed>>  $replacements
+     * @return list<array<string, mixed>>
+     */
+    protected function remapOperatorNav(array $items, array $replacements): array
+    {
+        $seenRoutes = [];
+        $remapped = [];
+
+        foreach ($items as $item) {
+            $key = null;
+
+            if (($item['route'] ?? null) === 'admin.dashboard') {
+                $key = 'dashboard';
+            } elseif (! empty($item['workspace']) && isset($replacements[$item['workspace']])) {
+                $key = $item['workspace'];
+            }
+
+            if ($key !== null && isset($replacements[$key])) {
+                $replacement = $replacements[$key];
+                $route = $replacement['route'];
+
+                if (isset($seenRoutes[$route])) {
+                    continue;
+                }
+
+                $seenRoutes[$route] = true;
+                unset($replacement['badge_count'], $item['badge_count'], $item['workspace']);
+                $remapped[] = array_merge($item, $replacement);
+
+                continue;
+            }
+
+            $remapped[] = $item;
+        }
+
+        return $remapped;
+    }
+
+    protected function operatorHomeUrl(?User $user): ?string
+    {
+        return \App\Support\Operator\OperatorModeRegistry::resolveHomeUrl($user);
     }
 
     /**

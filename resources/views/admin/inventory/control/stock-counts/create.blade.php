@@ -5,6 +5,9 @@
     maxWidth="3xl"
 >
     <x-admin.form-shell :action="route('admin.inventory.stock-counts.store')">
+        @if ($fromStoreDesk ?? request('from') === 'store-desk')
+            <input type="hidden" name="from" value="store-desk">
+        @endif
         <div class="erp-form-grid">
             @if (($fields['warehouse_id']['visible'] ?? true))
                 <x-admin.form-field

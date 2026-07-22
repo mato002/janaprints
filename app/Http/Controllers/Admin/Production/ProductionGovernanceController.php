@@ -12,6 +12,7 @@ use App\Models\Production\JobCardRouteStep;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Procurement\Vendor;
 use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\ReturnsToProductionFloor;
 use App\Support\Production\ProductionRouteService;
 use App\Support\Production\ProductionSessionService;
 use App\Support\Production\SerialNumberGovernanceService;
@@ -23,7 +24,7 @@ use Illuminate\View\View;
 
 class ProductionGovernanceController extends Controller
 {
-    use HandlesModalFormResponses, ScopesToTenant;
+    use HandlesModalFormResponses, ReturnsToProductionFloor, ScopesToTenant;
 
     public function updateRouteStep(
         Request $request,
@@ -125,7 +126,7 @@ class ProductionGovernanceController extends Controller
 
         return $this->modalOrRedirect(
             __('Production outsourced.'),
-            redirect()->route('admin.production.job-cards.show', $jobCard),
+            $this->redirectAfterProductionFloorAction($jobCard, __('Production outsourced.')),
         );
     }
 
@@ -147,7 +148,7 @@ class ProductionGovernanceController extends Controller
 
         return $this->modalOrRedirect(
             __('Outsourced production marked as returned.'),
-            redirect()->route('admin.production.job-cards.show', $jobCard),
+            $this->redirectAfterProductionFloorAction($jobCard, __('Outsourced production marked as returned.')),
         );
     }
 

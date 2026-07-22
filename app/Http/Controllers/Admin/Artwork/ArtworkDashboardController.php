@@ -5,13 +5,20 @@ namespace App\Http\Controllers\Admin\Artwork;
 use App\Enums\ArtworkRequestStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Artwork\ArtworkRequest;
+use App\Support\Artwork\DesignerOperatorMode;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ArtworkDashboardController extends Controller
 {
-    public function __invoke(): View
+    public function __invoke(Request $request): View|RedirectResponse
     {
         $this->authorize('viewAny', ArtworkRequest::class);
+
+        if (DesignerOperatorMode::enabledFor($request->user())) {
+            return redirect()->to(DesignerOperatorMode::homeUrl());
+        }
 
         $base = ArtworkRequest::query()->forTenant();
 

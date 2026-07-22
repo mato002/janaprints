@@ -8,11 +8,13 @@
     'fulfilmentMethods' => [],
     'artworkTypes' => [],
     'showArtworkUpload' => true,
+    'defaultStatus' => 'draft',
 ])
 
 @php
     $spec = $specification;
     $item = $spec?->inventoryItem;
+    $statusValue = old('status', $spec?->status?->value ?? $defaultStatus);
 @endphp
 
 <div class="space-y-6">
@@ -43,7 +45,7 @@
                 @else
                     <select id="status" name="status" class="erp-input w-full" required>
                         @foreach ($statuses as $status)
-                            <option value="{{ $status->value }}" @selected(old('status', $spec?->status?->value ?? 'draft') === $status->value)>
+                            <option value="{{ $status->value }}" @selected($statusValue === $status->value)>
                                 {{ $status->label() }}
                             </option>
                         @endforeach

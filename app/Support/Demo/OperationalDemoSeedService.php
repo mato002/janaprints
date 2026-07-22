@@ -94,6 +94,7 @@ use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SalesOrderItem;
 use App\Models\User;
 use App\Models\WebsiteGalleryItem;
+use App\Support\Production\ProductionQueueService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Model;
@@ -151,34 +152,32 @@ class OperationalDemoSeedService
             return;
         }
 
-        Model::withoutEvents(function () use ($ctx, $command) {
-            DB::transaction(function () use ($ctx, $command) {
-                $this->seedExtendedStaff($ctx);
-                $this->seedCustomers($ctx);
-                $this->seedLeads($ctx);
-                $this->seedInventory($ctx);
-                $this->seedVendors($ctx);
-                $this->seedCommercialReference($ctx);
-                $this->seedSalesPipeline($ctx);
-                $this->seedProduction($ctx);
-                $this->seedFinance($ctx);
-                $this->seedProcurement($ctx);
-                $this->seedCommercialIssues($ctx);
-                $this->seedPublicChannel($ctx);
-                $this->seedWebsite($ctx);
-                $this->seedHrActivity($ctx);
-                $this->seedAssets($ctx);
-                $this->seedPos($ctx);
+        DB::transaction(function () use ($ctx, $command) {
+            $this->seedExtendedStaff($ctx);
+            $this->seedCustomers($ctx);
+            $this->seedLeads($ctx);
+            $this->seedInventory($ctx);
+            $this->seedVendors($ctx);
+            $this->seedCommercialReference($ctx);
+            $this->seedSalesPipeline($ctx);
+            $this->seedProduction($ctx);
+            $this->seedFinance($ctx);
+            $this->seedProcurement($ctx);
+            $this->seedCommercialIssues($ctx);
+            $this->seedPublicChannel($ctx);
+            $this->seedWebsite($ctx);
+            $this->seedHrActivity($ctx);
+            $this->seedAssets($ctx);
+            $this->seedPos($ctx);
 
-                $command?->info(sprintf(
-                    '  Created: %d customers, %d quotations, %d sales orders, %d job cards, %d invoices.',
-                    $ctx->customers->count(),
-                    Quotation::query()->where('company_id', $ctx->company->id)->count(),
-                    SalesOrder::query()->where('company_id', $ctx->company->id)->count(),
-                    ProductionJobCard::query()->where('company_id', $ctx->company->id)->count(),
-                    CustomerInvoice::query()->where('company_id', $ctx->company->id)->count(),
-                ));
-            });
+            $command?->info(sprintf(
+                '  Created: %d customers, %d quotations, %d sales orders, %d job cards, %d invoices.',
+                $ctx->customers->count(),
+                Quotation::query()->where('company_id', $ctx->company->id)->count(),
+                SalesOrder::query()->where('company_id', $ctx->company->id)->count(),
+                ProductionJobCard::query()->where('company_id', $ctx->company->id)->count(),
+                CustomerInvoice::query()->where('company_id', $ctx->company->id)->count(),
+            ));
         });
     }
 
@@ -700,43 +699,45 @@ class OperationalDemoSeedService
 
         $creator = User::query()->where('email', 'production@janaprints.local')->first() ?? $ctx->admin;
 
-        SalesOrder::query()
-            ->where('company_id', $ctx->company->id)
-            ->whereIn('status', [
-                SalesOrderStatus::ReadyForProduction,
-                SalesOrderStatus::InProduction,
-                SalesOrderStatus::Completed,
-                SalesOrderStatus::Delivered,
-                SalesOrderStatus::Closed,
-            ])
-            ->each(function (SalesOrder $order, int $index) use ($ctx, $statuses, $creator) {
-                if (ProductionJobCard::query()->where('sales_order_id', $order->id)->exists()) {
-                    return;
-                }
+        ProductionQueueService::withoutQueueEnforcement(function () use ($ctx, $statuses, $creator) {
+            SalesOrder::query()
+                ->where('company_id', $ctx->company->id)
+                ->whereIn('status', [
+                    SalesOrderStatus::ReadyForProduction,
+                    SalesOrderStatus::InProduction,
+                    SalesOrderStatus::Completed,
+                    SalesOrderStatus::Delivered,
+                    SalesOrderStatus::Closed,
+                ])
+                ->each(function (SalesOrder $order, int $index) use ($ctx, $statuses, $creator) {
+                    if (ProductionJobCard::query()->where('sales_order_id', $order->id)->exists()) {
+                        return;
+                    }
 
-                $start = Carbon::parse($order->order_date)->addDays(2);
-                $status = $statuses[min($index, count($statuses) - 1)];
+                    $start = Carbon::parse($order->order_date)->addDays(2);
+                    $status = $statuses[min($index, count($statuses) - 1)];
 
-                ProductionJobCard::query()->create([
-                    'company_id' => $ctx->company->id,
-                    'branch_id' => $ctx->branch->id,
-                    'sales_order_id' => $order->id,
-                    'customer_id' => $order->customer_id,
-                    'quotation_id' => $order->quotation_id,
-                    'artwork_request_id' => $order->artwork_request_id,
-                    'job_card_number' => $ctx->nextNumber('DEMO-JC'),
-                    'production_type' => ProductionType::Digital,
-                    'priority' => ProductionPriority::Normal,
-                    'planned_start_date' => $start->toDateString(),
-                    'planned_end_date' => $start->copy()->addDays(5)->toDateString(),
-                    'actual_start_date' => $start,
-                    'actual_end_date' => in_array($status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true)
-                        ? $start->copy()->addDays(4)
-                        : null,
-                    'status' => $status,
-                    'created_by' => $creator->id,
-                ]);
-            });
+                    ProductionJobCard::query()->create([
+                        'company_id' => $ctx->company->id,
+                        'branch_id' => $ctx->branch->id,
+                        'sales_order_id' => $order->id,
+                        'customer_id' => $order->customer_id,
+                        'quotation_id' => $order->quotation_id,
+                        'artwork_request_id' => $order->artwork_request_id,
+                        'job_card_number' => $ctx->nextNumber('DEMO-JC'),
+                        'production_type' => ProductionType::Digital,
+                        'priority' => ProductionPriority::Normal,
+                        'planned_start_date' => $start->toDateString(),
+                        'planned_end_date' => $start->copy()->addDays(5)->toDateString(),
+                        'actual_start_date' => $start,
+                        'actual_end_date' => in_array($status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true)
+                            ? $start->copy()->addDays(4)
+                            : null,
+                        'status' => $status,
+                        'created_by' => $creator->id,
+                    ]);
+                });
+        });
     }
 
     protected function seedFinance(OperationalDemoContext $ctx): void

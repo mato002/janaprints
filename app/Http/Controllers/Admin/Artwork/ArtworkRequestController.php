@@ -17,6 +17,8 @@ use App\Models\Crm\Customer;
 use App\Models\Sales\Quotation;
 use App\Models\User;
 use App\Enums\WorkflowRuleTrigger;
+use App\Support\Artwork\DesignerOperatorMode;
+use App\Support\Artwork\ReturnsToDesignerDesk;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
@@ -28,15 +30,19 @@ use Illuminate\View\View;
 
 class ArtworkRequestController extends Controller
 {
-    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesFormCustomFields, HandlesModalFormResponses, ResolvesCrmTenant, ReturnsToDesignerDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View|RedirectResponse
     {
         $this->authorize('viewAny', ArtworkRequest::class);
+
+        if (DesignerOperatorMode::enabledFor($request->user())) {
+            return redirect()->to(DesignerOperatorMode::homeUrl());
+        }
 
         $requests = $this->scopeToTenant(
             ArtworkRequest::query()->with(['customer', 'branch', 'requester', 'assignedDesigner'])
@@ -80,7 +86,7 @@ class ArtworkRequestController extends Controller
         );
     }
 
-    public function show(ArtworkRequest $artworkRequest): View
+    public function show(Request $httpRequest, ArtworkRequest $artworkRequest): View
     {
         $this->authorize('view', $artworkRequest);
 
@@ -88,6 +94,13 @@ class ArtworkRequestController extends Controller
             'customer', 'quotation', 'branch', 'requester', 'assignedDesigner',
             'files.uploader', 'versions.uploader', 'comments.user', 'approvals.approver', 'approvals.artworkVersion',
         ]);
+
+        if ($this->wantsDesignerDeskReturn($httpRequest)) {
+            return view('admin.artwork.desk.request-modal', [
+                'request' => $artworkRequest,
+                'focusPanel' => $httpRequest->query('panel'),
+            ]);
+        }
 
         return view('admin.artwork.requests.show', ['request' => $artworkRequest]);
     }
@@ -113,7 +126,9 @@ class ArtworkRequestController extends Controller
 
         return $this->modalOrRedirect(
             __('Artwork request updated.'),
-            redirect()->route('admin.artwork.show', $artworkRequest),
+            $this->wantsDesignerDeskReturn($httpRequest)
+                ? redirect()->to($this->designerDeskUrl())
+                : redirect()->route('admin.artwork.show', $artworkRequest),
         );
     }
 
@@ -163,10 +178,15 @@ class ArtworkRequestController extends Controller
 
         $artworkRequest->transitionTo(ArtworkRequestStatus::Submitted);
 
+        if ($this->wantsDesignerDeskReturn()) {
+            return redirect()->to($this->designerDeskUrl())
+                ->with('status', __('Artwork submitted for approval.'));
+        }
+
         return back()->with('status', __('Artwork submitted for approval.'));
     }
 
-    public function startDesign(ArtworkRequest $artworkRequest): RedirectResponse
+    public function startDesign(Request $request, ArtworkRequest $artworkRequest): RedirectResponse
     {
         $this->authorize('startDesign', $artworkRequest);
 
@@ -179,7 +199,11 @@ class ArtworkRequestController extends Controller
                 'current_version' => 0,
             ]);
 
-            return back()->with('status', __('Artwork returned to design so a file can be uploaded.'));
+            return $this->designerDeskWorkflowRedirect(
+                $request,
+                $artworkRequest,
+                __('Artwork returned to design so a file can be uploaded.'),
+            );
         }
 
         if (! $artworkRequest->status->canTransitionTo(ArtworkRequestStatus::InDesign)) {
@@ -190,7 +214,23 @@ class ArtworkRequestController extends Controller
 
         $artworkRequest->transitionTo(ArtworkRequestStatus::InDesign);
 
-        return back()->with('status', __('Artwork returned to design.'));
+        return $this->designerDeskWorkflowRedirect(
+            $request,
+            $artworkRequest,
+            __('Artwork returned to design.'),
+        );
+    }
+
+    protected function designerDeskWorkflowRedirect(
+        Request $request,
+        ArtworkRequest $artworkRequest,
+        string $message,
+    ): RedirectResponse {
+        if ($this->wantsDesignerDeskReturn($request)) {
+            return redirect()->to($this->designerDeskUrl())->with('status', $message);
+        }
+
+        return back()->with('status', $message);
     }
 
     public function approve(Request $httpRequest, ArtworkRequest $artworkRequest): RedirectResponse

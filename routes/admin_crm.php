@@ -63,10 +63,12 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('customers/{customer}/files', [CustomerFileController::class, 'store'])->name('customers.files.store');
             Route::delete('customers/{customer}/files/{file}', [CustomerFileController::class, 'destroy'])->name('customers.files.destroy');
             Route::post('customers/{customer}/artworks', [CustomerArtworkController::class, 'store'])->name('customers.artworks.store');
-            Route::get('customers/{customer}/print-specifications/{printSpecification}', [CustomerPrintSpecificationController::class, 'show'])->name('customers.print-specifications.show');
-            Route::post('customers/{customer}/print-specifications/{printSpecification}/transition', [CustomerPrintSpecificationController::class, 'transition'])->name('customers.print-specifications.transition');
+            // Static segments (create/store) must be registered before {printSpecification}
+            // so "create" is not bound as a specification id.
             Route::get('customers/{customer}/print-specifications/create', [CustomerPrintSpecificationController::class, 'create'])->name('customers.print-specifications.create');
             Route::post('customers/{customer}/print-specifications', [CustomerPrintSpecificationController::class, 'store'])->name('customers.print-specifications.store');
+            Route::get('customers/{customer}/print-specifications/{printSpecification}', [CustomerPrintSpecificationController::class, 'show'])->name('customers.print-specifications.show');
+            Route::post('customers/{customer}/print-specifications/{printSpecification}/transition', [CustomerPrintSpecificationController::class, 'transition'])->name('customers.print-specifications.transition');
             Route::get('customers/{customer}/print-specifications/{printSpecification}/edit', [CustomerPrintSpecificationController::class, 'edit'])->name('customers.print-specifications.edit');
             Route::put('customers/{customer}/print-specifications/{printSpecification}', [CustomerPrintSpecificationController::class, 'update'])->name('customers.print-specifications.update');
             Route::post('customers/{customer}/print-specifications/{printSpecification}/artworks', [CustomerPrintSpecificationController::class, 'uploadArtwork'])->name('customers.print-specifications.artworks.store');

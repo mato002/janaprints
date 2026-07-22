@@ -3,6 +3,8 @@
 namespace App\Http\Middleware;
 
 use App\Support\Navigation\ModuleShellPresenter;
+use App\Support\Operator\OperatorModeKey;
+use App\Support\Operator\OperatorModeRegistry;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,8 +36,46 @@ class RedirectToModuleWorkspaceShell
 
         $routeName = $request->route()?->getName();
 
-        if (! $routeName || $this->isDetailRoute($routeName) || $this->isWorkspaceShellRoute($routeName)) {
+        if (! $routeName || $this->isDetailRoute($routeName) || $this->isWorkspaceShellRoute($routeName) || $this->isStandaloneAdminRoute($routeName)) {
             return $next($request);
+        }
+
+        $user = $request->user();
+
+        // Standalone operator desks (Designer, Sales, Store) render outside the module
+        // workspace shell for all users. Production floor stays embedded in the Production
+        // workspace for managers — see ProductionOperatorModeTest.
+        foreach (OperatorModeRegistry::modes() as $mode) {
+            if ($mode->key === OperatorModeKey::Production) {
+                continue;
+            }
+
+            if ($mode->matchesDeskRoute($routeName)) {
+                return $next($request);
+            }
+        }
+
+        foreach (OperatorModeRegistry::modes() as $mode) {
+            if (
+                $mode->key === OperatorModeKey::Production
+                && $mode->matchesDeskRoute($routeName)
+                && OperatorModeRegistry::enabledFor($user, $mode->key)
+            ) {
+                return $next($request);
+            }
+        }
+
+        // Artwork list/dashboard routes belong to Commercial for managers — designers must stay on their desk.
+        if (
+            $user !== null
+            && OperatorModeRegistry::enabledFor($user, OperatorModeKey::Designer)
+            && OperatorModeRegistry::definition(OperatorModeKey::Designer)->isArtworkFeatureRoute($routeName)
+        ) {
+            if ($request->hasSession()) {
+                $request->session()->reflash();
+            }
+
+            return redirect()->to(OperatorModeRegistry::homeUrl(OperatorModeKey::Designer));
         }
 
         $deskUrl = $this->shell->deskUrlForFeatureRoute(
@@ -60,6 +100,12 @@ class RedirectToModuleWorkspaceShell
 
         $merged = array_merge($existing, $query);
 
+        // Operator modes bounce from multi-tab desks unless ?desk=1 is set.
+        // Preserve that escape hatch when we wrap feature index routes into a desk.
+        if ($this->operatorNeedsDeskEscapeFlag($request)) {
+            $merged['desk'] = 1;
+        }
+
         if ($merged !== []) {
             $deskUrl .= '?'.http_build_query($merged);
         }
@@ -71,6 +117,32 @@ class RedirectToModuleWorkspaceShell
         }
 
         return redirect()->to($deskUrl);
+    }
+
+    /**
+     * Operators are redirected away from workspace hubs unless desk=1 is present.
+     */
+    protected function operatorNeedsDeskEscapeFlag(Request $request): bool
+    {
+        return OperatorModeRegistry::hasAnyOperatorMode($request->user());
+    }
+
+    /**
+     * Feature routes that must render as full pages (queues, module dashboards), not desk frames.
+     *
+     * @return list<string>
+     */
+    protected function standaloneAdminRoutes(): array
+    {
+        return [
+            'admin.procurement.dashboard',
+            'admin.procurement.approvals.index',
+        ];
+    }
+
+    protected function isStandaloneAdminRoute(string $routeName): bool
+    {
+        return in_array($routeName, $this->standaloneAdminRoutes(), true);
     }
 
     protected function isDetailRoute(string $routeName): bool

@@ -71,6 +71,8 @@ class ExecutiveApprovalActionService
             'artwork' => $this->approveArtwork($actor, $subjectId, $notes),
             'purchase_request' => PurchaseRequestService::approve(
                 PurchaseRequest::query()->findOrFail($subjectId),
+                $actor,
+                $notes,
             ),
             'purchase_order' => PurchaseOrderService::approve(
                 PurchaseOrder::query()->findOrFail($subjectId),

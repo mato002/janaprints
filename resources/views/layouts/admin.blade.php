@@ -99,7 +99,7 @@
                 aria-hidden="true"
             ></span>
             <main @class([
-                'flex min-h-0 flex-1 flex-col',
+                'flex min-h-0 min-w-0 flex-1 flex-col',
                 'overflow-hidden p-2' => $compactPage,
                 'overflow-hidden p-2 sm:p-3' => ! $compactPage && $compactWorkspace,
                 'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
@@ -117,8 +117,8 @@
                 @endisset
 
                 <div @class([
-                    'workspace-wrapper flex min-h-0 flex-1 flex-col',
-                    'overflow-hidden' => $compactPage,
+                    'workspace-wrapper flex min-h-0 min-w-0 flex-1 flex-col',
+                    'overflow-hidden' => $compactPage || $compactWorkspace,
                 ])>
                     {{ $slot }}
                 </div>

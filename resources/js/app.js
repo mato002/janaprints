@@ -998,6 +998,29 @@ const erpModalManager = {
             return;
         }
 
+        const inModalLink = event.target.closest('#erp-form-modal a[href]');
+
+        if (
+            inModalLink?.href
+            && ! inModalLink.hasAttribute('data-no-modal')
+            && inModalLink.getAttribute('target') !== '_blank'
+            && ! inModalLink.hasAttribute('data-erp-modal-open')
+        ) {
+            try {
+                const parsed = new URL(inModalLink.href, window.location.origin);
+
+                if (parsed.origin === window.location.origin) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    this.loadForm(inModalLink.href);
+
+                    return;
+                }
+            } catch {
+                // ignore malformed URLs
+            }
+        }
+
         const drawerLink = event.target.closest('a[data-turbo-frame="erp-preview-drawer"]');
 
         if (drawerLink?.href) {
@@ -1118,17 +1141,46 @@ const erpModalManager = {
                 return;
             }
 
+            const method = (form.getAttribute('method') ?? 'POST').toUpperCase();
+
             if (form.closest('#erp-form-modal')) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
+
+                if (method === 'GET') {
+                    const url = new URL(erpFormActionUrl(form), window.location.href);
+                    new FormData(form).forEach((value, key) => {
+                        if (typeof value === 'string' && value !== '') {
+                            url.searchParams.set(key, value);
+                        }
+                    });
+                    this.loadForm(url.toString());
+
+                    return;
+                }
+
                 this.prepareModalFormContent(form);
                 this.submitFormRequest(form, event.submitter);
 
                 return;
             }
 
+            const deskShell = form.closest('.store-desk-shell, .sales-desk-shell, .designer-desk-shell, .production-floor-shell');
+
+            if (
+                deskShell
+                && form.hasAttribute('data-erp-desk-form')
+                && method !== 'GET'
+            ) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                this.prepareModalFormContent(form, window.location.href);
+                this.submitFormRequest(form, event.submitter);
+
+                return;
+            }
+
             const workspaceFrame = form.closest('#module-workspace-content');
-            const method = (form.getAttribute('method') ?? 'POST').toUpperCase();
 
             if (
                 workspaceFrame
@@ -3602,6 +3654,34 @@ document.addEventListener('alpine:init', () => {
         closePanel() {
             this.panelOpen = false;
             this.panel = null;
+        },
+    }));
+
+    Alpine.data('salesDeskSearch', (config = {}) => ({
+        searchUrl: config.searchUrl ?? '',
+        deskUrl: config.deskUrl ?? '',
+        query: '',
+        results: [],
+
+        async search() {
+            const q = this.query.trim();
+            if (q.length < 2) {
+                this.results = [];
+                return;
+            }
+
+            try {
+                const response = await fetch(`${this.searchUrl}?q=${encodeURIComponent(q)}`, {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (! response.ok) {
+                    return;
+                }
+                const payload = await response.json();
+                this.results = payload.results ?? [];
+            } catch (e) {
+                this.results = [];
+            }
         },
     }));
 
@@ -6550,7 +6630,7 @@ function applyShellLayout(compact) {
 
     if (frame) {
         frame.classList.toggle('overflow-hidden', compact);
-        frame.classList.toggle('overflow-x-hidden', ! compact);
+        frame.classList.add('overflow-x-hidden', 'min-w-0');
         frame.classList.toggle('overflow-y-auto', ! compact);
     }
 }

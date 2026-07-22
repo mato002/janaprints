@@ -10,7 +10,7 @@
                 @endif
             @endcan
             @can('compare', $rfq)
-                <form method="POST" action="{{ route('admin.procurement.rfqs.compare', $rfq) }}">@csrf<button class="erp-btn-secondary">{{ __('Save comparison') }}</button></form>
+                <a href="{{ route('admin.procurement.vendor-comparison.show', $rfq) }}" class="erp-btn-secondary">{{ __('Vendor comparison workspace') }}</a>
             @endcan
             @can('convert', $rfq)
                 <form method="POST" action="{{ route('admin.procurement.rfqs.convert', $rfq) }}">@csrf<button class="erp-btn-primary">{{ __('Convert to PO') }}</button></form>
@@ -64,11 +64,7 @@
                         <td>{{ $row['score'] }}</td>
                         <td>
                             @can('award', $rfq)
-                                <form method="POST" action="{{ route('admin.procurement.rfqs.award', $rfq) }}" class="inline">
-                                    @csrf
-                                    <input type="hidden" name="vendor_id" value="{{ $row['vendor_id'] }}">
-                                    <button class="erp-link">{{ __('Award') }}</button>
-                                </form>
+                                <a href="{{ route('admin.procurement.vendor-comparison.show', $rfq) }}" class="erp-link">{{ __('Award in workspace') }}</a>
                             @endcan
                         </td>
                     </tr>

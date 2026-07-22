@@ -9,8 +9,8 @@
 @if (! empty($breadcrumbs))
     <nav @class([
         'text-slate-500',
-        'mb-2 text-xs' => ! empty($compact),
-        'mb-4 text-sm' => empty($compact),
+        'mb-2 text-xs max-sm:hidden' => ! empty($compact),
+        'mb-2 text-xs sm:mb-4 sm:text-sm' => empty($compact),
     ]) aria-label="{{ __('Breadcrumb') }}">
         <ol class="flex flex-wrap items-center gap-1.5">
             <li>

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Accounting\DeliveryInvoiceService;
 use App\Support\Production\DepartmentQueueRegistry;
 use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\ProductionImpositionCalculator;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -59,17 +60,14 @@ class DepartmentCommandCenterService
                 'production_status', 'payment_status',
             ],
             'offset' => [
-                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'paper_type',
-                'paper_size', 'finished_size', 'colour_mode', 'binding', 'lamination', 'ups',
-                'estimated_sheets', 'printing_number', 'machine_name', 'operator_name', 'due_date',
-                'days_remaining', 'unit_price', 'line_amount', 'payment_status', 'production_status',
-                'qc_status', 'dispatch_status',
+                'date', 'job_card_number', 'customer_name', 'job_type', 'product', 'quantity', 'finished_size',
+                'ink_colour', 'paper_type', 'binding', 'ups', 'estimated_sheets', 'serial_start', 'due_date',
+                'unit_price', 'line_amount', 'payment_status', 'order_status',
             ],
             'digital' => [
-                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'paper_material',
-                'finished_size', 'colour_mode', 'finishing', 'ups', 'estimated_sheets', 'machine_name',
-                'operator_name', 'due_date', 'payment_status', 'production_status', 'qc_status',
-                'dispatch_status', 'unit_price', 'line_amount',
+                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'paper_material', 'ups',
+                'estimated_sheets', 'finishing', 'unit_price', 'line_amount', 'due_date', 'payment_status',
+                'order_status',
             ],
             'outsource' => [
                 'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'production_type',
@@ -195,7 +193,7 @@ class DepartmentCommandCenterService
         $job = $queue->jobCard;
         $spec = $job?->productionSpecification;
         $spec?->loadMissing(['paperInventoryItem', 'materialInventoryItem', 'printProductTemplate']);
-        $job?->loadMissing(['outsourceVendor', 'salesOrder.items', 'costSheet', 'deliveryNotes']);
+        $job?->loadMissing(['outsourceVendor', 'salesOrder.items', 'costSheet', 'deliveryNotes', 'serialAllocation']);
 
         $qc = $job ? $this->controls->qcStatusSummary($job) : ['label' => '—', 'status' => 'none'];
         $dispatch = $job ? $this->dispatchStatusLabel($job) : '—';
@@ -211,9 +209,15 @@ class DepartmentCommandCenterService
         $sellingPrice = $job?->salesOrder?->total_amount ?? $lineAmount;
         $vendorCost = $job?->outsource_actual_cost ?? $job?->outsource_quoted_cost;
         $dimensions = $this->parseDimensions($spec?->finished_size ?? $spec?->size);
+        $legacyStatus = $this->legacyOrderStatus($job, $dispatch);
+        $sheetCount = ProductionImpositionCalculator::displaySheets(
+            $spec?->quantity ?? $lineItem?->quantity,
+            $spec?->ups,
+            $spec?->estimated_sheets,
+        );
 
         return array_merge($row, [
-            'date' => $queue->created_at?->format('Y-m-d'),
+            'date' => $queue->created_at?->format('d/m/Y'),
             'completion_date' => $job?->actual_end_date?->format('Y-m-d')
                 ?? (($job?->status === ProductionJobCardStatus::Completed) ? $job->updated_at?->format('Y-m-d') : '—'),
             'client' => $row['customer_name'],
@@ -222,8 +226,13 @@ class DepartmentCommandCenterService
             'material' => $spec?->materialInventoryItem?->item_name ?? $spec?->paperInventoryItem?->item_name,
             'lamination' => $spec?->lamination ? __('Yes') : ($spec ? __('No') : '—'),
             'ups' => $spec?->ups,
-            'estimated_sheets' => $spec?->estimated_sheets,
-            'printing_number' => $job?->job_card_number,
+            'estimated_sheets' => $sheetCount,
+            'job_type' => $this->resolveJobType($spec, $lineItem),
+            'ink_colour' => $this->resolveInkColour($spec),
+            'serial_start' => $this->resolveSerialStart($job, $spec),
+            'printing_number' => $this->resolveSerialStart($job, $spec),
+            'order_status' => $legacyStatus['label'],
+            'order_status_variant' => $legacyStatus['variant'],
             'production_status' => $row['operational_status'],
             'production_status_variant' => $row['operational_variant'],
             'qc_status' => $qc['label'],
@@ -438,6 +447,73 @@ class DepartmentCommandCenterService
         return (int) round($utils->avg(), 0);
     }
 
+    /**
+     * @return array{label: string, variant: string}
+     */
+    protected function legacyOrderStatus(?ProductionJobCard $job, string $dispatchLabel): array
+    {
+        if (! $job) {
+            return ['label' => '—', 'variant' => 'neutral'];
+        }
+
+        if ($job->status === ProductionJobCardStatus::Cancelled) {
+            return ['label' => __('Cancelled'), 'variant' => 'neutral'];
+        }
+
+        if (in_array($job->status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true)
+            || $dispatchLabel === __('Delivered')) {
+            return ['label' => __('Order complete'), 'variant' => 'success'];
+        }
+
+        return ['label' => __('In progress'), 'variant' => 'warning'];
+    }
+
+    protected function resolveJobType(?\App\Models\Production\ProductionSpecification $spec, ?\App\Models\Sales\SalesOrderItem $lineItem): string
+    {
+        $template = $spec?->printProductTemplate;
+        if ($template?->name) {
+            return $template->name;
+        }
+
+        if ($template?->category) {
+            return $template->category->label();
+        }
+
+        if ($lineItem?->item_name) {
+            return $lineItem->item_name;
+        }
+
+        return '—';
+    }
+
+    protected function resolveInkColour(?\App\Models\Production\ProductionSpecification $spec): string
+    {
+        if (! $spec) {
+            return '—';
+        }
+
+        $parts = array_filter([
+            filled($spec->colour_mode) ? $spec->colour_mode : null,
+            $spec->ink_type?->label(),
+        ]);
+
+        return $parts !== [] ? implode(' / ', $parts) : '—';
+    }
+
+    protected function resolveSerialStart(?ProductionJobCard $job, ?\App\Models\Production\ProductionSpecification $spec): string
+    {
+        $allocation = $job?->serialAllocation;
+        if ($allocation) {
+            return $allocation->formatSerial($allocation->serial_start);
+        }
+
+        if ($spec?->numbering_required) {
+            return __('No number');
+        }
+
+        return '—';
+    }
+
     public function columnLabel(string $key): string
     {
         return match ($key) {
@@ -454,9 +530,13 @@ class DepartmentCommandCenterService
             'colour_mode' => __('Colour'),
             'binding' => __('Binding'),
             'lamination' => __('Lamination'),
-            'ups' => __('Ups'),
-            'estimated_sheets' => __('Estimated sheets'),
+            'ups' => __('No. of ups'),
+            'estimated_sheets' => __('No. of sheets'),
+            'serial_start' => __('Starting num'),
             'printing_number' => __('Printing number'),
+            'job_type' => __('Type'),
+            'ink_colour' => __('Ink colour'),
+            'order_status' => __('Status'),
             'machine_name' => __('Machine'),
             'operator_name' => __('Operator'),
             'due_date' => __('Due date'),

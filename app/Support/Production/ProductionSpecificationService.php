@@ -108,7 +108,11 @@ class ProductionSpecificationService
         }
 
         $spec = ProductionSpecification::query()->create([
-            ...$this->normalizePayload($data),
+            ...$this->normalizePayload($data, [
+                'quantity' => Arr::get($data, 'quantity', $item->quantity),
+                'ups' => Arr::get($data, 'ups'),
+                'estimated_sheets' => Arr::get($data, 'estimated_sheets'),
+            ]),
             'company_id' => $order->company_id,
             'branch_id' => $order->branch_id,
             'customer_id' => $order->customer_id,
@@ -137,7 +141,11 @@ class ProductionSpecificationService
     public function update(ProductionSpecification $spec, array $data, User $user): ProductionSpecification
     {
         $spec->update([
-            ...$this->normalizePayload($data),
+            ...$this->normalizePayload($data, [
+                'quantity' => $spec->quantity,
+                'ups' => $spec->ups,
+                'estimated_sheets' => $spec->estimated_sheets,
+            ]),
             'updated_by' => $user->id,
         ]);
 
@@ -199,7 +207,12 @@ class ProductionSpecificationService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    protected function normalizePayload(array $data): array
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $context
+     * @return array<string, mixed>
+     */
+    protected function normalizePayload(array $data, array $context = []): array
     {
         $keys = array_keys($this->validationRules());
         $payload = Arr::only($data, $keys);
@@ -212,6 +225,19 @@ class ProductionSpecificationService
 
         if (! array_key_exists('approval_status', $payload) || $payload['approval_status'] === null) {
             unset($payload['approval_status']);
+        }
+
+        $quantity = $payload['quantity'] ?? $context['quantity'] ?? null;
+        $ups = isset($payload['ups']) ? (int) $payload['ups'] : (isset($context['ups']) ? (int) $context['ups'] : null);
+        $storedSheets = isset($payload['estimated_sheets'])
+            ? (int) $payload['estimated_sheets']
+            : (isset($context['estimated_sheets']) ? (int) $context['estimated_sheets'] : null);
+
+        if (! array_key_exists('estimated_sheets', $payload) || $payload['estimated_sheets'] === null) {
+            $derived = ProductionImpositionCalculator::estimateSheets($quantity, $ups, $storedSheets > 0 ? $storedSheets : null);
+            if ($derived !== null) {
+                $payload['estimated_sheets'] = $derived;
+            }
         }
 
         return $payload;

@@ -6,12 +6,15 @@ use App\Enums\ArtworkCommentType;
 use App\Http\Controllers\Controller;
 use App\Models\Artwork\ArtworkComment;
 use App\Models\Artwork\ArtworkRequest;
+use App\Support\Artwork\ReturnsToDesignerDesk;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ArtworkCommentController extends Controller
 {
+    use ReturnsToDesignerDesk;
+
     public function store(Request $request, ArtworkRequest $artworkRequest): RedirectResponse
     {
         $this->authorize('view', $artworkRequest);
@@ -29,6 +32,11 @@ class ArtworkCommentController extends Controller
             'comment_type' => $validated['comment_type'],
             'comment' => $validated['comment'],
         ]);
+
+        if ($this->wantsDesignerDeskReturn($request)) {
+            return redirect()->to($this->designerDeskUrl())
+                ->with('status', __('Comment added.'));
+        }
 
         return back()->with('status', __('Comment added.'));
     }

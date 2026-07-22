@@ -2,6 +2,7 @@
 
 namespace App\Support\Procurement;
 
+use App\Enums\ApprovalRuleType;
 use App\Enums\DocumentType;
 use App\Enums\PostingEventCode;
 use App\Enums\SupplierBillStatus;
@@ -173,6 +174,13 @@ class SupplierPaymentService
                 'allocations' => __('Supplier payments must be fully allocated before posting.'),
             ]);
         }
+
+        app(ProcurementGovernanceCoordinator::class)->assertChainApprovedForPosting(
+            $payment,
+            ApprovalRuleType::PaymentApproval,
+            (float) $payment->amount,
+            __('Supplier payment requires approval before posting.'),
+        );
 
         return DB::transaction(function () use ($payment, $userId) {
             $paymentAccountId = $this->resolvePaymentAccountId($payment);

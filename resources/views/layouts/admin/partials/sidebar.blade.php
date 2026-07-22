@@ -26,7 +26,7 @@
         </button>
 
         <a
-            href="{{ route('admin.dashboard') }}"
+            href="{{ $adminHomeUrl ?? route('admin.dashboard') }}"
             data-turbo-frame="erp-main"
             data-turbo-action="advance"
             data-turbo-preload="hover"

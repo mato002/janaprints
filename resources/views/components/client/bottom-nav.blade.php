@@ -1,13 +1,45 @@
 @php
-    $items = [
-        ['label' => __('Home'), 'route' => 'client.dashboard', 'icon' => 'home', 'match' => ['client.dashboard']],
-        ['label' => __('Quotes'), 'route' => 'client.quotations.index', 'icon' => 'document', 'match' => ['client.quotations.*']],
-        ['label' => __('Orders'), 'route' => 'client.orders.index', 'icon' => 'clipboard', 'match' => ['client.orders.*']],
-        ['label' => __('Messages'), 'route' => 'client.communications.index', 'icon' => 'chat', 'match' => ['client.communications.*'], 'badge' => true],
-    ];
+    $navByRoute = collect(config('client_portal.nav', []))->keyBy('route');
+    $bottomRoutes = array_slice(config('client_portal.bottom_nav_routes', []), 0, 3);
+    $bottomLabels = config('client_portal.bottom_nav_labels', []);
+
+    $items = collect($bottomRoutes)
+        ->map(function (string $route) use ($navByRoute, $bottomLabels) {
+            $nav = $navByRoute->get($route);
+
+            if (! $nav || ! Route::has($route)) {
+                return null;
+            }
+
+            $activeRoutes = $nav['active_routes'] ?? [$route, $route.'.*'];
+
+            return [
+                'label' => __($bottomLabels[$route] ?? $nav['label']),
+                'route' => $route,
+                'icon' => $nav['icon'] ?? 'home',
+                'match' => $activeRoutes,
+                'badge' => $route === 'client.communications.index',
+            ];
+        })
+        ->filter()
+        ->values()
+        ->all();
+
+    $primaryMatchPatterns = collect($items)
+        ->flatMap(fn (array $item) => $item['match'])
+        ->unique()
+        ->values()
+        ->all();
 @endphp
 
-<nav class="client-bottom-nav lg:hidden" aria-label="{{ __('Quick navigation') }}">
+<nav
+    class="client-bottom-nav lg:hidden"
+    aria-label="{{ __('Quick navigation') }}"
+    data-client-bottom-nav
+    data-client-bottom-nav-primary="{{ implode(',', $bottomRoutes) }}"
+    data-client-bottom-nav-primary-patterns="{{ implode('|', $primaryMatchPatterns) }}"
+    style="--client-bottom-nav-cols: {{ count($items) + 1 }}"
+>
     <div class="client-bottom-nav__inner">
         @foreach ($items as $item)
             @php
@@ -35,9 +67,15 @@
             </a>
         @endforeach
 
+        @php
+            $onPrimaryBottomNav = collect($items)->contains(
+                fn (array $item) => collect($item['match'])->contains(fn (string $pattern) => request()->routeIs($pattern))
+            );
+        @endphp
         <button
             type="button"
-            class="client-bottom-nav__link"
+            @class(['client-bottom-nav__link', 'is-active' => ! $onPrimaryBottomNav])
+            data-client-bottom-nav-more
             data-client-sidebar-toggle
             aria-expanded="false"
             aria-controls="client-sidebar"

@@ -55,9 +55,9 @@
         @if ($searchable || $showFilters || $exportable || $selectable || isset($toolbar) || isset($bulk) || count($chipPayload) > 1)
             <details class="workspace-filter-panel">
                 <summary>{{ __('Search & filters') }}</summary>
-                <div class="erp-table-toolbar border-b border-erp-border bg-white px-4 py-3">
-                <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                    <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                <div class="erp-table-toolbar border-b border-erp-border bg-white px-3 py-3 sm:px-4">
+                <div class="erp-table-toolbar__layout flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div class="erp-table-toolbar__primary flex min-w-0 flex-1 flex-wrap items-center gap-2">
                         @if (count($chipPayload) > 1)
                             <div class="erp-table-chips flex flex-wrap gap-1.5">
                                 @foreach ($chipPayload as $chip)
@@ -74,7 +74,7 @@
                         @endif
 
                         @if ($searchable)
-                            <div class="relative min-w-[12rem] flex-1 max-w-md">
+                            <div class="erp-table-toolbar__search relative min-w-0 w-full flex-1 sm:min-w-[12rem] sm:max-w-md">
                                 <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="search"
@@ -103,7 +103,7 @@
                         {{ $toolbar ?? '' }}
                     </div>
 
-                    <div class="flex shrink-0 flex-wrap items-center gap-2">
+                    <div class="erp-table-toolbar__secondary flex w-full shrink-0 flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end">
                         <div
                             x-show="selectable && selectedCount > 0"
                             x-cloak
@@ -141,20 +141,21 @@
                                 <div class="relative" @click.outside="exportOpen = false">
                                     <button
                                         type="button"
-                                        class="erp-btn-secondary py-2 text-sm"
+                                        class="erp-toolbar-export-btn erp-btn-secondary py-2 text-sm"
                                         :disabled="exportLoading"
                                         @click.stop="!exportLoading && (exportOpen = !exportOpen)"
+                                        title="{{ __('Export') }}"
                                     >
                                         <span x-show="!exportLoading" class="inline-flex items-center gap-2">
-                                            <x-admin.icon name="download" class="h-4 w-4" />
-                                            {{ __('Export') }}
+                                            <x-admin.icon name="download" class="h-4 w-4 shrink-0" />
+                                            <span class="erp-toolbar-export-btn__label">{{ __('Export') }}</span>
                                         </span>
                                         <span x-show="exportLoading" x-cloak class="inline-flex items-center gap-2">
-                                            <svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                            <svg class="h-4 w-4 shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
                                             </svg>
-                                            {{ __('Exporting…') }}
+                                            <span class="erp-toolbar-export-btn__label hidden sm:inline">{{ __('Exporting…') }}</span>
                                         </span>
                                     </button>
                                     <div

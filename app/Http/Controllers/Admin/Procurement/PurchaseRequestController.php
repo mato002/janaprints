@@ -119,7 +119,7 @@ class PurchaseRequestController extends Controller
         $this->authorize('submit', $request);
 
         try {
-            PurchaseRequestService::submit($request);
+            PurchaseRequestService::submit($request, (int) auth()->id());
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
         }
@@ -127,17 +127,34 @@ class PurchaseRequestController extends Controller
         return back()->with('status', __('Purchase request submitted.'));
     }
 
-    public function approve(PurchaseRequest $request): RedirectResponse
+    public function approve(Request $httpRequest, PurchaseRequest $request): RedirectResponse
     {
         $this->authorize('approve', $request);
 
         try {
-            PurchaseRequestService::approve($request);
+            PurchaseRequestService::approve($request, $httpRequest->user(), $httpRequest->input('notes'));
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
         }
 
         return back()->with('status', __('Purchase request approved.'));
+    }
+
+    public function reject(Request $httpRequest, PurchaseRequest $request): RedirectResponse
+    {
+        $this->authorize('approve', $request);
+
+        $validated = $httpRequest->validate([
+            'reason' => ['required', 'string', 'max:2000'],
+        ]);
+
+        try {
+            PurchaseRequestService::reject($request, $httpRequest->user(), $validated['reason']);
+        } catch (ValidationException $e) {
+            return back()->withErrors($e->errors());
+        }
+
+        return back()->with('status', __('Purchase request rejected.'));
     }
 
     public function convert(Request $httpRequest, PurchaseRequest $request): RedirectResponse

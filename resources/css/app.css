@@ -80,7 +80,7 @@ body.erp-navigating {
     }
 
     .erp-table {
-        @apply w-full min-w-full text-sm;
+        @apply w-full text-sm;
         /* separate + spacing 0 keeps sticky <th> reliable across browsers */
         border-collapse: separate;
         border-spacing: 0;
@@ -105,25 +105,59 @@ body.erp-navigating {
     }
 
     /*
-     * Sticky thead must use the PAGE scrollport (module-workspace-embedded /
-     * #erp-main), not a mid-page table wrapper. Any overflow-x on a wrapper
-     * around the table makes sticky pin to that wrapper (looks “halfway”).
-     * Horizontal overflow is handled by the page scroller instead.
+     * Table horizontal scroll lives on .erp-table-scroll so the page shell stays
+     * viewport-width. Vertical sticky thead uses the page / workspace scrollport.
      */
     .erp-table-scroll,
-    .erp-card:has(> .erp-table),
-    .erp-card:has(.erp-table),
     .overflow-x-auto:has(> .erp-table),
-    .overflow-x-auto:has(> table.erp-table) {
-        @apply relative w-full max-w-full;
+    .overflow-x-auto:has(> table.erp-table),
+    .erp-card:has(> .erp-table):not(.erp-table-scroll) {
+        @apply relative isolate w-full max-w-full min-w-0;
         max-height: none;
-        /* Beat Tailwind overflow-x-auto / overflow-hidden so sticky uses the page */
-        overflow: visible !important;
+        overflow-x: auto;
+        overflow-y: visible;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+        touch-action: pan-x pan-y;
     }
 
-    .erp-data-grid,
+    @media (max-width: 767px) {
+        .erp-table-scroll,
+        .overflow-x-auto:has(> .erp-table),
+        .overflow-x-auto:has(> table.erp-table) {
+            overflow-x: scroll;
+            scrollbar-width: thin;
+        }
+    }
+
+    .erp-card:has(.erp-table) {
+        @apply min-w-0 max-w-full overflow-visible;
+    }
+
+    .erp-data-grid {
+        @apply min-w-0 max-w-full;
+    }
+
     .erp-data-grid > * {
-        overflow: visible !important;
+        @apply min-w-0 max-w-full;
+    }
+
+    .erp-table-scroll > .erp-table,
+    .overflow-x-auto:has(> .erp-table) > .erp-table,
+    .erp-card:has(> .erp-table) > .erp-table {
+        width: auto !important;
+        min-width: 100%;
+        max-width: none;
+    }
+
+    .erp-table-scroll .erp-table th,
+    .erp-table-scroll .erp-table td,
+    .overflow-x-auto:has(> .erp-table) .erp-table th,
+    .overflow-x-auto:has(> .erp-table) .erp-table td {
+        max-width: none;
+        overflow: visible;
+        text-overflow: clip;
+        white-space: nowrap;
     }
 
     .erp-table thead th {
@@ -161,10 +195,6 @@ body.erp-navigating {
 
     .erp-table a:not(.erp-row-actions-menu a):not([class*='erp-btn']) {
         @apply font-medium text-erp-accent transition-colors hover:text-erp-accent-hover;
-    }
-
-    .erp-data-grid {
-        @apply min-w-0 max-w-full;
     }
 
     .erp-index-toolbar {
@@ -216,6 +246,20 @@ body.erp-navigating {
 
     .erp-table-toolbar {
         @apply shrink-0;
+    }
+
+    .erp-toolbar-export-btn__label {
+        @apply sm:inline;
+    }
+
+    @media (max-width: 639px) {
+        .erp-toolbar-export-btn {
+            @apply !min-h-9 !min-w-9 !p-2;
+        }
+
+        .erp-toolbar-export-btn__label {
+            @apply hidden;
+        }
     }
 
     .erp-table-checkbox-col {
@@ -350,12 +394,16 @@ body.erp-navigating {
         @apply w-full min-w-0;
     }
 
+    .module-shell.workspace-content-shell {
+        @apply gap-1.5 sm:gap-2;
+    }
+
     .module-workspace-content {
         @apply flex min-h-0 flex-1 flex-col overflow-hidden;
     }
 
     .module-workspace-embedded {
-        @apply flex min-h-0 flex-1 flex-col overflow-x-auto overflow-y-auto;
+        @apply flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto;
     }
 
     .compact-workspace-header__row {
@@ -371,7 +419,7 @@ body.erp-navigating {
     }
 
     .compact-workspace-header__description {
-        @apply text-xs text-slate-500 sm:text-sm;
+        @apply text-xs text-slate-500 line-clamp-2 sm:text-sm sm:line-clamp-1 sm:truncate;
     }
 
     .compact-workspace-header__search {
@@ -388,11 +436,11 @@ body.erp-navigating {
     }
 
     .module-workspace-secondary-bar {
-        @apply flex flex-wrap items-center justify-between gap-2;
+        @apply flex flex-col items-stretch gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between;
     }
 
     .module-workspace-secondary-bar__tabs {
-        @apply min-w-0 flex-1;
+        @apply min-w-0 w-full flex-1 sm:w-auto;
     }
 
     .module-workspace-secondary-bar__tabs.workspace-pill-tabs {
@@ -400,7 +448,14 @@ body.erp-navigating {
     }
 
     .module-workspace-secondary-bar__actions {
-        @apply flex shrink-0 items-center gap-2;
+        @apply flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center;
+    }
+
+    .module-workspace-secondary-bar__actions .erp-btn-primary,
+    .module-workspace-secondary-bar__actions .erp-btn-secondary,
+    .module-workspace-secondary-bar__actions a.erp-btn-primary,
+    .module-workspace-secondary-bar__actions a.erp-btn-secondary {
+        @apply w-full justify-center sm:w-auto;
     }
 
     .module-workspace-switcher__track,
@@ -1127,6 +1182,34 @@ body.erp-navigating {
         @apply cursor-not-allowed border-dashed text-slate-400;
     }
 
+    .exec-operator-desks {
+        @apply grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4;
+    }
+
+    .exec-operator-desks__card {
+        @apply flex items-center gap-3 rounded-lg border border-erp-border bg-white px-3 py-3 text-left transition-colors hover:border-erp-accent/40 hover:bg-erp-accent/5;
+    }
+
+    .exec-operator-desks__icon {
+        @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-erp-accent/10 text-erp-accent;
+    }
+
+    .exec-operator-desks__body {
+        @apply min-w-0 flex-1;
+    }
+
+    .exec-operator-desks__label {
+        @apply block text-sm font-semibold text-erp-primary;
+    }
+
+    .exec-operator-desks__description {
+        @apply mt-0.5 block text-[11px] leading-snug text-slate-500;
+    }
+
+    .exec-operator-desks__chevron {
+        @apply shrink-0 text-slate-400;
+    }
+
     .exec-activity-feed {
         @apply max-h-64 overflow-y-auto pr-1;
     }
@@ -1428,6 +1511,24 @@ body.erp-navigating {
 
     .erp-quote-topbar-btn {
         @apply relative inline-flex items-center gap-2 rounded-lg border border-fuchsia-200 bg-fuchsia-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-900 transition hover:border-fuchsia-300 hover:bg-fuchsia-100;
+    }
+
+    @media (max-width: 639px) {
+        .erp-quote-topbar-btn {
+            @apply min-h-9 min-w-9 justify-center gap-0 border-transparent bg-transparent p-2 text-fuchsia-800 hover:border-fuchsia-200 hover:bg-fuchsia-50;
+        }
+
+        .erp-quote-topbar-btn__badge {
+            @apply absolute -right-0.5 -top-0.5 min-w-[1.125rem] px-1 py-0 text-[10px] ring-2 ring-white;
+        }
+    }
+
+    .erp-topbar__actions .erp-btn-primary.erp-topbar__quick-create {
+        @apply shadow-sm;
+    }
+
+    #erp-topbar .erp-topbar__title {
+        @apply md:flex-none;
     }
 
     .erp-quote-topbar-btn__badge {
@@ -3857,11 +3958,11 @@ body.erp-navigating {
     }
 
     .crm-customers__kpi-value {
-        @apply mt-1 block text-xl font-bold tabular-nums text-erp-primary;
+        @apply mt-1 block text-lg font-bold tabular-nums text-erp-primary sm:text-xl;
     }
 
     .crm-customers__hint {
-        @apply text-xs text-slate-500;
+        @apply hidden text-xs text-slate-500 sm:block;
     }
 
     .crm-customers__data-grid .erp-card {
@@ -4290,7 +4391,7 @@ body.erp-navigating {
     }
 
     .crm-customers__avatar {
-        @apply flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-sm font-bold text-indigo-800;
+        @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-800 sm:h-11 sm:w-11 sm:text-sm;
     }
 
     .crm-customers__status {
@@ -4314,7 +4415,7 @@ body.erp-navigating {
     }
 
     .crm-customers__cell-customer {
-        @apply min-w-[12rem];
+        @apply min-w-0 sm:min-w-[12rem];
     }
 
     .erp-modal-overlay {

@@ -2,16 +2,35 @@
 
 namespace App\Support\Procurement;
 
+use App\Enums\ApprovalRuleType;
 use App\Enums\PurchaseOrderStatus;
 use App\Enums\PurchaseRequestStatus;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class PurchaseRequestService
 {
-    public static function submit(PurchaseRequest $request): PurchaseRequest
+    public static function totalAmount(PurchaseRequest $request): float
+    {
+        $request->loadMissing('items');
+
+        return round($request->items->sum(fn ($item) => (float) $item->line_total), 2);
+    }
+
+    public static function requiresApproval(PurchaseRequest $request): bool
+    {
+        return app(ProcurementGovernanceCoordinator::class)->requiresApproval(
+            ApprovalRuleType::PurchaseRequestApproval,
+            self::totalAmount($request),
+            (int) $request->company_id,
+            $request->branch_id,
+        );
+    }
+
+    public static function submit(PurchaseRequest $request, int $userId): PurchaseRequest
     {
         if (! $request->status->canSubmit()) {
             throw ValidationException::withMessages([
@@ -25,12 +44,39 @@ class PurchaseRequestService
             ]);
         }
 
-        $request->update(['status' => PurchaseRequestStatus::Submitted]);
+        $amount = self::totalAmount($request);
+        $coordinator = app(ProcurementGovernanceCoordinator::class);
+
+        $autoApproved = $coordinator->submit(
+            $request,
+            ApprovalRuleType::PurchaseRequestApproval,
+            $amount,
+            $userId,
+            'purchase_request_submitted',
+        );
+
+        if ($autoApproved) {
+            $request->update([
+                'total_amount' => $amount,
+                'status' => PurchaseRequestStatus::Approved,
+                'submitted_by' => $userId,
+                'submitted_at' => now(),
+                'approved_by' => $userId,
+                'approved_at' => now(),
+            ]);
+        } else {
+            $request->update([
+                'total_amount' => $amount,
+                'status' => PurchaseRequestStatus::PendingApproval,
+                'submitted_by' => $userId,
+                'submitted_at' => now(),
+            ]);
+        }
 
         return $request->fresh(['items']);
     }
 
-    public static function approve(PurchaseRequest $request): PurchaseRequest
+    public static function approve(PurchaseRequest $request, User $actor, ?string $notes = null): PurchaseRequest
     {
         if (! $request->status->canApprove()) {
             throw ValidationException::withMessages([
@@ -38,7 +84,57 @@ class PurchaseRequestService
             ]);
         }
 
-        $request->update(['status' => PurchaseRequestStatus::Approved]);
+        $amount = (float) ($request->total_amount ?: self::totalAmount($request));
+        $coordinator = app(ProcurementGovernanceCoordinator::class);
+
+        $complete = $coordinator->approve(
+            $request,
+            ApprovalRuleType::PurchaseRequestApproval,
+            $actor,
+            $notes,
+            'procurement.requests.approve',
+            (int) $request->requested_by,
+            'purchase_request_approved',
+            'purchase_request_approval_step',
+        );
+
+        if ($complete) {
+            $request->update([
+                'status' => PurchaseRequestStatus::Approved,
+                'approved_by' => $actor->id,
+                'approved_at' => now(),
+            ]);
+        }
+
+        return $request->fresh(['items']);
+    }
+
+    public static function reject(PurchaseRequest $request, User $actor, string $reason): PurchaseRequest
+    {
+        if (! $request->status->canReject()) {
+            throw ValidationException::withMessages([
+                'status' => __('Only pending requests can be rejected.'),
+            ]);
+        }
+
+        $coordinator = app(ProcurementGovernanceCoordinator::class);
+
+        $coordinator->reject(
+            $request,
+            ApprovalRuleType::PurchaseRequestApproval,
+            $actor,
+            $reason,
+            'procurement.requests.approve',
+            (int) $request->requested_by,
+            'purchase_request_rejected',
+        );
+
+        $request->update([
+            'status' => PurchaseRequestStatus::Rejected,
+            'rejected_by' => $actor->id,
+            'rejected_at' => now(),
+            'rejection_reason' => $reason,
+        ]);
 
         return $request->fresh(['items']);
     }
@@ -54,6 +150,11 @@ class PurchaseRequestService
                 'status' => __('Only approved requests can be converted.'),
             ]);
         }
+
+        app(ProcurementGovernanceCoordinator::class)->assertChainApproved(
+            $request,
+            __('Purchase request approval must be completed before conversion.'),
+        );
 
         return DB::transaction(function () use ($request, $vendorId, $userId, $poNumber) {
             $request->load('items');

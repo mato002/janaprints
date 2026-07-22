@@ -61,8 +61,7 @@
                 <a
                     href="{{ url()->route('admin.employees.email.compose', ['employees' => [$employee->id]]) }}"
                     class="erp-btn-secondary inline-flex"
-                    data-turbo="false"
-                    data-leave-workspace
+                    data-erp-modal-open
                 >
                     {{ __('Send email') }}
                 </a>

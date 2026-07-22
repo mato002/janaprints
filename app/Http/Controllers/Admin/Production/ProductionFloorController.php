@@ -8,6 +8,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Services\Assets\MachineJobAssignmentService;
 use App\Services\Production\ProductionFloorActionService;
 use App\Services\Production\ProductionFloorService;
+use App\Support\Production\ReturnsToProductionFloor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,18 +16,25 @@ use Illuminate\View\View;
 
 class ProductionFloorController extends Controller
 {
+    use ReturnsToProductionFloor;
+
     public function index(Request $request, ProductionFloorService $floor): View
     {
         $this->authorize('viewAny', ProductionJobCard::class);
 
-        return view('admin.production.floor.index', $floor->build($request));
+        $payload = $floor->build($request);
+        $payload['operatorMode'] = $request->user()?->prefersProductionOperatorMode() ?? false;
+
+        return view('admin.production.floor.index', $payload);
     }
 
-    public function panel(ProductionJobCard $jobCard, ProductionFloorService $floor): JsonResponse
+    public function panel(Request $request, ProductionJobCard $jobCard, ProductionFloorService $floor): JsonResponse
     {
         $this->authorize('view', $jobCard);
 
-        return response()->json($floor->panel($jobCard));
+        $operatorMode = $request->user()?->prefersProductionOperatorMode() ?? false;
+
+        return response()->json($floor->panel($jobCard, $operatorMode));
     }
 
     public function assignMachine(
@@ -47,15 +55,20 @@ class ProductionFloorController extends Controller
             (int) $request->user()->id,
         );
 
+        $params = array_merge(
+            $request->only(['search', 'stage', 'machine_id', 'vendor_id', 'priority', 'overdue']),
+            $this->wantsProductionFloorReturn($request) ? ['job' => $jobCard->public_id] : [],
+        );
+
         return redirect()
-            ->route('admin.production.floor.index', $request->only(['search', 'stage', 'machine_id', 'vendor_id', 'priority', 'overdue']))
+            ->route('admin.production.floor', $params)
             ->with('status', __('Machine assignment updated.'));
     }
 
-    public function quickPassQc(ProductionJobCard $jobCard, ProductionFloorActionService $actions): RedirectResponse
+    public function quickPassQc(Request $request, ProductionJobCard $jobCard, ProductionFloorActionService $actions): RedirectResponse
     {
-        $actions->quickPassQc($jobCard, request()->user());
+        $actions->quickPassQc($jobCard, $request->user());
 
-        return back()->with('status', __('Quality check passed.'));
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Quality check passed.'));
     }
 }

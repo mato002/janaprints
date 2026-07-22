@@ -781,6 +781,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'artwork.view', 'artwork.create',
             'quotations.convert',
             'sales_orders.view', 'sales_orders.create', 'sales_orders.edit', 'sales_orders.confirm',
+            // Front desk can confirm readiness and hand confirmed orders to Production Floor.
+            'sales_orders.production',
             'pos.view', 'pos.create', 'pos.edit', 'pos.cancel',
             'pos.counter_sales.view', 'pos.counter_sales.create', 'pos.counter_sales.hold', 'pos.counter_sales.complete', 'pos.counter_sales.cancel',
             'pos.receipts.reprint',

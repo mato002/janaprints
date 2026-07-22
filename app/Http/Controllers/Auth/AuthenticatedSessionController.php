@@ -45,6 +45,10 @@ class AuthenticatedSessionController extends Controller
 
         $this->userSessionService->recordLogin($user, $request);
 
+        if ($user && ($operatorHome = \App\Support\Operator\OperatorModeRegistry::resolveHomeUrl($user))) {
+            return redirect()->intended($operatorHome);
+        }
+
         return redirect()->intended(route('admin.dashboard', absolute: false));
     }
 

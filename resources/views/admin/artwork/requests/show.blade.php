@@ -1,5 +1,16 @@
-<x-admin-layout :title="$request->request_number" :breadcrumbs="[['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => $request->request_number]]">
+@php
+    $designerOperator = auth()->user()?->prefersDesignerOperatorMode() ?? false;
+    $artworkHomeLabel = $designerOperator ? __('Designer Desk') : __('Artwork');
+    $artworkHomeUrl = $designerOperator
+        ? route('admin.artwork.desk')
+        : route('admin.artwork.dashboard');
+@endphp
+
+<x-admin-layout :title="$request->request_number" :breadcrumbs="[['label' => $artworkHomeLabel, 'url' => $artworkHomeUrl], ['label' => $request->request_number]]">
     <x-admin.page-header :title="$request->request_number" :description="$request->customer?->company_name">
+        @if ($designerOperator)
+            <a href="{{ route('admin.artwork.desk') }}" class="erp-btn-secondary" data-turbo-frame="_top">{{ __('Back to Designer Desk') }}</a>
+        @endif
         <span class="erp-badge">{{ str_replace('_', ' ', $request->status->value) }}</span>
         <span class="text-sm text-slate-500">v{{ $request->current_version }}</span>
         @can('update', $request)

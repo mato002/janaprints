@@ -1,3 +1,7 @@
+@php
+    $operatorMode = (bool) ($operatorMode ?? false);
+@endphp
+
 <div class="erp-card erp-table-scroll">
     <table class="erp-table erp-table--grid w-full text-sm">
         <thead>
@@ -41,13 +45,16 @@
                     </td>
                     <td @click.stop>
                         @can('machines.assign')
-                            <form method="POST" action="{{ route('admin.production.floor.assign-machine', $row['public_id']) }}" class="min-w-[9rem]">
+                            <form method="POST" action="{{ route('admin.production.floor.assign-machine', $row['public_id']) }}" class="min-w-[9rem]" @if ($operatorMode) data-erp-desk-form @endif>
                                 @csrf
                                 @foreach ($filters as $key => $value)
                                     @if ($value !== '' && $value !== null)
                                         <input type="hidden" name="{{ $key }}" value="{{ $value }}">
                                     @endif
                                 @endforeach
+                                @if ($operatorMode)
+                                    <input type="hidden" name="from" value="production-floor">
+                                @endif
                                 <select
                                     name="assigned_machine_asset_id"
                                     class="erp-select w-full text-xs"
@@ -83,8 +90,11 @@
                         @if ($row['primary_action'])
                             @php $action = $row['primary_action']; @endphp
                             @if ($action['type'] === 'post')
-                                <form method="POST" action="{{ $action['url'] }}">
+                                <form method="POST" action="{{ $action['url'] }}" @if ($operatorMode) data-erp-desk-form @endif>
                                     @csrf
+                                    @if ($operatorMode)
+                                        <input type="hidden" name="from" value="production-floor">
+                                    @endif
                                     <button type="submit" class="erp-btn-primary text-xs py-1 px-2">{{ $action['label'] }}</button>
                                 </form>
                             @elseif ($action['type'] === 'panel')
@@ -95,7 +105,14 @@
                                     {{ $action['label'] }}
                                 </button>
                             @else
-                                <a href="{{ $action['url'] }}" class="erp-btn-secondary text-xs py-1 px-2" data-turbo-frame="erp-main">{{ $action['label'] }}</a>
+                                @php
+                                    $linkUrl = $action['url'];
+                                    if ($operatorMode) {
+                                        $linkUrl .= str_contains($linkUrl, '?') ? '&' : '?';
+                                        $linkUrl .= 'from=production-floor';
+                                    }
+                                @endphp
+                                <a href="{{ $linkUrl }}" class="erp-btn-secondary text-xs py-1 px-2" @if ($operatorMode) data-erp-modal-open @else data-turbo-frame="erp-main" @endif>{{ $action['label'] }}</a>
                             @endif
                         @else
                             <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="openPanel(@js($row['public_id']))">{{ __('Open') }}</button>

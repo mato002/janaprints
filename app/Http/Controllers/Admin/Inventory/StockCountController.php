@@ -12,6 +12,7 @@ use App\Models\Inventory\InventoryVarianceReasonCode;
 use App\Models\Inventory\StockCount;
 use App\Models\Inventory\Warehouse;
 use App\Support\Export\TabularExportWriter;
+use App\Support\Inventory\ReturnsToStoreDesk;
 use App\Support\Inventory\StockCountService;
 use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StockCountController extends Controller
 {
-    use HandlesFormCustomFields, ResolvesInventoryTenant, ScopesToTenant;
+    use HandlesFormCustomFields, ResolvesInventoryTenant, ReturnsToStoreDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -41,11 +42,14 @@ class StockCountController extends Controller
         return view('admin.inventory.control.stock-counts.index', compact('counts'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', StockCount::class);
 
-        return view('admin.inventory.control.stock-counts.create', $this->formMeta());
+        return view('admin.inventory.control.stock-counts.create', [
+            ...$this->formMeta(),
+            'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -77,37 +81,46 @@ class StockCountController extends Controller
 
         $this->syncCustomFields($count, 'stock_count.create', $customData, $companyId);
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Stock count created. Continue counting from the desk.'));
+        }
+
         return redirect()->route('admin.inventory.stock-counts.worksheet', $count)
             ->with('status', __('Stock count created.'));
     }
 
-    public function show(StockCount $stockCount): View
+    public function show(Request $request, StockCount $stockCount): View
     {
         $this->authorize('view', $stockCount);
 
         $stockCount->load(['warehouse', 'creator', 'submitter', 'approver', 'poster', 'items.inventoryItem', 'stockAdjustment', 'reconciliation']);
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return view('admin.store.desk.stock-count-modal', [
+                'count' => $stockCount,
+                ...$this->worksheetMeta($stockCount),
+            ]);
+        }
+
         return view('admin.inventory.control.stock-counts.show', ['count' => $stockCount]);
     }
 
-    public function worksheet(StockCount $stockCount): View
+    public function worksheet(Request $request, StockCount $stockCount): View
     {
         $this->authorize('view', $stockCount);
 
         $stockCount->load(['warehouse', 'items.inventoryItem']);
 
-        ['companyId' => $companyId] = $this->tenantIds();
-
-        $reasonCodes = InventoryVarianceReasonCode::query()
-            ->forTenant()
-            ->where('company_id', $companyId)
-            ->active()
-            ->orderBy('name')
-            ->get();
+        if ($this->wantsStoreDeskReturn($request)) {
+            return view('admin.store.desk.stock-count-modal', [
+                'count' => $stockCount,
+                ...$this->worksheetMeta($stockCount),
+            ]);
+        }
 
         return view('admin.inventory.control.stock-counts.worksheet', [
             'count' => $stockCount,
-            'reasonCodes' => $reasonCodes,
+            ...$this->worksheetMeta($stockCount),
         ]);
     }
 
@@ -130,10 +143,14 @@ class StockCountController extends Controller
             return back()->withErrors($e->errors())->withInput();
         }
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Worksheet saved.'));
+        }
+
         return back()->with('status', __('Worksheet saved.'));
     }
 
-    public function submit(StockCount $stockCount): RedirectResponse
+    public function submit(Request $request, StockCount $stockCount): RedirectResponse
     {
         $this->authorize('submit', $stockCount);
 
@@ -143,10 +160,14 @@ class StockCountController extends Controller
             return back()->withErrors($e->errors());
         }
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Stock count submitted.'));
+        }
+
         return back()->with('status', __('Stock count submitted.'));
     }
 
-    public function approve(StockCount $stockCount): RedirectResponse
+    public function approve(Request $request, StockCount $stockCount): RedirectResponse
     {
         $this->authorize('approve', $stockCount);
 
@@ -156,10 +177,14 @@ class StockCountController extends Controller
             return back()->withErrors($e->errors());
         }
 
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Stock count approved.'));
+        }
+
         return back()->with('status', __('Stock count approved.'));
     }
 
-    public function post(StockCount $stockCount): RedirectResponse
+    public function post(Request $request, StockCount $stockCount): RedirectResponse
     {
         $this->authorize('post', $stockCount);
 
@@ -167,6 +192,10 @@ class StockCountController extends Controller
             StockCountService::post($stockCount, (int) auth()->id());
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
+        }
+
+        if ($this->wantsStoreDeskReturn($request)) {
+            return redirect()->to($this->storeDeskUrl())->with('status', __('Variances posted to inventory ledger.'));
         }
 
         return back()->with('status', __('Variances posted to inventory ledger.'));
@@ -216,6 +245,23 @@ class StockCountController extends Controller
             __('Stock Count :number', ['number' => $stockCount->count_number]),
             $stockCount->count_date?->format('Y-m-d'),
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function worksheetMeta(StockCount $stockCount): array
+    {
+        ['companyId' => $companyId] = $this->tenantIds();
+
+        return [
+            'reasonCodes' => InventoryVarianceReasonCode::query()
+                ->forTenant()
+                ->where('company_id', $companyId)
+                ->active()
+                ->orderBy('name')
+                ->get(),
+        ];
     }
 
     /**

@@ -39,6 +39,6 @@ class ModalFormExceptionRenderer
 
         $subResponse = app()->handle($subRequest);
 
-        return response($subResponse->getContent(), 422, $subResponse->headers->all());
+        return response($subResponse->getContent(), 422, $subResponse->headers->allPreserveCaseWithoutCookies());
     }
 }

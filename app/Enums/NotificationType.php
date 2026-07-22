@@ -31,6 +31,7 @@ enum NotificationType: string
     case SmsCampaignCompleted = 'sms_campaign_completed';
     case PublicQuoteRequestReceived = 'public_quote_request_received';
     case InboxCustomerMessage = 'inbox_customer_message';
+    case JobCardCreated = 'job_card_created';
 
     public function label(): string
     {
@@ -62,6 +63,7 @@ enum NotificationType: string
             self::SmsCampaignCompleted => __('SMS Campaign Completed'),
             self::PublicQuoteRequestReceived => __('New Quote Request'),
             self::InboxCustomerMessage => __('New Client Message'),
+            self::JobCardCreated => __('New Job for Production'),
         };
     }
 
@@ -76,6 +78,7 @@ enum NotificationType: string
             self::InvoiceGenerated, self::InvoiceOverdue, self::PaymentReceived,
             self::SupplierBillApproved, self::PeriodClosingReminder => NotificationCategory::Accounting,
             self::EmployeeCreated, self::LeaveRequestSubmitted, self::LeaveApproved, self::LeaveRejected => NotificationCategory::Hr,
+            self::JobCardCreated => NotificationCategory::Production,
             self::RoleChanged, self::PasswordReset, self::PermissionUpdated, self::BranchAssigned,
             self::SmsCampaignCompleted, self::InboxCustomerMessage => NotificationCategory::System,
         };
@@ -86,7 +89,8 @@ enum NotificationType: string
         return match ($this) {
             self::InvoiceOverdue, self::ProductionDelayed, self::PeriodClosingReminder => NotificationPriority::Critical,
             self::QuotationApproved, self::QuotationRejected, self::PaymentReceived, self::ProductionCompleted,
-            self::PublicQuoteRequestReceived, self::InboxCustomerMessage => NotificationPriority::High,
+            self::PublicQuoteRequestReceived, self::InboxCustomerMessage,
+            self::JobCardCreated => NotificationPriority::High,
             self::PasswordReset, self::PermissionUpdated => NotificationPriority::High,
             default => NotificationPriority::Normal,
         };

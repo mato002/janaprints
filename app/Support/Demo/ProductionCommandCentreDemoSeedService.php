@@ -78,26 +78,24 @@ class ProductionCommandCentreDemoSeedService
         $this->ensureCustomers($ctx);
         $this->ensureOutsourceVendor($ctx);
 
-        Model::withoutEvents(function () use ($ctx, $command) {
-            DB::transaction(function () use ($ctx, $command) {
-                foreach ($this->scenarios() as $index => $scenario) {
-                    $this->seedScenario($ctx, $scenario, $index);
-                }
+        DB::transaction(function () use ($ctx, $command) {
+            foreach ($this->scenarios() as $index => $scenario) {
+                $this->seedScenario($ctx, $scenario, $index);
+            }
 
-                $this->backfillQueuesForExistingJobs($ctx);
-                $this->seedTodayCommercialActivity($ctx);
+            $this->backfillQueuesForExistingJobs($ctx);
+            $this->seedTodayCommercialActivity($ctx);
 
-                $queueCount = ProductionQueue::query()
-                    ->where('company_id', $ctx->company->id)
-                    ->whereHas('jobCard', fn ($q) => $q->where('job_card_number', 'like', 'DEMO-CC-%'))
-                    ->count();
+            $queueCount = ProductionQueue::query()
+                ->where('company_id', $ctx->company->id)
+                ->whereHas('jobCard', fn ($q) => $q->where('job_card_number', 'like', 'DEMO-CC-%'))
+                ->count();
 
-                $command?->info(sprintf(
-                    '  Production showcase: %d command-centre job cards, %d queue entries.',
-                    count($this->scenarios()),
-                    $queueCount,
-                ));
-            });
+            $command?->info(sprintf(
+                '  Production showcase: %d command-centre job cards, %d queue entries.',
+                count($this->scenarios()),
+                $queueCount,
+            ));
         });
     }
 

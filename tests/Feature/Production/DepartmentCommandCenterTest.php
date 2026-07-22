@@ -46,7 +46,7 @@ class DepartmentCommandCenterTest extends TestCase
         );
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.department', $department).'?embedded=1')
+            ->getDepartmentQueue($department)
             ->assertOk()
             ->assertSee($titleFragment, false)
             ->assertSee($job->job_card_number, false)
@@ -111,11 +111,11 @@ class DepartmentCommandCenterTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.department', 'offset').'?embedded=1')
+            ->getDepartmentQueue('offset')
             ->assertOk()
-            ->assertSee(__('Paper type'), false)
-            ->assertSee(__('QC status'), false)
-            ->assertSee(__('Dispatch status'), false)
+            ->assertSee(__('Type'), false)
+            ->assertSee(__('Ink colour'), false)
+            ->assertSee(__('Status'), false)
             ->assertSee('Annual report', false);
     }
 
@@ -172,7 +172,7 @@ class DepartmentCommandCenterTest extends TestCase
         $job = $this->queueJob($company, $branch, $user, $workCenter, ProductionType::Digital);
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.department', 'digital').'?embedded=1')
+            ->getDepartmentQueue('digital')
             ->assertOk()
             ->assertSee(route('admin.production.job-cards.show', $job), false);
     }
@@ -191,8 +191,17 @@ class DepartmentCommandCenterTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.department', 'digital').'?embedded=1')
+            ->getDepartmentQueue('digital')
             ->assertForbidden();
+    }
+
+    /**
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function getDepartmentQueue(string $department)
+    {
+        return $this->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.production.queue.department', $department).'?embedded=1');
     }
 
     /**

@@ -34,7 +34,7 @@ class ProcurementApprovalQueueController extends Controller
 
     public function approve(Request $request, ApprovalChainRun $run): RedirectResponse
     {
-        abort_unless($request->user()?->can('procurement.approvals.view'), 403);
+        abort_unless($request->user()?->can('procurement.approvals.action'), 403);
         $this->ensureTenantRun($run);
 
         try {
@@ -48,7 +48,7 @@ class ProcurementApprovalQueueController extends Controller
 
     public function reject(Request $request, ApprovalChainRun $run): RedirectResponse
     {
-        abort_unless($request->user()?->can('procurement.approvals.view'), 403);
+        abort_unless($request->user()?->can('procurement.approvals.action'), 403);
         $this->ensureTenantRun($run);
 
         $validated = $request->validate([

@@ -205,6 +205,13 @@ class PlatformConfigurationSeeder extends Seeder
                     ['threshold_amount' => 1000, 'threshold_percent' => null, 'approver_role' => 'Storekeeper', 'approver_permission' => 'inventory.adjust'],
                 ],
             ],
+            ApprovalRuleType::PurchaseRequestApproval->value => [
+                'is_enabled' => true,
+                'min_approvers' => 1,
+                'tiers' => [
+                    ['threshold_amount' => 10000, 'threshold_percent' => null, 'approver_role' => 'Company Admin', 'approver_permission' => 'procurement.requests.approve'],
+                ],
+            ],
             ApprovalRuleType::ProcurementApproval->value => [
                 'is_enabled' => true,
                 'min_approvers' => 1,
@@ -217,6 +224,20 @@ class PlatformConfigurationSeeder extends Seeder
                 'min_approvers' => 1,
                 'tiers' => [
                     ['threshold_amount' => 100000, 'threshold_percent' => null, 'approver_role' => 'Company Admin', 'approver_permission' => null],
+                ],
+            ],
+            ApprovalRuleType::GoodsReceiptApproval->value => [
+                'is_enabled' => true,
+                'min_approvers' => 1,
+                'tiers' => [
+                    ['threshold_amount' => 25000, 'threshold_percent' => null, 'approver_role' => 'Company Admin', 'approver_permission' => 'procurement.orders.receive'],
+                ],
+            ],
+            ApprovalRuleType::VendorInvoiceApproval->value => [
+                'is_enabled' => true,
+                'min_approvers' => 1,
+                'tiers' => [
+                    ['threshold_amount' => 50000, 'threshold_percent' => null, 'approver_role' => 'Company Admin', 'approver_permission' => 'payables.bills.approve'],
                 ],
             ],
         ];
@@ -265,6 +286,16 @@ class PlatformConfigurationSeeder extends Seeder
                 'approval_mode' => ApprovalChainMode::Sequential,
                 'steps' => [
                     ['step_number' => 1, 'approver_role' => 'Storekeeper', 'is_required' => true],
+                ],
+            ],
+            [
+                'name' => 'Purchase Request Chain',
+                'module' => 'procurement',
+                'document_type' => 'purchase_request',
+                'approval_rule_type' => ApprovalRuleType::PurchaseRequestApproval,
+                'approval_mode' => ApprovalChainMode::Sequential,
+                'steps' => [
+                    ['step_number' => 1, 'approver_role' => 'Company Admin', 'is_required' => true],
                 ],
             ],
             [

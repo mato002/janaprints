@@ -34,6 +34,10 @@ class OperationalRegisterScopeResolver
             $register = 'daily_sales';
         }
 
+        if ($preset === '' && in_array($register, ['digital', 'offset'], true)) {
+            $preset = 'today';
+        }
+
         $scope = new OperationalRegisterScope(
             companyId: $base['scope']->companyId,
             branchId: $base['scope']->branchId,
