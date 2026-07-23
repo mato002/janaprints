@@ -42,7 +42,7 @@ class ProductionQualityC6Test extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_pass_inspection_moves_to_ready_for_dispatch(): void
+    public function test_pass_inspection_moves_to_awaiting_finished_goods(): void
     {
         [$company, $branch, , $user, $jobCard] = $this->qcJobContext();
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
@@ -56,7 +56,7 @@ class ProductionQualityC6Test extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
     }
 
     public function test_fail_inspection_moves_to_rework_with_quantities(): void
@@ -103,7 +103,7 @@ class ProductionQualityC6Test extends TestCase
             ->post(route('admin.production.quality-checks.approve-customer', [$jobCard, $check]))
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
         $this->assertNotNull($check->fresh()->customer_approved_at);
     }
 
@@ -169,7 +169,7 @@ class ProductionQualityC6Test extends TestCase
         app(\App\Listeners\Production\DispatchProductionCommunication::class)->handle(
             new \App\Events\Production\JobCardStatusChanged(
                 $jobCard,
-                ProductionJobCardStatus::ReadyForDispatch,
+                ProductionJobCardStatus::Completed,
                 ProductionJobCardStatus::QualityCheck,
             ),
         );

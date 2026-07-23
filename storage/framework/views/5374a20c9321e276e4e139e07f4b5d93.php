@@ -1,2 +1,0 @@
-<div data-erp-lookup-success data-message="<?php echo e($message); ?>" data-record-id="<?php echo e($record['id']); ?>" data-record-label="<?php echo e($record['label']); ?>" data-record-value="<?php echo e($record['value']); ?>"></div>
-<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\admin\lookups\partials\nested-form-success.blade.php ENDPATH**/ ?>

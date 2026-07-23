@@ -415,8 +415,25 @@ const erpModalManager = {
             }
         });
 
+        // Laravel reports nested keys as dotted paths; form fields use bracket names.
+        [...invalidNames].forEach((name) => {
+            if (name.includes('.') && ! name.includes('[')) {
+                invalidNames.add(name.replace(/\.(\d+)/g, '[$1]').replace(/\.([^[.\]]+)/g, '[$1]'));
+            }
+        });
+
+        // Pull field names from the session error bag echoed as list items when possible.
+        [...doc.querySelectorAll('[data-erp-validation-errors] li')].forEach((element) => {
+            const text = element.textContent ?? '';
+            const match = text.match(/material_requirements(?:\.|\[)\d+/i);
+            if (match) {
+                invalidNames.add('material_requirements[0][inventory_item_id]');
+            }
+        });
+
         invalidNames.forEach((name) => {
-            const field = panel.querySelector(`[name="${CSS.escape(name)}"]`);
+            const field = panel.querySelector(`[name="${CSS.escape(name)}"]`)
+                ?? panel.querySelector(`[name="${name}"]`);
 
             if (! field) {
                 return;
@@ -428,6 +445,10 @@ const erpModalManager = {
                 field.classList.add('erp-input--invalid');
             }
         });
+
+        if ([...invalidNames].some((name) => name.includes('material_requirements'))) {
+            panel.querySelector('[x-data*="materials"]')?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+        }
     },
 
     ensureValidationSummary(panel, doc) {
@@ -984,12 +1005,19 @@ const erpModalManager = {
                 const frame = this.modalFrame();
 
                 if (frame) {
+                    this.prepareModalFormContent(errorPanel, modalReturnUrl || response.url);
                     frame.replaceChildren(errorPanel);
                     this.showOverlay();
                     Alpine.initTree(frame);
+                    this.ensureValidationSummary(errorPanel, doc);
+                    this.highlightInvalidFields(errorPanel, doc);
+
+                    const firstInvalid = errorPanel.querySelector('.erp-input--invalid, .erp-select--invalid, [data-erp-field-error]');
+                    firstInvalid?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
                 }
 
-                const errorMessage = doc.querySelector('[data-erp-validation-errors] p')?.textContent?.trim()
+                const errorMessage = doc.querySelector('[data-erp-validation-errors] li')?.textContent?.trim()
+                    ?? doc.querySelector('[data-erp-validation-errors] p')?.textContent?.trim()
                     ?? `Unable to save form (${response.status}). Please try again.`;
 
                 this.showToast(errorMessage, 'error');
@@ -1069,13 +1097,54 @@ const erpModalManager = {
     },
 
     handleSuccess({ message = '', refresh = true, redirect = '' } = {}) {
+        const target = typeof redirect === 'string' ? redirect.trim() : '';
+
+        if (target && this.isModalFormUrl(target)) {
+            if (message) {
+                this.showToast(message);
+            }
+
+            if (window.erpLookupManager) {
+                window.erpLookupManager.close();
+            }
+
+            this.modalStack = [];
+            this.loadForm(target);
+
+            return;
+        }
+
+        // Zoho-style continuous work: nested create/edit returns to the parent task
+        // instead of dumping the user onto another page mid-flow.
+        if (this.modalStack.length > 0) {
+            if (message) {
+                this.showToast(message);
+            }
+
+            this.popModal();
+
+            document.dispatchEvent(new CustomEvent('erp-modal-nested-return', {
+                detail: {
+                    redirect: target,
+                    message,
+                    parentUrl: this.currentModalUrl,
+                },
+            }));
+
+            if (refresh) {
+                this.refreshTable().then(() => {
+                    this.restoreWorkspaceState();
+                });
+            }
+
+            return;
+        }
+
         this.closeModal();
 
         if (message) {
             this.showToast(message);
         }
-
-        const target = typeof redirect === 'string' ? redirect.trim() : '';
 
         if (target && ! this.isModalFormUrl(target)) {
             if (typeof window.erpVisitUrl === 'function') {
@@ -1986,6 +2055,10 @@ document.addEventListener('turbo:frame-render', (event) => {
     if (event.target?.querySelector?.('[data-inbox-list-panel]')) {
         initSharedInboxListPoll(event.target);
     }
+
+    if (frame?.id === 'erp-main' || frame?.querySelector?.('[data-open-dialog]')) {
+        initNativeDialogs(frame ?? event.target);
+    }
 });
 
 document.addEventListener('turbo:load', () => {
@@ -2639,8 +2712,22 @@ document.addEventListener('alpine:init', () => {
         scopeBranchField: config.scopeBranchField ?? null,
         scopeCustomerField: config.scopeCustomerField ?? null,
         scopeFormKey: config.scopeFormKey ?? null,
+        _onNestedReturn: null,
 
         init() {
+            if (this.options.length === 0) {
+                const select = this.$root.querySelector('select');
+
+                if (select) {
+                    this.options = [...select.options]
+                        .filter((option) => option.value !== '')
+                        .map((option) => ({
+                            value: option.value,
+                            label: option.textContent?.trim() ?? option.value,
+                        }));
+                }
+            }
+
             this.syncSelectOptions();
             this.$watch('options', () => this.syncSelectOptions());
             this.$watch('selected', (value, oldValue) => {
@@ -2664,9 +2751,64 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
+            this.bindScopeFields();
+
             if (this.refreshUrl && this.options.length === 0) {
                 this.refreshOptions(this.selected || null);
             }
+
+            this._onNestedReturn = () => this.onNestedReturn();
+            document.addEventListener('erp-modal-nested-return', this._onNestedReturn);
+        },
+
+        destroy() {
+            if (this._onNestedReturn) {
+                document.removeEventListener('erp-modal-nested-return', this._onNestedReturn);
+            }
+        },
+
+        bindScopeFields() {
+            const rootForm = this.$root.closest('form');
+            const scopedFields = [
+                this.scopeCompanyField,
+                this.scopeBranchField,
+                this.scopeCustomerField,
+            ].filter(Boolean);
+
+            if (! rootForm || scopedFields.length === 0) {
+                return;
+            }
+
+            const refreshFromScopeChange = () => {
+                this.selected = '';
+
+                if (this.refreshUrl) {
+                    this.refreshOptions();
+                } else {
+                    this.options = [];
+                }
+            };
+
+            scopedFields.forEach((fieldName) => {
+                const field = rootForm.querySelector(`[name="${fieldName}"]`);
+
+                if (field) {
+                    field.addEventListener('change', refreshFromScopeChange);
+                }
+            });
+
+            rootForm.addEventListener('erp-lookup-changed', (event) => {
+                if (scopedFields.includes(event.detail?.name)) {
+                    refreshFromScopeChange();
+                }
+            });
+        },
+
+        scopedFieldValue(fieldName) {
+            const rootForm = this.$root.closest('form');
+            const field = rootForm?.querySelector(`[name="${fieldName}"]`);
+
+            return field?.value ?? '';
         },
 
         syncSelectOptions() {
@@ -2789,11 +2931,28 @@ document.addEventListener('alpine:init', () => {
             event?.preventDefault?.();
             event?.stopPropagation?.();
 
-            if (! this.createUrl || ! window.erpLookupManager) {
+            if (! this.createUrl) {
+                return;
+            }
+
+            if (this.scopeCustomerField && ! this.scopedFieldValue(this.scopeCustomerField)) {
+                window.erpModalManager?.showToast?.('Select a customer first.', 'error');
+
                 return;
             }
 
             const url = this.scopedUrl(this.createUrl);
+
+            // Full create/edit forms nest in the form modal so work continues on return.
+            if (window.erpModalManager?.isModalFormUrl?.(url)) {
+                window.erpModalManager.loadForm(url);
+
+                return;
+            }
+
+            if (! window.erpLookupManager) {
+                return;
+            }
 
             window.erpLookupManager.open(url, {
                 title: this.modalTitle,
@@ -2802,6 +2961,62 @@ document.addEventListener('alpine:init', () => {
                     this.selected = String(record.value ?? '');
                 },
             });
+        },
+
+        onNestedReturn() {
+            // Parent continuous workspaces reload the whole form after nested success.
+            if (this.$root.closest('[data-erp-continuous-workspace]')) {
+                return;
+            }
+
+            if (this.refreshUrl) {
+                this.refreshOptions(this.selected || null);
+            }
+        },
+    }));
+
+    /**
+     * Keep a parent create/edit workspace live after nested blocker resolution
+     * (approve artwork, create order, open related record, then continue here).
+     */
+    Alpine.data('erpContinuousWorkspace', (config = {}) => ({
+        reloadOnReturn: config.reloadOnReturn !== false,
+        _onNestedReturn: null,
+
+        init() {
+            this.$root.setAttribute('data-erp-continuous-workspace', '1');
+
+            this._onNestedReturn = () => {
+                if (! this.reloadOnReturn) {
+                    return;
+                }
+
+                const manager = window.erpModalManager;
+                const url = manager?.currentModalUrl;
+
+                if (! url || ! manager?.loadForm) {
+                    return;
+                }
+
+                manager.loadForm(url);
+            };
+
+            document.addEventListener('erp-modal-nested-return', this._onNestedReturn);
+        },
+
+        destroy() {
+            if (this._onNestedReturn) {
+                document.removeEventListener('erp-modal-nested-return', this._onNestedReturn);
+            }
+        },
+
+        checkAgain() {
+            const manager = window.erpModalManager;
+            const url = manager?.currentModalUrl;
+
+            if (url && manager?.loadForm) {
+                manager.loadForm(url);
+            }
         },
     }));
 
@@ -3786,6 +4001,7 @@ document.addEventListener('alpine:init', () => {
         actionModalPanel: null,
         actionModalTarget: '',
         actionModalMachineId: '',
+        actionModalAssignSubmitting: false,
         qcDecision: 'passed',
         modalTitles: config.modalTitles ?? {},
         stickyObserver: null,
@@ -4271,7 +4487,55 @@ document.addEventListener('alpine:init', () => {
             this.actionModalPanel = null;
             this.actionModalTarget = '';
             this.actionModalMachineId = '';
+            this.actionModalAssignSubmitting = false;
             this.qcDecision = 'passed';
+        },
+
+        async submitActionModalAssignMachine(event) {
+            const jobKey = this.actionModalPanel?.job?.public_id;
+            const machineId = this.actionModalMachineId;
+
+            if (! jobKey || ! machineId || this.actionModalAssignSubmitting) {
+                return;
+            }
+
+            this.actionModalAssignSubmitting = true;
+
+            try {
+                const body = new FormData();
+                body.append('_token', this.csrf);
+                body.append('assigned_machine_asset_id', machineId);
+                body.append('from', 'production-floor');
+
+                const response = await fetch(`${this.assignMachineUrl}/${jobKey}/assign-machine`, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body,
+                });
+
+                const payload = await response.json().catch(() => null);
+
+                if (! response.ok || ! payload?.ok) {
+                    window.erpModalManager?.showToast?.(
+                        payload?.message ?? 'Unable to assign machine. Please try again.',
+                        'error',
+                    );
+
+                    return;
+                }
+
+                this.closeActionModal();
+                window.erpModalManager?.showToast?.(payload?.message ?? 'Machine assignment updated.');
+                await this.refreshProductionFloor();
+            } catch (error) {
+                console.error('productionFloor.submitActionModalAssignMachine', error);
+                window.erpModalManager?.showToast?.('Unable to assign machine. Please try again.', 'error');
+            } finally {
+                this.actionModalAssignSubmitting = false;
+            }
         },
 
         closeQcModal() {
@@ -8694,6 +8958,56 @@ document.addEventListener('turbo:click', (event) => {
     });
 });
 
+function initNativeDialogs(root = document) {
+    if (! root?.querySelectorAll) {
+        return;
+    }
+
+    root.querySelectorAll('[data-open-dialog]').forEach((button) => {
+        if (button.dataset.nativeDialogBound === '1') {
+            return;
+        }
+
+        button.dataset.nativeDialogBound = '1';
+        button.addEventListener('click', () => {
+            const dialog = document.getElementById(button.dataset.openDialog ?? '');
+
+            if (dialog && typeof dialog.showModal === 'function') {
+                dialog.showModal();
+            }
+        });
+    });
+
+    root.querySelectorAll('[data-close-dialog]').forEach((button) => {
+        if (button.dataset.nativeDialogBound === '1') {
+            return;
+        }
+
+        button.dataset.nativeDialogBound = '1';
+        button.addEventListener('click', () => {
+            const dialog = document.getElementById(button.dataset.closeDialog ?? '');
+
+            if (dialog) {
+                dialog.close();
+            }
+        });
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+
+    if (! openId) {
+        return;
+    }
+
+    const dialog = root.getElementById?.(openId) ?? document.getElementById(openId);
+
+    if (dialog && typeof dialog.showModal === 'function' && dialog.dataset.autoOpened !== '1') {
+        dialog.dataset.autoOpened = '1';
+        dialog.showModal();
+    }
+}
+
 document.addEventListener('turbo:load', () => {
     const frame = document.getElementById('erp-main');
 
@@ -8723,6 +9037,7 @@ document.addEventListener('turbo:load', () => {
     initSharedInboxPoll();
     initSharedInboxListPoll();
     initInboxTopbarBadgePoll();
+    initNativeDialogs(document);
 });
 
 function initSharedInboxPoll() {

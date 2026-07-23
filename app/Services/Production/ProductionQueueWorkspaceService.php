@@ -435,7 +435,8 @@ class ProductionQueueWorkspaceService
             ProductionJobCardStatus::Returned => 50,
             ProductionJobCardStatus::QualityCheck => 75,
             ProductionJobCardStatus::Rework => 60,
-            ProductionJobCardStatus::ReadyForDispatch, ProductionJobCardStatus::Completed => 100,
+            ProductionJobCardStatus::ReadyForDispatch => 100,
+            ProductionJobCardStatus::Completed => 90,
             default => 20,
         };
     }

@@ -34,7 +34,7 @@ class ProductionQcEnforcementTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
-    public function test_qc_pass_moves_job_ready_for_dispatch(): void
+    public function test_qc_pass_moves_job_to_awaiting_finished_goods(): void
     {
         [$company, $branch, , $user, $salesOrder] = $this->productionContext([
             'production.view', 'production.create', 'production.qc',
@@ -53,7 +53,7 @@ class ProductionQcEnforcementTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
     }
 
     public function test_qc_fail_moves_job_to_rework(): void
@@ -129,7 +129,7 @@ class ProductionQcEnforcementTest extends TestCase
             ->post(route('admin.production.job-cards.complete', $jobCard))
             ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
     }
 
     public function test_qc_submission_requires_production_qc_permission(): void

@@ -146,7 +146,7 @@ class Job360WorkspaceTest extends TestCase
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']))
             ->assertOk()
             ->assertSee(__('Dispatch readiness checklist'), false)
-            ->assertSee(__('No delivery notes for this job.'), false);
+            ->assertSee(__('Create delivery note'), false);
     }
 
     public function test_dispatch_tab_placeholder_works(): void

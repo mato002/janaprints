@@ -108,7 +108,10 @@
             ]] : [])"
             :value="old('inventory_item_id', $spec?->inventory_item_id)"
             :required="true"
+            create-route="admin.inventory.items.quick-create"
             refresh-route="admin.lookups.items"
+            permission="catalogue.create"
+            :modal-title="__('Create product')"
             select-class="erp-input w-full"
             :empty-option="false"
         />

@@ -66,6 +66,7 @@ class DeliveryNoteController extends Controller
         $couriers = config('dispatch_couriers.couriers', []);
 
         $invoiceEligibility = $this->invoiceEligibility->check($deliveryNote);
+        $commercialBillingNotes = $this->invoiceEligibility->commercialBillingNotes($deliveryNote);
         $partialDelivery = $this->invoiceEligibility->partialDeliverySummary($deliveryNote);
         $inventoryImpact = app(\App\Services\Dispatch\DispatchInventoryReportService::class)->inventoryImpact($deliveryNote);
         $dispatchReadiness = app(\App\Services\Dispatch\DispatchInventoryService::class)->dispatchReadiness($deliveryNote);
@@ -84,7 +85,9 @@ class DeliveryNoteController extends Controller
         return view('admin.dispatch.delivery-notes.show', [
             'note' => $deliveryNote,
             'couriers' => $couriers,
+            'dispatchForm' => app(\App\Services\Dispatch\DeliveryNoteDispatchFormService::class)->build($deliveryNote),
             'invoiceEligibility' => $invoiceEligibility,
+            'commercialBillingNotes' => $commercialBillingNotes,
             'partialDelivery' => $partialDelivery,
             'inventoryImpact' => $inventoryImpact,
             'dispatchReadiness' => $dispatchReadiness,
@@ -164,6 +167,15 @@ class DeliveryNoteController extends Controller
             'tracking_number' => ['nullable', 'string', 'max:120'],
             'waybill_number' => ['nullable', 'string', 'max:120'],
             'delivery_address' => ['nullable', 'string', 'max:2000'],
+            'vehicle_asset_id' => ['nullable', 'integer', 'exists:fixed_assets,id'],
+            'driver_employee_id' => ['nullable', 'integer', 'exists:employees,id'],
+            'delivery_route' => ['nullable', 'string', 'max:120'],
+            'collector_contact_id' => ['nullable', 'integer', 'exists:customer_contacts,id'],
+            'collection_otp' => ['nullable', 'string', 'max:20'],
+            'delivery_otp' => ['nullable', 'string', 'max:20'],
+            'collector_id_number' => ['nullable', 'string', 'max:120'],
+            'collection_date' => ['nullable', 'date'],
+            'expected_arrival' => ['nullable', 'string', 'max:120'],
         ]);
 
         $this->deliveryNotes->dispatch(

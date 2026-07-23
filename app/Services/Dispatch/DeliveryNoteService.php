@@ -23,6 +23,7 @@ class DeliveryNoteService
         protected NumberGenerator $numberGenerator,
         protected JobProductionControlService $productionControl,
         protected DispatchInventoryService $dispatchInventory,
+        protected DeliveryNoteDispatchAttributeService $dispatchAttributes,
     ) {}
 
     public function generateDeliveryNoteNumber(int $companyId, ?int $branchId = null): string
@@ -163,6 +164,8 @@ class DeliveryNoteService
         return DB::transaction(function () use ($note, $userId, $attributes) {
             $this->dispatchInventory->dispatch($note, $userId);
 
+            $attributes = $this->dispatchAttributes->normalize($note, $attributes);
+
             $courierName = $attributes['courier_name'] ?? $note->courier_name;
             if (isset($attributes['courier_key'])) {
                 $courierName = config('dispatch_couriers.couriers.'.$attributes['courier_key']) ?? $courierName;
@@ -177,6 +180,8 @@ class DeliveryNoteService
                 'courier_name' => $courierName,
                 'tracking_number' => $attributes['tracking_number'] ?? $note->tracking_number,
                 'waybill_number' => $attributes['waybill_number'] ?? $note->waybill_number,
+                'recipient_name' => $attributes['recipient_name'] ?? $note->recipient_name,
+                'recipient_phone' => $attributes['recipient_phone'] ?? $note->recipient_phone,
             ]);
 
             $note = $note->fresh(['items', 'items.inventoryItem', 'customer', 'productionJobCard', 'dispatcher']);

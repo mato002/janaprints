@@ -4,6 +4,7 @@ namespace App\Services\Production;
 
 use App\Enums\ArtworkApprovalDecision;
 use App\Enums\ArtworkRequestStatus;
+use App\Enums\InventoryStockRole;
 use App\Enums\JobCardRouteStepStatus;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\QualityCheckResult;
@@ -20,6 +21,7 @@ use App\Models\Production\QualityCheck;
 use App\Models\Assets\MachineProfile;
 use App\Models\Production\WorkCenter;
 use App\Services\Assets\MachineJobAssignmentService;
+use App\Services\Dispatch\JobDispatchPresentationService;
 use App\Services\Production\ProductionCompletionService;
 use App\Support\Production\JobCardManufacturingPresenter;
 use App\Support\Production\JobCardOutsourceService;
@@ -82,22 +84,22 @@ class Job360WorkspaceService
     /** @var list<string> */
     public const PRIMARY_TABS = [
         self::TAB_OVERVIEW,
-        self::TAB_MANUFACTURING,
         self::TAB_MATERIALS,
-        self::TAB_ARTWORK,
         self::TAB_OPERATIONS,
         self::TAB_QUALITY,
+        self::TAB_OUTPUTS,
         self::TAB_DISPATCH,
+        self::TAB_TIMELINE,
     ];
 
     /** @var list<string> */
     public const MORE_TABS = [
+        self::TAB_MANUFACTURING,
+        self::TAB_ARTWORK,
         self::TAB_COMMERCIAL,
-        self::TAB_TIMELINE,
         self::TAB_COMMUNICATIONS,
         self::TAB_SPECIFICATION,
         self::TAB_ROUTE,
-        self::TAB_OUTPUTS,
         self::TAB_FULFILMENT,
         self::TAB_SESSIONS,
         self::TAB_TRACEABILITY,
@@ -143,11 +145,30 @@ class Job360WorkspaceService
         $needsFinishedItems = ($completion['eligible'] ?? false)
             || in_array($activeTab, [self::TAB_OUTPUTS, self::TAB_OVERVIEW], true);
 
+        $header = $this->header($jobCard);
+        $header['quantity'] = $completion['suggested_quantity_completed'] ?? null;
+        $hasPostedOutput = app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard);
+        $dispatchSummary = app(JobDispatchPresentationService::class)->build($jobCard);
+        $workflowPresentation = app(JobWorkflowPresentationService::class)->present($jobCard);
+        $executionState = $this->mergeWorkflowIntoExecutionState(
+            app(JobExecutionStateService::class)->state($jobCard),
+            $workflowPresentation,
+            $dispatchSummary,
+        );
+        $header['progress_percent'] = $workflowPresentation['workflow_progress_percent'];
+        $header['current_stage_label'] = $workflowPresentation['current_stage_label'];
+        $controlAlerts = $this->filterControlAlertsForDispatch($this->controls->controlAlerts($jobCard), $dispatchSummary);
+
         return [
             'jobCard' => $jobCard,
-            'header' => $this->header($jobCard),
+            'header' => $header,
+            'execution_state' => $executionState,
+            'workflow_presentation' => $workflowPresentation,
+            'dispatch_summary' => $dispatchSummary,
+            'has_posted_output' => $hasPostedOutput,
+            'readiness_checklist' => $this->controls->readinessChecklist($jobCard),
             'kpis' => $this->controls->productionKpis($jobCard),
-            'control_alerts' => $this->controls->controlAlerts($jobCard),
+            'control_alerts' => $controlAlerts,
             'primary_action' => $floorActions->adaptForJobWorkspace($floorActions->primaryAction($jobCard), $jobCard),
             'secondary_actions' => $floorActions->adaptSecondaryForJobWorkspace($floorActions->secondaryActions($jobCard), $jobCard),
             'link_actions' => $this->linkActions($jobCard),
@@ -155,6 +176,7 @@ class Job360WorkspaceService
             'completion' => $completion,
             'finished_items' => $needsFinishedItems ? $this->finishedItemsCatalog($jobCard) : collect(),
             'dispatch_eligibility' => $this->controls->dispatchEligibility($jobCard),
+            'assignable_machines' => $this->assignableMachines(),
             'active_tab' => $activeTab,
             'tab_groups' => $this->tabGroups($jobCard, $activeTab),
             'tabs' => $this->tabNavigation($jobCard, $activeTab),
@@ -231,6 +253,8 @@ class Job360WorkspaceService
             'production_type' => $jobCard->production_type,
             'due_date' => $jobCard->planned_end_date,
             'work_center' => $primaryQueue?->workCenter?->name,
+            'machine_name' => $jobCard->assignedMachine?->asset_name,
+            'operator_name' => $primaryQueue?->assignedOperator?->name,
             'progress_percent' => $this->progressPercent($jobCard),
             'branch' => $jobCard->branch?->name,
             'created_by' => $jobCard->creator?->name,
@@ -329,7 +353,7 @@ class Job360WorkspaceService
             self::TAB_MATERIALS => __('Materials'),
             self::TAB_MATERIAL_ISSUES => __('Issues'),
             self::TAB_MATERIAL_CONSUMPTION => __('Consumption'),
-            self::TAB_OUTPUTS => __('Finished goods'),
+            self::TAB_OUTPUTS => __('Finished Goods'),
             self::TAB_QUALITY => __('QC'),
             self::TAB_FULFILMENT => __('Fulfilment'),
             self::TAB_DISPATCH => __('Dispatch'),
@@ -652,11 +676,20 @@ class Job360WorkspaceService
             'placeholder' => false,
         ];
 
+        $dispatchPresentation = app(JobDispatchPresentationService::class)->build($jobCard);
+
         $steps[] = [
             'label' => __('Dispatch'),
-            'reference' => $this->dispatchReadinessLabel($jobCard),
-            'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_DISPATCH]),
-            'state' => $jobCard->status === ProductionJobCardStatus::ReadyForDispatch ? 'complete' : 'pending',
+            'reference' => $this->dispatchReadinessLabel($jobCard, $dispatchPresentation),
+            'url' => ($dispatchPresentation['has_delivery_note'] ?? false) && ! empty($dispatchPresentation['summary']['show_url'])
+                ? $dispatchPresentation['summary']['show_url']
+                : route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => self::TAB_DISPATCH]),
+            'state' => match (true) {
+                ($dispatchPresentation['has_delivery_note'] ?? false) => 'complete',
+                $jobCard->status === ProductionJobCardStatus::ReadyForDispatch => 'complete',
+                $jobCard->status === ProductionJobCardStatus::Completed => 'pending',
+                default => 'pending',
+            },
             'placeholder' => false,
         ];
 
@@ -664,7 +697,7 @@ class Job360WorkspaceService
             $delivered = $jobCard->deliveryNotes()
                 ->where('status', \App\Enums\Dispatch\DeliveryNoteStatus::Delivered)
                 ->exists();
-            $active = $jobCard->deliveryNotes()
+            $active = $dispatchPresentation['delivery_note'] ?? $jobCard->deliveryNotes()
                 ->whereNot('status', \App\Enums\Dispatch\DeliveryNoteStatus::Cancelled)
                 ->latest('id')
                 ->first();
@@ -903,7 +936,9 @@ class Job360WorkspaceService
             'outputs' => $outputs,
             'completion' => app(ProductionCompletionService::class)->eligibility($jobCard),
             'finished_items' => $this->finishedItemsCatalog($jobCard),
-            'virtual_locations_url' => route('admin.inventory.virtual-locations.index'),
+            'readiness_checklist' => $this->controls->readinessChecklist($jobCard),
+            'has_posted_output' => app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard),
+            'dispatch_eligibility' => $this->controls->dispatchEligibility($jobCard),
         ];
     }
 
@@ -970,8 +1005,19 @@ class Job360WorkspaceService
             'material_requirements' => $requirements,
             'can_consume' => $this->userCanRecordMaterialConsumption(),
             'can_record_waste' => auth()->user()?->can('production.wastage.record') ?? false,
-            'inventory_items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('sku')->get(['id', 'sku', 'item_name']),
-            'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'inventory_items' => InventoryItem::query()
+                ->forTenant()
+                ->where('is_active', true)
+                ->where('stock_role', InventoryStockRole::RawMaterial)
+                ->orderBy('sku')
+                ->get(['id', 'sku', 'item_name']),
+            'warehouses' => Warehouse::query()
+                ->forTenant()
+                ->physical()
+                ->where('is_active', true)
+                ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 WHEN code = 'FG' THEN 2 ELSE 1 END")
+                ->orderBy('name')
+                ->get(['id', 'name', 'code']),
         ];
     }
 
@@ -1053,6 +1099,7 @@ class Job360WorkspaceService
      */
     protected function dispatchTab(ProductionJobCard $jobCard): array
     {
+        $dispatchPresentation = app(JobDispatchPresentationService::class)->build($jobCard);
         $eligibility = $this->controls->dispatchEligibility($jobCard);
         $creationEligibility = $this->controls->deliveryNoteCreationEligibility($jobCard);
 
@@ -1063,13 +1110,15 @@ class Job360WorkspaceService
                 ->get()
             : collect();
 
-        $activeNote = $deliveryNotes->first(
+        $activeNote = $dispatchPresentation['delivery_note'] ?? $deliveryNotes->first(
             fn ($note) => $note->status !== \App\Enums\Dispatch\DeliveryNoteStatus::Cancelled
         );
 
         return [
-            'ready_for_dispatch' => $jobCard->status === ProductionJobCardStatus::ReadyForDispatch,
-            'readiness_label' => $this->dispatchReadinessLabel($jobCard),
+            'dispatch_presentation' => $dispatchPresentation,
+            'ready_for_dispatch' => $jobCard->status === ProductionJobCardStatus::ReadyForDispatch
+                && ! ($dispatchPresentation['has_delivery_note'] ?? false),
+            'readiness_label' => $this->dispatchReadinessLabel($jobCard, $dispatchPresentation),
             'readiness_score' => $this->controls->dispatchReadinessScore($jobCard),
             'checklist' => $this->controls->readinessChecklist($jobCard),
             'dispatch_eligibility' => $eligibility,
@@ -1092,8 +1141,8 @@ class Job360WorkspaceService
 
         if ($total === 0) {
             return match ($jobCard->status) {
-                ProductionJobCardStatus::Completed,
                 ProductionJobCardStatus::ReadyForDispatch => 100,
+                ProductionJobCardStatus::Completed => 90,
                 ProductionJobCardStatus::Draft => 0,
                 ProductionJobCardStatus::Queued => 10,
                 ProductionJobCardStatus::InProduction => 40,
@@ -1123,14 +1172,61 @@ class Job360WorkspaceService
         return str_replace('_', ' ', $jobCard->status->value);
     }
 
-    protected function dispatchReadinessLabel(ProductionJobCard $jobCard): string
+    protected function dispatchReadinessLabel(ProductionJobCard $jobCard, ?array $dispatchPresentation = null): string
     {
-        return match ($jobCard->status) {
-            ProductionJobCardStatus::ReadyForDispatch => __('Ready'),
-            ProductionJobCardStatus::Completed => __('Awaiting dispatch mark'),
-            ProductionJobCardStatus::Cancelled => __('Cancelled'),
-            default => __('Not ready'),
-        };
+        $dispatchPresentation ??= app(JobDispatchPresentationService::class)->build($jobCard);
+
+        if ($dispatchPresentation['has_delivery_note'] ?? false) {
+            return $dispatchPresentation['workflow_label'];
+        }
+
+        return app(JobWorkflowPresentationService::class)->present($jobCard)['phase_label'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $executionState
+     * @param  array<string, mixed>  $workflow
+     * @param  array<string, mixed>  $dispatchSummary
+     * @return array<string, mixed>
+     */
+    protected function mergeWorkflowIntoExecutionState(array $executionState, array $workflow, array $dispatchSummary): array
+    {
+        if ($dispatchSummary['has_delivery_note'] ?? false) {
+            $executionState['dispatch_summary'] = $dispatchSummary;
+
+            return $executionState;
+        }
+
+        if (! in_array($workflow['phase'] ?? '', ['awaiting_fg_post', 'dispatch_blocked', 'dispatch'], true)) {
+            return $executionState;
+        }
+
+        $executionState['phase'] = $workflow['phase'];
+        $executionState['phase_label'] = $workflow['phase_label'];
+        $executionState['next_action'] = $workflow['next_action'];
+        $executionState['workflow_next_step'] = $workflow['next_step'];
+
+        return $executionState;
+    }
+
+    /**
+     * @param  list<array{type: string, message: string}>  $alerts
+     * @param  array<string, mixed>  $dispatchSummary
+     * @return list<array{type: string, message: string}>
+     */
+    protected function filterControlAlertsForDispatch(array $alerts, array $dispatchSummary): array
+    {
+        if (! ($dispatchSummary['has_delivery_note'] ?? false)) {
+            return $alerts;
+        }
+
+        return array_values(array_filter($alerts, function (array $alert): bool {
+            $message = strtolower($alert['message']);
+
+            return ! str_contains($message, 'dispatch')
+                && ! str_contains($message, 'delivery note')
+                && ! str_contains($message, 'ready for dispatch');
+        }));
     }
 
     protected function statusExplanation(ProductionJobCard $jobCard): string
@@ -1140,8 +1236,8 @@ class Job360WorkspaceService
             ProductionJobCardStatus::Queued => __('Job is queued for production.'),
             ProductionJobCardStatus::InProduction => __('Job is actively in production.'),
             ProductionJobCardStatus::QualityCheck => __('Job is undergoing quality inspection.'),
-            ProductionJobCardStatus::Completed => __('Production is complete; dispatch may be pending.'),
-            ProductionJobCardStatus::ReadyForDispatch => __('Job is ready for dispatch.'),
+            ProductionJobCardStatus::Completed => __('Production is complete — post finished goods before dispatch.'),
+            ProductionJobCardStatus::ReadyForDispatch => __('Finished goods posted — job is ready for dispatch.'),
             ProductionJobCardStatus::OnHold => __('Job is on hold.'),
             ProductionJobCardStatus::Rework => __('Job requires rework.'),
             ProductionJobCardStatus::Cancelled => __('Job has been cancelled.'),
@@ -1150,41 +1246,7 @@ class Job360WorkspaceService
 
     protected function nextExpectedAction(ProductionJobCard $jobCard): string
     {
-        $user = auth()->user();
-
-        if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued) && $user?->can('schedule', $jobCard)) {
-            return __('Queue the job for production.');
-        }
-
-        if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction) && $user?->can('start', $jobCard)) {
-            return __('Start production.');
-        }
-
-        if ($jobCard->status === ProductionJobCardStatus::InProduction && $user?->can('start', $jobCard)) {
-            return __('Log operations and consume materials.');
-        }
-
-        if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck) && $user?->can('complete', $jobCard)) {
-            return __('Send job to quality check.');
-        }
-
-        if ($jobCard->status === ProductionJobCardStatus::QualityCheck && $user?->can('create', [QualityCheck::class, $jobCard])) {
-            return __('Record quality check results.');
-        }
-
-        if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch) && $user?->can('complete', $jobCard)) {
-            if (! $this->controls->dispatchEligibility($jobCard)['eligible']) {
-                return __('Resolve dispatch blockers before marking ready for dispatch.');
-            }
-
-            return __('Mark job ready for dispatch.');
-        }
-
-        if ($jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
-            return __('Awaiting dispatch and delivery processing.');
-        }
-
-        return __('Monitor job progress.');
+        return app(JobExecutionStateService::class)->state($jobCard)['next_action'];
     }
 
     /**

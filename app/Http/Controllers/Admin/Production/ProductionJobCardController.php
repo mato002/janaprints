@@ -73,15 +73,15 @@ class ProductionJobCardController extends Controller
         $this->authorize('create', ProductionJobCard::class);
 
         $eligibleOrders = $eligibility->eligibleSalesOrders();
+        $resolution = $eligibility->resolutionContext();
         $fromProductionFloor = $this->wantsProductionFloorReturn($request);
 
         return view('admin.production.job-cards.create', [
             'eligibleOrders' => $eligibleOrders,
+            'eligibilitySummary' => $resolution['summary'],
+            'resolutionContext' => $resolution,
             'productionTypes' => ProductionType::cases(),
             'priorities' => ProductionPriority::cases(),
-            'salesOrdersUrl' => Route::has('admin.sales-orders.dashboard')
-                ? route('admin.sales-orders.dashboard')
-                : null,
             'salesOrderCreateUrl' => Route::has('admin.sales-orders.create')
                 ? route('admin.sales-orders.create', array_filter([
                     'tab' => 'direct',
@@ -89,6 +89,7 @@ class ProductionJobCardController extends Controller
                 ]))
                 : null,
             'fromProductionFloor' => $fromProductionFloor,
+            'preselectedSalesOrderId' => $request->integer('sales_order_id') ?: null,
         ]);
     }
 
@@ -223,6 +224,13 @@ class ProductionJobCardController extends Controller
         $this->authorize('start', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction), 403);
 
+        $execution = app(\App\Services\Production\JobExecutionStateService::class);
+        if (! $execution->isReadyToStart($jobCard)) {
+            throw ValidationException::withMessages([
+                'status' => __('Assign an operator (and machine, when required) before starting work.'),
+            ]);
+        }
+
         $jobCard->update([
             'status' => ProductionJobCardStatus::InProduction,
             'actual_start_date' => $jobCard->actual_start_date ?? now(),
@@ -255,10 +263,10 @@ class ProductionJobCardController extends Controller
 
             if ($qcRequired) {
                 abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed), 403);
-            } elseif ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)) {
-                $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch);
+            } elseif ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Completed);
 
-                return $this->redirectAfterProductionFloorAction($jobCard, __('Job ready for dispatch.'));
+                return $this->redirectAfterProductionFloorAction($jobCard, __('Production complete — post finished goods to release for dispatch.'));
             }
         }
 
@@ -365,5 +373,47 @@ class ProductionJobCardController extends Controller
         );
 
         return $this->redirectAfterProductionFloorAction($jobCard, __('Machine assigned to job card.'));
+    }
+
+    public function assignOperator(
+        Request $request,
+        ProductionJobCard $jobCard,
+        ProductionQueueService $queues,
+    ): RedirectResponse {
+        abort_unless(
+            $request->user()?->can('schedule', $jobCard) || $request->user()?->can('update', $jobCard),
+            403,
+        );
+
+        $validated = $request->validate([
+            'production_queue_id' => ['nullable', 'exists:production_queues,id'],
+            'assigned_operator_id' => ['required', 'exists:users,id'],
+        ]);
+
+        $queue = null;
+        if (! empty($validated['production_queue_id'])) {
+            $queue = $jobCard->queues()->whereKey($validated['production_queue_id'])->first();
+        }
+
+        $queue ??= app(\App\Support\Production\RouteStepQueueService::class)
+            ->currentQueueContext($jobCard)['current'] ?? null;
+
+        if ($queue === null) {
+            throw ValidationException::withMessages([
+                'assigned_operator_id' => __('No active queue entry found for this job.'),
+            ]);
+        }
+
+        abort_unless($queue->production_job_card_id === $jobCard->id, 404);
+
+        $queues->updateEntry($queue, [
+            'assigned_operator_id' => (int) $validated['assigned_operator_id'],
+        ]);
+
+        if ($jobCard->status === ProductionJobCardStatus::Draft && $queues->hasActiveQueue($jobCard)) {
+            $jobCard->update(['status' => ProductionJobCardStatus::Queued]);
+        }
+
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Operator assigned. Job is ready to start when machine requirements are met.'));
     }
 }

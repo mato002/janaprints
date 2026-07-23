@@ -89,7 +89,7 @@ class QualityInspectionService
             ]);
 
             if ($jobCard->status === ProductionJobCardStatus::AwaitingCustomerApproval) {
-                $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch);
+                $jobCard->transitionTo(ProductionJobCardStatus::Completed);
             }
 
             return $check->fresh(['checker', 'customerApprover']);
@@ -128,12 +128,12 @@ class QualityInspectionService
         bool $requiresApproval,
     ): void {
         match ($result) {
-            QualityCheckResult::Passed => $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch),
+            QualityCheckResult::Passed => $jobCard->transitionTo(ProductionJobCardStatus::Completed),
             QualityCheckResult::Failed => $jobCard->transitionTo(ProductionJobCardStatus::Rework),
             QualityCheckResult::ConditionalPass => $jobCard->transitionTo(
                 $requiresApproval
                     ? ProductionJobCardStatus::AwaitingCustomerApproval
-                    : ProductionJobCardStatus::ReadyForDispatch,
+                    : ProductionJobCardStatus::Completed,
             ),
             QualityCheckResult::ReworkRequired => $jobCard->transitionTo(ProductionJobCardStatus::Rework),
         };

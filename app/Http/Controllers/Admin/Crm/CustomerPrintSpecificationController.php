@@ -111,13 +111,7 @@ class CustomerPrintSpecificationController extends Controller
 
         return $this->modalOrRedirect(
             __('Print specification created.'),
-            $this->wantsSalesDeskReturn($request)
-                ? redirect()->route('admin.sales.desk', [
-                    'customer' => $customer->getRouteKey(),
-                    'specification' => $spec->id,
-                    'step' => 3,
-                ])
-                : redirect()->route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications']),
+            $this->redirectAfterSpecificationSave($request, $customer, $spec),
         );
     }
 
@@ -275,6 +269,38 @@ class CustomerPrintSpecificationController extends Controller
     protected function assertSpecificationBelongsToCustomer(Customer $customer, CustomerPrintSpecification $spec): void
     {
         abort_unless($spec->customer_id === $customer->id, 404);
+    }
+
+    protected function redirectAfterSpecificationSave(
+        Request $request,
+        Customer $customer,
+        CustomerPrintSpecification $spec,
+    ): RedirectResponse {
+        if ($this->wantsSalesOrderReturn($request)) {
+            return redirect()->route('admin.sales-orders.create', [
+                'tab' => 'direct',
+                'customer_id' => $customer->id,
+                'print_specification_id' => $spec->id,
+            ]);
+        }
+
+        if ($this->wantsSalesDeskReturn($request)) {
+            return redirect()->route('admin.sales.desk', [
+                'customer' => $customer->getRouteKey(),
+                'specification' => $spec->id,
+                'step' => 3,
+            ]);
+        }
+
+        return redirect()->route('admin.crm.customers.show', [
+            'customer' => $customer,
+            'tab' => 'print-specifications',
+        ]);
+    }
+
+    protected function wantsSalesOrderReturn(Request $request): bool
+    {
+        return $request->input('from') === 'sales-order';
     }
 
     /**

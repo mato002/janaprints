@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Production;
 
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionOutputStatus;
 use App\Models\Production\ProductionOutput;
 use App\Services\Production\ProductionCompletionService;
@@ -19,6 +20,18 @@ class ProductionOutputGovernanceTest extends TestCase
     {
         parent::setUp();
         $this->seedProductionCompletionEnvironment();
+    }
+
+    public function test_posting_finished_goods_moves_job_ready_for_dispatch(): void
+    {
+        [, , $user, , $finishedItem, , $jobCard] = $this->readyJobForCompletion();
+
+        app(ProductionCompletionService::class)->post($jobCard, [
+            'finished_inventory_item_id' => $finishedItem->id,
+            'quantity_completed' => 1,
+        ], $user->id);
+
+        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
     }
 
     public function test_second_fg_completion_blocked_for_same_job(): void

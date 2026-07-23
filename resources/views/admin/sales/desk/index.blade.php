@@ -8,7 +8,14 @@
 
     $createCustomerUrl = route('admin.crm.customers.create', ['from' => 'sales-desk']);
     $createSpecificationUrl = $customer
-        ? route('admin.crm.customers.print-specifications.create', [$customer, 'from' => 'sales-desk'])
+        ? route('admin.crm.print-specifications.quick-create')
+        : null;
+    $deskSpecificationReturnUrl = $customer
+        ? route('admin.sales.desk', [
+            'customer' => $customer->getRouteKey(),
+            'step' => 2,
+            'specification' => '__SPEC__',
+        ])
         : null;
     $createOrderUrl = $customer
         ? route('admin.sales-orders.create', array_filter([
@@ -204,9 +211,22 @@
                                 <p class="text-xs text-slate-600">{{ __('Customer') }}: <span class="font-medium text-slate-900">{{ $customer->name }}</span></p>
                             </div>
                             <div class="flex flex-wrap gap-2">
-                                <x-admin.form-modal-link :href="$createSpecificationUrl">
-                                    {{ __('Create specification') }}
-                                </x-admin.form-modal-link>
+                                @if ($createSpecificationUrl)
+                                    <button
+                                        type="button"
+                                        class="erp-btn-secondary text-sm min-h-[2.75rem]"
+                                        @click="
+                                            window.erpLookupManager?.open(@js($createSpecificationUrl) + '?customer_id=' + @js($customer->id), {
+                                                title: @js(__('Create print specification')),
+                                                onSuccess: (record) => {
+                                                    if (record?.value) {
+                                                        window.location.href = @js($deskSpecificationReturnUrl).replace('__SPEC__', record.value);
+                                                    }
+                                                },
+                                            })
+                                        "
+                                    >{{ __('Create specification') }}</button>
+                                @endif
                                 @if ($operatorMode && ($deskUrls['artwork_request'] ?? null))
                                     <x-admin.form-modal-link :href="$deskUrls['artwork_request']" class="erp-btn-secondary text-xs">
                                         {{ __('Send to designer') }}

@@ -2,9 +2,12 @@
 
 namespace App\Support\Lookup;
 
+use App\Enums\CustomerPrintSpecificationStatus;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Models\Crm\CustomerArtwork;
+use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Crm\CustomerSegment;
 use App\Models\Crm\Lead;
 use App\Models\Crm\LeadSource;
@@ -20,6 +23,8 @@ use App\Models\Hr\PayrollGroupDefinition;
 use App\Models\Procurement\Vendor;
 use App\Models\Sales\Quotation;
 use App\Support\Hr\PayrollGroupService;
+use App\Support\Production\ProductionJobCardEligibilityService;
+use App\Support\Sales\CustomerOrderContextService;
 use App\Support\Platform\FormStatusOptionService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -52,6 +57,10 @@ class LookupOptionService
             'quotations' => $this->quotationOptions($request),
             'form_statuses' => $this->formStatusOptions($request),
             'payroll_groups' => $this->payrollGroupOptions($request),
+            'customer_artworks' => $this->customerArtworkOptions($request),
+            'customer_print_specifications' => $this->customerPrintSpecificationOptions($request),
+            'sales_order_quotations' => $this->salesOrderQuotationOptions($request),
+            'job_card_sales_orders' => $this->jobCardSalesOrderOptions($request),
             default => [],
         };
     }
@@ -421,5 +430,99 @@ class LookupOptionService
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * @return list<array{value: int|string, label: string}>
+     */
+    protected function customerArtworkOptions(Request $request): array
+    {
+        $customerId = $request->integer('customer_id');
+
+        if (! $customerId) {
+            return [];
+        }
+
+        $customer = Customer::query()->forTenant()->find($customerId);
+
+        if (! $customer) {
+            return [];
+        }
+
+        return app(CustomerOrderContextService::class)
+            ->artworkLibrary($customer)
+            ->map(fn (CustomerArtwork $artwork) => [
+                'value' => $artwork->id,
+                'label' => $artwork->artwork_name.' · '.$artwork->versionLabel(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{value: int|string, label: string}>
+     */
+    protected function customerPrintSpecificationOptions(Request $request): array
+    {
+        $customerId = $request->integer('customer_id');
+
+        if (! $customerId) {
+            return [];
+        }
+
+        $customer = Customer::query()->forTenant()->find($customerId);
+
+        if (! $customer) {
+            return [];
+        }
+
+        return CustomerPrintSpecification::query()
+            ->forTenant()
+            ->where('customer_id', $customer->id)
+            ->where('status', CustomerPrintSpecificationStatus::Active)
+            ->whereNotNull('inventory_item_id')
+            ->with('inventoryItem:id,item_name,sku')
+            ->orderBy('name')
+            ->get(['id', 'specification_code', 'name', 'inventory_item_id'])
+            ->map(fn (CustomerPrintSpecification $spec) => [
+                'value' => $spec->id,
+                'label' => trim($spec->specification_code.' · '.$spec->name.($spec->inventoryItem?->item_name ? ' · '.$spec->inventoryItem->item_name : '')),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{value: int|string, label: string}>
+     */
+    protected function salesOrderQuotationOptions(Request $request): array
+    {
+        $query = Quotation::query()
+            ->forTenant()
+            ->selectableForSalesOrderPicker()
+            ->with('customer:id,company_name')
+            ->orderByDesc('quotation_date')
+            ->orderByDesc('id');
+
+        if ($customerId = $request->integer('customer_id')) {
+            $query->where('customer_id', $customerId);
+        }
+
+        return $query
+            ->get()
+            ->map(fn (Quotation $quotation) => [
+                'value' => $quotation->id,
+                'label' => $quotation->salesOrderPickerLabel(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{value: int|string, label: string}>
+     */
+    protected function jobCardSalesOrderOptions(Request $request): array
+    {
+        return app(ProductionJobCardEligibilityService::class)->eligibleSalesOrderOptions();
     }
 }

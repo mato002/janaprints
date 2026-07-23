@@ -131,7 +131,7 @@ class ProductionFloorTest extends TestCase
             ->assertDontSee($jobCard->job_card_number, false);
     }
 
-    public function test_queued_job_on_floor_offers_assign_machine_not_add_to_queue(): void
+    public function test_queued_job_on_floor_offers_assign_operator_before_machine(): void
     {
         [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
 
@@ -143,13 +143,15 @@ class ProductionFloorTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
-            ->assertJsonPath('primary_action.label', __('Assign machine'))
+            ->assertJsonPath('primary_action.label', __('Assign operator'))
             ->assertJsonPath('primary_action.type', 'modal')
-            ->assertJsonPath('primary_action.target', 'machine')
-            ->assertJsonMissing(['primary_action' => ['label' => __('Add to queue')]]);
+            ->assertJsonPath('primary_action.target', 'operator')
+            ->assertJsonMissing(['primary_action' => ['label' => __('Add to queue')]])
+            ->assertJsonMissing(['primary_action' => ['label' => __('Start')]])
+            ->assertJsonMissing(['primary_action' => ['label' => __('Start work')]]);
     }
 
-    public function test_queued_job_with_machine_offers_start_job(): void
+    public function test_queued_job_with_operator_and_machine_offers_start_work(): void
     {
         [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
 
@@ -170,8 +172,21 @@ class ProductionFloorTest extends TestCase
             'status' => \App\Enums\FixedAssetStatus::Active,
         ]);
 
+        $operator = \App\Models\User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'is_active' => true,
+        ]);
+
         $this->releaseJobToFloor($jobCard);
         $jobCard->update(['assigned_machine_asset_id' => $machine->id]);
+
+        $queue = $jobCard->queues()->first();
+        if ($queue) {
+            app(\App\Support\Production\ProductionQueueService::class)->updateEntry($queue, [
+                'assigned_operator_id' => $operator->id,
+            ]);
+        }
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
         app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
@@ -179,7 +194,7 @@ class ProductionFloorTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
-            ->assertJsonPath('primary_action.label', __('Start'));
+            ->assertJsonPath('primary_action.label', __('Start work'));
     }
 
     public function test_floor_lists_newest_job_cards_first(): void

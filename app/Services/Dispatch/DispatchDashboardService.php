@@ -10,6 +10,10 @@ use Illuminate\Http\Request;
 
 class DispatchDashboardService
 {
+    public function __construct(
+        protected DispatchDeskJobPresenter $deskJobs,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -26,7 +30,11 @@ class DispatchDashboardService
             ->where('company_id', $companyId)
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId));
 
-        $readyCount = (clone $jobs)->where('status', ProductionJobCardStatus::ReadyForDispatch)->count();
+        $readyJobsQuery = (clone $jobs)
+            ->where('status', ProductionJobCardStatus::ReadyForDispatch)
+            ->whereDoesntHave('deliveryNotes', fn ($q) => $q->whereNot('status', DeliveryNoteStatus::Cancelled));
+
+        $readyCount = (clone $readyJobsQuery)->count();
         $awaitingPackageCount = (clone $notes)
             ->where('status', DeliveryNoteStatus::Draft)
             ->whereNull('packaged_at')
@@ -38,17 +46,22 @@ class DispatchDashboardService
         $dispatchedCount = (clone $notes)->where('status', DeliveryNoteStatus::Dispatched)->count();
         $deliveredCount = (clone $notes)->where('status', DeliveryNoteStatus::Delivered)->count();
 
-        $readyJobs = (clone $jobs)
-            ->where('status', ProductionJobCardStatus::ReadyForDispatch)
+        $readyJobs = (clone $readyJobsQuery)
             ->with([
                 'customer:id,company_name',
                 'inventoryItem:id,item_name,sku',
                 'salesOrder:id,order_number,required_date',
+                'artworkRequest:id,status',
             ])
+            ->withCount('materialConsumptions')
             ->latest('created_at')
             ->latest('id')
             ->limit(25)
-            ->get(['id', 'public_id', 'job_card_number', 'customer_id', 'inventory_item_id', 'sales_order_id', 'required_date', 'status']);
+            ->get(['id', 'public_id', 'job_card_number', 'customer_id', 'inventory_item_id', 'sales_order_id', 'artwork_request_id', 'required_date', 'status']);
+
+        $presentedJobs = $this->deskJobs->presentMany($readyJobs);
+        $eligibleJobs = collect($presentedJobs)->where('eligible_for_delivery_note', true)->values();
+        $blockedJobs = collect($presentedJobs)->where('eligible_for_delivery_note', false)->values();
 
         $notesQuery = (clone $notes)
             ->with(['customer:id,company_name', 'productionJobCard:id,job_card_number'])
@@ -58,14 +71,18 @@ class DispatchDashboardService
 
         return [
             'summary' => [
-                ['label' => __('Jobs ready'), 'value' => (string) $readyCount, 'filter' => ['focus' => 'ready']],
+                ['label' => __('Ready for delivery note'), 'value' => (string) $eligibleJobs->count(), 'filter' => ['focus' => 'ready']],
+                ['label' => __('Needs attention'), 'value' => (string) $blockedJobs->count(), 'filter' => ['focus' => 'blocked']],
                 ['label' => __('Awaiting package'), 'value' => (string) $awaitingPackageCount, 'filter' => ['status' => DeliveryNoteStatus::Draft->value, 'focus' => 'notes']],
                 ['label' => __('Awaiting dispatch'), 'value' => (string) $awaitingDispatchCount, 'filter' => ['status' => DeliveryNoteStatus::Draft->value, 'focus' => 'notes']],
                 ['label' => __('Dispatched'), 'value' => (string) $dispatchedCount, 'filter' => ['status' => DeliveryNoteStatus::Dispatched->value, 'focus' => 'notes']],
                 ['label' => __('Delivered'), 'value' => (string) $deliveredCount, 'filter' => ['status' => DeliveryNoteStatus::Delivered->value, 'focus' => 'notes']],
             ],
-            'ready_jobs' => $readyJobs,
-            'ready_jobs_count' => $readyCount,
+            'ready_jobs' => $eligibleJobs->all(),
+            'blocked_jobs' => $blockedJobs->all(),
+            'ready_jobs_count' => $eligibleJobs->count(),
+            'blocked_jobs_count' => $blockedJobs->count(),
+            'dispatch_queue_count' => $readyCount,
             'notes' => $notesQuery->paginate(15)->withQueryString(),
             'filter_status' => $statusFilter,
             'invoice_ready' => (clone $notes)->where('invoice_ready', true)->count(),

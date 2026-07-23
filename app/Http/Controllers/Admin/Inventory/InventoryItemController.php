@@ -74,9 +74,13 @@ class InventoryItemController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
+        $this->normalizeMaterialRequirements($request);
+
         $data = $this->validateItem($request, $companyId, $branchId);
         [$data, $customData] = $this->partitionCustomFields('inventory_item', $data, $companyId, $branchId);
         $data['sku'] = $this->resolveSku($data, $request);
+        $data['uses_serial_numbers'] = $request->boolean('uses_serial_numbers');
+        $data['requires_customer_approval'] = $request->boolean('requires_customer_approval');
 
         $item = InventoryItem::query()->create([
             ...$data,
@@ -120,15 +124,25 @@ class InventoryItemController extends Controller
     {
         $this->authorize('update', $item);
 
-        $data = $this->validateItem($request, $item->company_id, $item->branch_id, $item);
+        $this->normalizeMaterialRequirements($request);
+
+        $data = $this->validateItem($request, $item->company_id, $item->branch_id);
         [$data, $customData] = $this->partitionCustomFields('inventory_item', $data, $item->company_id, $item->branch_id);
         $data['sku'] = $this->resolveSku($data, $request);
+        $data['uses_serial_numbers'] = $request->boolean('uses_serial_numbers');
+        $data['requires_customer_approval'] = $request->boolean('requires_customer_approval');
 
         $item->update($data);
         $this->itemAttributes->sync($item, $request->input('attributes', []));
         $this->syncCustomFields($item, 'inventory_item', $customData, $item->company_id);
         $this->syncProductionRoute($item, $request->input('route_steps', []));
-        $this->syncProductMaterials($item, $request->input('material_requirements', []), (int) auth()->id());
+
+        // Only sync BOM when at least one material was submitted — empty Alpine rows
+        // must not wipe an existing bill of materials while editing stock role / name.
+        if ($this->materialRequirementsHaveItems($request)) {
+            $this->syncProductMaterials($item, $request->input('material_requirements', []), (int) auth()->id());
+        }
+
         $this->syncProductQcChecklist($item, $request->input('qc_checklist', []), (int) auth()->id());
         InventoryStockService::syncReorderAlerts($item->fresh());
 
@@ -179,9 +193,27 @@ class InventoryItemController extends Controller
             'qc_checklist.*.label' => ['nullable', 'string', 'max:120'],
             'qc_checklist.*.is_active' => ['nullable', 'boolean'],
         ], $companyId, $branchId);
+    }
 
-        $data['uses_serial_numbers'] = $request->boolean('uses_serial_numbers');
-        $data['requires_customer_approval'] = $request->boolean('requires_customer_approval');
+    protected function normalizeMaterialRequirements(Request $request): void
+    {
+        $lines = collect($request->input('material_requirements', []))
+            ->map(function (array $line): array {
+                $id = $line['inventory_item_id'] ?? null;
+                $line['inventory_item_id'] = ($id === '' || $id === null) ? null : $id;
+
+                return $line;
+            })
+            ->values()
+            ->all();
+
+        $request->merge(['material_requirements' => $lines]);
+    }
+
+    protected function materialRequirementsHaveItems(Request $request): bool
+    {
+        return collect($request->input('material_requirements', []))
+            ->contains(fn (array $line) => filled($line['inventory_item_id'] ?? null));
     }
 
     /**

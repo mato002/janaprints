@@ -55,9 +55,6 @@ class ProductionOutputController extends Controller
             ])
             ->with('status', __('Finished goods output :reference posted.', [
                 'reference' => $output->jobCard?->job_card_number ?? $output->id,
-            ]))
-            ->with('fg_virtual_locations_url', route('admin.inventory.virtual-locations.index', [
-                'role' => 'finished_goods',
             ]));
     }
 }

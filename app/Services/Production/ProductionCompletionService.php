@@ -43,18 +43,21 @@ class ProductionCompletionService
      * @return array{
      *     eligible: bool,
      *     blockers: list<string>,
+     *     blocker_codes: list<string>,
      *     suggested_finished_item_id: int|null,
      *     suggested_quantity_completed: float,
      *     suggested_unit_cost: float|null,
-     *     suggested_notes: string|null
+     *     suggested_notes: string|null,
+     *     fg_warehouse: array{code: string, name: string}|null
      * }
      */
     public function eligibility(ProductionJobCard $jobCard): array
     {
         $blockers = [];
+        $blockerCodes = [];
 
         if ($jobCard->status === ProductionJobCardStatus::Cancelled) {
-            $blockers[] = __('Cancelled jobs cannot be completed to finished goods.');
+            $this->pushBlocker($blockers, $blockerCodes, 'cancelled', __('Cancelled jobs cannot be completed to finished goods.'));
         }
 
         if (! in_array($jobCard->status, [
@@ -63,35 +66,37 @@ class ProductionCompletionService
             ProductionJobCardStatus::Completed,
             ProductionJobCardStatus::ReadyForDispatch,
         ], true)) {
-            $blockers[] = __('Job must be in production, quality check, completed, or ready for dispatch status.');
+            $this->pushBlocker($blockers, $blockerCodes, 'status', __('Job must be in production, quality check, completed, or ready for dispatch status.'));
         }
 
         if ($jobCard->materialConsumptions()->count() === 0) {
-            $blockers[] = __('Record material consumption before completing to finished goods.');
+            $this->pushBlocker($blockers, $blockerCodes, 'consumption', __('Record material consumption before completing to finished goods.'));
         }
 
         if ($this->jobHasPostedOutput($jobCard)) {
-            $blockers[] = __('This production job has already been completed into Finished Goods.');
+            $this->pushBlocker($blockers, $blockerCodes, 'already_posted', __('This production job has already been completed into Finished Goods.'));
         }
 
+        $fgWarehouse = null;
         $companyId = $jobCard->company_id;
         if ($companyId === null) {
-            $blockers[] = __('Company context is missing for this job.');
+            $this->pushBlocker($blockers, $blockerCodes, 'company_context', __('Company context is missing for this job.'));
         } else {
+            $this->virtualWarehouses->ensureDefaults($companyId);
             $fgWarehouse = $this->virtualWarehouses->finishedGoods($companyId);
             if ($fgWarehouse === null) {
-                $blockers[] = __('Finished goods virtual warehouse is not configured.');
+                $this->pushBlocker($blockers, $blockerCodes, 'fg_warehouse', __('Finished goods virtual warehouse could not be created. Ensure the company has at least one branch, then verify virtual locations.'));
             }
         }
 
         $suggestedQuantity = $this->resolveSuggestedQuantity($jobCard);
         $suggestedItem = $this->resolveFinishedItem($jobCard, null, false);
         if ($suggestedItem === null) {
-            $blockers[] = __('Select a finished inventory item for this output.');
+            $this->pushBlocker($blockers, $blockerCodes, 'finished_item', __('Select a finished inventory item for this output.'));
         } elseif ($suggestedItem->stock_role !== InventoryStockRole::FinishedGood) {
-            $blockers[] = __(':item must be set to stock role Finished Good in Inventory before posting output.', [
+            $this->pushBlocker($blockers, $blockerCodes, 'stock_role', __(':item must be set to stock role Finished Good in Inventory before posting output.', [
                 'item' => $suggestedItem->sku.' — '.$suggestedItem->item_name,
-            ]);
+            ]));
         }
 
         $unitCost = $this->deriveUnitCost($jobCard, $suggestedQuantity, null, false);
@@ -99,11 +104,26 @@ class ProductionCompletionService
         return [
             'eligible' => $blockers === [],
             'blockers' => $blockers,
+            'blocker_codes' => $blockerCodes,
             'suggested_finished_item_id' => $suggestedItem?->id,
             'suggested_quantity_completed' => $suggestedQuantity,
             'suggested_unit_cost' => $unitCost,
             'suggested_notes' => $this->resolveSuggestedNotes($jobCard),
+            'fg_warehouse' => $fgWarehouse ? [
+                'code' => $fgWarehouse->code,
+                'name' => $fgWarehouse->name,
+            ] : null,
         ];
+    }
+
+    /**
+     * @param  list<string>  $blockers
+     * @param  list<string>  $blockerCodes
+     */
+    protected function pushBlocker(array &$blockers, array &$blockerCodes, string $code, string $message): void
+    {
+        $blockers[] = $message;
+        $blockerCodes[] = $code;
     }
 
     /**
@@ -243,11 +263,17 @@ class ProductionCompletionService
                 throw $exception;
             }
 
-            if ($jobCard->status === ProductionJobCardStatus::QualityCheck) {
-                $jobCard->update([
-                    'status' => ProductionJobCardStatus::Completed,
-                    'actual_end_date' => $jobCard->actual_end_date ?? now(),
-                ]);
+            $jobCard->refresh();
+
+            if ($jobCard->status !== ProductionJobCardStatus::ReadyForDispatch) {
+                if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)) {
+                    $jobCard->transitionTo(ProductionJobCardStatus::ReadyForDispatch);
+                } else {
+                    $jobCard->update([
+                        'status' => ProductionJobCardStatus::ReadyForDispatch,
+                        'actual_end_date' => $jobCard->actual_end_date ?? now(),
+                    ]);
+                }
             }
 
             return $output->fresh([
@@ -453,6 +479,11 @@ class ProductionCompletionService
     public static function fgReceiptKey(int $productionOutputId): string
     {
         return self::FG_RECEIPT_KEY_PREFIX.$productionOutputId;
+    }
+
+    public function hasPostedFinishedGoods(ProductionJobCard $jobCard): bool
+    {
+        return $this->jobHasPostedOutput($jobCard);
     }
 
     protected function jobHasPostedOutput(ProductionJobCard $jobCard): bool

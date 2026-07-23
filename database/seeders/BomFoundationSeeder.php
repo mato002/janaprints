@@ -71,10 +71,70 @@ class BomFoundationSeeder extends Seeder
             ['inventory_item_id' => $lamination->id, 'quantity_per_unit' => 2, 'waste_factor_percent' => 3],
             ['inventory_item_id' => $packaging->id, 'quantity_per_unit' => 0.02, 'waste_factor_percent' => 0],
         ]);
+
+        $this->seedOpeningStock($company->id, $branch->id, $user->id, [
+            $paper, $ink, $lamination, $packaging, $binding,
+        ]);
+    }
+
+    /**
+     * @param  list<InventoryItem>  $items
+     */
+    protected function seedOpeningStock(int $companyId, int $branchId, int $userId, array $items): void
+    {
+        $warehouse = \App\Models\Inventory\Warehouse::query()
+            ->where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('is_virtual', false)
+            ->where('code', 'MAIN')
+            ->first();
+
+        if ($warehouse === null) {
+            return;
+        }
+
+        $needsStock = collect($items)->filter(function (InventoryItem $item) use ($warehouse) {
+            $balance = (float) \App\Models\Inventory\InventoryMovement::query()
+                ->where('inventory_item_id', $item->id)
+                ->where('warehouse_id', $warehouse->id)
+                ->sum('quantity');
+
+            return $balance < 100;
+        });
+
+        if ($needsStock->isEmpty()) {
+            return;
+        }
+
+        $receipt = \App\Models\Inventory\StockReceipt::query()->create([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'warehouse_id' => $warehouse->id,
+            'receipt_number' => 'OPEN-BOM-'.now()->format('YmdHis'),
+            'source' => \App\Enums\StockReceiptSource::Adjustment,
+            'receipt_date' => now()->toDateString(),
+            'status' => \App\Enums\InventoryDocumentStatus::Draft,
+            'notes' => 'BOM foundation opening stock',
+            'received_by' => $userId,
+        ]);
+
+        foreach ($needsStock as $item) {
+            $receipt->items()->create([
+                'inventory_item_id' => $item->id,
+                'quantity' => 5000,
+                'unit_cost' => (float) ($item->standard_cost ?: 1),
+            ]);
+        }
+
+        \App\Support\StockReceiptService::post($receipt->fresh(['items', 'warehouse']), $userId);
     }
 
     protected function item(int $companyId, int $branchId, ?int $categoryId, int $uomId, string $sku, string $name, float $cost): InventoryItem
     {
+        $stockRole = str_starts_with($sku, 'PROD-') || str_starts_with($sku, 'BCARD-') || str_starts_with($sku, 'FLYER-') || str_starts_with($sku, 'BROCHURE-')
+            ? \App\Enums\InventoryStockRole::FinishedGood
+            : \App\Enums\InventoryStockRole::RawMaterial;
+
         return InventoryItem::query()->updateOrCreate(
             ['company_id' => $companyId, 'branch_id' => $branchId, 'sku' => $sku],
             [
@@ -83,6 +143,7 @@ class BomFoundationSeeder extends Seeder
                 'item_name' => $name,
                 'standard_cost' => $cost,
                 'is_active' => true,
+                'stock_role' => $stockRole,
             ],
         );
     }

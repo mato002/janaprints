@@ -29,13 +29,23 @@
             'quality' => 'qc',
             'outsource' => str_contains(strtolower($action['label']), 'return') ? 'outsource-return' : 'outsource-send',
             'fulfilment' => 'fulfilment',
-            default => 'overview',
+            default => null,
         };
+        $panelLinkUrl = $action['url'];
+        if ($operatorMode) {
+            $panelLinkUrl .= str_contains($panelLinkUrl, '?') ? '&' : '?';
+            $panelLinkUrl .= 'from=production-floor';
+        }
     @endphp
-    @if ($panelTarget !== 'overview')
+    @if ($panelTarget)
         <button type="button" class="{{ $buttonClass }}" @click="openActionModal(@js($jobKey), @js($panelTarget))">{{ $action['label'] }}</button>
     @else
-        <button type="button" class="{{ $buttonClass }}" @click="openActionModal(@js($jobKey), 'machine')">{{ $action['label'] }}</button>
+        <a
+            href="{{ $panelLinkUrl }}"
+            class="{{ $buttonClass }}"
+            @if ($operatorMode) data-erp-modal-open @else data-turbo-frame="erp-main" @endif
+            @click.stop
+        >{{ $action['label'] }}</a>
     @endif
 @else
     @php

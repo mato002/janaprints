@@ -4,6 +4,8 @@ namespace App\Http\Support;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\ViewErrorBag;
 use Illuminate\Validation\ValidationException;
 
 class ModalFormExceptionRenderer
@@ -26,10 +28,15 @@ class ModalFormExceptionRenderer
             ], 422);
         }
 
-        $request->session()->flash('errors', $exception->validator->errors());
-        $request->session()->flash('_old_input', $request->except(['_token', '_method']));
-        $request->session()->flash('form_error_presentation', $presentation);
-        $request->session()->flash('modal_error', $presentation['message']);
+        $errorBag = new ViewErrorBag($exception->validator->errors());
+
+        // Nested app()->handle() runs in the same PHP request. flash() is only
+        // readable on the next cycle, so use now() + View::share for the sub-render.
+        $request->session()->now('errors', $exception->validator->errors());
+        $request->session()->now('_old_input', $request->except(['_token', '_method']));
+        $request->session()->now('form_error_presentation', $presentation);
+        $request->session()->now('modal_error', $presentation['message']);
+        View::share('errors', $errorBag);
 
         $subRequest = Request::create($returnUrl, 'GET');
         $subRequest->headers->set('Turbo-Frame', 'erp-form-modal');

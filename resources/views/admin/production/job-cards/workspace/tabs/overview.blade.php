@@ -1,200 +1,106 @@
 @php
     $summary = $tabData['summary'] ?? [];
-    $customer = $tabData['customer'] ?? null;
-    $salesOrder = $tabData['sales_order'] ?? null;
-    $quotation = $tabData['quotation'] ?? null;
-    $artwork = $tabData['artwork'] ?? null;
-    $queue = $tabData['queue'] ?? [];
     $manufacturingSummary = $tabData['manufacturing_summary'] ?? [];
     $printSource = $tabData['print_specification_source'] ?? null;
+    $machine = $tabData['machine'] ?? [];
 @endphp
 
-@if ($printSource)
-    <x-admin.card class="mb-6">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Source') }}</h3>
-        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-                <dt class="text-slate-500">{{ __('Source') }}</dt>
-                <dd class="font-medium">{{ $printSource['order_source_label'] ?? __('—') }}</dd>
-            </div>
-            <div class="sm:col-span-2">
-                <dt class="text-slate-500">{{ __('Specification') }}</dt>
-                <dd class="font-medium">{{ $printSource['specification_label'] ?? __('—') }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Artwork') }}</dt>
-                <dd class="font-medium">
-                    @if ($printSource['artwork_version'] ?? null)
-                        {{ __('Version :number', ['number' => $printSource['artwork_version']]) }}
-                    @else
-                        {{ __('—') }}
-                    @endif
-                </dd>
-            </div>
-            <div>
-                <dt class="text-slate-500">{{ __('Product') }}</dt>
-                <dd class="font-medium">{{ $printSource['product_name'] ?? __('—') }}</dd>
-            </div>
-        </dl>
-        @if (! empty($printSource['production_notes']) || ! empty($printSource['commercial_notes']) || ! empty($printSource['customer_instructions']))
-            <dl class="mt-4 grid grid-cols-1 gap-3 border-t border-erp-border pt-4 text-sm lg:grid-cols-3">
-                @if (! empty($printSource['production_notes']))
-                    <div>
-                        <dt class="text-slate-500">{{ __('Production notes') }}</dt>
-                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['production_notes'] }}</dd>
-                    </div>
-                @endif
-                @if (! empty($printSource['commercial_notes']))
-                    <div>
-                        <dt class="text-slate-500">{{ __('Commercial notes') }}</dt>
-                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['commercial_notes'] }}</dd>
-                    </div>
-                @endif
-                @if (! empty($printSource['customer_instructions']))
-                    <div>
-                        <dt class="text-slate-500">{{ __('Customer instructions') }}</dt>
-                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['customer_instructions'] }}</dd>
-                    </div>
-                @endif
-            </dl>
-        @endif
-    </x-admin.card>
-@endif
+<div class="job-360-overview">
+    <div class="job-360-overview__zones">
+        @include('admin.production.job-cards.workspace.partials.operations-zone', [
+            'jobCard' => $jobCard,
+            'executionState' => $executionState ?? [],
+            'assignableMachines' => $assignableMachines ?? collect(),
+        ])
 
-<div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-    <x-admin.card class="lg:col-span-1">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Queue status') }}</h3>
-        <dl class="space-y-2 text-sm">
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Current queue') }}</dt><dd>{{ $queue['status_label'] ?? __('—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Work center') }}</dt><dd>{{ $queue['work_center'] ?? __('—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Queue position') }}</dt><dd>{{ $queue['position'] ?? __('—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Priority') }}</dt><dd>{{ str_replace('_', ' ', $queue['priority'] ?? '—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Required date') }}</dt><dd>{{ $queue['required_date'] ?? __('—') }}</dd></div>
-        </dl>
-    </x-admin.card>
-
-    <x-admin.card class="lg:col-span-1">
-        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Job summary') }}</h3>
-        <dl class="space-y-2 text-sm">
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Type') }}</dt><dd>{{ str_replace('_', ' ', $summary['production_type'] ?? '—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Priority') }}</dt><dd>{{ str_replace('_', ' ', $summary['priority'] ?? '—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Planned') }}</dt><dd>{{ ($summary['planned']['start'] ?? '—') }} → {{ ($summary['planned']['end'] ?? '—') }}</dd></div>
-            <div class="flex justify-between gap-2"><dt class="text-slate-500">{{ __('Actual') }}</dt><dd>{{ ($summary['actual']['start'] ?? '—') }} → {{ ($summary['actual']['end'] ?? '—') }}</dd></div>
-        </dl>
-    </x-admin.card>
-
-    <div class="lg:col-span-2 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <x-admin.card>
-            <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Customer') }}</h3>
-            @if ($customer)
-                <p class="text-sm font-medium">{{ $customer['name'] }}</p>
-                <p class="text-xs text-slate-500">{{ $customer['code'] }}</p>
-            @else
-                <p class="text-sm text-slate-500">{{ __('No customer linked.') }}</p>
-            @endif
-        </x-admin.card>
-
-        <x-admin.card>
-            <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Sales order') }}</h3>
-            @if ($salesOrder)
-                <p class="text-sm font-medium">{{ $salesOrder['number'] }}</p>
-                <p class="text-xs text-slate-500">{{ str_replace('_', ' ', $salesOrder['status']) }}</p>
-            @else
-                <p class="text-sm text-slate-500">{{ __('No sales order linked.') }}</p>
-            @endif
-        </x-admin.card>
-
-        <x-admin.card>
-            <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Quotation') }}</h3>
-            @if ($quotation)
-                <p class="text-sm font-medium">{{ $quotation['number'] }}</p>
-                <p class="text-xs text-slate-500">{{ str_replace('_', ' ', $quotation['status']) }}</p>
-            @else
-                <p class="text-sm text-slate-500">{{ __('No quotation linked.') }}</p>
-            @endif
-        </x-admin.card>
-
-        <x-admin.card>
-            <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Artwork') }}</h3>
-            @if ($printSource && ($printSource['artwork_version'] ?? null))
-                <p class="text-sm font-medium">{{ __('Version :number', ['number' => $printSource['artwork_version']]) }}</p>
-                <p class="text-xs text-slate-500">{{ __('From customer print specification') }}</p>
-            @elseif ($artwork)
-                <p class="text-sm font-medium">{{ $artwork['number'] }}</p>
-                <p class="text-xs text-slate-500">{{ str_replace('_', ' ', $artwork['status']) }}</p>
-            @else
-                <p class="text-sm text-slate-500">{{ __('No artwork linked.') }}</p>
-            @endif
-        </x-admin.card>
+        @include('admin.production.job-cards.workspace.partials.commercial-zone', [
+            'jobCard' => $jobCard,
+            'tabData' => $tabData,
+            'dispatchSummary' => $dispatchSummary ?? null,
+        ])
     </div>
-</div>
 
-@if (! empty($manufacturingSummary))
-    <x-admin.card class="mt-6">
-        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Manufacturing instructions') }}</h3>
-            <a href="{{ $manufacturingSummary['manufacturing_url'] }}" class="text-xs font-medium text-erp-primary">{{ __('Open manufacturing tab') }}</a>
-        </div>
-        @if ($manufacturingSummary['has_specification'] ?? false)
-            <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-                <div><dt class="text-slate-500">{{ __('Product') }}</dt><dd class="font-medium">{{ $manufacturingSummary['product'] ?? '—' }}</dd></div>
-                <div><dt class="text-slate-500">{{ __('Quantity') }}</dt><dd class="font-medium">{{ $manufacturingSummary['quantity'] ?? '—' }}</dd></div>
-                <div><dt class="text-slate-500">{{ __('Production type') }}</dt><dd class="font-medium">{{ $manufacturingSummary['production_type'] ?? '—' }}</dd></div>
-                <div><dt class="text-slate-500">{{ __('Estimated sheets') }}</dt><dd class="font-medium">{{ $manufacturingSummary['estimated_sheets'] ?? '—' }}</dd></div>
-            </dl>
-        @else
-            <p class="text-sm text-slate-600">{{ $manufacturingSummary['empty_message'] ?? __('No structured Production Specification available.') }}</p>
-        @endif
-    </x-admin.card>
-@endif
+    @include('admin.production.job-cards.workspace.partials.history-zone', ['jobCard' => $jobCard])
 
-@php $machine = $tabData['machine'] ?? []; @endphp
-<x-admin.card class="mt-6">
-    <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Assigned Machine') }}</h3>
-    @if (! empty($machine['machine_name']))
-        <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
-            <div><dt class="text-slate-500">{{ __('Machine') }}</dt><dd class="font-medium">{{ $machine['machine_name'] }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Status') }}</dt><dd>{{ $machine['machine_status'] }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Expected Throughput') }}</dt><dd>{{ number_format($machine['expected_throughput'] ?? 0, 2) }} / hr</dd></div>
-            <div><dt class="text-slate-500">{{ __('Availability') }}</dt><dd>{{ $machine['availability']['label'] ?? '—' }}</dd></div>
-        </dl>
-        @if (($machine['assignment_history'] ?? collect())->isNotEmpty())
-            <div class="mt-4">
-                <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Assignment History') }}</h4>
-                <ul class="space-y-1 text-sm text-slate-600">
-                    @foreach ($machine['assignment_history'] as $history)
-                        <li>{{ $history->assigned_at?->format('Y-m-d H:i') }} — {{ $history->assigner?->name }}</li>
-                    @endforeach
-                </ul>
+    @if ($printSource || ! empty($manufacturingSummary) || ! empty($machine['machine_name']))
+        <details class="job-360-overview__details">
+            <summary>{{ __('Job details & specifications') }}</summary>
+            <div class="job-360-overview__details-body">
+                @if ($printSource)
+                    <x-admin.card class="mb-4">
+                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Print specification') }}</h3>
+                        <dl class="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                            <div>
+                                <dt class="text-slate-500">{{ __('Source') }}</dt>
+                                <dd class="font-medium">{{ $printSource['order_source_label'] ?? __('—') }}</dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-slate-500">{{ __('Specification') }}</dt>
+                                <dd class="font-medium">{{ $printSource['specification_label'] ?? __('—') }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500">{{ __('Product') }}</dt>
+                                <dd class="font-medium">{{ $printSource['product_name'] ?? __('—') }}</dd>
+                            </div>
+                        </dl>
+                        @if (! empty($printSource['production_notes']) || ! empty($printSource['commercial_notes']) || ! empty($printSource['customer_instructions']))
+                            <dl class="mt-4 grid grid-cols-1 gap-3 border-t border-erp-border pt-4 text-sm lg:grid-cols-3">
+                                @if (! empty($printSource['production_notes']))
+                                    <div>
+                                        <dt class="text-slate-500">{{ __('Production notes') }}</dt>
+                                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['production_notes'] }}</dd>
+                                    </div>
+                                @endif
+                                @if (! empty($printSource['commercial_notes']))
+                                    <div>
+                                        <dt class="text-slate-500">{{ __('Commercial notes') }}</dt>
+                                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['commercial_notes'] }}</dd>
+                                    </div>
+                                @endif
+                                @if (! empty($printSource['customer_instructions']))
+                                    <div>
+                                        <dt class="text-slate-500">{{ __('Customer instructions') }}</dt>
+                                        <dd class="mt-1 whitespace-pre-wrap text-slate-700">{{ $printSource['customer_instructions'] }}</dd>
+                                    </div>
+                                @endif
+                            </dl>
+                        @endif
+                    </x-admin.card>
+                @endif
+
+                @if (! empty($manufacturingSummary))
+                    <x-admin.card class="mb-4">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Manufacturing instructions') }}</h3>
+                            <a href="{{ $manufacturingSummary['manufacturing_url'] }}" class="text-xs font-medium text-erp-primary" data-turbo-frame="erp-main">{{ __('Open manufacturing tab') }}</a>
+                        </div>
+                        @if ($manufacturingSummary['has_specification'] ?? false)
+                            <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                                <div><dt class="text-slate-500">{{ __('Product') }}</dt><dd class="font-medium">{{ $manufacturingSummary['product'] ?? '—' }}</dd></div>
+                                <div><dt class="text-slate-500">{{ __('Quantity') }}</dt><dd class="font-medium">{{ $manufacturingSummary['quantity'] ?? '—' }}</dd></div>
+                                <div><dt class="text-slate-500">{{ __('Production type') }}</dt><dd class="font-medium">{{ $manufacturingSummary['production_type'] ?? '—' }}</dd></div>
+                                <div><dt class="text-slate-500">{{ __('Estimated sheets') }}</dt><dd class="font-medium">{{ $manufacturingSummary['estimated_sheets'] ?? '—' }}</dd></div>
+                            </dl>
+                        @else
+                            <p class="text-sm text-slate-600">{{ $manufacturingSummary['empty_message'] ?? __('No structured Production Specification available.') }}</p>
+                        @endif
+                    </x-admin.card>
+                @endif
+
+                @if (! empty($machine['machine_name']))
+                    <x-admin.card>
+                        <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Machine profile') }}</h3>
+                        <dl class="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                            <div><dt class="text-slate-500">{{ __('Machine') }}</dt><dd class="font-medium">{{ $machine['machine_name'] }}</dd></div>
+                            <div><dt class="text-slate-500">{{ __('Status') }}</dt><dd>{{ $machine['machine_status'] }}</dd></div>
+                            <div><dt class="text-slate-500">{{ __('Expected throughput') }}</dt><dd>{{ number_format($machine['expected_throughput'] ?? 0, 2) }} / hr</dd></div>
+                            <div><dt class="text-slate-500">{{ __('Availability') }}</dt><dd>{{ $machine['availability']['label'] ?? '—' }}</dd></div>
+                        </dl>
+                    </x-admin.card>
+                @endif
             </div>
-        @endif
-    @else
-        <p class="text-sm text-slate-500">{{ __('No machine assigned.') }}</p>
+        </details>
     @endif
 
-    @can('machines.assign')
-        @if (($tabData['machine_options'] ?? collect())->isNotEmpty())
-            <form method="POST" action="{{ route('admin.production.job-cards.assign-machine', $jobCard) }}" class="mt-4 flex flex-wrap items-end gap-2">
-                @csrf
-                <div class="min-w-[14rem] flex-1">
-                    <label class="erp-label">{{ __('Assign Machine') }}</label>
-                    <select name="assigned_machine_asset_id" class="erp-select w-full" required>
-                        <option value="">{{ __('Select machine…') }}</option>
-                        @foreach ($tabData['machine_options'] as $option)
-                            <option value="{{ $option->fixed_asset_id }}">{{ $option->asset?->asset_name }} ({{ $option->machine_code }})</option>
-                        @endforeach
-                    </select>
-                </div>
-                <button type="submit" class="erp-btn-primary">{{ __('Assign') }}</button>
-            </form>
-        @endif
-    @endcan
-</x-admin.card>
-
-<x-admin.card class="mt-6">
-    <h3 class="mb-2 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Current status') }}</h3>
-    <p class="text-sm text-slate-700">{{ $tabData['status_explanation'] ?? '' }}</p>
-    <p class="mt-3 text-sm"><span class="font-medium text-erp-primary">{{ __('Next action') }}:</span> {{ $tabData['next_action'] ?? '' }}</p>
-</x-admin.card>
-
-@include('admin.production.job-cards.workspace.partials.outsource', ['jobCard' => $jobCard, 'tabData' => $tabData])
+    @include('admin.production.job-cards.workspace.partials.outsource', ['jobCard' => $jobCard, 'tabData' => $tabData])
+</div>

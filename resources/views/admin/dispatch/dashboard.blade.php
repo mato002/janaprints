@@ -26,7 +26,7 @@
 
     <x-admin.page-header
         :title="__('Dispatch Desk')"
-        :description="__('Ready jobs and delivery notes in one place — create notes, dispatch, and confirm delivery.')"
+        :description="__('Track dispatch readiness, create delivery notes, and confirm delivery — actions follow job state.')"
     >
         <x-slot name="secondary">
             <a href="{{ WorkspaceEmbed::url(route('admin.dispatch.calendar')) }}" class="erp-btn-secondary" data-turbo-frame="{{ $listFrame }}" data-turbo-action="advance">{{ __('Calendar') }}</a>
@@ -38,7 +38,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div class="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         @foreach ($d['summary'] as $card)
             <a
                 href="{{ WorkspaceEmbed::url(route('admin.dispatch.dashboard', $card['filter'] ?? [])) }}"
@@ -52,62 +52,71 @@
     </div>
 
   @if ($focus !== 'notes')
-    <x-admin.card :padding="false" class="mb-6" id="ready-jobs">
-        <div class="border-b border-erp-border px-4 py-3">
-            <h2 class="text-sm font-semibold text-erp-primary">
-                {{ __('Jobs ready for dispatch') }}
-                <span class="ml-1 font-normal text-slate-500">({{ $d['ready_jobs_count'] }})</span>
-            </h2>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="erp-table w-full text-sm">
-                <thead>
-                    <tr>
-                        <th>{{ __('Job') }}</th>
-                        <th>{{ __('Customer') }}</th>
-                        <th>{{ __('Product') }}</th>
-                        <th>{{ __('Due') }}</th>
-                        <th class="erp-table-actions-col">{{ __('Action') }}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($d['ready_jobs'] as $job)
+    @if ($focus === 'ready' || $focus === '')
+        <x-admin.card :padding="false" class="mb-6" id="ready-jobs">
+            <div class="border-b border-erp-border px-4 py-3">
+                <h2 class="text-sm font-semibold text-erp-primary">
+                    {{ __('Ready for delivery note') }}
+                    <span class="ml-1 font-normal text-slate-500">({{ $d['ready_jobs_count'] }})</span>
+                </h2>
+                <p class="mt-1 text-xs text-slate-500">{{ __('Jobs that passed all dispatch checks — safe to create a delivery note.') }}</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="erp-table w-full text-sm">
+                    <thead>
                         <tr>
-                            <td class="font-mono text-xs whitespace-nowrap">
-                                <a href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl(route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch'])) }}" class="text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">
-                                    {{ $job->job_card_number }}
-                                </a>
-                            </td>
-                            <td>{{ $job->customer?->company_name ?? '—' }}</td>
-                            <td>
-                                {{ $job->inventoryItem?->item_name ?? '—' }}
-                                @if ($job->inventoryItem?->sku)
-                                    <span class="block text-[11px] text-slate-500">{{ $job->inventoryItem->sku }}</span>
-                                @endif
-                            </td>
-                            <td class="whitespace-nowrap text-xs">
-                                {{ $job->required_date?->format('Y-m-d') ?? $job->salesOrder?->required_date?->format('Y-m-d') ?? '—' }}
-                            </td>
-                            <td class="erp-table-actions-col">
-                                @if ($d['can_create_note'])
-                                    <form method="POST" action="{{ route('admin.dispatch.delivery-notes.store-from-job', $job) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" class="erp-btn-primary text-xs py-1">{{ __('Create delivery note') }}</button>
-                                    </form>
-                                @else
-                                    <a href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl(route('admin.production.job-cards.show', ['jobCard' => $job, 'tab' => 'dispatch'])) }}" class="text-sm text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open job') }}</a>
-                                @endif
-                            </td>
+                            <th>{{ __('Job') }}</th>
+                            <th>{{ __('Customer') }}</th>
+                            <th>{{ __('Product') }}</th>
+                            <th>{{ __('Due') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th class="erp-table-actions-col">{{ __('Action') }}</th>
                         </tr>
-                    @empty
+                    </thead>
+                    <tbody>
+                        @forelse ($d['ready_jobs'] as $row)
+                            @include('admin.dispatch.partials.desk-job-row', ['row' => $row, 'canCreateNote' => $d['can_create_note']])
+                        @empty
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-500">{{ __('No jobs are ready for a delivery note yet.') }}</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </x-admin.card>
+    @endif
+
+    @if (($d['blocked_jobs_count'] ?? 0) > 0 && ($focus === 'blocked' || $focus === ''))
+        <x-admin.card :padding="false" class="mb-6" id="blocked-jobs">
+            <div class="border-b border-erp-border px-4 py-3">
+                <h2 class="text-sm font-semibold text-erp-primary">
+                    {{ __('Needs attention before dispatch') }}
+                    <span class="ml-1 font-normal text-slate-500">({{ $d['blocked_jobs_count'] }})</span>
+                </h2>
+                <p class="mt-1 text-xs text-slate-500">{{ __('These jobs are marked ready for dispatch but still need a prerequisite step. Complete the next action in order.') }}</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="erp-table w-full text-sm">
+                    <thead>
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-slate-500">{{ __('No jobs are ready for dispatch.') }}</td>
+                            <th>{{ __('Job') }}</th>
+                            <th>{{ __('Customer') }}</th>
+                            <th>{{ __('Product') }}</th>
+                            <th>{{ __('Due') }}</th>
+                            <th>{{ __('Status') }}</th>
+                            <th class="erp-table-actions-col">{{ __('Next step') }}</th>
                         </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </x-admin.card>
+                    </thead>
+                    <tbody>
+                        @foreach ($d['blocked_jobs'] as $row)
+                            @include('admin.dispatch.partials.desk-job-row', ['row' => $row, 'canCreateNote' => false])
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </x-admin.card>
+    @endif
   @endif
 
     <x-admin.card :padding="false" id="delivery-notes">

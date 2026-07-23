@@ -44,13 +44,13 @@ class DispatchInventoryService
                 ->count();
 
             if ($postedOutputs === 0) {
-                $blockers[] = __('Post completed output to Finished Goods on the linked job card before dispatching.');
+                $blockers[] = __('Finished goods have not been posted on the linked job card.');
             }
         }
 
         foreach ($note->items as $line) {
             if (! $line->inventory_item_id) {
-                $blockers[] = __('Line “:item” is not linked to a finished-goods inventory item.', [
+                $blockers[] = __('Line “:item” is not linked to finished goods inventory.', [
                     'item' => $line->description,
                 ]);
             } elseif ((float) $line->quantity <= 0) {
@@ -192,7 +192,7 @@ class DispatchInventoryService
         foreach ($note->items as $line) {
             if (! $line->inventory_item_id || (float) $line->quantity <= 0) {
                 throw ValidationException::withMessages([
-                    'items' => __('Each delivery line must reference finished goods inventory with quantity before dispatch.'),
+                    'items' => __('Finished goods have not been posted — delivery lines have no inventory to ship.'),
                 ]);
             }
 

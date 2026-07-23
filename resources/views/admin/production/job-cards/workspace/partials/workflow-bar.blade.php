@@ -3,6 +3,15 @@
     $secondary = $secondaryActions ?? [];
     $links = $linkActions ?? [];
     $completion = $completion ?? ['eligible' => false, 'blockers' => []];
+    $activeTab = $activeTab ?? null;
+    $eligible = (bool) ($completion['eligible'] ?? false);
+    $blockers = $completion['blockers'] ?? [];
+    $remaining = count($blockers);
+    $suggestedQty = $completion['suggested_quantity_completed'] ?? null;
+    $postLabel = $suggestedQty
+        ? __('Post :qty finished goods', ['qty' => number_format((float) $suggestedQty, 0)])
+        : __('Post to finished goods');
+    $onOutputsTab = $activeTab === 'outputs';
 @endphp
 
 <div class="job-360-workflow mb-4 rounded-lg border border-erp-border bg-white px-4 py-3">
@@ -27,10 +36,22 @@
             @endif
 
             @can('production.outputs.post')
-                @if (($completion['eligible'] ?? false) || ($finishedItems ?? collect())->isNotEmpty())
-                    <button type="button" class="erp-btn-secondary text-sm" data-open-dialog="complete-fg-modal">
-                        {{ __('Post finished goods') }}
-                    </button>
+                @if (! $onOutputsTab && (($completion['eligible'] ?? false) || ($finishedItems ?? collect())->isNotEmpty()))
+                    @if ($eligible)
+                        <button type="button" class="erp-btn-secondary text-sm" data-open-dialog="complete-fg-modal">{{ $postLabel }}</button>
+                    @else
+                        <button type="button" class="erp-btn-secondary text-sm opacity-60" disabled>
+                            {{ __('Post to finished goods') }}
+                        </button>
+                        @if ($remaining > 0)
+                            <span class="text-xs text-amber-700">{{ trans_choice(':count requirement remaining|:count requirements remaining', $remaining, ['count' => $remaining]) }}</span>
+                        @endif
+                    @endif
+                    <a
+                        href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']) }}"
+                        class="erp-link text-sm self-center"
+                        data-turbo-frame="erp-main"
+                    >{{ __('Finished Goods') }}</a>
                 @endif
             @endcan
 
@@ -81,12 +102,6 @@
         @endif
     </div>
 
-    @if (! ($completion['eligible'] ?? true) && ! empty($completion['blockers'] ?? []))
-        <p class="mt-2 text-xs text-amber-800">
-            {{ implode(' · ', $completion['blockers']) }}
-        </p>
-    @endif
-
     @can('schedule', $jobCard)
         <form method="POST" action="{{ route('admin.production.job-cards.schedule', $jobCard) }}" class="mt-3 flex flex-wrap items-end gap-2 border-t border-erp-border pt-3">
             @csrf
@@ -104,9 +119,11 @@
 </div>
 
 @can('production.outputs.post')
-    @include('admin.production.job-cards.workspace.partials.complete-finished-goods-modal', [
-        'jobCard' => $jobCard,
-        'completion' => $completion,
-        'finishedItems' => $finishedItems ?? collect(),
-    ])
+    @unless ($onOutputsTab)
+        @include('admin.production.job-cards.workspace.partials.complete-finished-goods-modal', [
+            'jobCard' => $jobCard,
+            'completion' => $completion,
+            'finishedItems' => $finishedItems ?? collect(),
+        ])
+    @endunless
 @endcan

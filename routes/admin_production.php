@@ -41,6 +41,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
                 ->name('floor.assign-machine');
         });
 
+        Route::middleware('permission:production.edit')->group(function () {
+            Route::post('floor/jobs/{jobCard}/assign-operator', [ProductionFloorController::class, 'assignOperator'])
+                ->name('floor.assign-operator');
+        });
+
         Route::middleware('permission:production.qc')->group(function () {
             Route::post('floor/jobs/{jobCard}/quick-pass-qc', [ProductionFloorController::class, 'quickPassQc'])
                 ->name('floor.quick-pass-qc');
@@ -120,6 +125,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('job-cards/{jobCard}/pause', [ProductionJobCardController::class, 'pause'])->name('job-cards.pause');
             Route::post('job-cards/{jobCard}/resume', [ProductionJobCardController::class, 'resume'])->name('job-cards.resume');
             Route::post('job-cards/{jobCard}/cancel', [ProductionJobCardController::class, 'cancel'])->name('job-cards.cancel');
+            Route::post('job-cards/{jobCard}/assign-operator', [ProductionJobCardController::class, 'assignOperator'])
+                ->name('job-cards.assign-operator');
         });
 
         Route::middleware('permission:machines.assign')->group(function () {

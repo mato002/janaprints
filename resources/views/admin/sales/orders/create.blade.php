@@ -9,6 +9,7 @@
     @php
         $fields = $formFields ?? [];
         $contextUrl = route('admin.sales-orders.customer-order-context', ['customer' => '__CUSTOMER__']);
+        $createSpecificationUrl = route('admin.crm.print-specifications.quick-create');
         $customerRouteKeys = $customers->mapWithKeys(
             fn ($customer) => [(string) $customer->id => $customer->public_id],
         );
@@ -107,6 +108,39 @@
                 this.form.billing_type = spec.default_billing_type ?? this.context?.billing_defaults?.billing_type ?? '';
                 this.form.fulfilment_method = spec.default_fulfilment_method ?? 'collection';
             },
+            openCreateSpecification() {
+                if (!this.customerId) {
+                    window.erpModalManager?.showToast?.(@js(__('Select a customer first.')), 'error');
+
+                    return;
+                }
+
+                if (!window.erpLookupManager) {
+                    return;
+                }
+
+                const url = @js($createSpecificationUrl) + '?' + new URLSearchParams({ customer_id: this.customerId }).toString();
+
+                window.erpLookupManager.open(url, {
+                    title: @js(__('Create print specification')),
+                    onSuccess: async (record) => {
+                        await this.loadContext();
+
+                        if (!record?.value) {
+                            return;
+                        }
+
+                        this.selectedSpecId = String(record.value);
+                        const spec = this.context?.print_specifications?.find(
+                            (item) => String(item.id) === String(record.value),
+                        );
+
+                        if (spec) {
+                            this.selectSpecification(spec);
+                        }
+                    },
+                });
+            },
         }"
         x-init="
             if (customerId) {
@@ -138,26 +172,14 @@
                 @endif
                 <input type="hidden" name="entry_mode" value="quotation">
                 @if(($fields['quotation_id']['visible'] ?? true))
-                    <div>
-                        <label class="erp-label" for="quotation_id">{{ __('Quotation') }}</label>
-                        <select id="quotation_id" name="quotation_id" class="erp-select w-full min-h-[2.75rem]" @required($fields['quotation_id']['required'] ?? true)>
-                            <option value="">{{ __('Select quotation') }}</option>
-                            @foreach ($eligibleQuotations as $quotation)
-                                <option value="{{ $quotation->id }}" @selected(old('quotation_id', $selectedQuotationId ?? null) == $quotation->id)>
-                                    {{ $quotation->salesOrderConversionLabel() }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @if ($eligibleQuotations->isEmpty())
-                            <p class="mt-2 text-sm text-slate-500">{{ __('No accepted quotations are available. Accept a quotation first, or use Direct Order.') }}</p>
-                        @elseif ($eligibleQuotations->every(fn ($quotation) => ! $quotation->isReadyForSalesOrderConversion()))
-                            <p class="mt-2 text-sm text-amber-700">{{ __('Selected quotations still need approved artwork before conversion.') }}</p>
-                        @endif
-                    </div>
+                    @include('admin.sales.orders.partials.quotation-picker-field', [
+                        'value' => old('quotation_id', $selectedQuotationId ?? null),
+                        'required' => ($fields['quotation_id']['required'] ?? true),
+                    ])
                 @endif
                 @include('admin.partials.form-custom-fields', ['fields' => $fields])
                 <x-admin.form-modal-actions class="erp-form-modal__actions--sticky">
-                    <button type="submit" class="erp-btn-primary min-h-[2.75rem] w-full sm:w-auto" @disabled($eligibleQuotations->isEmpty())>{{ __('Create from quotation') }}</button>
+                    <button type="submit" class="erp-btn-primary min-h-[2.75rem] w-full sm:w-auto">{{ __('Create from quotation') }}</button>
                 </x-admin.form-modal-actions>
             </x-admin.form-shell>
         </div>
@@ -197,14 +219,20 @@
                     <p class="text-sm text-red-600" x-text="contextError"></p>
                 </template>
 
-                <template x-if="customerId && !loadingContext && !contextError && context && !context.print_specifications?.length">
-                    <p class="text-sm text-slate-500">{{ __('No active print specifications for this customer.') }}</p>
-                </template>
-
                 <template x-if="context && !loadingContext">
                     <div class="space-y-4">
                         <div>
-                            <h3 class="mb-2 text-sm font-semibold text-slate-900">{{ __('Print specifications') }}</h3>
+                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="text-sm font-semibold text-slate-900">{{ __('Print specifications') }}</h3>
+                                @if ($canCreateSpecification ?? false)
+                                    <button
+                                        type="button"
+                                        class="erp-btn-secondary text-xs"
+                                        x-show="customerId"
+                                        @click="openCreateSpecification()"
+                                    >{{ __('New specification') }}</button>
+                                @endif
+                            </div>
                             <div class="overflow-x-auto rounded-lg border border-erp-border">
                                 <table class="erp-table w-full text-sm">
                                     <thead>
@@ -233,7 +261,9 @@
                                             </tr>
                                         </template>
                                         <tr x-show="!context.print_specifications?.length">
-                                            <td colspan="6" class="py-6 text-center text-slate-500">{{ __('No active print specifications for this customer.') }}</td>
+                                            <td colspan="6" class="py-6 text-center text-slate-500">
+                                                {{ __('No active print specifications for this customer.') }}
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>

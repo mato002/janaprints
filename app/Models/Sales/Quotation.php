@@ -118,6 +118,32 @@ class Quotation extends Model
             ->whereDoesntHave('salesOrder');
     }
 
+    public function scopeSelectableForSalesOrderPicker(Builder $query): Builder
+    {
+        return $query
+            ->whereNotNull('customer_id')
+            ->whereDoesntHave('salesOrder')
+            ->whereNotIn('status', [
+                QuotationStatus::Rejected,
+                QuotationStatus::Expired,
+                QuotationStatus::Converted,
+            ]);
+    }
+
+    public function salesOrderPickerLabel(): string
+    {
+        $label = trim($this->quotation_number.' — '.($this->customer?->company_name ?? ''));
+        $label .= ' · '.ucfirst(str_replace('_', ' ', $this->status->value));
+
+        if ($this->status === QuotationStatus::Accepted && ! $this->isReadyForSalesOrderConversion()) {
+            $label .= ' ('.__('pending artwork approval').')';
+        } elseif ($this->status !== QuotationStatus::Accepted) {
+            $label .= ' ('.__('accept quotation first').')';
+        }
+
+        return $label;
+    }
+
     public function scopeEligibleForSalesOrderConversion(Builder $query): Builder
     {
         return $query

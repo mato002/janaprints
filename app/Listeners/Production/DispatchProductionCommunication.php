@@ -21,11 +21,13 @@ class DispatchProductionCommunication implements ShouldQueue
             ProductionJobCardStatus::AwaitingCustomerApproval,
         ], true);
 
-        if ($event->status === ProductionJobCardStatus::ReadyForDispatch) {
-            if ($fromQc) {
-                $this->dispatcher->dispatch(DomainCommunicationEvent::QualityApproved, $event->jobCard);
-            }
+        if ($event->status === ProductionJobCardStatus::Completed && $fromQc) {
+            $this->dispatcher->dispatch(DomainCommunicationEvent::QualityApproved, $event->jobCard);
 
+            return;
+        }
+
+        if ($event->status === ProductionJobCardStatus::ReadyForDispatch) {
             return;
         }
 

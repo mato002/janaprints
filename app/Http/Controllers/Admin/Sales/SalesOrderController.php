@@ -58,6 +58,7 @@ class SalesOrderController extends Controller
             'fulfilmentMethods' => \App\Enums\FulfilmentMethod::cases(),
             'priorities' => \App\Enums\ProductionPriority::cases(),
             'canSendToProduction' => auth()->user()?->can('sales_orders.production') ?? false,
+            'canCreateSpecification' => auth()->user()?->can('crm.customers.edit') ?? false,
         ]);
     }
 
@@ -479,7 +480,7 @@ class SalesOrderController extends Controller
 
         $eligibleQuotations = Quotation::query()
             ->forTenant()
-            ->availableForSalesOrderCreation()
+            ->selectableForSalesOrderPicker()
             ->with('customer')
             ->orderByDesc('quotation_date')
             ->get();

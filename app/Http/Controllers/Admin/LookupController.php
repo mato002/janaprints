@@ -108,6 +108,26 @@ class LookupController extends Controller
         return $this->respond('payroll_groups', $request);
     }
 
+    public function customerArtworks(Request $request): JsonResponse
+    {
+        return $this->respond('customer_artworks', $request);
+    }
+
+    public function customerPrintSpecifications(Request $request): JsonResponse
+    {
+        return $this->respond('customer_print_specifications', $request);
+    }
+
+    public function salesOrderQuotations(Request $request): JsonResponse
+    {
+        return $this->respond('sales_order_quotations', $request);
+    }
+
+    public function jobCardSalesOrders(Request $request): JsonResponse
+    {
+        return $this->respond('job_card_sales_orders', $request);
+    }
+
     protected function respond(string $type, Request $request): JsonResponse
     {
         return response()->json($this->lookups->options($type, $request));

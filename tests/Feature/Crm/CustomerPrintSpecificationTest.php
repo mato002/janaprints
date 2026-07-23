@@ -70,6 +70,25 @@ class CustomerPrintSpecificationTest extends TestCase
         session(['active_company_id' => $this->company->id, 'active_branch_id' => $this->branch->id]);
     }
 
+    public function test_store_from_sales_order_returns_to_direct_order_modal(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->post(route('admin.crm.customers.print-specifications.store', $this->customer), [
+                'from' => 'sales-order',
+                'inventory_item_id' => $this->product->id,
+                'name' => 'Walk-in Spec',
+                'status' => CustomerPrintSpecificationStatus::Active->value,
+            ]);
+
+        $spec = CustomerPrintSpecification::query()->where('name', 'Walk-in Spec')->firstOrFail();
+
+        $response->assertRedirect(route('admin.sales-orders.create', [
+            'tab' => 'direct',
+            'customer_id' => $this->customer->id,
+            'print_specification_id' => $spec->id,
+        ]));
+    }
+
     public function test_can_create_print_specification_with_required_product(): void
     {
         $this->actingAs($this->user)

@@ -49,22 +49,53 @@ class DeliveryInvoiceEligibilityService
                 $blockers[] = __('The linked sales order has no remaining billable balance. It may already have been invoiced from the order.');
             }
 
-            $unlinkedInvoices = CustomerInvoice::query()
-                ->where('sales_order_id', $order?->id)
-                ->where('company_id', $note->company_id)
-                ->whereNull('delivery_note_id')
-                ->whereNot('status', CustomerInvoiceStatus::Cancelled)
-                ->exists();
-
-            if ($unlinkedInvoices && ! $this->hasActiveInvoice($note)) {
-                $warnings[] = __('This sales order already has invoice(s) that are not linked to this delivery note.');
-            }
         }
 
         return [
             'eligible' => $blockers === [],
             'blockers' => $blockers,
             'warnings' => $warnings,
+        ];
+    }
+
+    /**
+     * Informational Commercial billing context — not dispatch blockers.
+     *
+     * @return list<string>
+     */
+    public function commercialBillingNotes(DeliveryNote $note): array
+    {
+        if (! $note->sales_order_id || $this->hasActiveInvoice($note)) {
+            return [];
+        }
+
+        $order = $note->relationLoaded('salesOrder')
+            ? $note->salesOrder
+            : SalesOrder::query()->find($note->sales_order_id);
+
+        if ($order === null) {
+            return [];
+        }
+
+        $unlinkedInvoices = CustomerInvoice::query()
+            ->where('sales_order_id', $order->id)
+            ->where('company_id', $note->company_id)
+            ->whereNull('delivery_note_id')
+            ->whereNot('status', CustomerInvoiceStatus::Cancelled)
+            ->orderByDesc('invoice_date')
+            ->orderByDesc('id')
+            ->get(['invoice_number']);
+
+        if ($unlinkedInvoices->isEmpty()) {
+            return [];
+        }
+
+        $numbers = $unlinkedInvoices->pluck('invoice_number')->filter()->join(', ');
+
+        return [
+            __('Invoice(s) :numbers exist on the sales order (Commercial). Advance billing is allowed and does not block dispatch.', [
+                'numbers' => $numbers,
+            ]),
         ];
     }
 

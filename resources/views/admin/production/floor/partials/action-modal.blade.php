@@ -32,13 +32,43 @@
         <div class="flex-1 overflow-y-auto p-4">
             <p class="text-sm text-slate-500" x-show="actionModalLoading" x-cloak>{{ __('Loading…') }}</p>
 
+            {{-- Assign operator --}}
+            <div x-show="!actionModalLoading && actionModalTarget === 'operator'" x-cloak>
+                <form
+                    method="POST"
+                    :action="`${assignMachineUrl}/${actionModalPanel?.job?.public_id}/assign-operator`"
+                    class="space-y-3"
+                    @if ($operatorMode) data-erp-desk-form @endif
+                >
+                    <input type="hidden" name="_token" :value="csrf">
+                    <input type="hidden" name="production_queue_id" :value="actionModalPanel?.execution?.queue_id ?? ''">
+                    @if ($operatorMode)
+                        <input type="hidden" name="from" value="production-floor">
+                    @endif
+                    <div>
+                        <label class="erp-label text-xs">{{ __('Operator') }}</label>
+                        <select name="assigned_operator_id" class="erp-select w-full text-sm" required>
+                            <option value="">{{ __('Select operator') }}</option>
+                            <template x-for="operator in actionModalPanel?.operators ?? []" :key="operator.id">
+                                <option :value="operator.id" x-text="operator.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <p class="text-xs text-slate-500">{{ __('Assigning an operator marks this queue entry Ready.') }}</p>
+                    <div class="flex justify-end gap-2 border-t border-erp-border pt-3">
+                        <button type="button" class="erp-btn-secondary text-sm" @click="closeActionModal()">{{ __('Cancel') }}</button>
+                        <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign operator') }}</button>
+                    </div>
+                </form>
+            </div>
+
             {{-- Assign machine --}}
             <div x-show="!actionModalLoading && actionModalTarget === 'machine'" x-cloak>
                 <form
                     method="POST"
                     :action="`${assignMachineUrl}/${actionModalPanel?.job?.public_id}/assign-machine`"
                     class="space-y-3"
-                    data-erp-desk-form
+                    @submit.prevent="submitActionModalAssignMachine($event)"
                 >
                     <input type="hidden" name="_token" :value="csrf">
                     @if ($operatorMode)
@@ -46,7 +76,7 @@
                     @endif
                     <div>
                         <label class="erp-label text-xs">{{ __('Machine') }}</label>
-                        <select name="assigned_machine_asset_id" class="erp-select w-full text-sm" x-model="actionModalMachineId">
+                        <select name="assigned_machine_asset_id" class="erp-select w-full text-sm" x-model="actionModalMachineId" required>
                             <option value="">{{ __('Assign') }}</option>
                             <template x-for="machine in machines" :key="machine.value">
                                 <option :value="machine.value" x-text="machine.label"></option>
@@ -55,7 +85,10 @@
                     </div>
                     <div class="flex justify-end gap-2 border-t border-erp-border pt-3">
                         <button type="button" class="erp-btn-secondary text-sm" @click="closeActionModal()">{{ __('Cancel') }}</button>
-                        <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign machine') }}</button>
+                        <button type="submit" class="erp-btn-primary text-sm" :disabled="actionModalAssignSubmitting">
+                            <span x-show="!actionModalAssignSubmitting">{{ __('Assign machine') }}</span>
+                            <span x-show="actionModalAssignSubmitting">{{ __('Saving…') }}</span>
+                        </button>
                     </div>
                 </form>
             </div>

@@ -63,15 +63,10 @@
                     <span>{{ __('Use existing artwork from customer library?') }}</span>
                 </label>
                 <div x-show="useArtwork" x-cloak>
-                    <label class="erp-label">{{ __('Artwork version') }}</label>
-                    <select name="customer_artwork_id" class="erp-input w-full">
-                        <option value="">{{ __('Select artwork') }}</option>
-                        @foreach ($customerArtworks ?? [] as $artwork)
-                            <option value="{{ $artwork->id }}" @selected(old('customer_artwork_id', $salesOrder->customer_artwork_id) == $artwork->id)>
-                                {{ $artwork->artwork_name }} (v{{ $artwork->version_number }})
-                            </option>
-                        @endforeach
-                    </select>
+                    @include('admin.sales.quotations.partials.artwork-picker-field', [
+                        'scopedCustomerId' => $salesOrder->customer_id,
+                        'value' => old('customer_artwork_id', $salesOrder->customer_artwork_id),
+                    ])
                     @if ($salesOrder->artwork_confirmed_at)
                         <p class="mt-1 text-xs text-slate-500">{{ __('Confirmed') }} {{ $salesOrder->artwork_confirmed_at->format('Y-m-d H:i') }}</p>
                     @endif

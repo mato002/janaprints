@@ -3,11 +3,8 @@
     $wastage = $tabData['wastage'] ?? [];
     $sessionWaste = $tabData['session_waste'] ?? [];
     $serialSpoilage = $tabData['serial_spoilage'] ?? [];
-    $requirements = collect($tabData['material_requirements'] ?? []);
-    $defaultRequirement = $requirements->first(fn ($row) => ($row['remaining'] ?? 0) > 0) ?? $requirements->first();
-    $defaultItemId = old('inventory_item_id', $defaultRequirement['requirement']->inventory_item_id ?? null);
-    $defaultWarehouseId = old('warehouse_id', $defaultRequirement['requirement']->warehouse_id ?? ($tabData['warehouses'][0]->id ?? null));
-    $defaultQty = old('quantity', $defaultRequirement['remaining'] ?? null);
+    $canConsume = (bool) ($tabData['can_consume'] ?? false);
+    $canRecordWaste = (bool) ($tabData['can_record_waste'] ?? false);
 @endphp
 
 <x-admin.card class="mb-4">
@@ -20,113 +17,23 @@
     </dl>
 </x-admin.card>
 
-@if ($tabData['can_record_waste'] ?? false)
-    <x-admin.card class="mb-4" id="record-waste">
-        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Record waste') }}</h3>
-        <p class="mb-3 text-xs text-slate-500">{{ __('Capture production waste against this job for costing and yield tracking.') }}</p>
-        <form method="POST" action="{{ route('admin.production.job-cards.wastage.store', $jobCard) }}" class="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-4">
-            @csrf
-            <input type="hidden" name="flow_type" value="waste">
+@if ($canConsume || $canRecordWaste)
+    <x-admin.card class="mb-4">
+        <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-                <label class="erp-label text-xs">{{ __('Material') }}</label>
-                <select name="inventory_item_id" class="erp-input w-full text-sm" required>
-                    @foreach ($tabData['inventory_items'] ?? [] as $inv)
-                        <option value="{{ $inv->id }}" @selected((string) $defaultItemId === (string) $inv->id)>{{ $inv->sku }} — {{ $inv->item_name }}</option>
-                    @endforeach
-                </select>
+                <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Material transactions') }}</h3>
+                <p class="text-sm text-slate-600">{{ __('Record consumption, waste, or returns against this job.') }}</p>
             </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Warehouse') }}</label>
-                <select name="warehouse_id" class="erp-input w-full text-sm" required>
-                    @foreach ($tabData['warehouses'] ?? [] as $wh)
-                        <option value="{{ $wh->id }}" @selected((string) $defaultWarehouseId === (string) $wh->id)>{{ $wh->name }}</option>
-                    @endforeach
-                </select>
+            <div class="flex flex-wrap gap-2">
+                @if ($canConsume)
+                    <button type="button" class="erp-btn-primary text-sm" data-open-dialog="record-consumption-modal">{{ __('Record consumption') }}</button>
+                @endif
+                @if ($canRecordWaste)
+                    <button type="button" class="erp-btn-secondary text-sm" data-open-dialog="record-waste-modal">{{ __('Record waste') }}</button>
+                    <button type="button" class="erp-btn-secondary text-sm" data-open-dialog="record-return-modal">{{ __('Record return') }}</button>
+                @endif
             </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Waste type') }}</label>
-                <select name="waste_type" class="erp-input w-full text-sm" required>
-                    @foreach (\App\Enums\ProductionWasteType::cases() as $type)
-                        <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Quantity') }}</label>
-                <input type="number" step="0.001" name="quantity" class="erp-input w-full text-sm" value="{{ old('quantity', $defaultQty) }}" required>
-            </div>
-            <div class="md:col-span-3 lg:col-span-4 flex justify-end">
-                <button type="submit" class="erp-btn-primary text-sm">{{ __('Record waste') }}</button>
-            </div>
-        </form>
-    </x-admin.card>
-
-    <x-admin.card class="mb-4" id="record-return">
-        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Record material return') }}</h3>
-        <p class="mb-3 text-xs text-slate-500">{{ __('Return unused material from the shop floor back to stock.') }}</p>
-        <form method="POST" action="{{ route('admin.production.job-cards.wastage.store', $jobCard) }}" class="grid grid-cols-1 gap-2 md:grid-cols-4">
-            @csrf
-            <input type="hidden" name="flow_type" value="return">
-            <div>
-                <label class="erp-label text-xs">{{ __('Material') }}</label>
-                <select name="inventory_item_id" class="erp-input w-full text-sm" required>
-                    @foreach ($tabData['inventory_items'] ?? [] as $inv)
-                        <option value="{{ $inv->id }}">{{ $inv->sku }} — {{ $inv->item_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Warehouse') }}</label>
-                <select name="warehouse_id" class="erp-input w-full text-sm" required>
-                    @foreach ($tabData['warehouses'] ?? [] as $wh)
-                        <option value="{{ $wh->id }}">{{ $wh->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Quantity') }}</label>
-                <input type="number" step="0.001" name="quantity" class="erp-input w-full text-sm" required>
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="erp-btn-secondary w-full text-sm">{{ __('Record return') }}</button>
-            </div>
-        </form>
-    </x-admin.card>
-@endif
-
-@if ($tabData['can_consume'] ?? false)
-    <x-admin.card class="mb-4" id="consume-material">
-        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Record consumption') }}</h3>
-        <p class="mb-3 text-xs text-slate-500">{{ __('Deduct raw materials from a physical warehouse. When this job has material requirements, consumption counts toward that requirement and cannot exceed the remaining quantity.') }}</p>
-        @if ($requirements->contains(fn ($row) => ($row['remaining'] ?? 0) > 0))
-            <p class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">{{ __('Prefer the Consume button on the Materials tab for each requirement line. Manual entry here is capped to the same remaining quantity.') }}</p>
-        @endif
-        <form method="POST" action="{{ route('admin.inventory.production.consume', $jobCard) }}" class="grid grid-cols-1 gap-2 md:grid-cols-4">
-            @csrf
-            <div>
-                <label class="erp-label text-xs">{{ __('Material') }}</label>
-                <select name="inventory_item_id" class="erp-input w-full text-sm" required>
-                    @foreach ($tabData['inventory_items'] ?? [] as $inv)
-                        <option value="{{ $inv->id }}" @selected((string) $defaultItemId === (string) $inv->id)>{{ $inv->sku }} — {{ $inv->item_name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Physical warehouse') }}</label>
-                <select name="warehouse_id" class="erp-input w-full text-sm" required>
-                    @foreach ($tabData['warehouses'] ?? [] as $wh)
-                        <option value="{{ $wh->id }}" @selected((string) $defaultWarehouseId === (string) $wh->id)>{{ $wh->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label text-xs">{{ __('Quantity') }}</label>
-                <input type="number" step="0.001" name="quantity" class="erp-input w-full text-sm" value="{{ $defaultQty }}" placeholder="{{ __('Qty') }}" required>
-            </div>
-            <div class="flex items-end">
-                <button type="submit" class="erp-btn-primary w-full text-sm">{{ __('Record') }}</button>
-            </div>
-        </form>
+        </div>
     </x-admin.card>
 @endif
 
@@ -165,6 +72,11 @@
             <div class="mt-4">{{ $consumptions->links() }}</div>
         @endif
     @else
-        <x-admin.empty-state :title="__('No consumption recorded')" :description="__('Consumption is captured during production sessions or manually from requirements.')" />
+        <x-admin.empty-state :title="__('No consumption recorded')" :description="__('Use Record consumption to deduct materials from stock for this job.')" />
     @endif
 </x-admin.card>
+
+@include('admin.production.job-cards.workspace.partials.material-consumption-modals', [
+    'jobCard' => $jobCard,
+    'tabData' => $tabData,
+])

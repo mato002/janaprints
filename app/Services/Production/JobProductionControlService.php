@@ -391,6 +391,11 @@ SQL;
             $warnings[] = __('No material consumption recorded');
         }
 
+        if ($jobCard->status !== ProductionJobCardStatus::ReadyForDispatch
+            && ! app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard)) {
+            $blockers[] = __('Post finished goods before marking ready for dispatch.');
+        }
+
         $eligible = $blockers === []
             && ($jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)
                 || $jobCard->status === ProductionJobCardStatus::ReadyForDispatch);
@@ -405,31 +410,132 @@ SQL;
     /**
      * Eligibility to create a delivery note (operational delivery truth).
      *
-     * @return array{eligible: bool, blockers: list<string>}
+     * @return array{eligible: bool, blockers: list<string>, blocker_codes: list<string>}
      */
     public function deliveryNoteCreationEligibility(ProductionJobCard $jobCard): array
     {
         $blockers = [];
+        $blockerCodes = [];
 
         if ($jobCard->status !== ProductionJobCardStatus::ReadyForDispatch) {
             $blockers[] = __('Job must be marked ready for dispatch before creating a delivery note.');
-        }
-
-        if ($this->hasUnresolvedQcFailure($jobCard)) {
-            $blockers[] = __('QC failed — delivery note blocked');
+            $blockerCodes[] = 'status';
         }
 
         if ($this->hasIncompleteOperations($jobCard)) {
             $blockers[] = __('Operations incomplete — delivery note blocked');
+            $blockerCodes[] = 'operations';
+        }
+
+        if ($this->hasUnresolvedQcFailure($jobCard)) {
+            $blockers[] = __('QC failed — delivery note blocked');
+            $blockerCodes[] = 'qc';
+        }
+
+        if (! app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard)) {
+            $blockers[] = __('Post finished goods before creating a delivery note.');
+            $blockerCodes[] = 'finished_goods';
         }
 
         if ($jobCard->artwork_request_id && ! $this->isArtworkApproved($jobCard)) {
             $blockers[] = __('Artwork not approved — delivery note blocked');
+            $blockerCodes[] = 'artwork';
         }
 
         return [
             'eligible' => $blockers === [],
             'blockers' => $blockers,
+            'blocker_codes' => $blockerCodes,
+        ];
+    }
+
+    /**
+     * @return array{
+     *     eligible: bool,
+     *     blockers: list<string>,
+     *     blocker_codes: list<string>,
+     *     status_label: string,
+     *     status_variant: string,
+     *     next_step: ?array{label: string, url: string}
+     * }
+     */
+    public function deliveryNoteWorkflow(ProductionJobCard $jobCard): array
+    {
+        $eligibility = $this->deliveryNoteCreationEligibility($jobCard);
+
+        if ($eligibility['eligible']) {
+            return [
+                ...$eligibility,
+                'status_label' => __('Ready for delivery note'),
+                'status_variant' => 'success',
+                'next_step' => null,
+            ];
+        }
+
+        $nextStep = $this->resolveDeliveryNoteNextStep($jobCard, $eligibility['blocker_codes']);
+
+        return [
+            ...$eligibility,
+            'status_label' => $nextStep['status_label'],
+            'status_variant' => 'warning',
+            'next_step' => [
+                'label' => $nextStep['label'],
+                'url' => $nextStep['url'],
+            ],
+        ];
+    }
+
+    /**
+     * @param  list<string>  $blockerCodes
+     * @return array{label: string, url: string, status_label: string}
+     */
+    protected function resolveDeliveryNoteNextStep(ProductionJobCard $jobCard, array $blockerCodes): array
+    {
+        $priority = ['status', 'operations', 'qc', 'finished_goods', 'artwork'];
+
+        foreach ($priority as $code) {
+            if (! in_array($code, $blockerCodes, true)) {
+                continue;
+            }
+
+            return match ($code) {
+                'status' => [
+                    'label' => __('Open dispatch checklist'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']),
+                    'status_label' => __('Not ready for dispatch'),
+                ],
+                'operations' => [
+                    'label' => __('Complete operations'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']),
+                    'status_label' => __('Operations incomplete'),
+                ],
+                'qc' => [
+                    'label' => __('Open QC'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality']),
+                    'status_label' => __('QC failed'),
+                ],
+                'finished_goods' => [
+                    'label' => __('Post finished goods'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']),
+                    'status_label' => __('Finished goods not posted'),
+                ],
+                'artwork' => [
+                    'label' => __('Review artwork'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'artwork']),
+                    'status_label' => __('Artwork pending approval'),
+                ],
+                default => [
+                    'label' => __('Open job'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']),
+                    'status_label' => __('Blocked'),
+                ],
+            };
+        }
+
+        return [
+            'label' => __('Open job'),
+            'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']),
+            'status_label' => __('Blocked'),
         ];
     }
 
@@ -438,6 +544,15 @@ SQL;
      */
     public function controlAlerts(ProductionJobCard $jobCard): array
     {
+        // Dispatch blockers belong near the end of the flow — not on queued / early jobs.
+        if (! in_array($jobCard->status, [
+            ProductionJobCardStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch,
+            ProductionJobCardStatus::QualityCheck,
+        ], true)) {
+            return [];
+        }
+
         $alerts = [];
         $eligibility = $this->dispatchEligibility($jobCard);
 

@@ -4427,12 +4427,16 @@ body.erp-navigating {
         @apply flex items-start justify-center sm:items-center;
     }
 
+    .erp-modal-overlay[hidden] {
+        display: none !important;
+    }
+
     .erp-modal-overlay__backdrop {
-        @apply fixed inset-0 bg-erp-primary/50 backdrop-blur-[1px];
+        @apply pointer-events-auto fixed inset-0 z-0 bg-erp-primary/50 backdrop-blur-[1px];
     }
 
     .erp-modal-overlay__panel {
-        @apply relative z-10 mx-auto w-full max-w-4xl max-h-[calc(100vh-2rem)] overflow-y-auto;
+        @apply pointer-events-auto relative z-10 mx-auto w-full max-w-4xl;
     }
 
     .erp-form-modal-host {
@@ -4440,7 +4444,7 @@ body.erp-navigating {
     }
 
     .erp-form-modal {
-        @apply flex w-full min-w-0 flex-col rounded-xl border border-erp-border bg-white shadow-2xl;
+        @apply flex max-h-[calc(100vh-2rem)] w-full min-w-0 flex-col overflow-hidden rounded-xl border border-erp-border bg-white shadow-2xl;
     }
 
     .erp-form-modal[data-erp-form-modal-loading] {
@@ -4464,7 +4468,7 @@ body.erp-navigating {
     }
 
     .erp-form-modal__body {
-        @apply px-5 py-4;
+        @apply min-h-0 flex-1 overflow-y-auto px-5 py-4;
     }
 
     .erp-form-modal__actions {
@@ -4499,16 +4503,20 @@ body.erp-navigating {
         @apply flex items-start justify-center sm:items-center;
     }
 
+    .erp-lookup-modal-overlay[hidden] {
+        display: none !important;
+    }
+
     .erp-lookup-modal-overlay.erp-lookup-modal-overlay--open {
         display: flex;
     }
 
     .erp-lookup-modal-overlay__backdrop {
-        @apply fixed inset-0 bg-erp-primary/60 backdrop-blur-[1px];
+        @apply pointer-events-auto fixed inset-0 z-0 bg-erp-primary/60 backdrop-blur-[1px];
     }
 
     .erp-lookup-modal-overlay__panel {
-        @apply relative z-10 mx-auto flex w-full max-h-[calc(100vh-2rem)] justify-center overflow-y-auto;
+        @apply pointer-events-auto relative z-10 mx-auto flex w-full justify-center;
     }
 
     .erp-lookup-modal-overlay__panel > .erp-form-modal-host {
@@ -5111,5 +5119,433 @@ body.erp-navigating {
 
     .designer-desk-action-btn {
         @apply min-h-11 px-5 py-2.5 text-sm font-semibold touch-manipulation;
+    }
+
+    /* Job 360 completion workstation */
+    .job-360-hero {
+        @apply rounded-xl border border-erp-border bg-white shadow-sm;
+    }
+
+    .job-360-hero__shell {
+        @apply flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between lg:p-5;
+    }
+
+    .job-360-hero__main {
+        @apply grid min-w-0 flex-1 gap-4 lg:grid-cols-2 lg:gap-6;
+    }
+
+    .job-360-hero__eyebrow {
+        @apply mb-1 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-hero__title {
+        @apply text-xl font-bold leading-tight text-slate-900 sm:text-2xl;
+    }
+
+    .job-360-hero__subtitle {
+        @apply mt-1 text-sm font-medium text-slate-600;
+    }
+
+    .job-360-hero__meta {
+        @apply mt-3 flex flex-wrap gap-3;
+    }
+
+    .job-360-hero__meta-item {
+        @apply inline-flex items-center gap-1.5 text-sm text-slate-600;
+    }
+
+    .job-360-hero__status-label {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-hero__stage {
+        @apply mt-1 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold;
+    }
+
+    .job-360-hero__stage--success {
+        @apply bg-emerald-50 text-emerald-800;
+    }
+
+    .job-360-hero__stage--warning {
+        @apply bg-amber-50 text-amber-900;
+    }
+
+    .job-360-hero__stage--danger {
+        @apply bg-red-50 text-red-800;
+    }
+
+    .job-360-hero__stage--info {
+        @apply bg-sky-50 text-sky-800;
+    }
+
+    .job-360-hero__stage--neutral {
+        @apply bg-slate-100 text-slate-700;
+    }
+
+    .job-360-hero__stage-dot {
+        @apply h-2 w-2 shrink-0 rounded-full bg-current;
+    }
+
+    .job-360-hero__progress {
+        @apply mt-3 flex items-center gap-3;
+    }
+
+    .job-360-hero__progress-track {
+        @apply h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-slate-100;
+    }
+
+    .job-360-hero__progress-fill {
+        @apply h-full rounded-full bg-erp-primary transition-all;
+    }
+
+    .job-360-hero__progress-value {
+        @apply text-sm font-semibold text-slate-700;
+    }
+
+    .job-360-hero__next-action {
+        @apply mt-2 text-sm leading-relaxed text-slate-600;
+    }
+
+    .job-360-hero__actions {
+        @apply flex shrink-0 flex-col items-stretch gap-2 sm:items-end;
+    }
+
+    .job-360-hero__action-stack {
+        @apply flex flex-col gap-2 sm:items-end;
+    }
+
+    .job-360-hero__action {
+        @apply min-h-11 w-full px-5 text-sm font-semibold touch-manipulation sm:w-auto;
+    }
+
+    .job-360-hero__more summary {
+        @apply cursor-pointer list-none text-sm text-slate-500 hover:text-erp-primary [&::-webkit-details-marker]:hidden;
+    }
+
+    .job-360-hero__more-menu {
+        @apply mt-2 flex min-w-[12rem] flex-col gap-1 rounded-lg border border-erp-border bg-white p-2 shadow-sm;
+    }
+
+    .job-360-hero__more-link {
+        @apply rounded px-2 py-1.5 text-left text-sm text-slate-700 hover:bg-slate-50;
+    }
+
+    .job-360-hero__more-link--danger {
+        @apply text-red-600 hover:bg-red-50;
+    }
+
+    .job-360-pill {
+        @apply inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide;
+    }
+
+    .job-360-pill--danger {
+        @apply bg-red-100 text-red-700;
+    }
+
+    .job-360-pill--neutral {
+        @apply bg-slate-100 text-slate-600;
+    }
+
+    .job-360-workflow {
+        @apply rounded-xl border border-erp-border bg-white px-4 py-3;
+    }
+
+    .job-360-workflow__title {
+        @apply mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-blockers {
+        @apply rounded-xl border border-red-200 bg-red-50/60 px-4 py-4;
+    }
+
+    .job-360-blockers__head {
+        @apply mb-3 flex items-start gap-3 text-red-900;
+    }
+
+    .job-360-blockers__title {
+        @apply text-sm font-semibold;
+    }
+
+    .job-360-blockers__subtitle {
+        @apply text-xs text-red-800/80;
+    }
+
+    .job-360-blockers__list {
+        @apply space-y-2;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .job-360-blockers__item {
+        @apply flex flex-col gap-2 rounded-lg border bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between;
+    }
+
+    .job-360-blockers__item--error {
+        @apply border-red-200;
+    }
+
+    .job-360-blockers__item--warning {
+        @apply border-amber-200 bg-amber-50/50;
+    }
+
+    .job-360-blockers__message {
+        @apply text-sm font-medium text-slate-900;
+    }
+
+    .job-360-blockers__hint {
+        @apply mt-1 text-xs text-slate-500;
+    }
+
+    .job-360-blockers__action {
+        @apply shrink-0 text-sm font-semibold text-erp-primary hover:underline;
+    }
+
+    .job-360-performance__critical {
+        @apply mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .job-360-performance__advanced {
+        @apply rounded-xl border border-erp-border bg-white;
+    }
+
+    .job-360-performance__advanced summary {
+        @apply flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden;
+    }
+
+    .job-360-performance__count {
+        @apply ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600;
+    }
+
+    .job-360-performance__advanced-grid {
+        @apply grid grid-cols-1 gap-3 border-t border-erp-border p-4 sm:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .job-360-kpi {
+        @apply rounded-xl border border-erp-border bg-white p-3;
+    }
+
+    .job-360-kpi--compact {
+        @apply p-2.5;
+    }
+
+    .job-360-kpi--warning {
+        @apply border-amber-200 bg-amber-50/40;
+    }
+
+    .job-360-kpi__head {
+        @apply mb-2 flex items-center gap-2 text-slate-600;
+    }
+
+    .job-360-kpi__title {
+        @apply text-xs font-semibold uppercase tracking-wide;
+    }
+
+    .job-360-kpi__metrics {
+        @apply grid grid-cols-2 gap-2 text-sm;
+    }
+
+    .job-360-kpi__metrics dt {
+        @apply text-slate-500;
+    }
+
+    .job-360-kpi__metrics dd {
+        @apply font-semibold text-slate-900;
+    }
+
+    .job-360-kpi__warning {
+        @apply mt-2 text-xs font-medium text-amber-700;
+    }
+
+    .job-360-kpi__placeholder {
+        @apply text-xs text-slate-500;
+    }
+
+    .job-360-overview__zones {
+        @apply grid grid-cols-1 gap-4 lg:grid-cols-12;
+    }
+
+    .job-360-zone {
+        @apply rounded-xl border border-erp-border bg-white p-4;
+    }
+
+    .job-360-zone--operations {
+        @apply lg:col-span-7;
+    }
+
+    .job-360-zone--commercial {
+        @apply lg:col-span-5;
+    }
+
+    .job-360-zone--history {
+        @apply mt-4;
+    }
+
+    .job-360-zone__head {
+        @apply mb-4 flex items-center gap-2;
+    }
+
+    .job-360-zone__title {
+        @apply text-sm font-semibold uppercase tracking-wide text-slate-800;
+    }
+
+    .job-360-zone__grid {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+    }
+
+    .job-360-zone__field dt {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-zone__field dd {
+        @apply mt-0.5 text-sm font-medium text-slate-900;
+    }
+
+    .job-360-zone__inline-form {
+        @apply mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-erp-border bg-slate-50 p-3;
+    }
+
+    .job-360-zone__form-field {
+        @apply min-w-[14rem] flex-1;
+    }
+
+    .job-360-zone__form-field label {
+        @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-commercial-links {
+        @apply space-y-3;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .job-360-commercial-links__item {
+        @apply flex flex-col gap-0.5 border-b border-erp-border pb-3 last:border-0 last:pb-0;
+    }
+
+    .job-360-commercial-links__item--secondary {
+        @apply opacity-80;
+    }
+
+    .job-360-commercial-links__label {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-violet-600;
+    }
+
+    .job-360-commercial-links__value {
+        @apply text-sm font-semibold text-slate-900 hover:text-erp-primary hover:underline;
+    }
+
+    .job-360-commercial-links__value--muted {
+        @apply font-medium text-slate-600;
+    }
+
+    .job-360-commercial-links__meta {
+        @apply text-xs text-slate-500;
+    }
+
+    .job-360-commercial-links__empty {
+        @apply text-sm text-slate-400;
+    }
+
+    .job-360-history-links {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-4;
+    }
+
+    .job-360-history-links__item {
+        @apply flex items-center gap-2 rounded-lg border border-erp-border bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-white;
+    }
+
+    .job-360-overview__details {
+        @apply mt-4 rounded-xl border border-erp-border bg-white;
+    }
+
+    .job-360-overview__details summary {
+        @apply cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden;
+    }
+
+    .job-360-overview__details-body {
+        @apply border-t border-erp-border p-4;
+    }
+
+    .job-360-stage-timeline {
+        @apply rounded-lg;
+    }
+
+    .job-360-stage-timeline__track {
+        @apply flex flex-wrap items-center gap-y-2 gap-x-1;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .job-360-stage-timeline__step {
+        @apply flex items-center gap-1.5 text-xs font-medium;
+    }
+
+    .job-360-stage-timeline__icon {
+        @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold;
+    }
+
+    .job-360-stage-timeline__connector {
+        @apply mx-1 hidden h-px w-4 sm:inline-block lg:w-8;
+    }
+
+    .job-360-stage-timeline__step--completed .job-360-stage-timeline__icon {
+        @apply bg-emerald-100 text-emerald-700;
+    }
+
+    .job-360-stage-timeline__step--completed .job-360-stage-timeline__label {
+        @apply text-emerald-800;
+    }
+
+    .job-360-stage-timeline__step--current .job-360-stage-timeline__icon {
+        @apply bg-sky-100 text-sky-700 ring-2 ring-sky-200;
+    }
+
+    .job-360-stage-timeline__step--current .job-360-stage-timeline__label {
+        @apply font-semibold text-sky-800;
+    }
+
+    .job-360-stage-timeline__step--blocked .job-360-stage-timeline__icon {
+        @apply bg-amber-100 text-amber-800;
+    }
+
+    .job-360-stage-timeline__step--blocked .job-360-stage-timeline__label {
+        @apply font-semibold text-amber-800;
+    }
+
+    .job-360-stage-timeline__step--future .job-360-stage-timeline__icon {
+        @apply bg-slate-100 text-slate-400;
+    }
+
+    .job-360-stage-timeline__step--future .job-360-stage-timeline__label {
+        @apply text-slate-500;
+    }
+
+    .job-360-stage-timeline__connector--completed {
+        @apply bg-emerald-300;
+    }
+
+    .job-360-stage-timeline__connector--future {
+        @apply bg-slate-200;
+    }
+
+    .job-360-outputs-workspace .job-360-readiness-panel {
+        @apply xl:sticky xl:top-3;
+    }
+
+    @media (max-width: 767px) {
+        .job-360-fg-action-bar {
+            @apply sticky bottom-0 z-30 -mx-4 border-t border-erp-border bg-white/95 px-4 py-3 backdrop-blur;
+        }
+
+        .job-360-fg-action-bar .erp-btn-primary {
+            @apply min-h-11 w-full touch-manipulation;
+        }
+
+        .job-360-hero__action {
+            @apply w-full;
+        }
     }
 }

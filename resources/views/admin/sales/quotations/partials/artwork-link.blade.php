@@ -39,13 +39,9 @@
 
                 @if (count($artworkLink['library']) > 0)
                     <div x-show="source === 'library'" x-cloak>
-                        <label class="erp-label">{{ __('Artwork version') }}</label>
-                        <select name="customer_artwork_id" class="erp-input w-full max-w-xl" :required="source === 'library'">
-                            <option value="">{{ __('Select artwork') }}</option>
-                            @foreach ($artworkLink['library'] as $item)
-                                <option value="{{ $item['id'] }}">{{ $item['label'] }} — {{ $item['type'] }} @if ($item['uploaded_at']) ({{ $item['uploaded_at'] }}) @endif</option>
-                            @endforeach
-                        </select>
+                        @include('admin.sales.quotations.partials.artwork-picker-field', [
+                            'scopedCustomerId' => $quotation->customer_id,
+                        ])
                     </div>
                 @endif
 
@@ -69,12 +65,22 @@
                 </div>
             </form>
         @elseif ($artworkLink['can_link'])
-            <div class="rounded-lg border border-dashed border-erp-border p-4 text-sm text-slate-600">
-                <p>{{ __('No artwork is available for this customer yet.') }}</p>
+            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="space-y-4">
+                @csrf
+                <input type="hidden" name="artwork_source" value="library">
                 @if ($quotation->customer)
-                    <a href="{{ route('admin.crm.customers.show', ['customer' => $quotation->customer, 'tab' => 'print-specifications']) }}" class="mt-2 inline-block text-erp-accent">{{ __('Add artwork via print specifications') }}</a>
+                    @include('admin.sales.quotations.partials.artwork-picker-field', [
+                        'scopedCustomerId' => $quotation->customer_id,
+                    ])
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button type="submit" class="erp-btn-primary">{{ __('Link artwork') }}</button>
+                    </div>
+                @else
+                    <div class="rounded-lg border border-dashed border-erp-border p-4 text-sm text-slate-600">
+                        <p>{{ __('No artwork is available for this customer yet.') }}</p>
+                    </div>
                 @endif
-            </div>
+            </form>
         @endif
     @endcan
 </x-admin.card>

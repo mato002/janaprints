@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\CustomerArtworkType;
+use App\Enums\CustomerPrintSpecificationStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Enums\DocumentType;
@@ -18,6 +20,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Crm\CustomerSegment;
 use App\Models\Crm\Lead;
 use App\Models\Crm\LeadSource;
@@ -35,6 +38,8 @@ use App\Models\Platform\SettingsGovernance;
 use App\Models\Sales\Quotation;
 use App\Support\Catalogue\CatalogueService;
 use App\Support\Catalogue\ItemAttributeService;
+use App\Support\Crm\CustomerArtworkService;
+use App\Support\Crm\CustomerPrintSpecificationService;
 use App\Support\Hr\EmployeeNumberService;
 use App\Support\Hr\PayrollGroupService;
 use App\Support\Lookup\LookupQuickCreateFormData;
@@ -1256,5 +1261,137 @@ class QuickCreateLookupController extends Controller
         );
 
         return $this->quickCreateStringResponse($group->code, $group->name, __('Payroll group created.'));
+    }
+
+    public function createCustomerArtwork(Request $request): View
+    {
+        $customerId = $request->integer('customer_id');
+        $customer = null;
+
+        if ($customerId) {
+            $customer = Customer::query()->forTenant()->findOrFail($customerId);
+            $this->authorize('update', $customer);
+        }
+
+        return $this->lookupForm('admin.lookups.quick-create.customer-artwork', [
+            'title' => __('Create artwork'),
+            'action' => route('admin.crm.customer-artworks.quick-store'),
+            'customer' => $customer,
+            'artworkTypes' => CustomerArtworkType::cases(),
+        ]);
+    }
+
+    public function storeCustomerArtwork(Request $request, CustomerArtworkService $service): JsonResponse|Response
+    {
+        try {
+            $validated = $request->validate([
+                'customer_id' => ['required', 'integer', 'exists:customers,id'],
+                'artwork_name' => ['required', 'string', 'max:255'],
+                'artwork_type' => ['required', Rule::enum(CustomerArtworkType::class)],
+                'file' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
+            ]);
+        } catch (ValidationException $exception) {
+            $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
+
+            return $this->lookupValidationResponse($request, $exception, 'admin.lookups.quick-create.customer-artwork', [
+                'title' => __('Create artwork'),
+                'action' => route('admin.crm.customer-artworks.quick-store'),
+                'customer' => $customer,
+                'artworkTypes' => CustomerArtworkType::cases(),
+            ]);
+        }
+
+        $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
+        $this->authorize('update', $customer);
+
+        $artwork = $service->uploadVersion(
+            $customer,
+            $request->file('file'),
+            $validated['artwork_name'],
+            $validated['artwork_type'],
+            (int) auth()->id(),
+        );
+
+        $label = $artwork->artwork_name.' · '.$artwork->versionLabel();
+
+        return $this->quickCreateResponse($artwork->id, $label, __('Artwork uploaded.'));
+    }
+
+    public function createPrintSpecification(Request $request): View
+    {
+        $customerId = $request->integer('customer_id');
+        $customer = null;
+
+        if ($customerId) {
+            $customer = Customer::query()->forTenant()->findOrFail($customerId);
+            $this->authorize('update', $customer);
+        }
+
+        return $this->lookupForm('admin.lookups.quick-create.print-specification', $this->printSpecificationQuickCreateFormData($customer));
+    }
+
+    public function storePrintSpecification(
+        Request $request,
+        CustomerPrintSpecificationService $specifications,
+        CustomerArtworkService $artworks,
+    ): JsonResponse|Response {
+        try {
+            $validated = $request->validate([
+                'customer_id' => ['required', 'integer', 'exists:customers,id'],
+                'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
+                'name' => ['required', 'string', 'max:255'],
+                'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
+                'default_quantity' => ['nullable', 'numeric', 'min:0'],
+                'default_unit_price' => ['nullable', 'numeric', 'min:0'],
+                'artwork_file' => ['nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
+                'artwork_type' => ['nullable', Rule::enum(CustomerArtworkType::class)],
+            ]);
+        } catch (ValidationException $exception) {
+            $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
+
+            return $this->lookupValidationResponse(
+                $request,
+                $exception,
+                'admin.lookups.quick-create.print-specification',
+                $this->printSpecificationQuickCreateFormData($customer),
+            );
+        }
+
+        $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
+        $this->authorize('update', $customer);
+
+        InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
+
+        $spec = $specifications->create($customer, $validated, (int) auth()->id());
+
+        if ($request->hasFile('artwork_file')) {
+            $artworks->uploadVersionForSpecification(
+                $spec,
+                $request->file('artwork_file'),
+                (int) auth()->id(),
+                null,
+                $validated['artwork_type'] ?? CustomerArtworkType::Layout->value,
+            );
+            $spec = $spec->fresh(['inventoryItem', 'activeArtworkVersion']);
+        }
+
+        $label = trim($spec->specification_code.' · '.$spec->name);
+
+        return $this->quickCreateResponse($spec->id, $label, __('Print specification created.'));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function printSpecificationQuickCreateFormData(?Customer $customer): array
+    {
+        return [
+            'title' => __('Create print specification'),
+            'action' => route('admin.crm.print-specifications.quick-store'),
+            'customer' => $customer,
+            'statuses' => CustomerPrintSpecificationStatus::cases(),
+            'artworkTypes' => CustomerArtworkType::cases(),
+            'defaultStatus' => CustomerPrintSpecificationStatus::Active->value,
+        ];
     }
 }

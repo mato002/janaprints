@@ -28,6 +28,10 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             Route::get('lead_sources', [LookupController::class, 'leadSources'])->name('lead_sources');
             Route::get('quotations', [LookupController::class, 'quotations'])->name('quotations');
             Route::get('form_statuses', [LookupController::class, 'formStatuses'])->name('form_statuses');
+            Route::get('customer_artworks', [LookupController::class, 'customerArtworks'])->name('customer_artworks');
+            Route::get('customer_print_specifications', [LookupController::class, 'customerPrintSpecifications'])->name('customer_print_specifications');
+            Route::get('sales_order_quotations', [LookupController::class, 'salesOrderQuotations'])->name('sales_order_quotations');
+            Route::get('job_card_sales_orders', [LookupController::class, 'jobCardSalesOrders'])->name('job_card_sales_orders');
         });
 
         Route::middleware('permission:settings.manage')->group(function () {

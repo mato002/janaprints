@@ -58,6 +58,7 @@ class ProductionFloorController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'ok' => true,
+                'message' => __('Machine assignment updated.'),
                 'machine_id' => $jobCard->assigned_machine_asset_id,
                 'machine_name' => $jobCard->assignedMachine?->asset_name,
             ]);
@@ -71,6 +72,49 @@ class ProductionFloorController extends Controller
         return redirect()
             ->route('admin.production.floor', $params)
             ->with('status', __('Machine assignment updated.'));
+    }
+
+    public function assignOperator(
+        Request $request,
+        ProductionJobCard $jobCard,
+        \App\Support\Production\ProductionQueueService $queues,
+    ): RedirectResponse|JsonResponse {
+        abort_unless(
+            $request->user()?->can('schedule', $jobCard) || $request->user()?->can('update', $jobCard),
+            403,
+        );
+
+        $validated = $request->validate([
+            'production_queue_id' => ['nullable', 'exists:production_queues,id'],
+            'assigned_operator_id' => ['required', 'exists:users,id'],
+        ]);
+
+        $queue = null;
+        if (! empty($validated['production_queue_id'])) {
+            $queue = $jobCard->queues()->whereKey($validated['production_queue_id'])->first();
+        }
+
+        $queue ??= app(\App\Support\Production\RouteStepQueueService::class)
+            ->currentQueueContext($jobCard)['current'] ?? null;
+
+        abort_unless($queue && $queue->production_job_card_id === $jobCard->id, 404);
+
+        $queues->updateEntry($queue, [
+            'assigned_operator_id' => (int) $validated['assigned_operator_id'],
+        ]);
+
+        if ($jobCard->status === \App\Enums\ProductionJobCardStatus::Draft && $queues->hasActiveQueue($jobCard)) {
+            $jobCard->update(['status' => \App\Enums\ProductionJobCardStatus::Queued]);
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => __('Operator assigned.'),
+            ]);
+        }
+
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Operator assigned.'));
     }
 
     public function quickPassQc(Request $request, ProductionJobCard $jobCard, ProductionFloorActionService $actions): RedirectResponse

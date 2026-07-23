@@ -37,7 +37,7 @@ class ProductionJobCardCompletionUiTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']))
             ->assertOk()
-            ->assertSee(__('Post finished goods'), false)
+            ->assertSee(__('Post to finished goods'), false)
             ->assertSee($finishedItem->sku, false);
     }
 
@@ -60,7 +60,7 @@ class ProductionJobCardCompletionUiTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']))
             ->assertOk()
-            ->assertSee(__('Production outputs'), false)
+            ->assertSee(__('Output history'), false)
             ->assertSee($finishedItem->sku, false)
             ->assertSee(ProductionOutputStatus::Posted->label(), false);
     }
@@ -85,7 +85,7 @@ class ProductionJobCardCompletionUiTest extends TestCase
         $this->actingAs($viewer)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']))
             ->assertOk()
-            ->assertDontSee(__('Post finished goods'), false);
+            ->assertDontSee(__('Post to finished goods'), false);
     }
 
     public function test_action_not_available_for_cancelled_job(): void

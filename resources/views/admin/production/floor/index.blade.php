@@ -82,6 +82,7 @@
                 'csrf' => csrf_token(),
                 'machines' => $machinesForUi,
                 'modalTitles' => [
+                    'operator' => __('Assign operator'),
                     'machine' => __('Assign machine'),
                     'outsource-send' => __('Send to vendor'),
                     'outsource-return' => __('Mark returned from vendor'),

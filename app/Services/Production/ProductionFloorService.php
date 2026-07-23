@@ -113,6 +113,10 @@ class ProductionFloorService
                     : null,
             ],
             'machines' => $this->machinesForPanel(),
+            'operators' => app(JobExecutionStateService::class)->assignableOperators($jobCard)
+                ->map(fn ($user) => ['id' => $user->id, 'name' => $user->name])
+                ->values(),
+            'execution' => app(JobExecutionStateService::class)->state($jobCard),
             'quality' => $this->qualityPanelData($jobCard),
             'blockers' => app(JobProductionControlService::class)->dispatchEligibility($jobCard)['blockers'] ?? [],
         ];

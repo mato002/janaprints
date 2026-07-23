@@ -61,6 +61,16 @@
 <div><label class="erp-label">{{ __('Name') }}</label><input name="item_name" class="erp-input w-full" value="{{ old('item_name', $m?->item_name ?? ($fields['item_name']['default'] ?? '')) }}" @required($fields['item_name']['required'] ?? true) @readonly($fields['item_name']['read_only'] ?? false)></div>
 @endif
 
+<div>
+    <label class="erp-label">{{ __('Stock role') }}</label>
+    <select name="stock_role" class="erp-select w-full" required>
+        @foreach ($stockRoles as $role)
+            <option value="{{ $role->value }}" @selected(old('stock_role', $m?->stock_role?->value ?? 'raw_material') === $role->value)>{{ $role->label() }}</option>
+        @endforeach
+    </select>
+    <p class="mt-1 text-xs text-slate-500">{{ __('Finished products must use Finished good. Raw paper/ink use Raw material.') }}</p>
+</div>
+
 @if(($fields['description']['visible'] ?? true))
 <div><label class="erp-label">{{ __('Description') }}</label><textarea name="description" class="erp-input w-full" @required($fields['description']['required'] ?? false) @readonly($fields['description']['read_only'] ?? false)>{{ old('description', $m?->description ?? ($fields['description']['default'] ?? '')) }}</textarea></div>
 @endif
@@ -89,15 +99,6 @@
     </div>
 </div>
 @endif
-
-<div>
-    <label class="erp-label">{{ __('Stock role') }}</label>
-    <select name="stock_role" class="erp-select w-full" required>
-        @foreach ($stockRoles as $role)
-            <option value="{{ $role->value }}" @selected(old('stock_role', $m?->stock_role?->value ?? 'raw_material') === $role->value)>{{ $role->label() }}</option>
-        @endforeach
-    </select>
-</div>
 
 @if(($fields['reorder_level']['visible'] ?? true) || ($fields['reorder_quantity']['visible'] ?? true) || ($fields['standard_cost']['visible'] ?? true))
 <div class="grid grid-cols-3 gap-4">
@@ -175,13 +176,12 @@
 </div>
 
 @php($materialLines = old('material_requirements', ($productBomLines ?? collect())->map(fn ($l) => [
-    'inventory_item_id' => $l->inventory_item_id,
-    'quantity_per_unit' => $l->quantity_per_unit,
-    'quantity_formula' => $l->quantity_formula,
-    'is_active' => $l->is_active ?? true,
+    'inventory_item_id' => $l->inventory_item_id !== null ? (string) $l->inventory_item_id : '',
+    'quantity_per_unit' => (float) $l->quantity_per_unit,
+    'quantity_formula' => $l->quantity_formula ?? '',
+    'is_active' => (bool) ($l->is_active ?? true),
 ])->values()->all() ?: [['inventory_item_id' => '', 'quantity_per_unit' => 1, 'quantity_formula' => '', 'is_active' => true]]))
-@php($rawMaterialOptions = ($rawMaterials ?? collect())->map(fn ($i) => ['id' => $i->id, 'label' => $i->sku.' — '.$i->item_name])->values())
-<div class="rounded-lg border border-erp-border p-4" x-data="{ materials: @js($materialLines), rawMaterials: @js($rawMaterialOptions) }">
+<div class="rounded-lg border border-erp-border p-4" x-data="{ materials: @js($materialLines) }">
     <div class="mb-3 flex items-center justify-between">
         <h3 class="text-sm font-semibold text-slate-900">{{ __('Required materials') }}</h3>
         <button type="button" class="erp-btn-ghost text-xs" @click="materials.push({ inventory_item_id: '', quantity_per_unit: 1, quantity_formula: '', is_active: true })">{{ __('Add material') }}</button>
@@ -191,11 +191,16 @@
         <div class="mb-2 grid grid-cols-12 gap-2 items-end">
             <div class="col-span-4">
                 <label class="erp-label text-xs">{{ __('Material') }}</label>
-                <select class="erp-input w-full text-sm" :name="'material_requirements[' + index + '][inventory_item_id]'" x-model="line.inventory_item_id" required>
+                {{-- Blade options (not nested Alpine x-for) so selected BOM materials actually prefill. --}}
+                <select
+                    class="erp-input w-full text-sm"
+                    :name="'material_requirements[' + index + '][inventory_item_id]'"
+                    x-model="line.inventory_item_id"
+                >
                     <option value="">{{ __('Select') }}</option>
-                    <template x-for="m in rawMaterials" :key="m.id">
-                        <option :value="m.id" x-text="m.label"></option>
-                    </template>
+                    @foreach ($rawMaterials ?? [] as $rm)
+                        <option value="{{ $rm->id }}">{{ $rm->sku }} — {{ $rm->item_name }}</option>
+                    @endforeach
                 </select>
             </div>
             <div class="col-span-2">

@@ -5,6 +5,7 @@ namespace App\Services\Production;
 use App\Enums\ProductionJobCardStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\User;
+use App\Services\Dispatch\JobDispatchPresentationService;
 use App\Support\Production\JobCardOutsourceService;
 use App\Support\Production\ProductionQcSettings;
 use App\Support\Production\ProductionQueueService;
@@ -19,6 +20,8 @@ class ProductionFloorActionService
         protected ProductionCompletionService $completion,
         protected QualityInspectionService $quality,
         protected ProductionQueueService $queues,
+        protected JobExecutionStateService $execution,
+        protected JobDispatchPresentationService $dispatchPresentation,
     ) {}
 
     /**
@@ -54,21 +57,50 @@ class ProductionFloorActionService
             return null;
         }
 
+        $state = $this->execution->state($jobCard);
+
         if ($user->can('transition', $jobCard) && $jobCard->status === ProductionJobCardStatus::OnHold) {
             return $this->action(__('Resume'), 'post', route('admin.production.job-cards.resume', $jobCard), 'primary');
         }
 
-        if ($forFloor && $jobCard->status === ProductionJobCardStatus::Queued) {
-            if (! $jobCard->assigned_machine_asset_id && $user->can('machines.assign')) {
-                return $this->floorModal(__('Assign machine'), 'machine', $jobCard, 'primary');
+        // Supervisor path: jobs already released from Sales stay Queued until assigned.
+        if (
+            $state['needs_operator']
+            && $state['queue_id']
+            && ($user->can('schedule', $jobCard) || $user->can('update', $jobCard))
+        ) {
+            if ($forFloor) {
+                return $this->floorModal(__('Assign operator'), 'operator', $jobCard, 'primary');
             }
+
+            return $this->action(
+                __('Assign operator'),
+                'link',
+                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-operator',
+                'primary',
+            );
         }
 
-        if (! $forFloor && $user->can('schedule', $jobCard) && $jobCard->status === ProductionJobCardStatus::Draft) {
-            if ($this->queues->hasActiveQueue($jobCard)) {
-                return $this->action(__('Queue job'), 'post', route('admin.production.job-cards.queue', $jobCard), 'secondary');
+        if ($state['needs_machine'] && $user->can('machines.assign')) {
+            if ($forFloor) {
+                return $this->floorModal(__('Assign machine'), 'machine', $jobCard, 'primary');
             }
 
+            return $this->action(
+                __('Assign machine'),
+                'link',
+                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-machine',
+                'primary',
+            );
+        }
+
+        // Only Draft jobs with no queue still need planning entry points.
+        if (
+            ! $forFloor
+            && ! $state['already_in_queue']
+            && $user->can('schedule', $jobCard)
+            && $jobCard->status === ProductionJobCardStatus::Draft
+        ) {
             return $this->action(
                 __('Add to queue'),
                 'link',
@@ -77,12 +109,16 @@ class ProductionFloorActionService
             );
         }
 
-        if ($user->can('start', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)) {
-            return $this->action(__('Start'), 'post', route('admin.production.job-cards.start', $jobCard), 'primary');
+        if (
+            $state['is_ready_to_start']
+            && $user->can('start', $jobCard)
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)
+        ) {
+            return $this->action(__('Start work'), 'post', route('admin.production.job-cards.start', $jobCard), 'primary');
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)) {
-            return $this->action(__('Finish'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
+            return $this->action(__('Complete stage'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
         }
 
         if ($user->can('update', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced)) {
@@ -109,24 +145,46 @@ class ProductionFloorActionService
             return $this->action(__('QC'), 'panel', route('admin.production.floor.panel', $jobCard).'#quality', 'primary');
         }
 
+        if ($user->can('production.outputs.post') && ! $this->completion->hasPostedFinishedGoods($jobCard)) {
+            $outputsUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']).'#outputs';
+
+            if (in_array($jobCard->status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true)) {
+                return $this->action(__('Post finished goods'), 'panel', $outputsUrl, 'primary');
+            }
+
+            if ($this->completion->eligibility($jobCard)['eligible'] ?? false) {
+                return $this->action(__('Post finished goods'), 'panel', $outputsUrl, 'secondary');
+            }
+        }
+
         if (
             $user->can('complete', $jobCard)
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)
             && $this->controls->dispatchEligibility($jobCard)['eligible']
+            && ! ($this->dispatchPresentation->build($jobCard)['has_delivery_note'] ?? false)
         ) {
             return $this->action(__('Ready for dispatch'), 'post', route('admin.production.job-cards.ready-for-dispatch', $jobCard), 'primary');
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
+            $dispatch = $this->dispatchPresentation->build($jobCard);
+
+            if ($dispatch['has_delivery_note'] ?? false) {
+                $primary = $dispatch['actions']['primary'];
+
+                return $this->action(
+                    $primary['label'],
+                    $primary['type'],
+                    $primary['url'],
+                    $primary['variant'] ?? 'primary',
+                );
+            }
+
             if ($forFloor) {
                 return $this->floorModal(__('Hand off'), 'fulfilment', $jobCard, 'primary');
             }
 
             return $this->action(__('Hand off'), 'panel', route('admin.production.floor.panel', $jobCard).'#fulfilment', 'primary');
-        }
-
-        if ($user->can('production.outputs.post') && ($this->completion->eligibility($jobCard)['eligible'] ?? false)) {
-            return $this->action(__('Post finished goods'), 'panel', route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']).'#outputs', 'secondary');
         }
 
         return null;
@@ -139,13 +197,19 @@ class ProductionFloorActionService
     {
         $user ??= auth()->user();
         $actions = [];
+        $state = $this->execution->state($jobCard);
 
         if ($user?->can('transition', $jobCard) && $jobCard->status === ProductionJobCardStatus::InProduction) {
             $actions[] = $this->action(__('Pause'), 'post', route('admin.production.job-cards.pause', $jobCard), 'ghost');
         }
 
-        if ($user?->can('transition', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)
-            && $jobCard->status !== ProductionJobCardStatus::InProduction) {
+        // Hold is a planning escape hatch — not shown while waiting for assignment.
+        if (
+            $user?->can('transition', $jobCard)
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)
+            && $jobCard->status !== ProductionJobCardStatus::InProduction
+            && ! in_array($state['phase'], ['awaiting_operator', 'awaiting_machine', 'ready'], true)
+        ) {
             $actions[] = $this->action(__('Hold'), 'post', route('admin.production.job-cards.hold', $jobCard), 'ghost');
         }
 
@@ -155,6 +219,22 @@ class ProductionFloorActionService
 
         if ($user?->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)) {
             $actions[] = $this->action(__('Complete'), 'post', route('admin.production.job-cards.complete', $jobCard), 'ghost');
+        }
+
+        if ($jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
+            $dispatch = $this->dispatchPresentation->build($jobCard);
+
+            if ($dispatch['has_delivery_note'] ?? false) {
+                foreach ($dispatch['actions']['secondary'] ?? [] as $action) {
+                    $actions[] = $this->action(
+                        $action['label'],
+                        $action['type'],
+                        $action['url'],
+                        $action['variant'] ?? 'ghost',
+                        $action['target'] ?? null,
+                    );
+                }
+            }
         }
 
         return $actions;
