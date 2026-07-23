@@ -8,8 +8,8 @@
             @foreach ($operatorDeskShortcuts as $desk)
                 <a
                     href="{{ $desk['url'] }}"
-                    data-turbo-frame="_top"
-                    data-turbo="false"
+                    data-turbo-frame="erp-main"
+                    data-turbo-action="advance"
                     class="exec-operator-desks__card"
                 >
                     <span class="exec-operator-desks__icon" aria-hidden="true">

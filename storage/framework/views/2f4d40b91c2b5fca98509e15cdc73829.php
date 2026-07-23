@@ -8,7 +8,7 @@
                     'border-erp-accent bg-erp-accent text-white hover:bg-erp-accent/90' => ($action['key'] ?? '') === 'new_quote',
                     'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => ($action['key'] ?? '') !== 'new_quote',
                 ]); ?>"
-                <?php if($action['modal'] ?? false): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="_top" <?php endif; ?>
+                <?php if($action['modal'] ?? false): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" <?php endif; ?>
             ><?php echo e($action['label']); ?></a>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>

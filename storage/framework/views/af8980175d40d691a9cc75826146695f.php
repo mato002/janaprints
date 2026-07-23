@@ -25,6 +25,7 @@
             'print_specification_id' => $specification?->id,
         ]))
         : null;
+    $walkInComplete = ! empty($orderPresentation['released_to_queue']);
 ?>
 
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
@@ -56,14 +57,14 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <?php if (! ($operatorMode)): ?>
-                    <a href="<?php echo e($fullCommercialDeskUrl); ?>" class="erp-btn-secondary text-xs" data-turbo-frame="_top"><?php echo e(__('Full Commercial desk')); ?></a>
+                    <a href="<?php echo e($fullCommercialDeskUrl); ?>" class="erp-btn-secondary text-xs" data-turbo-frame="erp-main"><?php echo e(__('Full Commercial desk')); ?></a>
                 <?php endif; ?>
-                <a href="<?php echo e(route('admin.sales.desk')); ?>" class="erp-btn-secondary text-xs" data-turbo-frame="_top"><?php echo e(__('Start another')); ?></a>
+                <a href="<?php echo e(route('admin.sales.desk')); ?>" class="erp-btn-secondary text-xs" data-turbo-frame="erp-main"><?php echo e(__('Start another')); ?></a>
             </div>
         </div>
 
         <?php if(session('status')): ?>
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" data-erp-flash-status>
                 <?php echo e(session('status')); ?>
 
                 <?php if(session('sales_desk_receipt_url')): ?>
@@ -74,8 +75,14 @@
         <?php if(! empty($specificationNotice)): ?>
             <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><?php echo e($specificationNotice); ?></div>
         <?php endif; ?>
+        <?php if(session('error')): ?>
+            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" data-erp-flash-error>
+                <?php echo e(session('error')); ?>
+
+            </div>
+        <?php endif; ?>
         <?php if($errors->any()): ?>
-            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" data-erp-validation-errors>
                 <ul class="list-disc pl-4">
                     <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li><?php echo e($error); ?></li>
@@ -110,15 +117,19 @@
                         default => null,
                     };
                 ?>
+                <?php
+                    $stepComplete = $id < $step || ($id === 4 && $walkInComplete);
+                    $stepCurrent = $step === $id && ! ($id === 4 && $walkInComplete);
+                ?>
                 <?php if($enabled && $href): ?>
                     <a
                         href="<?php echo e($href); ?>"
-                        data-turbo-frame="_top"
+                        data-turbo-frame="erp-main"
                         class="<?php echo \Illuminate\Support\Arr::toCssClasses([
                             'rounded-full border px-3 py-1 text-xs font-medium transition',
-                            'border-erp-accent bg-erp-accent text-white' => $step === $id,
-                            'border-emerald-300 bg-emerald-50 text-emerald-800' => $step > $id,
-                            'border-slate-200 bg-white text-slate-600' => $step < $id,
+                            'border-erp-accent bg-erp-accent text-white' => $stepCurrent,
+                            'border-emerald-300 bg-emerald-50 text-emerald-800' => $stepComplete,
+                            'border-slate-200 bg-white text-slate-600' => ! $stepComplete && ! $stepCurrent,
                         ]); ?>"
                     ><?php echo e($label); ?></a>
                 <?php else: ?>
@@ -427,7 +438,7 @@
                                                         <a
                                                             class="erp-btn-secondary text-xs py-1 px-2"
                                                             href="<?php echo e(route('admin.sales.desk', ['customer' => $customer->getRouteKey(), 'specification' => $spec['id'], 'step' => 3])); ?>"
-                                                            data-turbo-frame="_top"
+                                                            data-turbo-frame="erp-main"
                                                         ><?php echo e(__('Use')); ?></a>
                                                         </div>
                                                     </td>
@@ -504,7 +515,7 @@
 
                         <?php if(! $specification && ! count($printSpecifications)): ?>
                             <p class="text-sm text-amber-800"><?php echo e(__('No active print specification for this customer yet. Create one on the Specification step.')); ?></p>
-                            <a href="<?php echo e(route('admin.sales.desk', ['customer' => $customer->getRouteKey(), 'step' => 2])); ?>" class="erp-btn-primary mt-3 inline-flex text-sm" data-turbo-frame="_top"><?php echo e(__('Go to specification')); ?></a>
+                            <a href="<?php echo e(route('admin.sales.desk', ['customer' => $customer->getRouteKey(), 'step' => 2])); ?>" class="erp-btn-primary mt-3 inline-flex text-sm" data-turbo-frame="erp-main"><?php echo e(__('Go to specification')); ?></a>
                         <?php else: ?>
                             <?php if($specification): ?>
                                 <?php
@@ -565,29 +576,61 @@
                 <?php if($step === 4 && $order): ?>
                     <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['class' => \Illuminate\Support\Arr::toCssClasses(['border-emerald-200' => $walkInComplete])]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.card'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes([]); ?>
-                        <h2 class="mb-3 text-sm font-semibold text-slate-900"><?php echo e(__('4. Release to production')); ?></h2>
+<?php $component->withAttributes(['class' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(\Illuminate\Support\Arr::toCssClasses(['border-emerald-200' => $walkInComplete]))]); ?>
+                        <?php if($walkInComplete): ?>
+                            <div class="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                <span class="text-lg font-semibold text-emerald-600" aria-hidden="true">✓</span>
+                                <div class="min-w-0">
+                                    <h2 class="text-sm font-semibold text-emerald-900"><?php echo e(__('Walk-in complete')); ?></h2>
+                                    <p class="mt-1 text-sm text-emerald-800">
+                                        <?php echo e(__(':order is on the production queue. Production picks up from here.', ['order' => $orderPresentation['order_number']])); ?>
 
-                        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                            <p class="font-medium text-slate-900"><?php echo e($orderPresentation['order_number']); ?></p>
-                            <p class="text-xs text-slate-600">
-                                <?php echo e($orderPresentation['status_label']); ?>
+                                    </p>
+                                    <?php if(! empty($orderPresentation['production']['work_center'])): ?>
+                                        <p class="mt-1 text-xs text-emerald-700">
+                                            <?php echo e(__('Queued at :work_center · :status', [
+                                                'work_center' => $orderPresentation['production']['work_center'],
+                                                'status' => $orderPresentation['production']['queue_status'] ?? __('Waiting'),
+                                            ])); ?>
 
-                                <?php if($orderPresentation['job_card_number']): ?>
-                                    · <?php echo e(__('Job')); ?> <?php echo e($orderPresentation['job_card_number']); ?>
+                                        </p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
 
-                                <?php endif; ?>
-                            </p>
-                        </div>
+                            <div class="mb-4">
+                                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500"><?php echo e(__('Completed steps')); ?></p>
+                                <ul class="space-y-1 text-sm text-emerald-800">
+                                    <li>✓ <?php echo e(__('Customer')); ?> — <?php echo e($customer?->name ?? '—'); ?></li>
+                                    <li>✓ <?php echo e(__('Specification')); ?> — <?php echo e($specification?->name ?? __('On order')); ?></li>
+                                    <li>✓ <?php echo e(__('Order')); ?> — <?php echo e($orderPresentation['order_number']); ?></li>
+                                    <li>✓ <?php echo e(__('Release')); ?> — <?php echo e($orderPresentation['job_card_number'] ?? __('Job created')); ?></li>
+                                </ul>
+                            </div>
+                        <?php else: ?>
+                            <h2 class="mb-3 text-sm font-semibold text-slate-900"><?php echo e(__('4. Release to production')); ?></h2>
 
-                        <?php if(empty($orderPresentation['job_card_id']) && ! empty($orderPresentation['readiness']['checks'])): ?>
+                            <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                                <p class="font-medium text-slate-900"><?php echo e($orderPresentation['order_number']); ?></p>
+                                <p class="text-xs text-slate-600">
+                                    <?php echo e($orderPresentation['status_label']); ?>
+
+                                    <?php if($orderPresentation['job_card_number']): ?>
+                                        · <?php echo e(__('Job')); ?> <?php echo e($orderPresentation['job_card_number']); ?>
+
+                                    <?php endif; ?>
+                                </p>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if($orderPresentation['can_release'] && ! empty($orderPresentation['readiness']['checks'])): ?>
                             <div class="mb-4">
                                 <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500"><?php echo e(__('Readiness')); ?></p>
                                 <ul class="space-y-1 text-sm">
@@ -611,15 +654,31 @@
                             </div>
                         <?php endif; ?>
 
-                        <?php if($orderPresentation['can_release'] && empty($orderPresentation['job_card_id'])): ?>
-                            <form method="POST" action="<?php echo e(route('admin.sales-orders.release-to-production', $order)); ?>" class="mb-4" data-erp-desk-form>
+                        <?php if($orderPresentation['can_release']): ?>
+                            <form
+                                method="POST"
+                                action="<?php echo e(route('admin.sales-orders.release-to-production', $order)); ?>"
+                                class="mb-4"
+                                data-erp-desk-form
+                                data-turbo="false"
+                                data-erp-desk-success-message="<?php echo e(__('Sales order sent to production queue.')); ?>"
+                                data-erp-desk-submitting-message="<?php echo e(__('Submitting to production queue…')); ?>"
+                            >
                                 <?php echo csrf_field(); ?>
                                 <input type="hidden" name="from" value="sales-desk">
                                 <button type="submit" class="erp-btn-primary" <?php if(! ($orderPresentation['readiness']['ready'] ?? false)): echo 'disabled'; endif; ?>>
-                                    <?php echo e(__('Release to production')); ?>
+                                    <?php if(empty($orderPresentation['job_card_id'])): ?>
+                                        <?php echo e(__('Release to production')); ?>
 
+                                    <?php else: ?>
+                                        <?php echo e(__('Submit to production queue')); ?>
+
+                                    <?php endif; ?>
                                 </button>
                             </form>
+                            <?php if(empty($orderPresentation['readiness']['ready'] ?? false)): ?>
+                                <p class="mb-4 text-sm text-amber-700"><?php echo e(__('Complete readiness checks before releasing to production.')); ?></p>
+                            <?php endif; ?>
                         <?php endif; ?>
 
                         <?php if($orderPresentation['job_card_id']): ?>
@@ -635,7 +694,10 @@
                             <?php if($orderPresentation['job_url']): ?>
                                 <a href="<?php echo e($orderPresentation['job_url']); ?>" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Open job card')); ?></a>
                             <?php endif; ?>
-                            <a href="<?php echo e(route('admin.sales.desk')); ?>" class="erp-btn-primary text-sm" data-turbo-frame="_top"><?php echo e(__('Start another walk-in')); ?></a>
+                            <?php if($walkInComplete && ! empty($orderPresentation['production']['department_queue_url'])): ?>
+                                <a href="<?php echo e($orderPresentation['production']['department_queue_url']); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Open production queue')); ?></a>
+                            <?php endif; ?>
+                            <a href="<?php echo e(route('admin.sales.desk')); ?>" class="erp-btn-primary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Start another walk-in')); ?></a>
                         </div>
                      <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>

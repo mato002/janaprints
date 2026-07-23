@@ -91,7 +91,8 @@ class ProductionOutputGovernanceTest extends TestCase
         $eligibility = app(ProductionCompletionService::class)->eligibility($jobCard->fresh());
 
         $this->assertFalse($eligibility['eligible']);
-        $this->assertTrue(
+        $this->assertTrue($eligibility['already_posted']);
+        $this->assertFalse(
             collect($eligibility['blockers'])->contains(
                 fn (string $blocker) => str_contains($blocker, 'already been completed into Finished Goods'),
             ),

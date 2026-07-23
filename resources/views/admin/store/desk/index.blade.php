@@ -24,7 +24,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 @if (! $operatorMode)
-                    <a href="{{ $fullSupplyChainDeskUrl }}" class="erp-btn-secondary text-xs" data-turbo-frame="_top">{{ __('Full Supply Chain desk') }}</a>
+                    <a href="{{ $fullSupplyChainDeskUrl }}" class="erp-btn-secondary text-xs" data-turbo-frame="erp-main">{{ __('Full Supply Chain desk') }}</a>
                 @endif
             </div>
         </div>

@@ -25,6 +25,7 @@
             'print_specification_id' => $specification?->id,
         ]))
         : null;
+    $walkInComplete = ! empty($orderPresentation['released_to_queue']);
 @endphp
 
 <x-admin-layout
@@ -50,14 +51,14 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 @unless ($operatorMode)
-                    <a href="{{ $fullCommercialDeskUrl }}" class="erp-btn-secondary text-xs" data-turbo-frame="_top">{{ __('Full Commercial desk') }}</a>
+                    <a href="{{ $fullCommercialDeskUrl }}" class="erp-btn-secondary text-xs" data-turbo-frame="erp-main">{{ __('Full Commercial desk') }}</a>
                 @endunless
-                <a href="{{ route('admin.sales.desk') }}" class="erp-btn-secondary text-xs" data-turbo-frame="_top">{{ __('Start another') }}</a>
+                <a href="{{ route('admin.sales.desk') }}" class="erp-btn-secondary text-xs" data-turbo-frame="erp-main">{{ __('Start another') }}</a>
             </div>
         </div>
 
         @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800" data-erp-flash-status>
                 {{ session('status') }}
                 @if (session('sales_desk_receipt_url'))
                     <a href="{{ session('sales_desk_receipt_url') }}" class="ml-2 font-medium underline" data-erp-modal-open>{{ __('View receipt') }}</a>
@@ -67,8 +68,13 @@
         @if (! empty($specificationNotice))
             <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ $specificationNotice }}</div>
         @endif
+        @if (session('error'))
+            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" data-erp-flash-error>
+                {{ session('error') }}
+            </div>
+        @endif
         @if ($errors->any())
-            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" data-erp-validation-errors>
                 <ul class="list-disc pl-4">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -103,15 +109,19 @@
                         default => null,
                     };
                 @endphp
+                @php
+                    $stepComplete = $id < $step || ($id === 4 && $walkInComplete);
+                    $stepCurrent = $step === $id && ! ($id === 4 && $walkInComplete);
+                @endphp
                 @if ($enabled && $href)
                     <a
                         href="{{ $href }}"
-                        data-turbo-frame="_top"
+                        data-turbo-frame="erp-main"
                         @class([
                             'rounded-full border px-3 py-1 text-xs font-medium transition',
-                            'border-erp-accent bg-erp-accent text-white' => $step === $id,
-                            'border-emerald-300 bg-emerald-50 text-emerald-800' => $step > $id,
-                            'border-slate-200 bg-white text-slate-600' => $step < $id,
+                            'border-erp-accent bg-erp-accent text-white' => $stepCurrent,
+                            'border-emerald-300 bg-emerald-50 text-emerald-800' => $stepComplete,
+                            'border-slate-200 bg-white text-slate-600' => ! $stepComplete && ! $stepCurrent,
                         ])
                     >{{ $label }}</a>
                 @else
@@ -296,7 +306,7 @@
                                                         <a
                                                             class="erp-btn-secondary text-xs py-1 px-2"
                                                             href="{{ route('admin.sales.desk', ['customer' => $customer->getRouteKey(), 'specification' => $spec['id'], 'step' => 3]) }}"
-                                                            data-turbo-frame="_top"
+                                                            data-turbo-frame="erp-main"
                                                         >{{ __('Use') }}</a>
                                                         </div>
                                                     </td>
@@ -334,7 +344,7 @@
 
                         @if (! $specification && ! count($printSpecifications))
                             <p class="text-sm text-amber-800">{{ __('No active print specification for this customer yet. Create one on the Specification step.') }}</p>
-                            <a href="{{ route('admin.sales.desk', ['customer' => $customer->getRouteKey(), 'step' => 2]) }}" class="erp-btn-primary mt-3 inline-flex text-sm" data-turbo-frame="_top">{{ __('Go to specification') }}</a>
+                            <a href="{{ route('admin.sales.desk', ['customer' => $customer->getRouteKey(), 'step' => 2]) }}" class="erp-btn-primary mt-3 inline-flex text-sm" data-turbo-frame="erp-main">{{ __('Go to specification') }}</a>
                         @else
                             @if ($specification)
                                 @php
@@ -384,20 +394,50 @@
                 @endif
 
                 @if ($step === 4 && $order)
-                    <x-admin.card>
-                        <h2 class="mb-3 text-sm font-semibold text-slate-900">{{ __('4. Release to production') }}</h2>
+                    <x-admin.card @class(['border-emerald-200' => $walkInComplete])>
+                        @if ($walkInComplete)
+                            <div class="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                <span class="text-lg font-semibold text-emerald-600" aria-hidden="true">✓</span>
+                                <div class="min-w-0">
+                                    <h2 class="text-sm font-semibold text-emerald-900">{{ __('Walk-in complete') }}</h2>
+                                    <p class="mt-1 text-sm text-emerald-800">
+                                        {{ __(':order is on the production queue. Production picks up from here.', ['order' => $orderPresentation['order_number']]) }}
+                                    </p>
+                                    @if (! empty($orderPresentation['production']['work_center']))
+                                        <p class="mt-1 text-xs text-emerald-700">
+                                            {{ __('Queued at :work_center · :status', [
+                                                'work_center' => $orderPresentation['production']['work_center'],
+                                                'status' => $orderPresentation['production']['queue_status'] ?? __('Waiting'),
+                                            ]) }}
+                                        </p>
+                                    @endif
+                                </div>
+                            </div>
 
-                        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                            <p class="font-medium text-slate-900">{{ $orderPresentation['order_number'] }}</p>
-                            <p class="text-xs text-slate-600">
-                                {{ $orderPresentation['status_label'] }}
-                                @if ($orderPresentation['job_card_number'])
-                                    · {{ __('Job') }} {{ $orderPresentation['job_card_number'] }}
-                                @endif
-                            </p>
-                        </div>
+                            <div class="mb-4">
+                                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Completed steps') }}</p>
+                                <ul class="space-y-1 text-sm text-emerald-800">
+                                    <li>✓ {{ __('Customer') }} — {{ $customer?->name ?? '—' }}</li>
+                                    <li>✓ {{ __('Specification') }} — {{ $specification?->name ?? __('On order') }}</li>
+                                    <li>✓ {{ __('Order') }} — {{ $orderPresentation['order_number'] }}</li>
+                                    <li>✓ {{ __('Release') }} — {{ $orderPresentation['job_card_number'] ?? __('Job created') }}</li>
+                                </ul>
+                            </div>
+                        @else
+                            <h2 class="mb-3 text-sm font-semibold text-slate-900">{{ __('4. Release to production') }}</h2>
 
-                        @if (empty($orderPresentation['job_card_id']) && ! empty($orderPresentation['readiness']['checks']))
+                            <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                                <p class="font-medium text-slate-900">{{ $orderPresentation['order_number'] }}</p>
+                                <p class="text-xs text-slate-600">
+                                    {{ $orderPresentation['status_label'] }}
+                                    @if ($orderPresentation['job_card_number'])
+                                        · {{ __('Job') }} {{ $orderPresentation['job_card_number'] }}
+                                    @endif
+                                </p>
+                            </div>
+                        @endif
+
+                        @if ($orderPresentation['can_release'] && ! empty($orderPresentation['readiness']['checks']))
                             <div class="mb-4">
                                 <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Readiness') }}</p>
                                 <ul class="space-y-1 text-sm">
@@ -420,14 +460,29 @@
                             </div>
                         @endif
 
-                        @if ($orderPresentation['can_release'] && empty($orderPresentation['job_card_id']))
-                            <form method="POST" action="{{ route('admin.sales-orders.release-to-production', $order) }}" class="mb-4" data-erp-desk-form>
+                        @if ($orderPresentation['can_release'])
+                            <form
+                                method="POST"
+                                action="{{ route('admin.sales-orders.release-to-production', $order) }}"
+                                class="mb-4"
+                                data-erp-desk-form
+                                data-turbo="false"
+                                data-erp-desk-success-message="{{ __('Sales order sent to production queue.') }}"
+                                data-erp-desk-submitting-message="{{ __('Submitting to production queue…') }}"
+                            >
                                 @csrf
                                 <input type="hidden" name="from" value="sales-desk">
                                 <button type="submit" class="erp-btn-primary" @disabled(! ($orderPresentation['readiness']['ready'] ?? false))>
-                                    {{ __('Release to production') }}
+                                    @if (empty($orderPresentation['job_card_id']))
+                                        {{ __('Release to production') }}
+                                    @else
+                                        {{ __('Submit to production queue') }}
+                                    @endif
                                 </button>
                             </form>
+                            @if (empty($orderPresentation['readiness']['ready'] ?? false))
+                                <p class="mb-4 text-sm text-amber-700">{{ __('Complete readiness checks before releasing to production.') }}</p>
+                            @endif
                         @endif
 
                         @if ($orderPresentation['job_card_id'])
@@ -443,7 +498,10 @@
                             @if ($orderPresentation['job_url'])
                                 <a href="{{ $orderPresentation['job_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open job card') }}</a>
                             @endif
-                            <a href="{{ route('admin.sales.desk') }}" class="erp-btn-primary text-sm" data-turbo-frame="_top">{{ __('Start another walk-in') }}</a>
+                            @if ($walkInComplete && ! empty($orderPresentation['production']['department_queue_url']))
+                                <a href="{{ $orderPresentation['production']['department_queue_url'] }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Open production queue') }}</a>
+                            @endif
+                            <a href="{{ route('admin.sales.desk') }}" class="erp-btn-primary text-sm" data-turbo-frame="erp-main">{{ __('Start another walk-in') }}</a>
                         </div>
                     </x-admin.card>
                 @endif

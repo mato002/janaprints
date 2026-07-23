@@ -18,7 +18,7 @@
             </div>
             <div class="flex shrink-0 gap-2">
                 <?php if($deskUrls['customer_360'] ?? null): ?>
-                    <a href="<?php echo e($deskUrls['customer_360']); ?>" class="text-xs text-erp-primary hover:underline" data-turbo-frame="_top"><?php echo e(__('360')); ?></a>
+                    <a href="<?php echo e($deskUrls['customer_360']); ?>" class="text-xs text-erp-primary hover:underline" data-turbo-frame="erp-main"><?php echo e(__('360')); ?></a>
                 <?php endif; ?>
                 <?php if($deskUrls['edit_customer'] ?? null): ?>
                     <a href="<?php echo e($deskUrls['edit_customer']); ?>" class="text-xs text-erp-primary hover:underline" data-erp-modal-open><?php echo e(__('Edit')); ?></a>
@@ -111,7 +111,7 @@
                 <ul class="space-y-1 text-xs">
                     <?php $__currentLoopData = $customerContext['recent_orders']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $recent): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <a href="<?php echo e($recent['desk_url']); ?>" class="text-erp-primary hover:underline" data-turbo-frame="_top"><?php echo e($recent['order_number']); ?></a>
+                            <a href="<?php echo e($recent['desk_url']); ?>" class="text-erp-primary hover:underline" data-turbo-frame="erp-main"><?php echo e($recent['order_number']); ?></a>
                             <span class="text-slate-500"><?php echo e($recent['total_amount']); ?></span>
                             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Sales\SalesOrder::class)): ?>
                                 <form
@@ -151,7 +151,7 @@
                     <?php $__currentLoopData = $customerContext['timeline']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $event): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                         <li>
                             <?php if($event['url'] ?? null): ?>
-                                <a href="<?php echo e($event['url']); ?>" class="font-medium text-erp-primary hover:underline" <?php if(str_contains($event['url'], 'from=sales-desk')): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="_top" <?php endif; ?>><?php echo e($event['title']); ?></a>
+                                <a href="<?php echo e($event['url']); ?>" class="font-medium text-erp-primary hover:underline" <?php if(str_contains($event['url'], 'from=sales-desk')): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" <?php endif; ?>><?php echo e($event['title']); ?></a>
                             <?php else: ?>
                                 <p class="font-medium text-slate-900"><?php echo e($event['title']); ?></p>
                             <?php endif; ?>

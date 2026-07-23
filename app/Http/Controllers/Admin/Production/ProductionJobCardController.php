@@ -107,15 +107,11 @@ class ProductionJobCardController extends Controller
 
         $salesOrder = SalesOrder::query()->forTenant()->findOrFail($validated['sales_order_id']);
 
-        try {
-            $jobCard = ProductionJobCardService::createFromSalesOrder(
-                $salesOrder,
-                (int) auth()->id(),
-                $validated,
-            );
-        } catch (ValidationException $exception) {
-            return back()->withInput()->withErrors($exception->errors());
-        }
+        $jobCard = ProductionJobCardService::createFromSalesOrder(
+            $salesOrder,
+            (int) auth()->id(),
+            $validated,
+        );
 
         return $this->modalOrRedirect(
             __('Job card created.'),

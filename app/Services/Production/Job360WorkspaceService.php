@@ -197,7 +197,7 @@ class Job360WorkspaceService
             'customer:id,company_name,customer_code',
             'branch:id,name',
             'creator:id,name',
-            'salesOrder:id,order_number,status,required_date,fulfilment_method',
+            'salesOrder:id,public_id,company_id,branch_id,order_number,status,required_date,fulfilment_method,total_amount',
             'quotation:id,quotation_number,status',
             'artworkRequest:id,request_number,status,current_version,title',
             'inventoryItem:id,item_name,sku,uses_serial_numbers',
@@ -433,7 +433,7 @@ class Job360WorkspaceService
                 'number' => $salesOrder->order_number,
                 'status' => $salesOrder->status->value,
                 'total' => $salesOrder->total_amount ?? null,
-                'currency' => $salesOrder->currency ?? null,
+                'currency' => config('accounting.base_currency', 'KES'),
             ] : null,
             'cost_summary' => ($canViewCosting && $costSheet) ? [
                 'material' => (float) $costSheet->material_cost,

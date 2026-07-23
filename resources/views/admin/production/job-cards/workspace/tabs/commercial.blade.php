@@ -10,7 +10,21 @@
         <x-admin.card>
             <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Sales order') }}</h3>
             <dl class="space-y-2 text-sm">
-                <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ __('Order') }}</dt><dd class="font-medium">{{ $salesOrder['number'] }}</dd></div>
+                <div class="flex justify-between gap-3">
+                    <dt class="text-slate-500">{{ __('Order') }}</dt>
+                    <dd class="font-medium">
+                        @if ($jobCard->salesOrder)
+                            <a
+                                href="{{ route('admin.sales-orders.show', $jobCard->salesOrder) }}"
+                                class="font-mono text-erp-accent underline decoration-erp-accent/40 underline-offset-2 hover:decoration-erp-accent"
+                                data-turbo-frame="erp-main"
+                                data-turbo-action="advance"
+                            >{{ $salesOrder['number'] ?? $jobCard->salesOrder->order_number }}</a>
+                        @else
+                            <span class="font-mono">{{ $salesOrder['number'] }}</span>
+                        @endif
+                    </dd>
+                </div>
                 <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ __('Status') }}</dt><dd>{{ str_replace('_', ' ', $salesOrder['status']) }}</dd></div>
                 @if ($salesOrder['total'] !== null)
                     <div class="flex justify-between gap-3"><dt class="text-slate-500">{{ __('Order total') }}</dt><dd class="font-medium tabular-nums">{{ number_format((float) $salesOrder['total'], 2) }}</dd></div>

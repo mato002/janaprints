@@ -10,7 +10,7 @@
                         'border-erp-accent bg-erp-accent text-white hover:bg-erp-accent/90' => $action['primary'] ?? false,
                         'border-slate-200 bg-white text-slate-700 hover:bg-slate-50' => ! ($action['primary'] ?? false),
                     ])
-                    @if ($action['modal'] ?? false) data-erp-modal-open @else data-turbo-frame="_top" @endif
+                    @if ($action['modal'] ?? false) data-erp-modal-open @else data-turbo-frame="erp-main" @endif
                 >{{ $action['label'] }}</a>
             @endforeach
         </div>

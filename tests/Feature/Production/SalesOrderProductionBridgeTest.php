@@ -39,19 +39,24 @@ class SalesOrderProductionBridgeTest extends TestCase
     public function test_release_to_production_reuses_existing_job_card(): void
     {
         [$company, $branch, , $user, $salesOrder] = $this->productionContext([
-            'production.view', 'production.create',
+            'production.view', 'production.create', 'production.schedule',
             'sales_orders.view', 'sales_orders.production',
         ]);
 
+        $this->seed(ProductionFoundationSeeder::class);
+
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->createJobCard($salesOrder, $user);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+        $salesOrder->update(['status' => SalesOrderStatus::ReadyForProduction]);
 
         $this->actingAs($user)
             ->post(route('admin.sales-orders.release-to-production', $salesOrder))
-            ->assertSessionHasErrors('sales_order');
+            ->assertSessionHasNoErrors()
+            ->assertSessionHas('status');
 
         $this->assertEquals(1, ProductionJobCard::query()->where('sales_order_id', $salesOrder->id)->count());
+        $this->assertEquals(ProductionJobCardStatus::Queued, $jobCard->fresh()->status);
     }
 
     public function test_job_card_queue_syncs_sales_order_to_queued(): void

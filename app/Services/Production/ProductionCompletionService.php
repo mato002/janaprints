@@ -42,6 +42,7 @@ class ProductionCompletionService
     /**
      * @return array{
      *     eligible: bool,
+     *     already_posted: bool,
      *     blockers: list<string>,
      *     blocker_codes: list<string>,
      *     suggested_finished_item_id: int|null,
@@ -55,6 +56,7 @@ class ProductionCompletionService
     {
         $blockers = [];
         $blockerCodes = [];
+        $alreadyPosted = $this->jobHasPostedOutput($jobCard);
 
         if ($jobCard->status === ProductionJobCardStatus::Cancelled) {
             $this->pushBlocker($blockers, $blockerCodes, 'cancelled', __('Cancelled jobs cannot be completed to finished goods.'));
@@ -71,10 +73,6 @@ class ProductionCompletionService
 
         if ($jobCard->materialConsumptions()->count() === 0) {
             $this->pushBlocker($blockers, $blockerCodes, 'consumption', __('Record material consumption before completing to finished goods.'));
-        }
-
-        if ($this->jobHasPostedOutput($jobCard)) {
-            $this->pushBlocker($blockers, $blockerCodes, 'already_posted', __('This production job has already been completed into Finished Goods.'));
         }
 
         $fgWarehouse = null;
@@ -102,7 +100,8 @@ class ProductionCompletionService
         $unitCost = $this->deriveUnitCost($jobCard, $suggestedQuantity, null, false);
 
         return [
-            'eligible' => $blockers === [],
+            'eligible' => ! $alreadyPosted && $blockers === [],
+            'already_posted' => $alreadyPosted,
             'blockers' => $blockers,
             'blocker_codes' => $blockerCodes,
             'suggested_finished_item_id' => $suggestedItem?->id,

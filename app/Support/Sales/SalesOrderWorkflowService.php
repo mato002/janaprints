@@ -3,6 +3,7 @@
 namespace App\Support\Sales;
 
 use App\Enums\ArtworkRequestStatus;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
@@ -51,7 +52,10 @@ class SalesOrderWorkflowService
             ]);
         }
 
-        return $this->bridge->ensureJobCard($salesOrder, $userId);
+        return $this->bridge->activateJobForProduction(
+            $this->bridge->ensureJobCard($salesOrder, $userId),
+            $userId,
+        );
     }
 
     /**
@@ -78,14 +82,18 @@ class SalesOrderWorkflowService
 
     public function canRelease(SalesOrder $salesOrder): bool
     {
-        if ($salesOrder->jobCard) {
+        if (! in_array($salesOrder->status, [
+            SalesOrderStatus::Confirmed,
+            SalesOrderStatus::ReadyForProduction,
+        ], true)) {
             return false;
         }
 
-        return in_array($salesOrder->status, [
-            SalesOrderStatus::Confirmed,
-            SalesOrderStatus::ReadyForProduction,
-        ], true);
+        if ($salesOrder->jobCard) {
+            return $salesOrder->jobCard->status === ProductionJobCardStatus::Draft;
+        }
+
+        return true;
     }
 
     protected function hint(SalesOrder $salesOrder): ?string

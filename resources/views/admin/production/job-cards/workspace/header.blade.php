@@ -58,6 +58,18 @@
                 <h1 class="job-360-hero__title">{{ $productName }}</h1>
                 <p class="job-360-hero__subtitle">{{ $customerName }}</p>
 
+                @if ($jobCard->salesOrder)
+                    <p class="mt-1.5 text-sm text-slate-600">
+                        <span class="text-slate-500">{{ __('Linked sales order') }}:</span>
+                        <a
+                            href="{{ route('admin.sales-orders.show', $jobCard->salesOrder) }}"
+                            class="font-mono font-medium text-erp-accent underline decoration-erp-accent/40 underline-offset-2 hover:decoration-erp-accent"
+                            data-turbo-frame="erp-main"
+                            data-turbo-action="advance"
+                        >{{ $jobCard->salesOrder->order_number }}</a>
+                    </p>
+                @endif
+
                 <div class="job-360-hero__meta">
                     @if ($qtyLabel)
                         <span class="job-360-hero__meta-item">

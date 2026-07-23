@@ -3,7 +3,7 @@
 <x-admin.card class="mb-4" id="upload-file">
     <h3 class="mb-3 font-medium">{{ __('Upload file') }}</h3>
     @can('update', $customer)
-        <form method="POST" action="{{ route('admin.crm.customers.files.store', $customer) }}" enctype="multipart/form-data" data-turbo-frame="_top" class="flex flex-wrap items-end gap-3">
+        <form method="POST" action="{{ route('admin.crm.customers.files.store', $customer) }}" enctype="multipart/form-data" data-turbo-frame="erp-main" class="flex flex-wrap items-end gap-3">
             @csrf
             <input type="file" name="file" class="text-sm" required>
             <button type="submit" class="erp-btn-primary text-sm">{{ __('Upload') }}</button>

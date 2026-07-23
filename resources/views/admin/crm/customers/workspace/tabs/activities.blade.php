@@ -3,7 +3,7 @@
 <x-admin.card class="mb-4" id="log-activity">
     <h3 class="mb-3 font-medium">{{ __('Log activity') }}</h3>
     @can('create', App\Models\Crm\CustomerActivity::class)
-        <form method="POST" action="{{ route('admin.crm.customers.activities.store', $customer) }}" class="grid grid-cols-1 gap-3 md:grid-cols-2" data-turbo-frame="_top">
+        <form method="POST" action="{{ route('admin.crm.customers.activities.store', $customer) }}" class="grid grid-cols-1 gap-3 md:grid-cols-2" data-turbo-frame="erp-main">
             @csrf
             <div>
                 <label class="erp-label">{{ __('Type') }}</label>

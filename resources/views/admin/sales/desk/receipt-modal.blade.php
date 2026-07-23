@@ -7,7 +7,7 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.payments.receipt.pdf', $payment) }}" class="erp-btn-primary text-sm" target="_blank" rel="noopener">{{ __('Print receipt') }}</a>
             @if ($deskReturnUrl ?? null)
-                <a href="{{ $deskReturnUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="_top">{{ __('Back to desk') }}</a>
+                <a href="{{ $deskReturnUrl }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Back to desk') }}</a>
             @endif
         </div>
     </div>

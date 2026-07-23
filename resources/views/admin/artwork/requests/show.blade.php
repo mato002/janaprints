@@ -9,7 +9,7 @@
 <x-admin-layout :title="$request->request_number" :breadcrumbs="[['label' => $artworkHomeLabel, 'url' => $artworkHomeUrl], ['label' => $request->request_number]]">
     <x-admin.page-header :title="$request->request_number" :description="$request->customer?->company_name">
         @if ($designerOperator)
-            <a href="{{ route('admin.artwork.desk') }}" class="erp-btn-secondary" data-turbo-frame="_top">{{ __('Back to Designer Desk') }}</a>
+            <a href="{{ route('admin.artwork.desk') }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ __('Back to Designer Desk') }}</a>
         @endif
         <span class="erp-badge">{{ str_replace('_', ' ', $request->status->value) }}</span>
         <span class="text-sm text-slate-500">v{{ $request->current_version }}</span>
@@ -119,7 +119,7 @@
                 <p class="text-sm text-slate-500">{{ __('No versions uploaded yet.') }}</p>
             @endforelse
             @can('create', [App\Models\Artwork\ArtworkVersion::class, $request])
-                <form method="POST" action="{{ route('admin.artwork.versions.store', $request) }}" enctype="multipart/form-data" data-turbo-frame="_top" class="mt-4 space-y-2">
+                <form method="POST" action="{{ route('admin.artwork.versions.store', $request) }}" enctype="multipart/form-data" data-turbo-frame="erp-main" class="mt-4 space-y-2">
                     @csrf
                     <label class="block text-xs font-semibold text-slate-700 mb-1">{{ __('Artwork file') }}</label>
                     <input type="file" name="file" class="erp-input w-full" accept=".pdf,.ai,.psd,.cdr,.svg,.png,.jpg,.jpeg" required>
@@ -144,7 +144,7 @@
                 <p class="text-sm text-slate-500">{{ __('No reference files.') }}</p>
             @endforelse
             @can('update', $request)
-                <form method="POST" action="{{ route('admin.artwork.files.store', $request) }}" enctype="multipart/form-data" data-turbo-frame="_top" class="mt-4">
+                <form method="POST" action="{{ route('admin.artwork.files.store', $request) }}" enctype="multipart/form-data" data-turbo-frame="erp-main" class="mt-4">
                     @csrf
                     <input type="file" name="file" class="erp-input w-full" required>
                     <button class="erp-btn-secondary mt-2">{{ __('Upload reference') }}</button>

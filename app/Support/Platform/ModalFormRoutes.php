@@ -62,6 +62,8 @@ class ModalFormRoutes
             }
         }
 
-        return (bool) preg_match('#/(create|edit)(/|$)#', $path);
+        return (bool) preg_match('#/(create|edit)(/|$)#', $path)
+            || str_contains($path, '/invoices/from/sales-order')
+            || str_contains($path, '/invoices/from/job-card');
     }
 }

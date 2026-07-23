@@ -37,7 +37,7 @@
                             <a
                                 href="{{ $item['url'] }}"
                                 class="erp-btn-secondary text-xs"
-                                @if ($item['modal'] ?? false) data-erp-modal-open @else data-turbo-frame="_top" @endif
+                                @if ($item['modal'] ?? false) data-erp-modal-open @else data-turbo-frame="erp-main" @endif
                             >{{ __('Review') }}</a>
                             @if (($item['can_post'] ?? false) && ! empty($item['post_url']))
                                 <form method="POST" action="{{ $item['post_url'] }}" class="inline" data-erp-desk-form>

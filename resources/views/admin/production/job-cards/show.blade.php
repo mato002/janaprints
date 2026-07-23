@@ -46,6 +46,7 @@
             'workflowPresentation' => $workflowPresentation,
             'controlAlerts' => $workspace['control_alerts'] ?? [],
             'completion' => $completion,
+            'hasPostedOutput' => $hasPostedOutput,
         ])
 
         {{-- Collapsible performance metrics --}}

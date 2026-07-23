@@ -141,8 +141,8 @@
                             @can('viewAny', App\Models\Hr\EmployeeCompensation::class)
                                 <x-admin.table-row-action
                                     :href="url()->route('admin.hr.compensation.edit', $employee)"
-                                    data-turbo="false"
-                                    data-leave-workspace
+                                    data-turbo-frame="erp-main"
+                                    data-turbo-action="advance"
                                 >{{ $employee->compensation ? __('Salary') : __('Set salary') }}</x-admin.table-row-action>
                             @endcan
                             @can('email', App\Models\Employee::class)

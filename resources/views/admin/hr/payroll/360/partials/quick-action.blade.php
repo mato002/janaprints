@@ -18,7 +18,7 @@
         method="POST"
         action="{{ route($action['route'], $run) }}"
         class="inline"
-        data-turbo="false"
+        data-turbo-frame="erp-main"
         @if ($action['needs_confirm'] ?? false)
             onsubmit="return confirm(@js($action['confirm_message'] ?? __('Continue with this action?')))"
         @endif

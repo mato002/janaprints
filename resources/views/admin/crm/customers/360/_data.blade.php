@@ -364,6 +364,7 @@
         'openJobs' => $openJobs,
         'openInvoices' => $openInvoices,
         'unifiedTimeline' => $unifiedTimeline,
+        'latestOrderForRepeat' => $latestOrderForRepeat,
         'canQuotes' => $canQuotes,
         'canOrders' => $canOrders,
         'canInvoices' => $canInvoices,

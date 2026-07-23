@@ -21,7 +21,7 @@
 
     <div
         class="space-y-4"
-        x-data="erpContinuousWorkspace({ reloadOnReturn: true })"
+        x-data="erpContinuousWorkspace({ reloadOnReturn: false })"
     >
         <x-admin.form-shell :action="route('admin.production.job-cards.store')">
             @if ($fromProductionFloor ?? request('from') === 'production-floor')

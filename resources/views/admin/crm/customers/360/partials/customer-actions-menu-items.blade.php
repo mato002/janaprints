@@ -2,39 +2,45 @@
     'customer',
     'latestOrderForRepeat' => null,
     'closeOnClick' => true,
+    'omitPrimary' => false,
 ])
 
 @php
     $close = $closeOnClick ? '@click="open = false"' : '';
 @endphp
 
-@can('viewAny', App\Models\Communications\Inbox\CommunicationConversation::class)
-    <form method="POST" action="{{ route('admin.communications.inbox.customers.start', $customer) }}" class="block" data-turbo-frame="erp-main">
-        @csrf
-        <button type="submit" class="crm-360__more-item w-full text-left" role="menuitem" {!! $close !!}>
-            {{ __('Start conversation') }}
-        </button>
-    </form>
-@endcan
+@unless ($omitPrimary)
+    @can('viewAny', App\Models\Communications\Inbox\CommunicationConversation::class)
+        <form method="POST" action="{{ route('admin.communications.inbox.customers.start', $customer) }}" class="block" data-turbo-frame="erp-main">
+            @csrf
+            <button type="submit" class="crm-360__more-item w-full text-left" role="menuitem" {!! $close !!}>
+                {{ __('Start conversation') }}
+            </button>
+        </form>
+    @endcan
 
-@can('quotations.create')
-    <a
-        href="{{ route('admin.quotations.create', ['customer_id' => $customer->id]) }}"
-        class="crm-360__more-item"
-        role="menuitem"
-        data-turbo-frame="erp-form-modal"
-        {!! $close !!}
-    >{{ __('Create Quotation') }}</a>
-@endcan
+    @can('quotations.create')
+        <a
+            href="{{ route('admin.quotations.create', ['customer_id' => $customer->id]) }}"
+            class="crm-360__more-item"
+            role="menuitem"
+            data-turbo-frame="erp-form-modal"
+            {!! $close !!}
+        >{{ __('Create Quotation') }}</a>
+    @endcan
+
+    @can('sales_orders.create')
+        <a
+            href="{{ route('admin.sales-orders.create', ['customer_id' => $customer->id, 'tab' => 'direct']) }}"
+            class="crm-360__more-item"
+            role="menuitem"
+            data-turbo-frame="erp-form-modal"
+            {!! $close !!}
+        >{{ __('Create Direct Order') }}</a>
+    @endcan
+@endunless
 
 @can('sales_orders.create')
-    <a
-        href="{{ route('admin.sales-orders.create', ['customer_id' => $customer->id, 'tab' => 'direct']) }}"
-        class="crm-360__more-item"
-        role="menuitem"
-        data-turbo-frame="erp-form-modal"
-        {!! $close !!}
-    >{{ __('Create Direct Order') }}</a>
     <a
         href="{{ route('admin.sales-orders.create', ['customer_id' => $customer->id, 'tab' => 'quotation']) }}"
         class="crm-360__more-item"
@@ -55,6 +61,35 @@
             </button>
         </form>
     @endif
+@endcan
+
+@can('update', $customer)
+    <a
+        href="{{ route('admin.crm.customers.edit', $customer) }}"
+        class="crm-360__more-item"
+        role="menuitem"
+        data-turbo-frame="erp-main"
+        {!! $close !!}
+    >{{ __('Edit customer') }}</a>
+    <a
+        href="{{ route('admin.crm.customers.edit', $customer) }}"
+        class="crm-360__more-item"
+        role="menuitem"
+        data-turbo-frame="erp-main"
+        {!! $close !!}
+    >{{ __('Manage contacts') }}</a>
+    <button
+        type="button"
+        class="crm-360__more-item w-full text-left"
+        role="menuitem"
+        @click="setTab('notes'); open = false"
+    >{{ __('Add note') }}</button>
+    <button
+        type="button"
+        class="crm-360__more-item w-full text-left"
+        role="menuitem"
+        @click="setTab('files'); open = false"
+    >{{ __('Upload file') }}</button>
 @endcan
 
 @can('payments.create')

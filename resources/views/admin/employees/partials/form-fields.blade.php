@@ -130,7 +130,7 @@
             </select>
             <p class="mt-1 text-xs text-gray-500">
                 {{ __('Applies basic salary and standard allowances from the class. Adjust per employee later in the salary register.') }}
-                <a href="{{ route('admin.hr.compensation.templates') }}" class="text-erp-accent hover:underline" data-turbo="false">{{ __('Manage payroll classes') }}</a>
+                <a href="{{ route('admin.hr.compensation.templates') }}" class="text-erp-accent hover:underline" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Manage payroll classes') }}</a>
             </p>
         </div>
     @elseif (! $employee && auth()->user()?->can('create', App\Models\Hr\EmployeeCompensation::class))

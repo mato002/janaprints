@@ -7,6 +7,8 @@ use App\Enums\SalesOrderStatus;
 use App\Models\Dispatch\DeliveryNote;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
+use App\Services\Production\ProductionAutoSchedulingService;
+use App\Support\Production\ProductionQueueService;
 use App\Support\ProductionJobCardService;
 use Illuminate\Validation\ValidationException;
 
@@ -26,6 +28,54 @@ class SalesOrderProductionBridgeService
         }
 
         return ProductionJobCardService::createFromSalesOrder($salesOrder, $userId, $attributes);
+    }
+
+    /**
+     * Move a draft job card onto the production queue so floor and department views can pick it up.
+     *
+     * @throws ValidationException
+     */
+    public function activateJobForProduction(ProductionJobCard $jobCard, int $userId): ProductionJobCard
+    {
+        $jobCard->refresh();
+
+        if ($jobCard->status !== ProductionJobCardStatus::Draft) {
+            return $jobCard;
+        }
+
+        $autoScheduling = app(ProductionAutoSchedulingService::class);
+        $scheduled = $autoScheduling->trySchedule($jobCard, $userId);
+
+        if ($scheduled['scheduled'] ?? false) {
+            $jobCard = $jobCard->fresh();
+
+            if ($jobCard->status === ProductionJobCardStatus::Draft
+                && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+                $jobCard = $jobCard->fresh();
+            }
+
+            $this->syncSalesOrderStatus($jobCard, ProductionJobCardStatus::Queued);
+
+            return $jobCard;
+        }
+
+        $queues = app(ProductionQueueService::class);
+
+        if ($queues->hasActiveQueue($jobCard) || $jobCard->queues()->exists()) {
+            if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+            }
+
+            $jobCard = $jobCard->fresh();
+            $this->syncSalesOrderStatus($jobCard, ProductionJobCardStatus::Queued);
+
+            return $jobCard;
+        }
+
+        throw ValidationException::withMessages([
+            'workflow' => $scheduled['reason'] ?? __('Unable to queue this job for production. Configure an active work center first.'),
+        ]);
     }
 
     /**

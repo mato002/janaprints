@@ -1,7 +1,8 @@
 @php
     $workflowPresentation = $workflowPresentation ?? null;
     $controlAlerts = $controlAlerts ?? [];
-    $completion = $completion ?? ['eligible' => false, 'blockers' => []];
+    $completion = $completion ?? ['eligible' => false, 'blockers' => [], 'already_posted' => false];
+    $hasPostedOutput = (bool) ($hasPostedOutput ?? ($completion['already_posted'] ?? false));
 
     $items = [];
     $seen = [];
@@ -68,6 +69,10 @@
     foreach ($completion['blockers'] ?? [] as $message) {
         $message = (string) $message;
         if ($message === '' || isset($seen[$message])) {
+            continue;
+        }
+
+        if (! empty($completion['already_posted']) || ! empty($hasPostedOutput)) {
             continue;
         }
 

@@ -8,8 +8,8 @@
             <?php $__currentLoopData = $operatorDeskShortcuts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $desk): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                 <a
                     href="<?php echo e($desk['url']); ?>"
-                    data-turbo-frame="_top"
-                    data-turbo="false"
+                    data-turbo-frame="erp-main"
+                    data-turbo-action="advance"
                     class="exec-operator-desks__card"
                 >
                     <span class="exec-operator-desks__icon" aria-hidden="true">

@@ -49,7 +49,7 @@
         @endphp
 
         @if ($companies->isNotEmpty())
-            <form method="POST" action="{{ route('admin.context.update') }}" data-turbo-frame="_top" class="erp-topbar__context hidden items-center gap-2 sm:flex">
+            <form method="POST" action="{{ route('admin.context.update') }}" data-turbo-frame="_top" data-erp-full-document class="erp-topbar__context hidden items-center gap-2 sm:flex">
                 @csrf
                 <select name="company_id" onchange="this.form.submit()" class="erp-select max-w-[9rem] py-1.5 text-xs sm:max-w-[11rem] sm:text-sm" aria-label="{{ __('Company') }}">
                     @foreach ($companies as $company)
@@ -109,11 +109,11 @@
                     <p class="text-xs text-slate-500">{{ tenant()->company?->name }}</p>
                     <p class="text-sm font-medium text-erp-primary">{{ auth()->user()->name }}</p>
                 </div>
-                <x-dropdown-link :href="route('profile.edit')" data-turbo-frame="_top">{{ __('Profile') }}</x-dropdown-link>
-                <x-dropdown-link :href="route('profile.sessions.index')" data-turbo-frame="_top">{{ __('My Sessions') }}</x-dropdown-link>
-                <form method="POST" action="{{ route('logout') }}" data-turbo-frame="_top">
+                <x-dropdown-link :href="route('profile.edit')" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Profile') }}</x-dropdown-link>
+                <x-dropdown-link :href="route('profile.sessions.index')" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('My Sessions') }}</x-dropdown-link>
+                <form method="POST" action="{{ route('logout') }}" data-turbo-frame="_top" data-erp-full-document>
                     @csrf
-                    <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
+                    <x-dropdown-link :href="route('logout')" data-turbo="false" onclick="event.preventDefault(); this.closest('form').submit();">
                         {{ __('Log Out') }}
                     </x-dropdown-link>
                 </form>

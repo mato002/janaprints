@@ -12,7 +12,8 @@
             <a
                 href="{{ url()->route('admin.hr.compensation.register', ['coverage' => 'missing']) }}"
                 class="text-sm font-medium text-erp-accent hover:underline"
-                data-turbo="false"
+                data-turbo-frame="erp-main"
+                data-turbo-action="advance"
             >
                 {{ __('Missing salaries') }}
             </a>
@@ -37,16 +38,16 @@
 
         <div class="mt-4 flex flex-wrap gap-2">
             @can('viewAny', App\Models\Hr\EmployeeCompensation::class)
-                <a href="{{ url()->route('admin.hr.employees.show', ['employee' => $employee, 'tab' => 'compensation']) }}" class="erp-btn-secondary" data-turbo="false">{{ __('View details') }}</a>
+                <a href="{{ url()->route('admin.hr.employees.show', ['employee' => $employee, 'tab' => 'compensation']) }}" class="erp-btn-secondary" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('View details') }}</a>
             @endcan
             @can('create', App\Models\Hr\EmployeeCompensation::class)
-                <a href="{{ url()->route('admin.hr.compensation.edit', $employee) }}" class="erp-btn-secondary" data-turbo="false">{{ __('Revise salary') }}</a>
+                <a href="{{ url()->route('admin.hr.compensation.edit', $employee) }}" class="erp-btn-secondary" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Revise salary') }}</a>
             @endcan
         </div>
     @else
         <p class="mt-4 text-sm text-amber-700">{{ __('No salary on file. Payroll cannot calculate payslips for this employee until compensation is assigned.') }}</p>
         @can('create', App\Models\Hr\EmployeeCompensation::class)
-            <a href="{{ url()->route('admin.hr.compensation.edit', $employee) }}" class="erp-btn-primary mt-4 inline-flex" data-turbo="false">{{ __('Set salary') }}</a>
+            <a href="{{ url()->route('admin.hr.compensation.edit', $employee) }}" class="erp-btn-primary mt-4 inline-flex" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Set salary') }}</a>
         @endcan
     @endif
 </div>

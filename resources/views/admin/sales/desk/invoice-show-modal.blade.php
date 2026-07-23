@@ -10,7 +10,7 @@
         <div class="flex flex-wrap gap-2">
             <a href="{{ route('admin.invoices.document', $invoice) }}" class="erp-btn-primary text-sm" target="_blank" rel="noopener">{{ __('Print invoice') }}</a>
             @if ($invoice->salesOrder)
-                <a href="{{ route('admin.sales.desk', ['customer' => $invoice->customer?->getRouteKey(), 'order' => $invoice->salesOrder->getRouteKey(), 'step' => 4]) }}" class="erp-btn-secondary text-sm" data-turbo-frame="_top">{{ __('Back to desk') }}</a>
+                <a href="{{ route('admin.sales.desk', ['customer' => $invoice->customer?->getRouteKey(), 'order' => $invoice->salesOrder->getRouteKey(), 'step' => 4]) }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main">{{ __('Back to desk') }}</a>
             @endif
         </div>
     </div>

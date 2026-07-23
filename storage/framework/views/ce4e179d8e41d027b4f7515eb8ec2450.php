@@ -42,7 +42,7 @@ unset($__defined_vars, $__key, $__value); ?>
 <form
     method="<?php echo e($httpMethod === 'GET' ? 'GET' : 'POST'); ?>"
     action="<?php echo e($action); ?>"
-    <?php if($inFormModal): ?> data-turbo="false" <?php else: ?> data-turbo-frame="_top" <?php endif; ?>
+    <?php if($inFormModal): ?> data-turbo="false" <?php else: ?> data-turbo-frame="erp-main" data-turbo-action="advance" <?php endif; ?>
     <?php echo e($attributes->merge(['class' => 'erp-form-shell'])); ?>
 
 >

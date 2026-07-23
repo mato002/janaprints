@@ -38,6 +38,14 @@
 <?php $component->withAttributes(['variant' => 'danger','class' => 'mb-4','data-erp-validation-errors' => true,'data-erp-modal-error' => true]); ?>
         <p class="font-medium"><?php echo e(__('Unable to save. Please review the form and try again.')); ?></p>
         <p class="mt-2 text-sm"><?php echo e(session('modal_error')); ?></p>
+        <?php $modalFieldErrors = collect($errors->all())->filter()->unique()->values(); ?>
+        <?php if($modalFieldErrors->isNotEmpty()): ?>
+            <ul class="mt-2 list-disc space-y-1 pl-5 text-sm">
+                <?php $__currentLoopData = $modalFieldErrors; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <li><?php echo e($error); ?></li>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+            </ul>
+        <?php endif; ?>
      <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginald888329b8246e32afd68d2decbd25cf1)): ?>

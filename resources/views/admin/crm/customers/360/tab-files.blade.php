@@ -19,7 +19,7 @@
             @endforelse
         </ul>
         @can('update', $customer)
-            <form method="POST" action="{{ route('admin.crm.customers.files.store', $customer) }}" enctype="multipart/form-data" data-turbo-frame="_top" class="crm-360__upload-form mt-4">
+            <form method="POST" action="{{ route('admin.crm.customers.files.store', $customer) }}" enctype="multipart/form-data" data-turbo-frame="erp-main" class="crm-360__upload-form mt-4">
                 @csrf
                 <label class="erp-label">{{ __('Upload file') }}</label>
                 <input type="file" name="file" class="erp-input text-sm" required>

@@ -26,7 +26,7 @@
             </form>
         @endcan
         @if ($fromStoreDesk)
-            <a href="{{ route('admin.store.desk') }}" class="erp-btn-secondary" data-turbo-frame="_top">{{ __('Back to Store Desk') }}</a>
+            <a href="{{ route('admin.store.desk') }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ __('Back to Store Desk') }}</a>
         @endif
     </x-admin.page-header>
     <x-admin.card>

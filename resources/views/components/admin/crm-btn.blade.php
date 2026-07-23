@@ -35,7 +35,15 @@
 @endphp
 
 @if ($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes->join(' ')]) }}>
+    @php
+        $linkMerge = ['class' => $classes->join(' ')];
+
+        if ($attributes->get('data-turbo') !== 'false' && $attributes->get('target') !== '_blank') {
+            $linkMerge['data-turbo-frame'] = $attributes->get('data-turbo-frame') ?? 'erp-main';
+            $linkMerge['data-turbo-action'] = $attributes->get('data-turbo-action') ?? 'advance';
+        }
+    @endphp
+    <a href="{{ $href }}" {{ $attributes->merge($linkMerge) }}>
         @isset($icon){{ $icon }}@endisset
         {{ $slot }}
     </a>

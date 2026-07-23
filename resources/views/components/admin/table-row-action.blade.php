@@ -17,7 +17,7 @@
 @endphp
 
 @if ($action && $method)
-    <form method="POST" action="{{ $action }}" class="block" @if($confirm) onsubmit="return confirm(@js($confirm))" @endif>
+    <form method="POST" action="{{ $action }}" class="block" data-turbo-frame="erp-main" @if($confirm) onsubmit="return confirm(@js($confirm))" @endif>
         @csrf
         @if (in_array(strtoupper($method), ['PUT', 'PATCH', 'DELETE']))
             @method($method)

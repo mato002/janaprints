@@ -99,5 +99,6 @@
             </button>
         @endif
     </div>
+    <x-admin.field-error :name="$name" />
 </div>
 @endif

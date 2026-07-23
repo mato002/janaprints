@@ -3,7 +3,7 @@
 <x-admin.card class="mb-4" id="add-note">
     <h3 class="mb-3 font-medium">{{ __('Add note') }}</h3>
     @can('update', $customer)
-        <form method="POST" action="{{ route('admin.crm.customers.notes.store', $customer) }}" data-turbo-frame="_top">
+        <form method="POST" action="{{ route('admin.crm.customers.notes.store', $customer) }}" data-turbo-frame="erp-main">
             @csrf
             <textarea name="note" class="erp-input w-full" rows="3" required placeholder="{{ __('Write a note…') }}"></textarea>
             <button type="submit" class="erp-btn-primary mt-2 text-sm">{{ __('Save note') }}</button>

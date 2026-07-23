@@ -3,8 +3,10 @@
 namespace App\Services\Production;
 
 use App\Enums\ArtworkRequestStatus;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionSpecificationApprovalStatus;
 use App\Enums\SalesOrderStatus;
+use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Models\ActivityLog;
@@ -49,13 +51,21 @@ class ProductionReleaseReadinessService
             __('Sales order confirmed'),
             in_array($salesOrder->status, [SalesOrderStatus::Confirmed, SalesOrderStatus::ReadyForProduction], true),
         );
+        $existingJob = $salesOrder->jobCard;
+        $jobAwaitingQueue = $existingJob?->status === ProductionJobCardStatus::Draft;
+
+        if ($jobAwaitingQueue) {
+            return $this->assessQueueHandoff($salesOrder, $existingJob);
+        }
+
         $this->runCheck(
             $checks,
             $blockers,
             $warnings,
-            'no_existing_job',
+            'job_card',
             __('No existing job card'),
-            ! $salesOrder->jobCard,
+            $salesOrder->jobCard === null,
+            __('A job card already exists for this order.'),
         );
 
         $salesOrder->loadMissing('items.productionSpecification');
@@ -190,6 +200,60 @@ class ProductionReleaseReadinessService
         }
 
         throw \Illuminate\Validation\ValidationException::withMessages($messages);
+    }
+
+    /**
+     * @return array{
+     *     ready: bool,
+     *     blockers: list<string>,
+     *     warnings: list<string>,
+     *     checks: list<array{key: string, label: string, passed: bool, severity: string, message: ?string}>
+     * }
+     */
+    protected function assessQueueHandoff(SalesOrder $salesOrder, ProductionJobCard $jobCard): array
+    {
+        $checks = [];
+        $blockers = [];
+        $warnings = [];
+
+        $this->runCheck(
+            $checks,
+            $blockers,
+            $warnings,
+            'order_status',
+            __('Sales order ready for production'),
+            in_array($salesOrder->status, [SalesOrderStatus::Confirmed, SalesOrderStatus::ReadyForProduction], true),
+        );
+
+        $checks[] = $this->passedCheck(
+            'job_card',
+            __('Job card created'),
+            $jobCard->job_card_number,
+        );
+
+        $jobCard->loadMissing('queues', 'routeSteps');
+        $canQueue = app(ProductionAutoSchedulingService::class)->canQueueDraftJob($jobCard);
+
+        $this->runCheck(
+            $checks,
+            $blockers,
+            $warnings,
+            'queue_route',
+            __('Production queue route'),
+            $canQueue,
+            __('Configure a work centre route or enable auto-scheduling before queuing this job.'),
+        );
+
+        if (! $canQueue) {
+            $warnings[] = __('Open the job card to assign a work centre manually if auto-scheduling is disabled.');
+        }
+
+        return [
+            'ready' => $blockers === [],
+            'blockers' => array_values(array_unique($blockers)),
+            'warnings' => array_values(array_unique($warnings)),
+            'checks' => $checks,
+        ];
     }
 
     protected function artworkRequired(SalesOrder $salesOrder): bool

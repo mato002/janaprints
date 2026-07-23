@@ -9,7 +9,7 @@
             </div>
             <div class="flex shrink-0 gap-2">
                 @if ($deskUrls['customer_360'] ?? null)
-                    <a href="{{ $deskUrls['customer_360'] }}" class="text-xs text-erp-primary hover:underline" data-turbo-frame="_top">{{ __('360') }}</a>
+                    <a href="{{ $deskUrls['customer_360'] }}" class="text-xs text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ __('360') }}</a>
                 @endif
                 @if ($deskUrls['edit_customer'] ?? null)
                     <a href="{{ $deskUrls['edit_customer'] }}" class="text-xs text-erp-primary hover:underline" data-erp-modal-open>{{ __('Edit') }}</a>
@@ -101,7 +101,7 @@
                 <ul class="space-y-1 text-xs">
                     @foreach ($customerContext['recent_orders'] as $recent)
                         <li class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                            <a href="{{ $recent['desk_url'] }}" class="text-erp-primary hover:underline" data-turbo-frame="_top">{{ $recent['order_number'] }}</a>
+                            <a href="{{ $recent['desk_url'] }}" class="text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ $recent['order_number'] }}</a>
                             <span class="text-slate-500">{{ $recent['total_amount'] }}</span>
                             @can('create', App\Models\Sales\SalesOrder::class)
                                 <form
@@ -141,7 +141,7 @@
                     @foreach ($customerContext['timeline'] as $event)
                         <li>
                             @if ($event['url'] ?? null)
-                                <a href="{{ $event['url'] }}" class="font-medium text-erp-primary hover:underline" @if (str_contains($event['url'], 'from=sales-desk')) data-erp-modal-open @else data-turbo-frame="_top" @endif>{{ $event['title'] }}</a>
+                                <a href="{{ $event['url'] }}" class="font-medium text-erp-primary hover:underline" @if (str_contains($event['url'], 'from=sales-desk')) data-erp-modal-open @else data-turbo-frame="erp-main" @endif>{{ $event['title'] }}</a>
                             @else
                                 <p class="font-medium text-slate-900">{{ $event['title'] }}</p>
                             @endif

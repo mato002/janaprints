@@ -2594,39 +2594,56 @@ body.erp-navigating {
 
     /* CRM — Customer 360 Workspace */
     .crm-360 {
-        @apply min-w-0 space-y-4;
+        @apply min-w-0 space-y-3;
     }
 
     .crm-360__header {
-        @apply sticky top-16 z-20 -mx-4 rounded-xl border border-slate-200 bg-white px-4 py-5 shadow-sm sm:-mx-6 sm:px-5 lg:-mx-8 lg:px-6;
+        @apply relative z-10 rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 shadow-sm sm:px-4 sm:py-3;
+        /* Identity must NOT stick — sticky large header covered KPIs */
     }
 
     .crm-360__header-main {
-        @apply flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between;
+        @apply flex flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-between lg:gap-4;
     }
 
     .crm-360__identity {
-        @apply min-w-0 space-y-1.5;
+        @apply min-w-0 space-y-0.5;
+    }
+
+    .crm-360__identity-row {
+        @apply flex flex-wrap items-center gap-2;
     }
 
     .crm-360__back {
-        @apply inline-block text-xs font-semibold text-indigo-700 hover:underline;
+        @apply mb-0.5 inline-flex min-h-8 items-center text-xs font-semibold text-indigo-700 hover:underline;
     }
 
     .crm-360__title {
-        @apply text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+        @apply text-lg font-bold leading-tight tracking-tight text-slate-900 sm:text-xl;
     }
 
     .crm-360__subtitle {
-        @apply text-sm text-slate-600;
+        @apply flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-slate-600;
+    }
+
+    .crm-360__meta-sep {
+        @apply text-slate-300;
     }
 
     .crm-360__since {
-        @apply text-xs text-slate-500;
+        @apply flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] text-slate-500;
+    }
+
+    .crm-360__contact-line {
+        @apply truncate text-[11px] text-slate-600;
     }
 
     .crm-360__status {
-        @apply mt-1 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider;
+        @apply inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+    }
+
+    .crm-360__status--inline {
+        @apply mt-0;
     }
 
     .crm-360__status--active {
@@ -2642,11 +2659,31 @@ body.erp-navigating {
     }
 
     .crm-360__action-bar {
-        @apply flex flex-wrap items-center gap-2 lg:justify-end;
+        @apply flex w-full flex-wrap items-center gap-2 lg:w-auto lg:max-w-[26rem] lg:justify-end;
+    }
+
+    .crm-360__action-primary {
+        @apply w-full sm:w-auto;
+    }
+
+    .crm-360__action-primary .crm-360__btn {
+        @apply min-h-10 w-full touch-manipulation sm:min-h-9 sm:w-auto;
+    }
+
+    .crm-360__action-secondary {
+        @apply min-h-10 flex-1 touch-manipulation sm:min-h-9 sm:flex-none;
+    }
+
+    .crm-360__more {
+        @apply shrink-0;
+    }
+
+    .crm-360__more .crm-360__btn {
+        @apply min-h-10 touch-manipulation sm:min-h-9;
     }
 
     .crm-360__card-head {
-        @apply -mt-1 mb-3 flex flex-wrap items-center justify-between gap-2;
+        @apply -mt-0.5 mb-2.5 flex flex-wrap items-center justify-between gap-2;
     }
 
     .crm-360__card-head .crm-360__card-title {
@@ -2666,7 +2703,7 @@ body.erp-navigating {
     }
 
     .crm-360__more-menu {
-        @apply absolute end-0 z-30 mt-1 min-w-[14rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
+        @apply absolute end-0 z-40 mt-1 max-h-[min(24rem,70vh)] min-w-[14rem] overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
     }
 
     .crm-360__more-item {
@@ -2677,40 +2714,57 @@ body.erp-navigating {
         @apply my-1 border-slate-100;
     }
 
+    /* Seven-cell balanced strip: 2-col mobile, single row from xl */
     .crm-360__kpi-strip {
-        @apply grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6;
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7;
     }
 
     .crm-360__kpi {
-        @apply relative overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+        @apply relative flex min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200/90 bg-white px-2.5 py-2;
     }
 
     .crm-360__kpi--high {
-        @apply border-indigo-100 bg-gradient-to-br from-white to-indigo-50/40;
+        @apply border-indigo-100/90 bg-indigo-50/20;
     }
 
     .crm-360__kpi--high .crm-360__kpi-value {
-        @apply text-2xl font-bold text-erp-primary sm:text-[1.65rem];
+        @apply text-base font-bold text-erp-primary sm:text-lg;
     }
 
     .crm-360__kpi--medium .crm-360__kpi-value {
-        @apply text-xl font-bold text-slate-800;
+        @apply text-sm font-bold text-slate-800 sm:text-base;
     }
 
     .crm-360__kpi--low {
-        @apply bg-slate-50/50 px-3 py-3;
+        @apply bg-slate-50/70;
     }
 
     .crm-360__kpi--low .crm-360__kpi-value {
-        @apply text-base font-semibold text-slate-700;
+        @apply text-sm font-semibold text-slate-700;
+    }
+
+    .crm-360__kpi--activity {
+        @apply xl:col-span-1;
+    }
+
+    .crm-360__kpi-group--financial {
+        @apply border-l-[3px] border-l-indigo-400/70;
+    }
+
+    .crm-360__kpi-group--engagement {
+        @apply border-l-[3px] border-l-sky-400/60;
+    }
+
+    .crm-360__kpi-group--commercial {
+        @apply border-l-[3px] border-l-violet-400/60;
     }
 
     .crm-360__kpi-top {
-        @apply mb-2 flex items-center justify-between;
+        @apply mb-1 flex items-center justify-between;
     }
 
     .crm-360__kpi-icon {
-        @apply flex h-9 w-9 items-center justify-center rounded-lg;
+        @apply flex h-6 w-6 items-center justify-center rounded-md;
     }
 
     .crm-360__kpi-icon--revenue {
@@ -2738,7 +2792,7 @@ body.erp-navigating {
     }
 
     .crm-360__kpi-trend {
-        @apply flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold;
+        @apply flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold;
     }
 
     .crm-360__kpi-trend--up {
@@ -2750,11 +2804,11 @@ body.erp-navigating {
     }
 
     .crm-360__kpi-label {
-        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+        @apply block text-[9px] font-semibold uppercase tracking-wide text-slate-500;
     }
 
     .crm-360__kpi-value {
-        @apply mt-1 block tabular-nums;
+        @apply mt-0.5 block leading-tight tabular-nums;
     }
 
     .crm-360__kpi-value--empty {
@@ -2762,20 +2816,48 @@ body.erp-navigating {
     }
 
     .crm-360__kpi-hint {
-        @apply mt-1 block text-[10px] leading-snug text-slate-500;
+        @apply mt-0.5 block text-[9px] leading-snug text-slate-500;
+    }
+
+    /* Odd final KPI on 2-col mobile: span full width when alone on last row (7th) */
+    .crm-360__kpi-strip > .crm-360__kpi:last-child:nth-child(odd) {
+        @apply col-span-2 sm:col-span-1;
+    }
+
+    @media (min-width: 640px) and (max-width: 767px) {
+        .crm-360__kpi-strip > .crm-360__kpi:last-child:nth-child(odd) {
+            @apply col-span-1;
+        }
     }
 
     .crm-360__tabs {
-        @apply flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm;
+        @apply sticky top-16 z-20 -mx-1 flex gap-0.5 overflow-x-auto rounded-xl border border-slate-200 bg-white/95 p-1 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90;
         scrollbar-width: thin;
     }
 
     .crm-360__tab {
-        @apply shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50;
+        @apply shrink-0 rounded-lg px-2.5 py-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50;
+        min-height: 2.5rem;
     }
 
     .crm-360__tab--active {
         @apply bg-erp-primary text-white shadow-sm hover:bg-erp-primary;
+    }
+
+    .crm-360__tabs-more {
+        @apply shrink-0;
+    }
+
+    .crm-360__tabs-more-menu {
+        @apply absolute end-0 z-40 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
+    }
+
+    .crm-360__tabs-more-item {
+        @apply block w-full px-3 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-erp-primary;
+    }
+
+    .crm-360__tabs-more-item--active {
+        @apply bg-indigo-50 text-erp-primary;
     }
 
     .crm-360__panels {
@@ -2788,6 +2870,122 @@ body.erp-navigating {
 
     .crm-360__panel .erp-card {
         @apply mt-0 rounded-xl border-slate-200 shadow-sm;
+    }
+
+    .crm-360__overview {
+        @apply grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1.55fr)_minmax(16rem,0.9fr)] lg:items-start;
+    }
+
+    .crm-360__overview-main {
+        @apply flex min-w-0 flex-col gap-3;
+    }
+
+    .crm-360__overview-aside {
+        @apply flex min-w-0 flex-col gap-3;
+    }
+
+    .crm-360__panel-block {
+        @apply rounded-xl border border-slate-200/90 bg-white px-3.5 py-3;
+    }
+
+    .crm-360__panel-block--primary {
+        @apply border-indigo-100 bg-white shadow-sm;
+    }
+
+    .crm-360__panel-block--health {
+        @apply border-slate-200 bg-slate-50/60;
+    }
+
+    .crm-360__panel-block--next {
+        @apply border-indigo-100 bg-indigo-50/40;
+    }
+
+    .crm-360__panel-block--next.crm-360__panel-block--attention {
+        @apply border-amber-200 bg-amber-50/50;
+    }
+
+    .crm-360__panel-block--next.crm-360__panel-block--info {
+        @apply border-indigo-100 bg-indigo-50/40;
+    }
+
+    .crm-360__panel-block--meta {
+        @apply border-transparent bg-transparent px-1 py-1;
+    }
+
+    .crm-360__next-copy {
+        @apply text-sm font-medium leading-snug text-slate-800;
+    }
+
+    .crm-360__health-list {
+        @apply space-y-2 text-[12px];
+    }
+
+    .crm-360__health-list > div {
+        @apply flex items-start justify-between gap-3;
+    }
+
+    .crm-360__health-list dt {
+        @apply shrink-0 text-slate-500;
+    }
+
+    .crm-360__health-list dd {
+        @apply text-right font-medium text-slate-800;
+    }
+
+    .crm-360__value--alert {
+        @apply font-semibold text-amber-800;
+    }
+
+    .crm-360__inset {
+        @apply mt-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5;
+    }
+
+    .crm-360__inset--info {
+        @apply border-indigo-100 bg-indigo-50/60;
+    }
+
+    .crm-360__inset--warn {
+        @apply border-amber-100 bg-amber-50/70;
+    }
+
+    .crm-360__inset-label {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-700;
+    }
+
+    .crm-360__inset--info .crm-360__inset-label {
+        @apply text-indigo-800;
+    }
+
+    .crm-360__inset--warn .crm-360__inset-label {
+        @apply text-amber-900;
+    }
+
+    .crm-360__split-lists {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+    }
+
+    .crm-360__subhead {
+        @apply mb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500;
+    }
+
+    .crm-360__empty {
+        @apply rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-3;
+    }
+
+    .crm-360__empty-title {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .crm-360__empty-body {
+        @apply mt-0.5 text-[12px] leading-snug text-slate-500;
+    }
+
+    .crm-360__empty-actions {
+        @apply mt-2 flex flex-wrap items-center gap-2;
+    }
+
+    .crm-360__truncate {
+        @apply max-w-full truncate;
     }
 
     .crm-360__grid {
@@ -2811,7 +3009,7 @@ body.erp-navigating {
     }
 
     .crm-360__card-title {
-        @apply mb-3 text-xs font-semibold uppercase tracking-wide text-erp-primary;
+        @apply mb-2.5 text-[11px] font-semibold uppercase tracking-wide text-erp-primary;
     }
 
     .crm-360__dl {
@@ -2836,6 +3034,24 @@ body.erp-navigating {
 
     .crm-360__empty-inline {
         @apply text-[11px] text-slate-500;
+    }
+
+    @media (max-width: 767px) {
+        .crm-360__header {
+            @apply py-2.5;
+        }
+
+        .crm-360__action-bar {
+            @apply gap-2;
+        }
+
+        .crm-360__action-secondary {
+            @apply min-w-[calc(50%-0.25rem)] basis-[calc(50%-0.25rem)];
+        }
+
+        .crm-360__tabs {
+            @apply top-14;
+        }
     }
 
     .crm-360__tab-stack {
@@ -5436,6 +5652,10 @@ body.erp-navigating {
         @apply text-sm font-semibold text-slate-900 hover:text-erp-primary hover:underline;
     }
 
+    .job-360-commercial-links__value--link {
+        @apply cursor-pointer text-erp-accent underline decoration-erp-accent/40 underline-offset-2 hover:decoration-erp-accent;
+    }
+
     .job-360-commercial-links__value--muted {
         @apply font-medium text-slate-600;
     }
@@ -5546,6 +5766,369 @@ body.erp-navigating {
 
         .job-360-hero__action {
             @apply w-full;
+        }
+    }
+
+    /* Sales Order 360 enterprise workspace */
+    .so-360 {
+        @apply min-w-0 space-y-4 pb-20 lg:pb-4;
+    }
+
+    .so-360__header {
+        @apply sticky top-16 z-20 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur lg:p-5;
+    }
+
+    .so-360__header-main {
+        @apply grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_auto] lg:items-start;
+    }
+
+    .so-360__eyebrow {
+        @apply mb-1 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .so-360__dot {
+        @apply text-slate-300;
+    }
+
+    .so-360__title {
+        @apply text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
+    }
+
+    .so-360__subtitle {
+        @apply mt-1 text-sm text-slate-600;
+    }
+
+    .so-360__link {
+        @apply font-medium text-erp-primary hover:text-erp-accent hover:underline;
+    }
+
+    .so-360__badge-row {
+        @apply mt-3 flex flex-wrap items-center gap-2;
+    }
+
+    .so-360__badge {
+        @apply inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider;
+    }
+
+    .so-360__badge--info {
+        @apply bg-sky-50 text-sky-800 ring-1 ring-sky-200/80;
+    }
+
+    .so-360__badge--success {
+        @apply bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200/80;
+    }
+
+    .so-360__badge--warning {
+        @apply bg-amber-50 text-amber-900 ring-1 ring-amber-200/80;
+    }
+
+    .so-360__badge--danger {
+        @apply bg-red-50 text-red-800 ring-1 ring-red-200/80;
+    }
+
+    .so-360__badge--neutral {
+        @apply bg-slate-100 text-slate-700 ring-1 ring-slate-200;
+    }
+
+    .so-360__total-chip {
+        @apply inline-flex items-baseline gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1 ring-1 ring-violet-200/80;
+    }
+
+    .so-360__total-label {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-violet-700;
+    }
+
+    .so-360__total-value {
+        @apply text-sm font-bold text-violet-950;
+    }
+
+    .so-360__stage-panel {
+        @apply rounded-lg border border-slate-100 bg-slate-50/80 p-3;
+    }
+
+    .so-360__stage-label {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .so-360__stage {
+        @apply mt-1 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold;
+    }
+
+    .so-360__stage--info {
+        @apply bg-sky-50 text-sky-800;
+    }
+
+    .so-360__stage--success {
+        @apply bg-emerald-50 text-emerald-800;
+    }
+
+    .so-360__stage--warning {
+        @apply bg-amber-50 text-amber-900;
+    }
+
+    .so-360__stage--danger {
+        @apply bg-red-50 text-red-800;
+    }
+
+    .so-360__stage-dot {
+        @apply h-2 w-2 shrink-0 rounded-full bg-current;
+    }
+
+    .so-360__hint {
+        @apply mt-2 text-xs leading-relaxed text-slate-600;
+    }
+
+    .so-360__actions {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .so-360__actions--desktop {
+        @apply hidden lg:flex lg:justify-end;
+    }
+
+    .so-360__primary {
+        @apply min-h-10;
+    }
+
+    .so-360__more {
+        @apply relative;
+    }
+
+    .so-360__more-summary {
+        @apply list-none cursor-pointer;
+    }
+
+    .so-360__more-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .so-360__more-menu {
+        @apply absolute end-0 z-30 mt-1 min-w-[12rem] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
+    }
+
+    .so-360__more-item {
+        @apply block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-erp-primary;
+    }
+
+    .so-360__more-item--danger {
+        @apply text-red-600 hover:bg-red-50 hover:text-red-700;
+    }
+
+    .so-360__lifecycle {
+        @apply overflow-x-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm;
+    }
+
+    .so-360__rail {
+        @apply flex min-w-max items-stretch gap-0;
+    }
+
+    .so-360__rail-step {
+        @apply relative flex min-w-[5.5rem] flex-1 flex-col items-center px-1;
+    }
+
+    .so-360__rail-connector {
+        @apply absolute start-0 top-5 h-0.5 w-1/2 -translate-x-full bg-slate-200;
+    }
+
+    .so-360__rail-step--complete .so-360__rail-connector,
+    .so-360__rail-step--current .so-360__rail-connector,
+    .so-360__rail-step--paused .so-360__rail-connector {
+        @apply bg-emerald-400;
+    }
+
+    .so-360__rail-node {
+        @apply flex flex-col items-center gap-1.5 text-center no-underline;
+    }
+
+    .so-360__rail-icon {
+        @apply flex h-10 w-10 items-center justify-center rounded-full border-2 border-slate-200 bg-white text-slate-400;
+    }
+
+    .so-360__rail-label {
+        @apply max-w-[5.5rem] text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .so-360__rail-step--complete .so-360__rail-icon {
+        @apply border-emerald-500 bg-emerald-50 text-emerald-700;
+    }
+
+    .so-360__rail-step--current .so-360__rail-icon {
+        @apply border-violet-500 bg-violet-50 text-violet-700 ring-4 ring-violet-100;
+    }
+
+    .so-360__rail-step--paused .so-360__rail-icon {
+        @apply border-amber-500 bg-amber-50 text-amber-800;
+    }
+
+    .so-360__rail-step--cancelled .so-360__rail-icon {
+        @apply border-red-400 bg-red-50 text-red-700;
+    }
+
+    .so-360__rail-step--complete .so-360__rail-label,
+    .so-360__rail-step--current .so-360__rail-label {
+        @apply text-slate-800;
+    }
+
+    .so-360__tabs {
+        @apply flex gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 shadow-sm;
+        scrollbar-width: thin;
+    }
+
+    .so-360__tab {
+        @apply shrink-0 rounded-lg px-3 py-2 text-[11px] font-semibold text-slate-600 transition-colors hover:bg-slate-50;
+    }
+
+    .so-360__tab--active {
+        @apply bg-erp-primary text-white shadow-sm hover:bg-erp-primary;
+    }
+
+    .so-360__panels {
+        @apply min-h-0;
+    }
+
+    .so-360__panel {
+        @apply min-h-0 space-y-4;
+    }
+
+    .so-360__section {
+        @apply space-y-3;
+    }
+
+    .so-360__section--primary {
+        @apply space-y-3;
+    }
+
+    .so-360__grid {
+        @apply grid gap-3;
+    }
+
+    .so-360__grid--summary {
+        @apply grid-cols-1 lg:grid-cols-2;
+    }
+
+    .so-360__grid--two {
+        @apply grid-cols-1 md:grid-cols-2;
+    }
+
+    .so-360__card {
+        @apply rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+    }
+
+    .so-360__card--hero {
+        @apply border-violet-100 bg-gradient-to-br from-white to-violet-50/40;
+    }
+
+    .so-360__card-head {
+        @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .so-360__card-title {
+        @apply text-xs font-bold uppercase tracking-wide text-slate-500;
+    }
+
+    .so-360__text-btn {
+        @apply text-xs font-semibold text-erp-primary hover:underline;
+    }
+
+    .so-360__dl {
+        @apply grid gap-3;
+    }
+
+    .so-360__dl--compact {
+        @apply grid-cols-1 gap-x-4 gap-y-2.5 sm:grid-cols-2;
+    }
+
+    .so-360__dl dt {
+        @apply text-[11px] font-medium uppercase tracking-wide text-slate-400;
+    }
+
+    .so-360__dl dd {
+        @apply text-sm font-medium text-slate-800;
+    }
+
+    .so-360__kpi-row {
+        @apply grid grid-cols-3 gap-2;
+    }
+
+    .so-360__kpi {
+        @apply rounded-lg bg-slate-50 px-2.5 py-2;
+    }
+
+    .so-360__kpi--emphasis {
+        @apply bg-violet-50;
+    }
+
+    .so-360__kpi-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .so-360__kpi-value {
+        @apply mt-0.5 block text-sm font-bold text-slate-900;
+    }
+
+    .so-360__mini-pipeline {
+        @apply flex flex-wrap gap-1.5;
+    }
+
+    .so-360__mini-step {
+        @apply rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500;
+    }
+
+    .so-360__mini-step--complete {
+        @apply bg-emerald-100 text-emerald-800;
+    }
+
+    .so-360__mini-step--current {
+        @apply bg-violet-100 text-violet-800;
+    }
+
+    .so-360__mini-step--paused {
+        @apply bg-amber-100 text-amber-900;
+    }
+
+    .so-360__mini-step--cancelled {
+        @apply bg-red-100 text-red-700;
+    }
+
+    .so-360__collapse {
+        @apply rounded-lg border border-slate-200 bg-white;
+    }
+
+    .so-360__collapse--block {
+        @apply p-0;
+    }
+
+    .so-360__collapse > summary {
+        @apply cursor-pointer list-none px-4 py-3 text-xs font-bold uppercase tracking-wide text-slate-600 hover:bg-slate-50;
+    }
+
+    .so-360__collapse > summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .so-360__collapse-body {
+        @apply border-t border-slate-100 px-4 py-3;
+    }
+
+    .so-360__mobile-bar {
+        @apply fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur lg:hidden;
+    }
+
+    .so-360__mobile-bar .so-360__primary,
+    .so-360__mobile-bar .erp-btn-primary {
+        @apply min-h-11 w-full;
+    }
+
+    @media print {
+        .so-360__tabs,
+        .so-360__actions,
+        .so-360__mobile-bar,
+        .so-360__more {
+            display: none !important;
+        }
+
+        .so-360__header {
+            @apply static shadow-none;
         }
     }
 }

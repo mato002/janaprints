@@ -18,6 +18,7 @@ use App\Support\Sales\DirectCustomerSalesOrderService;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Production\ReturnsToProductionFloor;
 use App\Support\Sales\SalesOrderWorkflowService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -366,23 +367,48 @@ class SalesOrderController extends Controller
         );
     }
 
-    public function releaseToProduction(SalesOrder $salesOrder, SalesOrderWorkflowService $workflow): RedirectResponse
+    public function releaseToProduction(Request $request, SalesOrder $salesOrder, SalesOrderWorkflowService $workflow): RedirectResponse|JsonResponse
     {
         $this->authorize('production', $salesOrder);
 
         try {
             $workflow->releaseToProduction($salesOrder, (int) auth()->id());
         } catch (\Illuminate\Validation\ValidationException $exception) {
-            return back()->withErrors($exception->errors());
+            if ($request->expectsJson()) {
+                throw $exception;
+            }
+
+            $firstError = collect($exception->errors())->flatten()->first();
+
+            return back()
+                ->withErrors($exception->errors())
+                ->with('error', $firstError);
         }
 
-        if ($this->wantsSalesDeskReturn()) {
+        $deskRedirect = $this->wantsSalesDeskReturn($request)
+            ? route('admin.sales.desk', [
+                'customer' => $salesOrder->customer?->getRouteKey() ?? $salesOrder->customer_id,
+                'order' => $salesOrder->fresh()->getRouteKey(),
+                'step' => 4,
+            ])
+            : null;
+
+        if ($deskRedirect !== null && ($request->expectsJson() || $request->ajax())) {
+            $salesOrder->loadMissing('jobCard.queues.workCenter');
+            $workCenter = $salesOrder->jobCard?->queues->sortBy('queue_position')->first()?->workCenter?->name;
+
+            return response()->json([
+                'ok' => true,
+                'message' => $workCenter
+                    ? __('Sales order sent to production queue (:work_center).', ['work_center' => $workCenter])
+                    : __('Sales order sent to production queue.'),
+                'redirect' => $deskRedirect,
+            ]);
+        }
+
+        if ($deskRedirect !== null) {
             return redirect()
-                ->route('admin.sales.desk', [
-                    'customer' => $salesOrder->customer?->getRouteKey() ?? $salesOrder->customer_id,
-                    'order' => $salesOrder->fresh()->getRouteKey(),
-                    'step' => 4,
-                ])
+                ->to($deskRedirect)
                 ->with('status', __('Sales order sent to production.'));
         }
 

@@ -148,6 +148,8 @@ const erpModalManager = {
     modalAbortController: null,
     modalStack: [],
     currentModalUrl: null,
+    /** @type {{ url: string|null, html: string }|null} */
+    lastPanelSnapshot: null,
 
     isModalVisible() {
         const overlay = this.overlay();
@@ -155,16 +157,47 @@ const erpModalManager = {
         return Boolean(overlay && ! overlay.hidden);
     },
 
+    normalizeModalUrl(url) {
+        if (! url) {
+            return '';
+        }
+
+        try {
+            const parsed = new URL(url, window.location.origin);
+
+            return `${parsed.pathname}${parsed.search}`;
+        } catch {
+            return String(url);
+        }
+    },
+
+    sameModalUrl(left, right) {
+        return this.normalizeModalUrl(left) === this.normalizeModalUrl(right);
+    },
+
     captureModalState() {
         const frame = this.modalFrame();
         const panel = frame?.querySelector('[data-erp-form-modal-panel]');
 
         if (! panel) {
-            return null;
+            return this.lastPanelSnapshot
+                ? { ...this.lastPanelSnapshot }
+                : null;
         }
 
         return {
             url: this.currentModalUrl,
+            html: panel.outerHTML,
+        };
+    },
+
+    rememberPanelSnapshot(panel, url = null) {
+        if (! panel) {
+            return;
+        }
+
+        this.lastPanelSnapshot = {
+            url: url ?? this.currentModalUrl,
             html: panel.outerHTML,
         };
     },
@@ -186,6 +219,9 @@ const erpModalManager = {
 
         frame.innerHTML = state.html;
         this.currentModalUrl = state.url ?? null;
+        this.lastPanelSnapshot = state.html
+            ? { url: state.url ?? null, html: state.html }
+            : this.lastPanelSnapshot;
 
         const panel = frame.querySelector('[data-erp-form-modal-panel]');
 
@@ -216,6 +252,29 @@ const erpModalManager = {
         }
 
         this.closeModal();
+    },
+
+    /**
+     * After a nested create/edit succeeds, return to the parent task instead of closing.
+     */
+    returnToParentModal({ message = '', refresh = true, redirect = '' } = {}) {
+        if (message) {
+            this.showToast(message);
+        }
+
+        document.dispatchEvent(new CustomEvent('erp-modal-nested-return', {
+            detail: {
+                redirect,
+                message,
+                parentUrl: this.currentModalUrl,
+            },
+        }));
+
+        if (refresh) {
+            this.refreshTable().then(() => {
+                this.restoreWorkspaceState();
+            });
+        }
     },
 
     syncModalNavigation() {
@@ -300,7 +359,9 @@ const erpModalManager = {
                 return false;
             }
 
-            return /\/(create|edit)(\/|$)/.test(path);
+            return /\/(create|edit)(\/|$)/.test(path)
+                || path.includes('/invoices/from/sales-order')
+                || path.includes('/invoices/from/job-card');
         } catch {
             return false;
         }
@@ -355,6 +416,12 @@ const erpModalManager = {
     },
 
     prepareModalFormContent(root, sourceUrl = null) {
+        const parentUrl = this.modalStack.length > 0
+            ? this.modalStack[this.modalStack.length - 1]?.url
+            : null;
+        // Nested forms return to the parent modal; top-level forms keep their own URL.
+        const returnUrl = parentUrl || sourceUrl;
+
         root.querySelectorAll('form').forEach((form) => {
             form.setAttribute('data-turbo', 'false');
             form.removeAttribute('data-turbo-frame');
@@ -368,6 +435,10 @@ const erpModalManager = {
                 }
             }
 
+            if (this.isDeskShellForm(form)) {
+                return;
+            }
+
             if (! form.querySelector('[name="_erp_modal"]')) {
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -376,12 +447,21 @@ const erpModalManager = {
                 form.appendChild(input);
             }
 
-            if (sourceUrl && ! form.querySelector('[name="_erp_modal_return"]')) {
-                const returnInput = document.createElement('input');
-                returnInput.type = 'hidden';
-                returnInput.name = '_erp_modal_return';
-                returnInput.value = sourceUrl;
-                form.appendChild(returnInput);
+            let returnInput = form.querySelector('[name="_erp_modal_return"]');
+
+            if (returnUrl) {
+                if (! returnInput) {
+                    returnInput = document.createElement('input');
+                    returnInput.type = 'hidden';
+                    returnInput.name = '_erp_modal_return';
+                    form.appendChild(returnInput);
+                }
+
+                returnInput.value = returnUrl;
+            }
+
+            if (returnUrl) {
+                form.dataset.erpModalReturn = returnUrl;
             }
         });
     },
@@ -419,6 +499,17 @@ const erpModalManager = {
         [...invalidNames].forEach((name) => {
             if (name.includes('.') && ! name.includes('[')) {
                 invalidNames.add(name.replace(/\.(\d+)/g, '[$1]').replace(/\.([^[.\]]+)/g, '[$1]'));
+            }
+        });
+
+        const fieldAliases = {
+            sales_order: 'sales_order_id',
+            artwork: 'sales_order_id',
+        };
+
+        Object.entries(fieldAliases).forEach(([from, to]) => {
+            if (invalidNames.has(from)) {
+                invalidNames.add(to);
             }
         });
 
@@ -599,12 +690,16 @@ const erpModalManager = {
         }
 
         const hasOpenPanel = Boolean(frame.querySelector('[data-erp-form-modal-panel]'));
+        const openingNested = this.isModalVisible()
+            && this.currentModalUrl
+            && ! this.sameModalUrl(url, this.currentModalUrl);
 
-        if (this.isModalVisible() && hasOpenPanel && url !== this.currentModalUrl) {
+        if (openingNested && (hasOpenPanel || this.lastPanelSnapshot)) {
             this.pushModalState();
         } else if (! this.isModalVisible()) {
             this.modalStack = [];
             this.currentModalUrl = null;
+            this.lastPanelSnapshot = null;
         }
 
         this.abortModalLoad();
@@ -640,6 +735,7 @@ const erpModalManager = {
             this.prepareModalFormContent(panel, url);
             frame.replaceChildren(panel);
             this.currentModalUrl = url;
+            this.rememberPanelSnapshot(panel, url);
             this.pendingModalLoad = false;
             this.modalAbortController = null;
             this.showOverlay();
@@ -655,6 +751,15 @@ const erpModalManager = {
             console.error('erpModalManager.loadForm', error);
             this.pendingModalLoad = false;
             this.modalAbortController = null;
+
+            // Keep the primary modal alive if a nested open failed.
+            if (this.modalStack.length > 0) {
+                this.popModal();
+                this.showToast('Unable to open form. Please try again.', 'error');
+
+                return;
+            }
+
             this.closeModal();
             this.showToast('Unable to open form. Please try again.', 'error');
         }
@@ -670,6 +775,7 @@ const erpModalManager = {
         this.pendingModalLoad = false;
         this.modalStack = [];
         this.currentModalUrl = null;
+        this.lastPanelSnapshot = null;
 
         const frame = this.modalFrame();
 
@@ -893,6 +999,80 @@ const erpModalManager = {
         }
     },
 
+    isDeskShellForm(form) {
+        return form instanceof HTMLFormElement
+            && form.hasAttribute('data-erp-desk-form')
+            && Boolean(form.closest('.store-desk-shell, .sales-desk-shell, .designer-desk-shell, .production-floor-shell'));
+    },
+
+    completeDeskFormRedirect(form, { redirect = '', html = '', message = '', returnUrl = '', variant = 'success' } = {}) {
+        const validationMessage = extractValidationMessageFromHtml(html);
+        const defaultMessage = form?.dataset?.erpDeskSuccessMessage?.trim() ?? '';
+        const finalMessage = validationMessage || message || (! validationMessage && redirect ? defaultMessage : '');
+        const finalVariant = validationMessage ? 'error' : variant;
+
+        if (finalMessage) {
+            sessionStorage.setItem('erp.pendingDeskToast', JSON.stringify({
+                message: finalMessage,
+                variant: finalVariant,
+            }));
+            this.showToast(finalMessage, finalVariant);
+        }
+
+        if (redirect) {
+            this.visitDeskRedirect(redirect);
+        } else if (this.isDeskShellForm(form)) {
+            this.visitDeskRedirect(window.location.href);
+        } else {
+            this.safeHandleSuccess({
+                refresh: false,
+                redirect,
+                message: finalMessage,
+                returnUrl,
+            });
+        }
+    },
+
+    visitDeskRedirect(url) {
+        if (! url) {
+            return;
+        }
+
+        let target;
+
+        try {
+            target = new URL(url, window.location.origin);
+        } catch {
+            return;
+        }
+
+        if (target.origin !== window.location.origin) {
+            window.location.assign(target.href);
+
+            return;
+        }
+
+        const frame = document.getElementById('erp-main') ? 'erp-main' : '_top';
+        const samePage = target.href === window.location.href;
+
+        if (window.Turbo) {
+            window.Turbo.visit(target.href, {
+                frame,
+                action: samePage ? 'replace' : 'advance',
+            });
+
+            return;
+        }
+
+        if (samePage) {
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
+
+            return;
+        }
+
+        window.location.assign(target.href);
+    },
+
     async submitFormRequest(form, submitter = null) {
         if (! form) {
             return;
@@ -927,23 +1107,77 @@ const erpModalManager = {
             submitButton.disabled = true;
         }
 
+        const deskForm = this.isDeskShellForm(form);
+        const fetchHeaders = {
+            Accept: deskForm
+                ? 'application/json, text/html, application/xhtml+xml'
+                : 'text/html, application/xhtml+xml',
+            'X-Requested-With': 'XMLHttpRequest',
+        };
+
+        if (! deskForm) {
+            fetchHeaders['Turbo-Frame'] = 'erp-form-modal';
+        }
+
+        if (deskForm) {
+            showErpSweetAlert(
+                form.dataset.erpDeskSubmittingMessage?.trim() || 'Submitting…',
+                'info',
+                { timer: 2000 },
+            );
+        }
+
         try {
             let response = await fetch(erpFormActionUrl(form), {
                 method: method === 'GET' ? 'GET' : 'POST',
                 body: method === 'GET' ? null : formData,
-                headers: {
-                    'Turbo-Frame': 'erp-form-modal',
-                    'Accept': 'text/html, application/xhtml+xml',
-                },
+                headers: fetchHeaders,
                 credentials: 'same-origin',
                 redirect: 'manual',
             });
 
+            if (deskForm) {
+                const contentType = response.headers.get('content-type') ?? '';
+
+                if (contentType.includes('application/json')) {
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (response.ok && payload.ok !== false) {
+                        this.completeDeskFormRedirect(form, {
+                            redirect: payload.redirect ?? window.location.href,
+                            message: payload.message ?? '',
+                        });
+                    } else {
+                        const errorMessage = payload.message
+                            ?? Object.values(payload.errors ?? {}).flat()?.[0]
+                            ?? `Unable to save form (${response.status}). Please try again.`;
+
+                        this.showToast(errorMessage, 'error');
+                    }
+
+                    return;
+                }
+            }
+
             if ((response.status === 301 || response.status === 302 || response.status === 303 || response.status === 307 || response.status === 308) && response.headers.get('Location')) {
-                const location = response.headers.get('Location');
+                const location = new URL(response.headers.get('Location'), window.location.href).toString();
 
                 if (location && ! this.isModalFormUrl(location)) {
-                    this.safeHandleSuccess({ refresh: false, redirect: location });
+                    const followUp = await fetch(location, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'text/html, application/xhtml+xml',
+                        },
+                        credentials: 'same-origin',
+                    });
+                    const redirectHtml = await followUp.text();
+
+                    this.completeDeskFormRedirect(form, {
+                        redirect: location,
+                        html: redirectHtml,
+                        message: extractFlashMessageFromHtml(redirectHtml),
+                        returnUrl: modalReturnUrl,
+                    });
 
                     return;
                 }
@@ -958,6 +1192,20 @@ const erpModalManager = {
                     },
                     credentials: 'same-origin',
                 });
+
+                const redirectHtml = await response.text();
+                const redirectMessage = extractFlashMessageFromHtml(redirectHtml);
+
+                if (redirectTarget && ! this.isModalFormUrl(redirectTarget)) {
+                    this.completeDeskFormRedirect(form, {
+                        redirect: redirectTarget,
+                        html: redirectHtml,
+                        message: redirectMessage,
+                        returnUrl: modalReturnUrl,
+                    });
+
+                    return;
+                }
             }
 
             const html = await response.text();
@@ -965,6 +1213,20 @@ const erpModalManager = {
             if (html.includes('data-erp-modal-success')) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
                 const successMarker = doc.querySelector('[data-erp-modal-success]');
+
+                if (deskForm) {
+                    this.completeDeskFormRedirect(form, {
+                        redirect: successMarker?.dataset.redirect
+                            ?? html.match(/data-redirect="([^"]*)"/)?.[1]
+                            ?? window.location.href,
+                        message: successMarker?.dataset.message
+                            ?? html.match(/data-message="([^"]*)"/)?.[1]
+                            ?? '',
+                        returnUrl: modalReturnUrl,
+                    });
+
+                    return;
+                }
 
                 this.safeHandleSuccess({
                     message: successMarker?.dataset.message
@@ -976,6 +1238,7 @@ const erpModalManager = {
                     redirect: successMarker?.dataset.redirect
                         ?? html.match(/data-redirect="([^"]*)"/)?.[1]
                         ?? '',
+                    returnUrl: modalReturnUrl,
                 });
 
                 return;
@@ -993,7 +1256,21 @@ const erpModalManager = {
                 && finalUrl !== submittedTo
                 && ! this.isModalFormUrl(finalUrl)
             ) {
-                this.safeHandleSuccess({ refresh: false, redirect: finalUrl });
+                if (this.isDeskShellForm(form)) {
+                    this.completeDeskFormRedirect(form, {
+                        redirect: finalUrl,
+                        html,
+                        message: extractFlashMessageFromHtml(html),
+                        returnUrl: modalReturnUrl,
+                    });
+                } else {
+                    this.safeHandleSuccess({
+                        refresh: false,
+                        redirect: finalUrl,
+                        message: extractFlashMessageFromHtml(html),
+                        returnUrl: modalReturnUrl,
+                    });
+                }
 
                 return;
             }
@@ -1058,7 +1335,26 @@ const erpModalManager = {
             }
 
             if (method !== 'GET' && ! this.hasValidationErrors(doc)) {
-                this.safeHandleSuccess({ refresh: true });
+                if (this.isDeskShellForm(form)) {
+                    this.completeDeskFormRedirect(form, {
+                        redirect: window.location.href,
+                        html,
+                        message: extractFlashMessageFromHtml(html),
+                        returnUrl: modalReturnUrl,
+                    });
+                } else {
+                    this.safeHandleSuccess({
+                        refresh: true,
+                        returnUrl: modalReturnUrl,
+                    });
+                }
+
+                return;
+            }
+
+            if (this.isDeskShellForm(form)) {
+                const validationMessage = extractValidationMessageFromHtml(html);
+                this.showToast(validationMessage || 'Unable to save form. Please try again.', 'error');
 
                 return;
             }
@@ -1072,7 +1368,7 @@ const erpModalManager = {
 
             const overlay = this.overlay();
 
-            if (submitButton && overlay && ! overlay.hidden) {
+            if (submitButton && (deskForm || (overlay && ! overlay.hidden))) {
                 submitButton.disabled = false;
             }
         }
@@ -1096,8 +1392,9 @@ const erpModalManager = {
         }
     },
 
-    handleSuccess({ message = '', refresh = true, redirect = '' } = {}) {
+    handleSuccess({ message = '', refresh = true, redirect = '', returnUrl = '' } = {}) {
         const target = typeof redirect === 'string' ? redirect.trim() : '';
+        const parentReturn = typeof returnUrl === 'string' ? returnUrl.trim() : '';
 
         if (target && this.isModalFormUrl(target)) {
             if (message) {
@@ -1108,34 +1405,53 @@ const erpModalManager = {
                 window.erpLookupManager.close();
             }
 
+            // Nested success that points at another form: still prefer returning to parent.
+            if (this.modalStack.length > 0) {
+                this.popModal();
+                this.returnToParentModal({ message: '', refresh, redirect: target });
+
+                return;
+            }
+
             this.modalStack = [];
             this.loadForm(target);
 
             return;
         }
 
-        // Zoho-style continuous work: nested create/edit returns to the parent task
-        // instead of dumping the user onto another page mid-flow.
+        // Zoho-style continuous work: nested create/edit returns to the parent task.
         if (this.modalStack.length > 0) {
+            this.popModal();
+            this.returnToParentModal({ message, refresh, redirect: target });
+
+            return;
+        }
+
+        // Recovery when the stack was lost but the nested form still points at its parent.
+        if (
+            parentReturn
+            && this.isModalFormUrl(parentReturn)
+            && ! this.sameModalUrl(parentReturn, this.currentModalUrl)
+        ) {
             if (message) {
                 this.showToast(message);
             }
 
-            this.popModal();
-
-            document.dispatchEvent(new CustomEvent('erp-modal-nested-return', {
-                detail: {
-                    redirect: target,
-                    message,
-                    parentUrl: this.currentModalUrl,
-                },
-            }));
+            this.loadForm(parentReturn);
 
             if (refresh) {
                 this.refreshTable().then(() => {
                     this.restoreWorkspaceState();
                 });
             }
+
+            document.dispatchEvent(new CustomEvent('erp-modal-nested-return', {
+                detail: {
+                    redirect: target,
+                    message,
+                    parentUrl: parentReturn,
+                },
+            }));
 
             return;
         }
@@ -1434,7 +1750,7 @@ const erpModalManager = {
 
             if (overlay && ! overlay.hidden) {
                 event.preventDefault();
-                this.closeModal();
+                this.dismissModal();
             }
 
             const drawer = this.drawerOverlay();
@@ -2037,6 +2353,7 @@ document.addEventListener('turbo:frame-render', (event) => {
     // Promote flash as soon as frame HTML is in the DOM (before frame-load handlers).
     if (frame?.id === 'erp-main' || frame?.id === 'module-workspace-content') {
         promoteFlashAlertsToToast(frame);
+        flushPendingDeskToast();
     }
 
     if (event.target?.id === 'erp-main') {
@@ -2069,6 +2386,7 @@ document.addEventListener('turbo:load', () => {
         markFrameBusy(busyFrame, false);
     });
     promoteFlashAlertsToToast(document);
+    flushPendingDeskToast();
 });
 
 function discoveryTokenize(value) {
@@ -2980,13 +3298,22 @@ document.addEventListener('alpine:init', () => {
      * (approve artwork, create order, open related record, then continue here).
      */
     Alpine.data('erpContinuousWorkspace', (config = {}) => ({
-        reloadOnReturn: config.reloadOnReturn !== false,
+        reloadOnReturn: config.reloadOnReturn === true,
         _onNestedReturn: null,
 
         init() {
             this.$root.setAttribute('data-erp-continuous-workspace', '1');
 
             this._onNestedReturn = () => {
+                // Soft-refresh lookups so the parent modal stays mounted.
+                this.$root.querySelectorAll('.erp-lookup-select').forEach((element) => {
+                    const data = element._x_dataStack?.[0];
+
+                    if (data && typeof data.refreshOptions === 'function') {
+                        data.refreshOptions(data.selected || null);
+                    }
+                });
+
                 if (! this.reloadOnReturn) {
                     return;
                 }
@@ -3948,7 +4275,11 @@ document.addEventListener('alpine:init', () => {
             const preset = this.presets.find((item) => item.key === key);
 
             if (preset) {
-                window.location.href = this.buildUrl(preset.query ?? {});
+                if (typeof window.erpVisitUrl === 'function') {
+                    window.erpVisitUrl(this.buildUrl(preset.query ?? {}));
+                } else {
+                    window.location.href = this.buildUrl(preset.query ?? {});
+                }
 
                 return;
             }
@@ -3956,7 +4287,11 @@ document.addEventListener('alpine:init', () => {
             const custom = this.customViews.find((view) => view.id === key);
 
             if (custom) {
-                window.location.href = this.buildUrl(custom.query ?? {});
+                if (typeof window.erpVisitUrl === 'function') {
+                    window.erpVisitUrl(this.buildUrl(custom.query ?? {}));
+                } else {
+                    window.location.href = this.buildUrl(custom.query ?? {});
+                }
             }
         },
 
@@ -4292,7 +4627,7 @@ document.addEventListener('alpine:init', () => {
                 }
             }
 
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         async assignMachineInline(jobKey, event) {
@@ -5358,7 +5693,11 @@ document.addEventListener('alpine:init', () => {
             });
 
             if (this.auditUrl && this.visibleCount === 0) {
-                window.location.href = this.auditUrl;
+                if (typeof window.erpVisitUrl === 'function') {
+                    window.erpVisitUrl(this.auditUrl);
+                } else {
+                    window.location.href = this.auditUrl;
+                }
             }
         },
     }));
@@ -6335,7 +6674,38 @@ document.addEventListener('alpine:init', () => {
         window.location.assign(target.href);
     }
 
+    function erpRefreshCurrentView() {
+        if (! window.Turbo) {
+            window.location.reload();
+
+            return;
+        }
+
+        const workspaceFrame = document.getElementById('module-workspace-content');
+
+        if (workspaceFrame && document.activeElement?.closest?.('#module-workspace-content')) {
+            window.Turbo.visit(window.location.href, {
+                frame: 'module-workspace-content',
+                action: 'replace',
+            });
+
+            return;
+        }
+
+        if (document.getElementById('erp-main')) {
+            window.Turbo.visit(window.location.href, {
+                frame: 'erp-main',
+                action: 'replace',
+            });
+
+            return;
+        }
+
+        window.location.reload();
+    }
+
     window.erpVisitUrl = erpVisitUrl;
+    window.erpRefreshCurrentView = erpRefreshCurrentView;
 
     Alpine.data('erpNotificationBell', (bootstrap = {}) => ({
         routes: bootstrap.routes ?? {},
@@ -6675,7 +7045,7 @@ document.addEventListener('alpine:init', () => {
                 method: 'POST',
                 headers: this.jsonHeaders(),
             });
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         async dismiss(id) {
@@ -6683,7 +7053,7 @@ document.addEventListener('alpine:init', () => {
                 method: 'POST',
                 headers: this.jsonHeaders(),
             });
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         async archive(id) {
@@ -6691,7 +7061,7 @@ document.addEventListener('alpine:init', () => {
                 method: 'POST',
                 headers: this.jsonHeaders(),
             });
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         async openNotification(id, event, href = null) {
@@ -6726,7 +7096,7 @@ document.addEventListener('alpine:init', () => {
                 headers: this.jsonHeaders(),
                 body: JSON.stringify({ ids: this.selectedIds }),
             });
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         async bulkDismiss() {
@@ -6739,7 +7109,7 @@ document.addEventListener('alpine:init', () => {
                 headers: this.jsonHeaders(),
                 body: JSON.stringify({ ids: this.selectedIds }),
             });
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         async savePreferences() {
@@ -6762,7 +7132,7 @@ document.addEventListener('alpine:init', () => {
                 headers: this.jsonHeaders(),
                 body: JSON.stringify(this.testForm),
             });
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         jsonHeaders() {
@@ -6863,7 +7233,7 @@ document.addEventListener('alpine:init', () => {
         closeAndRefresh() {
             window.clearTimeout(this.pollTimer);
             this.isOpen = false;
-            window.location.reload();
+            if (typeof window.erpRefreshCurrentView === 'function') { window.erpRefreshCurrentView(); } else { window.location.reload(); }
         },
 
         statusUrl() {
@@ -7880,19 +8250,77 @@ function cleanupRowActionMenus(root = document) {
     window.__erpOpenRowMenu = null;
 }
 
+function extractFlashMessageFromHtml(html) {
+    if (! html) {
+        return '';
+    }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    return doc.querySelector('[data-erp-flash-status]')?.textContent?.trim()
+        ?? doc.querySelector('[hidden][data-erp-flash-status]')?.textContent?.trim()
+        ?? doc.querySelector('[data-erp-flash-error]')?.textContent?.trim()
+        ?? '';
+}
+
+function extractValidationMessageFromHtml(html) {
+    if (! html) {
+        return '';
+    }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const items = [...doc.querySelectorAll('[data-erp-validation-errors] li')]
+        .map((item) => item.textContent?.trim())
+        .filter(Boolean);
+
+    if (items.length > 0) {
+        return items.join('\n');
+    }
+
+    return doc.querySelector('[data-erp-modal-error] p:last-child')?.textContent?.trim()
+        ?? doc.querySelector('[data-erp-field-error]')?.textContent?.trim()
+        ?? '';
+}
+
+function flushPendingDeskToast() {
+    const raw = sessionStorage.getItem('erp.pendingDeskToast');
+
+    if (! raw) {
+        return;
+    }
+
+    sessionStorage.removeItem('erp.pendingDeskToast');
+
+    try {
+        const payload = JSON.parse(raw);
+
+        if (payload?.message) {
+            showErpSweetAlert(payload.message, payload.variant ?? 'success');
+        }
+    } catch {
+        // Ignore malformed session payloads.
+    }
+}
+
 function promoteFlashAlertsToToast(root = document) {
     if (! root?.querySelectorAll) {
         return;
     }
 
-    const promote = (selector, variant) => {
+    const promote = (selector, variant, { preferListItems = false } = {}) => {
         root.querySelectorAll(selector).forEach((alert) => {
-            const items = [...alert.querySelectorAll('li, span')]
-                .map((item) => item.textContent?.trim())
-                .filter(Boolean);
-            const message = items.length > 0
-                ? items.join('\n')
-                : alert.textContent?.trim();
+            let message = alert.dataset.erpFlashMessage?.trim() ?? '';
+
+            if (! message && preferListItems) {
+                const items = [...alert.querySelectorAll('li')]
+                    .map((item) => item.textContent?.trim())
+                    .filter(Boolean);
+                message = items.length > 0 ? items.join('\n') : '';
+            }
+
+            if (! message) {
+                message = alert.textContent?.trim() ?? '';
+            }
 
             if (message) {
                 showErpSweetAlert(message, variant);
@@ -7906,7 +8334,7 @@ function promoteFlashAlertsToToast(root = document) {
     promote('[data-erp-flash-error], [data-erp-flash-danger]', 'error');
     promote('[data-erp-flash-warning]', 'warning');
     promote('[data-erp-flash-info]', 'info');
-    promote('[data-erp-validation-errors]', 'error');
+    promote('[data-erp-validation-errors]', 'error', { preferListItems: true });
 }
 
 const FORM_SETTINGS_SCROLL_KEY = 'erp.formSettings.scrollTop';
@@ -8448,6 +8876,114 @@ function shouldPromoteWorkspaceLinkToMain(href) {
     }
 }
 
+/**
+ * Full-document Turbo visits (or hard navigation) — keep for auth/context switches,
+ * downloads, and explicit opt-outs. Everything else should stay in erp-main.
+ */
+function shouldKeepFullDocumentNavigation(element, href = null) {
+    if (! element) {
+        return false;
+    }
+
+    if (
+        element.getAttribute('data-turbo') === 'false'
+        || element.getAttribute('target') === '_blank'
+        || element.hasAttribute('data-erp-full-document')
+    ) {
+        return true;
+    }
+
+    const targetHref = href
+        ?? element.getAttribute('href')
+        ?? element.getAttribute('action')
+        ?? '';
+
+    if (! targetHref || targetHref.startsWith('#') || targetHref.startsWith('javascript:')) {
+        return false;
+    }
+
+    try {
+        const url = new URL(targetHref, window.location.origin);
+
+        if (url.origin !== window.location.origin) {
+            return true;
+        }
+
+        const path = url.pathname;
+
+        if (
+            path === '/logout'
+            || path.endsWith('/logout')
+            || path.includes('/login')
+            || path.includes('/admin/context')
+        ) {
+            return true;
+        }
+
+        if (path.includes('/download') || /\.pdf$/i.test(path)) {
+            return true;
+        }
+    } catch {
+        return false;
+    }
+
+    return false;
+}
+
+function stripEmbeddedQueryFromHref(link) {
+    try {
+        const url = new URL(link.href, window.location.origin);
+
+        if (url.searchParams.has('embedded')) {
+            url.searchParams.delete('embedded');
+            link.href = `${url.pathname}${url.search}${url.hash}`;
+        }
+    } catch {
+        // Keep the original href when it cannot be parsed.
+    }
+}
+
+function ensureMainFrameNavigation(link) {
+    link.removeAttribute('data-turbo');
+    link.setAttribute('data-turbo-frame', 'erp-main');
+
+    if (! link.hasAttribute('data-turbo-action')) {
+        link.setAttribute('data-turbo-action', 'advance');
+    }
+
+    stripEmbeddedQueryFromHref(link);
+}
+
+function wireMainFrameForms(root) {
+    if (! root) {
+        return;
+    }
+
+    root.querySelectorAll('form[action]').forEach((form) => {
+        if (form.closest('#module-workspace-content')) {
+            return;
+        }
+
+        if (shouldKeepFullDocumentNavigation(form)) {
+            return;
+        }
+
+        if (form.closest('#erp-form-modal') || form.closest('[data-erp-form-modal-panel]')) {
+            return;
+        }
+
+        const turboFrame = form.getAttribute('data-turbo-frame');
+
+        if (
+            ! turboFrame
+            || turboFrame === '_top'
+            || turboFrame === 'erp-main'
+        ) {
+            form.setAttribute('data-turbo-frame', 'erp-main');
+        }
+    });
+}
+
 function wireMainFrameLinks(root) {
     if (! root || root.id !== 'erp-main') {
         return;
@@ -8458,14 +8994,7 @@ function wireMainFrameLinks(root) {
             return;
         }
 
-        if (link.getAttribute('data-turbo') === 'false' || link.getAttribute('target') === '_blank') {
-            return;
-        }
-
-        if (
-            link.getAttribute('data-turbo-frame') === '_top'
-            || link.hasAttribute('data-leave-workspace')
-        ) {
+        if (shouldKeepFullDocumentNavigation(link, link.href)) {
             return;
         }
 
@@ -8480,30 +9009,32 @@ function wireMainFrameLinks(root) {
             return;
         }
 
-        if (shouldPromoteWorkspaceLinkToMain(link.href)) {
-            link.setAttribute('data-turbo-frame', 'erp-main');
+        const turboFrame = link.getAttribute('data-turbo-frame');
 
-            try {
-                const url = new URL(link.href, window.location.origin);
+        // Promote accidental full-document targets (and legacy leave-workspace) into erp-main.
+        if (
+            turboFrame === '_top'
+            || link.hasAttribute('data-leave-workspace')
+            || shouldPromoteWorkspaceLinkToMain(link.href)
+        ) {
+            ensureMainFrameNavigation(link);
 
-                if (url.searchParams.has('embedded')) {
-                    url.searchParams.delete('embedded');
-                    link.href = `${url.pathname}${url.search}${url.hash}`;
-                }
-            } catch {
-                // Keep the original href when it cannot be parsed.
-            }
-        } else if (! link.hasAttribute('data-turbo-frame')) {
-            // Default shell navigation to erp-main. Nested workspace content must
-            // opt in explicitly (secondary tabs / workspace-link / WorkspaceEmbed).
-            link.setAttribute('data-turbo-frame', 'erp-main');
+            return;
         }
 
-        if (! link.hasAttribute('data-turbo-action')) {
+        if (! turboFrame) {
+            // Default shell navigation to erp-main. Nested workspace content must
+            // opt in explicitly (secondary tabs / workspace-link / WorkspaceEmbed).
+            ensureMainFrameNavigation(link);
+
+            return;
+        }
+
+        if (! link.hasAttribute('data-turbo-action') && turboFrame === 'erp-main') {
             link.setAttribute('data-turbo-action', 'advance');
         }
 
-        if (link.getAttribute('data-turbo-frame') === 'module-workspace-content') {
+        if (turboFrame === 'module-workspace-content') {
             try {
                 const url = new URL(link.href, window.location.origin);
 
@@ -8516,6 +9047,8 @@ function wireMainFrameLinks(root) {
             }
         }
     });
+
+    wireMainFrameForms(root);
 }
 
 function wireEmbeddedWorkspaceLinks(root) {
@@ -8526,17 +9059,7 @@ function wireEmbeddedWorkspaceLinks(root) {
     const insideWorkspaceContent = root.id === 'module-workspace-content';
 
     root.querySelectorAll('a[href]').forEach((link) => {
-        if (link.getAttribute('data-turbo') === 'false' || link.getAttribute('target') === '_blank') {
-            return;
-        }
-
-        if (
-            link.getAttribute('data-turbo-frame') === '_top'
-            || link.hasAttribute('data-leave-workspace')
-        ) {
-            link.setAttribute('data-turbo', 'false');
-            link.removeAttribute('data-turbo-frame');
-
+        if (shouldKeepFullDocumentNavigation(link, link.href)) {
             return;
         }
 
@@ -8547,37 +9070,21 @@ function wireEmbeddedWorkspaceLinks(root) {
         if (erpModalManager.isModalFormUrl(link.href)) {
             link.setAttribute('data-erp-modal-open', '');
             link.removeAttribute('data-turbo-frame');
-
-            try {
-                const url = new URL(link.href, window.location.origin);
-
-                if (url.searchParams.has('embedded')) {
-                    url.searchParams.delete('embedded');
-                    link.href = `${url.pathname}${url.search}${url.hash}`;
-                }
-            } catch {
-                // Keep the original href when it cannot be parsed.
-            }
+            stripEmbeddedQueryFromHref(link);
 
             return;
         }
 
         const turboFrame = link.getAttribute('data-turbo-frame');
-        const promoteToMain = shouldPromoteWorkspaceLinkToMain(link.href);
+        const promoteToMain = shouldPromoteWorkspaceLinkToMain(link.href)
+            || turboFrame === 'erp-main'
+            || turboFrame === '_top'
+            || link.hasAttribute('data-leave-workspace');
 
-        if (promoteToMain || turboFrame === 'erp-main') {
-            link.setAttribute('data-turbo-frame', 'erp-main');
-
-            try {
-                const url = new URL(link.href, window.location.origin);
-
-                if (url.searchParams.has('embedded')) {
-                    url.searchParams.delete('embedded');
-                    link.href = `${url.pathname}${url.search}${url.hash}`;
-                }
-            } catch {
-                // Keep the original href when it cannot be parsed.
-            }
+        // Leave-workspace / _top used to force a hard reload; prefer erp-main so the
+        // admin shell (sidebar/topbar) stays mounted.
+        if (promoteToMain) {
+            ensureMainFrameNavigation(link);
 
             return;
         }
@@ -8586,6 +9093,10 @@ function wireEmbeddedWorkspaceLinks(root) {
             link.setAttribute('data-turbo-frame', 'module-workspace-content');
         } else if (link.getAttribute('data-turbo-frame') !== 'module-workspace-content') {
             return;
+        }
+
+        if (! link.hasAttribute('data-turbo-action')) {
+            link.setAttribute('data-turbo-action', 'advance');
         }
 
         try {
@@ -8601,12 +9112,20 @@ function wireEmbeddedWorkspaceLinks(root) {
     });
 
     root.querySelectorAll('form[action]').forEach((form) => {
-        if (form.getAttribute('data-turbo') === 'false') {
+        if (shouldKeepFullDocumentNavigation(form)) {
             return;
         }
 
         const method = (form.getAttribute('method') ?? 'get').toLowerCase();
         let turboFrame = form.getAttribute('data-turbo-frame');
+
+        // Promote legacy full-document form targets into the nested workspace frame
+        // (or keep erp-main when the form intentionally leaves the desk).
+        if (turboFrame === '_top') {
+            form.removeAttribute('data-turbo');
+            form.setAttribute('data-turbo-frame', insideWorkspaceContent ? 'module-workspace-content' : 'erp-main');
+            turboFrame = form.getAttribute('data-turbo-frame');
+        }
 
         if (insideWorkspaceContent && turboFrame === 'erp-main') {
             form.setAttribute('data-turbo-frame', 'module-workspace-content');
@@ -8782,6 +9301,7 @@ document.addEventListener('turbo:frame-load', (event) => {
         bindFormSettingsForms(event.target);
         initDocumentPdfDownload(event.target);
         ensureWorkspaceContentFrameLoads(event.target);
+        flushPendingDeskToast();
     }
 
     if (event.target.id === 'module-workspace-content') {
@@ -8837,6 +9357,48 @@ document.addEventListener('turbo:frame-missing', async (event) => {
         if (! promoteEmbeddedWorkspaceNavigation(event.target, response.url)) {
             showFormSettingsSweetAlert('Unable to load workspace content. Please refresh the page.', 'error');
         }
+
+        return;
+    }
+
+    // Prevent Turbo's default full-document visit when erp-main is missing from a
+    // frame response — that remounts the sidebar and feels like a hard reload.
+    if (event.target.id === 'erp-main') {
+        event.preventDefault();
+        endErpNavigation(event.target);
+
+        const response = event.detail?.response;
+        const status = response?.status ?? 0;
+
+        if (! response || status >= 400) {
+            showFormSettingsSweetAlert('Unable to load that page. Please try again.', 'error');
+
+            return;
+        }
+
+        try {
+            const html = await response.clone().text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const sourceFrame = doc.querySelector('turbo-frame#erp-main');
+
+            if (sourceFrame) {
+                event.target.innerHTML = sourceFrame.innerHTML;
+                refreshFrameAlpine(event.target);
+                ensureWorkspaceContentFrameLoads(event.target);
+                syncSecondaryWorkspaceTabActiveState();
+
+                if (response.url && window.history?.pushState) {
+                    const next = new URL(response.url, window.location.origin);
+                    window.history.pushState({}, '', `${next.pathname}${next.search}${next.hash}`);
+                }
+
+                return;
+            }
+        } catch {
+            // Fall through to toast.
+        }
+
+        showFormSettingsSweetAlert('Unable to load that page in the workspace shell. Please refresh.', 'error');
 
         return;
     }
@@ -8958,6 +9520,55 @@ document.addEventListener('turbo:click', (event) => {
     });
 });
 
+/**
+ * Force sidebar + primary workspace hops through #erp-main.
+ * Without this, a missing-frame fallback remounts the whole document (sidebar flash).
+ */
+document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+        return;
+    }
+
+    const link = event.target.closest?.(
+        '#erp-sidebar a[href][data-turbo-frame="erp-main"], .module-workspace-switcher--primary a[data-workspace-tab][href]',
+    );
+
+    if (! link || ! window.Turbo || ! document.getElementById('erp-main')) {
+        return;
+    }
+
+    if (
+        link.getAttribute('data-turbo') === 'false'
+        || link.getAttribute('target') === '_blank'
+        || link.hasAttribute('data-erp-modal-open')
+        || link.hasAttribute('data-erp-full-document')
+    ) {
+        return;
+    }
+
+    let target;
+
+    try {
+        target = new URL(link.href, window.location.origin);
+    } catch {
+        return;
+    }
+
+    if (target.origin !== window.location.origin) {
+        return;
+    }
+
+    event.preventDefault();
+    document.dispatchEvent(new CustomEvent('close-nav'));
+
+    const frame = link.getAttribute('data-turbo-frame') || 'erp-main';
+
+    window.Turbo.visit(target.href, {
+        frame: frame === 'module-workspace-content' ? 'module-workspace-content' : 'erp-main',
+        action: 'advance',
+    });
+}, true);
+
 function initNativeDialogs(root = document) {
     if (! root?.querySelectorAll) {
         return;
@@ -9018,6 +9629,7 @@ document.addEventListener('turbo:load', () => {
     }
 
     promoteFlashAlertsToToast(document);
+    flushPendingDeskToast();
 
     const workspaceFrame = document.getElementById('module-workspace-content');
 

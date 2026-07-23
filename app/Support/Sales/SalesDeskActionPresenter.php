@@ -46,6 +46,9 @@ class SalesDeskActionPresenter
                 'email' => $customer->email,
             ] : null,
             'can_release' => $this->workflow->canRelease($salesOrder),
+            'needs_production_queue' => $salesOrder->jobCard?->status === \App\Enums\ProductionJobCardStatus::Draft,
+            'released_to_queue' => $salesOrder->jobCard !== null
+                && $salesOrder->jobCard->status !== \App\Enums\ProductionJobCardStatus::Draft,
             'readiness' => $readiness,
             'financial' => $financial,
             'job_card_id' => $salesOrder->jobCard?->id,

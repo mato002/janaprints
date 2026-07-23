@@ -33,7 +33,7 @@
                     <a
                         href="<?php echo e($item['url']); ?>"
                         class="<?php echo \Illuminate\Support\Arr::toCssClasses(['flex items-center justify-between gap-3 px-1 py-2.5 text-sm transition hover:bg-slate-50']); ?>"
-                        <?php if($item['modal'] ?? false): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="_top" <?php endif; ?>
+                        <?php if($item['modal'] ?? false): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" <?php endif; ?>
                     >
                         <span class="min-w-0">
                             <span class="mb-0.5 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide <?php echo e($toneClasses); ?>"><?php echo e($kindLabel); ?></span>

@@ -11,7 +11,7 @@
                             <a
                                 href="{{ $row['url'] }}"
                                 class="flex items-center justify-between gap-3 px-4 py-3 text-sm transition hover:bg-slate-50"
-                                @if ($row['modal'] ?? false) data-erp-modal-open @else data-turbo-frame="_top" @endif
+                                @if ($row['modal'] ?? false) data-erp-modal-open @else data-turbo-frame="erp-main" @endif
                             >
                                 <span class="min-w-0">
                                     <span class="block font-mono text-xs font-medium text-slate-900">{{ $row['label'] }}</span>

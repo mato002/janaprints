@@ -89,6 +89,7 @@ class ProductionFloorService
                 'stage' => $this->resolveStage($jobCard)->label(),
                 'required_date' => $jobCard->required_date?->toDateString()
                     ?? $jobCard->salesOrder?->required_date?->toDateString(),
+                'sales_order_number' => $jobCard->salesOrder?->order_number,
                 'label_url' => route('admin.production.job-cards.label', $jobCard),
             ],
             'primary_action' => $this->actions->primaryAction($jobCard, forFloor: true),

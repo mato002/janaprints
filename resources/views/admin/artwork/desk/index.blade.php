@@ -33,7 +33,7 @@
                 :description="__('Your operational workspace — accept jobs, upload, and submit without leaving the desk.')"
             >
                 <x-slot name="actions">
-                    <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary" data-turbo-frame="_top">{{ __('Full Artwork dashboard') }}</a>
+                    <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ __('Full Artwork dashboard') }}</a>
                 </x-slot>
             </x-admin.page-header>
         @endif

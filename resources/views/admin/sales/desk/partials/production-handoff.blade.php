@@ -21,7 +21,7 @@
             </div>
         </dl>
         @if ($production['department_queue_url'] ?? null)
-            <a href="{{ $production['department_queue_url'] }}" class="mt-3 inline-flex text-xs text-erp-primary hover:underline" data-turbo-frame="_top">{{ __('Open department register') }}</a>
+            <a href="{{ $production['department_queue_url'] }}" class="mt-3 inline-flex text-xs text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ __('Open department register') }}</a>
         @endif
     </x-admin.card>
 @endif

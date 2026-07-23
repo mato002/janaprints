@@ -31,6 +31,27 @@ class ProductionAutoSchedulingService
         return $this->settings->autoScheduleOnCreate($jobCard->company_id, $jobCard->branch_id);
     }
 
+    public function canQueueDraftJob(ProductionJobCard $jobCard): bool
+    {
+        $jobCard->loadMissing(['queues', 'routeSteps']);
+
+        if ($jobCard->queues->isNotEmpty()) {
+            return true;
+        }
+
+        if ($jobCard->routeSteps->first(fn ($step) => $step->work_center_id !== null) !== null) {
+            return true;
+        }
+
+        try {
+            $this->resolveWorkCenter($jobCard);
+
+            return true;
+        } catch (ValidationException) {
+            return false;
+        }
+    }
+
     /**
      * @return array<string, mixed>|null Null when auto-scheduling is disabled.
      */
@@ -139,11 +160,18 @@ class ProductionAutoSchedulingService
             'estimated_duration_minutes' => $dates['estimated_duration_minutes'] ?? null,
         ]);
 
+        $queuePosition = null;
+
+        if (! $this->queues->hasActiveQueue($jobCard)) {
+            $queuePosition = $this->nextQueuePosition($workCenter);
+            $this->queues->enqueue($jobCard->fresh(), $workCenter->id, $queuePosition);
+        }
+
         return [
             'scheduled' => true,
             'reason' => null,
             'work_center_id' => $workCenter->id,
-            'queue_position' => null,
+            'queue_position' => $queuePosition,
             'planned_start_date' => $dates['planned_start_date'],
             'planned_end_date' => $dates['planned_end_date'],
             'machine_assigned' => false,

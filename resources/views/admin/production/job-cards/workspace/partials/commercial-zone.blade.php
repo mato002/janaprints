@@ -20,8 +20,13 @@
     <ul class="job-360-commercial-links">
         <li class="job-360-commercial-links__item">
             <span class="job-360-commercial-links__label">{{ __('Sales order') }}</span>
-            @if ($jobCard->salesOrder && auth()->user()?->can('view', $jobCard->salesOrder))
-                <a href="{{ route('admin.sales-orders.show', $jobCard->salesOrder) }}" class="job-360-commercial-links__value" data-turbo-frame="erp-main">
+            @if ($jobCard->salesOrder)
+                <a
+                    href="{{ route('admin.sales-orders.show', $jobCard->salesOrder) }}"
+                    class="job-360-commercial-links__value job-360-commercial-links__value--link"
+                    data-turbo-frame="erp-main"
+                    data-turbo-action="advance"
+                >
                     {{ $salesOrder['number'] ?? $jobCard->salesOrder->order_number }}
                 </a>
                 <span class="job-360-commercial-links__meta">{{ str_replace('_', ' ', $salesOrder['status'] ?? $jobCard->salesOrder->status->value) }}</span>

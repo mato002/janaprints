@@ -51,7 +51,7 @@ unset($__defined_vars, $__key, $__value); ?>
 ?>
 
 <?php if($action && $method): ?>
-    <form method="POST" action="<?php echo e($action); ?>" class="block" <?php if($confirm): ?> onsubmit="return confirm(<?php echo \Illuminate\Support\Js::from($confirm)->toHtml() ?>)" <?php endif; ?>>
+    <form method="POST" action="<?php echo e($action); ?>" class="block" data-turbo-frame="erp-main" <?php if($confirm): ?> onsubmit="return confirm(<?php echo \Illuminate\Support\Js::from($confirm)->toHtml() ?>)" <?php endif; ?>>
         <?php echo csrf_field(); ?>
         <?php if(in_array(strtoupper($method), ['PUT', 'PATCH', 'DELETE'])): ?>
             <?php echo method_field($method); ?>

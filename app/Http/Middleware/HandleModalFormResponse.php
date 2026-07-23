@@ -37,6 +37,11 @@ class HandleModalFormResponse
 
     protected function isModalFormRequest(Request $request): bool
     {
+        if (in_array($request->input('from'), ['sales-desk', 'store-desk', 'designer-desk'], true)
+            && $request->header('Turbo-Frame') !== 'erp-form-modal') {
+            return false;
+        }
+
         return $request->header('Turbo-Frame') === 'erp-form-modal'
             || $request->boolean('_erp_modal');
     }

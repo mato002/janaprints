@@ -169,6 +169,26 @@ unset($__defined_vars, $__key, $__value); ?>
             </button>
         <?php endif; ?>
     </div>
+    <?php if (isset($component)) { $__componentOriginalea9570ffb6e438fad0d70d52a821a8a9 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalea9570ffb6e438fad0d70d52a821a8a9 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.field-error','data' => ['name' => $name]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.field-error'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($name)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalea9570ffb6e438fad0d70d52a821a8a9)): ?>
+<?php $attributes = $__attributesOriginalea9570ffb6e438fad0d70d52a821a8a9; ?>
+<?php unset($__attributesOriginalea9570ffb6e438fad0d70d52a821a8a9); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalea9570ffb6e438fad0d70d52a821a8a9)): ?>
+<?php $component = $__componentOriginalea9570ffb6e438fad0d70d52a821a8a9; ?>
+<?php unset($__componentOriginalea9570ffb6e438fad0d70d52a821a8a9); ?>
+<?php endif; ?>
 </div>
 <?php endif; ?>
 <?php /**PATH C:\xampp\htdocs\jana-prints\resources\views/components/admin/lookup-select.blade.php ENDPATH**/ ?>

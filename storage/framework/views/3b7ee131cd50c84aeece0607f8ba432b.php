@@ -75,6 +75,23 @@
                                 <dt class="text-slate-500"><?php echo e(__('Customer')); ?></dt>
                                 <dd class="text-base font-semibold text-erp-primary" x-text="panel.header.customer ?? '—'"></dd>
                             </div>
+                            <div class="sm:col-span-2" x-show="panel.header?.sales_order_number">
+                                <dt class="text-slate-500"><?php echo e(__('Sales order')); ?></dt>
+                                <dd>
+                                    <a
+                                        x-show="panel.links?.sales_order"
+                                        :href="panel.links.sales_order"
+                                        class="font-mono text-sm font-medium text-erp-accent underline decoration-erp-accent/40 underline-offset-2 hover:decoration-erp-accent"
+                                        <?php if($operatorMode): ?> data-erp-modal-open <?php else: ?> data-turbo-frame="erp-main" data-turbo-action="advance" <?php endif; ?>
+                                        x-text="panel.header.sales_order_number"
+                                    ></a>
+                                    <span
+                                        class="font-mono text-sm font-medium"
+                                        x-show="!panel.links?.sales_order"
+                                        x-text="panel.header.sales_order_number"
+                                    ></span>
+                                </dd>
+                            </div>
                             <div class="sm:col-span-2">
                                 <dt class="text-slate-500"><?php echo e(__('Product')); ?></dt>
                                 <dd class="font-medium" x-text="panel.header.product ?? '—'"></dd>
@@ -157,14 +174,14 @@
                                     <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Preview job')); ?></a>
                                 </template>
                                 <template x-if="panel.links?.sales_order">
-                                    <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Sales order')); ?></a>
+                                    <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-erp-modal-open x-text="panel.header?.sales_order_number ? ('<?php echo e(__('Sales order')); ?> · ' + panel.header.sales_order_number) : '<?php echo e(__('Sales order')); ?>'"></a>
                                 </template>
                             <?php else: ?>
                                 <template x-if="panel.links?.job">
                                     <a :href="panel.links.job" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Full job workspace')); ?></a>
                                 </template>
                                 <template x-if="panel.links?.sales_order">
-                                    <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main"><?php echo e(__('Sales order')); ?></a>
+                                    <a :href="panel.links.sales_order" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" x-text="panel.header?.sales_order_number ? ('<?php echo e(__('Sales order')); ?> · ' + panel.header.sales_order_number) : '<?php echo e(__('Sales order')); ?>'"></a>
                                 </template>
                             <?php endif; ?>
                         </div>
