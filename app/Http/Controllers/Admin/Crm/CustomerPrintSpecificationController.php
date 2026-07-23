@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Crm;
 
-use App\Enums\CustomerArtworkType;
 use App\Enums\CustomerPrintSpecificationStatus;
 use App\Enums\FulfilmentMethod;
 use App\Enums\SalesOrderBillingType;
@@ -14,6 +13,7 @@ use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Crm\CustomerProductSerialProfile;
 use App\Models\Inventory\InventoryItem;
 use App\Support\Crm\CustomerArtworkService;
+use App\Support\Crm\CustomerArtworkTypeCatalog;
 use App\Support\Crm\CustomerPrintSpecificationLifecycleService;
 use App\Support\Crm\CustomerPrintSpecificationService;
 use App\Support\Crm\CustomerPrintSpecificationWorkspaceService;
@@ -82,7 +82,7 @@ class CustomerPrintSpecificationController extends Controller
             'statuses' => CustomerPrintSpecificationStatus::cases(),
             'billingTypes' => SalesOrderBillingType::cases(),
             'fulfilmentMethods' => FulfilmentMethod::cases(),
-            'artworkTypes' => CustomerArtworkType::cases(),
+            'artworkTypes' => app(CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id),
         ]);
     }
 
@@ -90,7 +90,7 @@ class CustomerPrintSpecificationController extends Controller
     {
         $this->authorize('update', $customer);
 
-        $validated = $this->validateSpecification($request);
+        $validated = $this->validateSpecification($request, $customer);
         $this->assertInventoryItemForTenant($validated['inventory_item_id']);
 
         $spec = $this->specifications->create($customer, $validated, (int) auth()->id());
@@ -101,7 +101,7 @@ class CustomerPrintSpecificationController extends Controller
                 $request->file('artwork_file'),
                 (int) auth()->id(),
                 $validated['artwork_change_notes'] ?? null,
-                $validated['artwork_type'] ?? CustomerArtworkType::Layout->value,
+                $validated['artwork_type'] ?? app(CustomerArtworkTypeCatalog::class)->defaultCode(),
             );
         }
 
@@ -141,7 +141,7 @@ class CustomerPrintSpecificationController extends Controller
             'statuses' => CustomerPrintSpecificationStatus::cases(),
             'billingTypes' => SalesOrderBillingType::cases(),
             'fulfilmentMethods' => FulfilmentMethod::cases(),
-            'artworkTypes' => CustomerArtworkType::cases(),
+            'artworkTypes' => app(CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id),
         ]);
     }
 
@@ -151,7 +151,7 @@ class CustomerPrintSpecificationController extends Controller
         $this->assertSpecificationBelongsToCustomer($customer, $printSpecification);
         $this->lifecycle->assertEditable($printSpecification);
 
-        $validated = $this->validateSpecification($request, $printSpecification);
+        $validated = $this->validateSpecification($request, $customer, $printSpecification);
         $this->assertInventoryItemForTenant($validated['inventory_item_id']);
 
         $this->specifications->update($printSpecification, $validated, (int) auth()->id());
@@ -181,7 +181,7 @@ class CustomerPrintSpecificationController extends Controller
         $validated = $request->validate([
             'file' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
             'change_notes' => ['nullable', 'string', 'max:2000'],
-            'artwork_type' => ['nullable', Rule::enum(CustomerArtworkType::class)],
+            'artwork_type' => app(CustomerArtworkTypeCatalog::class)->validationRules((int) $customer->company_id),
         ]);
 
         $this->artworks->uploadVersionForSpecification(
@@ -189,7 +189,7 @@ class CustomerPrintSpecificationController extends Controller
             $request->file('file'),
             (int) auth()->id(),
             $validated['change_notes'] ?? null,
-            $validated['artwork_type'] ?? CustomerArtworkType::Layout->value,
+            $validated['artwork_type'] ?? app(CustomerArtworkTypeCatalog::class)->defaultCode(),
         );
 
         return $this->modalOrRedirect(
@@ -239,7 +239,7 @@ class CustomerPrintSpecificationController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function validateSpecification(Request $request, ?CustomerPrintSpecification $existing = null): array
+    protected function validateSpecification(Request $request, Customer $customer, ?CustomerPrintSpecification $existing = null): array
     {
         return $request->validate([
             'inventory_item_id' => ['required', 'exists:inventory_items,id'],
@@ -254,7 +254,7 @@ class CustomerPrintSpecificationController extends Controller
             'default_billing_type' => ['nullable', Rule::enum(SalesOrderBillingType::class)],
             'default_fulfilment_method' => ['nullable', Rule::enum(FulfilmentMethod::class)],
             'artwork_file' => [$existing ? 'nullable' : 'nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
-            'artwork_type' => ['nullable', Rule::enum(CustomerArtworkType::class)],
+            'artwork_type' => app(CustomerArtworkTypeCatalog::class)->validationRules((int) $customer->company_id),
             'artwork_change_notes' => ['nullable', 'string', 'max:2000'],
             'serial_prefix' => ['nullable', 'string', 'max:30'],
             'serial_padding_length' => ['nullable', 'integer', 'min:1', 'max:12'],

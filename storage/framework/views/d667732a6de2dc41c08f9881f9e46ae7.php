@@ -1,7 +1,7 @@
 <?php
     use App\Support\Navigation\WorkspaceEmbed;
 ?>
-<div class="production-floor-board mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+<div class="production-floor-board workspace-kpi-strip mb-3 grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6">
     <?php $__currentLoopData = $summary; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <a
             href="<?php echo e(WorkspaceEmbed::url(route('admin.production.floor', $card['filter'] ?? []))); ?>"

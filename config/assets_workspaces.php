@@ -118,26 +118,6 @@ return [
                 ],
             ],
         ],
-        [
-            'label' => 'Intelligence',
-            'items' => [
-                [
-                    'key' => 'intelligence',
-                    'label' => 'Intelligence',
-                    'description' => 'Executive, branch, and lifecycle analytics.',
-                    'route' => 'admin.assets.intelligence.dashboard',
-                    'permission' => 'assets.analytics.view',
-                    'icon' => 'chart-pie',
-                    'active_routes' => [
-                        'admin.assets.intelligence.dashboard',
-                        'admin.assets.intelligence.executive',
-                        'admin.assets.intelligence.branch',
-                        'admin.assets.intelligence.analytics',
-                        'admin.assets.360.show',
-                    ],
-                ],
-            ],
-        ],
     ],
 
 ];

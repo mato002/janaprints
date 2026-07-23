@@ -11,6 +11,8 @@
         :secondary-workspaces="$shell['secondary_workspaces']"
         :active-secondary="$shell['active_secondary']"
         :secondary-toolbar-actions="$shell['secondary_toolbar_actions'] ?? []"
+        :context-workspaces="$shell['context_workspaces'] ?? []"
+        :active-context="$shell['active_context'] ?? null"
         :content-url="$shell['content_url']"
     >
         <x-slot:search>

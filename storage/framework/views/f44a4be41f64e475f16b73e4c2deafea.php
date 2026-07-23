@@ -37,7 +37,7 @@ unset($__defined_vars, $__key, $__value); ?>
 <div <?php echo e($attributes->merge(['class' => 'compact-workspace-header'])); ?>>
     <div class="compact-workspace-header__row">
         <div class="compact-workspace-header__title-group min-w-0">
-            <h1 class="compact-workspace-header__title truncate"><?php echo e($title); ?></h1>
+            <h1 class="compact-workspace-header__title truncate"><?php echo e($title); ?> <?php echo e(__('Workspace')); ?></h1>
             <?php if($description): ?>
                 <p class="compact-workspace-header__description"><?php echo e($description); ?></p>
             <?php endif; ?>

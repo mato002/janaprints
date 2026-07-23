@@ -1,5 +1,11 @@
 <x-admin-layout :title="__('RFQs')" :breadcrumbs="[['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('RFQs')]]">
-    <x-admin.page-header :title="__('Requests For Quotation')" />
+    @include('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::RFQS])
+    <x-admin.page-header :title="__('Requests For Quotation')">
+        <x-slot name="actions">
+            <a href="{{ route('admin.procurement.vendor-comparison.index') }}" class="erp-btn-secondary">{{ __('Compare quotes') }}</a>
+            <a href="{{ route('admin.procurement.quotations.index') }}" class="erp-btn-secondary">{{ __('Supplier quotations') }}</a>
+        </x-slot>
+    </x-admin.page-header>
 
     <x-admin.data-table
         :search-placeholder="__('Search RFQs…')"

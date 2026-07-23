@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Price Lists')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Price Lists')]]">
+<x-admin-layout :title="__('Price Lists')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'catalogue'])], ['label' => __('Price Lists')]]">
     <x-admin.page-header :title="__('Price Lists')"><x-slot name="actions">@if (auth()->user()?->can('catalogue.create'))<a href="{{ route('admin.inventory.catalogue.price-lists.create') }}" class="erp-btn-primary">{{ __('New Price List') }}</a>@endif</x-slot></x-admin.page-header>
     <x-admin.data-table
         :search-placeholder="__('Search price lists...')"

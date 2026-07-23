@@ -11,6 +11,7 @@ use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Crm\CustomerSegment;
 use App\Models\Crm\Lead;
 use App\Models\Crm\LeadSource;
+use App\Support\Crm\CustomerArtworkTypeCatalog;
 use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Inventory\Brand;
@@ -56,6 +57,7 @@ class LookupOptionService
             'price_books' => $this->priceBookOptions($request),
             'leads' => $this->mapOptions($this->leadsQuery($request)->get(['id', 'lead_name']), 'id', 'lead_name'),
             'lead_sources' => $this->mapOptions($this->leadSourcesQuery($request)->get(['id', 'name']), 'id', 'name'),
+            'artwork_types' => $this->artworkTypeOptions($request),
             'quotations' => $this->quotationOptions($request),
             'form_statuses' => $this->formStatusOptions($request),
             'payroll_groups' => $this->payrollGroupOptions($request),
@@ -280,6 +282,20 @@ class LookupOptionService
         }
 
         return $query;
+    }
+
+    /**
+     * @return list<array{value: int|string, label: string}>
+     */
+    protected function artworkTypeOptions(Request $request): array
+    {
+        $companyId = $this->companyId($request);
+
+        if (! $companyId) {
+            return [];
+        }
+
+        return app(CustomerArtworkTypeCatalog::class)->optionsForCompany($companyId);
     }
 
     protected function quotationsQuery(Request $request): Builder

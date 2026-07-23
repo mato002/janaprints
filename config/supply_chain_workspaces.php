@@ -2,7 +2,9 @@
 
 /**
  * Supply Chain workspace hub and section catalogs (presentation only).
- * Root hub shows seven workspace cards; features live on section pages.
+ *
+ * Store registers are modes of Store Desk. Analytics live under Reports & Intelligence.
+ * Payables and Assets are owned by Accounting / Assets modules.
  */
 return [
 
@@ -17,17 +19,31 @@ return [
             'active_routes' => ['admin.workspaces.supply-chain.section:catalogue', 'admin.inventory.catalogue.*', 'admin.inventory.items.*'],
         ],
         [
-            'label' => 'Store Operations',
-            'description' => 'Warehouses, balances, transfers, adjustments, and stock movements.',
+            'label' => 'Store',
+            'description' => 'Store desk — receive, issue, transfer, adjust, and balances.',
             'route' => 'admin.workspaces.supply-chain.section',
             'route_params' => ['section' => 'store-operations'],
             'permission' => 'inventory.view',
             'icon' => 'building',
-            'active_routes' => ['admin.workspaces.supply-chain.section:store-operations', 'admin.inventory.store.*', 'admin.inventory.warehouses.*', 'admin.inventory.transfers.*', 'admin.inventory.adjustments.*', 'admin.inventory.movements.*', 'admin.inventory.receipts.*', 'admin.inventory.issues.*'],
+            'active_routes' => [
+                'admin.workspaces.supply-chain.section:store-operations',
+                'admin.store.desk',
+                'admin.store.desk.*',
+                'admin.inventory.store.*',
+                'admin.inventory.warehouses.*',
+                'admin.inventory.transfers.*',
+                'admin.inventory.adjustments.*',
+                'admin.inventory.movements.*',
+                'admin.inventory.receipts.*',
+                'admin.inventory.issues.*',
+                'admin.inventory.alerts.*',
+                'admin.inventory.reorder-settings.*',
+                'admin.inventory.virtual-locations.*',
+            ],
         ],
         [
             'label' => 'Procurement',
-            'description' => 'Suppliers, RFQs, purchase orders, goods receipts, and vendor analysis.',
+            'description' => 'Buy desk — requests, suppliers, RFQs, orders, and receipts.',
             'route' => 'admin.workspaces.supply-chain.section',
             'route_params' => ['section' => 'procurement'],
             'permission' => 'procurement.vendors.view',
@@ -47,34 +63,17 @@ return [
                 'admin.inventory.cycle-counts.*',
                 'admin.inventory.variances.*',
                 'admin.inventory.reconciliations.*',
-                'admin.inventory.intelligence.*',
+                'admin.inventory.variance-reason-codes.*',
             ],
         ],
         [
             'label' => 'Costing',
-            'description' => 'FIFO, average cost, inventory valuation, and production job costing.',
+            'description' => 'Inventory valuation and production job costing.',
             'route' => 'admin.workspaces.supply-chain.section',
             'route_params' => ['section' => 'costing'],
             'permission' => 'inventory.valuation.view|production.costing.view',
             'icon' => 'currency-dollar',
             'active_routes' => ['admin.workspaces.supply-chain.section:costing', 'admin.inventory.valuation.*', 'admin.production.costing.*'],
-        ],
-        [
-            'label' => 'Assets',
-            'description' => 'Asset register, categories, maintenance, depreciation, and disposals.',
-            'route' => 'admin.workspaces.assets',
-            'permission' => 'assets.view',
-            'icon' => 'chip',
-            'active_routes' => ['admin.workspaces.assets', 'admin.assets.*'],
-        ],
-        [
-            'label' => 'Reports',
-            'description' => 'Inventory, procurement, valuation, movement, and costing reports.',
-            'route' => 'admin.workspaces.supply-chain.section',
-            'route_params' => ['section' => 'reports'],
-            'permission' => 'inventory.view|procurement.vendors.view',
-            'icon' => 'chart-pie',
-            'active_routes' => ['admin.workspaces.supply-chain.section:reports'],
         ],
     ],
 
@@ -82,43 +81,180 @@ return [
 
         'catalogue' => [
             'title' => 'Catalogue',
-            'description' => 'Product master data, classification, attributes, and commercial pricing.',
+            'description' => 'Products and price lists — master data under Setup.',
             'icon' => 'template',
+            'quick_actions' => [
+                ['label' => 'New Product', 'route' => 'admin.inventory.items.create', 'permission' => 'catalogue.create'],
+                ['label' => 'New Price List', 'route' => 'admin.inventory.catalogue.price-lists.create', 'permission' => 'catalogue.create'],
+            ],
             'groups' => [
                 [
                     'label' => 'Catalogue',
                     'items' => [
-                        ['key' => 'products', 'label' => 'Products', 'description' => 'Finished goods, materials, and sellable inventory items.', 'route' => 'admin.inventory.items.index', 'permission' => 'catalogue.view', 'icon' => 'template', 'active_routes' => ['admin.inventory.items.*']],
-                        ['key' => 'categories', 'label' => 'Categories', 'description' => 'Print-industry category master data.', 'route' => 'admin.inventory.catalogue.categories.index', 'permission' => 'catalogue.view', 'icon' => 'folder', 'active_routes' => ['admin.inventory.catalogue.categories.*']],
-                        ['key' => 'subcategories', 'label' => 'Subcategories', 'description' => 'Category-specific product classification.', 'route' => 'admin.inventory.catalogue.subcategories.index', 'permission' => 'catalogue.view', 'icon' => 'archive', 'active_routes' => ['admin.inventory.catalogue.subcategories.*']],
-                        ['key' => 'brands', 'label' => 'Brands', 'description' => 'Supplier and manufacturer brand master data.', 'route' => 'admin.inventory.catalogue.brands.index', 'permission' => 'catalogue.view', 'icon' => 'badge-check', 'active_routes' => ['admin.inventory.catalogue.brands.*']],
-                        ['key' => 'attributes', 'label' => 'Attributes', 'description' => 'Reusable GSM, size, finish, color, and material fields.', 'route' => 'admin.inventory.catalogue.attributes.index', 'permission' => 'catalogue.view', 'icon' => 'sliders', 'active_routes' => ['admin.inventory.catalogue.attributes.*']],
-                        ['key' => 'price-lists', 'label' => 'Price Lists', 'description' => 'Retail, wholesale, corporate, and government pricing.', 'route' => 'admin.inventory.catalogue.price-lists.index', 'permission' => 'catalogue.view', 'icon' => 'tag', 'active_routes' => ['admin.inventory.catalogue.price-lists.*']],
-                        ['key' => 'units', 'label' => 'Units of Measure', 'description' => 'Stock units, conversions, and packaging definitions.', 'route' => 'admin.inventory.catalogue.units.index', 'permission' => 'catalogue.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.inventory.catalogue.units.*']],
+                        [
+                            'key' => 'products',
+                            'label' => 'Products',
+                            'description' => 'Inventory items and finished goods.',
+                            'route' => 'admin.inventory.items.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'template',
+                            'active_routes' => [
+                                'admin.inventory.items.*',
+                                'admin.inventory.catalogue.dashboard',
+                            ],
+                        ],
+                        [
+                            'key' => 'price-lists',
+                            'label' => 'Price Lists',
+                            'description' => 'Sell and cost price lists for catalogue items.',
+                            'route' => 'admin.inventory.catalogue.price-lists.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'currency-dollar',
+                            'active_routes' => ['admin.inventory.catalogue.price-lists.*'],
+                        ],
+                    ],
+                ],
+                [
+                    'label' => 'Setup',
+                    'items' => [
+                        [
+                            'label' => 'Categories',
+                            'description' => 'Product categories and default units.',
+                            'route' => 'admin.inventory.catalogue.categories.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'collection',
+                            'active_routes' => ['admin.inventory.catalogue.categories.*'],
+                        ],
+                        [
+                            'label' => 'Subcategories',
+                            'description' => 'Category subdivisions for catalogue items.',
+                            'route' => 'admin.inventory.catalogue.subcategories.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'collection',
+                            'active_routes' => ['admin.inventory.catalogue.subcategories.*'],
+                        ],
+                        [
+                            'label' => 'Brands',
+                            'description' => 'Brand master data for products.',
+                            'route' => 'admin.inventory.catalogue.brands.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'tag',
+                            'active_routes' => ['admin.inventory.catalogue.brands.*'],
+                        ],
+                        [
+                            'label' => 'Attributes',
+                            'description' => 'Size, color, GSM, and other item attributes.',
+                            'route' => 'admin.inventory.catalogue.attributes.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'adjustments',
+                            'active_routes' => ['admin.inventory.catalogue.attributes.*'],
+                        ],
+                        [
+                            'label' => 'Units of Measure',
+                            'description' => 'UOM codes used across catalogue and store.',
+                            'route' => 'admin.inventory.catalogue.units.index',
+                            'permission' => 'catalogue.view',
+                            'icon' => 'scale',
+                            'active_routes' => ['admin.inventory.catalogue.units.*'],
+                        ],
                     ],
                 ],
             ],
         ],
 
         'store-operations' => [
-            'title' => 'Store Operations',
-            'description' => 'Warehouse structure, stock balances, transfers, adjustments, and movement history.',
+            'title' => 'Store',
+            'description' => 'Store Desk for day-to-day stock work — Setup holds warehouses and permissions.',
             'icon' => 'building',
+            'quick_actions' => [
+                ['label' => 'Open Store Desk', 'route' => 'admin.store.desk', 'permission' => 'inventory.view'],
+                ['label' => 'New Receipt', 'route' => 'admin.inventory.receipts.create', 'permission' => 'inventory.create'],
+                ['label' => 'New Issue', 'route' => 'admin.inventory.issues.create', 'permission' => 'inventory.create'],
+            ],
             'groups' => [
                 [
-                    'label' => 'Store Operations',
+                    'label' => 'Store',
                     'items' => [
-                        ['label' => 'Warehouses', 'description' => 'Branch stores, warehouse details, managers, and balances.', 'route' => 'admin.inventory.warehouses.index', 'permission' => 'inventory.view', 'icon' => 'building', 'active_routes' => ['admin.inventory.warehouses.*']],
-                        ['label' => 'Store Balances', 'description' => 'Stock balances by warehouse and item.', 'route' => 'admin.inventory.store.balances', 'permission' => 'inventory.view', 'icon' => 'cube', 'active_routes' => ['admin.inventory.store.balances']],
-                        ['label' => 'Direct Stock Receipts', 'description' => 'Manual or non-PO inbound receipts that post straight to store stock.', 'route' => 'admin.inventory.receipts.index', 'permission' => 'inventory.view', 'icon' => 'archive', 'active_routes' => ['admin.inventory.receipts.*']],
-                        ['label' => 'Stock Issues', 'description' => 'Outbound stock issues to production, sales, and transfers.', 'route' => 'admin.inventory.issues.index', 'permission' => 'inventory.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.inventory.issues.*']],
-                        ['label' => 'Transfers', 'description' => 'Inter-store transfer drafts and posted stock movements.', 'route' => 'admin.inventory.transfers.index', 'permission' => 'inventory.view', 'icon' => 'truck', 'active_routes' => ['admin.inventory.transfers.*']],
-                        ['label' => 'Adjustments', 'description' => 'Stock count corrections and write-offs.', 'route' => 'admin.inventory.adjustments.index', 'permission' => 'inventory.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.inventory.adjustments.*']],
-                        ['label' => 'Stock Movements', 'description' => 'Material usage and movement history.', 'route' => 'admin.inventory.movements.index', 'permission' => 'inventory.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.inventory.movements.*']],
-                        ['label' => 'Reorder Alerts', 'description' => 'Low-stock alerts with acknowledge, resolve, and purchase request actions.', 'route' => 'admin.inventory.alerts.index', 'permission' => 'inventory.reorder.view|inventory.view', 'icon' => 'bell', 'active_routes' => ['admin.inventory.alerts.*']],
+                        [
+                            'key' => 'store-desk',
+                            'label' => 'Store Desk',
+                            'description' => 'Receive, issue, transfer, adjust — plus balances, movements, and alerts.',
+                            'route' => 'admin.store.desk',
+                            'permission' => 'inventory.view',
+                            'icon' => 'building',
+                            'active_routes' => [
+                                'admin.store.desk',
+                                'admin.store.desk.*',
+                                'admin.inventory.store.balances',
+                                'admin.inventory.store.dashboard',
+                                'admin.inventory.receipts.*',
+                                'admin.inventory.issues.*',
+                                'admin.inventory.transfers.*',
+                                'admin.inventory.adjustments.*',
+                                'admin.inventory.movements.*',
+                                'admin.inventory.alerts.*',
+                            ],
+                            'modes' => [
+                                [
+                                    'key' => 'desk',
+                                    'label' => 'Desk',
+                                    'route' => 'admin.store.desk',
+                                    'active_routes' => ['admin.store.desk', 'admin.store.desk.*', 'admin.inventory.store.dashboard'],
+                                ],
+                                [
+                                    'key' => 'balances',
+                                    'label' => 'Balances',
+                                    'route' => 'admin.inventory.store.balances',
+                                    'active_routes' => ['admin.inventory.store.balances'],
+                                ],
+                                [
+                                    'key' => 'receipts',
+                                    'label' => 'Receipts',
+                                    'route' => 'admin.inventory.receipts.index',
+                                    'active_routes' => ['admin.inventory.receipts.*'],
+                                ],
+                                [
+                                    'key' => 'issues',
+                                    'label' => 'Issues',
+                                    'route' => 'admin.inventory.issues.index',
+                                    'active_routes' => ['admin.inventory.issues.*'],
+                                ],
+                                [
+                                    'key' => 'transfers',
+                                    'label' => 'Transfers',
+                                    'route' => 'admin.inventory.transfers.index',
+                                    'active_routes' => ['admin.inventory.transfers.*'],
+                                ],
+                                [
+                                    'key' => 'adjustments',
+                                    'label' => 'Adjustments',
+                                    'route' => 'admin.inventory.adjustments.index',
+                                    'active_routes' => ['admin.inventory.adjustments.*'],
+                                ],
+                                [
+                                    'key' => 'movements',
+                                    'label' => 'Movements',
+                                    'route' => 'admin.inventory.movements.index',
+                                    'active_routes' => ['admin.inventory.movements.*'],
+                                ],
+                                [
+                                    'key' => 'alerts',
+                                    'label' => 'Alerts',
+                                    'route' => 'admin.inventory.alerts.index',
+                                    'permission' => 'inventory.reorder.view|inventory.view',
+                                    'active_routes' => ['admin.inventory.alerts.*'],
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                [
+                    'label' => 'Setup',
+                    'items' => [
+                        ['label' => 'Warehouses', 'description' => 'Branch stores, warehouse details, and managers.', 'route' => 'admin.inventory.warehouses.index', 'permission' => 'inventory.view', 'icon' => 'building', 'active_routes' => ['admin.inventory.warehouses.*']],
+                        ['label' => 'Virtual Locations', 'description' => 'Raw, WIP, finished goods, in-transit, and quarantine buckets.', 'route' => 'admin.inventory.virtual-locations.index', 'permission' => 'inventory.virtual-locations.view', 'icon' => 'collection', 'active_routes' => ['admin.inventory.virtual-locations.*']],
                         ['label' => 'Reorder Settings', 'description' => 'Per-warehouse min/max levels and reorder quantities.', 'route' => 'admin.inventory.reorder-settings.index', 'permission' => 'inventory.reorder.configure', 'icon' => 'adjustments', 'active_routes' => ['admin.inventory.reorder-settings.*']],
-                        ['label' => 'Store Permissions', 'description' => 'Role coverage for receive, issue, transfer, and adjust actions.', 'route' => 'admin.inventory.store.permissions', 'permission' => 'inventory.view', 'icon' => 'shield-check', 'active_routes' => ['admin.inventory.store.permissions']],
-                        ['label' => 'Virtual Locations', 'description' => 'Raw, WIP, finished goods, in-transit, and quarantine buckets.', 'route' => 'admin.inventory.virtual-locations.index', 'permission' => 'inventory.virtual-locations.view', 'active_routes' => ['admin.inventory.virtual-locations.*'], 'icon' => 'collection'],
+                        ['label' => 'Store Permissions', 'description' => 'Role coverage for receive, issue, transfer, and adjust.', 'route' => 'admin.inventory.store.permissions', 'permission' => 'inventory.view', 'icon' => 'shield-check', 'active_routes' => ['admin.inventory.store.permissions']],
                     ],
                 ],
             ],
@@ -126,26 +262,90 @@ return [
 
         'procurement' => [
             'title' => 'Procurement',
-            'description' => 'Supplier master data, sourcing, purchasing, and inbound logistics.',
+            'description' => 'Buy desk for requests, sourcing, orders, and receipts. Supplier performance lives under Reports.',
             'icon' => 'truck',
+            'quick_actions' => [
+                ['label' => 'New Request', 'route' => 'admin.procurement.requests.create', 'permission' => 'procurement.requests.create'],
+                ['label' => 'New Supplier', 'route' => 'admin.procurement.vendors.create', 'permission' => 'procurement.vendors.create'],
+            ],
             'groups' => [
                 [
                     'label' => 'Procurement',
                     'items' => [
-                        ['label' => 'Procurement Dashboard', 'description' => 'KPIs for requisitions, RFQs, purchase orders, and receipts.', 'route' => 'admin.procurement.dashboard', 'permission' => 'procurement.vendors.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.procurement.dashboard']],
-                        ['label' => 'Purchase Requests', 'description' => 'Internal requisitions before RFQ or purchase order conversion.', 'route' => 'admin.procurement.requests.index', 'permission' => 'procurement.requests.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.procurement.requests.*']],
-                        ['label' => 'Suppliers', 'description' => 'Supplier master data and contacts.', 'route' => 'admin.procurement.vendors.index', 'permission' => 'procurement.vendors.view', 'icon' => 'office-building', 'active_routes' => ['admin.procurement.vendors.*']],
-                        ['label' => 'RFQs', 'description' => 'Request for quotation and vendor responses.', 'route' => 'admin.procurement.rfqs.index', 'permission' => 'procurement.rfq.view|procurement.vendors.view', 'icon' => 'document-text', 'active_routes' => ['admin.procurement.rfqs.*', 'admin.procurement.requests.rfq.*']],
-                        ['label' => 'Vendor Comparison', 'description' => 'Compare supplier quotes and award RFQs.', 'route' => 'admin.procurement.vendor-comparison.index', 'permission' => 'procurement.vendor_comparison.view|procurement.comparison.view', 'icon' => 'scale', 'active_routes' => ['admin.procurement.vendor-comparison.*']],
-                        ['label' => 'Purchase Orders', 'description' => 'Approved purchase orders and fulfilment.', 'route' => 'admin.procurement.orders.index', 'permission' => 'procurement.orders.view|procurement.vendors.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.procurement.orders.*']],
-                        ['label' => 'PO Goods Receipts (GRN)', 'description' => 'Receive stock against purchase orders and post into inventory.', 'route' => 'admin.procurement.receipts.index', 'permission' => 'procurement.orders.view|procurement.vendors.view', 'icon' => 'archive', 'active_routes' => ['admin.procurement.receipts.*', 'admin.procurement.orders.receive.*']],
-                        ['label' => 'Supplier Quotations', 'description' => 'Manually captured supplier quotes outside RFQ workflows.', 'route' => 'admin.procurement.quotations.index', 'permission' => 'procurement.orders.view', 'icon' => 'document-text', 'active_routes' => ['admin.procurement.quotations.*']],
-                        ['label' => 'Procurement Approvals', 'description' => 'Pending, aging, escalated, and rejected procurement approval chains.', 'route' => 'admin.procurement.approvals.index', 'permission' => 'procurement.approvals.view', 'icon' => 'badge-check', 'active_routes' => ['admin.procurement.approvals.*']],
-                        ['label' => 'Supplier Bills', 'description' => 'Supplier invoices linked to purchase orders and goods receipts.', 'route' => 'admin.payables.bills.index', 'permission' => 'payables.bills.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.payables.bills.*']],
-                        ['label' => 'Supplier Payments', 'description' => 'Pay supplier bills and manage outbound payment runs.', 'route' => 'admin.payables.payments.index', 'permission' => 'payables.payments.view', 'icon' => 'banknotes', 'active_routes' => ['admin.payables.payments.*']],
-                        ['label' => 'Payables Ledger', 'description' => 'Supplier balance ledger, statements, and aging.', 'route' => 'admin.payables.ledger', 'permission' => 'payables.ledger.view', 'icon' => 'book-open', 'active_routes' => ['admin.payables.ledger', 'admin.payables.statement', 'admin.payables.aging']],
-                        ['label' => 'Asset Capitalization', 'description' => 'Pending fixed-asset capitalization from receipts.', 'route' => 'admin.assets.acquisitions.queue', 'permission' => 'assets.acquisition.view', 'icon' => 'chip', 'count_key' => 'capitalization_pending', 'active_routes' => ['admin.assets.acquisitions.queue', 'admin.assets.acquisitions.workbench']],
-                        ['label' => 'Supplier Performance', 'description' => 'On-time delivery, quality, and spend analytics.', 'route' => 'admin.procurement.supplier-performance.index', 'permission' => 'procurement.performance.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.procurement.supplier-performance.*']],
+                        [
+                            'key' => 'requests',
+                            'label' => 'Requests',
+                            'description' => 'Purchase requests awaiting sourcing and approval.',
+                            'route' => 'admin.procurement.requests.index',
+                            'permission' => 'procurement.requests.view',
+                            'icon' => 'clipboard-list',
+                            'active_routes' => ['admin.procurement.requests.*', 'admin.procurement.dashboard'],
+                            'toolbar_actions' => [
+                                [
+                                    'label' => 'New request',
+                                    'route' => 'admin.procurement.requests.create',
+                                    'permission' => 'procurement.requests.create',
+                                    'modal' => true,
+                                ],
+                            ],
+                        ],
+                        [
+                            'key' => 'suppliers',
+                            'label' => 'Suppliers',
+                            'description' => 'Supplier and vendor master data.',
+                            'route' => 'admin.procurement.vendors.index',
+                            'permission' => 'procurement.vendors.view',
+                            'icon' => 'truck',
+                            'active_routes' => ['admin.procurement.vendors.*'],
+                            'toolbar_actions' => [
+                                [
+                                    'label' => 'Create vendor',
+                                    'route' => 'admin.procurement.vendors.create',
+                                    'permission' => 'procurement.vendors.create',
+                                    'modal' => true,
+                                ],
+                            ],
+                        ],
+                        [
+                            'key' => 'rfqs',
+                            'label' => 'RFQs',
+                            'description' => 'Request for quotation, quotes, and vendor comparison.',
+                            'route' => 'admin.procurement.rfqs.index',
+                            'permission' => 'procurement.rfq.view|procurement.vendors.view',
+                            'icon' => 'document-text',
+                            'active_routes' => [
+                                'admin.procurement.rfqs.*',
+                                'admin.procurement.vendor-comparison.*',
+                                'admin.procurement.quotations.*',
+                            ],
+                        ],
+                        [
+                            'key' => 'orders',
+                            'label' => 'Orders',
+                            'description' => 'Purchase orders and buying register.',
+                            'route' => 'admin.procurement.orders.index',
+                            'permission' => 'procurement.orders.view|procurement.vendors.view',
+                            'icon' => 'shopping-cart',
+                            'active_routes' => ['admin.procurement.orders.*'],
+                        ],
+                        [
+                            'key' => 'receipts',
+                            'label' => 'Receipts',
+                            'description' => 'Goods receipts against purchase orders.',
+                            'route' => 'admin.procurement.receipts.index',
+                            'permission' => 'procurement.orders.view|procurement.vendors.view',
+                            'icon' => 'inbox',
+                            'active_routes' => ['admin.procurement.receipts.*'],
+                        ],
+                        [
+                            'key' => 'approvals',
+                            'label' => 'Approvals',
+                            'description' => 'Procurement approvals queue.',
+                            'route' => 'admin.procurement.approvals.index',
+                            'permission' => 'procurement.approvals.view',
+                            'icon' => 'badge-check',
+                            'active_routes' => ['admin.procurement.approvals.*'],
+                        ],
                     ],
                 ],
             ],
@@ -157,14 +357,18 @@ return [
             'icon' => 'clipboard-list',
             'groups' => [
                 [
-                    'label' => 'Inventory Control',
+                    'label' => 'Counts',
                     'items' => [
                         ['label' => 'Stock Count', 'description' => 'Full or partial physical stock counts.', 'route' => 'admin.inventory.stock-counts.index', 'permission' => 'inventory.count.view', 'active_routes' => ['admin.inventory.stock-counts.*'], 'icon' => 'clipboard-list'],
                         ['label' => 'Cycle Count', 'description' => 'Rolling cycle count schedules and execution.', 'route' => 'admin.inventory.cycle-counts.index', 'permission' => 'inventory.cycle.view', 'active_routes' => ['admin.inventory.cycle-counts.*'], 'icon' => 'calendar'],
                         ['label' => 'Variance Report', 'description' => 'Count variances by warehouse and item.', 'route' => 'admin.inventory.variances.index', 'permission' => 'inventory.variance.view', 'active_routes' => ['admin.inventory.variances.*'], 'icon' => 'chart-bar'],
                         ['label' => 'Inventory Reconciliation', 'description' => 'Reconcile system stock with physical counts.', 'route' => 'admin.inventory.reconciliations.index', 'permission' => 'inventory.reconcile.view', 'active_routes' => ['admin.inventory.reconciliations.*'], 'icon' => 'scale'],
+                    ],
+                ],
+                [
+                    'label' => 'Setup',
+                    'items' => [
                         ['label' => 'Variance Reason Codes', 'description' => 'Structured variance reasons for stock count reconciliation.', 'route' => 'admin.inventory.variance-reason-codes.index', 'permission' => 'inventory.variance-reasons.view', 'active_routes' => ['admin.inventory.variance-reason-codes.*'], 'icon' => 'tag'],
-                        ['label' => 'Inventory Intelligence', 'description' => 'Velocity, stockout risk, dead stock, and warehouse consumption insights.', 'route' => 'admin.inventory.intelligence.overview', 'permission' => 'inventory.intelligence.view', 'active_routes' => ['admin.inventory.intelligence.*'], 'icon' => 'chart-bar'],
                     ],
                 ],
             ],
@@ -172,48 +376,14 @@ return [
 
         'costing' => [
             'title' => 'Costing',
-            'description' => 'Inventory costing methods, valuation, and production job costs.',
+            'description' => 'Inventory valuation and production job costs.',
             'icon' => 'currency-dollar',
             'groups' => [
                 [
                     'label' => 'Costing',
                     'items' => [
-                        ['label' => 'FIFO Costing', 'description' => 'First-in, first-out layer consumption and value.', 'route' => 'admin.inventory.valuation.index', 'permission' => 'inventory.valuation.view', 'icon' => 'collection', 'active_routes' => ['admin.inventory.valuation.*']],
-                        ['label' => 'Average Cost', 'description' => 'Weighted-average inventory unit costs and valuation.', 'route' => 'admin.inventory.valuation.index', 'permission' => 'inventory.valuation.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.inventory.valuation.*']],
-                        ['label' => 'Inventory Valuation', 'description' => 'FIFO and weighted-average inventory value.', 'route' => 'admin.inventory.valuation.index', 'permission' => 'inventory.valuation.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.inventory.valuation.*']],
+                        ['label' => 'Inventory Valuation', 'description' => 'FIFO and weighted-average inventory value by warehouse.', 'route' => 'admin.inventory.valuation.index', 'permission' => 'inventory.valuation.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.inventory.valuation.*']],
                         ['label' => 'Production Job Costing', 'description' => 'Job cost sheets and margin analysis.', 'route' => 'admin.production.costing.dashboard', 'permission' => 'production.costing.view', 'icon' => 'cog', 'active_routes' => ['admin.production.costing.*', 'admin.production.job-cards.costing']],
-                    ],
-                ],
-            ],
-        ],
-
-        'assets' => [
-            'title' => 'Assets',
-            'description' => 'Fixed assets are managed in the Assets workspace.',
-            'icon' => 'chip',
-            'groups' => [
-                [
-                    'label' => 'Assets',
-                    'items' => [
-                        ['label' => 'Assets Workspace', 'description' => 'Canonical fixed asset register, maintenance, finance, and intelligence.', 'route' => 'admin.workspaces.assets', 'permission' => 'assets.view', 'icon' => 'chip', 'active_routes' => ['admin.workspaces.assets', 'admin.assets.*']],
-                    ],
-                ],
-            ],
-        ],
-
-        'reports' => [
-            'title' => 'Reports',
-            'description' => 'Supply chain analytics across inventory, procurement, valuation, and costing.',
-            'icon' => 'chart-pie',
-            'groups' => [
-                [
-                    'label' => 'Reports',
-                    'items' => [
-                        ['label' => 'Inventory Reports', 'description' => 'Stock movement and on-hand analytics.', 'route' => 'admin.inventory.reports.index', 'permission' => 'reports.inventory.view', 'icon' => 'cube', 'active_routes' => ['admin.inventory.reports.*']],
-                        ['label' => 'Procurement Reports', 'description' => 'Purchasing and supplier performance.', 'route' => 'admin.procurement.reports.index', 'permission' => 'reports.procurement.view', 'icon' => 'truck', 'active_routes' => ['admin.procurement.reports.*']],
-                        ['label' => 'Valuation Reports', 'description' => 'Inventory value by method and warehouse.', 'route' => 'admin.inventory.valuation.index', 'permission' => 'inventory.valuation.view', 'icon' => 'currency-dollar', 'active_routes' => ['admin.inventory.valuation.*']],
-                        ['label' => 'Movement Reports', 'description' => 'Stock movement history and consumption.', 'route' => 'admin.inventory.movements.index', 'permission' => 'inventory.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.inventory.movements.*']],
-                        ['label' => 'Costing Reports', 'description' => 'Cost layers, margins, and job profitability.', 'route' => 'admin.production.reports.index', 'permission' => 'reports.costing.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.production.reports.*']],
                     ],
                 ],
             ],

@@ -164,7 +164,7 @@ class SalesOrderController extends Controller
                     $redirect = redirect()->route('admin.sales.desk', [
                         'customer' => $customer->getRouteKey(),
                         'order' => $salesOrder->fresh()->getRouteKey(),
-                        'step' => 4,
+                        'step' => 5,
                     ]);
                 } elseif ($jobCard !== null) {
                     $redirect = redirect()->route('admin.production.job-cards.show', $jobCard);
@@ -389,7 +389,7 @@ class SalesOrderController extends Controller
             ? route('admin.sales.desk', [
                 'customer' => $salesOrder->customer?->getRouteKey() ?? $salesOrder->customer_id,
                 'order' => $salesOrder->fresh()->getRouteKey(),
-                'step' => 4,
+                'step' => 5,
             ])
             : null;
 

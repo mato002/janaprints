@@ -1,4 +1,5 @@
 <x-admin-layout :title="__('Vendors')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Vendor Management')], ['label' => __('Vendors')]]">
+    @include('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::SUPPLIERS])
     <x-admin.page-header :title="__('Vendors')" :description="__('Supplier and vendor master data.')">
         <x-slot name="actions">
             @can('create', App\Models\Procurement\Vendor::class)

@@ -5,6 +5,7 @@
     $controlAlerts = $controlAlerts ?? [];
     $completion = $completion ?? ['eligible' => false, 'blockers' => [], 'already_posted' => false];
     $hasPostedOutput = (bool) ($hasPostedOutput ?? ($completion['already_posted'] ?? false));
+    $materialReadiness = is_array($materialReadiness ?? null) ? $materialReadiness : null;
 
     // Completion / finished-goods / dispatch requirements belong near the end of the job —
     // not while the job is still queued or only just starting work.
@@ -14,8 +15,33 @@
         ProductionJobCardStatus::ReadyForDispatch,
     ], true);
 
+    $showMaterialReleaseGate = in_array($jobCard->status, [
+        ProductionJobCardStatus::Draft,
+        ProductionJobCardStatus::Queued,
+        ProductionJobCardStatus::Rework,
+        ProductionJobCardStatus::OnHold,
+    ], true);
+
     $items = [];
     $seen = [];
+
+    if ($showMaterialReleaseGate && $materialReadiness && ! ($materialReadiness['ready'] ?? false)) {
+        $message = ! ($materialReadiness['has_requirements'] ?? false)
+            ? __('Material requirements not generated — release to production is blocked.')
+            : __('Material readiness :percent% — stock shortages block release to the floor.', [
+                'percent' => (int) ($materialReadiness['percent'] ?? 0),
+            ]);
+
+        $seen[$message] = true;
+        $items[] = [
+            'severity' => 'error',
+            'message' => $message,
+            'hint' => $materialReadiness['detail'] ?? null,
+            'action_url' => $materialReadiness['materials_url']
+                ?? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']),
+            'action_label' => __('Resolve shortages'),
+        ];
+    }
 
     if ($showDownstreamRequirements) {
         foreach ($workflowPresentation['readiness_items'] ?? [] as $item) {
@@ -48,20 +74,24 @@
         $seen[$message] = true;
         $actionUrl = null;
         $actionLabel = null;
+        $lower = strtolower($message);
 
-        if (str_contains(strtolower($message), 'artwork')) {
+        if (str_contains($lower, 'artwork')) {
             $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'artwork']);
             $actionLabel = __('Approve artwork');
-        } elseif (str_contains(strtolower($message), 'qc')) {
+        } elseif (str_contains($lower, 'qc')) {
             $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality']);
             $actionLabel = __('Open QC');
-        } elseif (str_contains(strtolower($message), 'material')) {
+        } elseif (str_contains($lower, 'shortag') || str_contains($lower, 'readiness') || str_contains($lower, 'requirements')) {
+            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']);
+            $actionLabel = __('Resolve shortages');
+        } elseif (str_contains($lower, 'material')) {
             $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'material-consumption', 'open' => 'record-consumption-modal']);
             $actionLabel = __('Record consumption');
-        } elseif (str_contains(strtolower($message), 'finished goods') || str_contains(strtolower($message), 'post')) {
+        } elseif (str_contains($lower, 'finished goods') || str_contains($lower, 'post')) {
             $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']);
             $actionLabel = __('Post finished goods');
-        } elseif (str_contains(strtolower($message), 'operation')) {
+        } elseif (str_contains($lower, 'operation')) {
             $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']);
             $actionLabel = __('Complete operations');
         } else {

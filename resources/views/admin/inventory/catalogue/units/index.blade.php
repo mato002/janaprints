@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Units of Measure')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Units of Measure')]]">
+<x-admin-layout :title="__('Units of Measure')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'catalogue'])], ['label' => __('Units')]]">
     <x-admin.page-header :title="__('Units of Measure')" :description="__('Manage stock units, packaging definitions, and conversion factors.')">
         <x-slot name="actions">
             @if (auth()->user()?->can('catalogue.create'))

@@ -3,9 +3,9 @@
 namespace App\Models\Crm;
 
 use App\Enums\CustomerArtworkStatus;
-use App\Enums\CustomerArtworkType;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\User;
+use App\Support\Crm\CustomerArtworkTypeCatalog;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage;
@@ -27,13 +27,20 @@ class CustomerArtwork extends Model
     protected function casts(): array
     {
         return [
-            'artwork_type' => CustomerArtworkType::class,
             'status' => CustomerArtworkStatus::class,
             'version_number' => 'integer',
             'is_active_version' => 'boolean',
             'uploaded_at' => 'datetime',
             'approved_at' => 'datetime',
         ];
+    }
+
+    public function artworkTypeLabel(): string
+    {
+        return app(CustomerArtworkTypeCatalog::class)->labelFor(
+            (int) $this->company_id,
+            is_string($this->artwork_type) ? $this->artwork_type : (string) $this->artwork_type,
+        );
     }
 
     public function printSpecification(): BelongsTo

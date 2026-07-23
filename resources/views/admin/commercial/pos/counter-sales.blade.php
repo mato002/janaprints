@@ -2,6 +2,8 @@
     :title="__('Counter Sales')"
     :breadcrumbs="[['label' => __('POS'), 'url' => route('admin.commercial.pos.dashboard')], ['label' => __('Counter Sales')]]"
 >
+    @include('admin.commercial.pos.partials.desk-mode-nav', ['activePosView' => \App\Support\Commercial\PosDeskViews::COUNTER])
+
     <div
         id="pos-counter-root"
         x-data="posCounterWorkstation(@js($workstationConfig))"

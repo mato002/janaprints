@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('Segments')" :breadcrumbs="[['label' => __('CRM')], ['label' => __('Segments')]]">
+    @include('admin.crm.partials.desk-mode-nav', ['activeCrmView' => \App\Support\Crm\CrmDeskViews::SEGMENTS])
+
     <x-admin.page-header :title="__('Customer segments')" :description="__('Group customers for campaigns and pricing.')">
         <x-slot name="actions">
             @can('create', App\Models\Crm\Customer::class)

@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('POS Sessions')">
+    @include('admin.commercial.pos.partials.desk-mode-nav', ['activePosView' => \App\Support\Commercial\PosDeskViews::SESSIONS])
+
     <x-admin.page-header :title="__('POS Sessions')" :description="__('Cashier session control, floats, and cash variance.')">
         <x-slot name="actions">
             @can('open', App\Models\Pos\PosSession::class)

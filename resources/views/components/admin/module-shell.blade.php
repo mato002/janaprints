@@ -6,6 +6,8 @@
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
     'secondaryToolbarActions' => [],
+    'contextWorkspaces' => [],
+    'activeContext' => null,
     'contentUrl' => null,
     'showContent' => true,
 ])
@@ -65,6 +67,22 @@
                 </div>
             @endif
         </div>
+    @endif
+
+    @if (count($contextWorkspaces) > 1)
+        <nav class="workspace-context-tabs shrink-0" aria-label="{{ __('Desk modes') }}">
+            @foreach ($contextWorkspaces as $mode)
+                <a
+                    href="{{ $mode['href'] }}"
+                    @class([
+                        'workspace-context-tab',
+                        'workspace-context-tab--active' => ($activeContext['key'] ?? null) === ($mode['key'] ?? null),
+                    ])
+                    data-turbo-frame="{{ $mode['turbo_frame'] ?? 'erp-main' }}"
+                    data-turbo-action="advance"
+                >{{ $mode['label'] }}</a>
+            @endforeach
+        </nav>
     @endif
 
     @isset($kpis)

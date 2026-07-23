@@ -2,12 +2,12 @@
 
 namespace App\Support\Sales;
 
+use App\Enums\ProductionPriority;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
-use App\Models\Production\ProductionJobCard;
-use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Support\Crm\CustomerPrintSpecificationService;
+use App\Support\Lookup\LookupOptionService;
 use Illuminate\Http\Request;
 
 class SalesDeskPageBuilder
@@ -16,6 +16,7 @@ class SalesDeskPageBuilder
         protected SalesDeskService $desk,
         protected CustomerPrintSpecificationService $printSpecifications,
         protected SalesDeskWorkQueueService $workQueue,
+        protected LookupOptionService $lookups,
     ) {}
 
     /**
@@ -25,13 +26,14 @@ class SalesDeskPageBuilder
     {
         $user = $request->user();
 
-        $step = max(1, min(4, (int) $request->query('step', 1)));
+        $step = max(1, min(5, (int) $request->query('step', 1)));
         $customer = $this->resolveCustomer($request);
         $specification = $this->resolveSpecification($request, $customer);
         $order = $this->resolveOrder($request, $customer);
+        $orderPresentation = $order ? $this->desk->presentOrder($order) : null;
 
         if ($order) {
-            $step = 4;
+            $step = ! empty($orderPresentation['released_to_queue']) ? 5 : 4;
         } elseif ($specification && $customer) {
             $step = max($step, 3);
         } elseif ($customer) {
@@ -44,13 +46,18 @@ class SalesDeskPageBuilder
 
         $notice = $this->specificationNotice($request, $customer, $specification);
 
+        // Product options for inline spec create (same source as lookup refresh — no extra round-trip).
+        $inventoryItemOptions = $step === 2 && $customer
+            ? $this->lookups->options('items', $request)
+            : [];
+
         return [
             'operatorMode' => SalesOperatorMode::enabledFor($user),
             'step' => $step,
             'customer' => $customer,
             'specification' => $specification,
             'order' => $order,
-            'orderPresentation' => $order ? $this->desk->presentOrder($order) : null,
+            'orderPresentation' => $orderPresentation,
             'customerContext' => $this->desk->presentCustomerContext($customer, $specification),
             'workQueue' => $this->workQueue->present($request),
             'fastActions' => $this->desk->fastActions($customer, $specification, $order),
@@ -58,6 +65,9 @@ class SalesDeskPageBuilder
             'printSpecifications' => $specs,
             'specificationNotice' => $notice['message'],
             'searchUrl' => route('admin.sales.desk.customers.search'),
+            'orderPriorities' => ProductionPriority::cases(),
+            'canSendToProduction' => $user?->can('sales_orders.production') ?? false,
+            'inventoryItemOptions' => $inventoryItemOptions,
             'fullCommercialDeskUrl' => route('admin.workspaces.commercial.section', [
                 'section' => 'sales',
                 'tab' => 'quotations',

@@ -6,7 +6,7 @@
 <div {{ $attributes->merge(['class' => 'compact-workspace-header']) }}>
     <div class="compact-workspace-header__row">
         <div class="compact-workspace-header__title-group min-w-0">
-            <h1 class="compact-workspace-header__title truncate">{{ $title }}</h1>
+            <h1 class="compact-workspace-header__title truncate">{{ $title }} {{ __('Workspace') }}</h1>
             @if ($description)
                 <p class="compact-workspace-header__description">{{ $description }}</p>
             @endif

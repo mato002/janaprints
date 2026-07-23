@@ -1,4 +1,5 @@
 <x-admin-layout :title="__('Goods Receipts')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Goods Receipts')]]">
+    @include('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::RECEIPTS])
     <x-admin.page-header :title="__('Goods Receipts')" />
 
     <x-admin.data-table

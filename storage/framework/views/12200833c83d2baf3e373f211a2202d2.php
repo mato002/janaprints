@@ -1,5 +1,7 @@
 <?php
-    $turboFrame = request('embedded') ? 'module-workspace-content' : 'erp-main';
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $turboFrame = WorkspaceEmbed::turboFrame();
 ?>
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal91fdd17964e43374ae18c674f95cdaa3 = $attributes; } ?>

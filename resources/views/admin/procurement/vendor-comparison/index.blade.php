@@ -1,4 +1,5 @@
 <x-admin-layout :title="__('Vendor Comparison')">
+    @include('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::RFQS])
     <x-admin.page-header
         :title="__('Vendor Comparison')"
         :description="__('Compare supplier quotations side by side, score responses, and award RFQs.')"

@@ -28,16 +28,21 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars, $__key, $__value); ?>
 
+<?php
+    use App\Support\Navigation\WorkspaceEmbed;
+?>
+
 <div class="mb-4 flex flex-wrap gap-2 border-b border-erp-border pb-3">
     <?php $__currentLoopData = $tabs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $tab): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <a
-            href="<?php echo e(route('admin.reports.hr', array_merge($filters, ['tab' => $tab['key']]))); ?>"
+            href="<?php echo e(WorkspaceEmbed::url(route('admin.reports.hr', array_merge($filters, ['tab' => $tab['key']])))); ?>"
             class="<?php echo \Illuminate\Support\Arr::toCssClasses([
                 'rounded-md px-3 py-1.5 text-sm font-medium transition',
                 'bg-erp-primary text-white' => $active_tab === $tab['key'],
                 'text-slate-600 hover:bg-slate-100' => $active_tab !== $tab['key'],
             ]); ?>"
-            data-turbo-frame="erp-main"
+            data-turbo-frame="<?php echo e(WorkspaceEmbed::turboFrame()); ?>"
+            data-turbo-action="advance"
         >
             <?php echo e($tab['label']); ?>
 

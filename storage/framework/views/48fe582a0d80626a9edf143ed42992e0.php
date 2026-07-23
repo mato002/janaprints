@@ -1,6 +1,8 @@
 <?php
-    use App\Enums\CustomerArtworkType;
     use App\Enums\CustomerPrintSpecificationStatus;
+    use App\Support\Crm\CustomerArtworkTypeCatalog;
+
+    $defaultArtworkType = app(CustomerArtworkTypeCatalog::class)->defaultCode();
 ?>
 
 <?php if (isset($component)) { $__componentOriginala826d696a1cd5f6e2881b0defe272cb0 = $component; } ?>
@@ -106,17 +108,26 @@
     </div>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-            <label class="erp-label" for="artwork_type"><?php echo e(__('Artwork type')); ?></label>
-            <select id="artwork_type" name="artwork_type" class="erp-input w-full" <?php if(! $customer): echo 'disabled'; endif; ?>>
-                <?php $__currentLoopData = $artworkTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                    <option value="<?php echo e($type->value); ?>" <?php if(old('artwork_type', CustomerArtworkType::Layout->value) === $type->value): echo 'selected'; endif; ?>>
-                        <?php echo e($type->label()); ?>
-
-                    </option>
-                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-            </select>
-        </div>
+        <?php if (isset($component)) { $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.lookup-select','data' => ['name' => 'artwork_type','label' => __('Artwork type'),'options' => $artworkTypes,'value' => old('artwork_type', $defaultArtworkType),'createRoute' => 'admin.crm.artwork-types.quick-create','refreshRoute' => 'admin.lookups.artwork_types','permission' => 'crm.customers.update','modalTitle' => __('Create artwork type'),'selectClass' => 'erp-input w-full','emptyOption' => false,'disabled' => ! $customer]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.lookup-select'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'artwork_type','label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Artwork type')),'options' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($artworkTypes),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('artwork_type', $defaultArtworkType)),'create-route' => 'admin.crm.artwork-types.quick-create','refresh-route' => 'admin.lookups.artwork_types','permission' => 'crm.customers.update','modal-title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Create artwork type')),'select-class' => 'erp-input w-full','empty-option' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false),'disabled' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(! $customer)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3)): ?>
+<?php $attributes = $__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3; ?>
+<?php unset($__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3)): ?>
+<?php $component = $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3; ?>
+<?php unset($__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3); ?>
+<?php endif; ?>
         <div>
             <label class="erp-label" for="artwork_file"><?php echo e(__('Initial artwork file')); ?></label>
             <input

@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Admin\Production;
 
 use App\Http\Controllers\Controller;
-use App\Models\Assets\FixedAsset;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionOutput;
+use App\Models\Production\ProductionQueue;
 use App\Services\Assets\MachineJobAssignmentService;
+use App\Services\Production\DepartmentCommandCenterService;
 use App\Services\Production\ProductionFloorActionService;
 use App\Services\Production\ProductionFloorService;
+use App\Services\Production\ProductionJobCardIndexService;
+use App\Support\Production\DepartmentQueueRegistry;
+use App\Support\Production\ProductionFloorDeskViews;
 use App\Support\Production\ReturnsToProductionFloor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -18,12 +23,64 @@ class ProductionFloorController extends Controller
 {
     use ReturnsToProductionFloor;
 
-    public function index(Request $request, ProductionFloorService $floor): View
-    {
+    public function index(
+        Request $request,
+        ProductionFloorService $floor,
+        ProductionJobCardIndexService $jobCardIndex,
+        DepartmentCommandCenterService $commandCenter,
+        DepartmentQueueRegistry $departments,
+    ): View|RedirectResponse {
         $this->authorize('viewAny', ProductionJobCard::class);
 
+        $activeFloorView = ProductionFloorDeskViews::normalize($request->query('view'));
+        $operatorMode = $request->user()?->prefersProductionOperatorMode() ?? false;
+
+        if ($activeFloorView === ProductionFloorDeskViews::REGISTER) {
+            return view('admin.production.floor.index', array_merge($jobCardIndex->build($request), [
+                'activeFloorView' => $activeFloorView,
+                'operatorMode' => $operatorMode,
+                'embeddedInFloor' => true,
+            ]));
+        }
+
+        if ($activeFloorView === ProductionFloorDeskViews::QUEUE) {
+            $this->authorize('viewWorkspace', ProductionQueue::class);
+
+            $department = $request->query('department');
+            $department = is_string($department) && $department !== '' ? $department : null;
+
+            if ($department !== null && ! $departments->isValidSlug($department)) {
+                return redirect()->to(ProductionFloorDeskViews::queueIndexUrl());
+            }
+
+            return view('admin.production.floor.index', array_merge($commandCenter->build($request, $department), [
+                'activeFloorView' => $activeFloorView,
+                'operatorMode' => $operatorMode,
+                'embeddedInFloor' => true,
+            ]));
+        }
+
+        if ($activeFloorView === ProductionFloorDeskViews::OUTPUTS) {
+            $this->authorize('viewAny', ProductionOutput::class);
+
+            $outputs = ProductionOutput::query()
+                ->forTenant()
+                ->with(['jobCard', 'finishedItem', 'finishedWarehouse', 'completedByUser', 'postedJournal'])
+                ->latest('completed_at')
+                ->latest('id')
+                ->paginate(20);
+
+            return view('admin.production.floor.index', [
+                'activeFloorView' => $activeFloorView,
+                'operatorMode' => $operatorMode,
+                'embeddedInFloor' => true,
+                'outputs' => $outputs,
+            ]);
+        }
+
         $payload = $floor->build($request);
-        $payload['operatorMode'] = $request->user()?->prefersProductionOperatorMode() ?? false;
+        $payload['activeFloorView'] = ProductionFloorDeskViews::FLOOR;
+        $payload['operatorMode'] = $operatorMode;
 
         return view('admin.production.floor.index', $payload);
     }

@@ -439,6 +439,67 @@ class MaterialRequirementsService
     /**
      * @return Collection<int, array{finished_item_id: int, quantity: float, sales_order_item_id: int|null}>
      */
+    /**
+     * Soft BOM-based quantity suggestions when formal requirements are not generated yet.
+     *
+     * @return array<int, array{quantity: float, warehouse_id: int|null}>
+     */
+    public function suggestQuantities(ProductionJobCard $jobCard): array
+    {
+        $jobCard->loadMissing(['salesOrder.items']);
+
+        $sources = $this->resolveSources($jobCard);
+
+        if ($sources->isEmpty()) {
+            return [];
+        }
+
+        $warehouseId = Warehouse::query()
+            ->where('company_id', $jobCard->company_id)
+            ->where('branch_id', $jobCard->branch_id)
+            ->where('is_active', true)
+            ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->value('id');
+
+        $suggestions = [];
+
+        foreach ($sources as $source) {
+            $bom = $this->bomService->findActiveForFinishedItem(
+                $jobCard->company_id,
+                $jobCard->branch_id,
+                $source['finished_item_id'],
+            );
+
+            if ($bom === null) {
+                continue;
+            }
+
+            foreach ($this->bomService->requirementsForQuantity($bom, $source['quantity']) as $calc) {
+                $itemId = (int) $calc['line']->inventory_item_id;
+                $qty = (float) $calc['required_quantity'];
+
+                if ($itemId <= 0 || $qty <= 0) {
+                    continue;
+                }
+
+                if (! isset($suggestions[$itemId])) {
+                    $suggestions[$itemId] = [
+                        'quantity' => 0.0,
+                        'warehouse_id' => $warehouseId ? (int) $warehouseId : null,
+                    ];
+                }
+
+                $suggestions[$itemId]['quantity'] = round(
+                    $suggestions[$itemId]['quantity'] + $qty,
+                    3,
+                );
+            }
+        }
+
+        return $suggestions;
+    }
+
     protected function resolveSources(ProductionJobCard $jobCard): Collection
     {
         $sources = collect();

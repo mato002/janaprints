@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin\Crm;
 
-use App\Enums\CustomerArtworkType;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
@@ -11,10 +10,10 @@ use App\Models\Crm\CustomerArtwork;
 use App\Models\Crm\CustomerProductSerialProfile;
 use App\Models\Inventory\InventoryItem;
 use App\Support\Crm\CustomerArtworkService;
+use App\Support\Crm\CustomerArtworkTypeCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class CustomerArtworkController extends Controller
@@ -27,7 +26,7 @@ class CustomerArtworkController extends Controller
 
         $validated = $request->validate([
             'artwork_name' => ['required', 'string', 'max:255'],
-            'artwork_type' => ['required', Rule::enum(CustomerArtworkType::class)],
+            'artwork_type' => app(CustomerArtworkTypeCatalog::class)->validationRules((int) $customer->company_id, required: true),
             'file' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
         ]);
 

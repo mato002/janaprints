@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers\Client;
 
-use App\Enums\CustomerArtworkType;
 use App\Http\Controllers\Client\Concerns\ResolvesClientCustomer;
 use App\Http\Controllers\Controller;
 use App\Models\Crm\CustomerArtwork;
 use App\Support\Crm\CustomerArtworkService;
+use App\Support\Crm\CustomerArtworkTypeCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -25,10 +24,11 @@ class ClientArtworkLibraryController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $customer = $this->clientCustomer();
+        $catalog = app(CustomerArtworkTypeCatalog::class);
 
         $validated = $request->validate([
             'artwork_name' => ['required', 'string', 'max:255'],
-            'artwork_type' => ['nullable', Rule::enum(CustomerArtworkType::class)],
+            'artwork_type' => $catalog->validationRules((int) $customer->company_id),
             'file' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
         ]);
 
@@ -36,7 +36,7 @@ class ClientArtworkLibraryController extends Controller
             $customer,
             $request->file('file'),
             $validated['artwork_name'],
-            $validated['artwork_type'] ?? CustomerArtworkType::Other->value,
+            $validated['artwork_type'] ?? $catalog->defaultCode(),
             (int) $this->clientUser()->id,
         );
 

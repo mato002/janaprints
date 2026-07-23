@@ -198,7 +198,7 @@ class SupplierPerformanceTest extends TestCase
         Queue::assertPushed(ProcessCommercialReportExportJob::class);
     }
 
-    public function test_supply_chain_workspace_links_supplier_performance(): void
+    public function test_supply_chain_workspace_links_supplier_performance_from_reports_not_procurement_desk(): void
     {
         $company = Company::query()->where('code', 'JANA')->firstOrFail();
         $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
@@ -209,11 +209,13 @@ class SupplierPerformanceTest extends TestCase
         ]);
         $user->assignRole('Company Admin');
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.supply-chain.section', ['section' => 'procurement']));
+        $procurement = $this->actingAs($user)->get(route('admin.workspaces.supply-chain.section', ['section' => 'procurement']));
+        $procurement->assertOk();
+        $procurement->assertDontSee(__('Supplier Performance'), false);
 
-        $response->assertOk();
-        $response->assertSee(route('admin.procurement.supplier-performance.index'), false);
-        $response->assertSee(__('Supplier Performance'), false);
+        $reports = $this->actingAs($user)->get(route('admin.workspaces.reports.section', ['section' => 'procurement']));
+        $reports->assertOk();
+        $reports->assertSee(route('admin.procurement.reports.index'), false);
     }
 
     public function test_score_calculator_grade_thresholds(): void

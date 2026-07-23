@@ -158,7 +158,8 @@ class JobExecutionStateService
                 && $jobCard->assigned_machine_asset_id === null;
         }
 
-        return ! $needsMachine;
+        return ! $needsMachine
+            && app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard)['ready'];
     }
 
     public function stageRequiresMachine(?WorkCenter $workCenter): bool
@@ -335,6 +336,17 @@ class JobExecutionStateService
                 'tone' => 'ok',
             ];
         }
+
+        $materials = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
+        $facts[] = [
+            'label' => __('Materials'),
+            'value' => $materials['ready']
+                ? __('Ready (:percent%)', ['percent' => $materials['percent']])
+                : ($materials['has_requirements']
+                    ? __('Not ready (:percent%)', ['percent' => $materials['percent']])
+                    : __('Requirements missing')),
+            'tone' => $materials['ready'] ? 'ok' : 'warn',
+        ];
 
         return $facts;
     }

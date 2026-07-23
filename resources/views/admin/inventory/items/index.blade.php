@@ -1,7 +1,6 @@
-<x-admin-layout :title="__('Inventory items')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Items')]]">
-    <x-admin.page-header :title="__('Inventory items')">
+<x-admin-layout :title="__('Inventory items')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'catalogue'])], ['label' => __('Products')]]">
+    <x-admin.page-header :title="__('Products')">
         <x-slot name="actions">
-            <a href="{{ route('admin.inventory.catalogue.dashboard') }}" class="erp-btn-secondary">{{ __('Catalogue') }}</a>
             @can('create', App\Models\Inventory\InventoryItem::class)
                 <a href="{{ route('admin.inventory.items.create') }}" class="erp-btn-primary">{{ __('New item') }}</a>
             @endcan

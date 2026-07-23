@@ -168,14 +168,18 @@
 
             @if (! $spec)
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div>
-                        <label class="erp-label" for="artwork_type">{{ __('Artwork type') }}</label>
-                        <select id="artwork_type" name="artwork_type" class="erp-input w-full">
-                            @foreach ($artworkTypes as $type)
-                                <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                            @endforeach
-                        </select>
-                    </div>
+                    <x-admin.lookup-select
+                        name="artwork_type"
+                        :label="__('Artwork type')"
+                        :options="$artworkTypes"
+                        :value="old('artwork_type', app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->defaultCode())"
+                        create-route="admin.crm.artwork-types.quick-create"
+                        refresh-route="admin.lookups.artwork_types"
+                        permission="crm.customers.update"
+                        :modal-title="__('Create artwork type')"
+                        select-class="erp-input w-full"
+                        :empty-option="false"
+                    />
                     <div>
                         <label class="erp-label" for="artwork_file">{{ __('Initial artwork file') }}</label>
                         <input type="file" id="artwork_file" name="artwork_file" class="erp-input w-full" accept=".jpg,.jpeg,.png,.webp,.pdf">

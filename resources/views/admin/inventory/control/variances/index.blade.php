@@ -1,9 +1,12 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $breadcrumbs = [
         ['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')],
         ['label' => __('Inventory Control'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'inventory-control'])],
         ['label' => __('Variance Report')],
     ];
+    $frame = WorkspaceEmbed::turboFrame();
 @endphp
 <x-admin-layout :title="__('Variance Report')" :breadcrumbs="$breadcrumbs">
     <x-admin.page-header :title="__('Variance report')" />
@@ -17,7 +20,7 @@
         :format-in-path="true"
     >
         <x-slot name="filters">
-            <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2">
+            <form method="GET" action="{{ WorkspaceEmbed::url(route('admin.inventory.variances.index')) }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2" data-turbo-frame="{{ $frame }}" data-turbo-action="advance">
                 <select name="warehouse_id" class="erp-toolbar-select" aria-label="{{ __('Warehouse') }}">
                     <option value="">{{ __('All warehouses') }}</option>
                     @foreach ($warehouses as $w)
@@ -37,7 +40,10 @@
                 </select>
                 <input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('From') }}">
                 <input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="erp-toolbar-input" aria-label="{{ __('To') }}">
-                <a href="{{ route('admin.inventory.variances.index') }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
+                @if (WorkspaceEmbed::inWorkspaceContext())
+                    <input type="hidden" name="embedded" value="1">
+                @endif
+                <a href="{{ WorkspaceEmbed::url(route('admin.inventory.variances.index')) }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="{{ $frame }}" data-turbo-action="advance">{{ __('Reset') }}</a>
             </form>
         </x-slot>
         <x-slot name="head">

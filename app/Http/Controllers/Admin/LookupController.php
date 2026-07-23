@@ -98,6 +98,11 @@ class LookupController extends Controller
         return $this->respond('lead_sources', $request);
     }
 
+    public function artworkTypes(Request $request): JsonResponse
+    {
+        return $this->respond('artwork_types', $request);
+    }
+
     public function quotations(Request $request): JsonResponse
     {
         return $this->respond('quotations', $request);

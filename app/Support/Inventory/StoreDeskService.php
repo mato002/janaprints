@@ -36,7 +36,8 @@ class StoreDeskService
         if ($user?->can('create', \App\Models\Inventory\StockReceipt::class)) {
             $actions[] = [
                 'key' => 'receive',
-                'label' => __('Receive goods'),
+                'label' => __('Receive'),
+                'icon' => 'truck',
                 'url' => route('admin.inventory.receipts.create', $from),
                 'modal' => true,
                 'primary' => true,
@@ -46,18 +47,9 @@ class StoreDeskService
         if ($user?->can('create', StockIssue::class)) {
             $actions[] = [
                 'key' => 'issue',
-                'label' => __('Issue materials'),
+                'label' => __('Issue'),
+                'icon' => 'cube',
                 'url' => route('admin.inventory.issues.create', $from),
-                'modal' => true,
-                'primary' => true,
-            ];
-        }
-
-        if ($user?->can('create', \App\Models\Inventory\StockCount::class)) {
-            $actions[] = [
-                'key' => 'count',
-                'label' => __('Stock count'),
-                'url' => route('admin.inventory.stock-counts.create', $from),
                 'modal' => true,
                 'primary' => true,
             ];
@@ -66,36 +58,53 @@ class StoreDeskService
         if ($user?->can('inventory.transfer')) {
             $actions[] = [
                 'key' => 'transfer',
-                'label' => __('Transfer stock'),
+                'label' => __('Transfer'),
+                'icon' => 'switch-horizontal',
                 'url' => route('admin.inventory.transfers.create', $from),
                 'modal' => true,
+            ];
+        }
+
+        if ($user?->can('create', \App\Models\Inventory\StockCount::class)) {
+            $actions[] = [
+                'key' => 'count',
+                'label' => __('Count'),
+                'icon' => 'clipboard-list',
+                'url' => route('admin.inventory.stock-counts.create', $from),
+                'modal' => true,
+                'primary' => true,
             ];
         }
 
         if ($user?->can('create', \App\Models\Inventory\StockAdjustment::class)) {
             $actions[] = [
                 'key' => 'adjust',
-                'label' => __('Adjust stock'),
+                'label' => __('Adjust'),
+                'icon' => 'refresh',
                 'url' => route('admin.inventory.adjustments.create', $from),
                 'modal' => true,
+            ];
+        }
+
+        if ($user?->can('create', PurchaseOrder::class) || $user?->can('viewAny', InventoryReorderAlert::class)) {
+            $actions[] = [
+                'key' => 'purchase',
+                'label' => __('Purchase'),
+                'icon' => 'shopping-cart',
+                'url' => $user?->can('viewAny', InventoryReorderAlert::class)
+                    ? route('admin.store.desk.reorder-alerts')
+                    : route('admin.procurement.orders.create'),
+                'modal' => (bool) $user?->can('viewAny', InventoryReorderAlert::class),
             ];
         }
 
         $actions[] = [
             'key' => 'catalogue',
             'label' => __('Catalogue'),
+            'icon' => 'collection',
             'url' => route('admin.store.desk.catalogue'),
             'modal' => true,
         ];
-
-        if ($user?->can('viewAny', InventoryReorderAlert::class)) {
-            $actions[] = [
-                'key' => 'alerts',
-                'label' => __('Reorder alerts'),
-                'url' => route('admin.store.desk.reorder-alerts'),
-                'modal' => true,
-            ];
-        }
 
         return $actions;
     }
@@ -166,7 +175,7 @@ class StoreDeskService
             'id' => $item->id,
             'sku' => $item->sku,
             'name' => $item->item_name,
-            'unit' => $item->unitOfMeasure?->abbreviation ?? $item->unitOfMeasure?->name,
+            'unit' => $item->unitOfMeasure?->code ?? $item->unitOfMeasure?->name,
             'available' => round($available, 2),
             'reserved' => round($reserved, 2),
             'free' => round(max(0, $available - $reserved), 2),
@@ -225,11 +234,11 @@ class StoreDeskService
     /**
      * @return list<array<string, mixed>>
      */
-    public function movementFeed(int $limit = 12): array
+    public function movementFeed(int $limit = 8): array
     {
         return InventoryMovement::query()
             ->forTenant()
-            ->with(['item:id,item_name,sku', 'creator:id,name'])
+            ->with(['item:id,item_name,sku', 'creator:id,name', 'warehouse:id,name'])
             ->latest('created_at')
             ->limit($limit)
             ->get()
@@ -242,6 +251,7 @@ class StoreDeskService
                     'date' => $movement->movement_date?->format('d M') ?? $movement->created_at?->format('d M'),
                     'type' => $this->movementLabel($movement->movement_type),
                     'item' => $movement->item?->item_name ?? '—',
+                    'warehouse' => $movement->warehouse?->name,
                     'quantity' => ($inbound ? '+' : '').number_format(abs($qty), $qty == floor($qty) ? 0 : 2),
                     'inbound' => $inbound,
                     'by' => $movement->creator?->name,
@@ -253,19 +263,22 @@ class StoreDeskService
     /**
      * @return list<array<string, mixed>>
      */
-    public function lowStockPriority(int $limit = 5): array
+    public function lowStockPriority(int $limit = 4): array
     {
         return InventoryReorderAlert::query()
             ->forTenant()
             ->where('status', '!=', ReorderAlertStatus::Resolved)
-            ->with(['inventoryItem:id,item_name,sku,unit_of_measure_id', 'inventoryItem.unitOfMeasure:id,abbreviation,name', 'warehouse:id,name'])
+            ->with(['inventoryItem:id,item_name,sku,unit_of_measure_id', 'inventoryItem.unitOfMeasure:id,code,name', 'warehouse:id,name'])
             ->orderBy('current_quantity')
             ->limit($limit)
             ->get()
             ->map(function (InventoryReorderAlert $alert) {
                 $qty = (float) $alert->current_quantity;
-                $unit = $alert->inventoryItem?->unitOfMeasure?->abbreviation
+                $unit = $alert->inventoryItem?->unitOfMeasure?->code
                     ?? $alert->inventoryItem?->unitOfMeasure?->name;
+                $action = $alert->replenishment_action === ReplenishmentRecommendation::Transfer
+                    ? __('Transfer')
+                    : __('Purchase');
 
                 return [
                     'name' => $alert->inventoryItem?->item_name ?? __('Unknown item'),
@@ -274,6 +287,8 @@ class StoreDeskService
                     'remaining_label' => number_format($qty, $qty == floor($qty) ? 0 : 2).' '.($unit ?? ''),
                     'urgent' => $qty <= 0,
                     'warehouse' => $alert->warehouse?->name,
+                    'action' => $action,
+                    'recommended_qty' => (float) $alert->recommended_quantity,
                     'url' => route('admin.store.desk.reorder-alerts'),
                 ];
             })
@@ -292,7 +307,7 @@ class StoreDeskService
             ->orderBy('name')
             ->get();
 
-        if ($warehouses->count() <= 1) {
+        if ($warehouses->isEmpty()) {
             return [];
         }
 
@@ -342,7 +357,7 @@ class StoreDeskService
     /**
      * @return list<array<string, mixed>>
      */
-    public function receivingPipeline(?User $user, int $limit = 5): array
+    public function receivingPipeline(?User $user, int $limit = 4): array
     {
         if (! $user?->can('viewAny', PurchaseOrder::class)) {
             return [];
@@ -350,35 +365,38 @@ class StoreDeskService
 
         return PurchaseOrder::query()
             ->forTenant()
-            ->with('vendor:id,name')
+            ->with('vendor:id,vendor_name')
             ->whereIn('status', [
                 PurchaseOrderStatus::Approved,
                 PurchaseOrderStatus::Sent,
                 PurchaseOrderStatus::PartiallyReceived,
             ])
-            ->where(function ($query) {
-                $query->whereDate('expected_delivery_date', '<=', now()->addDay())
-                    ->orWhereNull('expected_delivery_date');
-            })
             ->orderByRaw('expected_delivery_date IS NULL')
             ->orderBy('expected_delivery_date')
             ->limit($limit)
             ->get(['id', 'po_number', 'vendor_id', 'expected_delivery_date', 'status'])
             ->map(function (PurchaseOrder $order) use ($user) {
                 $expected = $order->expected_delivery_date;
+                $overdue = $expected !== null && $expected->isPast() && ! $expected->isToday();
                 $timing = match (true) {
-                    $expected === null => __('No date set'),
-                    $expected->isToday() => __('Expected today'),
+                    $expected === null => __('No date'),
+                    $expected->isToday() => __('Today'),
                     $expected->isTomorrow() => __('Tomorrow'),
-                    $expected->isPast() => __('Overdue'),
-                    default => $expected->format('d M Y'),
+                    $overdue => __('Late'),
+                    default => $expected->format('d M'),
+                };
+                $status = match (true) {
+                    $overdue => __('Late'),
+                    $expected?->isToday() => __('Due today'),
+                    default => __('On time'),
                 };
 
                 return [
                     'label' => $order->po_number,
-                    'supplier' => $order->vendor?->name ?? '—',
+                    'supplier' => $order->vendor?->vendor_name ?? '—',
                     'timing' => $timing,
-                    'overdue' => $expected?->isPast() && ! $expected->isToday(),
+                    'status' => $status,
+                    'overdue' => $overdue,
                     'url' => $user?->can('procurement.orders.receive')
                         ? route('admin.procurement.orders.receive.create', [$order, 'from' => 'store-desk'])
                         : route('admin.procurement.orders.show', $order),

@@ -6,10 +6,25 @@
     $hasPostedOutput = (bool) ($hasPostedOutput ?? false);
     $checklist = collect($readinessChecklist ?? []);
     $dispatchSummary = $dispatchSummary ?? null;
+    $materialReadiness = is_array($materialReadiness ?? null) ? $materialReadiness : null;
 
     $materialsPassed = $checklist->firstWhere('key', 'materials')['state'] ?? null;
-    $materialsDone = in_array($materialsPassed, ['passed', 'warning'], true)
+    $materialsConsumed = in_array($materialsPassed, ['passed', 'warning'], true)
         || ($jobCard?->material_consumptions_count ?? 0) > 0;
+
+    // Stock readiness (planning gate) takes precedence over consumption completeness on the timeline.
+    if ($materialReadiness !== null) {
+        if ($materialReadiness['ready'] ?? false) {
+            $materialsState = 'completed';
+            $materialsIcon = '✓';
+        } else {
+            $materialsState = 'blocked';
+            $materialsIcon = ($materialReadiness['has_requirements'] ?? false) ? '⚠' : '!';
+        }
+    } else {
+        $materialsState = $materialsConsumed ? 'completed' : 'future';
+        $materialsIcon = $materialsConsumed ? '✓' : '○';
+    }
 
     $operationsItem = $checklist->firstWhere('key', 'operations');
     $productionDone = ($operationsItem['state'] ?? null) === 'passed'
@@ -42,7 +57,7 @@
     };
 
     $stages = [
-        ['label' => __('Materials'), 'state' => $materialsDone ? 'completed' : 'future', 'icon' => $materialsDone ? '✓' : '○'],
+        ['label' => __('Materials'), 'state' => $materialsState, 'icon' => $materialsIcon],
         ['label' => __('Production'), 'state' => $productionDone ? 'completed' : (in_array($jobCard?->status, [ProductionJobCardStatus::InProduction], true) ? 'current' : 'future'), 'icon' => $productionDone ? '✓' : ($jobCard?->status === ProductionJobCardStatus::InProduction ? '●' : '○')],
         ['label' => __('QC'), 'state' => $qcDone ? 'completed' : ($jobCard?->status === ProductionJobCardStatus::QualityCheck ? 'current' : 'future'), 'icon' => $qcDone ? '✓' : ($jobCard?->status === ProductionJobCardStatus::QualityCheck ? '●' : '○')],
         ['label' => __('Finished goods'), 'state' => $fgState, 'icon' => $fgDone ? '✓' : ($fgState === 'current' ? '●' : ($fgState === 'blocked' ? '!' : '○'))],

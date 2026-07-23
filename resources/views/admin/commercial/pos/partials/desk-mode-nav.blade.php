@@ -2,9 +2,12 @@
     use App\Support\Commercial\PosDeskViews;
     use App\Support\Navigation\WorkspaceEmbed;
 
+    if (WorkspaceEmbed::inWorkspaceContext()) {
+        return;
+    }
+
     $active = PosDeskViews::normalize($activePosView ?? request('view', PosDeskViews::COUNTER));
-    $inWorkspace = WorkspaceEmbed::inWorkspaceContext();
-    $frame = $inWorkspace ? WorkspaceEmbed::turboFrame() : 'erp-main';
+    $frame = WorkspaceEmbed::turboFrame();
     $user = auth()->user();
     $modes = collect([
         [
@@ -41,15 +44,16 @@
 @endphp
 
 @if ($modes->count() > 1)
-    <nav class="mb-4 flex flex-wrap gap-1.5" aria-label="{{ __('POS desk modes') }}">
+    <nav class="workspace-context-tabs" aria-label="{{ __('POS desk modes') }}">
         @foreach ($modes as $mode)
             <a
-                href="{{ $mode['url'] }}"
+                href="{{ WorkspaceEmbed::url($mode['url']) }}"
                 @class([
-                    'erp-filter-pill',
-                    'erp-filter-pill--active' => $mode['key'] === $active,
+                    'workspace-context-tab',
+                    'workspace-context-tab--active' => $mode['key'] === $active,
                 ])
                 data-turbo-frame="{{ $frame }}"
+                data-turbo-action="advance"
             >{{ $mode['label'] }}</a>
         @endforeach
     </nav>

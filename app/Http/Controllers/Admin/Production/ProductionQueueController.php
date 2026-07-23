@@ -8,6 +8,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Support\Export\TabularExportWriter;
 use App\Support\Production\DepartmentQueueRegistry;
+use App\Support\Production\ProductionFloorDeskViews;
 use App\Support\Production\ProductionQueueService;
 use App\Services\Production\DepartmentCommandCenterService;
 use Illuminate\Http\RedirectResponse;
@@ -18,26 +19,25 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductionQueueController extends Controller
 {
-    public function index(Request $request, DepartmentCommandCenterService $commandCenter): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewWorkspace', ProductionQueue::class);
 
-        return view('admin.production.queue.index', $commandCenter->build($request));
+        return redirect()->to(ProductionFloorDeskViews::queueIndexUrl(null, $request->query->all()));
     }
 
     public function department(
         Request $request,
         string $department,
-        DepartmentCommandCenterService $commandCenter,
         DepartmentQueueRegistry $registry,
-    ): View|RedirectResponse {
+    ): RedirectResponse {
         $this->authorize('viewWorkspace', ProductionQueue::class);
 
         if (! $registry->isValidSlug($department)) {
-            return redirect()->route('admin.production.queue.index');
+            return redirect()->to(ProductionFloorDeskViews::queueIndexUrl());
         }
 
-        return view('admin.production.queue.index', $commandCenter->build($request, $department));
+        return redirect()->to(ProductionFloorDeskViews::queueIndexUrl($department, $request->query->all()));
     }
 
     public function export(

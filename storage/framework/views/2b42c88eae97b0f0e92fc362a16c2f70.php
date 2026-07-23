@@ -37,6 +37,12 @@
         ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
         
+        <?php echo $__env->make('admin.production.job-cards.workspace.partials.material-readiness-banner', [
+            'jobCard' => $jobCard,
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+        
         <?php echo $__env->make('admin.production.job-cards.workspace.partials.production-stage-timeline', [
             'jobCard' => $jobCard,
             'completion' => $completion,
@@ -44,6 +50,7 @@
             'readinessChecklist' => $workspace['readiness_checklist'] ?? [],
             'dispatchSummary' => $dispatchSummary,
             'workflowPresentation' => $workflowPresentation,
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
         ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
         
@@ -53,6 +60,7 @@
             'controlAlerts' => $workspace['control_alerts'] ?? [],
             'completion' => $completion,
             'hasPostedOutput' => $hasPostedOutput,
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
         ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
         

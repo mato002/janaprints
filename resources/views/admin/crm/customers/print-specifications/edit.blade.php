@@ -44,11 +44,17 @@
                     </div>
                     <div>
                         <label class="erp-label">{{ __('Type') }}</label>
-                        <select name="artwork_type" class="erp-input w-full">
-                            @foreach ($artworkTypes as $type)
-                                <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                            @endforeach
-                        </select>
+                        <x-admin.lookup-select
+                            name="artwork_type"
+                            :options="$artworkTypes"
+                            :value="app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->defaultCode()"
+                            create-route="admin.crm.artwork-types.quick-create"
+                            refresh-route="admin.lookups.artwork_types"
+                            permission="crm.customers.update"
+                            :modal-title="__('Create artwork type')"
+                            select-class="erp-input w-full"
+                            :empty-option="false"
+                        />
                     </div>
                     <div class="md:col-span-2">
                         <label class="erp-label">{{ __('Change notes') }}</label>

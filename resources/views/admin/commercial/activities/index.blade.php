@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('Activities')" :breadcrumbs="[['label' => __('Commercial')], ['label' => __('Activities')]]">
+    @include('admin.crm.partials.desk-mode-nav', ['activeCrmView' => \App\Support\Crm\CrmDeskViews::ACTIVITIES])
+
     <x-admin.page-header :title="__('Customer activities')" :description="__('Calls, meetings, emails, and touchpoints.')">
         <x-slot name="actions">
             @can('create', App\Models\Crm\CustomerActivity::class)

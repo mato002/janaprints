@@ -1,5 +1,6 @@
 @php
     $operatorMode = (bool) ($operatorMode ?? false);
+    $health = $workQueue['health'] ?? ['percent' => 100, 'label' => __('Healthy'), 'tone' => 'emerald', 'detail' => ''];
 @endphp
 
 <x-admin-layout
@@ -12,28 +13,20 @@
         ]"
 >
     <div
-        class="store-desk-shell"
+        class="store-desk-command"
         x-data="storeDeskLookup(@js([
             'searchUrl' => $searchUrl,
         ]))"
     >
-        <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <p class="text-sm font-semibold text-erp-primary">{{ __('Store desk') }}</p>
-                <p class="text-xs text-slate-600">{{ __('Receive, issue, transfer, adjust, and verify stock from one transaction hub.') }}</p>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                @if (! $operatorMode)
-                    <a href="{{ $fullSupplyChainDeskUrl }}" class="erp-btn-secondary text-xs" data-turbo-frame="erp-main">{{ __('Full Supply Chain desk') }}</a>
-                @endif
-            </div>
-        </div>
+        @unless (\App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())
+            @include('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::DESK])
+        @endunless
 
         @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+            <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</div>
         @endif
         @if ($errors->any())
-            <div class="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div class="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
                 <ul class="list-disc pl-4">
                     @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -42,23 +35,35 @@
             </div>
         @endif
 
-        @include('admin.store.desk.partials.summary-strip', ['workQueue' => $workQueue])
-        @include('admin.store.desk.partials.work-queue', ['workQueue' => $workQueue])
-        @include('admin.store.desk.partials.fast-actions', ['fastActions' => $fastActions])
+        {{-- 1. Search first — clerks look up before they browse --}}
         @include('admin.store.desk.partials.item-lookup')
+
+        {{-- 2. Store Health + KPIs --}}
+        @include('admin.store.desk.partials.summary-strip', ['workQueue' => $workQueue])
+
+        {{-- 3. Needs Attention + Quick Actions --}}
+        <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-5">
+            <div class="lg:col-span-3">
+                @include('admin.store.desk.partials.needs-attention', [
+                    'needsAttention' => $workQueue['needs_attention'] ?? [],
+                    'lowStockItems' => $lowStockItems,
+                    'reorderAlertsUrl' => $reorderAlertsUrl,
+                ])
+            </div>
+            <div class="lg:col-span-2">
+                @include('admin.store.desk.partials.fast-actions', ['fastActions' => $fastActions])
+            </div>
+        </div>
+
+        {{-- 4. Warehouse Snapshot (compact) --}}
         @include('admin.store.desk.partials.warehouse-snapshot', ['warehouseSnapshot' => $warehouseSnapshot])
-        @include('admin.store.desk.partials.pipelines', [
-            'receivingPipeline' => $receivingPipeline,
-            'issuePipeline' => $issuePipeline,
-        ])
-        @include('admin.store.desk.partials.movement-feed', ['movementFeed' => $movementFeed])
-        @include('admin.store.desk.partials.low-stock', [
-            'lowStockItems' => $lowStockItems,
-            'reorderAlertsUrl' => $reorderAlertsUrl,
-        ])
-        @include('admin.store.desk.partials.reorder-suggestions', [
-            'reorderRecommendations' => $reorderRecommendations,
-            'reorderAlertsUrl' => $reorderAlertsUrl,
-        ])
+
+        {{-- 5. Activity + Procurement --}}
+        <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-2">
+            @include('admin.store.desk.partials.movement-feed', ['movementFeed' => $movementFeed])
+            @include('admin.store.desk.partials.pipelines', [
+                'receivingPipeline' => $receivingPipeline,
+            ])
+        </div>
     </div>
 </x-admin-layout>

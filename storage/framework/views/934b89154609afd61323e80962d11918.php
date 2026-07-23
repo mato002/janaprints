@@ -165,7 +165,7 @@ unset($__defined_vars, $__key, $__value); ?>
             <button
                 type="button"
                 class="erp-lookup-select__add"
-                @click.stop.prevent="openCreate($event)"
+                x-on:click.stop.prevent="openCreate($event)"
                 :aria-label="<?php echo \Illuminate\Support\Js::from(__('Add new').' '.($modalTitle ?? $label ?? $name))->toHtml() ?>"
                 :title="<?php echo \Illuminate\Support\Js::from(__('Add new').' '.($modalTitle ?? $label ?? $name))->toHtml() ?>"
             >

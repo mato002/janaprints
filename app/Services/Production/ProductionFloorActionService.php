@@ -101,6 +101,17 @@ class ProductionFloorActionService
             && $user->can('schedule', $jobCard)
             && $jobCard->status === ProductionJobCardStatus::Draft
         ) {
+            $materialsReady = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard)['ready'];
+
+            if (! $materialsReady) {
+                return $this->action(
+                    __('Resolve materials'),
+                    'link',
+                    route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']),
+                    'primary',
+                );
+            }
+
             return $this->action(
                 __('Add to queue'),
                 'link',
@@ -115,6 +126,25 @@ class ProductionFloorActionService
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)
         ) {
             return $this->action(__('Start work'), 'post', route('admin.production.job-cards.start', $jobCard), 'primary');
+        }
+
+        // Operator/machine ready but materials block start — surface the gate in the CTA.
+        if (
+            $user->can('start', $jobCard)
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)
+            && ($state['has_operator'] ?? false)
+            && ! ($state['needs_machine'] ?? false)
+            && ! ($state['is_ready_to_start'] ?? false)
+        ) {
+            $assessment = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
+            if (! $assessment['ready']) {
+                return $this->action(
+                    __('Materials blocked'),
+                    'link',
+                    $assessment['materials_url'],
+                    'primary',
+                );
+            }
         }
 
         if ($user->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)) {

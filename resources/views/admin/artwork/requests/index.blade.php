@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('Artwork requests')" :breadcrumbs="[['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => __('Requests')]]">
+    @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => \App\Support\Sales\SalesDeskViews::ARTWORK])
+
     <x-admin.page-header :title="__('Artwork requests')" :description="__('All design requests for your branch.')">
         @can('create', App\Models\Artwork\ArtworkRequest::class)
             <x-admin.form-modal-link :href="route('admin.artwork.create')">{{ __('New request') }}</x-admin.form-modal-link>

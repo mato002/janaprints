@@ -24,7 +24,7 @@ class ModuleShellPresenter
             'commercial' => [
                 'config' => 'commercial_workspaces',
                 'title' => __('Commercial'),
-                'description' => __('CRM, sales, customer service, point of sale, and commercial reporting.'),
+                'description' => __('Customer acquisition · quotations · sales · customer care'),
                 'icon' => 'shopping-cart',
                 'hub_route' => 'admin.workspaces.commercial',
                 'section_route' => 'admin.workspaces.commercial.section',
@@ -33,7 +33,7 @@ class ModuleShellPresenter
             'supply-chain' => [
                 'config' => 'supply_chain_workspaces',
                 'title' => __('Supply Chain'),
-                'description' => __('Catalogue, store operations, procurement, inventory control, and reports.'),
+                'description' => __('Catalogue · store · procurement · inventory'),
                 'icon' => 'cube',
                 'hub_route' => 'admin.workspaces.supply-chain',
                 'section_route' => 'admin.workspaces.supply-chain.section',
@@ -42,7 +42,7 @@ class ModuleShellPresenter
             'accounting' => [
                 'config' => 'accounting_workspaces',
                 'title' => __('Accounting'),
-                'description' => __('Finance command center organized into ledger, receivables, payables, tax, and setup workspaces.'),
+                'description' => __('Ledger · receivables · payables · tax · setup'),
                 'icon' => 'currency-dollar',
                 'hub_route' => 'admin.workspaces.accounting',
                 'section_route' => 'admin.workspaces.accounting.section',
@@ -51,7 +51,7 @@ class ModuleShellPresenter
             'administration' => [
                 'config' => 'administration_workspaces',
                 'title' => __('Administration'),
-                'description' => __('Access control, organization structure, settings, and audit.'),
+                'description' => __('Access · organization · settings · audit'),
                 'icon' => 'shield-check',
                 'hub_route' => 'admin.workspaces.administration',
                 'section_route' => 'admin.workspaces.administration.section',
@@ -60,7 +60,7 @@ class ModuleShellPresenter
             'production' => [
                 'config' => 'production_workspaces',
                 'title' => __('Production'),
-                'description' => __('Job cards, shop floor, quality, dispatch, and production intelligence.'),
+                'description' => __('Job cards · shop floor · quality · dispatch'),
                 'icon' => 'cog',
                 'hub_route' => 'admin.workspaces.production',
                 'section_route' => 'admin.workspaces.production.section',
@@ -69,7 +69,7 @@ class ModuleShellPresenter
             'assets' => [
                 'config' => 'assets_workspaces',
                 'title' => __('Assets'),
-                'description' => __('Fixed assets, maintenance schedules, and depreciation.'),
+                'description' => __('Fixed assets · maintenance · depreciation'),
                 'icon' => 'chip',
                 'hub_route' => 'admin.workspaces.assets',
                 'section_route' => 'admin.workspaces.assets.section',
@@ -78,7 +78,7 @@ class ModuleShellPresenter
             'hr' => [
                 'config' => 'hr_workspaces',
                 'title' => __('HR'),
-                'description' => __('Employees, attendance, leave, payroll, and HR records.'),
+                'description' => __('Employees · attendance · leave · payroll'),
                 'icon' => 'identification',
                 'hub_route' => 'admin.workspaces.hr',
                 'section_route' => 'admin.workspaces.hr.section',
@@ -87,7 +87,7 @@ class ModuleShellPresenter
             'communications' => [
                 'config' => 'communications_workspaces',
                 'title' => __('Communications'),
-                'description' => __('SMS, email, campaigns, templates, and notification logs.'),
+                'description' => __('SMS · email · campaigns · templates'),
                 'icon' => 'inbox',
                 'hub_route' => 'admin.workspaces.communications',
                 'section_route' => 'admin.workspaces.communications.section',
@@ -96,7 +96,7 @@ class ModuleShellPresenter
             'reports' => [
                 'config' => 'reports_workspaces',
                 'title' => __('Reports & Intelligence'),
-                'description' => __('Executive dashboards, module reports, and KPI center.'),
+                'description' => __('Dashboards · module reports · KPI center'),
                 'icon' => 'chart-pie',
                 'hub_route' => 'admin.workspaces.reports',
                 'section_route' => 'admin.workspaces.reports.section',
@@ -105,7 +105,7 @@ class ModuleShellPresenter
             'dispatch' => [
                 'config' => 'dispatch_workspaces',
                 'title' => __('Dispatch'),
-                'description' => __('Delivery notes, dispatch lifecycle, and outbound delivery truth.'),
+                'description' => __('Delivery notes · lifecycle · outbound truth'),
                 'icon' => 'truck',
                 'hub_route' => 'admin.workspaces.dispatch',
                 'section_route' => 'admin.workspaces.dispatch.section',
@@ -114,7 +114,7 @@ class ModuleShellPresenter
             'printing-intelligence' => [
                 'config' => 'printing_intelligence_workspaces',
                 'title' => __('Printing Intelligence'),
-                'description' => __('Trusted cost bridge for materials, machines, ink, quotations, and production reality.'),
+                'description' => __('Materials · machines · ink · cost bridge'),
                 'icon' => 'color-swatch',
                 'hub_route' => 'admin.workspaces.printing-intelligence',
                 'section_route' => 'admin.workspaces.printing-intelligence.section',
@@ -310,12 +310,20 @@ class ModuleShellPresenter
                         continue;
                     }
 
-                    return $this->buildDeskUrl(
+                    $url = $this->buildDeskUrl(
                         $moduleKey,
                         $module,
                         $sectionKey,
                         $this->itemKey($item),
                     );
+
+                    $modeKey = $this->resolveModeKeyForRoute($item, $routeName);
+
+                    if ($url !== null && $modeKey !== null) {
+                        return $this->appendQuery($url, ['mode' => $modeKey]);
+                    }
+
+                    return $url;
                 }
             }
 
@@ -337,17 +345,65 @@ class ModuleShellPresenter
                         continue;
                     }
 
-                    return $this->buildDeskUrl(
+                    $url = $this->buildDeskUrl(
                         $moduleKey,
                         $module,
                         $sectionKey,
                         $this->itemKey($item),
                     );
+
+                    $modeKey = $this->resolveModeKeyForRoute($item, $routeName);
+
+                    if ($url !== null && $modeKey !== null) {
+                        return $this->appendQuery($url, ['mode' => $modeKey]);
+                    }
+
+                    return $url;
                 }
             }
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    protected function resolveModeKeyForRoute(array $item, string $routeName): ?string
+    {
+        $request = request();
+        $matched = null;
+
+        foreach ($item['modes'] ?? [] as $mode) {
+            if (! is_array($mode)) {
+                continue;
+            }
+
+            if (! $this->routeMatchesItem($routeName, $mode, $request)) {
+                continue;
+            }
+
+            $params = $mode['route_params'] ?? [];
+            $paramsMatch = true;
+
+            foreach ($params as $key => $expected) {
+                if ((string) $request->query($key, $request->route($key)) !== (string) $expected) {
+                    $paramsMatch = false;
+                    break;
+                }
+            }
+
+            // Prefer the most specific mode (with matching route_params).
+            if ($params !== [] && $paramsMatch) {
+                return (string) ($mode['key'] ?? Str::slug((string) ($mode['label'] ?? 'mode')));
+            }
+
+            if ($params === [] && $paramsMatch) {
+                $matched ??= (string) ($mode['key'] ?? Str::slug((string) ($mode['label'] ?? 'mode')));
+            }
+        }
+
+        return $matched;
     }
 
     /**
@@ -511,7 +567,10 @@ class ModuleShellPresenter
         $activePrimary = $this->resolveActivePrimary($primaryWorkspaces, $primaryKey);
         $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module, $moduleKey);
         $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
-        $contentUrl = $this->resolveContentUrl($activeSecondary)
+        $contextWorkspaces = $activeSecondary['modes'] ?? [];
+        $activeContext = $this->resolveActiveContext($contextWorkspaces, request()->query('mode'));
+        $contentUrl = ($activeContext['content_href'] ?? null)
+            ?? $this->resolveContentUrl($activeSecondary)
             ?? $this->resolveSectionHubContentUrl($catalog, $activePrimary)
             ?? $this->resolvePrimaryContentUrl($catalog, $activePrimary, $module);
 
@@ -523,6 +582,8 @@ class ModuleShellPresenter
             $secondaryWorkspaces,
             $activeSecondary,
             $contentUrl,
+            $contextWorkspaces,
+            $activeContext,
         );
     }
 
@@ -587,6 +648,10 @@ class ModuleShellPresenter
         $activePrimary = $this->resolveActivePrimary($primaryWorkspaces, $primaryKey);
         $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module, $moduleKey);
         $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
+        $contextWorkspaces = $activeSecondary['modes'] ?? [];
+        $activeContext = $this->resolveActiveContext($contextWorkspaces, request()->query('mode'));
+        $contentUrl = ($activeContext['content_href'] ?? null)
+            ?? $this->resolveContentUrl($activeSecondary);
 
         return $this->presentDeskPayload(
             $moduleKey,
@@ -595,13 +660,16 @@ class ModuleShellPresenter
             $activePrimary,
             $secondaryWorkspaces,
             $activeSecondary,
-            $this->resolveContentUrl($activeSecondary),
+            $contentUrl,
+            $contextWorkspaces,
+            $activeContext,
         );
     }
 
     /**
      * @param  list<array<string, mixed>>  $primaryWorkspaces
      * @param  list<array<string, mixed>>  $secondaryWorkspaces
+     * @param  list<array<string, mixed>>  $contextWorkspaces
      * @return array<string, mixed>
      */
     protected function presentDeskPayload(
@@ -612,6 +680,8 @@ class ModuleShellPresenter
         array $secondaryWorkspaces,
         ?array $activeSecondary,
         ?string $contentUrl,
+        array $contextWorkspaces = [],
+        ?array $activeContext = null,
     ): array {
         return [
             'module' => $moduleKey,
@@ -623,6 +693,8 @@ class ModuleShellPresenter
             'secondary_workspaces' => $secondaryWorkspaces,
             'active_secondary' => $activeSecondary,
             'secondary_toolbar_actions' => $this->presentToolbarActions($activeSecondary['toolbar_actions'] ?? []),
+            'context_workspaces' => $contextWorkspaces,
+            'active_context' => $activeContext,
             'content_url' => $contentUrl,
             'hub_route' => $module['hub_route'] ?? null,
             'section_route' => $module['section_route'] ?? null,
@@ -728,6 +800,10 @@ class ModuleShellPresenter
                     ? $this->buildDeskUrl($moduleKey, $module, $primaryKey, $key)
                     : null;
 
+                $modes = ($module !== null && $moduleKey !== null)
+                    ? $this->presentItemModes($item, $moduleKey, $module, $primaryKey, $key, $deskHref)
+                    : [];
+
                 // Operator desks (e.g. Sales Desk) open full-page like dashboard shortcuts.
                 if ($openFull && $featureHref !== null) {
                     $tabs[] = [
@@ -741,6 +817,7 @@ class ModuleShellPresenter
                         'badge' => $item['count'] ?? null,
                         'coming_soon' => (bool) ($item['coming_soon'] ?? false),
                         'toolbar_actions' => $item['toolbar_actions'] ?? [],
+                        'modes' => $modes,
                         'active' => false,
                     ];
 
@@ -760,12 +837,85 @@ class ModuleShellPresenter
                     'badge' => $item['count'] ?? null,
                     'coming_soon' => (bool) ($item['coming_soon'] ?? false),
                     'toolbar_actions' => $item['toolbar_actions'] ?? [],
+                    'modes' => $modes,
                     'active' => false,
                 ];
             }
         }
 
         return $tabs;
+    }
+
+    /**
+     * Fixed desk-mode tabs (outside the content frame) for items that declare modes.
+     *
+     * @param  array<string, mixed>  $item
+     * @param  array<string, mixed>  $module
+     * @return list<array<string, mixed>>
+     */
+    protected function presentItemModes(
+        array $item,
+        string $moduleKey,
+        array $module,
+        string $primaryKey,
+        string $tabKey,
+        ?string $deskHref,
+    ): array {
+        $modes = [];
+
+        foreach ($item['modes'] ?? [] as $mode) {
+            if (! is_array($mode) || ! $this->itemIsAccessible($mode, includeComingSoon: false)) {
+                continue;
+            }
+
+            $modeKey = (string) ($mode['key'] ?? Str::slug((string) ($mode['label'] ?? 'mode')));
+            $contentHref = $this->embeddedFeatureUrl(
+                $mode['route'] ?? null,
+                $mode['route_params'] ?? [],
+            );
+
+            if ($contentHref === null) {
+                continue;
+            }
+
+            $href = $deskHref !== null
+                ? $this->appendQuery($deskHref, ['mode' => $modeKey])
+                : $contentHref;
+
+            $modes[] = [
+                'key' => $modeKey,
+                'label' => $mode['label'] ?? $modeKey,
+                'href' => $href,
+                'content_href' => $contentHref,
+                'turbo_frame' => 'erp-main',
+                'active' => false,
+            ];
+        }
+
+        return $modes;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $contextWorkspaces
+     * @return array<string, mixed>|null
+     */
+    protected function resolveActiveContext(array $contextWorkspaces, mixed $modeKey): ?array
+    {
+        if ($contextWorkspaces === []) {
+            return null;
+        }
+
+        $modeKey = is_string($modeKey) ? trim($modeKey) : '';
+
+        if ($modeKey !== '') {
+            foreach ($contextWorkspaces as $workspace) {
+                if (($workspace['key'] ?? '') === $modeKey) {
+                    return array_merge($workspace, ['active' => true]);
+                }
+            }
+        }
+
+        return array_merge($contextWorkspaces[0], ['active' => true]);
     }
 
     /**

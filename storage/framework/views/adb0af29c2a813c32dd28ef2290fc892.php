@@ -221,14 +221,26 @@ unset($__defined_vars, $__key, $__value); ?>
 
             <?php if(! $spec): ?>
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div>
-                        <label class="erp-label" for="artwork_type"><?php echo e(__('Artwork type')); ?></label>
-                        <select id="artwork_type" name="artwork_type" class="erp-input w-full">
-                            <?php $__currentLoopData = $artworkTypes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $type): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <option value="<?php echo e($type->value); ?>"><?php echo e($type->label()); ?></option>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </select>
-                    </div>
+                    <?php if (isset($component)) { $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.lookup-select','data' => ['name' => 'artwork_type','label' => __('Artwork type'),'options' => $artworkTypes,'value' => old('artwork_type', app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->defaultCode()),'createRoute' => 'admin.crm.artwork-types.quick-create','refreshRoute' => 'admin.lookups.artwork_types','permission' => 'crm.customers.update','modalTitle' => __('Create artwork type'),'selectClass' => 'erp-input w-full','emptyOption' => false]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.lookup-select'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['name' => 'artwork_type','label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Artwork type')),'options' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($artworkTypes),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(old('artwork_type', app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->defaultCode())),'create-route' => 'admin.crm.artwork-types.quick-create','refresh-route' => 'admin.lookups.artwork_types','permission' => 'crm.customers.update','modal-title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Create artwork type')),'select-class' => 'erp-input w-full','empty-option' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false)]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3)): ?>
+<?php $attributes = $__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3; ?>
+<?php unset($__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3)): ?>
+<?php $component = $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3; ?>
+<?php unset($__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3); ?>
+<?php endif; ?>
                     <div>
                         <label class="erp-label" for="artwork_file"><?php echo e(__('Initial artwork file')); ?></label>
                         <input type="file" id="artwork_file" name="artwork_file" class="erp-input w-full" accept=".jpg,.jpeg,.png,.webp,.pdf">

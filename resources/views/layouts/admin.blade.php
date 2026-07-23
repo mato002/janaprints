@@ -105,8 +105,8 @@
                 'overflow-hidden p-2 sm:p-3' => ! $compactPage && $compactWorkspace,
                 'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
             ])>
-                @unless ($compactPage)
-                    @include('admin.partials.breadcrumbs', ['compact' => $compactWorkspace])
+                @unless ($compactPage || $compactWorkspace)
+                    @include('admin.partials.breadcrumbs')
                 @endunless
                 {{-- Always emit flash markers (including compact pages like Shared Inbox). --}}
                 @include('admin.partials.alerts')

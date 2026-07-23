@@ -1,4 +1,7 @@
-<x-admin-layout :title="__('Store Balances')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Management'), 'url' => route('admin.inventory.store.dashboard')], ['label' => __('Store Balances')]]">
+<x-admin-layout :title="__('Store Balances')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Desk'), 'url' => route('admin.store.desk')], ['label' => __('Balances')]]">
+    @unless (\App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())
+        @include('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::BALANCES])
+    @endunless
     <x-admin.page-header :title="__('Store Balances')" :description="__('View stock position by item, warehouse, and branch.')" />
 
     <x-admin.data-table

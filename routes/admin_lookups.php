@@ -27,6 +27,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             Route::get('price_books', [LookupController::class, 'priceBooks'])->name('price_books');
             Route::get('leads', [LookupController::class, 'leads'])->name('leads');
             Route::get('lead_sources', [LookupController::class, 'leadSources'])->name('lead_sources');
+            Route::get('artwork_types', [LookupController::class, 'artworkTypes'])->name('artwork_types');
             Route::get('quotations', [LookupController::class, 'quotations'])->name('quotations');
             Route::get('form_statuses', [LookupController::class, 'formStatuses'])->name('form_statuses');
             Route::get('customer_artworks', [LookupController::class, 'customerArtworks'])->name('customer_artworks');

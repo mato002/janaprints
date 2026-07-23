@@ -245,8 +245,30 @@
                 <input type="hidden" name="entry_mode" value="direct">
                 <input type="hidden" name="customer_print_specification_id" :value="selectedSpecId">
 
-                <div>
-                    <?php if (isset($component)) { $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $component; } ?>
+                <?php
+                    $salesDeskLocked = request('from') === 'sales-desk'
+                        && filled($selectedCustomerId ?? null)
+                        && filled($selectedSpecificationId ?? null);
+                    $lockedCustomer = $salesDeskLocked
+                        ? $customers->firstWhere('id', (int) old('customer_id', $selectedCustomerId))
+                        : null;
+                ?>
+
+                <?php if($salesDeskLocked && $lockedCustomer): ?>
+                    <input type="hidden" name="customer_id" value="<?php echo e(old('customer_id', $selectedCustomerId)); ?>">
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500"><?php echo e(__('Locked context')); ?></p>
+                        <p class="font-medium text-slate-900"><?php echo e($lockedCustomer->company_name ?? $lockedCustomer->name); ?></p>
+                        <p class="mt-1 text-xs text-slate-600"><?php echo e(__('Customer is locked from the Sales Desk. Change specification below if needed.')); ?></p>
+                        <a
+                            href="<?php echo e(route('admin.crm.customers.show', $lockedCustomer)); ?>"
+                            class="mt-2 inline-flex text-xs font-medium text-erp-primary hover:underline"
+                            data-turbo-frame="erp-main"
+                        ><?php echo e(__('View Customer 360')); ?></a>
+                    </div>
+                <?php else: ?>
+                    <div>
+                        <?php if (isset($component)) { $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginald632580a64ffc7ae2a9fdfd16806b8a3 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.lookup-select','data' => ['name' => 'customer_id','label' => __('Customer'),'options' => $customers,'value' => old('customer_id', $selectedCustomerId),'required' => true,'createRoute' => 'admin.crm.customers.quick-create','refreshRoute' => 'admin.lookups.customers','permission' => 'crm.customers.create','modalTitle' => __('Create customer'),'optionLabelKey' => 'company_name','optionValueKey' => 'id','selectClass' => 'erp-input w-full min-h-[2.75rem]','emptyOption' => true,'placeholder' => __('Select customer')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.lookup-select'); ?>
@@ -266,7 +288,8 @@
 <?php $component = $__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3; ?>
 <?php unset($__componentOriginald632580a64ffc7ae2a9fdfd16806b8a3); ?>
 <?php endif; ?>
-                </div>
+                    </div>
+                <?php endif; ?>
 
                 <template x-if="loadingContext">
                     <p class="text-sm text-slate-400"><?php echo e(__('Loading…')); ?></p>
@@ -287,9 +310,12 @@
                                         class="erp-btn-secondary text-xs"
                                         x-show="customerId"
                                         @click="openCreateSpecification()"
-                                    ><?php echo e(__('New specification')); ?></button>
+                                    ><?php echo e(__('Create new')); ?></button>
                                 <?php endif; ?>
                             </div>
+                            <?php if($salesDeskLocked ?? false): ?>
+                                <p class="mb-2 text-xs text-slate-500"><?php echo e(__('Specification is pre-selected. Choose another from the list or create new if needed.')); ?></p>
+                            <?php endif; ?>
                             <div class="overflow-x-auto rounded-lg border border-erp-border">
                                 <table class="erp-table w-full text-sm">
                                     <thead>

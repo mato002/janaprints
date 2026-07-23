@@ -1,5 +1,8 @@
 <?php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $tabFilters = collect(request()->query())->except(['tab'])->all();
+    $frame = WorkspaceEmbed::turboFrame();
 ?>
 
 <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
@@ -15,8 +18,9 @@
     <nav class="flex flex-wrap gap-2" aria-label="<?php echo e(__('Custody sections')); ?>">
         <?php $__currentLoopData = $tabs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $label): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <a
-                href="<?php echo e($hubUrl); ?>?<?php echo e(http_build_query(array_merge($tabFilters, ['tab' => $key]))); ?>"
-                data-turbo-frame="module-workspace-content"
+                href="<?php echo e(WorkspaceEmbed::url($hubUrl.'?'.http_build_query(array_merge($tabFilters, ['tab' => $key])))); ?>"
+                data-turbo-frame="<?php echo e($frame); ?>"
+                data-turbo-action="advance"
                 class="<?php echo \Illuminate\Support\Arr::toCssClasses([
                     'rounded-md px-3 py-1.5 text-xs font-medium',
                     'bg-slate-900 text-white' => $activeTab === $key,

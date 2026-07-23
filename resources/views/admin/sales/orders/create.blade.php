@@ -192,24 +192,47 @@
                 <input type="hidden" name="entry_mode" value="direct">
                 <input type="hidden" name="customer_print_specification_id" :value="selectedSpecId">
 
-                <div>
-                    <x-admin.lookup-select
-                        name="customer_id"
-                        :label="__('Customer')"
-                        :options="$customers"
-                        :value="old('customer_id', $selectedCustomerId)"
-                        :required="true"
-                        create-route="admin.crm.customers.quick-create"
-                        refresh-route="admin.lookups.customers"
-                        permission="crm.customers.create"
-                        :modal-title="__('Create customer')"
-                        option-label-key="company_name"
-                        option-value-key="id"
-                        select-class="erp-input w-full min-h-[2.75rem]"
-                        :empty-option="true"
-                        :placeholder="__('Select customer')"
-                    />
-                </div>
+                @php
+                    $salesDeskLocked = request('from') === 'sales-desk'
+                        && filled($selectedCustomerId ?? null)
+                        && filled($selectedSpecificationId ?? null);
+                    $lockedCustomer = $salesDeskLocked
+                        ? $customers->firstWhere('id', (int) old('customer_id', $selectedCustomerId))
+                        : null;
+                @endphp
+
+                @if ($salesDeskLocked && $lockedCustomer)
+                    <input type="hidden" name="customer_id" value="{{ old('customer_id', $selectedCustomerId) }}">
+                    <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Locked context') }}</p>
+                        <p class="font-medium text-slate-900">{{ $lockedCustomer->company_name ?? $lockedCustomer->name }}</p>
+                        <p class="mt-1 text-xs text-slate-600">{{ __('Customer is locked from the Sales Desk. Change specification below if needed.') }}</p>
+                        <a
+                            href="{{ route('admin.crm.customers.show', $lockedCustomer) }}"
+                            class="mt-2 inline-flex text-xs font-medium text-erp-primary hover:underline"
+                            data-turbo-frame="erp-main"
+                        >{{ __('View Customer 360') }}</a>
+                    </div>
+                @else
+                    <div>
+                        <x-admin.lookup-select
+                            name="customer_id"
+                            :label="__('Customer')"
+                            :options="$customers"
+                            :value="old('customer_id', $selectedCustomerId)"
+                            :required="true"
+                            create-route="admin.crm.customers.quick-create"
+                            refresh-route="admin.lookups.customers"
+                            permission="crm.customers.create"
+                            :modal-title="__('Create customer')"
+                            option-label-key="company_name"
+                            option-value-key="id"
+                            select-class="erp-input w-full min-h-[2.75rem]"
+                            :empty-option="true"
+                            :placeholder="__('Select customer')"
+                        />
+                    </div>
+                @endif
 
                 <template x-if="loadingContext">
                     <p class="text-sm text-slate-400">{{ __('Loading…') }}</p>
@@ -230,9 +253,12 @@
                                         class="erp-btn-secondary text-xs"
                                         x-show="customerId"
                                         @click="openCreateSpecification()"
-                                    >{{ __('New specification') }}</button>
+                                    >{{ __('Create new') }}</button>
                                 @endif
                             </div>
+                            @if ($salesDeskLocked ?? false)
+                                <p class="mb-2 text-xs text-slate-500">{{ __('Specification is pre-selected. Choose another from the list or create new if needed.') }}</p>
+                            @endif
                             <div class="overflow-x-auto rounded-lg border border-erp-border">
                                 <table class="erp-table w-full text-sm">
                                     <thead>

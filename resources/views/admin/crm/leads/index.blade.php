@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('Leads')" :breadcrumbs="[['label' => __('CRM')], ['label' => __('Leads')]]">
+    @include('admin.crm.partials.desk-mode-nav', ['activeCrmView' => \App\Support\Crm\CrmDeskViews::LEADS])
+
     <x-admin.page-header :title="__('Leads')" :description="__('Sales opportunities and pipeline.')">
         <x-slot name="actions">
             @can('create', App\Models\Crm\Lead::class)

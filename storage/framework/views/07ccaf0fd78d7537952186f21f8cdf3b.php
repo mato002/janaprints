@@ -9,6 +9,8 @@ $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
     'secondaryToolbarActions' => [],
+    'contextWorkspaces' => [],
+    'activeContext' => null,
     'contentUrl' => null,
     'showContent' => true,
 ]));
@@ -34,6 +36,8 @@ foreach (array_filter(([
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
     'secondaryToolbarActions' => [],
+    'contextWorkspaces' => [],
+    'activeContext' => null,
     'contentUrl' => null,
     'showContent' => true,
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
@@ -167,6 +171,22 @@ unset($__defined_vars, $__key, $__value); ?>
                 </div>
             <?php endif; ?>
         </div>
+    <?php endif; ?>
+
+    <?php if(count($contextWorkspaces) > 1): ?>
+        <nav class="workspace-context-tabs shrink-0" aria-label="<?php echo e(__('Desk modes')); ?>">
+            <?php $__currentLoopData = $contextWorkspaces; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mode): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <a
+                    href="<?php echo e($mode['href']); ?>"
+                    class="<?php echo \Illuminate\Support\Arr::toCssClasses([
+                        'workspace-context-tab',
+                        'workspace-context-tab--active' => ($activeContext['key'] ?? null) === ($mode['key'] ?? null),
+                    ]); ?>"
+                    data-turbo-frame="<?php echo e($mode['turbo_frame'] ?? 'erp-main'); ?>"
+                    data-turbo-action="advance"
+                ><?php echo e($mode['label']); ?></a>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+        </nav>
     <?php endif; ?>
 
     <?php if(isset($kpis)): ?>

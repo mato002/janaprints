@@ -1,9 +1,12 @@
 <?php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $breadcrumbs = [
         ['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')],
-        ['label' => __('Store Operations'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'store-operations'])],
+        ['label' => __('Store Desk'), 'url' => route('admin.store.desk')],
         ['label' => __('Reorder Alerts')],
     ];
+    $frame = WorkspaceEmbed::turboFrame();
 ?>
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal91fdd17964e43374ae18c674f95cdaa3 = $attributes; } ?>
@@ -15,6 +18,9 @@
 <?php $attributes = $attributes->except(\App\View\Components\AdminLayout::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
+    <?php if (! (WorkspaceEmbed::inWorkspaceContext())): ?>
+        <?php echo $__env->make('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::ALERTS], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+    <?php endif; ?>
     <?php if (isset($component)) { $__componentOriginalcb19cb35a534439097b02b8af91726ee = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalcb19cb35a534439097b02b8af91726ee = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.page-header','data' => ['title' => __('Reorder Alerts'),'description' => __('Actionable low-stock alerts with acknowledgement, resolution, and purchase request handoff.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -47,7 +53,7 @@
 <?php endif; ?>
 <?php $component->withAttributes(['search-placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Search SKU or item name…')),'export-filename' => 'reorder-alerts']); ?>
          <?php $__env->slot('filters', null, []); ?> 
-            <form method="GET" action="<?php echo e(route('admin.inventory.alerts.index')); ?>" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="<?php echo e(WorkspaceEmbed::url(route('admin.inventory.alerts.index'))); ?>" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="flex flex-wrap items-center gap-2" data-turbo-frame="<?php echo e($frame); ?>" data-turbo-action="advance">
                 <select name="warehouse_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Warehouse')); ?>">
                     <option value=""><?php echo e(__('All warehouses')); ?></option>
                     <?php $__currentLoopData = $warehouses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $warehouse): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -72,7 +78,10 @@
 
                 </label>
                 <input type="hidden" name="search" value="<?php echo e($filters['search'] ?? ''); ?>">
-                <a href="<?php echo e(route('admin.inventory.alerts.index')); ?>" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main"><?php echo e(__('Reset')); ?></a>
+                <?php if(WorkspaceEmbed::inWorkspaceContext()): ?>
+                    <input type="hidden" name="embedded" value="1">
+                <?php endif; ?>
+                <a href="<?php echo e(WorkspaceEmbed::url(route('admin.inventory.alerts.index'))); ?>" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="<?php echo e($frame); ?>" data-turbo-action="advance"><?php echo e(__('Reset')); ?></a>
             </form>
          <?php $__env->endSlot(); ?>
          <?php $__env->slot('head', null, []); ?> 

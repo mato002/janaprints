@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('Sales orders')" :breadcrumbs="[['label' => __('Sales Orders'), 'url' => route('admin.sales-orders.dashboard')], ['label' => __('List')]]">
+    @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => \App\Support\Sales\SalesDeskViews::ORDERS])
+
     <x-admin.page-header :title="__('Sales orders')">
         @can('create', App\Models\Sales\SalesOrder::class)
             <x-admin.form-modal-link :href="route('admin.sales-orders.create')">

@@ -8,6 +8,8 @@
 <?php $attributes = $attributes->except(\App\View\Components\AdminLayout::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
+    <?php echo $__env->make('admin.crm.partials.desk-mode-nav', ['activeCrmView' => \App\Support\Crm\CrmDeskViews::ACTIVITIES], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
     <?php if (isset($component)) { $__componentOriginalcb19cb35a534439097b02b8af91726ee = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalcb19cb35a534439097b02b8af91726ee = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.page-header','data' => ['title' => __('Customer activities'),'description' => __('Calls, meetings, emails, and touchpoints.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>

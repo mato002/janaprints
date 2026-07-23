@@ -40,15 +40,18 @@ class ProcurementUxDiscoverabilityTest extends TestCase
         $response->assertOk();
         $response->assertSeeInOrder([
             route('admin.procurement.requests.index'),
-            route('admin.procurement.rfqs.index'),
-            route('admin.procurement.vendor-comparison.index'),
             route('admin.procurement.vendors.index'),
+            route('admin.procurement.rfqs.index'),
             route('admin.procurement.orders.index'),
             route('admin.procurement.receipts.index'),
-            route('admin.assets.acquisitions.queue'),
+            route('admin.procurement.approvals.index'),
         ], false);
-        $response->assertSee(__('Purchase Requests'), false);
-        $response->assertSee(__('Capitalization Queue'), false);
+        $response->assertSee(__('Requests'), false);
+        $response->assertSee(__('Suppliers'), false);
+        $response->assertSee(__('RFQs'), false);
+        $response->assertDontSee(__('Supplier Performance'), false);
+        $response->assertDontSee(__('Vendor Comparison'), false);
+        $response->assertDontSee(__('Supplier Quotations'), false);
     }
 
     public function test_purchase_request_navigation_requires_permission(): void

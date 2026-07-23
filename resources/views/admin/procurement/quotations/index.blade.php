@@ -1,4 +1,5 @@
 <x-admin-layout :title="__('Supplier Quotations')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Supplier Quotations')]]">
+    @include('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::RFQS])
     <x-admin.page-header :title="__('Supplier Quotations')">
         <x-slot name="actions">
             @can('create', App\Models\Procurement\SupplierQuotation::class)

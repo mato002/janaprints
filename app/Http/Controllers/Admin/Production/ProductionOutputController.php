@@ -8,8 +8,9 @@ use App\Http\Requests\Admin\Production\StoreProductionOutputRequest;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionOutput;
 use App\Services\Production\ProductionCompletionService;
+use App\Support\Production\ProductionFloorDeskViews;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
+use Illuminate\Http\Request;
 
 class ProductionOutputController extends Controller
 {
@@ -19,18 +20,11 @@ class ProductionOutputController extends Controller
         protected ProductionCompletionService $completion,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', ProductionOutput::class);
 
-        $outputs = $this->scopeToTenant(
-            ProductionOutput::query()
-                ->with(['jobCard', 'finishedItem', 'finishedWarehouse', 'completedByUser', 'postedJournal'])
-                ->latest('completed_at')
-                ->latest('id')
-        )->paginate(20);
-
-        return view('admin.production.outputs.index', compact('outputs'));
+        return redirect()->to(ProductionFloorDeskViews::outputsIndexUrl($request->query->all()));
     }
 
     public function store(

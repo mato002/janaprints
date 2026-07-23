@@ -43,6 +43,8 @@ class SalesOrderProductionBridgeService
             return $jobCard;
         }
 
+        app(MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+
         $autoScheduling = app(ProductionAutoSchedulingService::class);
         $scheduled = $autoScheduling->trySchedule($jobCard, $userId);
 

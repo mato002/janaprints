@@ -1901,6 +1901,16 @@ const erpLookupManager = {
             return;
         }
 
+        let requestUrl = url;
+
+        try {
+            const parsed = new URL(url, window.location.origin);
+            parsed.searchParams.set('_erp_lookup_create', '1');
+            requestUrl = parsed.toString();
+        } catch (error) {
+            requestUrl = url;
+        }
+
         this.pushStack();
         this.onSuccess = onSuccess;
         this.abortLoad();
@@ -1911,10 +1921,11 @@ const erpLookupManager = {
         this.renderLoading(title);
 
         try {
-            const response = await fetch(url, {
+            const response = await fetch(requestUrl, {
                 signal: this.abortController.signal,
                 headers: {
                     'Accept': 'text/html, application/xhtml+xml',
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-Erp-Lookup-Create': '1',
                 },
                 credentials: 'same-origin',
@@ -1939,7 +1950,12 @@ const erpLookupManager = {
             this.abortController = null;
             this.showOverlay();
             await new Promise((resolve) => window.requestAnimationFrame(resolve));
-            Alpine.initTree(frame);
+
+            try {
+                Alpine.initTree(frame);
+            } catch (initError) {
+                console.error('erpLookupManager.open initTree', initError);
+            }
         } catch (error) {
             if (error?.name === 'AbortError' || loadId !== this.loadSeq) {
                 return;
@@ -3207,7 +3223,7 @@ document.addEventListener('alpine:init', () => {
                     }
                 });
 
-                return `${url.pathname}${url.search}`;
+                return url.toString();
             } catch (error) {
                 console.error('erpLookupCreate.scopedUrl', error);
 
@@ -5279,6 +5295,66 @@ document.addEventListener('alpine:init', () => {
                 this.results = [];
             } finally {
                 this.loading = false;
+            }
+        },
+    }));
+
+    Alpine.data('salesDeskInlineSpec', (config = {}) => ({
+        storeUrl: config.storeUrl ?? '',
+        continueUrl: config.continueUrl ?? '',
+        customerId: config.customerId ?? null,
+        csrf: config.csrf ?? '',
+        saving: false,
+        error: '',
+
+        async submit(form) {
+            if (! form || this.saving) {
+                return;
+            }
+
+            this.saving = true;
+            this.error = '';
+
+            try {
+                const body = new FormData(form);
+                if (! body.get('customer_id') && this.customerId) {
+                    body.set('customer_id', String(this.customerId));
+                }
+
+                const response = await fetch(this.storeUrl, {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': this.csrf,
+                        'X-Erp-Lookup-Create': '1',
+                    },
+                    body,
+                });
+
+                const payload = await response.json().catch(() => ({}));
+
+                if (! response.ok) {
+                    const messages = payload.errors
+                        ? Object.values(payload.errors).flat()
+                        : [payload.message || 'Unable to save specification.'];
+                    this.error = messages.join(' ');
+
+                    return;
+                }
+
+                const specId = payload.value ?? payload.id ?? null;
+                if (! specId) {
+                    this.error = 'Specification saved but no id was returned.';
+
+                    return;
+                }
+
+                window.location.href = this.continueUrl.replace('__SPEC__', encodeURIComponent(String(specId)));
+            } catch (e) {
+                this.error = 'Unable to save specification.';
+            } finally {
+                this.saving = false;
             }
         },
     }));
@@ -8957,7 +9033,13 @@ function shouldPromoteWorkspaceLinkToMain(href) {
             return true;
         }
 
-        if (/\/(create|edit|compose|document|receipt|pdf)(\/|$)/.test(path)) {
+        // Match detail/create path segments only — do not treat list routes like
+        // /receipts or /vendors as leave-workspace surfaces.
+        if (/\/(create|edit|compose|document|pdf)(\/|$)/.test(path)) {
+            return true;
+        }
+
+        if (/\/receipt(\/|$)/.test(path) && ! /\/receipts(\/|$)/.test(path)) {
             return true;
         }
 
@@ -9701,6 +9783,7 @@ function initNativeDialogs(root = document) {
 
             if (dialog && typeof dialog.showModal === 'function') {
                 dialog.showModal();
+                syncConsumptionQuantityHints(dialog);
             }
         });
     });
@@ -9720,6 +9803,17 @@ function initNativeDialogs(root = document) {
         });
     });
 
+    root.querySelectorAll('form[data-consumption-form]').forEach((form) => {
+        if (form.dataset.consumptionHintsBound === '1') {
+            return;
+        }
+
+        form.dataset.consumptionHintsBound = '1';
+        const itemSelect = form.querySelector('[data-consumption-item]');
+
+        itemSelect?.addEventListener('change', () => syncConsumptionQuantityHints(form));
+    });
+
     const params = new URLSearchParams(window.location.search);
     const openId = params.get('open');
 
@@ -9732,6 +9826,55 @@ function initNativeDialogs(root = document) {
     if (dialog && typeof dialog.showModal === 'function' && dialog.dataset.autoOpened !== '1') {
         dialog.dataset.autoOpened = '1';
         dialog.showModal();
+        syncConsumptionQuantityHints(dialog);
+    }
+}
+
+function syncConsumptionQuantityHints(root) {
+    const form = root?.matches?.('form[data-consumption-form]')
+        ? root
+        : root?.querySelector?.('form[data-consumption-form]');
+
+    if (! form) {
+        return;
+    }
+
+    const itemSelect = form.querySelector('[data-consumption-item]');
+    const qtyInput = form.querySelector('[data-consumption-qty]');
+    const warehouseSelect = form.querySelector('[data-consumption-warehouse]');
+
+    if (! itemSelect || ! qtyInput) {
+        return;
+    }
+
+    let qtyHints = {};
+    let warehouseHints = {};
+
+    try {
+        qtyHints = JSON.parse(form.dataset.qtyHints || '{}');
+        warehouseHints = JSON.parse(form.dataset.warehouseHints || '{}');
+    } catch {
+        qtyHints = {};
+        warehouseHints = {};
+    }
+
+    const itemId = String(itemSelect.value || '');
+    const selectedOption = itemSelect.selectedOptions?.[0];
+    const suggestedQty = selectedOption?.dataset?.suggestedQty
+        ?? qtyHints[itemId]
+        ?? qtyHints[Number(itemId)]
+        ?? null;
+    const suggestedWarehouse = selectedOption?.dataset?.suggestedWarehouse
+        ?? warehouseHints[itemId]
+        ?? warehouseHints[Number(itemId)]
+        ?? null;
+
+    if (suggestedQty !== null && suggestedQty !== undefined && suggestedQty !== '') {
+        qtyInput.value = suggestedQty;
+    }
+
+    if (warehouseSelect && suggestedWarehouse) {
+        warehouseSelect.value = String(suggestedWarehouse);
     }
 }
 

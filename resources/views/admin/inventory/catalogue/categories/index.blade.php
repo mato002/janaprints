@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Categories')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Categories')]]">
+<x-admin-layout :title="__('Categories')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'catalogue'])], ['label' => __('Categories')]]">
     <x-admin.page-header :title="__('Categories')">
         <x-slot name="actions">
             @if (auth()->user()?->can('catalogue.create'))

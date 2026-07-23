@@ -36,8 +36,6 @@ class StoreDeskPageBuilder
             'lowStockItems' => $this->desk->lowStockPriority(),
             'warehouseSnapshot' => $this->desk->warehouseSnapshot($companyId, $branchId),
             'receivingPipeline' => $this->desk->receivingPipeline($user),
-            'issuePipeline' => $this->desk->issuePipeline(),
-            'reorderRecommendations' => $this->desk->reorderRecommendations(),
             'searchUrl' => route('admin.store.desk.items.search'),
             'fullSupplyChainDeskUrl' => route('admin.workspaces.supply-chain', ['desk' => 1]),
             'catalogueUrl' => route('admin.store.desk.catalogue'),

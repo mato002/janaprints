@@ -8,22 +8,13 @@ return [
 
     'hub' => [
         [
-            'key' => 'dashboard',
-            'label' => 'Dashboard',
-            'description' => 'Finance command center with KPIs, activity, and quick actions.',
-            'route' => 'admin.accounting.dashboard',
-            'permission' => 'accounting.dashboard.view',
-            'icon' => 'chart-pie',
-            'active_routes' => ['admin.accounting.dashboard'],
-        ],
-        [
             'label' => 'General Ledger',
             'description' => 'Journals, ledger inquiry, trial balance, and financial statements.',
             'route' => 'admin.workspaces.accounting.section',
             'route_params' => ['section' => 'general-ledger'],
             'permission' => 'accounting.journals.view|accounting.reports.view',
             'icon' => 'book-open',
-            'active_routes' => ['admin.workspaces.accounting.section:general-ledger', 'admin.accounting.journals.*', 'admin.accounting.ledger.*', 'admin.accounting.reports.*', 'admin.accounting.trial-balance.*'],
+            'active_routes' => ['admin.workspaces.accounting.section:general-ledger', 'admin.accounting.dashboard', 'admin.accounting.journals.*', 'admin.accounting.ledger.*', 'admin.accounting.reports.*', 'admin.accounting.trial-balance.*'],
         ],
         [
             'label' => 'Receivables',
@@ -89,14 +80,13 @@ return [
             'icon' => 'book-open',
             'groups' => [
                 [
-                    'label' => 'Financial Reports',
+                    'label' => 'General Ledger',
                     'items' => [
-                        ['label' => 'Journals', 'description' => 'Manual and system journal entries.', 'route' => 'admin.accounting.journals.index', 'permission' => 'accounting.journals.view', 'icon' => 'document-text', 'active_routes' => ['admin.accounting.journals.*']],
+                        ['label' => 'Journals', 'description' => 'Manual and system journal entries.', 'route' => 'admin.accounting.journals.index', 'permission' => 'accounting.journals.view', 'icon' => 'document-text', 'active_routes' => ['admin.accounting.journals.*', 'admin.accounting.dashboard']],
                         ['label' => 'General Ledger', 'description' => 'Posted transactions by account.', 'route' => 'admin.accounting.ledger.index', 'permission' => 'accounting.journals.view', 'icon' => 'book-open', 'active_routes' => ['admin.accounting.ledger.*']],
                         ['label' => 'Trial Balance', 'description' => 'Debit and credit trial balance.', 'route' => 'admin.accounting.reports.trial-balance', 'permission' => 'accounting.reports.view', 'icon' => 'chart-pie', 'active_routes' => ['admin.accounting.reports.trial-balance', 'admin.accounting.trial-balance.index']],
                         ['label' => 'Balance Sheet', 'description' => 'Assets, liabilities, and equity.', 'route' => 'admin.accounting.reports.balance-sheet', 'permission' => 'accounting.reports.view', 'icon' => 'scale', 'active_routes' => ['admin.accounting.reports.balance-sheet']],
                         ['label' => 'Profit & Loss', 'description' => 'Revenue and expenses for a period.', 'route' => 'admin.accounting.reports.profit-and-loss', 'permission' => 'accounting.reports.view', 'icon' => 'chart-bar', 'active_routes' => ['admin.accounting.reports.profit-and-loss']],
-                        ['label' => 'Cash Flow Statement', 'description' => 'Operating, investing, and financing cash movements.', 'route' => 'admin.accounting.reports.cash-flow', 'permission' => 'accounting.reports.view', 'icon' => 'cash', 'active_routes' => ['admin.accounting.reports.cash-flow']],
                         ['label' => 'GL Report', 'description' => 'Account ledger with running balance.', 'route' => 'admin.accounting.reports.general-ledger', 'permission' => 'accounting.reports.view', 'icon' => 'document-text', 'active_routes' => ['admin.accounting.reports.general-ledger']],
                         ['label' => 'Financial Integrity', 'description' => 'Trial balance and balance sheet integrity checks.', 'route' => 'admin.accounting.reports.financial-integrity', 'permission' => 'accounting.reports.view', 'icon' => 'shield-check', 'active_routes' => ['admin.accounting.reports.financial-integrity']],
                     ],

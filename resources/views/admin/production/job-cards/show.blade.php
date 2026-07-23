@@ -30,6 +30,12 @@
             'secondaryActions' => $workspace['secondary_actions'] ?? [],
         ])
 
+        {{-- Material readiness gate — always visible, before timeline/blockers --}}
+        @include('admin.production.job-cards.workspace.partials.material-readiness-banner', [
+            'jobCard' => $jobCard,
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
+        ])
+
         {{-- Zone 2: Workflow --}}
         @include('admin.production.job-cards.workspace.partials.production-stage-timeline', [
             'jobCard' => $jobCard,
@@ -38,6 +44,7 @@
             'readinessChecklist' => $workspace['readiness_checklist'] ?? [],
             'dispatchSummary' => $dispatchSummary,
             'workflowPresentation' => $workflowPresentation,
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
         ])
 
         {{-- Zone 3: Blockers --}}
@@ -47,6 +54,7 @@
             'controlAlerts' => $workspace['control_alerts'] ?? [],
             'completion' => $completion,
             'hasPostedOutput' => $hasPostedOutput,
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
         ])
 
         {{-- Collapsible performance metrics --}}

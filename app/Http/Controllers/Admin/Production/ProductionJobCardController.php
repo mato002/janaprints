@@ -21,6 +21,7 @@ use App\Services\Production\ProductionJobCardIndexService;
 use App\Enums\WorkflowRuleTrigger;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\Export\TabularExportWriter;
+use App\Support\Production\ProductionFloorDeskViews;
 use App\Support\Production\ProductionJobCardEligibilityService;
 use App\Support\Production\ProductionQueueService;
 use App\Support\Production\ReturnsToProductionFloor;
@@ -38,11 +39,11 @@ class ProductionJobCardController extends Controller
 {
     use HandlesModalFormResponses, ReturnsToProductionFloor, ReturnsToSalesDesk, ScopesToTenant;
 
-    public function index(Request $request, ProductionJobCardIndexService $index): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', ProductionJobCard::class);
 
-        return view('admin.production.job-cards.index', $index->build($request));
+        return redirect()->to(ProductionFloorDeskViews::registerIndexUrl($request->query->all()));
     }
 
     public function export(Request $request, ProductionJobCardIndexService $index, TabularExportWriter $writer): StreamedResponse
@@ -188,6 +189,8 @@ class ProductionJobCardController extends Controller
         $this->authorize('schedule', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued), 403);
 
+        app(\App\Support\Production\MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+
         if ($queues->hasActiveQueue($jobCard)) {
             if ($jobCard->status !== ProductionJobCardStatus::Queued) {
                 $jobCard->transitionTo(ProductionJobCardStatus::Queued);
@@ -212,6 +215,8 @@ class ProductionJobCardController extends Controller
     {
         $this->authorize('start', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction), 403);
+
+        app(\App\Support\Production\MaterialReadinessService::class)->assertReadyToRelease($jobCard);
 
         $execution = app(\App\Services\Production\JobExecutionStateService::class);
         if (! $execution->isReadyToStart($jobCard)) {
@@ -315,6 +320,11 @@ class ProductionJobCardController extends Controller
             : ProductionJobCardStatus::Queued;
 
         abort_unless($jobCard->status->canTransitionTo($target), 403);
+
+        if ($target === ProductionJobCardStatus::InProduction) {
+            app(\App\Support\Production\MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+        }
+
         $jobCard->transitionTo($target);
 
         return $this->redirectAfterProductionFloorAction($jobCard, __('Production resumed.'));

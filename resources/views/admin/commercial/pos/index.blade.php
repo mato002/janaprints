@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('POS sales')" :breadcrumbs="[['label' => __('POS'), 'url' => route('admin.commercial.pos.dashboard')], ['label' => __('Daily sales')]]">
+    @include('admin.commercial.pos.partials.desk-mode-nav', ['activePosView' => \App\Support\Commercial\PosDeskViews::SALES])
+
     <x-admin.page-header :title="__('Daily sales')" :description="__('Sales for the selected day.')">
         <x-slot name="actions">
             @can('create', App\Models\Pos\PosSale::class)

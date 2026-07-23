@@ -8,6 +8,7 @@
 <?php $attributes = $attributes->except(\App\View\Components\AdminLayout::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
+    <?php echo $__env->make('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::RFQS], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     <?php if (isset($component)) { $__componentOriginalcb19cb35a534439097b02b8af91726ee = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalcb19cb35a534439097b02b8af91726ee = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.page-header','data' => ['title' => __('Requests For Quotation')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -18,7 +19,11 @@
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Requests For Quotation'))]); ?>
-<?php echo $__env->renderComponent(); ?>
+         <?php $__env->slot('actions', null, []); ?> 
+            <a href="<?php echo e(route('admin.procurement.vendor-comparison.index')); ?>" class="erp-btn-secondary"><?php echo e(__('Compare quotes')); ?></a>
+            <a href="<?php echo e(route('admin.procurement.quotations.index')); ?>" class="erp-btn-secondary"><?php echo e(__('Supplier quotations')); ?></a>
+         <?php $__env->endSlot(); ?>
+     <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalcb19cb35a534439097b02b8af91726ee)): ?>
 <?php $attributes = $__attributesOriginalcb19cb35a534439097b02b8af91726ee; ?>

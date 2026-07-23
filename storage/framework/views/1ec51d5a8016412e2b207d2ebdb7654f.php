@@ -124,8 +124,8 @@
                 'overflow-hidden p-2 sm:p-3' => ! $compactPage && $compactWorkspace,
                 'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
             ]); ?>">
-                <?php if (! ($compactPage)): ?>
-                    <?php echo $__env->make('admin.partials.breadcrumbs', ['compact' => $compactWorkspace], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                <?php if (! ($compactPage || $compactWorkspace)): ?>
+                    <?php echo $__env->make('admin.partials.breadcrumbs', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 <?php endif; ?>
                 
                 <?php echo $__env->make('admin.partials.alerts', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>

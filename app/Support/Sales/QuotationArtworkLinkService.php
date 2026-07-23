@@ -67,7 +67,7 @@ class QuotationArtworkLinkService
             ->map(fn (CustomerArtwork $artwork) => [
                 'id' => $artwork->id,
                 'label' => $artwork->artwork_name.' ('.$artwork->versionLabel().')',
-                'type' => $artwork->artwork_type->label(),
+                'type' => $artwork->artworkTypeLabel(),
                 'uploaded_at' => $artwork->uploaded_at?->format('Y-m-d'),
                 'preview_url' => $artwork->isPreviewable() ? $artwork->previewUrl() : null,
             ])

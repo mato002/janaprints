@@ -94,7 +94,7 @@
             <button
                 type="button"
                 class="erp-lookup-select__add"
-                @click.stop.prevent="openCreate($event)"
+                x-on:click.stop.prevent="openCreate($event)"
                 :aria-label="@js(__('Add new').' '.($modalTitle ?? $label ?? $name))"
                 :title="@js(__('Add new').' '.($modalTitle ?? $label ?? $name))"
             >

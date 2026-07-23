@@ -8,6 +8,8 @@
 <?php $attributes = $attributes->except(\App\View\Components\AdminLayout::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
+    <?php echo $__env->make('admin.commercial.pos.partials.desk-mode-nav', ['activePosView' => \App\Support\Commercial\PosDeskViews::COUNTER], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
     <div
         id="pos-counter-root"
         x-data="posCounterWorkstation(<?php echo \Illuminate\Support\Js::from($workstationConfig)->toHtml() ?>)"

@@ -1,4 +1,4 @@
-<x-admin-layout :title="__('Subcategories')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.inventory.catalogue.dashboard')], ['label' => __('Subcategories')]]">
+<x-admin-layout :title="__('Subcategories')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Catalogue'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'catalogue'])], ['label' => __('Subcategories')]]">
     <x-admin.page-header :title="__('Subcategories')"><x-slot name="actions">@if (auth()->user()?->can('catalogue.create'))<a href="{{ route('admin.inventory.catalogue.subcategories.create') }}" class="erp-btn-primary">{{ __('New Subcategory') }}</a>@endif</x-slot></x-admin.page-header>
     <x-admin.data-table
         :search-placeholder="__('Search subcategories...')"

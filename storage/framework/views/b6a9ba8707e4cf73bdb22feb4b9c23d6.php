@@ -1,9 +1,12 @@
 <?php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $breadcrumbs = [
         ['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')],
         ['label' => __('Inventory Control'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'inventory-control'])],
         ['label' => __('Variance Report')],
     ];
+    $frame = WorkspaceEmbed::turboFrame();
 ?>
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal91fdd17964e43374ae18c674f95cdaa3 = $attributes; } ?>
@@ -47,7 +50,7 @@
 <?php endif; ?>
 <?php $component->withAttributes(['search-placeholder' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Search variances…')),'filterable' => true,'export-filename' => 'inventory-variances','export-route' => 'admin.inventory.variances.export','export-query' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(request()->query()),'format-in-path' => true]); ?>
          <?php $__env->slot('filters', null, []); ?> 
-            <form method="GET" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2">
+            <form method="GET" action="<?php echo e(WorkspaceEmbed::url(route('admin.inventory.variances.index'))); ?>" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2" data-turbo-frame="<?php echo e($frame); ?>" data-turbo-action="advance">
                 <select name="warehouse_id" class="erp-toolbar-select" aria-label="<?php echo e(__('Warehouse')); ?>">
                     <option value=""><?php echo e(__('All warehouses')); ?></option>
                     <?php $__currentLoopData = $warehouses; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $w): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
@@ -67,7 +70,10 @@
                 </select>
                 <input type="date" name="date_from" value="<?php echo e($filters['date_from'] ?? ''); ?>" class="erp-toolbar-input" aria-label="<?php echo e(__('From')); ?>">
                 <input type="date" name="date_to" value="<?php echo e($filters['date_to'] ?? ''); ?>" class="erp-toolbar-input" aria-label="<?php echo e(__('To')); ?>">
-                <a href="<?php echo e(route('admin.inventory.variances.index')); ?>" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main"><?php echo e(__('Reset')); ?></a>
+                <?php if(WorkspaceEmbed::inWorkspaceContext()): ?>
+                    <input type="hidden" name="embedded" value="1">
+                <?php endif; ?>
+                <a href="<?php echo e(WorkspaceEmbed::url(route('admin.inventory.variances.index'))); ?>" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="<?php echo e($frame); ?>" data-turbo-action="advance"><?php echo e(__('Reset')); ?></a>
             </form>
          <?php $__env->endSlot(); ?>
          <?php $__env->slot('head', null, []); ?> 

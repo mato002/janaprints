@@ -6,6 +6,8 @@
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
     'secondaryToolbarActions' => [],
+    'contextWorkspaces' => [],
+    'activeContext' => null,
     'contentUrl' => null,
     'showContent' => true,
 ])
@@ -18,6 +20,8 @@
     :secondary-workspaces="$secondaryWorkspaces"
     :active-secondary="$activeSecondary"
     :secondary-toolbar-actions="$secondaryToolbarActions"
+    :context-workspaces="$contextWorkspaces"
+    :active-context="$activeContext"
     :content-url="$contentUrl"
     :show-content="$showContent"
     {{ $attributes->except([
@@ -28,6 +32,8 @@
         'secondaryWorkspaces',
         'activeSecondary',
         'secondaryToolbarActions',
+        'contextWorkspaces',
+        'activeContext',
         'contentUrl',
         'showContent',
     ]) }}

@@ -1,4 +1,5 @@
 <x-admin-layout :title="__('Purchase Orders')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Procurement'), 'url' => route('admin.procurement.dashboard')], ['label' => __('Purchase Orders')]]">
+    @include('admin.procurement.partials.desk-mode-nav', ['activeProcurementView' => \App\Support\Procurement\ProcurementDeskViews::ORDERS])
     <x-admin.page-header :title="__('Purchase Orders')">
         <x-slot name="actions">
             @can('create', App\Models\Procurement\PurchaseOrder::class)

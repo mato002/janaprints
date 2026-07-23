@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('Cash Reconciliation')">
+    @include('admin.commercial.pos.partials.desk-mode-nav', ['activePosView' => \App\Support\Commercial\PosDeskViews::RECON])
+
     <x-admin.page-header :title="__('Cash Reconciliation')" :description="__('End-of-day cash counts, variances, and approval workflow.')">
         <x-slot name="secondary">
             <a href="{{ route('admin.commercial.pos.reconciliation.history') }}" class="erp-btn-secondary">{{ __('History') }}</a>

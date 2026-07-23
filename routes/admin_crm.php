@@ -98,6 +98,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('leads/quick-create', [QuickCreateLookupController::class, 'storeLead'])->name('leads.quick-store');
             Route::get('lead-sources/quick-create', [QuickCreateLookupController::class, 'createLeadSource'])->name('lead-sources.quick-create');
             Route::post('lead-sources/quick-create', [QuickCreateLookupController::class, 'storeLeadSource'])->name('lead-sources.quick-store');
+            Route::get('artwork-types/quick-create', [QuickCreateLookupController::class, 'createArtworkType'])->name('artwork-types.quick-create');
+            Route::post('artwork-types/quick-create', [QuickCreateLookupController::class, 'storeArtworkType'])->name('artwork-types.quick-store');
             Route::post('leads', [LeadController::class, 'store'])->name('leads.store');
         });
 

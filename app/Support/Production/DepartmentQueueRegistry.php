@@ -17,7 +17,7 @@ class DepartmentQueueRegistry
             [
                 'slug' => '',
                 'label' => __('All departments'),
-                'url' => route('admin.production.queue.index'),
+                'url' => ProductionFloorDeskViews::queueIndexUrl(),
                 'active' => $activeSlug === null || $activeSlug === '',
                 'count' => null,
             ],
@@ -27,7 +27,7 @@ class DepartmentQueueRegistry
             $items[] = [
                 'slug' => $slug,
                 'label' => $department['label'],
-                'url' => route('admin.production.queue.department', $slug),
+                'url' => ProductionFloorDeskViews::queueIndexUrl($slug),
                 'active' => $activeSlug === $slug,
                 'count' => null,
             ];

@@ -52,9 +52,20 @@ final class SalesDeskViews
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     */
     public static function deskUrl(string $view = self::DESK, array $query = []): string
     {
-        return route('admin.sales.desk', self::deskQuery($view, $query));
+        unset($query['view']);
+
+        return match (self::normalize($view)) {
+            self::QUOTES => route('admin.quotations.index', $query),
+            self::ORDERS => route('admin.sales-orders.index', $query),
+            self::ARTWORK => route('admin.artwork.index', $query),
+            self::APPROVALS => route('admin.commercial.approvals.index', $query),
+            default => route('admin.sales.desk', $query),
+        };
     }
 
     public static function quotesUrl(array $query = []): string

@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('POS Returns')" :breadcrumbs="[['label' => __('POS'), 'url' => route('admin.commercial.pos.dashboard')], ['label' => __('Returns')]]">
+    @include('admin.commercial.pos.partials.desk-mode-nav', ['activePosView' => \App\Support\Commercial\PosDeskViews::RETURNS])
+
     <x-admin.page-header :title="__('Returns Dashboard')" :description="__('Process retail sale corrections via reversal returns.')">
         <x-slot name="actions">
             @can('create', App\Models\Pos\PosReturn::class)

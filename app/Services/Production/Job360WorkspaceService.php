@@ -158,6 +158,7 @@ class Job360WorkspaceService
         $header['progress_percent'] = $workflowPresentation['workflow_progress_percent'];
         $header['current_stage_label'] = $workflowPresentation['current_stage_label'];
         $controlAlerts = $this->filterControlAlertsForDispatch($this->controls->controlAlerts($jobCard), $dispatchSummary);
+        $materialReadiness = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
 
         return [
             'jobCard' => $jobCard,
@@ -166,6 +167,7 @@ class Job360WorkspaceService
             'workflow_presentation' => $workflowPresentation,
             'dispatch_summary' => $dispatchSummary,
             'has_posted_output' => $hasPostedOutput,
+            'material_readiness' => $materialReadiness,
             'readiness_checklist' => $this->controls->readinessChecklist($jobCard),
             'kpis' => $this->controls->productionKpis($jobCard),
             'control_alerts' => $controlAlerts,

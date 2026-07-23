@@ -30,6 +30,7 @@ class RedirectToModuleWorkspaceShell
         if (
             $request->header('Turbo-Frame') === 'module-workspace-content'
             || $request->header('X-Erp-Lookup-Create') === '1'
+            || $request->boolean('_erp_lookup_create')
         ) {
             return $next($request);
         }
@@ -139,7 +140,6 @@ class RedirectToModuleWorkspaceShell
     {
         return [
             'admin.procurement.dashboard',
-            'admin.procurement.approvals.index',
         ];
     }
 

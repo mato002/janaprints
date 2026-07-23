@@ -9,6 +9,8 @@ $__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
     'secondaryToolbarActions' => [],
+    'contextWorkspaces' => [],
+    'activeContext' => null,
     'contentUrl' => null,
     'showContent' => true,
 ]));
@@ -34,6 +36,8 @@ foreach (array_filter(([
     'secondaryWorkspaces' => [],
     'activeSecondary' => null,
     'secondaryToolbarActions' => [],
+    'contextWorkspaces' => [],
+    'activeContext' => null,
     'contentUrl' => null,
     'showContent' => true,
 ]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
@@ -50,7 +54,7 @@ unset($__defined_vars, $__key, $__value); ?>
 
 <?php if (isset($component)) { $__componentOriginal5f67761b765e1a48051660f8c011fc7a = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal5f67761b765e1a48051660f8c011fc7a = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.module-shell','data' => ['title' => $title,'description' => $description,'primaryWorkspaces' => $primaryWorkspaces,'activePrimary' => $activePrimary,'secondaryWorkspaces' => $secondaryWorkspaces,'activeSecondary' => $activeSecondary,'secondaryToolbarActions' => $secondaryToolbarActions,'contentUrl' => $contentUrl,'showContent' => $showContent,'attributes' => $attributes->except([
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.module-shell','data' => ['title' => $title,'description' => $description,'primaryWorkspaces' => $primaryWorkspaces,'activePrimary' => $activePrimary,'secondaryWorkspaces' => $secondaryWorkspaces,'activeSecondary' => $activeSecondary,'secondaryToolbarActions' => $secondaryToolbarActions,'contextWorkspaces' => $contextWorkspaces,'activeContext' => $activeContext,'contentUrl' => $contentUrl,'showContent' => $showContent,'attributes' => $attributes->except([
         'title',
         'description',
         'primaryWorkspaces',
@@ -58,6 +62,8 @@ unset($__defined_vars, $__key, $__value); ?>
         'secondaryWorkspaces',
         'activeSecondary',
         'secondaryToolbarActions',
+        'contextWorkspaces',
+        'activeContext',
         'contentUrl',
         'showContent',
     ])]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -67,7 +73,7 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($title),'description' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($description),'primary-workspaces' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($primaryWorkspaces),'active-primary' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($activePrimary),'secondary-workspaces' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($secondaryWorkspaces),'active-secondary' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($activeSecondary),'secondary-toolbar-actions' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($secondaryToolbarActions),'content-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($contentUrl),'show-content' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showContent),'attributes' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($attributes->except([
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($title),'description' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($description),'primary-workspaces' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($primaryWorkspaces),'active-primary' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($activePrimary),'secondary-workspaces' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($secondaryWorkspaces),'active-secondary' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($activeSecondary),'secondary-toolbar-actions' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($secondaryToolbarActions),'context-workspaces' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($contextWorkspaces),'active-context' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($activeContext),'content-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($contentUrl),'show-content' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($showContent),'attributes' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($attributes->except([
         'title',
         'description',
         'primaryWorkspaces',
@@ -75,6 +81,8 @@ unset($__defined_vars, $__key, $__value); ?>
         'secondaryWorkspaces',
         'activeSecondary',
         'secondaryToolbarActions',
+        'contextWorkspaces',
+        'activeContext',
         'contentUrl',
         'showContent',
     ]))]); ?>

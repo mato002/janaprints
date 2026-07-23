@@ -1,4 +1,6 @@
 <x-admin-layout :title="__('All quotations')" :breadcrumbs="[['label' => __('Quotations'), 'url' => route('admin.quotations.dashboard')], ['label' => __('List')]]">
+    @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => \App\Support\Sales\SalesDeskViews::QUOTES])
+
     <x-admin.page-header :title="__('Quotations')">
         @can('create', App\Models\Sales\Quotation::class)
             <x-admin.form-modal-link :href="route('admin.quotations.create')">{{ __('Create') }}</x-admin.form-modal-link>

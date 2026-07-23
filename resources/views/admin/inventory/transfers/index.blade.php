@@ -1,4 +1,7 @@
-<x-admin-layout :title="__('Store Transfers')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Management'), 'url' => route('admin.inventory.store.dashboard')], ['label' => __('Store Transfers')]]">
+<x-admin-layout :title="__('Store Transfers')" :breadcrumbs="[['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')], ['label' => __('Store Desk'), 'url' => route('admin.store.desk')], ['label' => __('Transfers')]]">
+    @unless (\App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())
+        @include('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::TRANSFERS])
+    @endunless
     <x-admin.page-header :title="__('Store Transfers')" :description="__('Move stock between warehouses using controlled inventory movements.')">
         <x-slot name="actions">
             @if (auth()->user()?->can('inventory.transfer'))

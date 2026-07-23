@@ -7,6 +7,8 @@
 
 <x-admin-layout :title="__('Customers')" :breadcrumbs="[['label' => __('CRM')], ['label' => __('Customers')]]">
     <div class="crm-customers w-full min-w-0 space-y-3 sm:space-y-4">
+        @include('admin.crm.partials.desk-mode-nav', ['activeCrmView' => \App\Support\Crm\CrmDeskViews::CUSTOMERS])
+
         @unless (WorkspaceEmbed::inWorkspaceContext())
             <header class="crm-customers__header">
                 <div class="crm-customers__header-main">

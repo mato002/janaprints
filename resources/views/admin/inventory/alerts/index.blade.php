@@ -1,16 +1,22 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $breadcrumbs = [
         ['label' => __('Supply Chain'), 'url' => route('admin.workspaces.supply-chain')],
-        ['label' => __('Store Operations'), 'url' => route('admin.workspaces.supply-chain.section', ['section' => 'store-operations'])],
+        ['label' => __('Store Desk'), 'url' => route('admin.store.desk')],
         ['label' => __('Reorder Alerts')],
     ];
+    $frame = WorkspaceEmbed::turboFrame();
 @endphp
 <x-admin-layout :title="__('Reorder Alerts')" :breadcrumbs="$breadcrumbs">
+    @unless (WorkspaceEmbed::inWorkspaceContext())
+        @include('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::ALERTS])
+    @endunless
     <x-admin.page-header :title="__('Reorder Alerts')" :description="__('Actionable low-stock alerts with acknowledgement, resolution, and purchase request handoff.')" />
 
     <x-admin.data-table :search-placeholder="__('Search SKU or item name…')" export-filename="reorder-alerts">
         <x-slot name="filters">
-            <form method="GET" action="{{ route('admin.inventory.alerts.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="flex flex-wrap items-center gap-2">
+            <form method="GET" action="{{ WorkspaceEmbed::url(route('admin.inventory.alerts.index')) }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="flex flex-wrap items-center gap-2" data-turbo-frame="{{ $frame }}" data-turbo-action="advance">
                 <select name="warehouse_id" class="erp-toolbar-select" aria-label="{{ __('Warehouse') }}">
                     <option value="">{{ __('All warehouses') }}</option>
                     @foreach ($warehouses as $warehouse)
@@ -34,7 +40,10 @@
                     {{ __('Critical only') }}
                 </label>
                 <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
-                <a href="{{ route('admin.inventory.alerts.index') }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="erp-main">{{ __('Reset') }}</a>
+                @if (WorkspaceEmbed::inWorkspaceContext())
+                    <input type="hidden" name="embedded" value="1">
+                @endif
+                <a href="{{ WorkspaceEmbed::url(route('admin.inventory.alerts.index')) }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="{{ $frame }}" data-turbo-action="advance">{{ __('Reset') }}</a>
             </form>
         </x-slot>
         <x-slot name="head">

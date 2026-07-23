@@ -28,6 +28,10 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars, $__key, $__value); ?>
 
+<?php
+    use App\Support\Navigation\WorkspaceEmbed;
+?>
+
 <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
 <?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['class' => 'mb-6 !p-2']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
@@ -44,7 +48,7 @@ unset($__defined_vars, $__key, $__value); ?>
                 $query = array_merge($filters, ['tab' => $tab['key'], 'page' => 1]);
             ?>
             <a
-                href="<?php echo e(route('admin.procurement.reports.index', $query)); ?>"
+                href="<?php echo e(WorkspaceEmbed::url(route('admin.procurement.reports.index', $query))); ?>"
                 role="tab"
                 class="<?php echo \Illuminate\Support\Arr::toCssClasses([
                     'rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -52,7 +56,8 @@ unset($__defined_vars, $__key, $__value); ?>
                     'text-slate-600 hover:bg-erp-page hover:text-erp-primary' => $active_tab !== $tab['key'],
                 ]); ?>"
                 <?php if($active_tab === $tab['key']): ?> aria-selected="true" <?php else: ?> aria-selected="false" <?php endif; ?>
-                data-turbo-frame="erp-main"
+                data-turbo-frame="<?php echo e(WorkspaceEmbed::turboFrame()); ?>"
+                data-turbo-action="advance"
             >
                 <?php echo e($tab['label']); ?>
 

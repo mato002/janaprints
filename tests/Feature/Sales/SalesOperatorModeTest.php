@@ -199,7 +199,7 @@ class SalesOperatorModeTest extends TestCase
                 'step' => 4,
             ]))
             ->assertOk()
-            ->assertSee(__('4. Release to production'))
+            ->assertSee(__('5. Walk-in complete'))
             ->assertSee($order->order_number)
             ->assertSee('data-erp-modal-open', false)
             ->assertSee('from=sales-desk', false);

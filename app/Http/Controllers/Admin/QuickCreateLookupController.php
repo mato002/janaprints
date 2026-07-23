@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Enums\CustomerArtworkType;
 use App\Enums\CustomerPrintSpecificationStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
@@ -317,6 +316,58 @@ class QuickCreateLookupController extends Controller
         ]);
 
         return $this->quickCreateResponse($source->id, $source->name, __('Lead source created.'));
+    }
+
+    public function createArtworkType(): View
+    {
+        abort_unless(auth()->user()?->can('crm.customers.update'), 403);
+
+        return $this->lookupForm('admin.lookups.quick-create.artwork-type', [
+            'title' => __('Create artwork type'),
+            'action' => route('admin.crm.artwork-types.quick-store'),
+            'companies' => $this->activeCompanies(),
+        ]);
+    }
+
+    public function storeArtworkType(Request $request, \App\Support\Crm\CustomerArtworkTypeCatalog $catalog): JsonResponse|Response
+    {
+        abort_unless(auth()->user()?->can('crm.customers.update'), 403);
+
+        $companyId = auth()->user()->hasRole('Super Admin')
+            ? (int) ($request->input('company_id') ?: tenant()->companyId() ?: auth()->user()->company_id)
+            : (int) auth()->user()->company_id;
+
+        try {
+            $rules = [
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::unique('customer_artwork_types', 'name')->where(fn ($query) => $query->where('company_id', $companyId)),
+                ],
+                'is_active' => ['boolean'],
+            ];
+
+            if (auth()->user()->hasRole('Super Admin')) {
+                $rules['company_id'] = ['required', 'exists:companies,id'];
+            }
+
+            $validated = $request->validate($rules);
+        } catch (ValidationException $exception) {
+            return $this->lookupValidationResponse($request, $exception, 'admin.lookups.quick-create.artwork-type', [
+                'title' => __('Create artwork type'),
+                'action' => route('admin.crm.artwork-types.quick-store'),
+                'companies' => $this->activeCompanies(),
+            ]);
+        }
+
+        $type = $catalog->create(
+            $companyId,
+            $validated['name'],
+            $request->boolean('is_active', true),
+        );
+
+        return $this->quickCreateStringResponse($type->code, $type->name, __('Artwork type created.'));
     }
 
     public function createQuotation(Request $request): View
@@ -1369,17 +1420,22 @@ class QuickCreateLookupController extends Controller
             'title' => __('Create artwork'),
             'action' => route('admin.crm.customer-artworks.quick-store'),
             'customer' => $customer,
-            'artworkTypes' => CustomerArtworkType::cases(),
+            'artworkTypes' => $customer
+                ? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id)
+                : [],
         ]);
     }
 
     public function storeCustomerArtwork(Request $request, CustomerArtworkService $service): JsonResponse|Response
     {
         try {
+            $customer = Customer::query()->forTenant()->findOrFail($request->integer('customer_id'));
+            $catalog = app(\App\Support\Crm\CustomerArtworkTypeCatalog::class);
+
             $validated = $request->validate([
                 'customer_id' => ['required', 'integer', 'exists:customers,id'],
                 'artwork_name' => ['required', 'string', 'max:255'],
-                'artwork_type' => ['required', Rule::enum(CustomerArtworkType::class)],
+                'artwork_type' => $catalog->validationRules((int) $customer->company_id, required: true),
                 'file' => ['required', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
             ]);
         } catch (ValidationException $exception) {
@@ -1389,7 +1445,9 @@ class QuickCreateLookupController extends Controller
                 'title' => __('Create artwork'),
                 'action' => route('admin.crm.customer-artworks.quick-store'),
                 'customer' => $customer,
-                'artworkTypes' => CustomerArtworkType::cases(),
+                'artworkTypes' => $customer
+                    ? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id)
+                    : [],
             ]);
         }
 
@@ -1428,6 +1486,9 @@ class QuickCreateLookupController extends Controller
         CustomerArtworkService $artworks,
     ): JsonResponse|Response {
         try {
+            $customer = Customer::query()->forTenant()->findOrFail($request->integer('customer_id'));
+            $catalog = app(\App\Support\Crm\CustomerArtworkTypeCatalog::class);
+
             $validated = $request->validate([
                 'customer_id' => ['required', 'integer', 'exists:customers,id'],
                 'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
@@ -1436,7 +1497,7 @@ class QuickCreateLookupController extends Controller
                 'default_quantity' => ['nullable', 'numeric', 'min:0'],
                 'default_unit_price' => ['nullable', 'numeric', 'min:0'],
                 'artwork_file' => ['nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
-                'artwork_type' => ['nullable', Rule::enum(CustomerArtworkType::class)],
+                'artwork_type' => $catalog->validationRules((int) $customer->company_id),
             ]);
         } catch (ValidationException $exception) {
             $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
@@ -1462,7 +1523,7 @@ class QuickCreateLookupController extends Controller
                 $request->file('artwork_file'),
                 (int) auth()->id(),
                 null,
-                $validated['artwork_type'] ?? CustomerArtworkType::Layout->value,
+                $validated['artwork_type'] ?? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->defaultCode(),
             );
             $spec = $spec->fresh(['inventoryItem', 'activeArtworkVersion']);
         }
@@ -1482,7 +1543,9 @@ class QuickCreateLookupController extends Controller
             'action' => route('admin.crm.print-specifications.quick-store'),
             'customer' => $customer,
             'statuses' => CustomerPrintSpecificationStatus::cases(),
-            'artworkTypes' => CustomerArtworkType::cases(),
+            'artworkTypes' => $customer
+                ? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id)
+                : [],
             'defaultStatus' => CustomerPrintSpecificationStatus::Active->value,
         ];
     }

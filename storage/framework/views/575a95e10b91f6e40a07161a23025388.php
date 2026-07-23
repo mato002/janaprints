@@ -16,6 +16,8 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <div class="crm-customers w-full min-w-0 space-y-3 sm:space-y-4">
+        <?php echo $__env->make('admin.crm.partials.desk-mode-nav', ['activeCrmView' => \App\Support\Crm\CrmDeskViews::CUSTOMERS], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
         <?php if (! (WorkspaceEmbed::inWorkspaceContext())): ?>
             <header class="crm-customers__header">
                 <div class="crm-customers__header-main">

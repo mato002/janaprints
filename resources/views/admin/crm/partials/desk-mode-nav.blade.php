@@ -4,8 +4,15 @@
     use App\Models\Crm\Lead;
     use App\Models\Crm\CustomerSegment;
     use App\Models\Crm\CustomerActivity;
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    // Inside the module workspace shell, modes live on the fixed context tab bar.
+    if (WorkspaceEmbed::inWorkspaceContext()) {
+        return;
+    }
 
     $active = CrmDeskViews::normalize($activeCrmView ?? request('view'));
+    $frame = WorkspaceEmbed::turboFrame();
     $user = auth()->user();
     $modes = collect([
         [
@@ -36,15 +43,16 @@
 @endphp
 
 @if ($modes->count() > 1)
-    <nav class="mb-4 flex flex-wrap gap-1.5" aria-label="{{ __('CRM desk modes') }}">
+    <nav class="workspace-context-tabs" aria-label="{{ __('CRM desk modes') }}">
         @foreach ($modes as $mode)
             <a
-                href="{{ $mode['url'] }}"
+                href="{{ WorkspaceEmbed::url($mode['url']) }}"
                 @class([
-                    'erp-filter-pill',
-                    'erp-filter-pill--active' => $mode['key'] === $active,
+                    'workspace-context-tab',
+                    'workspace-context-tab--active' => $mode['key'] === $active,
                 ])
-                data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}"
+                data-turbo-frame="{{ $frame }}"
+                data-turbo-action="advance"
             >{{ $mode['label'] }}</a>
         @endforeach
     </nav>

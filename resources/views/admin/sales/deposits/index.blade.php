@@ -1,5 +1,7 @@
 @php
-    $turboFrame = request('embedded') ? 'module-workspace-content' : 'erp-main';
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $turboFrame = WorkspaceEmbed::turboFrame();
 @endphp
 
 <x-admin-layout :title="__('Customer deposits')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Customer deposits')]]">
