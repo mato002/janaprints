@@ -58,7 +58,11 @@ class SalesDeskPageBuilder
             'printSpecifications' => $specs,
             'specificationNotice' => $notice['message'],
             'searchUrl' => route('admin.sales.desk.customers.search'),
-            'fullCommercialDeskUrl' => route('admin.workspaces.commercial', ['desk' => 1]),
+            'fullCommercialDeskUrl' => route('admin.workspaces.commercial.section', [
+                'section' => 'sales',
+                'tab' => 'quotations',
+                'desk' => 1,
+            ]),
         ];
     }
 

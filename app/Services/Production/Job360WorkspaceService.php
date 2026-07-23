@@ -212,7 +212,7 @@ class Job360WorkspaceService
             'assignedMachine:id,asset_name,asset_number',
             'costSheet',
             'routeSteps' => fn ($q) => $q->with(['completedByUser:id,name', 'workCenter:id,name'])->orderBy('sequence'),
-            'queues' => fn ($q) => $q->with(['workCenter:id,name', 'assignedOperator:id,name'])
+            'queues' => fn ($q) => $q->with(['workCenter:id,name,code,requires_machine', 'assignedOperator:id,name'])
                 ->orderBy('queue_position'),
         ])->loadCount([
             'operations',

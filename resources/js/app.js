@@ -4337,6 +4337,9 @@ document.addEventListener('alpine:init', () => {
         actionModalTarget: '',
         actionModalMachineId: '',
         actionModalAssignSubmitting: false,
+        selectedOperatorId: '',
+        operatorCreateUrl: config.operatorCreateUrl ?? null,
+        operatorsRefreshUrl: config.operatorsRefreshUrl ?? null,
         qcDecision: 'passed',
         modalTitles: config.modalTitles ?? {},
         stickyObserver: null,
@@ -4783,6 +4786,7 @@ document.addEventListener('alpine:init', () => {
             this.actionModalTarget = target;
             this.qcDecision = 'passed';
             this.actionModalMachineId = '';
+            this.selectedOperatorId = '';
             this.actionModalOpen = true;
             this.actionModalLoading = true;
             this.actionModalPanel = null;
@@ -4813,6 +4817,77 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        async openCreateOperator() {
+            if (! this.operatorCreateUrl || ! window.erpLookupManager) {
+                return;
+            }
+
+            window.erpLookupManager.open(this.operatorCreateUrl, {
+                title: 'Create operator',
+                onSuccess: async (record) => {
+                    const selected = String(record?.value ?? record?.id ?? '');
+
+                    await this.refreshActionModalOperators(selected);
+
+                    if (selected) {
+                        this.selectedOperatorId = selected;
+                    }
+                },
+            });
+        },
+
+        async refreshActionModalOperators(selectValue = null) {
+            const jobKey = this.actionModalPanel?.job?.public_id;
+
+            if (jobKey) {
+                try {
+                    const response = await fetch(`${this.panelBase}/${jobKey}/panel`, {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (response.ok) {
+                        const panel = await response.json();
+                        this.actionModalPanel = {
+                            ...this.actionModalPanel,
+                            operators: panel.operators ?? [],
+                            execution: panel.execution ?? this.actionModalPanel?.execution,
+                        };
+                    }
+                } catch (error) {
+                    console.error('productionFloor.refreshActionModalOperators', error);
+                }
+            } else if (this.operatorsRefreshUrl) {
+                try {
+                    const response = await fetch(this.operatorsRefreshUrl, {
+                        headers: {
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+
+                    if (response.ok && this.actionModalPanel) {
+                        const options = await response.json();
+                        this.actionModalPanel = {
+                            ...this.actionModalPanel,
+                            operators: (options ?? []).map((option) => ({
+                                id: option.value,
+                                name: option.label,
+                            })),
+                        };
+                    }
+                } catch (error) {
+                    console.error('productionFloor.refreshActionModalOperators', error);
+                }
+            }
+
+            if (selectValue) {
+                this.selectedOperatorId = String(selectValue);
+            }
+        },
+
         openQcModal(jobKey) {
             return this.openActionModal(jobKey, 'qc');
         },
@@ -4823,6 +4898,7 @@ document.addEventListener('alpine:init', () => {
             this.actionModalTarget = '';
             this.actionModalMachineId = '';
             this.actionModalAssignSubmitting = false;
+            this.selectedOperatorId = '';
             this.qcDecision = 'passed';
         },
 
@@ -9345,10 +9421,30 @@ document.addEventListener('turbo:frame-missing', async (event) => {
             const sourceFrame = doc.querySelector('turbo-frame#module-workspace-content');
 
             if (sourceFrame) {
-                event.target.innerHTML = sourceFrame.innerHTML;
-                refreshEmbeddedWorkspaceFrame(event.target);
+                const nestedShell = sourceFrame.querySelector('.module-shell');
 
-                return;
+                if (nestedShell) {
+                    const nestedContentFrame = sourceFrame.querySelector('turbo-frame#module-workspace-content[src]');
+                    const nestedSrc = nestedContentFrame?.getAttribute('src');
+
+                    if (nestedSrc && window.Turbo) {
+                        window.Turbo.visit(nestedSrc, {
+                            frame: 'module-workspace-content',
+                            action: 'replace',
+                        });
+
+                        return;
+                    }
+
+                    if (promoteEmbeddedWorkspaceNavigation(event.target, response.url)) {
+                        return;
+                    }
+                } else {
+                    event.target.innerHTML = sourceFrame.innerHTML;
+                    refreshEmbeddedWorkspaceFrame(event.target);
+
+                    return;
+                }
             }
         } catch {
             // Fall through to a one-shot promote only for successful HTML without a frame.

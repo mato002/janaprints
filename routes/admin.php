@@ -48,7 +48,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         Route::get('workspaces/accounting', [AccountingWorkspaceController::class, 'hub'])
             ->name('workspaces.accounting');
         Route::get('workspaces/accounting/{section}', [AccountingWorkspaceController::class, 'section'])
-            ->where('section', 'general-ledger|receivables|payables|tax|setup')
+            ->where('section', 'general-ledger|receivables|payables|cash-management|tax|budgets|setup')
             ->name('workspaces.accounting.section');
 
         Route::get('workspaces/supply-chain', [SupplyChainWorkspaceController::class, 'hub'])

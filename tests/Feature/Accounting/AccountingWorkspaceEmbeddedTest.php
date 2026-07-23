@@ -21,14 +21,16 @@ class AccountingWorkspaceEmbeddedTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_accounting_hub_renders_dashboard_embedded_desk(): void
+    public function test_accounting_hub_redirects_to_general_ledger_desk(): void
     {
         $user = $this->companyAdmin();
 
         $this->actingAs($user)
             ->get(route('admin.workspaces.accounting'))
-            ->assertOk()
-            ->assertSee(route('admin.accounting.dashboard', ['embedded' => '1']), false);
+            ->assertRedirect(route('admin.workspaces.accounting.section', [
+                'section' => 'general-ledger',
+                'tab' => 'journals',
+            ]));
     }
 
     public function test_accounting_dashboard_full_page_embedded_query_renders_without_redirect(): void

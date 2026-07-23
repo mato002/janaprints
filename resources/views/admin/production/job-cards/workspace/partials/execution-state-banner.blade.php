@@ -168,13 +168,18 @@
             @csrf
             <input type="hidden" name="production_queue_id" value="{{ $state['queue_id'] }}">
             <div class="min-w-[16rem] flex-1">
-                <label class="block text-[11px] uppercase tracking-wide text-slate-500">{{ __('Assign operator') }}</label>
-                <select name="assigned_operator_id" class="erp-select w-full text-sm" required>
-                    <option value="">{{ __('Select operator') }}</option>
-                    @foreach ($operators as $operator)
-                        <option value="{{ $operator->id }}">{{ $operator->name }}</option>
-                    @endforeach
-                </select>
+                <x-admin.lookup-select
+                    name="assigned_operator_id"
+                    :label="__('Assign operator')"
+                    :options="$operators->map(fn ($operator) => ['value' => $operator->id, 'label' => $operator->name])->values()->all()"
+                    :required="true"
+                    create-route="admin.operators.quick-create"
+                    refresh-route="admin.lookups.operators"
+                    permission="employees.manage"
+                    :modal-title="__('Create operator')"
+                    select-class="erp-select w-full text-sm"
+                    :placeholder="__('Select operator')"
+                />
             </div>
             <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign operator') }}</button>
         </form>

@@ -11,31 +11,46 @@
                 const url = new URL(window.location.href);
                 url.searchParams.set('tab', id);
                 window.history.replaceState({}, '', url);
+                const more = this.$el.querySelector('.employee-360__more[open]');
+                if (more) more.removeAttribute('open');
             },
         }"
     >
         @include('admin.hr.employees.360.header')
         @include('admin.hr.employees.360.kpi-strip')
 
-        <nav class="mb-6 flex flex-wrap gap-2 border-b border-slate-200 pb-2" aria-label="{{ __('Employee workspace tabs') }}">
-            @foreach ($tabs as $tabDef)
-                <button
-                    type="button"
-                    class="rounded-md px-3 py-1.5 text-sm font-medium"
-                    :class="tab === @js($tabDef['id']) ? 'bg-erp-primary text-white' : 'text-slate-600 hover:bg-slate-100'"
-                    @click="setTab(@js($tabDef['id']))"
-                >
-                    {{ $tabDef['label'] }}
-                </button>
-            @endforeach
+        <nav class="employee-360__tabs" aria-label="{{ __('Employee workspace tabs') }}">
+            <div class="employee-360__tabs-track">
+                @foreach ($tabs as $tabDef)
+                    <button
+                        type="button"
+                        class="employee-360__tab"
+                        :class="tab === @js($tabDef['id']) ? 'is-active' : ''"
+                        @click="setTab(@js($tabDef['id']))"
+                    >
+                        {{ $tabDef['label'] }}
+                    </button>
+                @endforeach
+            </div>
         </nav>
 
-<div class="employee-360__panels">
+        <div class="employee-360__panels">
             @foreach ($tabs as $tabDef)
-                <div x-show="tab === @js($tabDef['id'])" @if ($tabDef['id'] !== 'overview') x-cloak @endif>
+                <div
+                    class="employee-360__panel"
+                    x-show="tab === @js($tabDef['id'])"
+                    @if ($tabDef['id'] !== 'overview') x-cloak @endif
+                >
                     @include('admin.hr.employees.360.tabs.'.$tabDef['id'])
                 </div>
             @endforeach
         </div>
+
+        <nav class="employee-360__mobile-bar" aria-label="{{ __('Quick actions') }}">
+            @can('update', $employee)
+                <a href="{{ route('admin.employees.edit', $employee) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Edit') }}</a>
+            @endcan
+            <button type="button" class="erp-btn-secondary" @click="setTab('timeline')">{{ __('Timeline') }}</button>
+        </nav>
     </div>
 </x-admin-layout>

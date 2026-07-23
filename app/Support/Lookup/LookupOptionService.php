@@ -22,6 +22,7 @@ use App\Models\Inventory\Warehouse;
 use App\Models\Hr\PayrollGroupDefinition;
 use App\Models\Procurement\Vendor;
 use App\Models\Sales\Quotation;
+use App\Models\User;
 use App\Support\Hr\PayrollGroupService;
 use App\Support\Production\ProductionJobCardEligibilityService;
 use App\Support\Sales\CustomerOrderContextService;
@@ -51,6 +52,7 @@ class LookupOptionService
             'segments' => $this->mapOptions($this->segmentsQuery($request)->get(['id', 'name']), 'id', 'name'),
             'departments' => $this->mapOptions($this->departmentsQuery($request)->get(['id', 'name']), 'id', 'name'),
             'employees' => $this->mapOptions($this->employeesQuery($request)->get(['id', 'first_name', 'last_name', 'employee_number']), 'id', fn ($row) => trim("{$row->first_name} {$row->last_name}")." ({$row->employee_number})"),
+            'operators' => $this->mapOptions($this->operatorsQuery($request)->get(['id', 'name']), 'id', 'name'),
             'price_books' => $this->priceBookOptions($request),
             'leads' => $this->mapOptions($this->leadsQuery($request)->get(['id', 'lead_name']), 'id', 'lead_name'),
             'lead_sources' => $this->mapOptions($this->leadSourcesQuery($request)->get(['id', 'name']), 'id', 'name'),
@@ -222,6 +224,33 @@ class LookupOptionService
 
         if ($branchId = $this->branchId($request)) {
             $query->where('branch_id', $branchId);
+        }
+
+        return $query;
+    }
+
+    /**
+     * Users that can be assigned as production floor operators.
+     * Includes active logins and HR-onboarded staff awaiting activation.
+     */
+    protected function operatorsQuery(Request $request): Builder
+    {
+        $query = User::query()
+            ->where(function (Builder $builder) {
+                $builder->where('is_active', true)
+                    ->orWhereNotNull('employee_id');
+            })
+            ->orderBy('name');
+
+        if ($companyId = $this->companyId($request)) {
+            $query->where('company_id', $companyId);
+        }
+
+        if ($branchId = $this->branchId($request)) {
+            $query->where(function (Builder $builder) use ($branchId) {
+                $builder->where('default_branch_id', $branchId)
+                    ->orWhereNull('default_branch_id');
+            });
         }
 
         return $query;

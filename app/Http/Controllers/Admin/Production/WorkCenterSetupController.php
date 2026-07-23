@@ -80,9 +80,11 @@ class WorkCenterSetupController extends Controller
             ],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
+            'requires_machine' => ['boolean'],
         ]);
 
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['requires_machine'] = $request->boolean('requires_machine', false);
         $data['code'] = strtoupper((string) $data['code']);
 
         return $data;

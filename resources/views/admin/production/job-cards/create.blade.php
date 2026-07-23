@@ -35,7 +35,14 @@
                         :options="$lookupOptions"
                         :value="old('sales_order_id', $preselectedSalesOrderId ?? null)"
                         :required="true"
+                        create-route="admin.sales-orders.create"
+                        :create-query="array_filter([
+                            'tab' => 'direct',
+                            'from' => ($fromProductionFloor ?? false) ? 'production-floor' : null,
+                        ])"
                         refresh-route="admin.lookups.job_card_sales_orders"
+                        permission="sales_orders.create"
+                        :modal-title="__('Create sales order')"
                         :placeholder="__('Select sales order')"
                     />
 
@@ -84,28 +91,20 @@
 
                             @if (($summary['already_have_job'] ?? 0) === 0 && ($summary['blocked_artwork'] ?? 0) === 0)
                                 <p class="mt-2 text-xs">
-                                    {{ __('No confirmed orders yet. Create a sales order below, then return here to continue.') }}
+                                    @can('sales_orders.create')
+                                        {{ __('No confirmed orders yet. Use + beside Sales order to create one, then check again.') }}
+                                    @else
+                                        {{ __('No confirmed orders yet. Ask Sales to create and release an order, then check again.') }}
+                                    @endcan
                                 </p>
                             @endif
 
                             <div class="mt-3 flex flex-wrap gap-2">
-                                @if ($salesOrderCreateUrl)
-                                    <a href="{{ $salesOrderCreateUrl }}" class="erp-btn-secondary text-sm" data-erp-modal-open>
-                                        {{ __('Create sales order') }}
-                                    </a>
-                                @endif
                                 <button type="button" class="erp-btn-secondary text-sm" @click="checkAgain()">
                                     {{ __('Check again') }}
                                 </button>
                             </div>
                         </div>
-                    @elseif ($salesOrderCreateUrl)
-                        <p class="text-xs text-slate-500">
-                            <a href="{{ $salesOrderCreateUrl }}" class="font-medium text-slate-700 underline-offset-2 hover:underline" data-erp-modal-open>
-                                {{ __('Create another sales order') }}
-                            </a>
-                            {{ __('without leaving this form — you will return here after saving.') }}
-                        </p>
                     @endif
                 </div>
 

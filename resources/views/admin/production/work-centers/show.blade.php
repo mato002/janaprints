@@ -48,6 +48,12 @@
                         @endif
                     </dd>
                 </div>
+                <div class="flex justify-between gap-3">
+                    <dt class="text-slate-500">{{ __('Machine required') }}</dt>
+                    <dd class="text-right font-medium">
+                        {{ $workCenter->requires_machine ? __('Yes — before Start work') : __('No') }}
+                    </dd>
+                </div>
             </dl>
         </x-admin.card>
 

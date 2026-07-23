@@ -112,7 +112,7 @@ return [
                 [
                     'label' => 'Customer AR',
                     'items' => [
-                        ['label' => 'Invoices', 'description' => 'Customer billing documents.', 'route' => 'admin.invoices.index', 'permission' => 'invoices.view', 'icon' => 'receipt-tax', 'active_routes' => ['admin.invoices.index', 'admin.invoices.show', 'admin.invoices.edit', 'admin.invoices.from-sales-order', 'admin.invoices.store-from-sales-order', 'admin.invoices.store-from-job-card']],
+                        ['label' => 'Invoices', 'description' => 'Customer billing documents.', 'route' => 'admin.invoices.index', 'permission' => 'invoices.view', 'icon' => 'receipt-tax', 'active_routes' => ['admin.invoices.index', 'admin.invoices.create', 'admin.invoices.show', 'admin.invoices.edit', 'admin.invoices.from-sales-order', 'admin.invoices.store-from-sales-order', 'admin.invoices.store-from-job-card']],
                         ['label' => 'Credit Notes', 'description' => 'Credit notes issued against posted invoices.', 'route' => 'admin.invoices.credit-notes.index', 'permission' => 'invoices.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.invoices.credit-notes.index']],
                         ['label' => 'Payments', 'description' => 'Cash, bank, and M-Pesa receipts.', 'route' => 'admin.payments.index', 'permission' => 'payments.view', 'icon' => 'credit-card', 'active_routes' => ['admin.payments.*']],
                         ['label' => 'Customer Deposits', 'description' => 'Unallocated deposits, applications, and refunds.', 'route' => 'admin.deposits.index', 'permission' => 'payments.view', 'icon' => 'cash', 'active_routes' => ['admin.deposits.*']],

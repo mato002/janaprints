@@ -154,6 +154,10 @@ class ModuleShellPresenter
             return null;
         }
 
+        $module = $this->moduleDefinitions()[$moduleKey];
+        $catalog = $this->loadCatalog($module);
+        $desk = $this->preferSectionedDesk($moduleKey, $desk, $module, $catalog);
+
         $primary = $desk['active_primary'] ?? null;
         $secondary = $desk['active_secondary'] ?? null;
 
@@ -161,11 +165,13 @@ class ModuleShellPresenter
             return null;
         }
 
-        $module = $this->moduleDefinitions()[$moduleKey];
-        $catalog = $this->loadCatalog($module);
+        // Full-page operator desks (Sales Desk, etc.) — same destination as dashboard shortcuts.
+        if ($secondary !== null && ! empty($secondary['open_full']) && ! empty($secondary['href'])) {
+            return ['url' => (string) $secondary['href']];
+        }
+
         $sectionRoute = $module['section_route'] ?? null;
-        $primaryHasSection = isset($catalog['sections'][$primary['key'] ?? ''])
-            || (($module['type'] ?? '') === 'grouped' && $this->groupedSectionExists($catalog, $primary['key'] ?? ''));
+        $primaryHasSection = $this->primaryKeyHasSection($catalog, $module, $primary['key'] ?? null);
 
         if ($sectionRoute && Route::has($sectionRoute) && $primaryHasSection) {
             $url = route($sectionRoute, ['section' => $primary['key']]);
@@ -191,6 +197,59 @@ class ModuleShellPresenter
             }
 
             $url = route($hubRoute, $params);
+
+            return ['url' => $this->navigation->appendPreservedQuery($url) ?? $url];
+        }
+
+        return null;
+    }
+
+    /**
+     * Default multi-tab shell landing — skips open_full operator desks.
+     * Used when ?desk=1 requests the Commercial shell escape hatch.
+     *
+     * @return array{url: string}|null
+     */
+    public function defaultShellDesk(string $moduleKey): ?array
+    {
+        $desk = $this->presentDesk($moduleKey);
+
+        if ($desk === null) {
+            return null;
+        }
+
+        $module = $this->moduleDefinitions()[$moduleKey];
+        $catalog = $this->loadCatalog($module);
+        $desk = $this->preferSectionedDesk($moduleKey, $desk, $module, $catalog);
+
+        $primary = $desk['active_primary'] ?? null;
+
+        if ($primary === null) {
+            return null;
+        }
+
+        $secondary = null;
+
+        foreach ($desk['secondary_workspaces'] ?? [] as $tab) {
+            if (! empty($tab['open_full']) || ! empty($tab['coming_soon']) || empty($tab['href'])) {
+                continue;
+            }
+
+            $secondary = $tab;
+            break;
+        }
+
+        $sectionRoute = $module['section_route'] ?? null;
+        $primaryHasSection = $this->primaryKeyHasSection($catalog, $module, $primary['key'] ?? null);
+
+        if ($sectionRoute && Route::has($sectionRoute) && $primaryHasSection) {
+            $url = route($sectionRoute, ['section' => $primary['key']]);
+
+            if ($secondary !== null) {
+                $url = $this->appendQuery($url, ['tab' => $secondary['key']]);
+            }
+
+            $url = $this->appendQuery($url, ['desk' => 1]);
 
             return ['url' => $this->navigation->appendPreservedQuery($url) ?? $url];
         }
@@ -317,7 +376,7 @@ class ModuleShellPresenter
      */
     protected function shouldSkipDeskRedirectItem(array $item): bool
     {
-        return ! empty($item['skip_desk_redirect']);
+        return ! empty($item['skip_desk_redirect']) || ! empty($item['open_full']);
     }
 
     /**
@@ -662,10 +721,31 @@ class ModuleShellPresenter
                 }
 
                 $key = $this->itemKey($item);
-                $embeddedHref = $this->resolveSecondaryHref($item, $primaryKey, $module);
+                $openFull = ! empty($item['open_full']);
+                $featureHref = $this->resolveFeatureHref($item);
+                $embeddedHref = $openFull ? null : $this->resolveSecondaryHref($item, $primaryKey, $module);
                 $deskHref = ($module !== null && $moduleKey !== null)
                     ? $this->buildDeskUrl($moduleKey, $module, $primaryKey, $key)
                     : null;
+
+                // Operator desks (e.g. Sales Desk) open full-page like dashboard shortcuts.
+                if ($openFull && $featureHref !== null) {
+                    $tabs[] = [
+                        'key' => $key,
+                        'label' => $item['label'] ?? '',
+                        'description' => $item['description'] ?? '',
+                        'href' => $featureHref,
+                        'content_href' => null,
+                        'turbo_frame' => 'erp-main',
+                        'open_full' => true,
+                        'badge' => $item['count'] ?? null,
+                        'coming_soon' => (bool) ($item['coming_soon'] ?? false),
+                        'toolbar_actions' => $item['toolbar_actions'] ?? [],
+                        'active' => false,
+                    ];
+
+                    continue;
+                }
 
                 $tabs[] = [
                     'key' => $key,
@@ -676,6 +756,7 @@ class ModuleShellPresenter
                     // Frame src stays on the embedded feature URL.
                     'content_href' => $embeddedHref,
                     'turbo_frame' => $deskHref !== null ? 'erp-main' : 'module-workspace-content',
+                    'open_full' => false,
                     'badge' => $item['count'] ?? null,
                     'coming_soon' => (bool) ($item['coming_soon'] ?? false),
                     'toolbar_actions' => $item['toolbar_actions'] ?? [],
@@ -706,6 +787,56 @@ class ModuleShellPresenter
         }
 
         return array_merge($primaryWorkspaces[0], ['active' => true]);
+    }
+
+    /**
+     * When hub starts with a feature-only primary (e.g. Accounting Dashboard),
+     * land on the first section desk that has secondary tabs.
+     *
+     * @param  array<string, mixed>  $desk
+     * @param  array<string, mixed>  $module
+     * @param  array<string, mixed>|null  $catalog
+     * @return array<string, mixed>
+     */
+    protected function preferSectionedDesk(string $moduleKey, array $desk, array $module, ?array $catalog): array
+    {
+        $primaryKey = $desk['active_primary']['key'] ?? null;
+
+        if ($this->primaryKeyHasSection($catalog, $module, is_string($primaryKey) ? $primaryKey : null)) {
+            return $desk;
+        }
+
+        foreach ($desk['primary_workspaces'] ?? [] as $workspace) {
+            $key = $workspace['key'] ?? null;
+
+            if (! is_string($key) || $key === '') {
+                continue;
+            }
+
+            if (! $this->primaryKeyHasSection($catalog, $module, $key)) {
+                continue;
+            }
+
+            $sectioned = $this->presentDesk($moduleKey, $key);
+
+            return $sectioned ?? $desk;
+        }
+
+        return $desk;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $catalog
+     * @param  array<string, mixed>  $module
+     */
+    protected function primaryKeyHasSection(?array $catalog, array $module, ?string $primaryKey): bool
+    {
+        if ($catalog === null || $primaryKey === null || $primaryKey === '') {
+            return false;
+        }
+
+        return isset($catalog['sections'][$primaryKey])
+            || (($module['type'] ?? '') === 'grouped' && $this->groupedSectionExists($catalog, $primaryKey));
     }
 
     /**
@@ -778,7 +909,8 @@ class ModuleShellPresenter
             return null;
         }
 
-        return $activeSecondary['content_href'] ?? $activeSecondary['href'] ?? null;
+        // Never fall back to the desk href — frame src must stay on embedded feature URLs.
+        return $activeSecondary['content_href'] ?? null;
     }
 
     /**
@@ -873,6 +1005,24 @@ class ModuleShellPresenter
             $item['route'] ?? null,
             $item['route_params'] ?? [],
         );
+    }
+
+    /**
+     * Full feature URL without ?embedded=1 (for open_full operator desks).
+     *
+     * @param  array<string, mixed>  $item
+     */
+    protected function resolveFeatureHref(array $item): ?string
+    {
+        $route = $item['route'] ?? null;
+
+        if (! is_string($route) || ! Route::has($route)) {
+            return null;
+        }
+
+        $url = route($route, $item['route_params'] ?? []);
+
+        return $this->navigation->appendPreservedQuery($url) ?? $url;
     }
 
     /**

@@ -119,7 +119,11 @@ class ProductionFloorService
                 ->values(),
             'execution' => app(JobExecutionStateService::class)->state($jobCard),
             'quality' => $this->qualityPanelData($jobCard),
-            'blockers' => app(JobProductionControlService::class)->dispatchEligibility($jobCard)['blockers'] ?? [],
+            'blockers' => collect(app(JobProductionControlService::class)->controlAlerts($jobCard))
+                ->pluck('message')
+                ->filter()
+                ->values()
+                ->all(),
         ];
     }
 

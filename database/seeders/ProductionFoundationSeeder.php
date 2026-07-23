@@ -12,16 +12,16 @@ use Illuminate\Database\Seeder;
 class ProductionFoundationSeeder extends Seeder
 {
     /**
-     * @var list<array{code: string, name: string}>
+     * @var list<array{code: string, name: string, requires_machine: bool}>
      */
     private array $workCenters = [
-        ['code' => 'DESIGN', 'name' => 'Design'],
-        ['code' => 'PREPRESS', 'name' => 'Prepress'],
-        ['code' => 'DIGITAL', 'name' => 'Digital Printing'],
-        ['code' => 'OFFSET', 'name' => 'Offset Printing'],
-        ['code' => 'LARGE_FORMAT', 'name' => 'Large Format'],
-        ['code' => 'FINISHING', 'name' => 'Finishing'],
-        ['code' => 'PACKAGING', 'name' => 'Packaging'],
+        ['code' => 'DESIGN', 'name' => 'Design', 'requires_machine' => false],
+        ['code' => 'PREPRESS', 'name' => 'Prepress', 'requires_machine' => false],
+        ['code' => 'DIGITAL', 'name' => 'Digital Printing', 'requires_machine' => true],
+        ['code' => 'OFFSET', 'name' => 'Offset Printing', 'requires_machine' => true],
+        ['code' => 'LARGE_FORMAT', 'name' => 'Large Format', 'requires_machine' => true],
+        ['code' => 'FINISHING', 'name' => 'Finishing', 'requires_machine' => false],
+        ['code' => 'PACKAGING', 'name' => 'Packaging', 'requires_machine' => false],
     ];
 
     /**
@@ -54,9 +54,13 @@ class ProductionFoundationSeeder extends Seeder
     protected function seedForBranch(int $companyId, int $branchId): void
     {
         foreach ($this->workCenters as $center) {
-            WorkCenter::query()->firstOrCreate(
+            WorkCenter::query()->updateOrCreate(
                 ['company_id' => $companyId, 'branch_id' => $branchId, 'code' => $center['code']],
-                ['name' => $center['name'], 'is_active' => true],
+                [
+                    'name' => $center['name'],
+                    'is_active' => true,
+                    'requires_machine' => $center['requires_machine'],
+                ],
             );
         }
 

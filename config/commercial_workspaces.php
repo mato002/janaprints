@@ -3,19 +3,11 @@
 /**
  * Commercial workspace hub and section catalogs (presentation only).
  * Root hub shows five workspace cards; features live on section pages.
+ * Order: daily operations first → support → analysis last.
  */
 return [
 
     'hub' => [
-        [
-            'label' => 'CRM',
-            'description' => 'Customers, leads, segments, and commercial activities.',
-            'route' => 'admin.workspaces.commercial.section',
-            'route_params' => ['section' => 'crm'],
-            'permission' => 'crm.customers.view|crm.leads.view|commercial.activities.view',
-            'icon' => 'user-circle',
-            'active_routes' => ['admin.workspaces.commercial.section:crm', 'admin.crm.*', 'admin.commercial.activities.*'],
-        ],
         [
             'label' => 'Sales',
             'description' => 'Quotations, artwork, sales orders, price books, and approvals.',
@@ -42,6 +34,15 @@ return [
             'permission' => 'pos.view|commercial.pos.sessions.view',
             'icon' => 'cash',
             'active_routes' => ['admin.workspaces.commercial.section:point-of-sale', 'admin.commercial.pos.*'],
+        ],
+        [
+            'label' => 'CRM',
+            'description' => 'Customers, leads, segments, and commercial activities.',
+            'route' => 'admin.workspaces.commercial.section',
+            'route_params' => ['section' => 'crm'],
+            'permission' => 'crm.customers.view|crm.leads.view|commercial.activities.view',
+            'icon' => 'user-circle',
+            'active_routes' => ['admin.workspaces.commercial.section:crm', 'admin.crm.*', 'admin.commercial.activities.*'],
         ],
         [
             'label' => 'Reports',
@@ -89,8 +90,8 @@ return [
                             ],
                         ],
                         ['label' => 'Leads', 'description' => 'Pipeline leads, follow-ups, and conversion tracking.', 'route' => 'admin.crm.leads.index', 'permission' => 'crm.leads.view', 'icon' => 'sparkles', 'active_routes' => ['admin.crm.leads.*']],
-                        ['label' => 'Segments', 'description' => 'Customer segments for targeting and reporting.', 'route' => 'admin.crm.segments.index', 'permission' => 'crm.customers.view', 'icon' => 'tag', 'active_routes' => ['admin.crm.segments.*']],
                         ['label' => 'Activities', 'description' => 'Calls, meetings, and customer touchpoints.', 'route' => 'admin.commercial.activities.index', 'permission' => 'commercial.activities.view', 'icon' => 'clock', 'active_routes' => ['admin.commercial.activities.*']],
+                        ['label' => 'Segments', 'description' => 'Customer segments for targeting and reporting.', 'route' => 'admin.crm.segments.index', 'permission' => 'crm.customers.view', 'icon' => 'tag', 'active_routes' => ['admin.crm.segments.*']],
                     ],
                 ],
             ],
@@ -114,12 +115,12 @@ return [
                 [
                     'label' => 'Sales',
                     'items' => [
-                        ['key' => 'sales-desk', 'label' => 'Sales Desk', 'description' => 'Walk-in flow: customer, specification, order, and release to production.', 'route' => 'admin.sales.desk', 'permission' => 'crm.customers.create|sales_orders.create', 'icon' => 'shopping-cart', 'active_routes' => ['admin.sales.desk', 'admin.sales.desk.*']],
+                        ['key' => 'sales-desk', 'label' => 'Sales Desk', 'description' => 'Walk-in flow: customer, specification, order, and release to production.', 'route' => 'admin.sales.desk', 'permission' => 'crm.customers.create|sales_orders.create', 'icon' => 'shopping-cart', 'active_routes' => ['admin.sales.desk', 'admin.sales.desk.*'], 'open_full' => true],
                         ['label' => 'Quotations', 'description' => 'Quotes, pricing, and customer proposals.', 'route' => 'admin.quotations.index', 'permission' => 'quotations.view', 'icon' => 'document-text', 'active_routes' => ['admin.quotations.*']],
                         ['label' => 'Artwork', 'description' => 'Design requests, proofs, and approvals.', 'route' => 'admin.artwork.index', 'permission' => 'artwork.view', 'icon' => 'color-swatch', 'active_routes' => ['admin.artwork.*']],
                         ['label' => 'Sales Orders', 'description' => 'Confirmed orders ready for production.', 'route' => 'admin.sales-orders.index', 'permission' => 'sales_orders.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.sales-orders.*']],
-                        ['label' => 'Price Books', 'description' => 'Commercial price lists and customer pricing tiers.', 'route' => 'admin.commercial.price-books.index', 'permission' => 'commercial.price_books.view', 'icon' => 'tag', 'active_routes' => ['admin.commercial.price-books.*']],
                         ['label' => 'Approvals', 'description' => 'Quote and order approval queues.', 'route' => 'admin.commercial.approvals.index', 'permission' => 'commercial.approvals.view', 'icon' => 'badge-check', 'active_routes' => ['admin.commercial.approvals.*']],
+                        ['label' => 'Price Books', 'description' => 'Commercial price lists and customer pricing tiers.', 'route' => 'admin.commercial.price-books.index', 'permission' => 'commercial.price_books.view', 'icon' => 'tag', 'active_routes' => ['admin.commercial.price-books.*']],
                     ],
                 ],
             ],
@@ -139,8 +140,8 @@ return [
                     'items' => [
                         ['label' => 'Quote Requests', 'description' => 'Public storefront quote requests from guest visitors.', 'route' => 'admin.public-quote-requests.index', 'permission' => 'public_leads.quote_requests.view', 'icon' => 'document-text', 'active_routes' => ['admin.public-quote-requests.*'], 'count_key' => 'pending_quote_requests'],
                         ['label' => 'Contact Messages', 'description' => 'Public contact form messages from the storefront.', 'route' => 'admin.public-contact-messages.index', 'permission' => 'public_leads.contact_messages.view', 'icon' => 'inbox', 'active_routes' => ['admin.public-contact-messages.*'], 'count_key' => 'unread_contact_messages'],
-                        ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'route' => 'admin.commercial.complaints.index', 'permission' => 'commercial.complaints.view', 'icon' => 'exclamation', 'active_routes' => ['admin.commercial.complaints.*']],
                         ['label' => 'Support Tickets', 'description' => 'Help desk tickets and case management.', 'route' => 'admin.commercial.support-tickets.index', 'permission' => 'commercial.tickets.view', 'icon' => 'inbox', 'active_routes' => ['admin.commercial.support-tickets.*']],
+                        ['label' => 'Complaints', 'description' => 'Customer complaints and resolution tracking.', 'route' => 'admin.commercial.complaints.index', 'permission' => 'commercial.complaints.view', 'icon' => 'exclamation', 'active_routes' => ['admin.commercial.complaints.*']],
                         ['label' => 'Dispatch Desk', 'description' => 'Outbound delivery — package, courier, collect, and confirm delivery.', 'route' => 'admin.dispatch.dashboard', 'permission' => 'dispatch.view', 'icon' => 'truck', 'active_routes' => ['admin.dispatch.dashboard', 'admin.dispatch.delivery-notes.*', 'admin.dispatch.calendar']],
                         ['label' => 'Customer Statements', 'description' => 'Period statements of account.', 'route' => 'admin.receivables.statement', 'permission' => 'receivables.statement.view', 'icon' => 'document-text', 'active_routes' => ['admin.receivables.statement']],
                         ['label' => 'Customer 360', 'description' => 'Select a customer to view profile, quotations, jobs, invoices, payments, communications, and timeline.', 'route' => 'admin.crm.customers.index', 'permission' => 'crm.customers.view', 'icon' => 'clock', 'skip_desk_redirect' => true, 'active_routes' => ['admin.crm.customers.*']],

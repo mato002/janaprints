@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Sales;
 
 use App\Enums\CustomerInvoiceStatus;
 use App\Enums\CustomerInvoiceType;
+use App\Enums\SalesOrderStatus;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Admin\Sales\Concerns\ManagesInvoiceItems;
@@ -174,6 +175,46 @@ class CustomerInvoiceController extends Controller
         $this->invoices->cancel($invoice, (int) auth()->id(), $validated['cancel_reason'] ?? null);
 
         return back()->with('status', __('Invoice cancelled.'));
+    }
+
+    public function create(Request $request): View
+    {
+        $this->authorize('create', CustomerInvoice::class);
+
+        $search = trim((string) $request->query('search', ''));
+        $customerId = $request->integer('customer_id') ?: null;
+
+        $query = $this->scopeToTenant(
+            SalesOrder::query()
+                ->with(['customer'])
+                ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
+        );
+
+        if ($customerId) {
+            $query->where('customer_id', $customerId);
+        }
+
+        if ($search !== '') {
+            $like = '%'.addcslashes($search, '%_\\').'%';
+            $query->where(function ($builder) use ($like) {
+                $builder->where('order_number', 'like', $like)
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('company_name', 'like', $like));
+            });
+        }
+
+        $orders = $query
+            ->latest('order_date')
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
+            ->values();
+
+        return view('admin.sales.invoices.select-order', [
+            'orders' => $orders,
+            'search' => $search,
+            'customerId' => $customerId,
+        ]);
     }
 
     public function createFromSalesOrder(Request $request, SalesOrder $salesOrder): View

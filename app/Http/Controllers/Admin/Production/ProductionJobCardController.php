@@ -29,7 +29,6 @@ use App\Support\ProductionJobCardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -82,12 +81,6 @@ class ProductionJobCardController extends Controller
             'resolutionContext' => $resolution,
             'productionTypes' => ProductionType::cases(),
             'priorities' => ProductionPriority::cases(),
-            'salesOrderCreateUrl' => Route::has('admin.sales-orders.create')
-                ? route('admin.sales-orders.create', array_filter([
-                    'tab' => 'direct',
-                    'from' => $fromProductionFloor ? 'production-floor' : null,
-                ]))
-                : null,
             'fromProductionFloor' => $fromProductionFloor,
             'preselectedSalesOrderId' => $request->integer('sales_order_id') ?: null,
         ]);
@@ -410,6 +403,12 @@ class ProductionJobCardController extends Controller
             $jobCard->update(['status' => ProductionJobCardStatus::Queued]);
         }
 
-        return $this->redirectAfterProductionFloorAction($jobCard, __('Operator assigned. Job is ready to start when machine requirements are met.'));
+        $jobCard->refresh();
+        $execution = app(\App\Services\Production\JobExecutionStateService::class)->state($jobCard);
+        $statusMessage = ($execution['needs_machine'] ?? false)
+            ? __('Operator assigned. Assign a machine before this stage can start.')
+            : __('Operator assigned. Ready to start — this stage does not require a machine.');
+
+        return $this->redirectAfterProductionFloorAction($jobCard, $statusMessage);
     }
 }

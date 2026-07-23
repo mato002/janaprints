@@ -79,11 +79,10 @@ class ProductionFoundationTest extends TestCase
             ->withHeader('Turbo-Frame', 'erp-form-modal')
             ->get(route('admin.production.job-cards.create'))
             ->assertOk()
-            ->assertSee(__('No sales orders are ready for a job card.'), false)
-            ->assertSee('data-erp-modal-open', false)
-            ->assertSee(__('Create sales order'), false)
-            ->assertSee('data-turbo-frame="erp-main"', false)
-            ->assertSee(__('View sales orders'), false)
+            ->assertSee(__('Nothing ready to start here — resolve the blocker without leaving this screen.'), false)
+            ->assertSee(__('No confirmed orders yet. Ask Sales to create and release an order, then check again.'), false)
+            ->assertDontSee('erp-lookup-select__add', false)
+            ->assertSee(__('Check again'), false)
             ->assertSee(__('Create job card'), false);
     }
 
@@ -100,7 +99,28 @@ class ProductionFoundationTest extends TestCase
             ->get(route('admin.production.job-cards.create', ['from' => 'production-floor']))
             ->assertOk()
             ->assertSee('from=production-floor', false)
-            ->assertSee('name="from" value="production-floor"', false);
+            ->assertSee('name="from" value="production-floor"', false)
+            ->assertSee('erp-lookup-select__add', false)
+            ->assertSee('tab=direct', false);
+    }
+
+    public function test_create_job_card_form_shows_sales_order_plus_button_with_permission(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext([
+            'production.view', 'production.create', 'sales_orders.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $salesOrder->update(['status' => SalesOrderStatus::ReadyForProduction]);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.production.job-cards.create'))
+            ->assertOk()
+            ->assertSee('erp-lookup-select__add', false)
+            ->assertSee('tab=direct', false)
+            ->assertDontSee(__('Create another sales order'), false);
     }
 
     public function test_ready_for_production_sales_order_appears_on_create_form(): void

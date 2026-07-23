@@ -3,6 +3,7 @@
 /**
  * Root sidebar navigation (workspaces only).
  * Feature links live on workspace hub pages — see config/workspaces.php.
+ * Order: daily operations first → support → analysis → setup last.
  */
 return [
     [
@@ -24,35 +25,10 @@ return [
         'icon' => 'cog',
     ],
     [
-        'label' => 'Printing Intelligence',
-        'route' => 'admin.workspaces.printing-intelligence',
-        'workspace' => 'printing-intelligence',
-        'permission' => null,
-        'icon' => 'color-swatch',
-    ],
-    [
         'label' => 'Supply Chain',
         'route' => 'admin.workspaces.supply-chain',
         'workspace' => 'supply-chain',
         'icon' => 'cube',
-    ],
-    [
-        'label' => 'Accounting',
-        'route' => 'admin.workspaces.accounting',
-        'workspace' => 'accounting',
-        'icon' => 'currency-dollar',
-    ],
-    [
-        'label' => 'HR',
-        'route' => 'admin.workspaces.hr',
-        'workspace' => 'hr',
-        'icon' => 'identification',
-    ],
-    [
-        'label' => 'Assets',
-        'route' => 'admin.workspaces.assets',
-        'workspace' => 'assets',
-        'icon' => 'chip',
     ],
     [
         'label' => 'Communications',
@@ -61,10 +37,35 @@ return [
         'icon' => 'inbox',
     ],
     [
+        'label' => 'Accounting',
+        'route' => 'admin.workspaces.accounting',
+        'workspace' => 'accounting',
+        'icon' => 'currency-dollar',
+    ],
+    [
+        'label' => 'Printing Intelligence',
+        'route' => 'admin.workspaces.printing-intelligence',
+        'workspace' => 'printing-intelligence',
+        'permission' => null,
+        'icon' => 'color-swatch',
+    ],
+    [
         'label' => 'Reports & Intelligence',
         'route' => 'admin.workspaces.reports',
         'workspace' => 'reports',
         'icon' => 'chart-pie',
+    ],
+    [
+        'label' => 'Assets',
+        'route' => 'admin.workspaces.assets',
+        'workspace' => 'assets',
+        'icon' => 'chip',
+    ],
+    [
+        'label' => 'HR',
+        'route' => 'admin.workspaces.hr',
+        'workspace' => 'hr',
+        'icon' => 'identification',
     ],
     [
         'label' => 'Administration',

@@ -187,6 +187,21 @@ class CustomerInvoiceFoundationTest extends TestCase
             ->assertSee($this->salesOrder->order_number, false);
     }
 
+    public function test_invoice_index_shows_create_action_and_order_picker(): void
+    {
+        $this->actingAs($this->user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.invoices.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee(__('Create invoice'), false);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.invoices.create'))
+            ->assertOk()
+            ->assertSee(__('Create invoice'), false)
+            ->assertSee($this->salesOrder->order_number, false);
+    }
+
     public function test_store_from_sales_order_creates_approved_invoice(): void
     {
         $this->actingAs($this->user)

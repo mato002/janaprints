@@ -207,6 +207,37 @@ class WorkspaceTurboNavigationTest extends TestCase
             ->assertRedirectContains('/admin/workspaces/administration/');
     }
 
+    public function test_workspace_desk_embedded_frame_request_redirects_to_feature_content(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.workspaces.production.section', [
+                'section' => 'operations',
+                'tab' => 'production-floor',
+            ]))
+            ->assertRedirect()
+            ->assertRedirectContains('/admin/production/floor')
+            ->assertRedirectContains('embedded=1');
+    }
+
+    public function test_workspace_desk_renders_single_module_shell(): void
+    {
+        $user = $this->companyAdmin();
+
+        $html = $this->actingAs($user)
+            ->get(route('admin.workspaces.production.section', [
+                'section' => 'operations',
+                'tab' => 'production-floor',
+            ]))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, substr_count($html, 'module-workspace-switcher--primary'));
+        $this->assertSame(1, substr_count($html, 'module-workspace-switcher--secondary'));
+    }
+
     public function test_modal_create_forms_still_open_in_erp_form_modal(): void
     {
         $user = $this->companyAdmin();

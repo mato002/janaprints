@@ -84,8 +84,8 @@
         <x-admin.card>
             <div class="mb-4 flex justify-between">
                 <h3 class="text-sm font-semibold">{{ __('Open invoices') }}</h3>
-                @can('create', App\Models\Accounting\Invoice::class)
-                    <a href="{{ route('admin.accounting.invoices.create', ['customer_id' => $customer->id]) }}" class="erp-btn-primary text-sm">{{ __('New invoice') }}</a>
+                @can('create', App\Models\Sales\CustomerInvoice::class)
+                    <a href="{{ route('admin.invoices.create', ['customer_id' => $customer->id]) }}" class="erp-btn-primary text-sm">{{ __('New invoice') }}</a>
                 @endcan
             </div>
             <div class="overflow-x-auto">
@@ -101,7 +101,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @forelse ($invoices as $invoice)
                             <tr>
-                                <td class="px-3 py-2"><a href="{{ route('admin.accounting.invoices.show', $invoice) }}" class="font-mono text-indigo-600">{{ $invoice->invoice_number }}</a></td>
+                                <td class="px-3 py-2"><a href="{{ route('admin.invoices.show', $invoice) }}" class="font-mono text-indigo-600">{{ $invoice->invoice_number }}</a></td>
                                 <td class="px-3 py-2">{{ $invoice->due_date->format('M j, Y') }}</td>
                                 <td class="px-3 py-2 text-right font-mono">{{ number_format($invoice->total_amount, 2) }}</td>
                                 <td class="px-3 py-2"><x-admin.enum-status-badge :status="$invoice->status->value" /></td>

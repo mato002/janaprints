@@ -1,0 +1,102 @@
+<?php if (isset($component)) { $__componentOriginald3ad0f200dc20b794011e332a16c068d = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald3ad0f200dc20b794011e332a16c068d = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.modal-form','data' => ['title' => __('Edit payroll class'),'breadcrumbs' => [
+        ['label' => __('HR'), 'url' => route('admin.workspaces.hr')],
+        ['label' => __('Compensation'), 'url' => route('admin.hr.compensation.dashboard')],
+        ['label' => __('Payroll classes'), 'url' => route('admin.hr.compensation.templates')],
+        ['label' => $template->name],
+    ],'maxWidth' => '3xl']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.modal-form'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Edit payroll class')),'breadcrumbs' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute([
+        ['label' => __('HR'), 'url' => route('admin.workspaces.hr')],
+        ['label' => __('Compensation'), 'url' => route('admin.hr.compensation.dashboard')],
+        ['label' => __('Payroll classes'), 'url' => route('admin.hr.compensation.templates')],
+        ['label' => $template->name],
+    ]),'maxWidth' => '3xl']); ?>
+    <p class="mb-4 text-sm text-slate-500">
+        <?php echo e(__('Changes apply to future assignments. Employees already on this class keep their current pay until revised in the salary register.')); ?>
+
+        <?php if(($usageCount ?? 0) > 0): ?>
+            <span class="mt-1 block font-medium text-amber-700">
+                <?php echo e(trans_choice(':count employee uses this class.|:count employees use this class.', $usageCount, ['count' => $usageCount])); ?>
+
+            </span>
+        <?php endif; ?>
+    </p>
+
+    <?php if (isset($component)) { $__componentOriginald4dc1af139d29ac6ac9f577d65ce6a8d = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald4dc1af139d29ac6ac9f577d65ce6a8d = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.form-shell','data' => ['action' => route('admin.hr.compensation.templates.update', $template),'method' => 'PUT']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.form-shell'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['action' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(route('admin.hr.compensation.templates.update', $template)),'method' => 'PUT']); ?>
+        <?php echo $__env->make('admin.hr.compensation.templates.partials.form-fields', ['template' => $template], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php if (isset($component)) { $__componentOriginald865c6e99253c837baa94b9ed23bdb6d = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald865c6e99253c837baa94b9ed23bdb6d = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.form-modal-actions','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.form-modal-actions'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+            <?php if (isset($component)) { $__componentOriginald411d1792bd6cc877d687758b753742c = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginald411d1792bd6cc877d687758b753742c = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.primary-button','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('primary-button'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?><?php echo e(__('Save changes')); ?> <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald411d1792bd6cc877d687758b753742c)): ?>
+<?php $attributes = $__attributesOriginald411d1792bd6cc877d687758b753742c; ?>
+<?php unset($__attributesOriginald411d1792bd6cc877d687758b753742c); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald411d1792bd6cc877d687758b753742c)): ?>
+<?php $component = $__componentOriginald411d1792bd6cc877d687758b753742c; ?>
+<?php unset($__componentOriginald411d1792bd6cc877d687758b753742c); ?>
+<?php endif; ?>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald865c6e99253c837baa94b9ed23bdb6d)): ?>
+<?php $attributes = $__attributesOriginald865c6e99253c837baa94b9ed23bdb6d; ?>
+<?php unset($__attributesOriginald865c6e99253c837baa94b9ed23bdb6d); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald865c6e99253c837baa94b9ed23bdb6d)): ?>
+<?php $component = $__componentOriginald865c6e99253c837baa94b9ed23bdb6d; ?>
+<?php unset($__componentOriginald865c6e99253c837baa94b9ed23bdb6d); ?>
+<?php endif; ?>
+     <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald4dc1af139d29ac6ac9f577d65ce6a8d)): ?>
+<?php $attributes = $__attributesOriginald4dc1af139d29ac6ac9f577d65ce6a8d; ?>
+<?php unset($__attributesOriginald4dc1af139d29ac6ac9f577d65ce6a8d); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald4dc1af139d29ac6ac9f577d65ce6a8d)): ?>
+<?php $component = $__componentOriginald4dc1af139d29ac6ac9f577d65ce6a8d; ?>
+<?php unset($__componentOriginald4dc1af139d29ac6ac9f577d65ce6a8d); ?>
+<?php endif; ?>
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginald3ad0f200dc20b794011e332a16c068d)): ?>
+<?php $attributes = $__attributesOriginald3ad0f200dc20b794011e332a16c068d; ?>
+<?php unset($__attributesOriginald3ad0f200dc20b794011e332a16c068d); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginald3ad0f200dc20b794011e332a16c068d)): ?>
+<?php $component = $__componentOriginald3ad0f200dc20b794011e332a16c068d; ?>
+<?php unset($__componentOriginald3ad0f200dc20b794011e332a16c068d); ?>
+<?php endif; ?>
+<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\admin\hr\compensation\templates\edit.blade.php ENDPATH**/ ?>

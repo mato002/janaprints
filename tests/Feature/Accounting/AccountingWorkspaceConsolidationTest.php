@@ -23,15 +23,16 @@ class AccountingWorkspaceConsolidationTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_accounting_hub_renders_dashboard_workspace_desk(): void
+    public function test_accounting_hub_redirects_to_general_ledger_workspace_desk(): void
     {
         $user = $this->companyAdmin();
 
         $response = $this->actingAs($user)->get(route('admin.workspaces.accounting'));
 
-        $response->assertOk();
-        $response->assertSee(route('admin.accounting.dashboard', ['embedded' => '1']), false);
-        $response->assertSee(__('General Ledger'), false);
+        $response->assertRedirect(route('admin.workspaces.accounting.section', [
+            'section' => 'general-ledger',
+            'tab' => 'journals',
+        ]));
     }
 
     public function test_general_ledger_section_lists_gl_features(): void

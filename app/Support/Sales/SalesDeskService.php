@@ -324,7 +324,11 @@ class SalesDeskService
             'storeOrder' => route('admin.sales.desk.orders.store'),
             'orderReadiness' => url('admin/sales/desk/orders'),
             'releaseOrder' => url('admin/sales/desk/orders'),
-            'fullCommercialDesk' => route('admin.workspaces.commercial', ['desk' => 1]),
+            'fullCommercialDesk' => route('admin.workspaces.commercial.section', [
+                'section' => 'sales',
+                'tab' => 'quotations',
+                'desk' => 1,
+            ]),
         ];
     }
 }

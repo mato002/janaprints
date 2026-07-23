@@ -78,6 +78,11 @@ class LookupController extends Controller
         return $this->respond('employees', $request);
     }
 
+    public function operators(Request $request): JsonResponse
+    {
+        return $this->respond('operators', $request);
+    }
+
     public function priceBooks(Request $request): JsonResponse
     {
         return $this->respond('price_books', $request);

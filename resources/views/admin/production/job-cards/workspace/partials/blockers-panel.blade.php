@@ -1,30 +1,42 @@
 @php
+    use App\Enums\ProductionJobCardStatus;
+
     $workflowPresentation = $workflowPresentation ?? null;
     $controlAlerts = $controlAlerts ?? [];
     $completion = $completion ?? ['eligible' => false, 'blockers' => [], 'already_posted' => false];
     $hasPostedOutput = (bool) ($hasPostedOutput ?? ($completion['already_posted'] ?? false));
 
+    // Completion / finished-goods / dispatch requirements belong near the end of the job —
+    // not while the job is still queued or only just starting work.
+    $showDownstreamRequirements = in_array($jobCard->status, [
+        ProductionJobCardStatus::QualityCheck,
+        ProductionJobCardStatus::Completed,
+        ProductionJobCardStatus::ReadyForDispatch,
+    ], true);
+
     $items = [];
     $seen = [];
 
-    foreach ($workflowPresentation['readiness_items'] ?? [] as $item) {
-        if ($item['passed'] ?? true) {
-            continue;
-        }
+    if ($showDownstreamRequirements) {
+        foreach ($workflowPresentation['readiness_items'] ?? [] as $item) {
+            if ($item['passed'] ?? true) {
+                continue;
+            }
 
-        $label = (string) ($item['label'] ?? '');
-        if ($label === '' || isset($seen[$label])) {
-            continue;
-        }
+            $label = (string) ($item['label'] ?? '');
+            if ($label === '' || isset($seen[$label])) {
+                continue;
+            }
 
-        $seen[$label] = true;
-        $items[] = [
-            'severity' => 'error',
-            'message' => $label,
-            'hint' => $item['hint'] ?? null,
-            'action_url' => $item['action'] ?? null,
-            'action_label' => $item['action_label'] ?? __('Resolve'),
-        ];
+            $seen[$label] = true;
+            $items[] = [
+                'severity' => 'error',
+                'message' => $label,
+                'hint' => $item['hint'] ?? null,
+                'action_url' => $item['action'] ?? null,
+                'action_label' => $item['action_label'] ?? __('Resolve'),
+            ];
+        }
     }
 
     foreach ($controlAlerts as $alert) {
@@ -66,24 +78,26 @@
         ];
     }
 
-    foreach ($completion['blockers'] ?? [] as $message) {
-        $message = (string) $message;
-        if ($message === '' || isset($seen[$message])) {
-            continue;
-        }
+    if ($showDownstreamRequirements) {
+        foreach ($completion['blockers'] ?? [] as $message) {
+            $message = (string) $message;
+            if ($message === '' || isset($seen[$message])) {
+                continue;
+            }
 
-        if (! empty($completion['already_posted']) || ! empty($hasPostedOutput)) {
-            continue;
-        }
+            if (! empty($completion['already_posted']) || ! empty($hasPostedOutput)) {
+                continue;
+            }
 
-        $seen[$message] = true;
-        $items[] = [
-            'severity' => 'warning',
-            'message' => $message,
-            'hint' => null,
-            'action_url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']),
-            'action_label' => __('Open finished goods'),
-        ];
+            $seen[$message] = true;
+            $items[] = [
+                'severity' => 'warning',
+                'message' => $message,
+                'hint' => null,
+                'action_url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']),
+                'action_label' => __('Open finished goods'),
+            ];
+        }
     }
 @endphp
 

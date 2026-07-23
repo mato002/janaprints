@@ -72,7 +72,7 @@ class RouteStepQueueService
     {
         $queues = $jobCard->relationLoaded('queues')
             ? $jobCard->queues
-            : $jobCard->queues()->with(['workCenter:id,name,code', 'routeStep:id,step_name,sequence'])->get();
+            : $jobCard->queues()->with(['workCenter:id,name,code,requires_machine', 'routeStep:id,step_name,sequence'])->get();
 
         $current = $queues->first(fn (ProductionQueue $q) => in_array($q->status, [
             ProductionQueueStatus::InProgress,

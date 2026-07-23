@@ -23,6 +23,7 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
             Route::get('departments', [LookupController::class, 'departments'])->name('departments');
             Route::get('payroll_groups', [LookupController::class, 'payrollGroups'])->name('payroll_groups');
             Route::get('employees', [LookupController::class, 'employees'])->name('employees');
+            Route::get('operators', [LookupController::class, 'operators'])->name('operators');
             Route::get('price_books', [LookupController::class, 'priceBooks'])->name('price_books');
             Route::get('leads', [LookupController::class, 'leads'])->name('leads');
             Route::get('lead_sources', [LookupController::class, 'leadSources'])->name('lead_sources');
@@ -62,6 +63,8 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         Route::middleware('permission:employees.manage')->group(function () {
             Route::get('employees/quick-create', [QuickCreateLookupController::class, 'createEmployee'])->name('employees.quick-create');
             Route::post('employees/quick-create', [QuickCreateLookupController::class, 'storeEmployee'])->name('employees.quick-store');
+            Route::get('operators/quick-create', [QuickCreateLookupController::class, 'createOperator'])->name('operators.quick-create');
+            Route::post('operators/quick-create', [QuickCreateLookupController::class, 'storeOperator'])->name('operators.quick-store');
         });
 
         Route::middleware('permission:quotations.create')->group(function () {

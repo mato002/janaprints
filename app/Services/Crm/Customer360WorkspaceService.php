@@ -398,7 +398,7 @@ class Customer360WorkspaceService
         if ($user?->can('invoices.create')) {
             $actions[] = [
                 'label' => __('New Invoice'),
-                'url' => route('admin.accounting.invoices.create', ['customer_id' => $customer->id]),
+                'url' => route('admin.invoices.create', ['customer_id' => $customer->id]),
             ];
         }
 

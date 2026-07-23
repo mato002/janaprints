@@ -1,5 +1,13 @@
 <x-admin-layout :title="__('Customer invoices')" :breadcrumbs="[['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')], ['label' => __('Invoices')]]">
-    <x-admin.page-header :title="__('Customer invoices')" :description="__('Draft, approve, and post invoices to accounts receivable.')" />
+    <x-admin.page-header :title="__('Customer invoices')" :description="__('Draft, approve, and post invoices to accounts receivable.')">
+        @can('create', App\Models\Sales\CustomerInvoice::class)
+            <x-slot name="actions">
+                <a href="{{ route('admin.invoices.create') }}" class="erp-btn-primary" data-turbo-frame="erp-main" data-turbo-action="advance">
+                    {{ __('Create invoice') }}
+                </a>
+            </x-slot>
+        @endcan
+    </x-admin.page-header>
 
     <x-admin.data-table
         :search-placeholder="__('Search invoices…')"
@@ -45,7 +53,15 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7"><x-admin.empty-state icon="receipt-tax" :title="__('No invoices yet')" /></td></tr>
+                <tr>
+                    <td colspan="7">
+                        <x-admin.empty-state
+                            icon="receipt-tax"
+                            :title="__('No invoices yet')"
+                            :description="__('Create an invoice from a confirmed sales order with a remaining billable balance.')"
+                        />
+                    </td>
+                </tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$invoices" /></x-slot>

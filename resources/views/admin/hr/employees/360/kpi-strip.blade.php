@@ -1,12 +1,95 @@
-<div class="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-    @foreach ([
-        ['label' => __('Attendance (month)'), 'value' => $attendance['summary']['present'] ?? 0],
-        ['label' => __('Late'), 'value' => $attendance['summary']['late'] ?? 0],
-        ['label' => __('Leave pending'), 'value' => $leave['pending']->count()],
-        ['label' => __('Gross pay'), 'value' => $overview['gross_salary'] ? number_format($overview['gross_salary'], 0) : '—'],
-        ['label' => __('Documents'), 'value' => $documents['all']->total()],
-        ['label' => __('Assets issued'), 'value' => $assets['issued']->count()],
-    ] as $kpi)
-        <x-admin.kpi-widget :label="$kpi['label']" :value="$kpi['value']" />
+@php
+    $leaveBalanceDays = collect($leave['balances'] ?? [])->sum(fn ($b) => (float) ($b['available'] ?? 0));
+    $payrollReady = (bool) ($overview['payroll_profile_complete'] ?? true);
+    $gross = $overview['gross_salary'] ?? null;
+    $docsCount = $documents['all']->total();
+    $assetsCount = $assets['issued']->count();
+    $trainingCount = $training['assignments']->total();
+    $performanceScore = $performance['kpis']['composite_score'] ?? null;
+    $presentMtd = $attendance['summary']['present'] ?? 0;
+
+    $kpis = [
+        [
+            'key' => 'present',
+            'label' => __('Present (MTD)'),
+            'value' => $presentMtd,
+            'hint' => __('This month'),
+            'tone' => 'info',
+            'tab' => 'attendance',
+        ],
+        [
+            'key' => 'leave',
+            'label' => __('Leave Balance'),
+            'value' => $leaveBalanceDays > 0 ? number_format($leaveBalanceDays, 1) : '0',
+            'hint' => __('Days available'),
+            'tone' => 'sky',
+            'tab' => 'leave',
+        ],
+        [
+            'key' => 'salary',
+            'label' => __('Salary'),
+            'value' => $gross !== null ? number_format((float) $gross, 0) : null,
+            'hint' => $gross !== null ? __('Gross') : __('No compensation'),
+            'tone' => 'violet',
+            'tab' => 'compensation',
+        ],
+        [
+            'key' => 'payroll',
+            'label' => __('Payroll Status'),
+            'value' => $payrollReady ? __('Ready') : __('Incomplete'),
+            'hint' => $payrollReady ? __('Profile complete') : __('Action needed'),
+            'tone' => $payrollReady ? 'success' : 'warning',
+            'tab' => 'overview',
+        ],
+        [
+            'key' => 'assets',
+            'label' => __('Assets Issued'),
+            'value' => $assetsCount,
+            'hint' => __('In custody'),
+            'tone' => 'slate',
+            'tab' => 'assets',
+        ],
+        [
+            'key' => 'documents',
+            'label' => __('Documents'),
+            'value' => $docsCount,
+            'hint' => __('On file'),
+            'tone' => 'indigo',
+            'tab' => 'documents',
+        ],
+        [
+            'key' => 'training',
+            'label' => __('Training'),
+            'value' => $trainingCount,
+            'hint' => __('Assignments'),
+            'tone' => 'teal',
+            'tab' => 'training',
+        ],
+        [
+            'key' => 'performance',
+            'label' => __('Performance'),
+            'value' => $performanceScore !== null ? number_format((float) $performanceScore, 0).'%' : null,
+            'hint' => $performanceScore !== null ? __('Composite') : __('No review data'),
+            'tone' => 'amber',
+            'tab' => 'performance',
+        ],
+    ];
+@endphp
+
+<section class="employee-360__kpi-strip" aria-label="{{ __('Employee KPIs') }}">
+    @foreach ($kpis as $kpi)
+        <button
+            type="button"
+            class="employee-360__kpi employee-360__kpi--{{ $kpi['tone'] }}"
+            @click="setTab(@js($kpi['tab']))"
+        >
+            <span class="employee-360__kpi-label">{{ $kpi['label'] }}</span>
+            <span class="employee-360__kpi-value {{ $kpi['value'] === null ? 'employee-360__kpi-value--empty' : '' }}">
+                {{ $kpi['value'] ?? '—' }}
+            </span>
+            @if ($kpi['hint'])
+                <span class="employee-360__kpi-hint">{{ $kpi['hint'] }}</span>
+            @endif
+        </button>
     @endforeach
-</div>
+</section>

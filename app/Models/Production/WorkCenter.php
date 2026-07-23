@@ -15,13 +15,14 @@ class WorkCenter extends Model
     protected bool $tenantScopedToBranch = true;
 
     protected $fillable = [
-        'company_id', 'branch_id', 'fixed_asset_id', 'name', 'code', 'description', 'is_active',
+        'company_id', 'branch_id', 'fixed_asset_id', 'name', 'code', 'description', 'is_active', 'requires_machine',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'requires_machine' => 'boolean',
         ];
     }
 

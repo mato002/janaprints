@@ -21,4 +21,11 @@
             <span>{{ __('Active') }}</span>
         </label>
     </div>
+    <div>
+        <label class="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" name="requires_machine" value="1" @checked(old('requires_machine', $wc?->requires_machine ?? false))>
+            <span>{{ __('Requires machine before Start work') }}</span>
+        </label>
+        <p class="mt-1 text-xs text-slate-500">{{ __('Leave off for design, prepress, packing, or other stages that only need an operator.') }}</p>
+    </div>
 </div>

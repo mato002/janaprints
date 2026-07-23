@@ -1,0 +1,91 @@
+<?php $attributes ??= new \Illuminate\View\ComponentAttributeBag;
+
+$__newAttributes = [];
+$__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
+    'variant' => 'outline',
+    'size' => 'md',
+    'href' => null,
+    'type' => 'button',
+]));
+
+foreach ($attributes->all() as $__key => $__value) {
+    if (in_array($__key, $__propNames)) {
+        $$__key = $$__key ?? $__value;
+    } else {
+        $__newAttributes[$__key] = $__value;
+    }
+}
+
+$attributes = new \Illuminate\View\ComponentAttributeBag($__newAttributes);
+
+unset($__propNames);
+unset($__newAttributes);
+
+foreach (array_filter(([
+    'variant' => 'outline',
+    'size' => 'md',
+    'href' => null,
+    'type' => 'button',
+]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
+    $$__key = $$__key ?? $__value;
+}
+
+$__defined_vars = get_defined_vars();
+
+foreach ($attributes->all() as $__key => $__value) {
+    if (array_key_exists($__key, $__defined_vars)) unset($$__key);
+}
+
+unset($__defined_vars, $__key, $__value); ?>
+
+<?php
+    $erpVariant = match ($variant) {
+        'primary' => 'primary',
+        'outline', 'secondary' => 'secondary',
+        'ghost' => 'ghost',
+        'danger' => 'danger',
+        default => 'secondary',
+    };
+    $crmVariant = match ($variant) {
+        'primary' => 'primary',
+        'outline', 'secondary' => 'outline',
+        'ghost' => 'ghost',
+        'danger' => 'danger',
+        default => 'outline',
+    };
+    $classes = collect([
+        'erp-btn',
+        'crm-360__btn',
+        'erp-btn--'.$erpVariant,
+        'crm-360__btn--'.$crmVariant,
+    ]);
+    if ($size === 'sm') {
+        $classes->push('erp-btn--sm', 'crm-360__btn--sm');
+    }
+    if ($size === 'xs') {
+        $classes->push('erp-btn--xs');
+    }
+?>
+
+<?php if($href): ?>
+    <?php
+        $linkMerge = ['class' => $classes->join(' ')];
+
+        if ($attributes->get('data-turbo') !== 'false' && $attributes->get('target') !== '_blank') {
+            $linkMerge['data-turbo-frame'] = $attributes->get('data-turbo-frame') ?? 'erp-main';
+            $linkMerge['data-turbo-action'] = $attributes->get('data-turbo-action') ?? 'advance';
+        }
+    ?>
+    <a href="<?php echo e($href); ?>" <?php echo e($attributes->merge($linkMerge)); ?>>
+        <?php if(isset($icon)): ?><?php echo e($icon); ?><?php endif; ?>
+        <?php echo e($slot); ?>
+
+    </a>
+<?php else: ?>
+    <button type="<?php echo e($type); ?>" <?php echo e($attributes->merge(['class' => $classes->join(' ')])); ?>>
+        <?php if(isset($icon)): ?><?php echo e($icon); ?><?php endif; ?>
+        <?php echo e($slot); ?>
+
+    </button>
+<?php endif; ?>
+<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\components\admin\crm-btn.blade.php ENDPATH**/ ?>

@@ -81,6 +81,10 @@
                 'jobCardUrl' => url('admin/production/job-cards'),
                 'csrf' => csrf_token(),
                 'machines' => $machinesForUi,
+                'operatorCreateUrl' => auth()->user()?->can('employees.manage')
+                    ? route('admin.operators.quick-create')
+                    : null,
+                'operatorsRefreshUrl' => route('admin.lookups.operators'),
                 'modalTitles' => [
                     'operator' => __('Assign operator'),
                     'machine' => __('Assign machine'),

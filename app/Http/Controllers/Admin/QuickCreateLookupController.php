@@ -914,6 +914,98 @@ class QuickCreateLookupController extends Controller
         return $this->quickCreateResponse($employee->id, $label, __('Employee created.'));
     }
 
+    public function createOperator(): View
+    {
+        $this->authorize('create', Employee::class);
+
+        return $this->lookupForm('admin.lookups.quick-create.operator', array_merge(
+            $this->lookupFormData->employee(),
+            [
+                'title' => __('Create operator'),
+                'action' => route('admin.operators.quick-store'),
+            ],
+        ));
+    }
+
+    public function storeOperator(Request $request): JsonResponse|Response
+    {
+        $this->authorize('create', Employee::class);
+
+        $companyId = auth()->user()->hasRole('Super Admin')
+            ? (int) $request->input('company_id')
+            : (int) auth()->user()->company_id;
+
+        $formData = array_merge(
+            $this->lookupFormData->employee(),
+            [
+                'title' => __('Create operator'),
+                'action' => route('admin.operators.quick-store'),
+            ],
+        );
+
+        try {
+            $validated = $request->validate([
+                'company_id' => ['required', 'exists:companies,id'],
+                'branch_id' => [
+                    'required',
+                    Rule::exists('branches', 'id')->where('company_id', $companyId),
+                ],
+                'department_id' => [
+                    'nullable',
+                    Rule::exists('departments', 'id')->where('company_id', $companyId),
+                ],
+                'first_name' => ['required', 'string', 'max:255'],
+                'middle_name' => ['nullable', 'string', 'max:255'],
+                'last_name' => ['required', 'string', 'max:255'],
+                'gender' => ['nullable', Rule::enum(Gender::class)],
+                'phone' => ['nullable', 'string', 'max:50'],
+                'email' => ['required', 'email', Rule::unique('users', 'email')],
+                'job_title_id' => [
+                    'nullable',
+                    Rule::exists('job_titles', 'id')->where('company_id', $companyId),
+                ],
+                'employment_status' => ['required', Rule::enum(EmploymentStatus::class)],
+                'is_active' => ['boolean'],
+                'activation_role' => ['nullable', 'string', 'max:100'],
+            ]);
+        } catch (ValidationException $exception) {
+            return $this->lookupValidationResponse($request, $exception, 'admin.lookups.quick-create.operator', $formData);
+        }
+
+        if (empty($validated['activation_role'])) {
+            $validated['activation_role'] = 'Production';
+        }
+
+        $employee = Employee::query()->create([
+            ...$validated,
+            'company_id' => $companyId,
+            'employee_number' => app(EmployeeNumberService::class)->nextForCompany($companyId),
+            'is_active' => $request->boolean('is_active', true),
+        ]);
+
+        app(JobTitleService::class)->syncEmployeeDesignation($employee);
+        app(EmployeeOnboardingService::class)->ensureOnboarded(
+            $employee,
+            $validated['email'],
+            $validated['activation_role'] ?? 'Production',
+        );
+
+        $employee->loadMissing('user:id,name,employee_id');
+        $user = $employee->user;
+
+        if ($user === null) {
+            throw ValidationException::withMessages([
+                'email' => __('Operator login could not be created. Check HR onboarding settings.'),
+            ]);
+        }
+
+        return $this->quickCreateResponse(
+            $user->id,
+            $user->name,
+            __('Operator created. They can be assigned now; activation email was sent if required.'),
+        );
+    }
+
     protected function lookupForm(string $view, array $data): View
     {
         return view($view, $data);

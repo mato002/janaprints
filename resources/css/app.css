@@ -5798,6 +5798,30 @@ body.erp-navigating {
         @apply mt-2 text-sm leading-relaxed text-slate-600;
     }
 
+    .job-360-hero__readiness {
+        @apply mt-3 space-y-1.5 border-t border-slate-100 pt-3;
+    }
+
+    .job-360-hero__readiness-row {
+        @apply grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm;
+    }
+
+    .job-360-hero__readiness-row dt {
+        @apply text-slate-500;
+    }
+
+    .job-360-hero__readiness-row dd {
+        @apply font-medium text-slate-800;
+    }
+
+    .job-360-hero__readiness-row--ok dd {
+        @apply text-emerald-800;
+    }
+
+    .job-360-hero__readiness-row--warn dd {
+        @apply text-amber-800;
+    }
+
     .job-360-hero__actions {
         @apply flex shrink-0 flex-col items-stretch gap-2 sm:items-end;
     }
@@ -6505,6 +6529,630 @@ body.erp-navigating {
 
         .so-360__header {
             @apply static shadow-none;
+        }
+    }
+
+    /* -------------------------------------------------------------------------
+     * Employee 360 — Enterprise Workspace Design System (HR reference)
+     * ------------------------------------------------------------------------- */
+    .employee-360 {
+        @apply relative min-w-0 space-y-3 pb-20 lg:pb-4;
+    }
+
+    .employee-360__hero {
+        @apply rounded-xl border border-slate-200/90 bg-gradient-to-br from-white via-white to-indigo-50/40 px-3 py-3 shadow-sm sm:px-5 sm:py-4;
+    }
+
+    .employee-360__hero-main {
+        @apply flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-5;
+    }
+
+    .employee-360__identity {
+        @apply min-w-0 flex-1;
+    }
+
+    .employee-360__back {
+        @apply mb-1.5 inline-flex text-xs font-semibold text-indigo-700 hover:underline;
+    }
+
+    .employee-360__identity-row {
+        @apply flex items-start gap-3 sm:gap-4;
+    }
+
+    .employee-360__avatar {
+        @apply flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-erp-primary text-white shadow-sm ring-2 ring-white sm:h-20 sm:w-20;
+    }
+
+    .employee-360__avatar-img {
+        @apply h-full w-full object-cover;
+    }
+
+    .employee-360__avatar-initials {
+        @apply text-xl font-bold tracking-tight sm:text-2xl;
+    }
+
+    .employee-360__identity-text {
+        @apply min-w-0 pt-0.5;
+    }
+
+    .employee-360__name {
+        @apply text-[1.65rem] font-bold leading-tight tracking-tight text-slate-900 sm:text-[1.85rem];
+    }
+
+    .employee-360__meta {
+        @apply mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm text-slate-600;
+    }
+
+    .employee-360__emp-no {
+        @apply font-mono text-[13px] font-semibold text-slate-700;
+    }
+
+    .employee-360__meta-sep {
+        @apply text-slate-300;
+    }
+
+    .employee-360__submeta {
+        @apply mt-1.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[12px] text-slate-500;
+    }
+
+    .employee-360__empty-inline {
+        @apply italic text-slate-400;
+    }
+
+    .employee-360__status {
+        @apply inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider;
+    }
+
+    .employee-360__status--success {
+        @apply bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200/80;
+    }
+
+    .employee-360__status--info {
+        @apply bg-sky-100 text-sky-800 ring-1 ring-sky-200/80;
+    }
+
+    .employee-360__status--warning {
+        @apply bg-amber-100 text-amber-900 ring-1 ring-amber-200/80;
+    }
+
+    .employee-360__status--danger {
+        @apply bg-red-100 text-red-800 ring-1 ring-red-200/80;
+    }
+
+    .employee-360__status--neutral {
+        @apply bg-slate-100 text-slate-600 ring-1 ring-slate-200;
+    }
+
+    .employee-360__ribbon {
+        @apply mt-3 flex flex-wrap gap-1.5 border-t border-slate-100 pt-3;
+    }
+
+    .employee-360__badge {
+        @apply inline-flex items-center rounded-md px-2.5 py-1 text-[11px] font-semibold;
+    }
+
+    .employee-360__badge--success {
+        @apply bg-emerald-50 text-emerald-800;
+    }
+
+    .employee-360__badge--info {
+        @apply bg-sky-50 text-sky-800;
+    }
+
+    .employee-360__badge--warning {
+        @apply bg-amber-50 text-amber-900;
+    }
+
+    .employee-360__badge--danger {
+        @apply bg-red-50 text-red-800;
+    }
+
+    .employee-360__badge--neutral {
+        @apply bg-slate-100 text-slate-700;
+    }
+
+    .employee-360__badge--dept {
+        @apply bg-indigo-50 text-indigo-800;
+    }
+
+    .employee-360__badge--role {
+        @apply bg-violet-50 text-violet-800;
+    }
+
+    .employee-360__badge--branch {
+        @apply bg-slate-100 text-slate-700;
+    }
+
+    .employee-360__badge--ready {
+        @apply bg-emerald-50 text-emerald-800;
+    }
+
+    .employee-360__badge--incomplete {
+        @apply bg-amber-50 text-amber-900;
+    }
+
+    .employee-360__actions {
+        @apply flex w-full flex-col gap-2 sm:items-end lg:w-auto lg:max-w-md;
+    }
+
+    .employee-360__actions-primary,
+    .employee-360__actions-secondary {
+        @apply flex flex-wrap items-center gap-2 sm:justify-end;
+    }
+
+    .employee-360__action {
+        @apply min-h-10 touch-manipulation text-sm;
+    }
+
+    .employee-360__more {
+        @apply relative;
+    }
+
+    .employee-360__more-trigger {
+        @apply cursor-pointer list-none [&::-webkit-details-marker]:hidden;
+    }
+
+    .employee-360__more-menu {
+        @apply absolute end-0 z-40 mt-1 max-h-[min(24rem,70vh)] min-w-[13.5rem] overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg;
+    }
+
+    .employee-360__more-item {
+        @apply block w-full px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-erp-primary;
+    }
+
+    .employee-360__more-item--danger {
+        @apply text-red-600 hover:bg-red-50 hover:text-red-700;
+    }
+
+    .employee-360__kpi-strip {
+        @apply grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-8;
+    }
+
+    .employee-360__kpi {
+        @apply flex min-h-[4.5rem] flex-col rounded-lg border border-slate-200/90 bg-white px-2.5 py-2 text-left transition hover:border-indigo-200 hover:shadow-sm;
+    }
+
+    .employee-360__kpi-label {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .employee-360__kpi-value {
+        @apply mt-0.5 text-base font-bold leading-tight text-slate-900 sm:text-lg;
+    }
+
+    .employee-360__kpi-value--empty {
+        @apply text-slate-400;
+    }
+
+    .employee-360__kpi-hint {
+        @apply mt-auto pt-1 text-[10px] text-slate-400;
+    }
+
+    .employee-360__kpi--success {
+        @apply border-l-[3px] border-l-emerald-400 bg-emerald-50/30;
+    }
+
+    .employee-360__kpi--warning {
+        @apply border-l-[3px] border-l-amber-400 bg-amber-50/40;
+    }
+
+    .employee-360__kpi--info {
+        @apply border-l-[3px] border-l-sky-400 bg-sky-50/30;
+    }
+
+    .employee-360__kpi--sky {
+        @apply border-l-[3px] border-l-cyan-400;
+    }
+
+    .employee-360__kpi--violet {
+        @apply border-l-[3px] border-l-violet-400;
+    }
+
+    .employee-360__kpi--indigo {
+        @apply border-l-[3px] border-l-indigo-400;
+    }
+
+    .employee-360__kpi--teal {
+        @apply border-l-[3px] border-l-teal-400;
+    }
+
+    .employee-360__kpi--amber {
+        @apply border-l-[3px] border-l-amber-400;
+    }
+
+    .employee-360__kpi--slate {
+        @apply border-l-[3px] border-l-slate-300;
+    }
+
+    .employee-360__tabs {
+        @apply sticky top-0 z-20 -mx-1 border-b border-slate-200/90 bg-erp-page/95 px-1 backdrop-blur;
+    }
+
+    .employee-360__tabs-track {
+        @apply flex gap-1 overflow-x-auto pb-0 pt-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
+    }
+
+    .employee-360__tab {
+        @apply shrink-0 rounded-t-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-white hover:text-erp-primary;
+    }
+
+    .employee-360__tab.is-active {
+        @apply border border-b-white border-slate-200/80 bg-white font-semibold text-erp-primary;
+    }
+
+    .employee-360__panels {
+        @apply min-w-0;
+    }
+
+    .employee-360__panel {
+        @apply min-w-0;
+    }
+
+    .employee-360__overview {
+        @apply grid gap-3 lg:grid-cols-1 lg:items-start;
+    }
+
+    .employee-360__overview:has(.employee-360__intel) {
+        @apply lg:grid-cols-[minmax(0,1fr)_17.5rem];
+    }
+
+    .employee-360__overview-main {
+        @apply min-w-0 space-y-3;
+    }
+
+    .employee-360__alert {
+        @apply rounded-lg px-4 py-3 text-sm;
+    }
+
+    .employee-360__alert--warning {
+        @apply border border-amber-200 bg-amber-50 text-amber-900;
+    }
+
+    .employee-360__alert--neutral {
+        @apply border border-slate-200 bg-slate-50 text-slate-700;
+    }
+
+    .employee-360__card-grid {
+        @apply grid gap-3 md:grid-cols-2;
+    }
+
+    .employee-360__card,
+    .employee-360__timeline-card {
+        @apply rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm;
+    }
+
+    .employee-360__card--readiness {
+        @apply bg-gradient-to-br from-white to-slate-50/80;
+    }
+
+    .employee-360__card--ready {
+        @apply border-emerald-100;
+    }
+
+    .employee-360__card--attention {
+        @apply border-amber-200/80;
+    }
+
+    .employee-360__card-head {
+        @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .employee-360__card-title-wrap {
+        @apply flex min-w-0 items-center gap-2;
+    }
+
+    .employee-360__card-title {
+        @apply text-lg font-semibold leading-tight text-erp-primary;
+    }
+
+    .employee-360__card-icon {
+        @apply flex h-8 w-8 items-center justify-center rounded-lg;
+    }
+
+    .employee-360__card-icon--employment {
+        @apply bg-indigo-100 text-indigo-700;
+    }
+
+    .employee-360__card-icon--personal {
+        @apply bg-sky-100 text-sky-700;
+    }
+
+    .employee-360__card-icon--statutory,
+    .employee-360__card-icon--payroll {
+        @apply bg-violet-100 text-violet-700;
+    }
+
+    .employee-360__card-icon--emergency {
+        @apply bg-amber-100 text-amber-800;
+    }
+
+    .employee-360__card-icon--assets {
+        @apply bg-teal-100 text-teal-700;
+    }
+
+    .employee-360__card-icon--docs {
+        @apply bg-slate-100 text-slate-700;
+    }
+
+    .employee-360__card-icon--timeline {
+        @apply bg-indigo-100 text-indigo-700;
+    }
+
+    .employee-360__card-action {
+        @apply text-xs font-semibold text-erp-accent hover:underline;
+    }
+
+    .employee-360__readiness-pct {
+        @apply text-2xl font-bold tabular-nums text-slate-900;
+    }
+
+    .employee-360__progress {
+        @apply h-2.5 overflow-hidden rounded-full bg-slate-100;
+    }
+
+    .employee-360__progress-fill {
+        @apply h-full rounded-full transition-all;
+    }
+
+    .employee-360__progress-fill.is-ready {
+        @apply bg-emerald-500;
+    }
+
+    .employee-360__progress-fill.is-incomplete {
+        @apply bg-amber-500;
+    }
+
+    .employee-360__readiness-ok {
+        @apply mt-3 text-sm text-emerald-800;
+    }
+
+    .employee-360__readiness-missing-label {
+        @apply mt-3 text-[11px] font-bold uppercase tracking-wide text-amber-800;
+    }
+
+    .employee-360__missing-list {
+        @apply mt-1.5 space-y-1 text-sm text-slate-700;
+    }
+
+    .employee-360__missing-list--compact {
+        @apply mt-2;
+    }
+
+    .employee-360__missing-list li {
+        @apply relative pl-3 before:absolute before:left-0 before:content-['•'];
+    }
+
+    .employee-360__missing-link {
+        @apply font-medium text-erp-accent hover:underline;
+    }
+
+    .employee-360__fields {
+        @apply grid gap-3 sm:grid-cols-2;
+    }
+
+    .employee-360__field--wide {
+        @apply sm:col-span-2;
+    }
+
+    .employee-360__field-label {
+        @apply mb-0.5 flex items-center gap-1.5 text-[12px] font-medium text-slate-500;
+    }
+
+    .employee-360__field-value {
+        @apply text-base font-medium leading-snug text-slate-900;
+    }
+
+    .employee-360__field-value.is-empty {
+        @apply font-normal italic text-slate-400;
+    }
+
+    .employee-360__inline-link {
+        @apply ml-1 text-xs font-semibold not-italic text-erp-accent hover:underline;
+    }
+
+    .employee-360__compact-list {
+        @apply space-y-2;
+    }
+
+    .employee-360__compact-list li {
+        @apply flex items-baseline justify-between gap-2 border-b border-slate-50 pb-2 last:border-0 last:pb-0;
+    }
+
+    .employee-360__compact-title {
+        @apply text-sm font-medium text-slate-800;
+    }
+
+    .employee-360__compact-meta {
+        @apply font-mono text-[11px] text-slate-400;
+    }
+
+    .employee-360__more-count {
+        @apply mt-2 text-xs text-slate-500;
+    }
+
+    .employee-360__empty-block {
+        @apply text-sm italic text-slate-400;
+    }
+
+    .employee-360__empty-block--lg {
+        @apply rounded-lg bg-slate-50 px-4 py-8 text-center not-italic;
+    }
+
+    .employee-360__empty-hint {
+        @apply mt-1 text-xs text-slate-400;
+    }
+
+    .employee-360__stat-row {
+        @apply mb-3 grid grid-cols-2 gap-3;
+    }
+
+    .employee-360__stat-value {
+        @apply block text-xl font-bold text-slate-900;
+    }
+
+    .employee-360__stat-label {
+        @apply text-[11px] text-slate-500;
+    }
+
+    .employee-360__intel {
+        @apply space-y-2 rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-white p-3;
+    }
+
+    .employee-360__intel-heading {
+        @apply px-1 text-[11px] font-bold uppercase tracking-wider text-slate-500;
+    }
+
+    .employee-360__widget {
+        @apply rounded-lg border border-slate-100 bg-white px-3 py-2.5 shadow-sm;
+    }
+
+    .employee-360__widget--tasks {
+        @apply border-amber-100 bg-amber-50/40;
+    }
+
+    .employee-360__widget--celebrate {
+        @apply border-pink-100 bg-pink-50/40;
+    }
+
+    .employee-360__widget-title {
+        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .employee-360__widget-value {
+        @apply mt-0.5 text-base font-bold text-slate-900;
+    }
+
+    .employee-360__widget-meta {
+        @apply text-xs text-slate-500;
+    }
+
+    .employee-360__widget-meta--warn {
+        @apply font-medium text-amber-800;
+    }
+
+    .employee-360__widget-link {
+        @apply mt-1.5 text-xs font-semibold text-erp-accent hover:underline;
+    }
+
+    .employee-360__task-list {
+        @apply mt-1.5 space-y-1 text-sm text-slate-700;
+    }
+
+    .employee-360__task-list li {
+        @apply relative pl-3 before:absolute before:left-0 before:content-['•'];
+    }
+
+    .employee-360__timeline-mini {
+        @apply mt-1.5 space-y-2;
+    }
+
+    .employee-360__timeline-mini li {
+        @apply flex items-start justify-between gap-2;
+    }
+
+    .employee-360__timeline-mini-title {
+        @apply text-xs font-medium leading-snug text-slate-700;
+    }
+
+    .employee-360__timeline-mini-date {
+        @apply shrink-0 text-[10px] text-slate-400;
+    }
+
+    .employee-360__timeline-count {
+        @apply text-xs text-slate-500;
+    }
+
+    .employee-360__timeline {
+        @apply relative ms-2 space-y-0 border-s-2 border-slate-100 ps-5;
+    }
+
+    .employee-360__timeline-item {
+        @apply relative pb-5 last:pb-0;
+    }
+
+    .employee-360__timeline-dot {
+        @apply absolute -start-[1.4rem] top-1.5 h-2.5 w-2.5 rounded-full bg-erp-primary ring-4 ring-white;
+    }
+
+    .employee-360__timeline-item--violet .employee-360__timeline-dot {
+        @apply bg-violet-500;
+    }
+
+    .employee-360__timeline-item--sky .employee-360__timeline-dot {
+        @apply bg-sky-500;
+    }
+
+    .employee-360__timeline-item--teal .employee-360__timeline-dot {
+        @apply bg-teal-500;
+    }
+
+    .employee-360__timeline-item--amber .employee-360__timeline-dot {
+        @apply bg-amber-500;
+    }
+
+    .employee-360__timeline-item--warning .employee-360__timeline-dot {
+        @apply bg-amber-600;
+    }
+
+    .employee-360__timeline-item--danger .employee-360__timeline-dot {
+        @apply bg-red-500;
+    }
+
+    .employee-360__timeline-item--info .employee-360__timeline-dot {
+        @apply bg-sky-500;
+    }
+
+    .employee-360__timeline-item--slate .employee-360__timeline-dot {
+        @apply bg-slate-400;
+    }
+
+    .employee-360__timeline-top {
+        @apply mb-0.5 flex flex-wrap items-center gap-2;
+    }
+
+    .employee-360__timeline-time {
+        @apply text-[11px] text-slate-500;
+    }
+
+    .employee-360__timeline-cat {
+        @apply rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600;
+    }
+
+    .employee-360__timeline-title {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .employee-360__timeline-desc {
+        @apply mt-0.5 text-sm text-slate-600;
+    }
+
+    .employee-360__timeline-actor {
+        @apply mt-1 text-[11px] text-slate-400;
+    }
+
+    .employee-360__mobile-bar {
+        @apply fixed inset-x-0 bottom-0 z-30 flex gap-2 border-t border-slate-200 bg-white/95 p-3 backdrop-blur lg:hidden;
+    }
+
+    .employee-360__mobile-bar .erp-btn-primary,
+    .employee-360__mobile-bar .erp-btn-secondary {
+        @apply min-h-11 flex-1;
+    }
+
+    @media print {
+        .employee-360__tabs,
+        .employee-360__actions,
+        .employee-360__mobile-bar,
+        .employee-360__more {
+            display: none !important;
+        }
+
+        .employee-360__hero {
+            @apply shadow-none;
+        }
+
+        .employee-360 {
+            @apply pb-0;
         }
     }
 }

@@ -9,6 +9,7 @@
     'readonly' => false,
     'hidden' => false,
     'createRoute' => null,
+    'createQuery' => [],
     'refreshRoute' => null,
     'permission' => null,
     'modalTitle' => null,
@@ -46,7 +47,9 @@
         && ($permissions === [] || collect($permissions)->contains(fn ($perm) => auth()->user()?->can($perm)))
         && ! $isDisabled
         && ! $isReadOnly;
-    $createUrl = $canCreate ? route($createRoute) : null;
+    $createUrl = $canCreate
+        ? route($createRoute, is_array($createQuery) ? array_filter($createQuery, fn ($value) => $value !== null && $value !== '') : [])
+        : null;
     $refreshUrl = $refreshRoute && Route::has($refreshRoute) ? route($refreshRoute) : null;
     $fieldId = $attributes->get('id', $name);
 @endphp

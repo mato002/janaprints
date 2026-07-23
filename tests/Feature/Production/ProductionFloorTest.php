@@ -197,6 +197,114 @@ class ProductionFloorTest extends TestCase
             ->assertJsonPath('primary_action.label', __('Start work'));
     }
 
+    public function test_design_stage_allows_start_work_without_machine_when_operator_assigned(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $operator = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'is_active' => true,
+            'name' => 'Grace Wanjiku',
+        ]);
+
+        $this->releaseJobToFloor($jobCard, [
+            'code' => 'DESIGN',
+            'name' => 'Design',
+            'requires_machine' => false,
+        ]);
+
+        $queue = $jobCard->queues()->firstOrFail();
+        app(ProductionQueueService::class)->updateEntry($queue, [
+            'assigned_operator_id' => $operator->id,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->getJson(route('admin.production.floor.panel', $jobCard))
+            ->assertOk()
+            ->assertJsonPath('primary_action.label', __('Start work'))
+            ->assertJsonPath('execution.requires_machine', false)
+            ->assertJsonPath('execution.needs_machine', false)
+            ->assertJsonPath('execution.is_ready_to_start', true)
+            ->assertJsonPath('execution.next_action', __('Ready to start — operator assigned; this stage does not require a machine.'))
+            ->assertJsonPath('execution.operator_name', 'Grace Wanjiku');
+    }
+
+    public function test_machine_required_stage_blocks_start_until_machine_assigned(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $operator = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'is_active' => true,
+            'name' => 'Grace Wanjiku',
+        ]);
+
+        $this->releaseJobToFloor($jobCard, [
+            'code' => 'DIGITAL',
+            'name' => 'Digital Printing',
+            'requires_machine' => true,
+        ]);
+
+        $queue = $jobCard->queues()->firstOrFail();
+        app(ProductionQueueService::class)->updateEntry($queue, [
+            'assigned_operator_id' => $operator->id,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->getJson(route('admin.production.floor.panel', $jobCard))
+            ->assertOk()
+            ->assertJsonPath('primary_action.label', __('Assign machine'))
+            ->assertJsonPath('execution.requires_machine', true)
+            ->assertJsonPath('execution.needs_machine', true)
+            ->assertJsonPath('execution.is_ready_to_start', false)
+            ->assertJsonPath('blockers', []);
+    }
+
+    public function test_queued_job_360_hides_downstream_completion_blockers(): void
+    {
+        [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
+
+        $operator = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'is_active' => true,
+            'name' => 'Grace Wanjiku',
+        ]);
+
+        $this->releaseJobToFloor($jobCard, [
+            'code' => 'DESIGN',
+            'name' => 'Design',
+            'requires_machine' => false,
+        ]);
+
+        $queue = $jobCard->queues()->firstOrFail();
+        app(ProductionQueueService::class)->updateEntry($queue, [
+            'assigned_operator_id' => $operator->id,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.show', $jobCard))
+            ->assertOk()
+            ->assertSee(__('Ready to start — operator assigned; this stage does not require a machine.'), false)
+            ->assertSee(__('Assigned operator'), false)
+            ->assertSee('Grace Wanjiku', false)
+            ->assertSee(__('Not required for :stage', ['stage' => 'Design']), false)
+            ->assertDontSee(__('Production complete'), false)
+            ->assertDontSee(__('Material consumption missing'), false)
+            ->assertDontSee(__('items need attention before the job can proceed.'), false);
+    }
+
     public function test_floor_lists_newest_job_cards_first(): void
     {
         [$company, $branch, $user] = $this->productionContext(withJob: false);
@@ -279,6 +387,42 @@ class ProductionFloorTest extends TestCase
         $this->assertSame($machine->id, $jobCard->fresh()->assigned_machine_asset_id);
     }
 
+    public function test_assign_operator_modal_exposes_plus_button_for_hr_managers(): void
+    {
+        [$company, $branch, $user] = $this->productionContext();
+        $role = Role::findByName('Production', 'web');
+        $role->givePermissionTo('employees.manage');
+        $user->refresh();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->assertTrue($user->can('employees.manage'));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.floor', ['embedded' => 1]))
+            ->assertOk()
+            ->assertSee('erp-lookup-select__add', false)
+            ->assertSee('openCreateOperator', false)
+            ->assertSee(__('Add new operator'), false);
+    }
+
+    public function test_operator_quick_create_form_loads_for_authorized_user(): void
+    {
+        [$company, $branch, $user] = $this->productionContext();
+        $role = Role::findByName('Production', 'web');
+        $role->givePermissionTo('employees.manage');
+        $user->refresh();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $this->actingAs($user)
+            ->get(route('admin.operators.quick-create'))
+            ->assertOk()
+            ->assertSee(__('Create operator'), false);
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2?: Customer, 3: User, 4?: ProductionJobCard}
      */
@@ -315,15 +459,16 @@ class ProductionFloorTest extends TestCase
         return [$company, $branch, $customer, $user, $jobCard];
     }
 
-    protected function releaseJobToFloor(ProductionJobCard $jobCard): void
+    protected function releaseJobToFloor(ProductionJobCard $jobCard, array $workCenterAttributes = []): void
     {
-        $workCenter = WorkCenter::query()->create([
+        $workCenter = WorkCenter::query()->create(array_merge([
             'company_id' => $jobCard->company_id,
             'branch_id' => $jobCard->branch_id,
             'code' => 'WC-'.substr(md5((string) $jobCard->id), 0, 6),
             'name' => 'Floor test WC',
             'is_active' => true,
-        ]);
+            'requires_machine' => false,
+        ], $workCenterAttributes));
 
         app(ProductionQueueService::class)->enqueue($jobCard, $workCenter->id, 1);
     }

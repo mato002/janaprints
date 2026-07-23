@@ -107,6 +107,17 @@
                 </div>
 
                 <p class="job-360-hero__next-action">{{ $executionState['next_action'] ?? '' }}</p>
+
+                @if (! empty($executionState['readiness_facts']))
+                    <dl class="job-360-hero__readiness">
+                        @foreach ($executionState['readiness_facts'] as $fact)
+                            <div @class(['job-360-hero__readiness-row', 'job-360-hero__readiness-row--'.$fact['tone']])>
+                                <dt>{{ $fact['label'] }}</dt>
+                                <dd>{{ $fact['value'] }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                @endif
             </div>
         </div>
 

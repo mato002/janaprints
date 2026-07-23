@@ -47,12 +47,31 @@
                     @endif
                     <div>
                         <label class="erp-label text-xs">{{ __('Operator') }}</label>
-                        <select name="assigned_operator_id" class="erp-select w-full text-sm" required>
-                            <option value="">{{ __('Select operator') }}</option>
-                            <template x-for="operator in actionModalPanel?.operators ?? []" :key="operator.id">
-                                <option :value="operator.id" x-text="operator.name"></option>
-                            </template>
-                        </select>
+                        <div class="erp-lookup-select__row mt-1 flex items-stretch gap-2">
+                            <select
+                                name="assigned_operator_id"
+                                class="erp-select erp-lookup-select__input min-w-0 flex-1 text-sm"
+                                x-model="selectedOperatorId"
+                                x-ref="operatorSelect"
+                                required
+                            >
+                                <option value="">{{ __('Select operator') }}</option>
+                                <template x-for="operator in actionModalPanel?.operators ?? []" :key="operator.id">
+                                    <option :value="String(operator.id)" x-text="operator.name"></option>
+                                </template>
+                            </select>
+                            @can('employees.manage')
+                                <button
+                                    type="button"
+                                    class="erp-lookup-select__add"
+                                    @click.stop.prevent="openCreateOperator()"
+                                    title="{{ __('Add new operator') }}"
+                                    aria-label="{{ __('Add new operator') }}"
+                                >
+                                    <span aria-hidden="true">+</span>
+                                </button>
+                            @endcan
+                        </div>
                     </div>
                     <p class="text-xs text-slate-500">{{ __('Assigning an operator marks this queue entry Ready.') }}</p>
                     <div class="flex justify-end gap-2 border-t border-erp-border pt-3">

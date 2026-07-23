@@ -14,6 +14,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:invoices.create')->group(function () {
+            Route::get('create', [CustomerInvoiceController::class, 'create'])->name('create');
             Route::get('from/sales-order/{salesOrder}', [CustomerInvoiceController::class, 'createFromSalesOrder'])->name('from-sales-order');
             Route::post('from/sales-order/{salesOrder}', [CustomerInvoiceController::class, 'storeFromSalesOrder'])->name('store-from-sales-order');
             Route::post('from/job-card/{jobCard}', [CustomerInvoiceController::class, 'storeFromJobCard'])->name('store-from-job-card');

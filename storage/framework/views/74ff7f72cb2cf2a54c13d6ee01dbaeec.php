@@ -1,0 +1,1 @@
+<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\admin\settings\forms\partials\form-settings-submit-script.blade.php ENDPATH**/ ?>
