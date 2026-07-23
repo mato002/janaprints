@@ -1,7 +1,9 @@
 @can('update', $quoteRequest)
-    <section id="qr-360-review" class="qr-360__card qr-360__card--compact">
-        <h2 class="qr-360__card-title">{{ __('Sales Review') }}</h2>
-
+    <x-admin.record-workspace.section
+        id="qr-360-review"
+        :title="__('Sales review')"
+        tone="edit"
+    >
         <form method="POST" action="{{ route('admin.public-quote-requests.update-review', $quoteRequest) }}" class="qr-360__review-grid">
             @csrf
             @method('PATCH')
@@ -26,7 +28,7 @@
             </div>
 
             <div>
-                <label class="qr-360__label">{{ __('Assigned Salesperson') }}</label>
+                <label class="qr-360__label">{{ __('Assigned salesperson') }}</label>
                 <select name="assigned_to" class="erp-input w-full text-sm">
                     <option value="">{{ __('Unassigned') }}</option>
                     @foreach ($workspace['assignable_users'] as $user)
@@ -36,12 +38,12 @@
             </div>
 
             <div>
-                <label class="qr-360__label">{{ __('Expected Value') }}</label>
+                <label class="qr-360__label">{{ __('Expected value') }}</label>
                 <input type="number" step="0.01" min="0" name="expected_value" value="{{ old('expected_value', $quoteRequest->expected_value) }}" class="erp-input w-full text-sm" placeholder="0.00">
             </div>
 
             <div>
-                <label class="qr-360__label">{{ __('Follow-up Date') }}</label>
+                <label class="qr-360__label">{{ __('Follow-up date') }}</label>
                 <input type="date" name="target_follow_up_at" value="{{ old('target_follow_up_at', $quoteRequest->target_follow_up_at?->format('Y-m-d')) }}" class="erp-input w-full text-sm">
             </div>
 
@@ -51,8 +53,8 @@
             </div>
 
             <div class="qr-360__review-actions">
-                <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm">{{ __('Save Review') }}</button>
+                <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm">{{ __('Save review') }}</button>
             </div>
         </form>
-    </section>
+    </x-admin.record-workspace.section>
 @endcan

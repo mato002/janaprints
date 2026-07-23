@@ -286,11 +286,13 @@ class PublicLeadsFoundationTest extends TestCase
             ->get(route('admin.public-quote-requests.show', $quoteRequest))
             ->assertOk()
             ->assertSee('QR-0001')
-            ->assertSee('Artwork Review')
-            ->assertSee('Sales Review')
-            ->assertSee('Customer & Request Snapshot')
-            ->assertSee('Next Recommended Action')
-            ->assertSee('James Ngotho');
+            ->assertSee('James Ngotho')
+            ->assertSee('Prady Technologies Ltd')
+            ->assertSee('Artwork review')
+            ->assertSee('Sales review')
+            ->assertSee('Activity timeline')
+            ->assertSee('Request details')
+            ->assertSee('Call Customer');
     }
 
     public function test_admin_can_save_commercial_review_and_add_note(): void
@@ -352,13 +354,20 @@ class PublicLeadsFoundationTest extends TestCase
             'artwork_original_name' => 'logo.png',
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.public-quote-requests.artwork-preview', $quoteRequest))
-            ->assertOk();
+        // Must stream the file itself — never redirect into the Commercial desk
+        // (iframes on the quote-request show page would embed the whole admin UI).
+        $preview = $this->actingAs($user)
+            ->get(route('admin.public-quote-requests.artwork-preview', $quoteRequest));
 
-        $this->actingAs($user)
-            ->get(route('admin.public-quote-requests.artwork', $quoteRequest))
-            ->assertOk();
+        $preview->assertOk();
+        $this->assertStringContainsString('inline', (string) $preview->headers->get('content-disposition'));
+        $this->assertSame('fake-image-content', $preview->streamedContent());
+
+        $download = $this->actingAs($user)
+            ->get(route('admin.public-quote-requests.artwork', $quoteRequest));
+
+        $download->assertOk();
+        $this->assertSame('fake-image-content', $download->streamedContent());
     }
 
     public function test_dashboard_shows_new_quote_requests_alert_with_pending_count(): void

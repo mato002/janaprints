@@ -1,14 +1,16 @@
 @php
     $pi = $workspace['printing_intelligence'] ?? [];
     $summary = $pi['summary'] ?? null;
-    $artworkFileId = $pi['artwork_file_id'] ?? 'primary';
     $supported = (bool) ($pi['supported'] ?? false);
 @endphp
 
 @if ($supported || $summary)
-    <section class="qr-360__card qr-360__card--pi" id="qr-360-printing-intelligence">
-        <div class="qr-360__card-head">
-            <h2 class="qr-360__card-title">{{ __('Printing Intelligence') }}</h2>
+    <x-admin.record-workspace.section
+        id="qr-360-printing-intelligence"
+        :title="__('Printing Intelligence')"
+        tone="work"
+    >
+        <x-slot:actions>
             <div class="flex flex-wrap gap-2">
                 @can('printing.artwork.analyze')
                     @if ($supported)
@@ -20,8 +22,8 @@
                         >
                             @csrf
                             <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm" :disabled="piAnalysisLoading">
-                                <span x-show="! piSummary">{{ __('Run Printing Intelligence Analysis') }}</span>
-                                <span x-show="piSummary" x-cloak>{{ __('Re-run Analysis') }}</span>
+                                <span x-show="! piSummary">{{ __('Run Analysis') }}</span>
+                                <span x-show="piSummary" x-cloak>{{ __('Re-run') }}</span>
                             </button>
                         </form>
                     @endif
@@ -37,7 +39,7 @@
                     {{ __('View Analysis') }}
                 </button>
             </div>
-        </div>
+        </x-slot:actions>
 
         <div x-show="piSummary" x-cloak class="qr-360__pi-compact">
             <p class="text-sm text-slate-700">
@@ -65,5 +67,5 @@
         @elseif (auth()->user()?->can('printing.intelligence.view'))
             <p x-show="! piSummary" class="text-sm text-slate-500">{{ __('No Printing Intelligence analysis has been run for this artwork yet.') }}</p>
         @endif
-    </section>
+    </x-admin.record-workspace.section>
 @endif

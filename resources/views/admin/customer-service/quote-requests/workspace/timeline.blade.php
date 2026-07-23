@@ -1,16 +1,21 @@
-<section class="qr-360__card">
-    <button
-        type="button"
-        class="qr-360__collapse-head"
-        @click="timelineOpen = ! timelineOpen"
-        :aria-expanded="timelineOpen"
-    >
-        <h2 class="qr-360__card-title">{{ __('Activity Timeline') }}</h2>
-        <x-admin.icon name="chevron-down" class="h-4 w-4 transition-transform" ::class="timelineOpen && 'rotate-180'" />
-    </button>
+<x-admin.record-workspace.section
+    :title="__('Activity timeline')"
+    class="rw-section--timeline"
+    tone="work"
+>
+    <x-slot:actions>
+        <button
+            type="button"
+            class="text-xs font-semibold text-slate-500 hover:text-slate-800"
+            @click="timelineOpen = ! timelineOpen"
+            :aria-expanded="timelineOpen"
+        >
+            <span x-text="timelineOpen ? @js(__('Collapse')) : @js(__('Expand'))"></span>
+        </button>
+    </x-slot:actions>
 
     <ul class="crm-360__timeline" role="list" x-show="timelineOpen" x-cloak>
-        @foreach ($workspace['timeline'] as $event)
+        @forelse ($workspace['timeline'] as $event)
             <li class="crm-360__timeline-item">
                 <span class="crm-360__timeline-dot" aria-hidden="true"></span>
                 <div class="crm-360__timeline-body">
@@ -22,6 +27,8 @@
                     <p class="crm-360__timeline-meta">{{ $event['body'] }} · {{ $event['at']?->diffForHumans() }}</p>
                 </div>
             </li>
-        @endforeach
+        @empty
+            <li class="crm-360__empty-inline">{{ __('No activity yet') }}</li>
+        @endforelse
     </ul>
-</section>
+</x-admin.record-workspace.section>

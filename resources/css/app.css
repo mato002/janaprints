@@ -3834,6 +3834,382 @@ body.erp-navigating {
         @apply border-t border-slate-100;
     }
 
+    /* ── Record Workspace (shared ERP record shell) ── */
+    .rw {
+        @apply min-w-0 space-y-4 pb-8;
+    }
+
+    .rw__body {
+        @apply grid grid-cols-1 gap-5 xl:grid-cols-12;
+    }
+
+    .rw__main {
+        @apply min-w-0 space-y-4 xl:col-span-8;
+    }
+
+    .rw__rail {
+        @apply min-w-0 space-y-4 xl:col-span-4 xl:sticky xl:top-20 xl:self-start;
+    }
+
+    .rw__work-grid {
+        @apply grid grid-cols-1 gap-4 xl:grid-cols-12;
+    }
+
+    .rw__work-grid > .rw-section--timeline {
+        @apply xl:col-span-7;
+    }
+
+    .rw__work-grid > .rw__work-side {
+        @apply min-w-0 space-y-4 xl:col-span-5;
+    }
+
+    .rw-header {
+        @apply rounded-2xl bg-white px-4 py-4 shadow-sm ring-1 ring-slate-200/70 sm:px-5;
+    }
+
+    .rw-header__top {
+        @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .rw-header__back {
+        @apply text-xs font-semibold text-erp-accent hover:underline;
+    }
+
+    .rw-header__badges {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .rw-header__body {
+        @apply flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between;
+    }
+
+    .rw-header__identity {
+        @apply min-w-0;
+    }
+
+    .rw-header__eyebrow {
+        @apply font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+    }
+
+    .rw-header__title {
+        @apply mt-1 text-2xl font-bold tracking-tight text-erp-primary sm:text-3xl;
+    }
+
+    .rw-header__subtitle {
+        @apply mt-1 text-base font-medium text-slate-600;
+    }
+
+    .rw-header__meta {
+        @apply mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-slate-500;
+    }
+
+    .rw-header__meta-item:not(:last-child)::after {
+        content: '·';
+        @apply ml-2 text-slate-300;
+    }
+
+    .rw-header__metrics {
+        @apply grid grid-cols-2 gap-x-6 gap-y-2 text-left sm:text-right;
+    }
+
+    .rw-header__metrics dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .rw-header__metrics dd {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .rw-header__metric-value {
+        @apply text-base;
+    }
+
+    .rw-workflow {
+        @apply overflow-x-auto rounded-xl bg-slate-50/80 px-3 py-3 ring-1 ring-slate-200/60;
+    }
+
+    .rw-workflow__track {
+        @apply flex min-w-max items-stretch gap-0;
+    }
+
+    .rw-workflow__step {
+        @apply relative flex min-w-[6.5rem] flex-1 flex-col items-center gap-1.5 px-2 text-center;
+    }
+
+    .rw-workflow__step:not(:last-child)::after {
+        content: '';
+        @apply absolute left-[calc(50%+1.1rem)] top-3.5 h-0.5 w-[calc(100%-2.2rem)] bg-slate-200;
+    }
+
+    .rw-workflow__step--done:not(:last-child)::after {
+        @apply bg-emerald-400;
+    }
+
+    .rw-workflow__step--current:not(:last-child)::after {
+        @apply bg-gradient-to-r from-sky-400 to-slate-200;
+    }
+
+    .rw-workflow__marker {
+        @apply relative z-[1] flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ring-4 ring-slate-50;
+    }
+
+    .rw-workflow__step--done .rw-workflow__marker {
+        @apply bg-emerald-500 text-white;
+    }
+
+    .rw-workflow__step--current .rw-workflow__marker {
+        @apply bg-sky-600 text-white ring-sky-100;
+    }
+
+    .rw-workflow__step--future .rw-workflow__marker {
+        @apply bg-white text-slate-400 ring-1 ring-slate-200;
+    }
+
+    .rw-workflow__label {
+        @apply text-[11px] font-semibold leading-tight text-slate-600;
+    }
+
+    .rw-workflow__step--current .rw-workflow__label {
+        @apply text-sky-800;
+    }
+
+    .rw-workflow__step--done .rw-workflow__label {
+        @apply text-emerald-800;
+    }
+
+    .rw-workflow__step--future .rw-workflow__label {
+        @apply text-slate-400;
+    }
+
+    .rw-workflow__link {
+        @apply absolute inset-0;
+    }
+
+    .rw-actions {
+        @apply sticky top-16 z-20 rounded-xl bg-white/95 p-2 shadow-sm ring-1 ring-slate-200/80 backdrop-blur;
+    }
+
+    .rw-actions__inner {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .rw-actions__group {
+        @apply flex flex-wrap items-center gap-1.5;
+    }
+
+    .rw-actions__group:not(:last-child)::after {
+        content: '';
+        @apply mx-1 hidden h-5 w-px bg-slate-200 sm:block;
+    }
+
+    .rw-actions__btn {
+        @apply inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold transition;
+    }
+
+    .rw-actions__btn--primary {
+        @apply bg-erp-accent text-white hover:bg-erp-accent/90;
+    }
+
+    .rw-actions__btn--outline {
+        @apply border border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50;
+    }
+
+    .rw-actions__btn--ghost {
+        @apply text-slate-600 hover:bg-slate-100;
+    }
+
+    .rw-actions__btn--danger {
+        @apply border border-red-200 bg-red-50 text-red-700 hover:bg-red-100;
+    }
+
+    .rw-nba {
+        @apply flex flex-col gap-3 rounded-2xl px-4 py-4 sm:flex-row sm:items-start sm:justify-between;
+    }
+
+    .rw-nba--accent {
+        @apply bg-sky-50 text-sky-950 ring-1 ring-sky-200/70;
+    }
+
+    .rw-nba--success {
+        @apply bg-emerald-50 text-emerald-950 ring-1 ring-emerald-200/70;
+    }
+
+    .rw-nba--warning {
+        @apply bg-amber-50 text-amber-950 ring-1 ring-amber-200/70;
+    }
+
+    .rw-nba--muted {
+        @apply bg-slate-100 text-slate-800 ring-1 ring-slate-200/70;
+    }
+
+    .rw-nba__eyebrow {
+        @apply text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500;
+    }
+
+    .rw-nba__title {
+        @apply mt-1 text-lg font-bold tracking-tight;
+    }
+
+    .rw-nba__hint {
+        @apply mt-1 text-sm text-slate-600;
+    }
+
+    .rw-nba__reasons {
+        @apply space-y-1 text-sm text-slate-600 sm:max-w-xs sm:text-right;
+    }
+
+    .rw-nba__reasons li {
+        @apply leading-snug;
+    }
+
+    .rw-section {
+        @apply rounded-2xl bg-white p-4 ring-1 ring-slate-200/60;
+    }
+
+    .rw-section--work {
+        @apply bg-slate-50/40;
+    }
+
+    .rw-section--edit {
+        @apply ring-amber-200/80 bg-amber-50/20;
+    }
+
+    .rw-section--muted {
+        @apply bg-slate-50/70;
+    }
+
+    .rw-section--flush {
+        @apply p-0 overflow-hidden;
+    }
+
+    .rw-section--flush .rw-section__head {
+        @apply border-b border-slate-100 px-4 py-3;
+    }
+
+    .rw-section--flush .rw-section__body {
+        @apply p-0;
+    }
+
+    .rw-section__head {
+        @apply mb-3 flex flex-wrap items-center justify-between gap-2;
+    }
+
+    .rw-section__title {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .rw-section__actions {
+        @apply flex flex-wrap items-center gap-2;
+    }
+
+    .rw-section--timeline .rw-section__body {
+        @apply max-h-[28rem] overflow-y-auto pr-1;
+    }
+
+    .rw-hero-snapshot {
+        @apply space-y-3;
+    }
+
+    .rw-hero-snapshot__grid {
+        @apply grid gap-3 sm:grid-cols-2;
+    }
+
+    .rw-hero-snapshot__field-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .rw-hero-snapshot__field-value {
+        @apply mt-0.5 block text-sm font-medium text-slate-900;
+    }
+
+    .rw-hero-snapshot__link {
+        @apply mt-0.5 block text-sm font-medium text-erp-accent hover:underline;
+    }
+
+    .rw-hero-snapshot__note {
+        @apply rounded-xl bg-amber-50/80 px-3 py-2.5 text-sm leading-relaxed text-slate-800 ring-1 ring-amber-100;
+    }
+
+    .rw-hero-snapshot__note-label {
+        @apply mb-1 text-[10px] font-bold uppercase tracking-wide text-amber-800;
+    }
+
+    .rw-rail-card {
+        @apply rounded-2xl bg-white p-4 ring-1 ring-slate-200/60;
+    }
+
+    .rw-rail-card__head {
+        @apply mb-3 flex items-center justify-between gap-2;
+    }
+
+    .rw-rail-card__title {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .rw-rail-list {
+        @apply space-y-2.5 text-sm;
+    }
+
+    .rw-rail-list > div {
+        @apply flex items-center justify-between gap-3;
+    }
+
+    .rw-rail-list dt {
+        @apply text-slate-500;
+    }
+
+    .rw-rail-list dd {
+        @apply text-right font-medium text-slate-900;
+    }
+
+    .rw-meter {
+        @apply space-y-1.5;
+    }
+
+    .rw-meter__head {
+        @apply flex items-center justify-between gap-2 text-sm;
+    }
+
+    .rw-meter__label {
+        @apply text-slate-500;
+    }
+
+    .rw-meter__value {
+        @apply font-semibold text-slate-900;
+    }
+
+    .rw-meter__track {
+        @apply h-2 overflow-hidden rounded-full bg-slate-100;
+    }
+
+    .rw-meter__fill {
+        @apply block h-full rounded-full bg-erp-accent transition-all;
+    }
+
+    .rw-meter__hint {
+        @apply text-xs text-slate-500;
+    }
+
+    .rw-score {
+        @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide;
+    }
+
+    .rw-score--hot {
+        @apply bg-red-100 text-red-700 ring-1 ring-red-200;
+    }
+
+    .rw-score--warm {
+        @apply bg-amber-100 text-amber-800 ring-1 ring-amber-200;
+    }
+
+    .rw-score--cold {
+        @apply bg-sky-100 text-sky-800 ring-1 ring-sky-200;
+    }
+
+    .rw-stars {
+        @apply tracking-tight text-amber-500;
+    }
+
     /* Communication Log — 360 intelligence workspace */
     .comm-log-360 {
         @apply min-w-0 space-y-4 pb-6;

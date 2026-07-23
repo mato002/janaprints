@@ -3,9 +3,8 @@
     $active = $files[0] ?? null;
 @endphp
 
-<section class="qr-360__card qr-360__card--artwork">
-    <div class="qr-360__card-head">
-        <h2 class="qr-360__card-title">{{ __('Artwork Review') }}</h2>
+<x-admin.record-workspace.section :title="__('Artwork review')" tone="work" :flush="true">
+    <x-slot:actions>
         @if ($active)
             <div class="flex flex-wrap gap-2">
                 @can('printing.artwork.analyze')
@@ -27,8 +26,8 @@
                         >
                             @csrf
                             <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm" :disabled="piAnalysisLoading">
-                                <span x-show="! piSummary">{{ __('Run Printing Intelligence Analysis') }}</span>
-                                <span x-show="piSummary" x-cloak>{{ __('Re-run Analysis') }}</span>
+                                <span x-show="! piSummary">{{ __('Run Analysis') }}</span>
+                                <span x-show="piSummary" x-cloak>{{ __('Re-run') }}</span>
                             </button>
                         </form>
                     @endif
@@ -37,7 +36,7 @@
                 <a href="{{ $active['download_url'] }}" class="crm-360__btn crm-360__btn--outline crm-360__btn--sm">{{ __('Download') }}</a>
             </div>
         @endif
-    </div>
+    </x-slot:actions>
 
     @if ($active)
         <div class="qr-360__artwork">
@@ -103,4 +102,4 @@
             <p class="mt-1 text-xs text-slate-500">{{ __('Customer did not attach artwork with this request.') }}</p>
         </div>
     @endif
-</section>
+</x-admin.record-workspace.section>

@@ -150,10 +150,33 @@ class RedirectToModuleWorkspaceShell
 
     protected function isDetailRoute(string $routeName): bool
     {
-        foreach (['.create', '.edit', '.show', '.preview', '.compose', '.document', '.receipt', '.pdf', '.export', '.print', '.footer-contact', '.seo-global', '.quick-create'] as $suffix) {
+        foreach ([
+            '.create',
+            '.edit',
+            '.show',
+            '.preview',
+            '.compose',
+            '.document',
+            '.receipt',
+            '.pdf',
+            '.export',
+            '.print',
+            '.footer-contact',
+            '.seo-global',
+            '.quick-create',
+            // File streams used in iframes/img tags must never wrap into a desk shell.
+            '.artwork',
+            '.artwork-preview',
+            '.modal',
+        ] as $suffix) {
             if (str_ends_with($routeName, $suffix)) {
                 return true;
             }
+        }
+
+        // Named previews such as *.artwork-preview (hyphenated segment, not *.preview).
+        if (str_ends_with($routeName, '-preview')) {
+            return true;
         }
 
         // Document wizards such as invoice-from-order and bill-from-PO must not redirect to workspace desks.

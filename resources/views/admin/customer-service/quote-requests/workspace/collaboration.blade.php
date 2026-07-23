@@ -1,10 +1,8 @@
-<section class="qr-360__card">
-    <h2 class="qr-360__card-title">{{ __('Internal Collaboration') }}</h2>
-
+<x-admin.record-workspace.section :title="__('Internal notes')">
     @can('update', $quoteRequest)
         <form method="POST" action="{{ route('admin.public-quote-requests.notes.store', $quoteRequest) }}" class="mb-4">
             @csrf
-            <label class="qr-360__label" for="qr-note-body">{{ __('Add Note') }}</label>
+            <label class="qr-360__label" for="qr-note-body">{{ __('Add note') }}</label>
             <textarea
                 id="qr-note-body"
                 name="body"
@@ -14,7 +12,7 @@
                 required
             >{{ old('body') }}</textarea>
             <div class="mt-2">
-                <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm">{{ __('Save Note') }}</button>
+                <button type="submit" class="crm-360__btn crm-360__btn--primary crm-360__btn--sm">{{ __('Save note') }}</button>
             </div>
         </form>
     @endcan
@@ -35,4 +33,4 @@
             <li class="crm-360__empty-inline">{{ __('No internal notes yet') }}</li>
         @endforelse
     </ul>
-</section>
+</x-admin.record-workspace.section>
