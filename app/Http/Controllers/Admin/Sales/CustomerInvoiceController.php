@@ -181,7 +181,6 @@ class CustomerInvoiceController extends Controller
     {
         $this->authorize('create', CustomerInvoice::class);
 
-        $search = trim((string) $request->query('search', ''));
         $customerId = $request->integer('customer_id') ?: null;
 
         $query = $this->scopeToTenant(
@@ -194,25 +193,30 @@ class CustomerInvoiceController extends Controller
             $query->where('customer_id', $customerId);
         }
 
-        if ($search !== '') {
-            $like = '%'.addcslashes($search, '%_\\').'%';
-            $query->where(function ($builder) use ($like) {
-                $builder->where('order_number', 'like', $like)
-                    ->orWhereHas('customer', fn ($customer) => $customer->where('company_name', 'like', $like));
-            });
-        }
-
         $orders = $query
             ->latest('order_date')
             ->latest('id')
-            ->limit(100)
+            ->limit(200)
             ->get()
             ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
             ->values();
 
+        $orderOptions = $orders->map(function (SalesOrder $order) {
+            return [
+                'value' => $order->getRouteKey(),
+                'order_number' => $order->order_number,
+                'customer' => $order->customer?->company_name ?? '',
+                'order_date' => $order->order_date?->format('Y-m-d') ?? '',
+                'total' => number_format((float) $order->total_amount, 2),
+                'remaining' => number_format($order->remainingInvoiceTotal(), 2),
+                'status' => ucwords(str_replace('_', ' ', $order->status->value)),
+                'href' => route('admin.invoices.from-sales-order', $order),
+                'search' => strtolower(trim($order->order_number.' '.($order->customer?->company_name ?? ''))),
+            ];
+        })->values()->all();
+
         return view('admin.sales.invoices.select-order', [
-            'orders' => $orders,
-            'search' => $search,
+            'orderOptions' => $orderOptions,
             'customerId' => $customerId,
         ]);
     }

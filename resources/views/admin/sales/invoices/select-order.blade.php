@@ -1,87 +1,103 @@
-<x-admin-layout
+<x-admin.modal-form
     :title="__('Create invoice')"
     :breadcrumbs="[
         ['label' => __('Accounting'), 'url' => route('admin.workspaces.accounting')],
         ['label' => __('Invoices'), 'url' => route('admin.invoices.index')],
         ['label' => __('Create invoice')],
     ]"
+    maxWidth="3xl"
 >
-    <x-admin.page-header
-        :title="__('Create invoice')"
-        :description="__('Select a sales order with a remaining billable balance. Invoices are always created from confirmed orders.')"
-    >
-        <x-slot name="secondary">
-            <a href="{{ route('admin.invoices.index') }}" class="erp-btn-secondary" data-turbo-frame="erp-main" data-turbo-action="advance">
-                {{ __('Back to invoices') }}
-            </a>
-        </x-slot>
-    </x-admin.page-header>
+    @unless (request()->header('Turbo-Frame') === 'erp-form-modal')
+        <x-admin.page-header
+            :title="__('Create invoice')"
+            :description="__('Choose a sales order with a remaining billable balance. Use the filter to narrow the list — all billable orders are shown by default.')"
+        />
+    @else
+        <p class="mb-4 text-sm text-slate-600">
+            {{ __('Choose a sales order with a remaining billable balance. Use the filter to narrow the list — all billable orders are shown by default.') }}
+        </p>
+    @endunless
 
-    <x-admin.card :padding="false">
-        <form method="GET" action="{{ route('admin.invoices.create') }}" class="flex flex-wrap items-end gap-3 border-b border-erp-border px-4 py-3">
-            @if ($customerId)
-                <input type="hidden" name="customer_id" value="{{ $customerId }}">
-            @endif
-            <div class="min-w-[16rem] flex-1">
-                <label for="invoice-order-search" class="mb-1 block text-xs font-medium text-slate-600">{{ __('Search') }}</label>
+    @if ($orderOptions === [])
+        <x-admin.empty-state
+            icon="receipt-tax"
+            :title="__('No billable sales orders found')"
+            :description="__('Confirm a sales order first, or check that it still has a remaining billable balance. You can also create invoices from a sales order or delivery note.')"
+        />
+    @else
+        <div class="space-y-4" x-data="invoiceOrderPicker(@js($orderOptions))">
+            <div>
+                <label for="invoice-order-filter" class="erp-label">{{ __('Sales order') }}</label>
                 <input
-                    id="invoice-order-search"
+                    id="invoice-order-filter"
                     type="search"
-                    name="search"
-                    value="{{ $search }}"
-                    class="erp-input w-full text-sm"
-                    placeholder="{{ __('Order number or customer…') }}"
+                    x-model="query"
+                    class="erp-input w-full"
+                    placeholder="{{ __('Filter by order number or customer…') }}"
+                    autocomplete="off"
                 >
+                <p class="mt-1 text-xs text-slate-500">
+                    <span x-text="filtered.length"></span> {{ __('of') }} {{ count($orderOptions) }} {{ __('billable orders') }}
+                </p>
             </div>
-            <button type="submit" class="erp-btn-secondary text-sm">{{ __('Search') }}</button>
-        </form>
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full text-sm">
-                <thead class="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <tr>
-                        <th class="px-4 py-3">{{ __('Order') }}</th>
-                        <th class="px-4 py-3">{{ __('Customer') }}</th>
-                        <th class="px-4 py-3">{{ __('Date') }}</th>
-                        <th class="px-4 py-3">{{ __('Order total') }}</th>
-                        <th class="px-4 py-3">{{ __('Remaining') }}</th>
-                        <th class="px-4 py-3">{{ __('Status') }}</th>
-                        <th class="px-4 py-3 text-right">{{ __('Action') }}</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse ($orders as $order)
-                        <tr>
-                            <td class="px-4 py-3 font-mono text-erp-accent">{{ $order->order_number }}</td>
-                            <td class="px-4 py-3">{{ $order->customer?->company_name }}</td>
-                            <td class="px-4 py-3">{{ $order->order_date?->format('Y-m-d') }}</td>
-                            <td class="px-4 py-3 font-mono">{{ number_format($order->total_amount, 2) }}</td>
-                            <td class="px-4 py-3 font-mono font-semibold text-erp-primary">{{ number_format($order->remainingInvoiceTotal(), 2) }}</td>
-                            <td class="px-4 py-3">
-                                <x-admin.enum-status-badge :status="$order->status->value" />
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <a
-                                    href="{{ route('admin.invoices.from-sales-order', $order) }}"
-                                    class="erp-btn-primary text-xs"
-                                    data-turbo-frame="erp-main"
-                                    data-turbo-action="advance"
-                                >{{ __('Create invoice') }}</a>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-8">
-                                <x-admin.empty-state
-                                    icon="receipt-tax"
-                                    :title="__('No billable sales orders found')"
-                                    :description="__('Confirm a sales order first, or check that it still has a remaining billable balance. You can also create invoices from a sales order or delivery note.')"
-                                />
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <div class="max-h-80 overflow-y-auto rounded-lg border border-erp-border bg-white">
+                <template x-if="filtered.length === 0">
+                    <p class="px-4 py-8 text-center text-sm text-slate-500">{{ __('No orders match your filter.') }}</p>
+                </template>
+                <template x-for="order in filtered" :key="order.value">
+                    <button
+                        type="button"
+                        class="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-slate-50"
+                        :class="selected?.value === order.value ? 'bg-erp-accent/10 ring-1 ring-inset ring-erp-accent/30' : ''"
+                        @click="select(order)"
+                    >
+                        <div class="min-w-0 flex-1">
+                            <p class="font-mono text-sm font-semibold text-erp-primary" x-text="order.order_number"></p>
+                            <p class="text-sm text-slate-700" x-text="order.customer"></p>
+                            <p class="mt-1 text-xs text-slate-500">
+                                <span x-text="order.order_date"></span>
+                                ·
+                                <span x-text="order.status"></span>
+                            </p>
+                        </div>
+                        <div class="shrink-0 text-right text-sm">
+                            <p class="font-mono text-slate-600" x-text="order.total"></p>
+                            <p class="font-mono font-semibold text-erp-primary">
+                                {{ __('Remaining') }}: <span x-text="order.remaining"></span>
+                            </p>
+                        </div>
+                    </button>
+                </template>
+            </div>
+
+            <div
+                x-show="selected"
+                x-cloak
+                class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
+            >
+                <p class="font-medium text-slate-900" x-text="selected?.order_number"></p>
+                <p class="text-slate-600">
+                    <span x-text="selected?.customer"></span>
+                    · {{ __('Remaining') }}: <span class="font-mono font-semibold" x-text="selected?.remaining"></span>
+                </p>
+            </div>
+
+            <x-admin.form-modal-actions>
+                <button
+                    type="button"
+                    class="erp-btn-secondary"
+                    @click="window.erpModalManager?.closeModal?.()"
+                >{{ __('Cancel') }}</button>
+                <a
+                    :href="selected?.href ?? '#'"
+                    class="erp-btn-primary"
+                    data-erp-modal-open
+                    :class="{ 'pointer-events-none opacity-50': ! selected }"
+                    :aria-disabled="! selected"
+                    @click="! selected && $event.preventDefault()"
+                >{{ __('Continue') }}</a>
+            </x-admin.form-modal-actions>
         </div>
-    </x-admin.card>
-</x-admin-layout>
+    @endif
+</x-admin.modal-form>

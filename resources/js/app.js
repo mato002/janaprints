@@ -5182,6 +5182,26 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('invoiceOrderPicker', (orders = []) => ({
+        orders: Array.isArray(orders) ? orders : [],
+        query: '',
+        selected: null,
+
+        get filtered() {
+            const needle = this.query.trim().toLowerCase();
+
+            if (! needle) {
+                return this.orders;
+            }
+
+            return this.orders.filter((order) => (order.search ?? '').includes(needle));
+        },
+
+        select(order) {
+            this.selected = order;
+        },
+    }));
+
     Alpine.data('salesDeskSearch', (config = {}) => ({
         searchUrl: config.searchUrl ?? '',
         deskUrl: config.deskUrl ?? '',
