@@ -5866,7 +5866,11 @@ body.erp-navigating {
 
     /* Designer desk workspace */
     .designer-desk-shell {
-        @apply pb-16;
+        @apply pb-8;
+    }
+
+    .designer-desk-command .designer-desk-queue {
+        @apply lg:sticky lg:top-3;
     }
 
     .designer-desk-kpi {
@@ -5886,7 +5890,7 @@ body.erp-navigating {
     }
 
     .designer-desk-action-btn {
-        @apply min-h-11 px-5 py-2.5 text-sm font-semibold touch-manipulation;
+        @apply min-h-10 px-4 py-2 text-sm font-semibold touch-manipulation;
     }
 
     /* Job 360 completion workstation */

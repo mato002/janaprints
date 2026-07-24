@@ -38,15 +38,19 @@ class DesignerDeskService
             ->withQueryString();
 
         $allAssigned = (clone $baseQuery)->get(['id', 'status', 'due_date', 'priority', 'created_at', 'updated_at']);
+        $productivity = $this->productivityMetrics($designerId);
+        $user = $request->user();
 
         return [
-            'summary' => $this->summaryGroups($allAssigned, $today, $designerId),
+            'summary' => $this->todayStrip($allAssigned, $today, $productivity),
+            'greeting' => $this->greeting($user, $allAssigned, $today, $productivity),
+            'filters' => $this->queueFilters($allAssigned, $today),
             'urgent' => $this->urgentQueue($allAssigned, $today),
             'requests' => $requests,
             'rows' => collect($requests->items())->map(fn (ArtworkRequest $row) => $this->presentRow($row, $today)),
             'today_activity' => $this->todayActivity($designerId),
             'has_assignments' => $allAssigned->isNotEmpty(),
-            'operatorMode' => $request->user()?->prefersDesignerOperatorMode() ?? false,
+            'operatorMode' => $user?->prefersDesignerOperatorMode() ?? false,
         ];
     }
 
@@ -152,8 +156,10 @@ class DesignerDeskService
             'revision_notes' => $this->presentRevisionNotes($artworkRequest),
             'readiness' => $this->productionReadiness($artworkRequest, $salesOrder, $jobCard),
             'primary_actions' => $this->primaryActions($artworkRequest, $user, $salesOrder, $jobCard),
+            'links' => $this->panelLinks($artworkRequest, $salesOrder),
             'comments_url' => route('admin.artwork.comments.store', $artworkRequest),
             'guidance' => $this->guidance($artworkRequest),
+            'timeline' => $this->jobTimeline($artworkRequest),
         ];
     }
 
@@ -164,37 +170,95 @@ class DesignerDeskService
     }
 
     /**
+     * Compact one-row TODAY metrics — replaces the dual KPI dashboard.
+     *
      * @param  Collection<int, ArtworkRequest>  $assigned
-     * @return array{operational: list<array<string, mixed>>, performance: list<array<string, mixed>>}
+     * @param  array<string, mixed>  $productivity
+     * @return list<array<string, mixed>>
      */
-    protected function summaryGroups(Collection $assigned, Carbon $today, int $designerId): array
+    protected function todayStrip(Collection $assigned, Carbon $today, array $productivity): array
     {
         $active = $assigned->reject(fn (ArtworkRequest $r) => in_array($r->status, [
             ArtworkRequestStatus::Approved,
             ArtworkRequestStatus::Rejected,
         ], true));
 
-        $productivity = $this->productivityMetrics($designerId);
+        return [
+            ['key' => 'assigned', 'label' => __('Assigned'), 'value' => $assigned->count(), 'tone' => 'primary', 'filter' => 'all'],
+            ['key' => 'working', 'label' => __('Working'), 'value' => $assigned->whereIn('status', [
+                ArtworkRequestStatus::InDesign,
+                ArtworkRequestStatus::RevisionRequested,
+            ])->count(), 'tone' => 'blue', 'filter' => 'working'],
+            ['key' => 'review', 'label' => __('Review'), 'value' => $assigned->whereIn('status', [
+                ArtworkRequestStatus::Submitted,
+                ArtworkRequestStatus::RevisionRequested,
+            ])->count(), 'tone' => 'amber', 'filter' => 'review'],
+            ['key' => 'completed', 'label' => __('Completed'), 'value' => $productivity['completed_today'], 'tone' => 'emerald', 'filter' => null],
+            ['key' => 'late', 'label' => __('Late'), 'value' => $active->filter(fn (ArtworkRequest $r) => $r->due_date && $r->due_date->lt($today))->count(), 'tone' => 'rose', 'filter' => 'late'],
+        ];
+    }
+
+    /**
+     * @param  Collection<int, ArtworkRequest>  $assigned
+     * @param  array<string, mixed>  $productivity
+     * @return array<string, mixed>
+     */
+    protected function greeting(?User $user, Collection $assigned, Carbon $today, array $productivity): array
+    {
+        $hour = (int) now()->format('G');
+        $hello = match (true) {
+            $hour < 12 => __('Good morning'),
+            $hour < 17 => __('Good afternoon'),
+            default => __('Good evening'),
+        };
+
+        $name = $user?->name ? explode(' ', trim($user->name))[0] : null;
+        $active = $assigned->reject(fn (ArtworkRequest $r) => in_array($r->status, [
+            ArtworkRequestStatus::Approved,
+            ArtworkRequestStatus::Rejected,
+        ], true));
+
+        $dueToday = $active->filter(fn (ArtworkRequest $r) => $r->due_date?->isSameDay($today))->count();
+        $revisions = $assigned->where('status', ArtworkRequestStatus::RevisionRequested)->count();
+        $approvals = $assigned->where('status', ArtworkRequestStatus::Submitted)->count();
+
+        $facts = [];
+        if ($dueToday > 0) {
+            $facts[] = trans_choice(':count job due today|:count jobs due today', $dueToday, ['count' => $dueToday]);
+        }
+        if ($revisions > 0) {
+            $facts[] = trans_choice(':count revision waiting|:count revisions waiting', $revisions, ['count' => $revisions]);
+        }
+        if ($approvals > 0) {
+            $facts[] = trans_choice(':count client approval pending|:count client approvals pending', $approvals, ['count' => $approvals]);
+        }
+        if ($productivity['avg_approval_hours']) {
+            $facts[] = __('Avg completion :hours h', ['hours' => $productivity['avg_approval_hours']]);
+        }
+        if ($facts === []) {
+            $facts[] = __('Queue is clear — new jobs appear when assigned.');
+        }
 
         return [
-            'operational' => [
-                ['key' => 'assigned', 'label' => __('Assigned'), 'value' => $assigned->count(), 'tone' => 'primary'],
-                ['key' => 'working', 'label' => __('Working'), 'value' => $assigned->whereIn('status', [
-                    ArtworkRequestStatus::InDesign,
-                    ArtworkRequestStatus::RevisionRequested,
-                ])->count(), 'tone' => 'blue'],
-                ['key' => 'waiting_customer', 'label' => __('Waiting'), 'value' => $assigned->where('status', ArtworkRequestStatus::Submitted)->count(), 'tone' => 'indigo'],
-                ['key' => 'revision', 'label' => __('Revision'), 'value' => $assigned->where('status', ArtworkRequestStatus::RevisionRequested)->count(), 'tone' => 'amber'],
-                ['key' => 'approved', 'label' => __('Approved'), 'value' => $assigned->where('status', ArtworkRequestStatus::Approved)->count(), 'tone' => 'emerald'],
-                ['key' => 'ready_today', 'label' => __('Ready Today'), 'value' => $active->filter(fn (ArtworkRequest $r) => $r->due_date?->isSameDay($today))->count(), 'tone' => 'violet'],
-                ['key' => 'late', 'label' => __('Late'), 'value' => $active->filter(fn (ArtworkRequest $r) => $r->due_date && $r->due_date->lt($today))->count(), 'tone' => 'rose'],
-            ],
-            'performance' => [
-                ['key' => 'completed_today', 'label' => __('Completed Today'), 'value' => $productivity['completed_today'], 'tone' => 'primary'],
-                ['key' => 'completed_week', 'label' => __('Completed Week'), 'value' => $productivity['completed_week'], 'tone' => 'primary'],
-                ['key' => 'avg_approval', 'label' => __('Approval Time'), 'value' => $productivity['avg_approval_hours'] ? $productivity['avg_approval_hours'].'h' : '—', 'tone' => 'slate'],
-                ['key' => 'revision_rate', 'label' => __('Revision Rate'), 'value' => $productivity['revision_rate'].'%', 'tone' => 'slate'],
-            ],
+            'title' => $name ? $hello.', '.$name : $hello,
+            'facts' => $facts,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, ArtworkRequest>  $assigned
+     * @return list<array<string, mixed>>
+     */
+    protected function queueFilters(Collection $assigned, Carbon $today): array
+    {
+        return [
+            ['key' => 'all', 'label' => __('All')],
+            ['key' => 'working', 'label' => __('Working')],
+            ['key' => 'review', 'label' => __('Review')],
+            ['key' => 'late', 'label' => __('Late')],
+            ['key' => 'high', 'label' => __('High Priority')],
+            ['key' => 'today', 'label' => __('Today')],
+            ['key' => 'mine', 'label' => __('Mine')],
         ];
     }
 
@@ -281,12 +345,17 @@ class DesignerDeskService
         return $events
             ->filter(fn (array $event) => $event['at'] !== null)
             ->sortByDesc('at')
-            ->take(6)
-            ->map(fn (array $event) => [
-                'time' => $event['at']->format('H:i'),
-                'label' => $event['label'],
-                'tone' => $event['tone'],
-            ])
+            ->take(8)
+            ->map(function (array $event) {
+                /** @var Carbon $at */
+                $at = $event['at'];
+
+                return [
+                    'time' => $at->isToday() ? $at->format('H:i') : ($at->isYesterday() ? __('Yesterday') : $at->format('d M')),
+                    'label' => $event['label'],
+                    'tone' => $event['tone'],
+                ];
+            })
             ->values()
             ->all();
     }
@@ -401,7 +470,7 @@ class DesignerDeskService
         if ($user->can('create', [\App\Models\Artwork\ArtworkVersion::class, $request]) && $request->status->isEditable()) {
             $actions[] = [
                 'key' => 'upload',
-                'label' => __('Upload Revision'),
+                'label' => __('Upload Artwork'),
                 'type' => 'scroll',
                 'target' => 'designer-desk-upload',
                 'variant' => 'secondary',
@@ -411,7 +480,7 @@ class DesignerDeskService
         if ($user->can('submit', $request)) {
             $actions[] = [
                 'key' => 'submit',
-                'label' => __('Send for Approval'),
+                'label' => __('Submit Approval'),
                 'type' => 'post',
                 'url' => route('admin.artwork.submit', $request),
                 'variant' => 'primary',
@@ -432,6 +501,106 @@ class DesignerDeskService
         }
 
         return $actions;
+    }
+
+    /**
+     * @return list<array{label: string, url: string, external?: bool}>
+     */
+    protected function panelLinks(ArtworkRequest $request, ?SalesOrder $salesOrder): array
+    {
+        $links = [
+            [
+                'label' => __('Open Artwork'),
+                'url' => route('admin.artwork.show', $request),
+            ],
+        ];
+
+        if ($request->customer_id && Route::has('admin.crm.customers.show')) {
+            $links[] = [
+                'label' => __('View Customer'),
+                'url' => route('admin.crm.customers.show', $request->customer),
+            ];
+        }
+
+        if ($salesOrder && Route::has('admin.sales.orders.show')) {
+            $links[] = [
+                'label' => __('View Order'),
+                'url' => route('admin.sales.orders.show', $salesOrder),
+            ];
+        }
+
+        if ($request->quotation_id && Route::has('admin.quotations.show')) {
+            $links[] = [
+                'label' => __('View Quotation'),
+                'url' => route('admin.quotations.show', $request->quotation),
+            ];
+        }
+
+        return $links;
+    }
+
+    /**
+     * @return list<array{time: string, label: string, tone: string}>
+     */
+    protected function jobTimeline(ArtworkRequest $request): array
+    {
+        $events = collect();
+
+        $events->push([
+            'at' => $request->created_at,
+            'label' => __('Request created'),
+            'tone' => 'neutral',
+        ]);
+
+        if ($request->assigned_designer_id) {
+            $events->push([
+                'at' => $request->updated_at,
+                'label' => __('Assigned to you'),
+                'tone' => 'info',
+            ]);
+        }
+
+        foreach ($request->versions as $version) {
+            $events->push([
+                'at' => $version->created_at,
+                'label' => __('Uploaded v:number', ['number' => $version->version_number]),
+                'tone' => 'info',
+            ]);
+        }
+
+        foreach ($request->approvals as $approval) {
+            $events->push([
+                'at' => $approval->created_at,
+                'label' => match ($approval->decision) {
+                    ArtworkApprovalDecision::Approved => __('Client approved'),
+                    ArtworkApprovalDecision::RevisionRequested => __('Client requested changes'),
+                    ArtworkApprovalDecision::Rejected => __('Client rejected'),
+                    default => __('Approval update'),
+                },
+                'tone' => match ($approval->decision) {
+                    ArtworkApprovalDecision::Approved => 'success',
+                    ArtworkApprovalDecision::RevisionRequested => 'warning',
+                    default => 'neutral',
+                },
+            ]);
+        }
+
+        return $events
+            ->filter(fn (array $event) => $event['at'] !== null)
+            ->sortByDesc('at')
+            ->take(6)
+            ->map(function (array $event) {
+                /** @var Carbon $at */
+                $at = $event['at'];
+
+                return [
+                    'time' => $at->isToday() ? $at->format('H:i') : ($at->isYesterday() ? __('Yesterday') : $at->format('d M')),
+                    'label' => $event['label'],
+                    'tone' => $event['tone'],
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -553,12 +722,25 @@ class DesignerDeskService
             'priority_label' => ucfirst($request->priority->value),
             'status' => $request->status->value,
             'status_label' => $this->statusLabel($request->status),
-            'due_date' => $request->due_date?->format('d M Y'),
-            'version' => $request->current_version ?: '—',
+            'due_date' => $this->dueDisplay($request->due_date) ?? '—',
+            'due_raw' => $request->due_date?->format('d M Y'),
+            'version' => $request->current_version ?: 0,
+            'version_label' => $request->current_version
+                ? __('Artwork v:number', ['number' => $request->current_version])
+                : __('No version yet'),
             'is_late' => $isLate,
             'is_due_today' => $isDueToday,
             'is_revision' => $request->status === ArtworkRequestStatus::RevisionRequested,
             'is_waiting' => $request->status === ArtworkRequestStatus::Submitted,
+            'is_working' => in_array($request->status, [
+                ArtworkRequestStatus::InDesign,
+                ArtworkRequestStatus::RevisionRequested,
+            ], true),
+            'is_review' => in_array($request->status, [
+                ArtworkRequestStatus::Submitted,
+                ArtworkRequestStatus::RevisionRequested,
+            ], true),
+            'is_high' => in_array($request->priority->value, ['high', 'urgent'], true),
             'is_editable' => $request->status->isEditable(),
             'quotation_number' => $request->quotation?->quotation_number,
         ];

@@ -113,11 +113,9 @@ class DesignerOperatorModeTest extends TestCase
         $this->actingAs($designer)
             ->get(route('admin.artwork.desk'))
             ->assertOk()
-            ->assertSee(__('Designer desk'))
             ->assertSee('AW-DESK-001')
-            ->assertSee(__('My Work Queue'), false)
-            ->assertSee(__('Operational'), false)
-            ->assertSee(__('Performance'), false)
+            ->assertSee(__("Today's queue"), false)
+            ->assertSee(__('Today'), false)
             ->assertSee('designerDesk', false);
 
         $this->actingAs($designer)
@@ -131,6 +129,8 @@ class DesignerOperatorModeTest extends TestCase
                 'revision_notes',
                 'readiness',
                 'primary_actions',
+                'links',
+                'timeline',
             ]);
 
         $this->actingAs($designer)

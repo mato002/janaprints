@@ -9,31 +9,36 @@
         'slate' => 'text-slate-600',
         default => 'text-erp-primary',
     };
+
+    // Support both new flat strip and legacy grouped summary.
+    $cards = is_array($summary) && array_is_list($summary)
+        ? $summary
+        : ($summary['operational'] ?? []);
 ?>
 
-<div class="designer-desk-metrics mb-4 space-y-3">
-    <div class="rounded-xl border border-erp-border bg-white p-3 shadow-sm">
-        <p class="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-400"><?php echo e(__('Operational')); ?></p>
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
-            <?php $__currentLoopData = $summary['operational']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <div class="designer-desk-kpi rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5 text-center">
-                    <p class="text-xl font-bold tabular-nums <?php echo e($toneClasses($card['tone'] ?? 'primary')); ?>"><?php echo e($card['value']); ?></p>
+<section class="designer-desk-today mb-3 rounded-xl border border-erp-border bg-white px-3 py-2.5 shadow-sm" aria-label="<?php echo e(__('Today')); ?>">
+    <div class="mb-1.5 flex items-center justify-between gap-2 px-1">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400"><?php echo e(__('Today')); ?></p>
+    </div>
+    <div class="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
+        <?php $__currentLoopData = $cards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php if(! empty($card['filter'])): ?>
+                <button
+                    type="button"
+                    class="rounded-lg border border-slate-100 bg-slate-50/60 px-2 py-2 text-center transition hover:border-erp-accent/30 hover:bg-erp-accent/5"
+                    :class="{ 'ring-1 ring-erp-accent/40 bg-erp-accent/5': activeFilter === <?php echo \Illuminate\Support\Js::from($card['filter'])->toHtml() ?> }"
+                    @click="setFilter(<?php echo \Illuminate\Support\Js::from($card['filter'])->toHtml() ?>)"
+                >
+                    <p class="text-lg font-bold tabular-nums <?php echo e($toneClasses($card['tone'] ?? 'primary')); ?>"><?php echo e($card['value']); ?></p>
+                    <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"><?php echo e($card['label']); ?></p>
+                </button>
+            <?php else: ?>
+                <div class="rounded-lg border border-slate-100 bg-slate-50/60 px-2 py-2 text-center">
+                    <p class="text-lg font-bold tabular-nums <?php echo e($toneClasses($card['tone'] ?? 'primary')); ?>"><?php echo e($card['value']); ?></p>
                     <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"><?php echo e($card['label']); ?></p>
                 </div>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-        </div>
+            <?php endif; ?>
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
-
-    <div class="rounded-xl border border-erp-border/80 bg-gradient-to-r from-slate-50 to-white p-3">
-        <p class="mb-2 px-1 text-[10px] font-bold uppercase tracking-widest text-slate-400"><?php echo e(__('Performance')); ?></p>
-        <div class="grid grid-cols-2 gap-2 lg:grid-cols-4">
-            <?php $__currentLoopData = $summary['performance']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $card): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                <div class="rounded-lg border border-white bg-white/80 px-3 py-2.5 text-center shadow-sm">
-                    <p class="text-lg font-bold tabular-nums <?php echo e($toneClasses($card['tone'] ?? 'slate')); ?>"><?php echo e($card['value']); ?></p>
-                    <p class="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500"><?php echo e($card['label']); ?></p>
-                </div>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-        </div>
-    </div>
-</div>
+</section>
 <?php /**PATH C:\xampp\htdocs\jana-prints\resources\views/admin/artwork/desk/partials/summary-strip.blade.php ENDPATH**/ ?>

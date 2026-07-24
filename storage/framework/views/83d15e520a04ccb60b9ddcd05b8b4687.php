@@ -1,5 +1,7 @@
 <?php
     $operatorMode = (bool) ($operatorMode ?? false);
+    $greeting = $greeting ?? ['title' => __('Designer Desk'), 'facts' => []];
+    $filters = $filters ?? [];
 ?>
 
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
@@ -9,7 +11,7 @@
         : [
             ['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')],
             ['label' => __('Designer Desk')],
-        ],'compactPage' => false] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+        ],'compactPage' => true] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin-layout'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
@@ -18,63 +20,54 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <div
-        class="designer-desk-shell"
+        class="designer-desk-shell designer-desk-command"
         x-data="designerDesk(<?php echo \Illuminate\Support\Js::from([
             'panelBase' => url('admin/artwork/desk/requests'),
             'initialRequestKey' => request('request'),
+            'autoSelectFirst' => collect($rows)->isNotEmpty(),
+            'firstKey' => data_get(collect($rows)->first(), 'key'),
         ])->toHtml() ?>)"
         x-cloak
     >
-        <?php if($operatorMode): ?>
-            <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p class="text-sm font-semibold text-erp-primary"><?php echo e(__('Designer desk')); ?></p>
-                    <p class="text-xs text-slate-600"><?php echo e(__('Select a job to work inline — files, specs, and submit actions stay here.')); ?></p>
-                </div>
-            </div>
-        <?php else: ?>
-            <?php if (isset($component)) { $__componentOriginalcb19cb35a534439097b02b8af91726ee = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalcb19cb35a534439097b02b8af91726ee = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.page-header','data' => ['title' => __('Designer Desk'),'description' => __('Your operational workspace — accept jobs, upload, and submit without leaving the desk.')]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.page-header'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['title' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Designer Desk')),'description' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(__('Your operational workspace — accept jobs, upload, and submit without leaving the desk.'))]); ?>
-                 <?php $__env->slot('actions', null, []); ?> 
-                    <a href="<?php echo e(route('admin.artwork.dashboard')); ?>" class="erp-btn-secondary" data-turbo-frame="erp-main"><?php echo e(__('Full Artwork dashboard')); ?></a>
-                 <?php $__env->endSlot(); ?>
-             <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalcb19cb35a534439097b02b8af91726ee)): ?>
-<?php $attributes = $__attributesOriginalcb19cb35a534439097b02b8af91726ee; ?>
-<?php unset($__attributesOriginalcb19cb35a534439097b02b8af91726ee); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalcb19cb35a534439097b02b8af91726ee)): ?>
-<?php $component = $__componentOriginalcb19cb35a534439097b02b8af91726ee; ?>
-<?php unset($__componentOriginalcb19cb35a534439097b02b8af91726ee); ?>
-<?php endif; ?>
-        <?php endif; ?>
-
         <?php if(session('status')): ?>
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800"><?php echo e(session('status')); ?></div>
+            <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800"><?php echo e(session('status')); ?></div>
         <?php endif; ?>
 
+        
+        <section class="mb-3 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-erp-border bg-white px-4 py-3 shadow-sm">
+            <div class="min-w-0">
+                <p class="text-base font-semibold text-erp-primary"><?php echo e($greeting['title']); ?></p>
+                <p class="mt-0.5 text-xs text-slate-600"><?php echo e(implode(' · ', $greeting['facts'] ?? [])); ?></p>
+            </div>
+            <?php if (! ($operatorMode)): ?>
+                <a href="<?php echo e(route('admin.artwork.dashboard')); ?>" class="erp-btn-secondary shrink-0 text-xs" data-turbo-frame="erp-main"><?php echo e(__('Full dashboard')); ?></a>
+            <?php endif; ?>
+        </section>
+
+        
         <?php echo $__env->make('admin.artwork.desk.partials.summary-strip', ['summary' => $summary], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-        <?php echo $__env->make('admin.artwork.desk.partials.urgent-queue', ['urgent' => $urgent], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-        <div :class="selectedKey ? 'opacity-100' : ''">
-            <?php echo $__env->make('admin.artwork.desk.partials.table', ['rows' => $rows, 'operatorMode' => $operatorMode], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-            <div class="mt-4 pb-2" x-show="!selectedKey"><?php echo e($requests->links()); ?></div>
+        
+        <?php echo $__env->make('admin.artwork.desk.partials.queue-filters', ['filters' => $filters], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+        
+        <div class="designer-desk-split grid gap-3 lg:grid-cols-12 lg:items-start">
+            <div class="lg:col-span-5 xl:col-span-4">
+                <?php echo $__env->make('admin.artwork.desk.partials.queue-cards', [
+                    'rows' => $rows,
+                    'requests' => $requests,
+                    'has_assignments' => $has_assignments,
+                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            </div>
+
+            <div class="lg:col-span-7 xl:col-span-8">
+                <?php echo $__env->make('admin.artwork.desk.partials.workspace', ['operatorMode' => $operatorMode], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                <?php echo $__env->make('admin.artwork.desk.partials.idle-panel', [
+                    'today_activity' => $today_activity,
+                    'has_assignments' => $has_assignments,
+                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            </div>
         </div>
-
-        <?php echo $__env->make('admin.artwork.desk.partials.workspace', ['operatorMode' => $operatorMode], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-        <?php echo $__env->make('admin.artwork.desk.partials.idle-panel', [
-            'today_activity' => $today_activity,
-            'has_assignments' => $has_assignments,
-        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>

@@ -5038,6 +5038,12 @@ document.addEventListener('alpine:init', () => {
         init() {
             if (config.initialRequestKey) {
                 this.selectRequest(config.initialRequestKey);
+
+                return;
+            }
+
+            if (config.autoSelectFirst && config.firstKey && window.matchMedia('(min-width: 1024px)').matches) {
+                this.selectRequest(config.firstKey);
             }
         },
 
@@ -5062,10 +5068,12 @@ document.addEventListener('alpine:init', () => {
                     this.panel = await response.json();
 
                     this.$nextTick(() => {
-                        const workspace = document.querySelector('.designer-desk-workspace');
+                        if (window.matchMedia('(max-width: 1023px)').matches) {
+                            const workspace = document.querySelector('.designer-desk-workspace');
 
-                        if (workspace) {
-                            workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            if (workspace) {
+                                workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
                         }
 
                         if (scrollTarget) {
@@ -5091,8 +5099,18 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        filterUrgent(key) {
+        setFilter(key) {
+            if (key === 'all' || key === 'mine') {
+                this.activeFilter = null;
+
+                return;
+            }
+
             this.activeFilter = this.activeFilter === key ? null : key;
+        },
+
+        filterUrgent(key) {
+            this.setFilter(key);
         },
 
         clearFilter() {
@@ -5109,11 +5127,22 @@ document.addEventListener('alpine:init', () => {
                 overdue: 'data-urgency-overdue',
                 waiting_customer: 'data-urgency-waiting',
                 new_assignment: 'data-urgency-new',
+                working: 'data-filter-working',
+                review: 'data-filter-review',
+                late: 'data-filter-late',
+                high: 'data-filter-high',
+                today: 'data-filter-today',
+                mine: 'data-filter-mine',
+                all: null,
             };
 
             const attribute = map[this.activeFilter];
 
-            return attribute ? rowElement.getAttribute(attribute) === '1' : true;
+            if (! attribute) {
+                return true;
+            }
+
+            return rowElement.getAttribute(attribute) === '1';
         },
     }));
 

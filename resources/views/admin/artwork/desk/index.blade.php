@@ -1,5 +1,7 @@
 @php
     $operatorMode = (bool) ($operatorMode ?? false);
+    $greeting = $greeting ?? ['title' => __('Designer Desk'), 'facts' => []];
+    $filters = $filters ?? [];
 @endphp
 
 <x-admin-layout
@@ -10,50 +12,56 @@
             ['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')],
             ['label' => __('Designer Desk')],
         ]"
-    :compact-page="false"
+    :compact-page="true"
 >
     <div
-        class="designer-desk-shell"
+        class="designer-desk-shell designer-desk-command"
         x-data="designerDesk(@js([
             'panelBase' => url('admin/artwork/desk/requests'),
             'initialRequestKey' => request('request'),
+            'autoSelectFirst' => collect($rows)->isNotEmpty(),
+            'firstKey' => data_get(collect($rows)->first(), 'key'),
         ]))"
         x-cloak
     >
-        @if ($operatorMode)
-            <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p class="text-sm font-semibold text-erp-primary">{{ __('Designer desk') }}</p>
-                    <p class="text-xs text-slate-600">{{ __('Select a job to work inline — files, specs, and submit actions stay here.') }}</p>
-                </div>
-            </div>
-        @else
-            <x-admin.page-header
-                :title="__('Designer Desk')"
-                :description="__('Your operational workspace — accept jobs, upload, and submit without leaving the desk.')"
-            >
-                <x-slot name="actions">
-                    <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary" data-turbo-frame="erp-main">{{ __('Full Artwork dashboard') }}</a>
-                </x-slot>
-            </x-admin.page-header>
-        @endif
-
         @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+            <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</div>
         @endif
 
+        {{-- Smart banner --}}
+        <section class="mb-3 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-erp-border bg-white px-4 py-3 shadow-sm">
+            <div class="min-w-0">
+                <p class="text-base font-semibold text-erp-primary">{{ $greeting['title'] }}</p>
+                <p class="mt-0.5 text-xs text-slate-600">{{ implode(' · ', $greeting['facts'] ?? []) }}</p>
+            </div>
+            @unless ($operatorMode)
+                <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary shrink-0 text-xs" data-turbo-frame="erp-main">{{ __('Full dashboard') }}</a>
+            @endunless
+        </section>
+
+        {{-- Compact TODAY strip --}}
         @include('admin.artwork.desk.partials.summary-strip', ['summary' => $summary])
-        @include('admin.artwork.desk.partials.urgent-queue', ['urgent' => $urgent])
 
-        <div :class="selectedKey ? 'opacity-100' : ''">
-            @include('admin.artwork.desk.partials.table', ['rows' => $rows, 'operatorMode' => $operatorMode])
-            <div class="mt-4 pb-2" x-show="!selectedKey">{{ $requests->links() }}</div>
+        {{-- Quick filters --}}
+        @include('admin.artwork.desk.partials.queue-filters', ['filters' => $filters])
+
+        {{-- Split: Queue | Selected job --}}
+        <div class="designer-desk-split grid gap-3 lg:grid-cols-12 lg:items-start">
+            <div class="lg:col-span-5 xl:col-span-4">
+                @include('admin.artwork.desk.partials.queue-cards', [
+                    'rows' => $rows,
+                    'requests' => $requests,
+                    'has_assignments' => $has_assignments,
+                ])
+            </div>
+
+            <div class="lg:col-span-7 xl:col-span-8">
+                @include('admin.artwork.desk.partials.workspace', ['operatorMode' => $operatorMode])
+                @include('admin.artwork.desk.partials.idle-panel', [
+                    'today_activity' => $today_activity,
+                    'has_assignments' => $has_assignments,
+                ])
+            </div>
         </div>
-
-        @include('admin.artwork.desk.partials.workspace', ['operatorMode' => $operatorMode])
-        @include('admin.artwork.desk.partials.idle-panel', [
-            'today_activity' => $today_activity,
-            'has_assignments' => $has_assignments,
-        ])
     </div>
 </x-admin-layout>
