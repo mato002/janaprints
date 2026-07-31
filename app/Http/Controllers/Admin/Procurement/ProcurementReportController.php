@@ -7,8 +7,8 @@ use App\Support\Commercial\Reports\CommercialReportExportService;
 use App\Support\Procurement\Reports\ProcurementReportPresenter;
 use App\Support\Procurement\Reports\ProcurementReportScope;
 use App\Support\Procurement\Reports\ProcurementReportScopeResolver;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class ProcurementReportController extends Controller
@@ -26,7 +26,7 @@ class ProcurementReportController extends Controller
         return view('admin.procurement.reports.index', $this->presenter->present($request));
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('reports.procurement.export'), 403);
 
@@ -37,13 +37,12 @@ class ProcurementReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'procurement',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.procurement.reports.index',
+            format: $format
         );
     }
 

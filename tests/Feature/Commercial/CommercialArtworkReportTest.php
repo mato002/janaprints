@@ -7,12 +7,9 @@ use App\Models\Artwork\ArtworkRequest;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
-use App\Models\CommercialReportExport;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -101,10 +98,8 @@ class CommercialArtworkReportTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_export_queues_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.artwork.view',
             'commercial.reports.artwork.export',
@@ -112,13 +107,13 @@ class CommercialArtworkReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->post(route('admin.commercial.reports.artwork.export', ['format' => 'csv', 'tab' => 'requests']))
-            ->assertRedirect()
-            ->assertSessionHas('export_id');
+        $response = $this->actingAs($user)
+            ->post(route('admin.commercial.reports.artwork.export', ['format' => 'csv', 'tab' => 'requests']));
 
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
-        $this->assertNotNull(CommercialReportExport::query()->find(session('export_id')));
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     /**

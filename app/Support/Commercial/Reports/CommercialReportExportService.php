@@ -2,79 +2,48 @@
 
 namespace App\Support\Commercial\Reports;
 
-use App\Enums\CommercialReportExportStatus;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
 use App\Models\CommercialReportExport;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Support\Commercial\Reports\Exports\CommercialReportExportRegistry;
+use App\Support\Commercial\Reports\Exports\CommercialReportExportWriter;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CommercialReportExportService
 {
+    public function __construct(
+        protected CommercialReportExportWriter $writer,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $scopePayload
      */
-    public function queue(
+    public function download(
         Request $request,
         array $scopePayload,
         string $module,
         string $tab,
         string $format,
-        string $redirectRoute,
-    ): RedirectResponse {
+    ): StreamedResponse {
         $user = $request->user();
-        $companyId = (int) ($scopePayload['company_id'] ?? $user?->company_id);
-        $now = now();
 
-        $export = CommercialReportExport::query()->create([
-            'company_id' => $companyId,
+        $export = new CommercialReportExport([
+            'company_id' => (int) ($scopePayload['company_id'] ?? $user?->company_id),
             'user_id' => (int) $user->id,
             'module' => $module,
             'tab' => $tab,
             'format' => $format,
             'scope_payload' => $scopePayload,
-            'status' => CommercialReportExportStatus::Queued,
-            'queued_at' => $now,
-            'expires_at' => $now->copy()->addDays((int) config('platform.commercial_reports.export_ttl_days', 7)),
         ]);
 
-        ProcessCommercialReportExportJob::dispatch($export->id);
+        $exporter = CommercialReportExportRegistry::resolve($module);
 
-        return redirect()
-            ->route($this->resolveRedirectRoute($request, $redirectRoute), $this->redirectParams($request))
-            ->with('export_id', $export->id)
-            ->with('status', __('Your :format export has been queued. You can download it from Export History when ready.', [
-                'format' => strtoupper($format),
-            ]));
-    }
-
-    protected function resolveRedirectRoute(Request $request, string $defaultRoute): string
-    {
-        if ($request->filled('report') && \Illuminate\Support\Facades\Route::has('admin.reports.commercial')) {
-            return 'admin.reports.commercial';
-        }
-
-        return $defaultRoute;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function redirectParams(Request $request): array
-    {
-        $params = array_merge($request->query(), $request->except(['_token', 'format']));
-
-        if (
-            $request->input('embedded') === '1'
-            || $request->query('embedded') === '1'
-            || $request->header('Turbo-Frame') === 'module-workspace-content'
-        ) {
-            $params['embedded'] = '1';
-        }
-
-        return array_filter(
-            $params,
-            fn ($value) => $value !== null && $value !== '',
+        return $this->writer->streamDownload(
+            export: $export,
+            columns: $exporter->columns($export),
+            rows: $exporter->rows($export),
+            title: $exporter->title($export),
+            subtitle: $exporter->subtitle($export),
         );
     }
 

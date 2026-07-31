@@ -4,7 +4,7 @@
     $indexRoute = $index_route ?? 'admin.commercial.reports.sales.index';
 @endphp
 
-<x-admin.card class="mb-6 !p-2">
+<x-admin.card class="mb-4 !p-2">
     <nav class="flex flex-wrap gap-1" role="tablist" aria-label="{{ __('Sales report tabs') }}">
         @foreach ($tabs as $tab)
             @php

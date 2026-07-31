@@ -2566,7 +2566,9 @@ window.erpExport = {
 
         const disposition = response.headers.get('Content-Disposition') || '';
         const contentType = response.headers.get('Content-Type') || '';
-        const isFileDownload = disposition.includes('attachment')
+        const exportMode = response.headers.get('X-Erp-Export') || '';
+        const isFileDownload = exportMode === 'direct'
+            || disposition.includes('attachment')
             || disposition.includes('filename=')
             || (
                 response.ok
@@ -2587,29 +2589,30 @@ window.erpExport = {
             return;
         }
 
-        await this.refreshAfterQueuedExport(response);
+        await this.handleUnexpectedExportResponse(response);
     },
 
-    async refreshAfterQueuedExport(response) {
-        const targetUrl = response.url || window.location.href;
-        const workspaceFrame = document.getElementById('module-workspace-content');
-        const queuedMessage = 'Your export has been queued. Download will appear on this page when ready.';
+    async handleUnexpectedExportResponse(response) {
+        let detail = '';
 
-        if (window.Turbo && workspaceFrame) {
-            await window.Turbo.visit(targetUrl, {
-                frame: 'module-workspace-content',
-                action: 'replace',
-            });
-            showErpSweetAlert(queuedMessage, 'success');
+        try {
+            const preview = await response.clone().text();
+            const trimmed = preview.trim();
 
-            return;
+            if (trimmed.startsWith('<!') || trimmed.startsWith('<html')) {
+                detail = 'The server returned a page instead of a file.';
+            } else if (trimmed !== '') {
+                detail = trimmed.slice(0, 180);
+            }
+        } catch {
+            // Ignore preview failures.
         }
 
-        if (window.Turbo) {
-            await window.Turbo.visit(targetUrl, { action: 'advance' });
-        } else {
-            window.location.href = targetUrl;
-        }
+        const message = detail
+            ? `Export failed. ${detail}`
+            : `Export failed (${response.status || 'unknown error'}). Please try again.`;
+
+        showErpSweetAlert(message, 'error');
     },
 };
 

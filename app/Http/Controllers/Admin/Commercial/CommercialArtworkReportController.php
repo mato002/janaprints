@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Support\Commercial\Reports\CommercialArtworkReportPresenter;
 use App\Support\Commercial\Reports\CommercialArtworkReportScopeResolver;
 use App\Support\Commercial\Reports\CommercialReportExportService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class CommercialArtworkReportController extends Controller
@@ -27,7 +27,7 @@ class CommercialArtworkReportController extends Controller
         return view('admin.commercial.reports.artwork.index', $payload);
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('commercial.reports.artwork.export'), 403);
 
@@ -38,13 +38,12 @@ class CommercialArtworkReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'artwork',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.commercial.reports.artwork.index',
+            format: $format
         );
     }
 

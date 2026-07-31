@@ -5,40 +5,22 @@
         <x-admin.empty-state icon="chart-bar" :title="__('Sales Reports')" :description="$tab_data['message'] ?? __('No data available.')" />
     </x-admin.card>
 @elseif (($tab_data['type'] ?? '') === 'summary')
-    <x-admin.card class="mb-6">
-        <h2 class="mb-4 text-sm font-semibold text-erp-primary">{{ __('Sales Summary') }}</h2>
-        <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Orders') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($tab_data['metrics']['orders'] ?? 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Revenue') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ 'KES '.number_format($tab_data['metrics']['revenue'] ?? 0, 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Average Order Value') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ 'KES '.number_format($tab_data['metrics']['average_order_value'] ?? 0, 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Customer Count') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($tab_data['metrics']['customer_count'] ?? 0) }}</p>
-            </div>
-        </div>
-
-        <div class="grid gap-6 lg:grid-cols-2">
+    <div class="space-y-4">
+        <x-admin.card>
             @include('admin.commercial.reports.sales.partials.simple-table', [
                 'title' => __('Branch Breakdown'),
                 'columns' => [__('Branch'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order')],
                 'rows' => $tab_data['branch_breakdown'] ?? [],
             ])
+        </x-admin.card>
+        <x-admin.card>
             @include('admin.commercial.reports.sales.partials.simple-table', [
                 'title' => __('Salesperson Breakdown'),
                 'columns' => [__('Salesperson'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order'), __('Conversion %')],
                 'rows' => $tab_data['salesperson_breakdown'] ?? [],
             ])
-        </div>
-    </x-admin.card>
+        </x-admin.card>
+    </div>
 @elseif (($tab_data['type'] ?? '') === 'top_customers')
     <x-admin.card class="mb-6">
         <form method="GET" action="{{ route('admin.commercial.reports.sales.index') }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="mb-4 flex flex-wrap items-center gap-2" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">

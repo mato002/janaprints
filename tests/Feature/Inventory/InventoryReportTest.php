@@ -3,9 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Enums\InventoryMovementType;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
 use App\Models\Branch;
-use App\Models\CommercialReportExport;
 use App\Models\Company;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\InventoryMovement;
@@ -18,7 +16,6 @@ use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\PlatformConfigurationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -160,10 +157,8 @@ class InventoryReportTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_export_queues_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, $user] = $this->tenantUser([
             'reports.inventory.view',
             'reports.inventory.export',
@@ -171,19 +166,13 @@ class InventoryReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->post(route('admin.inventory.reports.export', ['tab' => 'stock_on_hand']), ['format' => 'csv'])
-            ->assertRedirect();
+        $response = $this->actingAs($user)
+            ->post(route('admin.inventory.reports.export', ['tab' => 'stock_on_hand']), ['format' => 'csv']);
 
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
-
-        $this->assertDatabaseHas('commercial_report_exports', [
-            'company_id' => $company->id,
-            'user_id' => $user->id,
-            'module' => 'inventory',
-            'tab' => 'stock_on_hand',
-            'format' => 'csv',
-        ]);
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_legacy_inventory_report_route_redirects(): void

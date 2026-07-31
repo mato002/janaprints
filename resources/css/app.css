@@ -5648,6 +5648,26 @@ body.erp-navigating {
         white-space: normal;
     }
 
+    /* Department queue register — visible grid lines on all department tables */
+    .production-queue-register .production-queue-register-table th,
+    .production-queue-register .production-queue-register-table td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        max-width: none;
+        overflow: visible;
+        text-overflow: clip;
+        height: auto;
+        min-height: 3rem;
+        vertical-align: top;
+        line-height: 1.35;
+    }
+
+    .production-queue-register .production-queue-register-table thead th {
+        white-space: normal;
+        line-height: 1.25;
+    }
+
     .production-floor-shell .production-floor-machine-select {
         min-width: 0;
         max-width: 100%;

@@ -7,8 +7,8 @@ use App\Support\Commercial\Reports\CommercialReportExportService;
 use App\Support\Inventory\Reports\InventoryReportPresenter;
 use App\Support\Inventory\Reports\InventoryReportScope;
 use App\Support\Inventory\Reports\InventoryReportScopeResolver;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class InventoryReportController extends Controller
@@ -29,7 +29,7 @@ class InventoryReportController extends Controller
         return view('admin.inventory.reports.index', $this->presenter->present($request));
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('reports.inventory.export'), 403);
 
@@ -40,13 +40,12 @@ class InventoryReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'inventory',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.inventory.reports.index',
+            format: $format
         );
     }
 

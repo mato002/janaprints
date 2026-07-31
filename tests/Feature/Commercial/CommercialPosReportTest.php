@@ -5,9 +5,7 @@ namespace Tests\Feature\Commercial;
 use App\Enums\PosPaymentMethod;
 use App\Enums\PosSaleStatus;
 use App\Enums\PosSessionStatus;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
 use App\Models\Branch;
-use App\Models\CommercialReportExport;
 use App\Models\Company;
 use App\Models\Pos\PosPayment;
 use App\Models\Pos\PosSale;
@@ -18,7 +16,6 @@ use App\Support\Commercial\Reports\CommercialPosReportScope;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -116,10 +113,8 @@ class CommercialPosReportTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_export_queues_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.pos.reports.view',
             'commercial.pos.reports.export',
@@ -127,17 +122,13 @@ class CommercialPosReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->post(route('admin.commercial.pos.reports.export', ['format' => 'csv', 'tab' => 'sales_by_cashier']))
-            ->assertRedirect()
-            ->assertSessionHas('export_id');
+        $response = $this->actingAs($user)
+            ->post(route('admin.commercial.pos.reports.export', ['format' => 'csv', 'tab' => 'sales_by_cashier']));
 
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
-
-        $export = CommercialReportExport::query()->find(session('export_id'));
-        $this->assertNotNull($export);
-        $this->assertSame('pos', $export->module);
-        $this->assertSame('sales_by_cashier', $export->tab);
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_branch_scoping_hides_other_branch_sales(): void

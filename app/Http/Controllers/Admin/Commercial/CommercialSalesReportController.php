@@ -6,9 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Support\Commercial\Reports\CommercialReportExportService;
 use App\Support\Commercial\Reports\CommercialSalesReportPresenter;
 use App\Support\Commercial\Reports\CommercialSalesReportScopeResolver;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CommercialSalesReportController extends Controller
 {
@@ -27,7 +27,7 @@ class CommercialSalesReportController extends Controller
         return view('admin.commercial.reports.sales.index', $payload);
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('commercial.reports.sales.export'), 403);
 
@@ -38,13 +38,12 @@ class CommercialSalesReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'sales',
             tab: $resolved['scope']->tab,
             format: $format,
-            redirectRoute: 'admin.commercial.reports.sales.index',
         );
     }
 

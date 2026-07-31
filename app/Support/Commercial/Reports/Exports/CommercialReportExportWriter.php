@@ -6,6 +6,7 @@ use App\Models\CommercialReportExport;
 use App\Support\Export\PdfExportService;
 use Generator;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CommercialReportExportWriter
 {
@@ -69,6 +70,60 @@ class CommercialReportExportWriter
             'mime_type' => CommercialReportExport::mimeTypeForFormat($export->format),
             'row_count' => $rowCount,
         ];
+    }
+
+    /**
+     * @param  list<string>  $columns
+     * @param  Generator<int, array<string, string>>  $rows
+     */
+    public function streamDownload(
+        CommercialReportExport $export,
+        array $columns,
+        Generator $rows,
+        string $title,
+        string $subtitle,
+    ): StreamedResponse {
+        $extension = CommercialReportExport::extensionForFormat($export->format);
+        $basename = "{$export->module}-report-".now()->format('Ymd-His');
+        $filename = "{$basename}.{$extension}";
+        $mimeType = CommercialReportExport::mimeTypeForFormat($export->format);
+
+        return response()->streamDownload(function () use ($export, $columns, $rows, $title, $subtitle) {
+            if ($export->format === 'pdf') {
+                $html = $this->buildHtmlDocument($title, $subtitle, $columns);
+
+                foreach ($rows as $row) {
+                    $html .= $this->htmlRow($row);
+                }
+
+                $html .= '</tbody></table></body></html>';
+                echo $this->pdfExports->renderBrandedHtml($html, 'landscape');
+
+                return;
+            }
+
+            $handle = fopen('php://output', 'w');
+
+            if ($export->format === 'excel') {
+                fwrite($handle, "\xEF\xBB\xBF");
+                fputcsv($handle, $columns, "\t");
+
+                foreach ($rows as $row) {
+                    fputcsv($handle, array_values($row), "\t");
+                }
+            } else {
+                fputcsv($handle, $columns);
+
+                foreach ($rows as $row) {
+                    fputcsv($handle, array_values($row));
+                }
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => $mimeType,
+            'X-Erp-Export' => 'direct',
+        ]);
     }
 
     /**

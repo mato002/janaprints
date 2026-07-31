@@ -3,7 +3,6 @@
 namespace App\Support\Commercial\Reports;
 
 use App\Support\Platform\PlatformCacheService;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class CommercialSalesReportPresenter
@@ -86,19 +85,13 @@ class CommercialSalesReportPresenter
     protected function buildKpis(CommercialSalesReportScope $scope): array
     {
         $growth = $this->queries->salesGrowthPercent($scope);
-        $now = now();
 
         return [
-            ['label' => __('Total Sales'), 'value' => $this->queries->money($this->queries->totalSales($scope)), 'icon' => 'currency-dollar'],
-            ['label' => __('Total Orders'), 'value' => (string) $this->queries->totalOrders($scope), 'icon' => 'clipboard-list'],
+            ['label' => __('Revenue'), 'value' => $this->queries->money($this->queries->totalSales($scope)), 'icon' => 'currency-dollar'],
+            ['label' => __('Orders'), 'value' => (string) $this->queries->totalOrders($scope), 'icon' => 'clipboard-list'],
+            ['label' => __('Customers'), 'value' => (string) $this->queries->activeCustomers($scope), 'icon' => 'user-circle'],
+            ['label' => __('Growth %'), 'value' => $growth !== null ? $growth.'%' : '—', 'icon' => 'trending-up'],
             ['label' => __('Average Order Value'), 'value' => $this->queries->money($this->queries->averageOrderValue($scope)), 'icon' => 'chart-bar'],
-            ['label' => __('Active Customers'), 'value' => (string) $this->queries->activeCustomers($scope), 'icon' => 'user-circle'],
-            ['label' => __('Sales Growth %'), 'value' => $growth !== null ? $growth.'%' : '—', 'icon' => 'trending-up'],
-            ['label' => __('Orders Awaiting Production'), 'value' => (string) $this->queries->ordersAwaitingProduction($scope), 'icon' => 'clock'],
-            ['label' => __('Cancelled Orders'), 'value' => (string) $this->queries->cancelledOrders($scope), 'icon' => 'x-circle'],
-            ['label' => __('Sales This Month'), 'value' => $this->queries->money($this->queries->salesForPeriod($scope, $now->copy()->startOfMonth(), $now)), 'icon' => 'calendar'],
-            ['label' => __('Sales This Quarter'), 'value' => $this->queries->money($this->queries->salesForPeriod($scope, $now->copy()->firstOfQuarter(), $now)), 'icon' => 'chart-pie'],
-            ['label' => __('Sales This Year'), 'value' => $this->queries->money($this->queries->salesForPeriod($scope, $now->copy()->startOfYear(), $now)), 'icon' => 'badge-check'],
         ];
     }
 
@@ -108,16 +101,11 @@ class CommercialSalesReportPresenter
     protected function emptyKpis(): array
     {
         $labels = [
-            [__('Total Sales'), 'currency-dollar'],
-            [__('Total Orders'), 'clipboard-list'],
+            [__('Revenue'), 'currency-dollar'],
+            [__('Orders'), 'clipboard-list'],
+            [__('Customers'), 'user-circle'],
+            [__('Growth %'), 'trending-up'],
             [__('Average Order Value'), 'chart-bar'],
-            [__('Active Customers'), 'user-circle'],
-            [__('Sales Growth %'), 'trending-up'],
-            [__('Orders Awaiting Production'), 'clock'],
-            [__('Cancelled Orders'), 'x-circle'],
-            [__('Sales This Month'), 'calendar'],
-            [__('Sales This Quarter'), 'chart-pie'],
-            [__('Sales This Year'), 'badge-check'],
         ];
 
         return collect($labels)->map(fn (array $item) => [
@@ -186,7 +174,6 @@ class CommercialSalesReportPresenter
             ],
             default => [
                 'type' => 'summary',
-                'metrics' => $this->queries->summaryMetrics($scope),
                 'branch_breakdown' => $this->queries->branchBreakdown($scope),
                 'salesperson_breakdown' => $this->queries->salespersonBreakdown($scope),
             ],

@@ -70,49 +70,23 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
 <?php endif; ?>
 <?php elseif(($tab_data['type'] ?? '') === 'summary'): ?>
-    <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
+    <div class="space-y-4">
+        <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['class' => 'mb-6']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin.card'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
 <?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
-<?php $component->withAttributes(['class' => 'mb-6']); ?>
-        <h2 class="mb-4 text-sm font-semibold text-erp-primary"><?php echo e(__('Sales Summary')); ?></h2>
-        <div class="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Orders')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($tab_data['metrics']['orders'] ?? 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Revenue')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e('KES '.number_format($tab_data['metrics']['revenue'] ?? 0, 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Average Order Value')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e('KES '.number_format($tab_data['metrics']['average_order_value'] ?? 0, 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Customer Count')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($tab_data['metrics']['customer_count'] ?? 0)); ?></p>
-            </div>
-        </div>
-
-        <div class="grid gap-6 lg:grid-cols-2">
+<?php $component->withAttributes([]); ?>
             <?php echo $__env->make('admin.commercial.reports.sales.partials.simple-table', [
                 'title' => __('Branch Breakdown'),
                 'columns' => [__('Branch'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order')],
                 'rows' => $tab_data['branch_breakdown'] ?? [],
             ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-            <?php echo $__env->make('admin.commercial.reports.sales.partials.simple-table', [
-                'title' => __('Salesperson Breakdown'),
-                'columns' => [__('Salesperson'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order'), __('Conversion %')],
-                'rows' => $tab_data['salesperson_breakdown'] ?? [],
-            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-        </div>
-     <?php echo $__env->renderComponent(); ?>
+         <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>
 <?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
 <?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
@@ -122,6 +96,32 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
 <?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
 <?php endif; ?>
+        <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.card'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+            <?php echo $__env->make('admin.commercial.reports.sales.partials.simple-table', [
+                'title' => __('Salesperson Breakdown'),
+                'columns' => [__('Salesperson'), __('Orders'), __('Revenue'), __('Customers'), __('Average Order'), __('Conversion %')],
+                'rows' => $tab_data['salesperson_breakdown'] ?? [],
+            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
+<?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
+<?php unset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
+<?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
+<?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
+<?php endif; ?>
+    </div>
 <?php elseif(($tab_data['type'] ?? '') === 'top_customers'): ?>
     <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>

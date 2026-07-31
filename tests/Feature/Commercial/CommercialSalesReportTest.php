@@ -6,12 +6,9 @@ use App\Enums\SalesOrderStatus;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Sales\SalesOrder;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
-use App\Models\CommercialReportExport;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -25,14 +22,23 @@ class CommercialSalesReportTest extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    protected function getSalesReportsIndex(User $user, array $query = []): \Illuminate\Testing\TestResponse
+    {
+        return $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.commercial.reports.sales.index', array_merge(['embedded' => '1'], $query)));
+    }
+
     public function test_sales_reports_requires_permission(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['crm.customers.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales.index'))
+        $this->getSalesReportsIndex($user)
             ->assertForbidden();
     }
 
@@ -42,12 +48,12 @@ class CommercialSalesReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales.index'))
+        $this->getSalesReportsIndex($user)
             ->assertOk()
             ->assertSee(__('Sales Reports'), false)
-            ->assertSee(__('Sales Dashboard'), false)
-            ->assertSee(__('Sales Summary'), false);
+            ->assertSee(__('Revenue'), false)
+            ->assertSee(__('Sales Summary'), false)
+            ->assertSee(__('Branch Breakdown'), false);
     }
 
     public function test_sales_reports_show_kpis_for_orders(): void
@@ -65,10 +71,9 @@ class CommercialSalesReportTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales.index'))
+        $this->getSalesReportsIndex($user)
             ->assertOk()
-            ->assertSee(__('Total Sales'), false)
+            ->assertSee(__('Revenue'), false)
             ->assertSee('25,000', false);
     }
 
@@ -78,14 +83,13 @@ class CommercialSalesReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales.index', [
+        $this->getSalesReportsIndex($user, [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
                 'tab' => 'by_day',
                 'search' => 'SO-100',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('value="2026-01-01"', false)
             ->assertSee('value="2026-01-31"', false)
@@ -104,10 +108,8 @@ class CommercialSalesReportTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_export_queues_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, $user] = $this->tenantUser([
             'commercial.reports.sales.view',
             'commercial.reports.sales.export',
@@ -115,13 +117,13 @@ class CommercialSalesReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->post(route('admin.commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv'])
-            ->assertRedirect()
-            ->assertSessionHas('export_id');
+        $response = $this->actingAs($user)
+            ->post(route('admin.commercial.reports.sales.export', ['tab' => 'summary']), ['format' => 'csv']);
 
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
-        $this->assertNotNull(CommercialReportExport::query()->find(session('export_id')));
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     /**

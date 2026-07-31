@@ -7,8 +7,8 @@ use App\Support\Commercial\Reports\CommercialQuotationReportPresenter;
 use App\Support\Commercial\Reports\CommercialQuotationReportScope;
 use App\Support\Commercial\Reports\CommercialQuotationReportScopeResolver;
 use App\Support\Commercial\Reports\CommercialReportExportService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class CommercialQuotationReportController extends Controller
@@ -26,7 +26,7 @@ class CommercialQuotationReportController extends Controller
         return view('admin.commercial.reports.quotations.index', $this->presenter->present($request));
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('commercial.reports.quotations.export'), 403);
 
@@ -37,13 +37,12 @@ class CommercialQuotationReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'quotations',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.commercial.reports.quotations.index',
+            format: $format
         );
     }
 

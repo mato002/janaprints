@@ -7,8 +7,8 @@ use App\Support\Commercial\Reports\CommercialReportExportService;
 use App\Support\Procurement\Performance\SupplierPerformancePresenter;
 use App\Support\Procurement\Performance\SupplierPerformanceScope;
 use App\Support\Procurement\Performance\SupplierPerformanceScopeResolver;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class SupplierPerformanceController extends Controller
@@ -26,7 +26,7 @@ class SupplierPerformanceController extends Controller
         return view('admin.procurement.supplier-performance.index', $this->presenter->present($request));
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('procurement.performance.export'), 403);
 
@@ -37,13 +37,12 @@ class SupplierPerformanceController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'supplier_performance',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.procurement.supplier-performance.index',
+            format: $format
         );
     }
 

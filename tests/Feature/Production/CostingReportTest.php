@@ -5,7 +5,6 @@ namespace Tests\Feature\Production;
 use App\Enums\CustomerStatus;
 use App\Enums\ProductionType;
 use App\Enums\SalesOrderStatus;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
@@ -19,7 +18,6 @@ use App\Support\TenantContext;
 use Database\Seeders\ProductionFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -121,20 +119,19 @@ class CostingReportTest extends TestCase
         $this->assertSame('74.0%', $monthRow['margin_percent']);
     }
 
-    public function test_export_queues_background_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, , $user] = $this->seedCostSheet(permissions: ['reports.costing.view', 'reports.costing.export']);
 
         $this->bindTenant($company, $branch);
 
-        $this->actingAs($user)
-            ->post(route('admin.production.reports.export', ['tab' => 'job_profitability']), ['format' => 'csv'])
-            ->assertRedirect()
-            ->assertSessionHas('export_id');
+        $response = $this->actingAs($user)
+            ->post(route('admin.production.reports.export', ['tab' => 'job_profitability']), ['format' => 'csv']);
 
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_export_requires_export_permission(): void

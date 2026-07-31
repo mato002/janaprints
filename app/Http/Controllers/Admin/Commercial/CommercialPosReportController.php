@@ -7,8 +7,8 @@ use App\Support\Commercial\Reports\CommercialPosReportPresenter;
 use App\Support\Commercial\Reports\CommercialPosReportScope;
 use App\Support\Commercial\Reports\CommercialPosReportScopeResolver;
 use App\Support\Commercial\Reports\CommercialReportExportService;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class CommercialPosReportController extends Controller
@@ -28,7 +28,7 @@ class CommercialPosReportController extends Controller
         return view('admin.commercial.pos.intelligence.index', $payload);
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('commercial.pos.reports.export'), 403);
 
@@ -39,13 +39,12 @@ class CommercialPosReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'pos',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.commercial.pos.reports.index',
+            format: $format
         );
     }
 

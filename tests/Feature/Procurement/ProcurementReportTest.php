@@ -3,7 +3,6 @@
 namespace Tests\Feature\Procurement;
 
 use App\Enums\PurchaseOrderStatus;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Procurement\PurchaseOrder;
@@ -12,7 +11,6 @@ use App\Models\User;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -115,29 +113,22 @@ class ProcurementReportTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_export_queues_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, $user] = $this->tenantUser(['reports.procurement.view', 'reports.procurement.export']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->post(route('admin.procurement.reports.export', [
                 'format' => 'csv',
                 'tab' => 'summary',
-            ]))
-            ->assertRedirect(route('admin.procurement.reports.index'));
+            ]));
 
-        $this->assertDatabaseHas('report_exports', [
-            'company_id' => $company->id,
-            'module' => 'procurement',
-            'tab' => 'summary',
-            'format' => 'csv',
-        ]);
-
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_supply_chain_workspace_links_procurement_reports(): void

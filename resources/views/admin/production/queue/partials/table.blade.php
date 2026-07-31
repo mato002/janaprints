@@ -31,8 +31,8 @@
     <p class="mt-0.5 text-xs text-slate-500">{{ __('Live ERP data — ordered by priority and due date') }}</p>
 </div>
 
-<div class="hidden md:block overflow-x-auto">
-    <table class="erp-table w-full text-sm">
+<div class="hidden md:block overflow-x-auto production-queue-register">
+    <table class="erp-table erp-table--grid production-queue-register-table w-full text-sm">
         <thead>
             <tr>
                 @foreach ($displayColumns as $column)

@@ -4,7 +4,6 @@ namespace Tests\Feature\Procurement;
 
 use App\Enums\GoodsReceiptStatus;
 use App\Enums\PurchaseOrderStatus;
-use App\Jobs\Commercial\ProcessCommercialReportExportJob;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Inventory\Warehouse;
@@ -18,7 +17,6 @@ use App\Support\Procurement\Performance\SupplierPerformanceScoreCalculator;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -167,10 +165,8 @@ class SupplierPerformanceTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_export_queues_job(): void
+    public function test_export_streams_file(): void
     {
-        Queue::fake();
-
         [$company, $branch, $user] = $this->tenantUser([
             'procurement.performance.view',
             'procurement.performance.export',
@@ -178,24 +174,16 @@ class SupplierPerformanceTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->post(route('admin.procurement.supplier-performance.export', [
-                'format' => 'csv',
-                'tab' => 'scorecard',
-            ]))
-            ->assertRedirect(route('admin.procurement.supplier-performance.index', [
                 'format' => 'csv',
                 'tab' => 'scorecard',
             ]));
 
-        $this->assertDatabaseHas('commercial_report_exports', [
-            'company_id' => $company->id,
-            'module' => 'supplier_performance',
-            'tab' => 'scorecard',
-            'format' => 'csv',
-        ]);
-
-        Queue::assertPushed(ProcessCommercialReportExportJob::class);
+        $response->assertOk();
+        $response->assertHeader('X-Erp-Export', 'direct');
+        $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('attachment', (string) $response->headers->get('Content-Disposition'));
     }
 
     public function test_supply_chain_workspace_links_supplier_performance_from_reports_not_procurement_desk(): void

@@ -7,8 +7,8 @@ use App\Support\Commercial\Reports\CommercialReportExportService;
 use App\Support\Production\Reports\CostingReportPresenter;
 use App\Support\Production\Reports\CostingReportScope;
 use App\Support\Production\Reports\CostingReportScopeResolver;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\View\View;
 
 class CostingReportController extends Controller
@@ -26,7 +26,7 @@ class CostingReportController extends Controller
         return view('admin.production.reports.index', $this->presenter->present($request));
     }
 
-    public function export(Request $request): RedirectResponse
+    public function export(Request $request): StreamedResponse
     {
         abort_unless($request->user()?->can('reports.costing.export'), 403);
 
@@ -37,13 +37,12 @@ class CostingReportController extends Controller
 
         $resolved = $this->scopeResolver->resolve($request);
 
-        return $this->exportService->queue(
+        return $this->exportService->download(
             request: $request,
             scopePayload: $this->serializeScope($resolved['scope']),
             module: 'costing',
             tab: $resolved['scope']->tab,
-            format: $format,
-            redirectRoute: 'admin.production.reports.index',
+            format: $format
         );
     }
 
