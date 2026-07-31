@@ -13,6 +13,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ReturnsToStoreDesk;
+use App\Support\Inventory\StoreDeskViews;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockReceiptService;
@@ -30,15 +31,11 @@ class StockReceiptController extends Controller
         protected FormSettingsService $formSettings,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', StockReceipt::class);
 
-        $receipts = $this->scopeToTenant(
-            StockReceipt::query()->with(['warehouse', 'receiver'])->latest('receipt_date')
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.inventory.receipts.index', compact('receipts'));
+        return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::RECEIPTS, $request->query()));
     }
 
     public function create(Request $request): View

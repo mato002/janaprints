@@ -25,6 +25,7 @@ use App\Services\Dispatch\JobDispatchPresentationService;
 use App\Services\Production\ProductionCompletionService;
 use App\Support\Production\JobCardManufacturingPresenter;
 use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\JobCardPrintUrl;
 use App\Support\Production\ProductionRouteService;
 use App\Support\Production\ProductionSessionService;
 use App\Support\Production\ProductionSpecificationService;
@@ -297,7 +298,18 @@ class Job360WorkspaceService
         }
 
         $links[] = ['label' => __('Production floor'), 'url' => route('admin.production.floor')];
-        $links[] = ['label' => __('Floor display'), 'url' => route('admin.production.job-cards.floor-display', $jobCard), 'target' => '_blank'];
+
+        if (JobCardPrintUrl::usesJobSheet($jobCard) && ($printUrl = JobCardPrintUrl::resolve($jobCard))) {
+            $links[] = [
+                'label' => JobCardPrintUrl::actionLabel($jobCard),
+                'url' => $printUrl,
+                'target' => '_blank',
+            ];
+        }
+
+        if (Route::has('admin.production.job-cards.floor-display')) {
+            $links[] = ['label' => __('Floor display'), 'url' => route('admin.production.job-cards.floor-display', $jobCard), 'target' => '_blank'];
+        }
 
         return $links;
     }

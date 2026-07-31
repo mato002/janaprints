@@ -30,26 +30,36 @@ class DesignerDeskService
         $designerId = (int) $request->user()->id;
         $baseQuery = $this->assignedQuery($designerId);
         $today = now()->startOfDay();
+        $user = $request->user();
 
         $requests = (clone $baseQuery)
-            ->with(['customer:id,company_name,public_id', 'quotation:id,quotation_number,public_id'])
+            ->with([
+                'customer:id,company_name,public_id',
+                'quotation:id,quotation_number,public_id',
+                'assignedDesigner:id,name',
+            ])
             ->latest('updated_at')
             ->paginate(25)
             ->withQueryString();
 
-        $allAssigned = (clone $baseQuery)->get(['id', 'status', 'due_date', 'priority', 'created_at', 'updated_at']);
+        $allAssigned = (clone $baseQuery)->get(['id', 'status', 'due_date', 'priority', 'created_at', 'updated_at', 'assigned_designer_id']);
+        $available = $this->availableQuery()
+            ->with(['customer:id,company_name,public_id', 'assignedDesigner:id,name'])
+            ->latest('due_date')
+            ->limit(40)
+            ->get();
         $productivity = $this->productivityMetrics($designerId);
-        $user = $request->user();
 
         return [
-            'summary' => $this->todayStrip($allAssigned, $today, $productivity),
-            'greeting' => $this->greeting($user, $allAssigned, $today, $productivity),
+            'summary' => $this->todayStrip($allAssigned, $today, $productivity, $available->count()),
+            'greeting' => $this->greeting($user, $allAssigned, $today, $productivity, $available->count()),
             'filters' => $this->queueFilters($allAssigned, $today),
             'urgent' => $this->urgentQueue($allAssigned, $today),
             'requests' => $requests,
-            'rows' => collect($requests->items())->map(fn (ArtworkRequest $row) => $this->presentRow($row, $today)),
+            'rows' => collect($requests->items())->map(fn (ArtworkRequest $row) => $this->presentRow($row, $today, $designerId)),
+            'available_rows' => $available->map(fn (ArtworkRequest $row) => $this->presentRow($row, $today, $designerId))->values()->all(),
             'today_activity' => $this->todayActivity($designerId),
-            'has_assignments' => $allAssigned->isNotEmpty(),
+            'has_assignments' => $allAssigned->isNotEmpty() || $available->isNotEmpty(),
             'operatorMode' => $user?->prefersDesignerOperatorMode() ?? false,
         ];
     }
@@ -59,7 +69,10 @@ class DesignerDeskService
      */
     public function panel(ArtworkRequest $artworkRequest, User $user, bool $operatorMode = false): array
     {
-        abort_unless((int) $artworkRequest->assigned_designer_id === (int) $user->id, 403);
+        $isMine = (int) $artworkRequest->assigned_designer_id === (int) $user->id;
+        $isOpen = $artworkRequest->assigned_designer_id === null;
+
+        abort_unless($isMine || $isOpen, 403);
 
         $artworkRequest->load([
             'customer:id,public_id,company_name,customer_code,phone,email',
@@ -67,6 +80,7 @@ class DesignerDeskService
             'quotation.preparer:id,name',
             'quotation.items',
             'requester:id,name',
+            'assignedDesigner:id,name',
             'files.uploader:id,name',
             'versions.uploader:id,name',
             'comments.user:id,name',
@@ -107,6 +121,8 @@ class DesignerDeskService
         $context = $this->presentContext($artworkRequest, $salesOrder, $productionSpec, $jobCard);
         $canEdit = $user->can('update', $artworkRequest);
         $canUploadVersion = $user->can('create', [\App\Models\Artwork\ArtworkVersion::class, $artworkRequest]);
+        $isMine = (int) $artworkRequest->assigned_designer_id === (int) $user->id;
+        $isOpen = $artworkRequest->assigned_designer_id === null;
 
         return [
             'header' => [
@@ -122,6 +138,9 @@ class DesignerDeskService
                 'is_late' => $artworkRequest->due_date && $artworkRequest->due_date->lt(now()->startOfDay())
                     && ! in_array($artworkRequest->status, [ArtworkRequestStatus::Approved, ArtworkRequestStatus::Rejected], true),
                 'is_due_today' => $artworkRequest->due_date?->isSameDay(now()),
+                'designer' => $artworkRequest->assignedDesigner?->name,
+                'is_mine' => $isMine,
+                'is_open' => $isOpen,
             ],
             'context' => $context,
             'specifications' => $this->presentSpecifications($productionSpec),
@@ -169,6 +188,17 @@ class DesignerDeskService
             ->where('assigned_designer_id', $designerId);
     }
 
+    protected function availableQuery(): Builder
+    {
+        return ArtworkRequest::forTenant()
+            ->whereNull('assigned_designer_id')
+            ->whereNotIn('status', [
+                ArtworkRequestStatus::Approved,
+                ArtworkRequestStatus::Rejected,
+                ArtworkRequestStatus::Submitted,
+            ]);
+    }
+
     /**
      * Compact one-row TODAY metrics — replaces the dual KPI dashboard.
      *
@@ -176,7 +206,7 @@ class DesignerDeskService
      * @param  array<string, mixed>  $productivity
      * @return list<array<string, mixed>>
      */
-    protected function todayStrip(Collection $assigned, Carbon $today, array $productivity): array
+    protected function todayStrip(Collection $assigned, Carbon $today, array $productivity, int $availableCount = 0): array
     {
         $active = $assigned->reject(fn (ArtworkRequest $r) => in_array($r->status, [
             ArtworkRequestStatus::Approved,
@@ -184,15 +214,12 @@ class DesignerDeskService
         ], true));
 
         return [
-            ['key' => 'assigned', 'label' => __('Assigned'), 'value' => $assigned->count(), 'tone' => 'primary', 'filter' => 'all'],
+            ['key' => 'available', 'label' => __('Available'), 'value' => $availableCount, 'tone' => 'violet', 'filter' => 'available'],
+            ['key' => 'assigned', 'label' => __('Mine'), 'value' => $assigned->count(), 'tone' => 'primary', 'filter' => 'mine'],
             ['key' => 'working', 'label' => __('Working'), 'value' => $assigned->whereIn('status', [
                 ArtworkRequestStatus::InDesign,
                 ArtworkRequestStatus::RevisionRequested,
             ])->count(), 'tone' => 'blue', 'filter' => 'working'],
-            ['key' => 'review', 'label' => __('Review'), 'value' => $assigned->whereIn('status', [
-                ArtworkRequestStatus::Submitted,
-                ArtworkRequestStatus::RevisionRequested,
-            ])->count(), 'tone' => 'amber', 'filter' => 'review'],
             ['key' => 'completed', 'label' => __('Completed'), 'value' => $productivity['completed_today'], 'tone' => 'emerald', 'filter' => null],
             ['key' => 'late', 'label' => __('Late'), 'value' => $active->filter(fn (ArtworkRequest $r) => $r->due_date && $r->due_date->lt($today))->count(), 'tone' => 'rose', 'filter' => 'late'],
         ];
@@ -203,7 +230,7 @@ class DesignerDeskService
      * @param  array<string, mixed>  $productivity
      * @return array<string, mixed>
      */
-    protected function greeting(?User $user, Collection $assigned, Carbon $today, array $productivity): array
+    protected function greeting(?User $user, Collection $assigned, Carbon $today, array $productivity, int $availableCount = 0): array
     {
         $hour = (int) now()->format('G');
         $hello = match (true) {
@@ -220,23 +247,22 @@ class DesignerDeskService
 
         $dueToday = $active->filter(fn (ArtworkRequest $r) => $r->due_date?->isSameDay($today))->count();
         $revisions = $assigned->where('status', ArtworkRequestStatus::RevisionRequested)->count();
-        $approvals = $assigned->where('status', ArtworkRequestStatus::Submitted)->count();
 
         $facts = [];
+        if ($availableCount > 0) {
+            $facts[] = trans_choice(':count job available to claim|:count jobs available to claim', $availableCount, ['count' => $availableCount]);
+        }
         if ($dueToday > 0) {
             $facts[] = trans_choice(':count job due today|:count jobs due today', $dueToday, ['count' => $dueToday]);
         }
         if ($revisions > 0) {
             $facts[] = trans_choice(':count revision waiting|:count revisions waiting', $revisions, ['count' => $revisions]);
         }
-        if ($approvals > 0) {
-            $facts[] = trans_choice(':count client approval pending|:count client approvals pending', $approvals, ['count' => $approvals]);
-        }
         if ($productivity['avg_approval_hours']) {
             $facts[] = __('Avg completion :hours h', ['hours' => $productivity['avg_approval_hours']]);
         }
         if ($facts === []) {
-            $facts[] = __('Queue is clear — new jobs appear when assigned.');
+            $facts[] = __('Claim an open job, upload the softcopy PDF, then mark it complete.');
         }
 
         return [
@@ -253,12 +279,13 @@ class DesignerDeskService
     {
         return [
             ['key' => 'all', 'label' => __('All')],
+            ['key' => 'available', 'label' => __('Available')],
+            ['key' => 'mine', 'label' => __('Mine')],
             ['key' => 'working', 'label' => __('Working')],
             ['key' => 'review', 'label' => __('Review')],
             ['key' => 'late', 'label' => __('Late')],
             ['key' => 'high', 'label' => __('High Priority')],
             ['key' => 'today', 'label' => __('Today')],
-            ['key' => 'mine', 'label' => __('Mine')],
         ];
     }
 
@@ -448,16 +475,25 @@ class DesignerDeskService
         ?ProductionJobCard $jobCard,
     ): array {
         $actions = [];
+        $isMine = (int) $request->assigned_designer_id === (int) $user->id;
 
-        if ($user->can('startDesign', $request) && $request->status === ArtworkRequestStatus::Requested) {
+        if ($user->can('claim', $request)) {
             $actions[] = [
-                'key' => 'accept',
-                'label' => __('Accept Job'),
+                'key' => 'claim',
+                'label' => __('Claim job'),
                 'type' => 'post',
-                'url' => route('admin.artwork.start-design', $request),
+                'url' => route('admin.artwork.claim', $request),
                 'variant' => 'primary',
             ];
-        } elseif ($user->can('startDesign', $request) && $request->status === ArtworkRequestStatus::RevisionRequested) {
+
+            return $actions;
+        }
+
+        if (! $isMine) {
+            return $actions;
+        }
+
+        if ($user->can('startDesign', $request) && $request->status === ArtworkRequestStatus::RevisionRequested) {
             $actions[] = [
                 'key' => 'resume',
                 'label' => __('Resume Design'),
@@ -470,17 +506,17 @@ class DesignerDeskService
         if ($user->can('create', [\App\Models\Artwork\ArtworkVersion::class, $request]) && $request->status->isEditable()) {
             $actions[] = [
                 'key' => 'upload',
-                'label' => __('Upload Artwork'),
+                'label' => __('Upload softcopy PDF'),
                 'type' => 'scroll',
                 'target' => 'designer-desk-upload',
-                'variant' => 'secondary',
+                'variant' => $request->lacksUploadedVersion() ? 'primary' : 'secondary',
             ];
         }
 
-        if ($user->can('submit', $request)) {
+        if ($user->can('submit', $request) && $request->canSubmitForApproval()) {
             $actions[] = [
                 'key' => 'submit',
-                'label' => __('Submit Approval'),
+                'label' => __('Mark complete'),
                 'type' => 'post',
                 'url' => route('admin.artwork.submit', $request),
                 'variant' => 'primary',
@@ -705,13 +741,15 @@ class DesignerDeskService
     /**
      * @return array<string, mixed>
      */
-    protected function presentRow(ArtworkRequest $request, Carbon $today): array
+    protected function presentRow(ArtworkRequest $request, Carbon $today, ?int $viewerId = null): array
     {
         $isLate = $request->due_date
             && $request->due_date->lt($today)
             && ! in_array($request->status, [ArtworkRequestStatus::Approved, ArtworkRequestStatus::Rejected], true);
 
         $isDueToday = $request->due_date?->isSameDay($today) && ! $isLate;
+        $isOpen = $request->assigned_designer_id === null;
+        $isMine = $viewerId !== null && (int) $request->assigned_designer_id === (int) $viewerId;
 
         return [
             'key' => $request->public_id,
@@ -721,13 +759,16 @@ class DesignerDeskService
             'priority' => $request->priority->value,
             'priority_label' => ucfirst($request->priority->value),
             'status' => $request->status->value,
-            'status_label' => $this->statusLabel($request->status),
+            'status_label' => $isOpen ? __('Unclaimed') : $this->statusLabel($request->status),
             'due_date' => $this->dueDisplay($request->due_date) ?? '—',
             'due_raw' => $request->due_date?->format('d M Y'),
             'version' => $request->current_version ?: 0,
             'version_label' => $request->current_version
                 ? __('Artwork v:number', ['number' => $request->current_version])
-                : __('No version yet'),
+                : __('No PDF yet'),
+            'designer' => $request->assignedDesigner?->name,
+            'is_open' => $isOpen,
+            'is_mine' => $isMine,
             'is_late' => $isLate,
             'is_due_today' => $isDueToday,
             'is_revision' => $request->status === ArtworkRequestStatus::RevisionRequested,
@@ -791,6 +832,7 @@ class DesignerDeskService
             'printing_method' => $printingMethod,
             'due_date' => $request->due_date?->format('d M Y'),
             'salesperson' => $request->quotation?->preparer?->name ?? $request->requester?->name,
+            'designer' => $request->assignedDesigner?->name,
             'production_deadline' => $productionDeadline,
             'description' => $request->description,
         ];
@@ -827,10 +869,12 @@ class DesignerDeskService
     protected function guidance(ArtworkRequest $request): ?string
     {
         return match (true) {
-            $request->status === ArtworkRequestStatus::Requested => __('Start design, then upload a version before submitting for approval.'),
-            $request->status === ArtworkRequestStatus::InDesign && $request->lacksUploadedVersion() => __('Upload at least one artwork version before submitting for approval.'),
-            $request->lacksUploadedVersion() && $request->status->isEditable() => __('Upload a version to continue.'),
-            $request->status === ArtworkRequestStatus::RevisionRequested => __('Review revision notes, update the design, and resubmit.'),
+            $request->assigned_designer_id === null => __('Claim this job first so other designers know you are working on it.'),
+            $request->status === ArtworkRequestStatus::Requested => __('Start design, then upload a softcopy PDF before marking complete.'),
+            $request->status === ArtworkRequestStatus::InDesign && $request->lacksUploadedVersion() => __('Upload the softcopy PDF outcome, then mark the job complete.'),
+            $request->lacksUploadedVersion() && $request->status->isEditable() => __('Upload a softcopy PDF to continue.'),
+            $request->status === ArtworkRequestStatus::RevisionRequested => __('Review revision notes, upload an updated PDF, and mark complete again.'),
+            $request->status === ArtworkRequestStatus::InDesign && ! $request->lacksUploadedVersion() => __('PDF uploaded. Mark complete to send for approval.'),
             $request->status === ArtworkRequestStatus::Submitted => __('Waiting for customer approval.'),
             default => null,
         };

@@ -200,15 +200,17 @@ class ReorderAlertWorkflowTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.inventory.receipts.index'))
+            ->assertRedirect(route('admin.store.desk', ['view' => 'receipts']));
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk', ['view' => 'receipts']))
             ->assertOk()
-            ->assertSee(__('Direct Receipts'), false)
-            ->assertSee(__('Use for returns, opening stock, and ad-hoc stock'), false);
+            ->assertSee(__('Stock receipts'), false);
 
         $this->actingAs($user)
             ->get(route('admin.procurement.receipts.index'))
             ->assertOk()
-            ->assertSee(__('Purchase Order Receipts'), false)
-            ->assertSee(__('Approved purchase order receiving only.'), false);
+            ->assertSee(__('Goods Receipts'), false);
     }
 
     /**

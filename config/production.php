@@ -74,10 +74,21 @@ return [
             'production_types' => ['packaging'],
         ],
         'outsource' => [
-            'label' => 'Outsource',
+            'label' => 'Outsourced',
             'job_statuses' => ['outsourced'],
         ],
     ],
+
+    /**
+     * When set, only these department slugs appear on the production floor queue nav.
+     * Example env: PRODUCTION_FOCUS_DEPARTMENTS=digital,offset,outsource
+     *
+     * @var list<string>
+     */
+    'focus_department_slugs' => array_values(array_filter(array_map(
+        static fn (string $slug): string => trim($slug),
+        explode(',', (string) env('PRODUCTION_FOCUS_DEPARTMENTS', 'digital,offset,outsource')),
+    ))),
 
     /** Days in queue before highlighting as long-waiting. */
     'queue_waiting_alert_days' => (int) env('PRODUCTION_QUEUE_WAITING_ALERT_DAYS', 3),

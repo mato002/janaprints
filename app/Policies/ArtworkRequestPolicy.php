@@ -55,6 +55,26 @@ class ArtworkRequestPolicy
         );
     }
 
+    /**
+     * Designer self-claim — only open (unassigned) jobs, so two designers never take the same work.
+     */
+    public function claim(User $user, ArtworkRequest $request): bool
+    {
+        if (! $user->can('artwork.edit') || ! $this->sameTenant($user, $request)) {
+            return false;
+        }
+
+        if ($request->assigned_designer_id !== null) {
+            return false;
+        }
+
+        return ! in_array($request->status, [
+            ArtworkRequestStatus::Approved,
+            ArtworkRequestStatus::Rejected,
+            ArtworkRequestStatus::Submitted,
+        ], true);
+    }
+
     public function submit(User $user, ArtworkRequest $request): bool
     {
         return $this->canAttemptWorkflow(

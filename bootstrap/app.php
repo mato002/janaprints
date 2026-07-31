@@ -116,11 +116,26 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (Throwable $exception, Request $request) {
-            if (! $request->boolean('_erp_modal') && $request->header('Turbo-Frame') !== 'erp-form-modal') {
+            $deskFrom = in_array($request->input('from'), ['sales-desk', 'store-desk', 'designer-desk', 'production-floor'], true)
+                && $request->header('Turbo-Frame') !== 'erp-form-modal';
+
+            if (
+                ! $deskFrom
+                && ! $request->boolean('_erp_modal')
+                && $request->header('Turbo-Frame') !== 'erp-form-modal'
+            ) {
                 return null;
             }
 
             if ($exception instanceof ValidationException) {
+                if ($deskFrom) {
+                    return response()->json([
+                        'ok' => false,
+                        'message' => $exception->getMessage(),
+                        'errors' => $exception->errors(),
+                    ], $exception->status);
+                }
+
                 return null;
             }
 
@@ -149,6 +164,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 'exception_class' => $exception::class,
                 'exception_message' => $exception->getMessage(),
             ]);
+
+            if ($deskFrom) {
+                return response()->json([
+                    'ok' => false,
+                    'message' => $presentation['message'] ?: $exception->getMessage(),
+                ], $status >= 400 && $status < 600 ? $status : 500);
+            }
 
             $returnUrl = $request->input('_erp_modal_return') ?: url()->previous();
 

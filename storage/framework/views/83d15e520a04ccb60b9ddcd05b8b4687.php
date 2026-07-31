@@ -11,7 +11,7 @@
         : [
             ['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')],
             ['label' => __('Designer Desk')],
-        ],'compactPage' => true] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+        ]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin-layout'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
@@ -55,6 +55,7 @@
             <div class="lg:col-span-5 xl:col-span-4">
                 <?php echo $__env->make('admin.artwork.desk.partials.queue-cards', [
                     'rows' => $rows,
+                    'availableRows' => $available_rows ?? [],
                     'requests' => $requests,
                     'has_assignments' => $has_assignments,
                 ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>

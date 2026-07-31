@@ -69,10 +69,10 @@ class SupplyChainWorkspaceRestructureTest extends TestCase
 
         $response->assertOk();
         $response->assertSee(route('admin.inventory.warehouses.index'), false);
-        $response->assertSee(route('admin.inventory.receipts.index'), false);
-        $response->assertSee(route('admin.inventory.issues.index'), false);
-        $response->assertSee(route('admin.inventory.transfers.index'), false);
-        $response->assertSee(route('admin.inventory.movements.index'), false);
+        $response->assertSee('mode=receipts', false);
+        $response->assertSee('mode=issues', false);
+        $response->assertSee('mode=transfers', false);
+        $response->assertSee('mode=movements', false);
     }
 
     public function test_existing_inventory_and_procurement_routes_remain_registered(): void

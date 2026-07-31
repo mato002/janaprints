@@ -31,27 +31,43 @@ class ProcurementUxDiscoverabilityTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
-    public function test_procurement_section_lists_purchase_requests_first(): void
+    public function test_procurement_section_opens_on_buy_desk(): void
     {
         $user = $this->companyAdmin();
 
         $response = $this->actingAs($user)->get(route('admin.workspaces.supply-chain.section', ['section' => 'procurement']));
 
         $response->assertOk();
-        $response->assertSeeInOrder([
-            route('admin.procurement.requests.index'),
-            route('admin.procurement.vendors.index'),
-            route('admin.procurement.rfqs.index'),
-            route('admin.procurement.orders.index'),
-            route('admin.procurement.receipts.index'),
-            route('admin.procurement.approvals.index'),
-        ], false);
+        $response->assertSee(route('admin.procurement.desk'), false);
+        $response->assertSee(__('Desk'), false);
         $response->assertSee(__('Requests'), false);
         $response->assertSee(__('Suppliers'), false);
         $response->assertSee(__('RFQs'), false);
         $response->assertDontSee(__('Supplier Performance'), false);
         $response->assertDontSee(__('Vendor Comparison'), false);
         $response->assertDontSee(__('Supplier Quotations'), false);
+    }
+
+    public function test_buy_desk_is_accessible(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.procurement.desk'))
+            ->assertOk()
+            ->assertSee(__('Buy Desk'), false)
+            ->assertSee(__('Needs attention'), false)
+            ->assertSee(__('Quick actions'), false)
+            ->assertSee(__('Pipeline'), false);
+    }
+
+    public function test_legacy_procurement_dashboard_redirects_to_buy_desk(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.procurement.dashboard'))
+            ->assertRedirect(route('admin.procurement.desk'));
     }
 
     public function test_purchase_request_navigation_requires_permission(): void

@@ -1,7 +1,7 @@
 @if (count($workQueue['items'] ?? []) > 0)
     <x-admin.card class="mb-4">
         <div class="border-b border-erp-border px-4 py-3">
-            <h2 class="text-sm font-semibold text-slate-900">{{ __("Today's store queue") }}</h2>
+            <h2 class="text-sm font-semibold text-slate-900">{{ __('Finish these drafts') }}</h2>
             <p class="mt-0.5 text-xs text-slate-500">{{ __('Receipts, issues, and counts waiting for you.') }}</p>
         </div>
         <ul class="divide-y divide-slate-100">

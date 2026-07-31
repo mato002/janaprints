@@ -353,6 +353,7 @@ require __DIR__.'/admin_sales_orders.php';
 require __DIR__.'/admin_sales_desk.php';
 require __DIR__.'/admin_store_desk.php';
 require __DIR__.'/admin_artwork_desk.php';
+require __DIR__.'/admin_procurement_desk.php';
 require __DIR__.'/admin_invoices.php';
 require __DIR__.'/admin_payments.php';
 require __DIR__.'/admin_payables.php';

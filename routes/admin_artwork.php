@@ -35,6 +35,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('requests/{artworkRequest}/edit', [ArtworkRequestController::class, 'edit'])->name('edit');
             Route::put('requests/{artworkRequest}', [ArtworkRequestController::class, 'update'])->name('update');
             Route::post('requests/{artworkRequest}/start-design', [ArtworkRequestController::class, 'startDesign'])->name('start-design');
+            Route::post('requests/{artworkRequest}/claim', [ArtworkRequestController::class, 'claim'])->name('claim');
             Route::post('requests/{artworkRequest}/versions', [ArtworkVersionController::class, 'store'])->name('versions.store');
             Route::post('requests/{artworkRequest}/files', [ArtworkFileController::class, 'store'])->name('files.store');
             Route::delete('requests/{artworkRequest}/files/{file}', [ArtworkFileController::class, 'destroy'])->name('files.destroy');

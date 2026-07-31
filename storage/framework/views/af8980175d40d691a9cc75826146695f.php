@@ -609,26 +609,38 @@
                         <?php endif; ?>
 
                         <?php if($orderPresentation['can_release'] && ! empty($orderPresentation['readiness']['checks'])): ?>
+                            <?php
+                                $releaseDashboard = $walkInPanel['dashboard'] ?? [];
+                                $releaseReady = (bool) ($orderPresentation['readiness']['ready'] ?? false);
+                            ?>
                             <div class="mb-4">
-                                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500"><?php echo e(__('Readiness')); ?></p>
-                                <ul class="space-y-1 text-sm">
-                                    <?php $__currentLoopData = $orderPresentation['readiness']['checks']; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $check): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <li class="flex items-start gap-2">
-                                            <span class="<?php echo \Illuminate\Support\Arr::toCssClasses([
-                                                'text-emerald-600' => $check['passed'] ?? false,
-                                                'text-amber-600' => ! ($check['passed'] ?? false) && ($check['severity'] ?? '') === 'warning',
-                                                'text-rose-600' => ! ($check['passed'] ?? false) && ($check['severity'] ?? '') !== 'warning',
-                                            ]); ?>"><?php echo e(($check['passed'] ?? false) ? '✓' : '!'); ?></span>
-                                            <span>
-                                                <?php echo e($check['label']); ?>
-
-                                                <?php if(! empty($check['message'])): ?>
-                                                    <span class="block text-xs text-slate-500"><?php echo e($check['message']); ?></span>
-                                                <?php endif; ?>
-                                            </span>
+                                <div class="mb-2 flex items-center justify-between gap-2">
+                                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500"><?php echo e(__('Release readiness')); ?></p>
+                                    <?php if($releaseReady): ?>
+                                        <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800"><?php echo e(__('Ready')); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <ul class="divide-y divide-slate-100 rounded-lg border border-erp-border bg-white text-sm">
+                                    <?php $__currentLoopData = $releaseDashboard; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $row): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                        <li class="px-3 py-2.5">
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="font-medium text-slate-800"><?php echo e($row['label']); ?></span>
+                                                <span class="<?php echo \Illuminate\Support\Arr::toCssClasses([
+                                                    'text-sm font-semibold',
+                                                    'text-emerald-700' => $row['passed'] ?? false,
+                                                    'text-amber-700' => ! ($row['passed'] ?? false) && ($row['severity'] ?? '') === 'warning',
+                                                    'text-rose-700' => ! ($row['passed'] ?? false) && ($row['severity'] ?? '') !== 'warning',
+                                                ]); ?>"><?php echo e(($row['passed'] ?? false) ? '✓' : '!'); ?></span>
+                                            </div>
+                                            <?php if(! ($row['passed'] ?? false) && ! empty($row['message'])): ?>
+                                                <p class="mt-1 text-xs text-slate-600"><?php echo e($row['message']); ?></p>
+                                            <?php endif; ?>
                                         </li>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                                 </ul>
+                                <?php if($releaseReady): ?>
+                                    <p class="mt-3 text-sm font-semibold uppercase tracking-wide text-emerald-800"><?php echo e(__('Ready for production')); ?></p>
+                                <?php endif; ?>
                             </div>
                         <?php endif; ?>
 
@@ -655,7 +667,7 @@
                                 </button>
                             </form>
                             <?php if(empty($orderPresentation['readiness']['ready'] ?? false)): ?>
-                                <p class="mb-4 text-sm text-amber-700"><?php echo e(__('Complete readiness checks before releasing to production.')); ?></p>
+                                <p class="mb-4 text-sm text-amber-700"><?php echo e(__('Fix the items marked above before releasing to production.')); ?></p>
                             <?php endif; ?>
                         <?php endif; ?>
 
@@ -754,73 +766,9 @@
                 <?php endif; ?>
             </div>
 
-            <aside class="space-y-3">
-                <?php echo $__env->make('admin.sales.desk.partials.customer-context', [
-                    'customerContext' => $customerContext,
-                    'deskUrls' => $deskUrls,
-                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-                <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => []] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.card'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes([]); ?>
-                    <h3 class="mb-2 text-sm font-semibold text-slate-900"><?php echo e(__('Progress')); ?></h3>
-                    <dl class="space-y-2 text-sm">
-                        <div>
-                            <dt class="text-xs text-slate-500"><?php echo e(__('Customer')); ?></dt>
-                            <dd class="font-medium text-slate-900"><?php echo e($customer?->name ?? '—'); ?></dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-slate-500"><?php echo e(__('Specification')); ?></dt>
-                            <dd class="font-medium text-slate-900"><?php echo e($specification?->name ?? '—'); ?></dd>
-                        </div>
-                        <?php if($specification): ?>
-                            <div>
-                                <dt class="text-xs text-slate-500"><?php echo e(__('Artwork')); ?></dt>
-                                <dd class="font-medium">
-                                    <?php if($specification->activeArtworkVersion): ?>
-                                        <span class="text-emerald-700"><?php echo e($specification->activeArtworkVersion->versionLabel()); ?> — <?php echo e($specification->activeArtworkVersion->artwork_name); ?></span>
-                                    <?php else: ?>
-                                        <span class="text-amber-700"><?php echo e(__('Pending')); ?></span>
-                                    <?php endif; ?>
-                                </dd>
-                            </div>
-                        <?php endif; ?>
-                        <div>
-                            <dt class="text-xs text-slate-500"><?php echo e(__('Pricing')); ?></dt>
-                            <dd class="font-medium text-slate-900"><?php echo e($orderPresentation['total_amount'] ?? ($specification ? __('On order') : '—')); ?></dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-slate-500"><?php echo e(__('Order')); ?></dt>
-                            <dd class="font-medium text-slate-900"><?php echo e($orderPresentation['order_number'] ?? '—'); ?></dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-slate-500"><?php echo e(__('Production')); ?></dt>
-                            <dd class="font-medium text-slate-900"><?php echo e($orderPresentation['job_card_number'] ?? '—'); ?></dd>
-                        </div>
-                        <?php if(! empty($orderPresentation['financial']['financial_status_label'])): ?>
-                            <div>
-                                <dt class="text-xs text-slate-500"><?php echo e(__('Deposit / payment')); ?></dt>
-                                <dd class="font-medium text-slate-900"><?php echo e($orderPresentation['financial']['financial_status_label']); ?></dd>
-                            </div>
-                        <?php endif; ?>
-                    </dl>
-                 <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-            </aside>
+            <?php echo $__env->make('admin.sales.desk.partials.walk-in-panel', [
+                'walkInPanel' => $walkInPanel ?? [],
+            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
 
         <?php echo $__env->make('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>

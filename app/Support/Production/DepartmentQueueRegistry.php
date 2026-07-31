@@ -76,6 +76,11 @@ class DepartmentQueueRegistry
             }
         }
 
+        $focus = config('production.focus_department_slugs', []);
+        if ($focus !== []) {
+            $available = array_intersect_key($available, array_flip($focus));
+        }
+
         return $available;
     }
 

@@ -1,4 +1,4 @@
-<x-admin.lookup-nested-form :title="$title" :action="$action">
+<x-admin.lookup-nested-form :title="$title" :action="$action" max-width="md">
     <x-admin.lookup-company-select :companies="$companies" select-class="erp-select mt-1 w-full" />
     <div>
         <x-input-label for="name" :value="__('Artwork type name')" />

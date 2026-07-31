@@ -49,6 +49,8 @@ class ProductionFoundationSeeder extends Seeder
                 $this->seedForBranch($company->id, $branch->id);
             }
         }
+
+        $this->call(ProductionVendorSeeder::class);
     }
 
     protected function seedForBranch(int $companyId, int $branchId): void

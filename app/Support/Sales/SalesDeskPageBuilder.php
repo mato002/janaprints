@@ -17,6 +17,7 @@ class SalesDeskPageBuilder
         protected CustomerPrintSpecificationService $printSpecifications,
         protected SalesDeskWorkQueueService $workQueue,
         protected LookupOptionService $lookups,
+        protected SalesDeskWalkInPanelPresenter $walkInPanel,
     ) {}
 
     /**
@@ -45,6 +46,8 @@ class SalesDeskPageBuilder
             : [];
 
         $notice = $this->specificationNotice($request, $customer, $specification);
+        $deskUrls = $this->desk->deskUrls($customer, $specification);
+        $customerContext = $this->desk->presentCustomerContext($customer, $specification);
 
         // Product options for inline spec create (same source as lookup refresh — no extra round-trip).
         $inventoryItemOptions = $step === 2 && $customer
@@ -58,10 +61,19 @@ class SalesDeskPageBuilder
             'specification' => $specification,
             'order' => $order,
             'orderPresentation' => $orderPresentation,
-            'customerContext' => $this->desk->presentCustomerContext($customer, $specification),
+            'customerContext' => $customerContext,
+            'walkInPanel' => $this->walkInPanel->present(
+                $step,
+                $customerContext,
+                $specification,
+                $specs,
+                $order,
+                $orderPresentation,
+                $deskUrls,
+            ),
             'workQueue' => $this->workQueue->present($request),
             'fastActions' => $this->desk->fastActions($customer, $specification, $order),
-            'deskUrls' => $this->desk->deskUrls($customer, $specification),
+            'deskUrls' => $deskUrls,
             'printSpecifications' => $specs,
             'specificationNotice' => $notice['message'],
             'searchUrl' => route('admin.sales.desk.customers.search'),

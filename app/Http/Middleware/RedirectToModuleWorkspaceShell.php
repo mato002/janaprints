@@ -139,6 +139,7 @@ class RedirectToModuleWorkspaceShell
     protected function standaloneAdminRoutes(): array
     {
         return [
+            'admin.procurement.desk',
             'admin.procurement.dashboard',
         ];
     }
@@ -161,6 +162,9 @@ class RedirectToModuleWorkspaceShell
             '.pdf',
             '.export',
             '.print',
+            '.label',
+            '.job-sheet',
+            '.floor-display',
             '.footer-contact',
             '.seo-global',
             '.quick-create',

@@ -24,6 +24,26 @@ final class StoreDeskViews
     public const ALERTS = 'alerts';
 
     /**
+     * Document registers rendered inline on the Store Desk page.
+     *
+     * @return list<string>
+     */
+    public static function inlineRegisters(): array
+    {
+        return [
+            self::RECEIPTS,
+            self::ISSUES,
+            self::TRANSFERS,
+            self::ADJUSTMENTS,
+        ];
+    }
+
+    public static function isInlineRegister(?string $view): bool
+    {
+        return in_array(self::normalize($view), self::inlineRegisters(), true);
+    }
+
+    /**
      * @return list<string>
      */
     public static function all(): array
@@ -52,12 +72,14 @@ final class StoreDeskViews
      */
     public static function deskUrl(string $view = self::DESK, array $query = []): string
     {
-        return match (self::normalize($view)) {
+        $view = self::normalize($view);
+
+        return match ($view) {
             self::BALANCES => route('admin.inventory.store.balances', $query),
-            self::RECEIPTS => route('admin.inventory.receipts.index', $query),
-            self::ISSUES => route('admin.inventory.issues.index', $query),
-            self::TRANSFERS => route('admin.inventory.transfers.index', $query),
-            self::ADJUSTMENTS => route('admin.inventory.adjustments.index', $query),
+            self::RECEIPTS,
+            self::ISSUES,
+            self::TRANSFERS,
+            self::ADJUSTMENTS => route('admin.store.desk', array_merge($query, ['view' => $view])),
             self::MOVEMENTS => route('admin.inventory.movements.index', $query),
             self::ALERTS => route('admin.inventory.alerts.index', $query),
             default => route('admin.store.desk', $query),

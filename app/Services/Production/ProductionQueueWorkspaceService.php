@@ -12,6 +12,7 @@ use App\Models\Production\ProductionQueue;
 use App\Models\User;
 use App\Support\Production\DepartmentQueueRegistry;
 use App\Support\Production\DepartmentQueueRoutingService;
+use App\Support\Production\JobCardPrintUrl;
 use App\Support\Production\ProductionQueueOrderingService;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 use Carbon\Carbon;
@@ -295,11 +296,12 @@ class ProductionQueueWorkspaceService
             ];
         }
 
-        if ($user?->can('view', $jobCard) && Route::has('admin.production.job-cards.floor-display')) {
+        if ($user?->can('view', $jobCard) && ($printUrl = JobCardPrintUrl::resolve($jobCard))) {
             $actions[] = [
-                'label' => __('Print job card'),
-                'url' => route('admin.production.job-cards.floor-display', $jobCard),
+                'label' => JobCardPrintUrl::actionLabel($jobCard),
+                'url' => $printUrl,
                 'type' => 'link',
+                'target' => '_blank',
             ];
         }
 

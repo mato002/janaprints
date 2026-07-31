@@ -59,6 +59,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('job-cards', [ProductionJobCardController::class, 'index'])->name('job-cards.index');
             Route::get('job-cards/export', [ProductionJobCardController::class, 'export'])->name('job-cards.export');
             Route::get('job-cards/{jobCard}/label', [ProductionJobCardScanController::class, 'label'])->name('job-cards.label');
+            Route::get('job-cards/{jobCard}/job-sheet', [ProductionJobCardScanController::class, 'jobSheet'])->name('job-cards.job-sheet');
         });
 
         Route::middleware('permission:production.work-centers.view')->group(function () {

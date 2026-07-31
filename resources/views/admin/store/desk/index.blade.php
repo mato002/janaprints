@@ -1,25 +1,41 @@
 @php
+    use App\Support\Inventory\StoreDeskViews;
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $operatorMode = (bool) ($operatorMode ?? false);
-    $health = $workQueue['health'] ?? ['percent' => 100, 'label' => __('Healthy'), 'tone' => 'emerald', 'detail' => ''];
+    $activeStoreView = StoreDeskViews::normalize($activeStoreView ?? request('view'));
+    $isRegister = StoreDeskViews::isInlineRegister($activeStoreView);
+    $title = $isRegister ? ($registerTitle ?? __('Store Desk')) : __('Store Desk');
 @endphp
 
 <x-admin-layout
-    :title="__('Store Desk')"
+    :title="$title"
     :breadcrumbs="$operatorMode
         ? [['label' => __('Store Desk')]]
-        : [
-            ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
-            ['label' => __('Store Desk')],
-        ]"
+        : (
+            $isRegister
+                ? [
+                    ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
+                    ['label' => __('Store Desk'), 'url' => route('admin.store.desk')],
+                    ['label' => $registerTitle ?? __('Register')],
+                ]
+                : [
+                    ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
+                    ['label' => __('Store Desk')],
+                ]
+        )"
 >
     <div
-        class="store-desk-command"
-        x-data="storeDeskLookup(@js([
-            'searchUrl' => $searchUrl,
-        ]))"
+        @class([
+            'store-desk-command' => ! $isRegister,
+            'store-desk-register' => $isRegister,
+        ])
+        @if (! $isRegister)
+            x-data="storeDeskLookup(@js(['searchUrl' => $searchUrl]))"
+        @endif
     >
-        @unless (\App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())
-            @include('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::DESK])
+        @unless (WorkspaceEmbed::inWorkspaceContext())
+            @include('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => $activeStoreView])
         @endunless
 
         @if (session('status'))
@@ -35,35 +51,36 @@
             </div>
         @endif
 
-        {{-- 1. Search first — clerks look up before they browse --}}
-        @include('admin.store.desk.partials.item-lookup')
+        @if ($isRegister)
+            @include('admin.store.desk.partials.register-panel')
+        @else
+            @include('admin.store.desk.partials.item-lookup')
 
-        {{-- 2. Store Health + KPIs --}}
-        @include('admin.store.desk.partials.summary-strip', ['workQueue' => $workQueue])
+            @include('admin.store.desk.partials.summary-strip', ['workQueue' => $workQueue])
 
-        {{-- 3. Needs Attention + Quick Actions --}}
-        <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-5">
-            <div class="lg:col-span-3">
-                @include('admin.store.desk.partials.needs-attention', [
-                    'needsAttention' => $workQueue['needs_attention'] ?? [],
-                    'lowStockItems' => $lowStockItems,
-                    'reorderAlertsUrl' => $reorderAlertsUrl,
+            @include('admin.store.desk.partials.work-queue', ['workQueue' => $workQueue])
+
+            <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-5">
+                <div class="lg:col-span-3">
+                    @include('admin.store.desk.partials.needs-attention', [
+                        'needsAttention' => $workQueue['needs_attention'] ?? [],
+                        'lowStockItems' => $lowStockItems,
+                        'reorderAlertsUrl' => $reorderAlertsUrl,
+                    ])
+                </div>
+                <div class="lg:col-span-2">
+                    @include('admin.store.desk.partials.fast-actions', ['fastActions' => $fastActions])
+                </div>
+            </div>
+
+            @include('admin.store.desk.partials.warehouse-snapshot', ['warehouseSnapshot' => $warehouseSnapshot])
+
+            <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-2">
+                @include('admin.store.desk.partials.movement-feed', ['movementFeed' => $movementFeed])
+                @include('admin.store.desk.partials.pipelines', [
+                    'receivingPipeline' => $receivingPipeline,
                 ])
             </div>
-            <div class="lg:col-span-2">
-                @include('admin.store.desk.partials.fast-actions', ['fastActions' => $fastActions])
-            </div>
-        </div>
-
-        {{-- 4. Warehouse Snapshot (compact) --}}
-        @include('admin.store.desk.partials.warehouse-snapshot', ['warehouseSnapshot' => $warehouseSnapshot])
-
-        {{-- 5. Activity + Procurement --}}
-        <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-2">
-            @include('admin.store.desk.partials.movement-feed', ['movementFeed' => $movementFeed])
-            @include('admin.store.desk.partials.pipelines', [
-                'receivingPipeline' => $receivingPipeline,
-            ])
-        </div>
+        @endif
     </div>
 </x-admin-layout>

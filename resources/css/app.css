@@ -5866,7 +5866,7 @@ body.erp-navigating {
 
     /* Designer desk workspace */
     .designer-desk-shell {
-        @apply pb-8;
+        @apply min-w-0 pb-8;
     }
 
     .designer-desk-command .designer-desk-queue {

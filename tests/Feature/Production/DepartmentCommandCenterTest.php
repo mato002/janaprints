@@ -12,6 +12,7 @@ use App\Models\Production\ProductionQueue;
 use App\Models\Production\WorkCenter;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
+use App\Support\Production\ProductionFloorDeskViews;
 use App\Support\Production\ProductionSpecificationService;
 use App\Support\TenantContext;
 use Database\Seeders\ProductionFoundationSeeder;
@@ -60,7 +61,7 @@ class DepartmentCommandCenterTest extends TestCase
         return [
             'digital' => ['digital', 'Digital Command Centre'],
             'offset' => ['offset', 'Offset Command Centre'],
-            'outsource' => ['outsource', 'Outsource Command Centre'],
+            'outsource' => ['outsource', 'Outsourced Command Centre'],
             'large_format' => ['large_format', 'Large Format Command Centre'],
             'finishing' => ['finishing', 'Finishing Command Centre'],
         ];
@@ -177,6 +178,32 @@ class DepartmentCommandCenterTest extends TestCase
             ->assertSee(route('admin.production.job-cards.show', $job), false);
     }
 
+    public function test_offset_queue_includes_job_sheet_print_link(): void
+    {
+        [$company, $branch, $user, $workCenter] = $this->commandCentreContext('offset');
+        $job = $this->queueJob($company, $branch, $user, $workCenter, ProductionType::Offset);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('offset')
+            ->assertOk()
+            ->assertSee(route('admin.production.job-cards.job-sheet', $job), false)
+            ->assertSee(__('Print job sheet'), false);
+    }
+
+    public function test_focus_departments_hide_large_format_from_nav(): void
+    {
+        $this->commandCentreContext('digital');
+
+        $registry = app(\App\Support\Production\DepartmentQueueRegistry::class);
+        $available = $registry->availableDepartments();
+
+        $this->assertArrayHasKey('digital', $available);
+        $this->assertArrayHasKey('offset', $available);
+        $this->assertArrayHasKey('outsource', $available);
+        $this->assertArrayNotHasKey('large_format', $available);
+        $this->assertArrayNotHasKey('finishing', $available);
+    }
+
     public function test_command_centre_forbidden_without_permission(): void
     {
         [$company, $branch] = array_slice($this->commandCentreContext('digital'), 0, 2);
@@ -201,7 +228,7 @@ class DepartmentCommandCenterTest extends TestCase
     protected function getDepartmentQueue(string $department)
     {
         return $this->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
-            ->get(route('admin.production.queue.department', $department).'?embedded=1');
+            ->get(ProductionFloorDeskViews::queueIndexUrl($department, ['embedded' => '1']));
     }
 
     /**

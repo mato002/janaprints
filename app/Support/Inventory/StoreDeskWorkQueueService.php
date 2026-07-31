@@ -116,7 +116,7 @@ class StoreDeskWorkQueueService
                 $awaitingPo,
                 'blue',
                 $awaitingPo > 0,
-                route('admin.procurement.orders.index'),
+                route('admin.procurement.desk'),
             ),
         ];
 

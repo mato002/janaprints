@@ -24,12 +24,17 @@ class SalesDeskActionPresenter
             'jobCard.productionSpecification',
             'customer:id,company_name,contact_person,customer_code,phone,email',
             'invoices:id,sales_order_id,invoice_number,status,total_amount,balance_due',
+            'inventoryItem:id,item_name,sku',
+            'items:id,sales_order_id,item_name,quantity,unit_price',
+            'customerPrintSpecification:id,name,specification_code',
         ]);
 
         $readiness = $this->releaseReadiness->assess($salesOrder);
         $financial = $this->financialStatus->snapshot($salesOrder);
         $customer = $salesOrder->customer;
         $latestInvoice = $salesOrder->invoices->sortByDesc('id')->first();
+        $line = $salesOrder->items->first();
+        $quantity = $line?->quantity;
 
         return [
             'id' => $salesOrder->id,
@@ -37,6 +42,18 @@ class SalesDeskActionPresenter
             'status' => $salesOrder->status->value,
             'status_label' => str_replace('_', ' ', ucfirst($salesOrder->status->value)),
             'total_amount' => number_format((float) $salesOrder->total_amount, 2),
+            'quantity' => $quantity !== null ? rtrim(rtrim(number_format((float) $quantity, 3, '.', ','), '0'), '.') : null,
+            'unit_price' => $line?->unit_price !== null
+                ? number_format((float) $line->unit_price, 2)
+                : null,
+            'product_name' => $salesOrder->inventoryItem?->item_name
+                ?? $line?->item_name
+                ?? $salesOrder->customerPrintSpecification?->name,
+            'specification_name' => $salesOrder->customerPrintSpecification?->name,
+            'required_date' => ($salesOrder->required_date ?? null)?->format('d M Y'),
+            'priority' => $salesOrder->priority?->value
+                ? ucfirst($salesOrder->priority->value)
+                : null,
             'customer' => $customer ? [
                 'id' => $customer->id,
                 'key' => $customer->getRouteKey(),

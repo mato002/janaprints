@@ -29,8 +29,8 @@
                             <dd class="font-semibold text-slate-900" x-text="panel.context?.customer ?? '—'"></dd>
                         </div>
                         <div>
-                            <dt class="text-[10px] uppercase tracking-wide text-slate-400">{{ __('Product') }}</dt>
-                            <dd class="font-medium text-slate-800" x-text="panel.context?.product ?? '—'"></dd>
+                            <dt class="text-[10px] uppercase tracking-wide text-slate-400">{{ __('Designer') }}</dt>
+                            <dd class="font-medium text-slate-800" x-text="panel.header?.designer || panel.context?.designer || '{{ __('Unclaimed') }}'"></dd>
                         </div>
                         <div>
                             <dt class="text-[10px] uppercase tracking-wide text-slate-400">{{ __('Due') }}</dt>
@@ -92,16 +92,14 @@
                                         method="POST"
                                         enctype="multipart/form-data"
                                         class="rounded-lg border border-dashed border-slate-300 bg-slate-50/80 p-3"
-                                        @if ($operatorMode) data-erp-desk-form @endif
+                                        data-erp-desk-form
                                     >
                                         <input type="hidden" name="_token" :value="csrf">
-                                        @if ($operatorMode)
-                                            <input type="hidden" name="from" value="designer-desk">
-                                        @endif
-                                        <p class="mb-2 text-xs font-semibold text-slate-800">{{ __('Upload artwork') }}</p>
+                                        <input type="hidden" name="from" value="designer-desk">
+                                        <p class="mb-2 text-xs font-semibold text-slate-800">{{ __('Upload softcopy PDF') }}</p>
                                         <input type="file" name="file" class="erp-input mb-2 w-full text-xs" accept=".pdf,.ai,.psd,.cdr,.svg,.png,.jpg,.jpeg" required>
                                         <input type="text" name="notes" class="erp-input mb-2 w-full text-xs" placeholder="{{ __('Version notes') }}">
-                                        <button type="submit" class="erp-btn-primary w-full text-xs">{{ __('Upload version') }}</button>
+                                        <button type="submit" class="erp-btn-primary w-full text-xs">{{ __('Upload PDF') }}</button>
                                     </form>
                                 </template>
                             </div>
@@ -164,11 +162,9 @@
                         <div class="flex flex-col gap-2">
                             <template x-for="(action, idx) in panel.primary_actions ?? []" :key="'a-' + idx">
                                 <template x-if="action.type === 'post'">
-                                    <form :action="action.url" method="POST" @if ($operatorMode) data-erp-desk-form @endif>
+                                    <form :action="action.url" method="POST" data-erp-desk-form>
                                         <input type="hidden" name="_token" :value="csrf">
-                                        @if ($operatorMode)
-                                            <input type="hidden" name="from" value="designer-desk">
-                                        @endif
+                                        <input type="hidden" name="from" value="designer-desk">
                                         <button
                                             type="submit"
                                             class="designer-desk-action-btn w-full"

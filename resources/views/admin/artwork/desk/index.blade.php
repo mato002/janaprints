@@ -12,7 +12,6 @@
             ['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')],
             ['label' => __('Designer Desk')],
         ]"
-    :compact-page="true"
 >
     <div
         class="designer-desk-shell designer-desk-command"
@@ -50,6 +49,7 @@
             <div class="lg:col-span-5 xl:col-span-4">
                 @include('admin.artwork.desk.partials.queue-cards', [
                     'rows' => $rows,
+                    'availableRows' => $available_rows ?? [],
                     'requests' => $requests,
                     'has_assignments' => $has_assignments,
                 ])

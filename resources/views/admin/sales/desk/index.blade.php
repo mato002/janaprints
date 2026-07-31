@@ -456,25 +456,38 @@
                         @endif
 
                         @if ($orderPresentation['can_release'] && ! empty($orderPresentation['readiness']['checks']))
+                            @php
+                                $releaseDashboard = $walkInPanel['dashboard'] ?? [];
+                                $releaseReady = (bool) ($orderPresentation['readiness']['ready'] ?? false);
+                            @endphp
                             <div class="mb-4">
-                                <p class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Readiness') }}</p>
-                                <ul class="space-y-1 text-sm">
-                                    @foreach ($orderPresentation['readiness']['checks'] as $check)
-                                        <li class="flex items-start gap-2">
-                                            <span @class([
-                                                'text-emerald-600' => $check['passed'] ?? false,
-                                                'text-amber-600' => ! ($check['passed'] ?? false) && ($check['severity'] ?? '') === 'warning',
-                                                'text-rose-600' => ! ($check['passed'] ?? false) && ($check['severity'] ?? '') !== 'warning',
-                                            ])>{{ ($check['passed'] ?? false) ? '✓' : '!' }}</span>
-                                            <span>
-                                                {{ $check['label'] }}
-                                                @if (! empty($check['message']))
-                                                    <span class="block text-xs text-slate-500">{{ $check['message'] }}</span>
-                                                @endif
-                                            </span>
+                                <div class="mb-2 flex items-center justify-between gap-2">
+                                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Release readiness') }}</p>
+                                    @if ($releaseReady)
+                                        <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">{{ __('Ready') }}</span>
+                                    @endif
+                                </div>
+                                <ul class="divide-y divide-slate-100 rounded-lg border border-erp-border bg-white text-sm">
+                                    @foreach ($releaseDashboard as $row)
+                                        <li class="px-3 py-2.5">
+                                            <div class="flex items-center justify-between gap-3">
+                                                <span class="font-medium text-slate-800">{{ $row['label'] }}</span>
+                                                <span @class([
+                                                    'text-sm font-semibold',
+                                                    'text-emerald-700' => $row['passed'] ?? false,
+                                                    'text-amber-700' => ! ($row['passed'] ?? false) && ($row['severity'] ?? '') === 'warning',
+                                                    'text-rose-700' => ! ($row['passed'] ?? false) && ($row['severity'] ?? '') !== 'warning',
+                                                ])>{{ ($row['passed'] ?? false) ? '✓' : '!' }}</span>
+                                            </div>
+                                            @if (! ($row['passed'] ?? false) && ! empty($row['message']))
+                                                <p class="mt-1 text-xs text-slate-600">{{ $row['message'] }}</p>
+                                            @endif
                                         </li>
                                     @endforeach
                                 </ul>
+                                @if ($releaseReady)
+                                    <p class="mt-3 text-sm font-semibold uppercase tracking-wide text-emerald-800">{{ __('Ready for production') }}</p>
+                                @endif
                             </div>
                         @endif
 
@@ -499,7 +512,7 @@
                                 </button>
                             </form>
                             @if (empty($orderPresentation['readiness']['ready'] ?? false))
-                                <p class="mb-4 text-sm text-amber-700">{{ __('Complete readiness checks before releasing to production.') }}</p>
+                                <p class="mb-4 text-sm text-amber-700">{{ __('Fix the items marked above before releasing to production.') }}</p>
                             @endif
                         @endif
 
@@ -569,55 +582,9 @@
                 @endif
             </div>
 
-            <aside class="space-y-3">
-                @include('admin.sales.desk.partials.customer-context', [
-                    'customerContext' => $customerContext,
-                    'deskUrls' => $deskUrls,
-                ])
-                <x-admin.card>
-                    <h3 class="mb-2 text-sm font-semibold text-slate-900">{{ __('Progress') }}</h3>
-                    <dl class="space-y-2 text-sm">
-                        <div>
-                            <dt class="text-xs text-slate-500">{{ __('Customer') }}</dt>
-                            <dd class="font-medium text-slate-900">{{ $customer?->name ?? '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-slate-500">{{ __('Specification') }}</dt>
-                            <dd class="font-medium text-slate-900">{{ $specification?->name ?? '—' }}</dd>
-                        </div>
-                        @if ($specification)
-                            <div>
-                                <dt class="text-xs text-slate-500">{{ __('Artwork') }}</dt>
-                                <dd class="font-medium">
-                                    @if ($specification->activeArtworkVersion)
-                                        <span class="text-emerald-700">{{ $specification->activeArtworkVersion->versionLabel() }} — {{ $specification->activeArtworkVersion->artwork_name }}</span>
-                                    @else
-                                        <span class="text-amber-700">{{ __('Pending') }}</span>
-                                    @endif
-                                </dd>
-                            </div>
-                        @endif
-                        <div>
-                            <dt class="text-xs text-slate-500">{{ __('Pricing') }}</dt>
-                            <dd class="font-medium text-slate-900">{{ $orderPresentation['total_amount'] ?? ($specification ? __('On order') : '—') }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-slate-500">{{ __('Order') }}</dt>
-                            <dd class="font-medium text-slate-900">{{ $orderPresentation['order_number'] ?? '—' }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-xs text-slate-500">{{ __('Production') }}</dt>
-                            <dd class="font-medium text-slate-900">{{ $orderPresentation['job_card_number'] ?? '—' }}</dd>
-                        </div>
-                        @if (! empty($orderPresentation['financial']['financial_status_label']))
-                            <div>
-                                <dt class="text-xs text-slate-500">{{ __('Deposit / payment') }}</dt>
-                                <dd class="font-medium text-slate-900">{{ $orderPresentation['financial']['financial_status_label'] }}</dd>
-                            </div>
-                        @endif
-                    </dl>
-                </x-admin.card>
-            </aside>
+            @include('admin.sales.desk.partials.walk-in-panel', [
+                'walkInPanel' => $walkInPanel ?? [],
+            ])
         </div>
 
         @include('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue])

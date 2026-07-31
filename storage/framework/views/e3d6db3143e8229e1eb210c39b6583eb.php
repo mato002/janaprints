@@ -1,16 +1,29 @@
 <?php
+    use App\Support\Inventory\StoreDeskViews;
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $operatorMode = (bool) ($operatorMode ?? false);
-    $health = $workQueue['health'] ?? ['percent' => 100, 'label' => __('Healthy'), 'tone' => 'emerald', 'detail' => ''];
+    $activeStoreView = StoreDeskViews::normalize($activeStoreView ?? request('view'));
+    $isRegister = StoreDeskViews::isInlineRegister($activeStoreView);
+    $title = $isRegister ? ($registerTitle ?? __('Store Desk')) : __('Store Desk');
 ?>
 
 <?php if (isset($component)) { $__componentOriginal91fdd17964e43374ae18c674f95cdaa3 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal91fdd17964e43374ae18c674f95cdaa3 = $attributes; } ?>
-<?php $component = App\View\Components\AdminLayout::resolve(['title' => __('Store Desk'),'breadcrumbs' => $operatorMode
+<?php $component = App\View\Components\AdminLayout::resolve(['title' => $title,'breadcrumbs' => $operatorMode
         ? [['label' => __('Store Desk')]]
-        : [
-            ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
-            ['label' => __('Store Desk')],
-        ]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+        : (
+            $isRegister
+                ? [
+                    ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
+                    ['label' => __('Store Desk'), 'url' => route('admin.store.desk')],
+                    ['label' => $registerTitle ?? __('Register')],
+                ]
+                : [
+                    ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
+                    ['label' => __('Store Desk')],
+                ]
+        )] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
 <?php $component->withName('admin-layout'); ?>
 <?php if ($component->shouldRender()): ?>
 <?php $__env->startComponent($component->resolveView(), $component->data()); ?>
@@ -19,13 +32,16 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <div
-        class="store-desk-command"
-        x-data="storeDeskLookup(<?php echo \Illuminate\Support\Js::from([
-            'searchUrl' => $searchUrl,
-        ])->toHtml() ?>)"
+        class="<?php echo \Illuminate\Support\Arr::toCssClasses([
+            'store-desk-command' => ! $isRegister,
+            'store-desk-register' => $isRegister,
+        ]); ?>"
+        <?php if (! ($isRegister)): ?>
+            x-data="storeDeskLookup(<?php echo \Illuminate\Support\Js::from(['searchUrl' => $searchUrl])->toHtml() ?>)"
+        <?php endif; ?>
     >
-        <?php if (! (\App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())): ?>
-            <?php echo $__env->make('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => \App\Support\Inventory\StoreDeskViews::DESK], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php if (! (WorkspaceEmbed::inWorkspaceContext())): ?>
+            <?php echo $__env->make('admin.store.desk.partials.desk-mode-nav', ['activeStoreView' => $activeStoreView], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         <?php endif; ?>
 
         <?php if(session('status')): ?>
@@ -41,36 +57,37 @@
             </div>
         <?php endif; ?>
 
-        
-        <?php echo $__env->make('admin.store.desk.partials.item-lookup', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php if($isRegister): ?>
+            <?php echo $__env->make('admin.store.desk.partials.register-panel', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php else: ?>
+            <?php echo $__env->make('admin.store.desk.partials.item-lookup', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-        
-        <?php echo $__env->make('admin.store.desk.partials.summary-strip', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            <?php echo $__env->make('admin.store.desk.partials.summary-strip', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-        
-        <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-5">
-            <div class="lg:col-span-3">
-                <?php echo $__env->make('admin.store.desk.partials.needs-attention', [
-                    'needsAttention' => $workQueue['needs_attention'] ?? [],
-                    'lowStockItems' => $lowStockItems,
-                    'reorderAlertsUrl' => $reorderAlertsUrl,
+            <?php echo $__env->make('admin.store.desk.partials.work-queue', ['workQueue' => $workQueue], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+            <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-5">
+                <div class="lg:col-span-3">
+                    <?php echo $__env->make('admin.store.desk.partials.needs-attention', [
+                        'needsAttention' => $workQueue['needs_attention'] ?? [],
+                        'lowStockItems' => $lowStockItems,
+                        'reorderAlertsUrl' => $reorderAlertsUrl,
+                    ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                </div>
+                <div class="lg:col-span-2">
+                    <?php echo $__env->make('admin.store.desk.partials.fast-actions', ['fastActions' => $fastActions], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                </div>
+            </div>
+
+            <?php echo $__env->make('admin.store.desk.partials.warehouse-snapshot', ['warehouseSnapshot' => $warehouseSnapshot], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+
+            <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-2">
+                <?php echo $__env->make('admin.store.desk.partials.movement-feed', ['movementFeed' => $movementFeed], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                <?php echo $__env->make('admin.store.desk.partials.pipelines', [
+                    'receivingPipeline' => $receivingPipeline,
                 ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             </div>
-            <div class="lg:col-span-2">
-                <?php echo $__env->make('admin.store.desk.partials.fast-actions', ['fastActions' => $fastActions], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-            </div>
-        </div>
-
-        
-        <?php echo $__env->make('admin.store.desk.partials.warehouse-snapshot', ['warehouseSnapshot' => $warehouseSnapshot], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-
-        
-        <div class="store-desk-command__split mb-3 grid gap-3 lg:grid-cols-2">
-            <?php echo $__env->make('admin.store.desk.partials.movement-feed', ['movementFeed' => $movementFeed], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-            <?php echo $__env->make('admin.store.desk.partials.pipelines', [
-                'receivingPipeline' => $receivingPipeline,
-            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-        </div>
+        <?php endif; ?>
     </div>
  <?php echo $__env->renderComponent(); ?>
 <?php endif; ?>

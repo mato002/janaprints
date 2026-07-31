@@ -8,9 +8,16 @@
         return;
     }
 
-    $active = ProcurementDeskViews::normalize($activeProcurementView ?? request('view', ProcurementDeskViews::REQUESTS));
+    $active = ProcurementDeskViews::normalize($activeProcurementView ?? request('view', ProcurementDeskViews::DESK));
+    $frame = WorkspaceEmbed::turboFrame();
     $user = auth()->user();
     $modes = collect([
+        [
+            'key' => ProcurementDeskViews::DESK,
+            'label' => __('Desk'),
+            'url' => ProcurementDeskViews::deskUrl(ProcurementDeskViews::DESK),
+            'visible' => $user?->can('procurement.vendors.view') ?? false,
+        ],
         [
             'key' => ProcurementDeskViews::REQUESTS,
             'label' => __('Requests'),
@@ -51,15 +58,15 @@
 ?>
 
 <?php if($modes->count() > 1): ?>
-    <nav class="workspace-context-tabs" aria-label="<?php echo e(__('Procurement desk modes')); ?>">
+    <nav class="workspace-context-tabs" aria-label="<?php echo e(__('Buy desk modes')); ?>">
         <?php $__currentLoopData = $modes; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $mode): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <a
-                href="<?php echo e($mode['url']); ?>"
+                href="<?php echo e(WorkspaceEmbed::url($mode['url'])); ?>"
                 class="<?php echo \Illuminate\Support\Arr::toCssClasses([
                     'workspace-context-tab',
                     'workspace-context-tab--active' => $mode['key'] === $active,
                 ]); ?>"
-                data-turbo-frame="erp-main"
+                data-turbo-frame="<?php echo e($frame); ?>"
                 data-turbo-action="advance"
             ><?php echo e($mode['label']); ?></a>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>

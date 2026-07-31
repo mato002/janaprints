@@ -51,6 +51,7 @@
                     class="{{ implode(' ', $rowClasses) }}"
                     data-floor-row
                     data-job-key="{{ $row['public_id'] }}"
+                    data-print-path="{{ $row['print_path'] ?? 'floor-display' }}"
                     data-filter-search="{{ strtolower(implode(' ', array_filter([
                         $row['job_number'] ?? '',
                         $row['customer'] ?? '',

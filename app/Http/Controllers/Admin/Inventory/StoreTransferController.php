@@ -13,6 +13,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ReturnsToStoreDesk;
+use App\Support\Inventory\StoreDeskViews;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockIssueService;
@@ -30,26 +31,11 @@ class StoreTransferController extends Controller
         protected FormSettingsService $formSettings,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', StockIssue::class);
 
-        $query = $this->scopeToTenant(
-            StockIssue::query()
-                ->with(['warehouse', 'toWarehouse', 'issuer'])
-                ->where('destination', StockIssueDestination::Transfer)
-                ->latest('issue_date')
-        );
-
-        if ($warehouseId = request('warehouse_id')) {
-            $query->where(fn ($q) => $q->where('warehouse_id', $warehouseId)->orWhere('to_warehouse_id', $warehouseId));
-        }
-
-        $transfers = $query->paginate(config('platform.pagination.default', 15));
-        $warehouses = Warehouse::query()->forTenant()->orderBy('name')->get();
-        $statuses = InventoryDocumentStatus::cases();
-
-        return view('admin.inventory.transfers.index', compact('transfers', 'warehouses', 'statuses'));
+        return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::TRANSFERS, $request->query()));
     }
 
     public function create(Request $request): View

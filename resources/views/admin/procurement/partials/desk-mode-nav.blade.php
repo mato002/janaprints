@@ -8,9 +8,16 @@
         return;
     }
 
-    $active = ProcurementDeskViews::normalize($activeProcurementView ?? request('view', ProcurementDeskViews::REQUESTS));
+    $active = ProcurementDeskViews::normalize($activeProcurementView ?? request('view', ProcurementDeskViews::DESK));
+    $frame = WorkspaceEmbed::turboFrame();
     $user = auth()->user();
     $modes = collect([
+        [
+            'key' => ProcurementDeskViews::DESK,
+            'label' => __('Desk'),
+            'url' => ProcurementDeskViews::deskUrl(ProcurementDeskViews::DESK),
+            'visible' => $user?->can('procurement.vendors.view') ?? false,
+        ],
         [
             'key' => ProcurementDeskViews::REQUESTS,
             'label' => __('Requests'),
@@ -51,15 +58,15 @@
 @endphp
 
 @if ($modes->count() > 1)
-    <nav class="workspace-context-tabs" aria-label="{{ __('Procurement desk modes') }}">
+    <nav class="workspace-context-tabs" aria-label="{{ __('Buy desk modes') }}">
         @foreach ($modes as $mode)
             <a
-                href="{{ $mode['url'] }}"
+                href="{{ WorkspaceEmbed::url($mode['url']) }}"
                 @class([
                     'workspace-context-tab',
                     'workspace-context-tab--active' => $mode['key'] === $active,
                 ])
-                data-turbo-frame="erp-main"
+                data-turbo-frame="{{ $frame }}"
                 data-turbo-action="advance"
             >{{ $mode['label'] }}</a>
         @endforeach

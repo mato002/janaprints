@@ -10,11 +10,11 @@ use App\Models\User;
 use App\Services\Accounting\DeliveryInvoiceService;
 use App\Support\Production\DepartmentQueueRegistry;
 use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\JobCardPrintUrl;
 use App\Support\Production\ProductionImpositionCalculator;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Route;
 
 class DepartmentCommandCenterService
 {
@@ -272,9 +272,8 @@ class DepartmentCommandCenterService
                 : ($spec ? __('No') : '—'),
             'packaging' => $spec?->printProductTemplate?->recommended_packaging ?? '—',
             'status_badges' => $this->statusBadges($row, $qc, $dispatch, $financial),
-            'print_url' => ($job && Route::has('admin.production.job-cards.floor-display'))
-                ? route('admin.production.job-cards.floor-display', $job)
-                : null,
+            'print_url' => $job ? JobCardPrintUrl::resolve($job, $department) : null,
+            'print_label' => $job ? JobCardPrintUrl::actionLabel($job, $department) : null,
             'customer_360_url' => ($job?->customer_id && auth()->user()?->can('view', $job->customer))
                 ? route('admin.crm.customers.show', $job->customer)
                 : null,
@@ -548,9 +547,9 @@ class DepartmentCommandCenterService
             'qc_status' => __('QC status'),
             'dispatch_status' => __('Dispatch status'),
             'finishing' => __('Finishing'),
-            'production_type' => __('Printing type'),
-            'vendor_name' => __('Vendor'),
-            'vendor_cost' => __('Vendor cost'),
+            'production_type' => __('Type of printing'),
+            'vendor_name' => __('Service provider'),
+            'vendor_cost' => __('Cost'),
             'selling_price' => __('Selling price'),
             'margin' => __('Margin'),
             'date_sent' => __('Date sent'),

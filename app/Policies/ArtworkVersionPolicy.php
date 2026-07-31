@@ -34,6 +34,12 @@ class ArtworkVersionPolicy
             return false;
         }
 
+        // Softcopy upload only after a designer has claimed the job.
+        if ($request->assigned_designer_id === null
+            || (int) $request->assigned_designer_id !== (int) $user->id) {
+            return false;
+        }
+
         if ($request->lacksUploadedVersion()) {
             return true;
         }

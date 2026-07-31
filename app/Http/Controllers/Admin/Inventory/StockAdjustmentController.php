@@ -13,6 +13,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockAdjustment;
 use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ReturnsToStoreDesk;
+use App\Support\Inventory\StoreDeskViews;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockAdjustmentService;
@@ -30,15 +31,11 @@ class StockAdjustmentController extends Controller
         protected FormSettingsService $formSettings,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', StockAdjustment::class);
 
-        $adjustments = $this->scopeToTenant(
-            StockAdjustment::query()->with(['warehouse', 'adjuster'])->latest('adjustment_date')
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.inventory.adjustments.index', compact('adjustments'));
+        return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::ADJUSTMENTS, $request->query()));
     }
 
     public function create(Request $request): View

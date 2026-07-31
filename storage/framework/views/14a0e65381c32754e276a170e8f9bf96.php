@@ -51,6 +51,7 @@
                     class="<?php echo e(implode(' ', $rowClasses)); ?>"
                     data-floor-row
                     data-job-key="<?php echo e($row['public_id']); ?>"
+                    data-print-path="<?php echo e($row['print_path'] ?? 'floor-display'); ?>"
                     data-filter-search="<?php echo e(strtolower(implode(' ', array_filter([
                         $row['job_number'] ?? '',
                         $row['customer'] ?? '',

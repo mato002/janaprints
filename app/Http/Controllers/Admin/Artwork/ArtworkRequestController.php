@@ -177,14 +177,78 @@ class ArtworkRequestController extends Controller
         return back()->with('status', __('Designer assigned.'));
     }
 
+    /**
+     * Designer self-claim so open jobs are not worked by two people at once.
+     */
+    public function claim(Request $request, ArtworkRequest $artworkRequest): RedirectResponse
+    {
+        // Stale desk UI may re-post Claim after a successful claim that looked like a network error.
+        if ((int) $artworkRequest->assigned_designer_id === (int) $request->user()->id) {
+            $this->authorize('view', $artworkRequest);
+
+            if ($this->wantsDesignerDeskReturn($request)) {
+                return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->public_id]))
+                    ->with('status', __('This job is already on your queue.'));
+            }
+
+            return back()->with('status', __('This job is already on your queue.'));
+        }
+
+        $this->authorize('claim', $artworkRequest);
+
+        $claimed = false;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($artworkRequest, $request, &$claimed) {
+            $locked = ArtworkRequest::query()
+                ->whereKey($artworkRequest->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($locked->assigned_designer_id !== null) {
+                return;
+            }
+
+            $locked->update(['assigned_designer_id' => $request->user()->id]);
+
+            if ($locked->status === ArtworkRequestStatus::Requested
+                && $locked->status->canTransitionTo(ArtworkRequestStatus::InDesign)) {
+                $locked->transitionTo(ArtworkRequestStatus::InDesign);
+            } elseif ($locked->status === ArtworkRequestStatus::RevisionRequested
+                && $locked->status->canTransitionTo(ArtworkRequestStatus::InDesign)) {
+                $locked->transitionTo(ArtworkRequestStatus::InDesign);
+            }
+
+            $claimed = true;
+        });
+
+        if (! $claimed) {
+            return back()->withErrors([
+                'workflow' => __('This job was just claimed by another designer.'),
+            ]);
+        }
+
+        if ($this->wantsDesignerDeskReturn($request)) {
+            return redirect()->to($this->designerDeskUrl(['request' => $artworkRequest->fresh()->public_id]))
+                ->with('status', __('Job claimed — you are now the working designer. Upload the softcopy PDF when ready, then mark complete.'));
+        }
+
+        return back()->with('status', __('Job claimed — you are now the working designer.'));
+    }
+
     public function submit(ArtworkRequest $artworkRequest): RedirectResponse
     {
         $this->authorize('submit', $artworkRequest);
 
+        if ((int) $artworkRequest->assigned_designer_id !== (int) auth()->id()) {
+            return back()->withErrors([
+                'workflow' => __('Only the assigned designer can mark this job complete.'),
+            ]);
+        }
+
         if (! $artworkRequest->canSubmitForApproval()) {
             $message = match ($artworkRequest->status) {
-                ArtworkRequestStatus::Requested => __('Assign a designer or upload an artwork version before submitting for approval.'),
-                ArtworkRequestStatus::InDesign => __('Upload at least one artwork version before submitting for approval.'),
+                ArtworkRequestStatus::Requested => __('Claim the job and upload a softcopy PDF before marking complete.'),
+                ArtworkRequestStatus::InDesign => __('Upload the softcopy PDF before marking complete.'),
                 default => __('This artwork request cannot be submitted in its current status.'),
             };
 

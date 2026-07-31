@@ -250,7 +250,7 @@
                     <span class="production-floor-batch-bar__count" x-text="`${selectedJobs.length} <?php echo e(__('selected')); ?>`"></span>
                     <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="openBatchMachineAssign()"><?php echo e(__('Assign machine')); ?></button>
                     <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="batchPrintLabels()"><?php echo e(__('Print labels')); ?></button>
-                    <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="batchPrintJobCards()"><?php echo e(__('Print job cards')); ?></button>
+                    <button type="button" class="erp-btn-secondary text-xs py-1 px-2" @click="batchPrintJobCards()"><?php echo e(__('Print job sheets')); ?></button>
                     <button type="button" class="erp-btn-ghost text-xs py-1 px-2" @click="clearSelection()"><?php echo e(__('Clear')); ?></button>
                 </div>
 

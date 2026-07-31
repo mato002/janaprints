@@ -14,6 +14,7 @@ use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ProductionConsumptionGovernance;
 use App\Support\Inventory\ReturnsToStoreDesk;
+use App\Support\Inventory\StoreDeskViews;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
 use App\Support\StockIssueService;
@@ -32,15 +33,11 @@ class StockIssueController extends Controller
         protected ProductionConsumptionGovernance $productionGovernance,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', StockIssue::class);
 
-        $issues = $this->scopeToTenant(
-            StockIssue::query()->with(['warehouse', 'issuer'])->latest('issue_date')
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.inventory.issues.index', compact('issues'));
+        return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::ISSUES, $request->query()));
     }
 
     public function create(Request $request): View

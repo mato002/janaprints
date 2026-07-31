@@ -70,6 +70,40 @@ class StoreDeskOperatorFlowTest extends TestCase
         $this->assertStringNotContainsString('/admin/store/desk', (string) $redirect);
     }
 
+    public function test_storekeeper_can_open_inline_register_modes_on_desk(): void
+    {
+        [$company, $branch, $user, $item, $warehouse] = $this->storeContext();
+        $receipt = $this->draftReceipt($company, $branch, $user, $item, $warehouse);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk', ['view' => 'receipts']))
+            ->assertOk()
+            ->assertSee(__('Stock receipts'), false)
+            ->assertSee($receipt->receipt_number, false)
+            ->assertSee(route('admin.inventory.receipts.create', ['from' => 'store-desk']), false);
+
+        $this->actingAs($user)
+            ->get(route('admin.inventory.receipts.index'))
+            ->assertRedirect(route('admin.store.desk', ['view' => 'receipts']));
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk', ['view' => 'issues']))
+            ->assertOk()
+            ->assertSee(__('Stock issues'), false);
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk', ['view' => 'transfers']))
+            ->assertOk()
+            ->assertSee(__('Store Transfers'), false);
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk', ['view' => 'adjustments']))
+            ->assertOk()
+            ->assertSee(__('Stock adjustments'), false);
+    }
+
     public function test_storekeeper_lands_on_store_desk_with_pending_drafts(): void
     {
         [$company, $branch, $user, $item, $warehouse] = $this->storeContext();

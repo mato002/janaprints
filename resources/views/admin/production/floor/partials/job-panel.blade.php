@@ -166,6 +166,9 @@
                             <template x-if="!panel.primary_action">
                                 <p class="text-sm text-slate-500">{{ __('No immediate action — review job details below.') }}</p>
                             </template>
+                            <template x-if="panel.header?.job_sheet_url">
+                                <a :href="panel.header.job_sheet_url" target="_blank" rel="noopener" class="erp-btn-secondary text-sm">{{ __('Print job sheet') }}</a>
+                            </template>
                             <template x-if="panel.header?.label_url">
                                 <a :href="panel.header.label_url" target="_blank" rel="noopener" class="erp-btn-secondary text-sm">{{ __('Print label') }}</a>
                             </template>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
+use App\Support\Production\JobCardJobSheetPresenter;
 use App\Support\Production\JobCardScanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -22,6 +23,16 @@ class ProductionJobCardScanController extends Controller
         return view('admin.production.job-cards.scan-label', [
             'jobCard' => $jobCard,
             'label' => $scan->labelPayload($jobCard),
+        ]);
+    }
+
+    public function jobSheet(ProductionJobCard $jobCard, JobCardJobSheetPresenter $presenter): View
+    {
+        $this->authorize('view', $jobCard);
+
+        return view('admin.production.job-cards.job-sheet', [
+            'jobCard' => $jobCard,
+            'sheet' => $presenter->present($jobCard),
         ]);
     }
 }

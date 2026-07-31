@@ -4738,7 +4738,10 @@ document.addEventListener('alpine:init', () => {
 
         batchPrintJobCards() {
             this.selectedJobs.forEach((jobKey) => {
-                window.open(`${this.jobCardUrl}/${jobKey}/floor-display`, '_blank', 'noopener');
+                const row = this.$refs.queueBody?.querySelector(`tr[data-job-key="${jobKey}"]`);
+                const printPath = row?.dataset.printPath ?? 'job-sheet';
+
+                window.open(`${this.jobCardUrl}/${jobKey}/${printPath}`, '_blank', 'noopener');
             });
         },
 
@@ -5100,7 +5103,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         setFilter(key) {
-            if (key === 'all' || key === 'mine') {
+            if (key === 'all') {
                 this.activeFilter = null;
 
                 return;
@@ -5133,6 +5136,7 @@ document.addEventListener('alpine:init', () => {
                 high: 'data-filter-high',
                 today: 'data-filter-today',
                 mine: 'data-filter-mine',
+                available: 'data-filter-available',
                 all: null,
             };
 

@@ -16,6 +16,7 @@ use App\Models\Production\WorkCenter;
 use App\Models\Procurement\Vendor;
 use App\Models\User;
 use App\Support\Production\JobCardOutsourceService;
+use App\Support\Production\JobCardPrintUrl;
 use App\Support\Production\ProductQcChecklistService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -91,6 +92,9 @@ class ProductionFloorService
                     ?? $jobCard->salesOrder?->required_date?->toDateString(),
                 'sales_order_number' => $jobCard->salesOrder?->order_number,
                 'label_url' => route('admin.production.job-cards.label', $jobCard),
+                'job_sheet_url' => JobCardPrintUrl::usesJobSheet($jobCard)
+                    ? JobCardPrintUrl::resolve($jobCard)
+                    : null,
             ],
             'primary_action' => $this->actions->primaryAction($jobCard, forFloor: true),
             'secondary_actions' => $this->actions->secondaryActions($jobCard),
@@ -277,6 +281,7 @@ class ProductionFloorService
             'primary_action' => $this->actions->primaryAction($jobCard, forFloor: true),
             'panel_url' => route('admin.production.floor.panel', $jobCard),
             'job_url' => route('admin.production.job-cards.show', $jobCard),
+            'print_path' => JobCardPrintUrl::pathSegment($jobCard),
         ];
     }
 
