@@ -22,14 +22,23 @@ class Commercial360Test extends TestCase
         $this->seed(RolesAndPermissionsSeeder::class);
     }
 
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    protected function getCommercial360(User $user, array $query = []): \Illuminate\Testing\TestResponse
+    {
+        return $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.reports.commercial360', array_merge(['embedded' => '1'], $query)));
+    }
+
     public function test_commercial_360_loads(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['reports.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.reports.commercial360'))
+        $this->getCommercial360($user)
             ->assertOk()
             ->assertSee(__('Commercial 360'), false)
             ->assertSee(__('Commercial Summary'), false);
@@ -47,10 +56,9 @@ class Commercial360Test extends TestCase
             'status' => CustomerStatus::Active,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.reports.commercial360'))
+        $this->getCommercial360($user)
             ->assertOk()
-            ->assertSee(__('Active customers'), false);
+            ->assertSee(__('Total customers'), false);
     }
 
     public function test_branch_filter(): void
@@ -59,8 +67,7 @@ class Commercial360Test extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.reports.commercial360', ['branch_id' => $branch->id]))
+        $this->getCommercial360($user, ['branch_id' => $branch->id])
             ->assertOk();
     }
 

@@ -78,18 +78,13 @@ class CommercialArtworkReportPresenter
     {
         $approvalRate = $this->queries->approvalRatePercent($scope);
         $avgApproval = $this->queries->averageApprovalTimeHours($scope);
-        $avgRevisions = $this->queries->averageRevisionCount($scope);
 
         return [
-            ['label' => __('Total Artwork Requests'), 'value' => (string) $this->queries->totalRequests($scope), 'icon' => 'color-swatch'],
-            ['label' => __('Pending Artwork'), 'value' => (string) $this->queries->pendingRequests($scope), 'icon' => 'clock'],
-            ['label' => __('Approved Artwork'), 'value' => (string) $this->queries->approvedRequests($scope), 'icon' => 'check-circle'],
-            ['label' => __('Rejected Artwork'), 'value' => (string) $this->queries->rejectedRequests($scope), 'icon' => 'x-circle'],
-            ['label' => __('Average Approval Time'), 'value' => $this->queries->formatHours($avgApproval), 'icon' => 'calendar'],
-            ['label' => __('Average Revision Count'), 'value' => $avgRevisions !== null ? (string) $avgRevisions : '—', 'icon' => 'refresh'],
-            ['label' => __('Designer Throughput'), 'value' => (string) $this->queries->designerThroughput($scope), 'icon' => 'user-circle'],
-            ['label' => __('Delayed Artwork'), 'value' => (string) $this->queries->delayedRequests($scope), 'icon' => 'exclamation'],
-            ['label' => __('Artwork Approval Rate'), 'value' => $approvalRate !== null ? $approvalRate.'%' : '—', 'icon' => 'chart-pie'],
+            ['label' => __('Total Requests'), 'value' => (string) $this->queries->totalRequests($scope), 'icon' => 'color-swatch'],
+            ['label' => __('Pending'), 'value' => (string) $this->queries->pendingRequests($scope), 'icon' => 'clock'],
+            ['label' => __('Approved'), 'value' => (string) $this->queries->approvedRequests($scope), 'icon' => 'check-circle'],
+            ['label' => __('Approval Rate'), 'value' => $approvalRate !== null ? $approvalRate.'%' : '—', 'icon' => 'chart-pie'],
+            ['label' => __('Avg Approval Time'), 'value' => $this->queries->formatHours($avgApproval), 'icon' => 'calendar'],
         ];
     }
 
@@ -99,15 +94,11 @@ class CommercialArtworkReportPresenter
     protected function emptyKpis(): array
     {
         $labels = [
-            [__('Total Artwork Requests'), 'color-swatch'],
-            [__('Pending Artwork'), 'clock'],
-            [__('Approved Artwork'), 'check-circle'],
-            [__('Rejected Artwork'), 'x-circle'],
-            [__('Average Approval Time'), 'calendar'],
-            [__('Average Revision Count'), 'refresh'],
-            [__('Designer Throughput'), 'user-circle'],
-            [__('Delayed Artwork'), 'exclamation'],
-            [__('Artwork Approval Rate'), 'chart-pie'],
+            [__('Total Requests'), 'color-swatch'],
+            [__('Pending'), 'clock'],
+            [__('Approved'), 'check-circle'],
+            [__('Approval Rate'), 'chart-pie'],
+            [__('Avg Approval Time'), 'calendar'],
         ];
 
         return collect($labels)->map(fn (array $item) => [

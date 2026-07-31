@@ -62,12 +62,8 @@ class Commercial360Presenter
     {
         return $this->kpiSection(__('Commercial Summary'), [
             $this->kpi(__('Total customers'), (string) $this->queries->countCustomers($scope), 'user-circle'),
-            $this->kpi(__('Active customers'), (string) $this->queries->countCustomers($scope, true), 'user-circle'),
             $this->kpi(__('New customers (period)'), (string) $this->queries->countCustomersCreatedInPeriod($scope), 'sparkles'),
             $this->kpi(__('Leads'), (string) $this->queries->countLeads($scope), 'collection'),
-            $this->kpi(__('Open leads'), (string) $this->queries->countLeads($scope, LeadStatus::Open), 'inbox'),
-            $this->kpi(__('Quotations sent'), (string) $this->queries->countQuotationsInPeriod($scope, [QuotationStatus::Sent, QuotationStatus::Viewed]), 'document-text'),
-            $this->kpi(__('Quotations approved'), (string) $this->queries->countQuotationsInPeriod($scope, [QuotationStatus::Accepted]), 'check-circle'),
             $this->kpi(__('Sales orders (period)'), (string) $this->queries->countSalesOrders($scope, null, true), 'clipboard-list'),
             $this->kpi(__('Commercial value'), $this->queries->money($this->queries->sumSalesOrderValue($scope, true)), 'currency-dollar'),
         ]);
@@ -96,14 +92,18 @@ class Commercial360Presenter
         return [
             'type' => 'split',
             'title' => __('Lead Intelligence'),
-            'kpis' => [
-                $this->kpi(__('Open leads'), (string) $open, 'inbox'),
-                $this->kpi(__('Converted leads'), (string) $won, 'check-circle'),
-                $this->kpi(__('Lost leads'), (string) $lost, 'x-circle'),
-                $this->kpi(__('Conversion %'), $total > 0 ? round(($won / $total) * 100).'%' : '0%', 'chart-pie'),
-                $this->kpi(__('Leads by source'), '—', 'sparkles', __('Pending source')),
-            ],
+            'kpis' => [],
             'tables' => [
+                $this->tableSection(
+                    __('Lead Status'),
+                    [__('Status'), __('Count')],
+                    [
+                        ['status' => __('Open'), 'count' => (string) $open],
+                        ['status' => __('Converted'), 'count' => (string) $won],
+                        ['status' => __('Lost'), 'count' => (string) $lost],
+                        ['status' => __('Total'), 'count' => (string) $total],
+                    ],
+                ),
                 $this->tableSection(
                     __('Leads by Branch'),
                     [__('Branch'), __('Leads')],
@@ -131,16 +131,20 @@ class Commercial360Presenter
         $avg = $created > 0 ? $value / $created : 0;
         $rate = $created > 0 ? round(($approved / $created) * 100).'%' : '0%';
 
-        return $this->kpiSection(__('Quotation Intelligence'), [
-            $this->kpi(__('Created'), (string) $created, 'document-text'),
-            $this->kpi(__('Sent'), (string) $sent, 'inbox'),
-            $this->kpi(__('Approved'), (string) $approved, 'check-circle'),
-            $this->kpi(__('Rejected'), (string) $rejected, 'x-circle'),
-            $this->kpi(__('Expired'), (string) $expired, 'clock'),
-            $this->kpi(__('Quotation value'), $this->queries->money($value), 'currency-dollar'),
-            $this->kpi(__('Average value'), $this->queries->money($avg), 'chart-bar'),
-            $this->kpi(__('Acceptance rate'), $rate, 'chart-pie'),
-        ]);
+        return $this->tableSection(
+            __('Quotation Intelligence'),
+            [__('Metric'), __('Value')],
+            [
+                ['metric' => __('Created'), 'value' => (string) $created],
+                ['metric' => __('Sent'), 'value' => (string) $sent],
+                ['metric' => __('Approved'), 'value' => (string) $approved],
+                ['metric' => __('Rejected'), 'value' => (string) $rejected],
+                ['metric' => __('Expired'), 'value' => (string) $expired],
+                ['metric' => __('Quotation value'), 'value' => $this->queries->money($value)],
+                ['metric' => __('Average value'), 'value' => $this->queries->money($avg)],
+                ['metric' => __('Acceptance rate'), 'value' => $rate],
+            ],
+        );
     }
 
     /**
@@ -156,13 +160,22 @@ class Commercial360Presenter
             ->whereDate('order_date', '>=', $scope->fromDate)
             ->whereDate('order_date', '<=', $scope->toDate);
 
-        return $this->kpiSection(__('Sales Order Intelligence'), [
-            $this->kpi(__('Created'), (string) (clone $base)->count(), 'clipboard-list'),
-            $this->kpi(__('Confirmed'), (string) (clone $base)->where('status', SalesOrderStatus::Confirmed)->count(), 'check-circle'),
-            $this->kpi(__('Completed'), (string) (clone $base)->where('status', SalesOrderStatus::Completed)->count(), 'badge-check'),
-            $this->kpi(__('Cancelled'), (string) (clone $base)->where('status', SalesOrderStatus::Cancelled)->count(), 'x-circle'),
-            $this->kpi(__('Order value'), $this->queries->money($this->queries->sumSalesOrderValue($scope, true)), 'currency-dollar'),
-        ]);
+        $created = (clone $base)->count();
+        $confirmed = (clone $base)->where('status', SalesOrderStatus::Confirmed)->count();
+        $completed = (clone $base)->where('status', SalesOrderStatus::Completed)->count();
+        $cancelled = (clone $base)->where('status', SalesOrderStatus::Cancelled)->count();
+        $orderValue = $this->queries->sumSalesOrderValue($scope, true);
+
+        return $this->tableSection(
+            __('Sales Order Intelligence'),
+            [__('Status'), __('Orders'), __('Value')],
+            [
+                ['status' => __('Created'), 'orders' => (string) $created, 'value' => $this->queries->money($orderValue)],
+                ['status' => __('Confirmed'), 'orders' => (string) $confirmed, 'value' => '—'],
+                ['status' => __('Completed'), 'orders' => (string) $completed, 'value' => '—'],
+                ['status' => __('Cancelled'), 'orders' => (string) $cancelled, 'value' => '—'],
+            ],
+        );
     }
 
     /**
@@ -309,11 +322,15 @@ class Commercial360Presenter
         $quoteTrend = (int) $this->queries->scoped(Quotation::class, $scope)->whereDate('quotation_date', '>=', $start)->count();
         $orderTrend = (int) $this->queries->scoped(SalesOrder::class, $scope)->whereDate('order_date', '>=', $start)->count();
 
-        return $this->kpiSection(__('Last 30 Days'), [
-            $this->kpi(__('Leads trend'), (string) $leadTrend, 'sparkles'),
-            $this->kpi(__('Quotation trend'), (string) $quoteTrend, 'document-text'),
-            $this->kpi(__('Sales order trend'), (string) $orderTrend, 'clipboard-list'),
-            $this->kpi(__('Revenue trend'), $this->queries->money($this->queries->sumSalesOrderValue($scope, true)), 'currency-dollar'),
-        ]);
+        return $this->tableSection(
+            __('Last 30 Days'),
+            [__('Metric'), __('Count / Value')],
+            [
+                ['metric' => __('Leads'), 'value' => (string) $leadTrend],
+                ['metric' => __('Quotations'), 'value' => (string) $quoteTrend],
+                ['metric' => __('Sales orders'), 'value' => (string) $orderTrend],
+                ['metric' => __('Revenue'), 'value' => $this->queries->money($this->queries->sumSalesOrderValue($scope, true))],
+            ],
+        );
     }
 }

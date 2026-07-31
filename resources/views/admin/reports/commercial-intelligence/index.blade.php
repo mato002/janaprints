@@ -7,7 +7,7 @@
         'can_export' => false,
     ])
 
-    <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+    <div class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
         @foreach ($executive['kpis'] ?? [] as $kpi)
             <x-admin.kpi-widget :label="$kpi['label']" :value="$kpi['value']" :icon="$kpi['icon']" />
         @endforeach
@@ -37,65 +37,67 @@
         @include('admin.reports.commercial-intelligence.partials.waste-intelligence', ['waste' => $data])
     @endif
 
-    <div class="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <x-admin.card>
-            <div class="border-b border-erp-border px-4 py-3">
-                <h3 class="text-sm font-semibold text-erp-primary">{{ __('Top Customers') }}</h3>
-            </div>
-            <div class="overflow-x-auto p-4">
-                <table class="erp-table w-full text-sm">
-                    <thead>
-                        <tr>
-                            <th>{{ __('Customer') }}</th>
-                            <th>{{ __('Revenue') }}</th>
-                            <th>{{ __('Profit') }}</th>
-                            <th>{{ __('Margin') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($executive['top_customers'] ?? [] as $row)
+    @if ($tab === 'job_profitability')
+        <div class="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <x-admin.card>
+                <div class="border-b border-erp-border px-4 py-3">
+                    <h3 class="text-sm font-semibold text-erp-primary">{{ __('Top Customers') }}</h3>
+                </div>
+                <div class="overflow-x-auto p-4">
+                    <table class="erp-table w-full text-sm">
+                        <thead>
                             <tr>
-                                <td>{{ $row['customer_name'] ?? '—' }}</td>
-                                <td class="font-mono">{{ number_format($row['revenue'] ?? 0, 2) }}</td>
-                                <td class="font-mono">{{ number_format($row['profit'] ?? 0, 2) }}</td>
-                                <td>{{ number_format($row['margin_percent'] ?? 0, 1) }}%</td>
+                                <th>{{ __('Customer') }}</th>
+                                <th>{{ __('Revenue') }}</th>
+                                <th>{{ __('Profit') }}</th>
+                                <th>{{ __('Margin') }}</th>
                             </tr>
-                        @empty
-                            <tr><td colspan="4" class="py-4 text-center text-slate-500">{{ __('No data in scope.') }}</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </x-admin.card>
+                        </thead>
+                        <tbody>
+                            @forelse ($executive['top_customers'] ?? [] as $row)
+                                <tr>
+                                    <td>{{ $row['customer_name'] ?? '—' }}</td>
+                                    <td class="font-mono">{{ number_format($row['revenue'] ?? 0, 2) }}</td>
+                                    <td class="font-mono">{{ number_format($row['profit'] ?? 0, 2) }}</td>
+                                    <td>{{ number_format($row['margin_percent'] ?? 0, 1) }}%</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="py-4 text-center text-slate-500">{{ __('No data in scope.') }}</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin.card>
 
-        <x-admin.card>
-            <div class="border-b border-erp-border px-4 py-3">
-                <h3 class="text-sm font-semibold text-erp-primary">{{ __('Top Products') }}</h3>
-            </div>
-            <div class="overflow-x-auto p-4">
-                <table class="erp-table w-full text-sm">
-                    <thead>
-                        <tr>
-                            <th>{{ __('Product') }}</th>
-                            <th>{{ __('Revenue') }}</th>
-                            <th>{{ __('Profit') }}</th>
-                            <th>{{ __('Margin') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse ($executive['top_products'] ?? [] as $row)
+            <x-admin.card>
+                <div class="border-b border-erp-border px-4 py-3">
+                    <h3 class="text-sm font-semibold text-erp-primary">{{ __('Top Products') }}</h3>
+                </div>
+                <div class="overflow-x-auto p-4">
+                    <table class="erp-table w-full text-sm">
+                        <thead>
                             <tr>
-                                <td>{{ $row['product_name'] ?? '—' }}</td>
-                                <td class="font-mono">{{ number_format($row['revenue'] ?? 0, 2) }}</td>
-                                <td class="font-mono">{{ number_format($row['profit'] ?? 0, 2) }}</td>
-                                <td>{{ number_format($row['margin_percent'] ?? 0, 1) }}%</td>
+                                <th>{{ __('Product') }}</th>
+                                <th>{{ __('Revenue') }}</th>
+                                <th>{{ __('Profit') }}</th>
+                                <th>{{ __('Margin') }}</th>
                             </tr>
-                        @empty
-                            <tr><td colspan="4" class="py-4 text-center text-slate-500">{{ __('No data in scope.') }}</td></tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </x-admin.card>
-    </div>
+                        </thead>
+                        <tbody>
+                            @forelse ($executive['top_products'] ?? [] as $row)
+                                <tr>
+                                    <td>{{ $row['product_name'] ?? '—' }}</td>
+                                    <td class="font-mono">{{ number_format($row['revenue'] ?? 0, 2) }}</td>
+                                    <td class="font-mono">{{ number_format($row['profit'] ?? 0, 2) }}</td>
+                                    <td>{{ number_format($row['margin_percent'] ?? 0, 1) }}%</td>
+                                </tr>
+                            @empty
+                                <tr><td colspan="4" class="py-4 text-center text-slate-500">{{ __('No data in scope.') }}</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-admin.card>
+        </div>
+    @endif
 </x-admin-layout>

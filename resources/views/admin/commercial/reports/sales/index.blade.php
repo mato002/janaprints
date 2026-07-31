@@ -17,7 +17,7 @@
         'salespersons' => $salespersons,
     ])
 
-    @include('admin.commercial.reports.sales.partials.kpi-strip', ['kpis' => $kpis])
+    @include('admin.commercial.reports.partials.kpi-strip', ['kpis' => $kpis])
 
     @include('admin.commercial.reports.sales.partials.tabs', [
         'tabs' => $tabs,

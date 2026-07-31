@@ -47,7 +47,7 @@ class CommercialConversionReportTest extends TestCase
             ->get(route('admin.commercial.reports.conversion.index'))
             ->assertOk()
             ->assertSee(__('Conversion Reports'), false)
-            ->assertSee(__('Conversion Dashboard'), false)
+            ->assertSee(__('Lead-to-Quote %'), false)
             ->assertSee(__('Full Commercial Funnel'), false);
     }
 

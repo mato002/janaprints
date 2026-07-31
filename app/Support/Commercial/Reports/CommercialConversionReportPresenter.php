@@ -79,9 +79,6 @@ class CommercialConversionReportPresenter
             ['label' => __('Order-to-Production %'), 'value' => $this->formatPct($this->queries->orderToProductionPercent($scope)), 'icon' => 'cog'],
             ['label' => __('Production-to-Dispatch %'), 'value' => $this->formatPct($this->queries->productionToDispatchPercent($scope)), 'icon' => 'truck'],
             ['label' => __('Dispatch-to-Delivery %'), 'value' => $this->formatPct($this->queries->dispatchToDeliveryPercent($scope)), 'icon' => 'check-circle'],
-            ['label' => __('Total Funnel Drop-Off'), 'value' => $this->formatPct($this->queries->totalFunnelDropOffPercent($scope)), 'icon' => 'trending-down'],
-            ['label' => __('Best Converting Branch'), 'value' => $this->queries->bestConvertingBranch($scope), 'icon' => 'office-building'],
-            ['label' => __('Best Converting Salesperson'), 'value' => $this->queries->bestConvertingSalesperson($scope), 'icon' => 'user-circle'],
         ];
     }
 
@@ -96,9 +93,6 @@ class CommercialConversionReportPresenter
             [__('Order-to-Production %'), 'cog'],
             [__('Production-to-Dispatch %'), 'truck'],
             [__('Dispatch-to-Delivery %'), 'check-circle'],
-            [__('Total Funnel Drop-Off'), 'trending-down'],
-            [__('Best Converting Branch'), 'office-building'],
-            [__('Best Converting Salesperson'), 'user-circle'],
         ];
 
         return collect($labels)->map(fn (array $item) => [

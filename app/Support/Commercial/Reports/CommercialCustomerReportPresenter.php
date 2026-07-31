@@ -83,13 +83,8 @@ class CommercialCustomerReportPresenter
             ['label' => __('Total Customers'), 'value' => (string) $this->queries->totalCustomers($scope), 'icon' => 'user-circle'],
             ['label' => __('New Customers'), 'value' => (string) $this->queries->newCustomers($scope), 'icon' => 'sparkles'],
             ['label' => __('Active Customers'), 'value' => (string) $this->queries->activeStatusCustomers($scope), 'icon' => 'check-circle'],
-            ['label' => __('Inactive Customers'), 'value' => (string) $this->queries->inactiveStatusCustomers($scope), 'icon' => 'x-circle'],
-            ['label' => __('Repeat Customers'), 'value' => (string) $this->queries->repeatCustomers($scope), 'icon' => 'refresh'],
-            ['label' => __('Customer Growth %'), 'value' => $growth !== null ? $growth.'%' : '—', 'icon' => 'trending-up'],
+            ['label' => __('Growth %'), 'value' => $growth !== null ? $growth.'%' : '—', 'icon' => 'trending-up'],
             ['label' => __('Average Customer Value'), 'value' => $this->queries->money($this->queries->averageCustomerValue($scope)), 'icon' => 'chart-bar'],
-            ['label' => __('Top Customer Revenue'), 'value' => $this->queries->money($this->queries->topCustomerRevenue($scope)), 'icon' => 'currency-dollar'],
-            ['label' => __('Customers With Open Quotes'), 'value' => (string) $this->queries->customersWithOpenQuotes($scope), 'icon' => 'document-text'],
-            ['label' => __('Customers With Open Orders'), 'value' => (string) $this->queries->customersWithOpenOrders($scope), 'icon' => 'clipboard-list'],
         ];
     }
 
@@ -102,13 +97,8 @@ class CommercialCustomerReportPresenter
             [__('Total Customers'), 'user-circle'],
             [__('New Customers'), 'sparkles'],
             [__('Active Customers'), 'check-circle'],
-            [__('Inactive Customers'), 'x-circle'],
-            [__('Repeat Customers'), 'refresh'],
-            [__('Customer Growth %'), 'trending-up'],
+            [__('Growth %'), 'trending-up'],
             [__('Average Customer Value'), 'chart-bar'],
-            [__('Top Customer Revenue'), 'currency-dollar'],
-            [__('Customers With Open Quotes'), 'document-text'],
-            [__('Customers With Open Orders'), 'clipboard-list'],
         ];
 
         return collect($labels)->map(fn (array $item) => [
@@ -191,9 +181,18 @@ class CommercialCustomerReportPresenter
             ],
             default => [
                 'type' => 'summary',
-                'metrics' => $this->queries->summaryMetrics($scope),
-                'branch_breakdown' => $this->queries->branchBreakdown($scope),
-                'salesperson_breakdown' => $this->queries->salespersonBreakdown($scope),
+                'tables' => [
+                    [
+                        'title' => __('Customer By Branch'),
+                        'columns' => [__('Branch'), __('Customers'), __('Active'), __('Inactive'), __('Revenue')],
+                        'rows' => $this->queries->branchBreakdown($scope),
+                    ],
+                    [
+                        'title' => __('Customer By Salesperson'),
+                        'columns' => [__('Salesperson'), __('Customers'), __('Orders'), __('Revenue'), __('Average Value')],
+                        'rows' => $this->queries->salespersonBreakdown($scope),
+                    ],
+                ],
             ],
         };
     }

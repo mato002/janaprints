@@ -30,8 +30,7 @@ class CommercialPosReportPresenter
             'can_export' => $resolved['can_export'],
             'readiness' => $resolved['readiness'],
             'report_ready' => $resolved['report_ready'],
-            'dashboard_kpis' => $resolved['report_ready'] ? $this->cachedDashboardKpis($scope) : $this->emptyDashboardKpis(),
-            'metrics' => $resolved['report_ready'] ? $this->cachedMetrics($scope) : $this->emptyMetrics(),
+            'kpis' => $resolved['report_ready'] ? $this->cachedKpis($scope) : $this->emptyKpis(),
             'report_views' => $this->tabs(),
             'report_label' => collect($this->tabs())->firstWhere('key', $scope->tab)['label'] ?? __('Report'),
             'active_tab' => $scope->tab,
@@ -59,12 +58,12 @@ class CommercialPosReportPresenter
     /**
      * @return list<array{label: string, value: string, icon: string, hint: ?string}>
      */
-    protected function cachedDashboardKpis(CommercialPosReportScope $scope): array
+    protected function cachedKpis(CommercialPosReportScope $scope): array
     {
         return $this->cache->remember(
             'dashboard',
-            "commercial-pos-dashboard-kpis:{$scope->companyId}:{$scope->cacheKey()}",
-            fn () => $this->buildDashboardKpis($scope),
+            "commercial-pos-kpis:{$scope->companyId}:{$scope->cacheKey()}",
+            fn () => $this->buildKpis($scope),
             (int) config('platform.cache.dashboard', 60),
         );
     }
@@ -72,52 +71,18 @@ class CommercialPosReportPresenter
     /**
      * @return list<array{label: string, value: string, icon: string, hint: ?string}>
      */
-    protected function buildDashboardKpis(CommercialPosReportScope $scope): array
+    protected function buildKpis(CommercialPosReportScope $scope): array
     {
         $todaySales = $this->queries->todaySalesValue($scope);
         $todayCount = $this->queries->todaySalesCount($scope);
-
-        return [
-            ['label' => __('Today\'s Sales'), 'value' => $this->queries->formatMoney($todaySales).' ('.$todayCount.')', 'icon' => 'cash'],
-            ['label' => __('Today\'s Returns'), 'value' => (string) $this->queries->todayReturnsCount($scope), 'icon' => 'switch-horizontal'],
-            ['label' => __('Open Sessions'), 'value' => (string) $this->queries->openSessionsCount($scope), 'icon' => 'clock'],
-            ['label' => __('Closed Sessions'), 'value' => (string) $this->queries->closedSessionsCount($scope), 'icon' => 'check-circle'],
-            ['label' => __('Cash Collected'), 'value' => $this->queries->formatMoney($this->queries->paymentCollected($scope, \App\Enums\PosPaymentMethod::Cash)), 'icon' => 'banknotes'],
-            ['label' => __('M-Pesa Collected'), 'value' => $this->queries->formatMoney($this->queries->paymentCollected($scope, \App\Enums\PosPaymentMethod::Mpesa)), 'icon' => 'device-mobile'],
-            ['label' => __('Card Collected'), 'value' => $this->queries->formatMoney($this->queries->paymentCollected($scope, \App\Enums\PosPaymentMethod::Card)), 'icon' => 'credit-card'],
-            ['label' => __('Average Sale Value'), 'value' => ($avg = $this->queries->averageSaleValue($scope)) !== null ? $this->queries->formatMoney($avg) : '—', 'icon' => 'chart-bar'],
-        ];
-    }
-
-    /**
-     * @return list<array{label: string, value: string, icon: string, hint: ?string}>
-     */
-    protected function cachedMetrics(CommercialPosReportScope $scope): array
-    {
-        return $this->cache->remember(
-            'dashboard',
-            "commercial-pos-metrics:{$scope->companyId}:{$scope->cacheKey()}",
-            fn () => $this->buildMetrics($scope),
-            (int) config('platform.cache.dashboard', 60),
-        );
-    }
-
-    /**
-     * @return list<array{label: string, value: string, icon: string, hint: ?string}>
-     */
-    protected function buildMetrics(CommercialPosReportScope $scope): array
-    {
-        $topCashier = $this->queries->topCashier($scope);
-        $topBranch = $this->queries->topBranch($scope);
         $trend = $this->queries->salesTrendPercent($scope);
         $returnRate = $this->queries->returnRatePercent($scope);
 
         return [
-            ['label' => __('Top Cashier'), 'value' => $topCashier ? $topCashier['name'].' · '.$this->queries->formatMoney($topCashier['value']) : '—', 'icon' => 'user-circle'],
-            ['label' => __('Top Branch'), 'value' => $topBranch ? $topBranch['name'].' · '.$this->queries->formatMoney($topBranch['value']) : '—', 'icon' => 'office-building'],
-            ['label' => __('Average Basket Size'), 'value' => $this->queries->averageBasketSize($scope) !== null ? (string) $this->queries->averageBasketSize($scope) : '—', 'icon' => 'shopping-cart'],
+            ['label' => __('Today\'s Sales'), 'value' => $this->queries->formatMoney($todaySales).' ('.$todayCount.')', 'icon' => 'cash'],
+            ['label' => __('Open Sessions'), 'value' => (string) $this->queries->openSessionsCount($scope), 'icon' => 'clock'],
+            ['label' => __('Average Sale Value'), 'value' => ($avg = $this->queries->averageSaleValue($scope)) !== null ? $this->queries->formatMoney($avg) : '—', 'icon' => 'chart-bar'],
             ['label' => __('Return Rate'), 'value' => $returnRate !== null ? $returnRate.'%' : '—', 'icon' => 'switch-horizontal'],
-            ['label' => __('Refund Value'), 'value' => $this->queries->formatMoney($this->queries->refundValue($scope)), 'icon' => 'receipt-refund'],
             ['label' => __('Sales Trend'), 'value' => $trend !== null ? ($trend >= 0 ? '+' : '').$trend.'%' : '—', 'icon' => 'trending-up', 'hint' => __('vs prior period')],
         ];
     }
@@ -125,38 +90,13 @@ class CommercialPosReportPresenter
     /**
      * @return list<array{label: string, value: string, icon: string, hint: ?string}>
      */
-    protected function emptyDashboardKpis(): array
+    protected function emptyKpis(): array
     {
         $labels = [
             [__('Today\'s Sales'), 'cash'],
-            [__('Today\'s Returns'), 'switch-horizontal'],
             [__('Open Sessions'), 'clock'],
-            [__('Closed Sessions'), 'check-circle'],
-            [__('Cash Collected'), 'banknotes'],
-            [__('M-Pesa Collected'), 'device-mobile'],
-            [__('Card Collected'), 'credit-card'],
             [__('Average Sale Value'), 'chart-bar'],
-        ];
-
-        return collect($labels)->map(fn (array $item) => [
-            'label' => $item[0],
-            'value' => '—',
-            'icon' => $item[1],
-            'hint' => __('Awaiting operational data sources'),
-        ])->all();
-    }
-
-    /**
-     * @return list<array{label: string, value: string, icon: string, hint: ?string}>
-     */
-    protected function emptyMetrics(): array
-    {
-        $labels = [
-            [__('Top Cashier'), 'user-circle'],
-            [__('Top Branch'), 'office-building'],
-            [__('Average Basket Size'), 'shopping-cart'],
             [__('Return Rate'), 'switch-horizontal'],
-            [__('Refund Value'), 'receipt-refund'],
             [__('Sales Trend'), 'trending-up'],
         ];
 

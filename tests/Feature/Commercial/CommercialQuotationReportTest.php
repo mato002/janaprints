@@ -43,7 +43,7 @@ class CommercialQuotationReportTest extends TestCase
             ->get(route('admin.commercial.reports.quotations.index'))
             ->assertOk()
             ->assertSee(__('Quotation Reports'), false)
-            ->assertSee(__('Quotation Dashboard'), false)
+            ->assertSee(__('Quotes Issued'), false)
             ->assertSee(__('Quotation Summary'), false);
     }
 

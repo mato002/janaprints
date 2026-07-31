@@ -77,18 +77,12 @@ class CommercialQuotationReportPresenter
      */
     protected function buildKpis(CommercialQuotationReportScope $scope): array
     {
-        $approval = $this->queries->averageApprovalTimeHours($scope);
-
         return [
             ['label' => __('Quotes Issued'), 'value' => (string) $this->queries->countIssued($scope), 'icon' => 'document-text'],
             ['label' => __('Quotes Accepted'), 'value' => (string) $this->queries->countByStatus($scope, [QuotationStatus::Accepted, QuotationStatus::Converted]), 'icon' => 'check-circle'],
-            ['label' => __('Quotes Rejected'), 'value' => (string) $this->queries->countByStatus($scope, QuotationStatus::Rejected), 'icon' => 'x-circle'],
-            ['label' => __('Quotes Expired'), 'value' => (string) $this->queries->countExpired($scope), 'icon' => 'clock'],
-            ['label' => __('Average Quote Value'), 'value' => $this->queries->money($this->queries->averageQuoteValue($scope)), 'icon' => 'chart-bar'],
             ['label' => __('Total Quote Value'), 'value' => $this->queries->money($this->queries->sumTotalValue($scope)), 'icon' => 'currency-dollar'],
-            ['label' => __('Accepted Quote Value'), 'value' => $this->queries->money($this->queries->acceptedQuoteValue($scope)), 'icon' => 'badge-check'],
             ['label' => __('Conversion %'), 'value' => $this->queries->conversionPercent($scope).'%', 'icon' => 'chart-pie'],
-            ['label' => __('Average Approval Time'), 'value' => $approval !== null ? $approval.' '.__('hrs') : '—', 'icon' => 'clock'],
+            ['label' => __('Average Quote Value'), 'value' => $this->queries->money($this->queries->averageQuoteValue($scope)), 'icon' => 'chart-bar'],
         ];
     }
 
@@ -100,13 +94,9 @@ class CommercialQuotationReportPresenter
         $labels = [
             [__('Quotes Issued'), 'document-text'],
             [__('Quotes Accepted'), 'check-circle'],
-            [__('Quotes Rejected'), 'x-circle'],
-            [__('Quotes Expired'), 'clock'],
-            [__('Average Quote Value'), 'chart-bar'],
             [__('Total Quote Value'), 'currency-dollar'],
-            [__('Accepted Quote Value'), 'badge-check'],
             [__('Conversion %'), 'chart-pie'],
-            [__('Average Approval Time'), 'clock'],
+            [__('Average Quote Value'), 'chart-bar'],
         ];
 
         return collect($labels)->map(fn (array $item) => [
@@ -163,7 +153,18 @@ class CommercialQuotationReportPresenter
             ],
             default => [
                 'type' => 'summary',
-                'metrics' => $this->queries->summaryMetrics($scope),
+                'tables' => [
+                    [
+                        'title' => __('Quotation By Branch'),
+                        'columns' => [__('Branch'), __('Quotes'), __('Total Value'), __('Won'), __('Win Rate')],
+                        'rows' => $this->queries->branchBreakdown($scope),
+                    ],
+                    [
+                        'title' => __('Quotation By Salesperson'),
+                        'columns' => [__('Salesperson'), __('Quotes'), __('Total Value'), __('Average Value'), __('Win Rate')],
+                        'rows' => collect($this->queries->paginateBySalesperson($scope)->items())->values()->all(),
+                    ],
+                ],
             ],
         };
     }

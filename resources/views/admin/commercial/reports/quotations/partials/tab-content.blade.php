@@ -5,46 +5,7 @@
         <x-admin.empty-state icon="document-text" :title="__('Quotation Reports')" :description="$tab_data['message'] ?? __('No data available.')" />
     </x-admin.card>
 @elseif (($tab_data['type'] ?? '') === 'summary')
-    <x-admin.card class="mb-6">
-        <h2 class="mb-4 text-sm font-semibold text-erp-primary">{{ __('Quotation Summary') }}</h2>
-        @php $m = $tab_data['metrics'] ?? []; @endphp
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Quotes Issued') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($m['issued'] ?? 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Quotes Accepted') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($m['accepted'] ?? 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Total Quote Value') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ 'KES '.number_format($m['total_value'] ?? 0, 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Conversion %') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ ($m['conversion'] ?? 0).'%' }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Open Quotes') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($m['open'] ?? 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Quotes Rejected') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($m['rejected'] ?? 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Quotes Expired') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">{{ number_format($m['expired'] ?? 0) }}</p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ __('Avg Approval Time') }}</p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">
-                    {{ isset($m['avg_approval_hours']) && $m['avg_approval_hours'] !== null ? $m['avg_approval_hours'].' '.__('hrs') : '—' }}
-                </p>
-            </div>
-        </div>
-    </x-admin.card>
+    @include('admin.commercial.reports.partials.summary-tables', ['tables' => $tab_data['tables'] ?? []])
 @elseif (($tab_data['type'] ?? '') === 'win_rate')
     @php $win = $tab_data['data'] ?? []; @endphp
     <x-admin.card class="mb-6">

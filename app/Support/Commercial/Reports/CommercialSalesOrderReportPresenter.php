@@ -83,19 +83,14 @@ class CommercialSalesOrderReportPresenter
      */
     protected function buildKpis(CommercialSalesOrderReportScope $scope): array
     {
-        $conversion = $this->queries->quoteToOrderConversionPercent($scope);
         $completion = $this->queries->orderCompletionRatePercent($scope);
 
         return [
             ['label' => __('Total Orders'), 'value' => (string) $this->queries->totalOrders($scope), 'icon' => 'clipboard-list'],
             ['label' => __('Open Orders'), 'value' => (string) $this->queries->openOrders($scope), 'icon' => 'folder-open'],
             ['label' => __('Completed Orders'), 'value' => (string) $this->queries->completedOrders($scope), 'icon' => 'check-circle'],
-            ['label' => __('Cancelled Orders'), 'value' => (string) $this->queries->cancelledOrders($scope), 'icon' => 'x-circle'],
             ['label' => __('Total Order Value'), 'value' => $this->queries->money($this->queries->totalOrderValue($scope)), 'icon' => 'currency-dollar'],
-            ['label' => __('Average Order Value'), 'value' => $this->queries->money($this->queries->averageOrderValue($scope)), 'icon' => 'chart-bar'],
-            ['label' => __('Orders Awaiting Production'), 'value' => (string) $this->queries->ordersAwaitingProduction($scope), 'icon' => 'clock'],
-            ['label' => __('Quote-to-Order Conversion'), 'value' => $conversion !== null ? $conversion.'%' : '—', 'icon' => 'document-text'],
-            ['label' => __('Order Completion Rate'), 'value' => $completion !== null ? $completion.'%' : '—', 'icon' => 'trending-up'],
+            ['label' => __('Completion Rate'), 'value' => $completion !== null ? $completion.'%' : '—', 'icon' => 'trending-up'],
         ];
     }
 
@@ -108,12 +103,8 @@ class CommercialSalesOrderReportPresenter
             [__('Total Orders'), 'clipboard-list'],
             [__('Open Orders'), 'folder-open'],
             [__('Completed Orders'), 'check-circle'],
-            [__('Cancelled Orders'), 'x-circle'],
             [__('Total Order Value'), 'currency-dollar'],
-            [__('Average Order Value'), 'chart-bar'],
-            [__('Orders Awaiting Production'), 'clock'],
-            [__('Quote-to-Order Conversion'), 'document-text'],
-            [__('Order Completion Rate'), 'trending-up'],
+            [__('Completion Rate'), 'trending-up'],
         ];
 
         return collect($labels)->map(fn (array $item) => [
@@ -194,8 +185,11 @@ class CommercialSalesOrderReportPresenter
             ],
             default => [
                 'type' => 'summary',
-                'metrics' => $this->queries->summaryMetrics($scope),
-                'status_breakdown' => $this->queries->statusBreakdown($scope),
+                'tables' => [[
+                    'title' => __('Status Breakdown'),
+                    'columns' => [__('Status'), __('Orders'), __('Value'), __('Average')],
+                    'rows' => collect($this->queries->statusBreakdown($scope))->map(fn ($row) => array_values($row))->all(),
+                ]],
             ],
         };
     }

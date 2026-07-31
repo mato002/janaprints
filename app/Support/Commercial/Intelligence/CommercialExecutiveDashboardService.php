@@ -2,9 +2,7 @@
 
 namespace App\Support\Commercial\Intelligence;
 
-use App\Enums\FulfilmentStatus;
 use App\Enums\ProductionJobCardStatus;
-use App\Models\Production\ProductionFulfilment;
 use App\Models\Production\ProductionJobCard;
 use App\Support\Reports\IntelligenceAggregateQueries;
 use App\Support\Reports\IntelligenceScope;
@@ -36,7 +34,6 @@ class CommercialExecutiveDashboardService
                 ['label' => __('Collections'), 'value' => $collections !== null ? $this->aggregates->money($collections) : '—', 'icon' => 'cash'],
                 ['label' => __('Outstanding receivables'), 'value' => $receivables !== null ? $this->aggregates->money($receivables) : '—', 'icon' => 'receipt-tax'],
                 ['label' => __('Jobs in production'), 'value' => (string) $this->countJobsInProduction($scope), 'icon' => 'cog'],
-                ['label' => __('Jobs awaiting collection'), 'value' => (string) $this->countJobsAwaitingCollection($scope), 'icon' => 'inbox'],
                 ['label' => __('Waste cost'), 'value' => $this->aggregates->money($wasteSummary['waste_cost']), 'icon' => 'exclamation'],
             ],
             'top_customers' => $this->customers->topCustomers($scope, 5),
@@ -75,23 +72,6 @@ class CommercialExecutiveDashboardService
                 ProductionJobCardStatus::Rework,
                 ProductionJobCardStatus::Outsourced,
             ])
-            ->count();
-    }
-
-    protected function countJobsAwaitingCollection(IntelligenceScope $scope): int
-    {
-        if (! Schema::hasTable('production_fulfilments')) {
-            return (int) ProductionJobCard::query()
-                ->where('company_id', $scope->companyId)
-                ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
-                ->where('status', ProductionJobCardStatus::ReadyForDispatch)
-                ->count();
-        }
-
-        return (int) ProductionFulfilment::query()
-            ->where('company_id', $scope->companyId)
-            ->when($scope->branchId, fn ($q) => $q->where('branch_id', $scope->branchId))
-            ->where('status', FulfilmentStatus::ReadyForCollection)
             ->count();
     }
 }

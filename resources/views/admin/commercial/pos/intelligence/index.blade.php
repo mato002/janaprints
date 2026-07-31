@@ -17,10 +17,7 @@
         'report_views' => $report_views,
     ])
 
-    @include('admin.commercial.pos.intelligence.partials.kpi-strip', [
-        'title' => __('Overview'),
-        'kpis' => array_merge($dashboard_kpis, $metrics),
-    ])
+    @include('admin.commercial.reports.partials.kpi-strip', ['kpis' => $kpis])
 
     @include('admin.commercial.pos.intelligence.partials.tab-content', [
         'tab_data' => $tab_data,

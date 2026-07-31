@@ -50,7 +50,7 @@ class CommercialPosReportTest extends TestCase
             ->get(route('admin.commercial.pos.reports.index'))
             ->assertOk()
             ->assertSee(__('POS Intelligence'), false)
-            ->assertSee(__('Overview'), false)
+            ->assertSee(__('Today\'s Sales'), false)
             ->assertSee(__('Sales By Cashier'), false);
     }
 
@@ -66,7 +66,7 @@ class CommercialPosReportTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.commercial.pos.reports.index'))
             ->assertOk()
-            ->assertSee(__('Overview'), false)
+            ->assertSee(__('Today\'s Sales'), false)
             ->assertSee('500.00', false)
             ->assertSee(e($user->name), false);
     }

@@ -43,7 +43,7 @@ class CommercialSalesOrderReportTest extends TestCase
             ->get(route('admin.commercial.reports.sales_orders.index'))
             ->assertOk()
             ->assertSee(__('Sales Order Reports'), false)
-            ->assertSee(__('Order Dashboard'), false)
+            ->assertSee(__('Total Orders'), false)
             ->assertSee(__('Sales Order Summary'), false);
     }
 
