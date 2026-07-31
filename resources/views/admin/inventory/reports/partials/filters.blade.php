@@ -17,12 +17,7 @@
                 <option value="{{ $warehouse->id }}" @selected(($filters['warehouse_id'] ?? null) == $warehouse->id)>{{ $warehouse->name }}</option>
             @endforeach
         </select>
-        <select id="category_id" name="category_id" class="erp-toolbar-select" aria-label="{{ __('Category') }}">
-            <option value="">{{ __('All categories') }}</option>
-            @foreach ($categories as $category)
-                <option value="{{ $category->id }}" @selected(($filters['category_id'] ?? null) == $category->id)>{{ $category->name }}</option>
-            @endforeach
-        </select>
+        <x-admin.category-subcategory-filters :categories="$categories" :filters="$filters" />
         <select id="supplier_id" name="supplier_id" class="erp-toolbar-select" aria-label="{{ __('Supplier') }}">
             <option value="">{{ __('All suppliers') }}</option>
             @foreach ($suppliers as $supplier)

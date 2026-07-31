@@ -113,15 +113,47 @@ class LookupQuickCreateFormData
     {
         $companyId = $item?->company_id ?? tenant()->companyId() ?? auth()->user()->company_id;
         $branchId = $item?->branch_id ?? tenant()->branchId();
+        $categoryId = old('inventory_category_id', $item?->inventory_category_id);
 
         return [
             'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId, $item),
             'categories' => InventoryCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
-            'subcategories' => InventorySubcategory::query()->forTenant()->with('category')->where('is_active', true)->orderBy('name')->get(),
+            'subcategories' => $categoryId
+                ? InventorySubcategory::query()
+                    ->forTenant()
+                    ->where('inventory_category_id', $categoryId)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get()
+                : collect(),
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
-            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->where('code', '!=', 'FINISH')->orderBy('name')->get(),
+            'attributes' => $this->attributesForCategory($companyId, $branchId, $categoryId),
             'stockRoles' => InventoryStockRole::cases(),
         ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, ItemAttribute>
+     */
+    protected function attributesForCategory(int $companyId, int $branchId, mixed $categoryId): \Illuminate\Support\Collection
+    {
+        $query = ItemAttribute::query()
+            ->forTenant()
+            ->with('options')
+            ->where('is_active', true)
+            ->where('code', '!=', 'FINISH')
+            ->orderBy('name');
+
+        if ($categoryId) {
+            $query->where(function ($builder) use ($categoryId) {
+                $builder->whereNull('inventory_category_id')
+                    ->orWhere('inventory_category_id', $categoryId);
+            });
+        } else {
+            $query->whereRaw('1 = 0');
+        }
+
+        return $query->get();
     }
 
     /**

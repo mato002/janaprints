@@ -97,6 +97,7 @@ class InventoryReportExporter implements CommercialReportExporter
             toDate: (string) ($payload['to_date'] ?? now()->toDateString()),
             warehouseId: isset($payload['warehouse_id']) && $payload['warehouse_id'] !== '' ? (int) $payload['warehouse_id'] : null,
             categoryId: isset($payload['category_id']) && $payload['category_id'] !== '' ? (int) $payload['category_id'] : null,
+            subcategoryId: isset($payload['subcategory_id']) && $payload['subcategory_id'] !== '' ? (int) $payload['subcategory_id'] : null,
             supplierId: isset($payload['supplier_id']) && $payload['supplier_id'] !== '' ? (int) $payload['supplier_id'] : null,
             itemId: isset($payload['item_id']) && $payload['item_id'] !== '' ? (int) $payload['item_id'] : null,
             search: (string) ($payload['search'] ?? ''),

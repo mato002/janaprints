@@ -92,10 +92,11 @@ class InventoryIntelligenceController extends Controller
                 'warehouse_id' => $request->integer('warehouse_id') ?: null,
                 'stock_role' => $request->input('stock_role'),
                 'category_id' => $request->integer('category_id') ?: null,
+                'subcategory_id' => $request->integer('subcategory_id') ?: null,
             ]),
             'warehouses' => Warehouse::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'categories' => InventoryCategory::query()->forTenant()->orderBy('name')->get(['id', 'name']),
-            'filters' => $request->only(['warehouse_id', 'stock_role', 'category_id']),
+            'filters' => $request->only(['warehouse_id', 'stock_role', 'category_id', 'subcategory_id']),
         ]);
     }
 

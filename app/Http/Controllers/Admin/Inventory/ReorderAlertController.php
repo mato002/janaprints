@@ -29,7 +29,7 @@ class ReorderAlertController extends Controller
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
-        $filters = $request->only(['warehouse_id', 'category_id', 'status', 'critical_only', 'search']);
+        $filters = $request->only(['warehouse_id', 'category_id', 'subcategory_id', 'status', 'critical_only', 'search']);
 
         return view('admin.inventory.alerts.index', [
             'alerts' => $this->alerts->paginate($companyId, $branchId, $filters),

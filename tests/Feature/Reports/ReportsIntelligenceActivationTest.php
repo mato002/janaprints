@@ -76,7 +76,7 @@ class ReportsIntelligenceActivationTest extends TestCase
     #[DataProvider('reportPageProvider')]
     public function test_report_pages_render_read_only_placeholders(string $routeName, string $heading): void
     {
-        [$company, $branch, $user] = $this->tenantUser(['reports.view', 'kpi.view', 'reports.export']);
+        [$company, $branch, $user] = $this->tenantUser(['reports.view', 'kpi.view', 'reports.export', 'commercial.reports.sales.view']);
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
@@ -101,7 +101,9 @@ class ReportsIntelligenceActivationTest extends TestCase
         $response->assertSee('Reports &amp; Intelligence', false);
 
         if ($routeName === 'admin.reports.commercial') {
-            $response->assertSee(__('Commercial 360'), false);
+            $response->assertSee(__('Commercial Reports'), false);
+            $response->assertSee('erp-index-toolbar', false);
+            $response->assertDontSee(__('Open →'), false);
             $response->assertDontSee(__('Placeholder — module not connected yet'), false);
 
             return;

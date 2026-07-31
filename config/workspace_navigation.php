@@ -35,6 +35,17 @@ return [
         'customer_type',
         'activity_status',
         'role',
+        'report',
+        'tab',
+        'branch_id',
+        'warehouse_id',
+        'category_id',
+        'subcategory_id',
+        'supplier_id',
+        'item_id',
+        'designer_id',
+        'approval_status',
+        'delay_status',
     ],
 
 ];

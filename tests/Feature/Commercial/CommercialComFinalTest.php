@@ -46,7 +46,7 @@ class CommercialComFinalTest extends TestCase
         $service->assertDontSee(__('Coming Soon'), false);
     }
 
-    public function test_legacy_commercial_reports_route_shows_hub_links(): void
+    public function test_legacy_commercial_reports_route_shows_inline_reports(): void
     {
         [$company, $branch, $user] = $this->tenantUser([
             'reports.view',
@@ -59,8 +59,10 @@ class CommercialComFinalTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.reports.commercial'));
 
         $response->assertOk();
-        $response->assertSee(__('Commercial 360'), false);
-        $response->assertSee(route('admin.commercial.reports.sales.index'), false);
+        $response->assertSee(__('Commercial Reports'), false);
+        $response->assertSee('erp-index-toolbar', false);
+        $response->assertSee(__('Sales Reports'), false);
+        $response->assertDontSee(__('Open →'), false);
         $response->assertDontSee(__('Placeholder — module not connected yet'), false);
     }
 

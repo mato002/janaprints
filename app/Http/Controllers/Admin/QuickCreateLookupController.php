@@ -541,15 +541,21 @@ class QuickCreateLookupController extends Controller
         return $this->quickCreateResponse($category->id, $category->name, __('Category created.'));
     }
 
-    public function createSubcategory(): View
+    public function createSubcategory(Request $request): View
     {
         abort_unless(auth()->user()?->can('catalogue.create'), 403);
+
+        $categoryId = $request->integer('category_id') ?: null;
+        $defaultCategoryId = $categoryId && InventoryCategory::query()->forTenant()->whereKey($categoryId)->exists()
+            ? $categoryId
+            : null;
 
         return $this->lookupForm('admin.lookups.quick-create.subcategory', array_merge(
             $this->lookupFormData->subcategory(),
             [
                 'title' => __('Create subcategory'),
                 'action' => route('admin.inventory.catalogue.subcategories.quick-store'),
+                'defaultCategoryId' => $defaultCategoryId,
             ],
         ));
     }
@@ -1200,7 +1206,13 @@ class QuickCreateLookupController extends Controller
 
         return $request->validate($this->formSettings->mergeValidationRules('inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'subcategory_id' => ['nullable', Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'subcategory_id' => [
+                'nullable',
+                Rule::exists('inventory_subcategories', 'id')
+                    ->where('company_id', $companyId)
+                    ->where('branch_id', $branchId)
+                    ->where(fn ($query) => $query->where('inventory_category_id', $request->integer('inventory_category_id'))),
+            ],
             'brand_name' => ['nullable', 'string', 'max:255'],
             'unit_of_measure_id' => [Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'sku' => ['string', 'max:50'],

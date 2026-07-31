@@ -356,7 +356,9 @@ class LookupOptionService
 
         return $query->get()->map(fn ($row) => [
             'value' => $row->id,
-            'label' => trim(($row->category?->name ? $row->category->name.' / ' : '').$row->name),
+            'label' => $categoryId
+                ? $row->name
+                : trim(($row->category?->name ? $row->category->name.' / ' : '').$row->name),
         ])->values()->all();
     }
 

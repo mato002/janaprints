@@ -19,7 +19,7 @@
 />
 @endif
 
-@php($subcategoryOptions = $subcategories->map(fn ($s) => ['value' => $s->id, 'label' => trim(($s->category?->name ? $s->category->name.' / ' : '').$s->name)])->values())
+@php($subcategoryOptions = $subcategories->map(fn ($s) => ['value' => $s->id, 'label' => $s->name])->values())
 
 <x-admin.lookup-select
     name="subcategory_id"
@@ -32,6 +32,7 @@
     :modal-title="__('Create subcategory')"
     option-label-key="label"
     option-value-key="value"
+    scope-category-field="inventory_category_id"
     select-class="erp-input w-full"
 />
 
@@ -76,13 +77,50 @@
 @endif
 
 @php($existingAttributes = $m?->attributeValues?->keyBy('item_attribute_id') ?? collect())
+@php($attributeCategoryMap = $attributes->mapWithKeys(fn ($attribute) => [$attribute->id => $attribute->inventory_category_id])->all())
 @if($attributes->isNotEmpty())
-<div class="rounded-lg border border-erp-border p-4">
+<div
+    class="rounded-lg border border-erp-border p-4"
+    x-data="{
+        categoryId: @js((string) old('inventory_category_id', $m?->inventory_category_id ?? '')),
+        attributeCategories: @js($attributeCategoryMap),
+        matchesCategory(attributeId) {
+            const scoped = this.attributeCategories[attributeId];
+
+            if (! scoped) {
+                return true;
+            }
+
+            return String(scoped) === String(this.categoryId);
+        },
+        bindCategoryField() {
+            const form = this.$root.closest('form');
+            const field = form?.querySelector('[name=\'inventory_category_id\']');
+
+            if (! field) {
+                return;
+            }
+
+            this.categoryId = field.value ?? '';
+
+            field.addEventListener('change', () => {
+                this.categoryId = field.value ?? '';
+            });
+
+            form?.addEventListener('erp-lookup-changed', (event) => {
+                if (event.detail?.name === 'inventory_category_id') {
+                    this.categoryId = event.detail.value ?? '';
+                }
+            });
+        },
+    }"
+    x-init="bindCategoryField()"
+>
     <h3 class="mb-3 text-sm font-semibold text-slate-900">{{ __('Product attributes') }}</h3>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
         @foreach ($attributes as $attribute)
             @php($current = $existingAttributes->get($attribute->id))
-            <div>
+            <div x-show="matchesCategory(@js($attribute->id))" x-cloak>
                 <label class="erp-label">{{ $attribute->name }}</label>
                 @if ($attribute->data_type === 'select')
                     <select name="attributes[{{ $attribute->id }}]" class="erp-input w-full" @required($attribute->is_required)>

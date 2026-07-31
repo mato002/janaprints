@@ -21,6 +21,7 @@
     'scopeCompanyField' => null,
     'scopeBranchField' => null,
     'scopeCustomerField' => null,
+    'scopeCategoryField' => null,
 ])
 
 @php
@@ -66,6 +67,7 @@
         scopeCompanyField: @js($scopeCompanyField),
         scopeBranchField: @js($scopeBranchField),
         scopeCustomerField: @js($scopeCustomerField),
+        scopeCategoryField: @js($scopeCategoryField),
     })"
     {{ $attributes->class(['erp-lookup-select']) }}
 >

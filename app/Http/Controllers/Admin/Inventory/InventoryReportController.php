@@ -62,6 +62,7 @@ class InventoryReportController extends Controller
             'to_date' => $scope->toDate,
             'warehouse_id' => $scope->warehouseId,
             'category_id' => $scope->categoryId,
+            'subcategory_id' => $scope->subcategoryId,
             'supplier_id' => $scope->supplierId,
             'item_id' => $scope->itemId,
             'search' => $scope->search,

@@ -308,7 +308,7 @@ class Job360WorkspaceService
         }
 
         if (Route::has('admin.production.job-cards.floor-display')) {
-            $links[] = ['label' => __('Floor display'), 'url' => route('admin.production.job-cards.floor-display', $jobCard), 'target' => '_blank'];
+            $links[] = ['label' => __('Job sheet'), 'url' => route('admin.production.job-cards.floor-display', $jobCard), 'target' => '_blank'];
         }
 
         return $links;

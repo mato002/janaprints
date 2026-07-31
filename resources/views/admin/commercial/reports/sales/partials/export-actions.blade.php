@@ -1,6 +1,6 @@
-@props(['can_export', 'filters'])
+@props(['can_export', 'filters', 'export_route' => null])
 
 <x-admin.export-dropdown
-    :post-action="route('admin.commercial.reports.sales.export', $filters)"
+    :post-action="route($export_route ?? 'admin.commercial.reports.sales.export', $filters)"
     :can-export="$can_export"
 />

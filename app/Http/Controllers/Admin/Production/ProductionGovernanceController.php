@@ -13,6 +13,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Procurement\Vendor;
 use App\Support\Production\JobCardOutsourceService;
 use App\Support\Production\ReturnsToProductionFloor;
+use App\Support\Production\JobCardJobSheetPresenter;
 use App\Support\Production\ProductionRouteService;
 use App\Support\Production\ProductionSessionService;
 use App\Support\Production\SerialNumberGovernanceService;
@@ -152,24 +153,14 @@ class ProductionGovernanceController extends Controller
         );
     }
 
-    public function floorDisplay(ProductionJobCard $jobCard, ProductionRouteService $routes): View
+    public function floorDisplay(ProductionJobCard $jobCard, JobCardJobSheetPresenter $presenter): View
     {
         $this->authorize('view', $jobCard);
 
-        $jobCard->load([
-            'customer:id,company_name',
-            'inventoryItem:id,item_name,sku',
-            'customerArtwork:id,artwork_name,version_number,file_path,mime_type,customer_id',
-            'serialAllocation',
-            'routeSteps' => fn ($q) => $q->orderBy('sequence'),
-        ]);
-
-        $routeProgress = $routes->routeProgress($jobCard);
-
         return view('admin.production.job-cards.floor-display', [
             'jobCard' => $jobCard,
-            'routeProgress' => $routeProgress,
-            'refreshSeconds' => 30,
+            'sheet' => $presenter->present($jobCard),
+            'refreshSeconds' => null,
         ]);
     }
 }

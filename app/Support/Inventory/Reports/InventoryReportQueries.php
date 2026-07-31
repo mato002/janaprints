@@ -56,6 +56,10 @@ class InventoryReportQueries
             $query->where('ii.inventory_category_id', $scope->categoryId);
         }
 
+        if ($scope->subcategoryId !== null) {
+            $query->where('ii.subcategory_id', $scope->subcategoryId);
+        }
+
         if ($scope->itemId !== null) {
             $query->where('iv.inventory_item_id', $scope->itemId);
         }
@@ -453,6 +457,10 @@ class InventoryReportQueries
                     $join->where('ii.inventory_category_id', '=', $scope->categoryId);
                 }
 
+                if ($scope->subcategoryId !== null) {
+                    $join->where('ii.subcategory_id', '=', $scope->subcategoryId);
+                }
+
                 if ($scope->itemId !== null) {
                     $join->where('ii.id', '=', $scope->itemId);
                 }
@@ -490,6 +498,7 @@ class InventoryReportQueries
             toDate: $scope->toDate,
             warehouseId: $scope->warehouseId,
             categoryId: $scope->categoryId,
+            subcategoryId: $scope->subcategoryId,
             supplierId: $scope->supplierId,
             itemId: $scope->itemId,
             search: $scope->search,

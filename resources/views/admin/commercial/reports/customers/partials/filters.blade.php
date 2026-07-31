@@ -1,12 +1,17 @@
-@props(['filters', 'branches', 'salespersons'])
+@props(['filters', 'branches', 'salespersons', 'report_options' => null, 'report_key' => null, 'filter_action' => null, 'filter_reset_url' => null])
 
 @php
     use App\Enums\CustomerType;
     use App\Enums\CustomerStatus;
+    $toolbarAction = $filter_action ?? route('admin.commercial.reports.customers.index');
+    $toolbarResetUrl = $filter_reset_url ?? route('admin.commercial.reports.customers.index');
 @endphp
 
 <x-admin.card :padding="false" class="mb-4">
-    <x-admin.index-toolbar :action="route('admin.commercial.reports.customers.index')" :reset-url="route('admin.commercial.reports.customers.index')">
+    <x-admin.index-toolbar :action="$toolbarAction" :reset-url="$toolbarResetUrl">
+        @if ($report_key)
+            <input type="hidden" name="report" value="{{ $report_key }}">
+        @endif
         <input type="hidden" name="tab" value="{{ $filters['tab'] ?? 'summary' }}">
         <input type="date" id="from_date" name="from_date" value="{{ $filters['from_date'] }}" class="erp-toolbar-input" aria-label="{{ __('From date') }}">
         <input type="date" id="to_date" name="to_date" value="{{ $filters['to_date'] }}" class="erp-toolbar-input" aria-label="{{ __('To date') }}">

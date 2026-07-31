@@ -1,10 +1,11 @@
 @php($m = $subcategory ?? null)
+@php($defaultCategoryId = $defaultCategoryId ?? null)
 <div class="erp-form-grid">
     <x-admin.lookup-select
         name="inventory_category_id"
         :label="__('Category')"
         :options="$categories"
-        :value="old('inventory_category_id', $m?->inventory_category_id)"
+        :value="old('inventory_category_id', $m?->inventory_category_id ?? $defaultCategoryId)"
         :required="true"
         create-route="admin.inventory.catalogue.categories.quick-create"
         refresh-route="admin.lookups.categories"

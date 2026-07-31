@@ -20,6 +20,7 @@ class DeadStockDetectionService
      *     warehouse_id?: int|null,
      *     stock_role?: string|null,
      *     category_id?: int|null,
+     *     subcategory_id?: int|null,
      *     branch_id?: int|null
      * }  $filters
      * @return Collection<int, array{
@@ -44,6 +45,7 @@ class DeadStockDetectionService
             ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
             ->when(! empty($filters['stock_role']), fn ($q) => $q->where('stock_role', $filters['stock_role']))
             ->when(! empty($filters['category_id']), fn ($q) => $q->where('inventory_category_id', (int) $filters['category_id']))
+            ->when(! empty($filters['subcategory_id']), fn ($q) => $q->where('subcategory_id', (int) $filters['subcategory_id']))
             ->where('is_active', true)
             ->get();
 

@@ -33,6 +33,7 @@ class ProductionJobCardScanController extends Controller
         return view('admin.production.job-cards.job-sheet', [
             'jobCard' => $jobCard,
             'sheet' => $presenter->present($jobCard),
+            'autoPrint' => true,
         ]);
     }
 }

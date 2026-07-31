@@ -45,6 +45,10 @@ class ReorderAlertService
             $query->whereHas('inventoryItem', fn (Builder $item) => $item->where('inventory_category_id', (int) $filters['category_id']));
         }
 
+        if (! empty($filters['subcategory_id'])) {
+            $query->whereHas('inventoryItem', fn (Builder $item) => $item->where('subcategory_id', (int) $filters['subcategory_id']));
+        }
+
         if (! empty($filters['status']) && $filters['status'] !== 'all') {
             $query->where('status', $filters['status']);
         }

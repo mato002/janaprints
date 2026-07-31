@@ -9,10 +9,7 @@ final class JobCardPrintUrl
 {
     public static function resolve(ProductionJobCard $job, ?string $department = null): ?string
     {
-        $department ??= self::departmentSlugFor($job);
-
-        if (in_array($department, ['offset', 'digital'], true)
-            && Route::has('admin.production.job-cards.job-sheet')) {
+        if (Route::has('admin.production.job-cards.job-sheet')) {
             return route('admin.production.job-cards.job-sheet', $job);
         }
 
@@ -25,24 +22,17 @@ final class JobCardPrintUrl
 
     public static function usesJobSheet(ProductionJobCard $job, ?string $department = null): bool
     {
-        $department ??= self::departmentSlugFor($job);
-
-        return in_array($department, ['offset', 'digital'], true);
+        return Route::has('admin.production.job-cards.job-sheet');
     }
 
     public static function actionLabel(ProductionJobCard $job, ?string $department = null): string
     {
-        return self::usesJobSheet($job, $department)
-            ? __('Print job sheet')
-            : __('Print job card');
+        return __('Print job sheet');
     }
 
     public static function pathSegment(ProductionJobCard $job, ?string $department = null): string
     {
-        $department ??= self::departmentSlugFor($job);
-
-        if (in_array($department, ['offset', 'digital'], true)
-            && Route::has('admin.production.job-cards.job-sheet')) {
+        if (Route::has('admin.production.job-cards.job-sheet')) {
             return 'job-sheet';
         }
 

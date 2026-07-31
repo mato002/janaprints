@@ -23,6 +23,7 @@ use App\Support\Platform\FormSettingsService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class InventoryItemController extends Controller
@@ -77,6 +78,7 @@ class InventoryItemController extends Controller
         $this->normalizeMaterialRequirements($request);
 
         $data = $this->validateItem($request, $companyId, $branchId);
+        $this->ensureSubcategoryMatchesCategory($data);
         [$data, $customData] = $this->partitionCustomFields('inventory_item', $data, $companyId, $branchId);
         $data['sku'] = $this->resolveSku($data, $request);
         $data['uses_serial_numbers'] = $request->boolean('uses_serial_numbers');
@@ -127,6 +129,7 @@ class InventoryItemController extends Controller
         $this->normalizeMaterialRequirements($request);
 
         $data = $this->validateItem($request, $item->company_id, $item->branch_id);
+        $this->ensureSubcategoryMatchesCategory($data);
         [$data, $customData] = $this->partitionCustomFields('inventory_item', $data, $item->company_id, $item->branch_id);
         $data['sku'] = $this->resolveSku($data, $request);
         $data['uses_serial_numbers'] = $request->boolean('uses_serial_numbers');
@@ -165,7 +168,12 @@ class InventoryItemController extends Controller
     {
         return $this->formSettings->validateRequest($request, 'inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'subcategory_id' => [Rule::exists('inventory_subcategories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
+            'subcategory_id' => [
+                Rule::exists('inventory_subcategories', 'id')
+                    ->where('company_id', $companyId)
+                    ->where('branch_id', $branchId)
+                    ->where(fn ($query) => $query->where('inventory_category_id', $request->integer('inventory_category_id'))),
+            ],
             'brand_name' => ['nullable', 'string', 'max:255'],
             'unit_of_measure_id' => [Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'sku' => ['string', 'max:50'],
@@ -195,6 +203,27 @@ class InventoryItemController extends Controller
         ], $companyId, $branchId);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function ensureSubcategoryMatchesCategory(array $data): void
+    {
+        if (! filled($data['subcategory_id'] ?? null)) {
+            return;
+        }
+
+        $belongs = InventorySubcategory::query()
+            ->whereKey($data['subcategory_id'])
+            ->where('inventory_category_id', $data['inventory_category_id'])
+            ->exists();
+
+        if (! $belongs) {
+            throw ValidationException::withMessages([
+                'subcategory_id' => __('The selected subcategory does not belong to the chosen category.'),
+            ]);
+        }
+    }
+
     protected function normalizeMaterialRequirements(Request $request): void
     {
         $lines = collect($request->input('material_requirements', []))
@@ -222,13 +251,33 @@ class InventoryItemController extends Controller
     protected function formMeta(?InventoryItem $item = null): array
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
+        $categoryId = old('inventory_category_id', $item?->inventory_category_id);
 
         return [
             'formFields' => $this->formSettings->resolvedFields('inventory_item', $companyId, $branchId, $item),
             'categories' => InventoryCategory::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
-            'subcategories' => InventorySubcategory::query()->forTenant()->with('category')->where('is_active', true)->orderBy('name')->get(),
+            'subcategories' => $categoryId
+                ? InventorySubcategory::query()
+                    ->forTenant()
+                    ->where('inventory_category_id', $categoryId)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get()
+                : collect(),
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
-            'attributes' => ItemAttribute::query()->forTenant()->with('options')->where('is_active', true)->where('code', '!=', 'FINISH')->orderBy('name')->get(),
+            'attributes' => ItemAttribute::query()
+                ->forTenant()
+                ->with('options')
+                ->where('is_active', true)
+                ->where('code', '!=', 'FINISH')
+                ->when($categoryId, function ($query) use ($categoryId) {
+                    $query->where(function ($builder) use ($categoryId) {
+                        $builder->whereNull('inventory_category_id')
+                            ->orWhere('inventory_category_id', $categoryId);
+                    });
+                }, fn ($query) => $query->whereRaw('1 = 0'))
+                ->orderBy('name')
+                ->get(),
             'stockRoles' => InventoryStockRole::cases(),
             'workCenters' => WorkCenter::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'rawMaterials' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(['id', 'sku', 'item_name']),

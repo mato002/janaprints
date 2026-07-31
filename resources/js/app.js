@@ -3045,6 +3045,7 @@ document.addEventListener('alpine:init', () => {
         scopeCompanyField: config.scopeCompanyField ?? null,
         scopeBranchField: config.scopeBranchField ?? null,
         scopeCustomerField: config.scopeCustomerField ?? null,
+        scopeCategoryField: config.scopeCategoryField ?? null,
         scopeFormKey: config.scopeFormKey ?? null,
         _onNestedReturn: null,
 
@@ -3089,6 +3090,8 @@ document.addEventListener('alpine:init', () => {
 
             if (this.refreshUrl && this.options.length === 0) {
                 this.refreshOptions(this.selected || null);
+            } else if (this.refreshUrl && this.scopeCategoryField && this.scopedFieldValue(this.scopeCategoryField)) {
+                this.refreshOptions(this.selected || null);
             }
 
             this._onNestedReturn = () => this.onNestedReturn();
@@ -3107,6 +3110,7 @@ document.addEventListener('alpine:init', () => {
                 this.scopeCompanyField,
                 this.scopeBranchField,
                 this.scopeCustomerField,
+                this.scopeCategoryField,
             ].filter(Boolean);
 
             if (! rootForm || scopedFields.length === 0) {
@@ -3202,6 +3206,14 @@ document.addEventListener('alpine:init', () => {
                 }
             }
 
+            if (this.scopeCategoryField && rootForm) {
+                const categoryField = rootForm.querySelector(`[name="${this.scopeCategoryField}"]`);
+
+                if (categoryField?.value) {
+                    params.set('category_id', categoryField.value);
+                }
+            }
+
             if (this.scopeFormKey) {
                 params.set('form_key', this.scopeFormKey);
             }
@@ -3271,6 +3283,12 @@ document.addEventListener('alpine:init', () => {
 
             if (this.scopeCustomerField && ! this.scopedFieldValue(this.scopeCustomerField)) {
                 window.erpModalManager?.showToast?.('Select a customer first.', 'error');
+
+                return;
+            }
+
+            if (this.scopeCategoryField && ! this.scopedFieldValue(this.scopeCategoryField)) {
+                window.erpModalManager?.showToast?.('Select a category first.', 'error');
 
                 return;
             }
@@ -5421,6 +5439,62 @@ document.addEventListener('alpine:init', () => {
             }
 
             return this.matches(searchText);
+        },
+    }));
+
+    Alpine.data('erpCategorySubcategoryFilter', (config = {}) => ({
+        refreshUrl: config.refreshUrl ?? '',
+        categoryId: config.categoryId ?? '',
+        subcategoryId: config.subcategoryId ?? '',
+        subcategories: [],
+
+        init() {
+            if (this.categoryId) {
+                this.loadSubcategories(this.subcategoryId);
+            }
+        },
+
+        async onCategoryChange() {
+            this.subcategoryId = '';
+            await this.loadSubcategories();
+        },
+
+        async loadSubcategories(preserveId = null) {
+            if (! this.categoryId) {
+                this.subcategories = [];
+
+                return;
+            }
+
+            if (! this.refreshUrl) {
+                return;
+            }
+
+            try {
+                const url = new URL(this.refreshUrl, window.location.origin);
+                url.searchParams.set('category_id', this.categoryId);
+
+                const response = await fetch(url.toString(), {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                this.subcategories = await response.json();
+
+                if (preserveId !== null && preserveId !== '' && this.subcategories.some((option) => String(option.value) === String(preserveId))) {
+                    this.subcategoryId = String(preserveId);
+                }
+            } catch (error) {
+                console.error('erpCategorySubcategoryFilter.loadSubcategories', error);
+                this.subcategories = [];
+            }
         },
     }));
 
