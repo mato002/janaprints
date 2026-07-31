@@ -41,11 +41,41 @@ class CommercialReportExportService
         ProcessCommercialReportExportJob::dispatch($export->id);
 
         return redirect()
-            ->route($redirectRoute, $request->query())
+            ->route($this->resolveRedirectRoute($request, $redirectRoute), $this->redirectParams($request))
             ->with('export_id', $export->id)
             ->with('status', __('Your :format export has been queued. You can download it from Export History when ready.', [
                 'format' => strtoupper($format),
             ]));
+    }
+
+    protected function resolveRedirectRoute(Request $request, string $defaultRoute): string
+    {
+        if ($request->filled('report') && \Illuminate\Support\Facades\Route::has('admin.reports.commercial')) {
+            return 'admin.reports.commercial';
+        }
+
+        return $defaultRoute;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function redirectParams(Request $request): array
+    {
+        $params = array_merge($request->query(), $request->except(['_token', 'format']));
+
+        if (
+            $request->input('embedded') === '1'
+            || $request->query('embedded') === '1'
+            || $request->header('Turbo-Frame') === 'module-workspace-content'
+        ) {
+            $params['embedded'] = '1';
+        }
+
+        return array_filter(
+            $params,
+            fn ($value) => $value !== null && $value !== '',
+        );
     }
 
     public function authorizeView(User $user, CommercialReportExport $export): void

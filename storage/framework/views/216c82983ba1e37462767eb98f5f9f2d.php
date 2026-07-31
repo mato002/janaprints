@@ -54,11 +54,8 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
 <?php endif; ?>
 <?php $component->withAttributes(['action' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($toolbarAction),'reset-url' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($toolbarResetUrl)]); ?>
-        <?php if($report_options): ?>
-            <?php echo $__env->make('admin.commercial.reports.partials.report-type-select', [
-                'report_options' => $report_options,
-                'report_key' => $report_key,
-            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php if($report_key): ?>
+            <input type="hidden" name="report" value="<?php echo e($report_key); ?>">
         <?php endif; ?>
         <input type="hidden" name="tab" value="<?php echo e($filters['tab'] ?? 'summary'); ?>">
         <input type="date" id="from_date" name="from_date" value="<?php echo e($filters['from_date']); ?>" class="erp-toolbar-input" aria-label="<?php echo e(__('From date')); ?>">

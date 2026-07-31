@@ -2549,14 +2549,67 @@ window.erpExport = {
             body.append('_token', this.csrfToken());
         }
 
+        if (document.getElementById('module-workspace-content')) {
+            body.append('embedded', '1');
+        }
+
         const response = await fetch(url, {
             method: 'POST',
             body,
             credentials: 'same-origin',
-            headers: this.exportHeaders(),
+            redirect: 'follow',
+            headers: {
+                ...this.exportHeaders(),
+                Accept: 'text/html,application/xhtml+xml,application/octet-stream,application/pdf,text/csv,application/vnd.ms-excel,*/*',
+            },
         });
 
-        await this.downloadResponse(response, fallbackFilename);
+        const disposition = response.headers.get('Content-Disposition') || '';
+        const contentType = response.headers.get('Content-Type') || '';
+        const isFileDownload = disposition.includes('attachment')
+            || disposition.includes('filename=')
+            || (
+                response.ok
+                && ! contentType.includes('text/html')
+                && ! contentType.includes('text/plain')
+                && (
+                    contentType.includes('octet-stream')
+                    || contentType.includes('pdf')
+                    || contentType.includes('csv')
+                    || contentType.includes('spreadsheet')
+                    || contentType.includes('excel')
+                )
+            );
+
+        if (isFileDownload) {
+            await this.downloadResponse(response, fallbackFilename);
+
+            return;
+        }
+
+        await this.refreshAfterQueuedExport(response);
+    },
+
+    async refreshAfterQueuedExport(response) {
+        const targetUrl = response.url || window.location.href;
+        const workspaceFrame = document.getElementById('module-workspace-content');
+        const queuedMessage = 'Your export has been queued. Download will appear on this page when ready.';
+
+        if (window.Turbo && workspaceFrame) {
+            await window.Turbo.visit(targetUrl, {
+                frame: 'module-workspace-content',
+                action: 'replace',
+            });
+            showErpSweetAlert(queuedMessage, 'success');
+
+            return;
+        }
+
+        if (window.Turbo) {
+            await window.Turbo.visit(targetUrl, { action: 'advance' });
+        } else {
+            window.location.href = targetUrl;
+        }
     },
 };
 

@@ -28,17 +28,12 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars, $__key, $__value); ?>
 
-<?php
-    $switchBase = \App\Support\Navigation\WorkspaceEmbed::url(route('admin.reports.commercial'));
-    $switchSeparator = str_contains($switchBase, '?') ? '&' : '?';
-?>
-
 <select
-    id="report"
+    id="commercial-report-type"
     name="report"
     class="erp-toolbar-select min-w-[12rem]"
     aria-label="<?php echo e(__('Report type')); ?>"
-    onchange="window.location.href = '<?php echo e($switchBase); ?><?php echo e($switchSeparator); ?>report=' + encodeURIComponent(this.value)"
+    onchange="this.form?.requestSubmit()"
 >
     <?php $__currentLoopData = $report_options; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $option): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
         <option value="<?php echo e($option['key']); ?>" <?php if($report_key === $option['key']): echo 'selected'; endif; ?>><?php echo e($option['label']); ?></option>

@@ -100,6 +100,49 @@
 
     <?php echo $__env->make('admin.commercial.reports.partials.export-status', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
+    <?php if(! empty($report_options)): ?>
+        <?php
+            $hubTurboFrame = \App\Support\Navigation\WorkspaceEmbed::turboFrame();
+            $hubEmbedded = \App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext();
+        ?>
+        <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['padding' => false,'class' => 'mb-4']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('admin.card'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['padding' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute(false),'class' => 'mb-4']); ?>
+            <form
+                method="get"
+                action="<?php echo e($filter_action); ?>"
+                class="flex items-center gap-2 px-4 py-3"
+                <?php if($hubTurboFrame): ?> data-turbo-frame="<?php echo e($hubTurboFrame); ?>" <?php endif; ?>
+                data-turbo-action="advance"
+            >
+                <?php if($hubEmbedded): ?>
+                    <input type="hidden" name="embedded" value="1">
+                <?php endif; ?>
+                <label for="commercial-report-type" class="text-xs font-semibold uppercase tracking-wide text-slate-500"><?php echo e(__('Report type')); ?></label>
+                <?php echo $__env->make('admin.commercial.reports.partials.report-type-select', [
+                    'report_options' => $report_options,
+                    'report_key' => $report_key,
+                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+            </form>
+         <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
+<?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
+<?php unset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
+<?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
+<?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
+<?php endif; ?>
+    <?php endif; ?>
+
     <?php switch($report_key):
         case ('sales'): ?>
             <?php echo $__env->make('admin.commercial.reports.sales.partials.filters', [
