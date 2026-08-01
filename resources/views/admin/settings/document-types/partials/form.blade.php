@@ -12,16 +12,19 @@
         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ __('Document Configuration') }}</h3>
 
         <div>
-            <label class="erp-label" for="code">{{ __('Document Code') }}</label>
-            <input
-                type="text"
-                id="code"
-                name="code"
-                value="{{ old('code', $documentType->code ?? '') }}"
-                class="erp-input w-full"
-                @disabled($isSystem)
-                required
-            >
+            @if ($isSystem)
+                <label class="erp-label" for="code">{{ __('Document Code') }}</label>
+                <input
+                    type="text"
+                    id="code"
+                    name="code"
+                    value="{{ old('code', $documentType->code ?? '') }}"
+                    class="erp-input w-full"
+                    disabled
+                >
+            @else
+                <x-admin.entity-code-input :record="$documentType->exists ? $documentType : null" erp maxlength="50" />
+            @endif
             @error('code')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
         </div>
 

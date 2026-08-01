@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Tax;
 
 use App\Http\Controllers\Admin\Accounting\Concerns\ResolvesAccountingTenant;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Tax\TaxCategory;
 use App\Models\Tax\TaxCode;
@@ -15,6 +16,7 @@ use Illuminate\View\View;
 class TaxCodeController extends Controller
 {
     use ResolvesAccountingTenant;
+    use ResolvesEntityCode;
 
     public function __construct(
         protected TaxCodeManagementService $taxCodes,
@@ -112,19 +114,19 @@ class TaxCodeController extends Controller
      */
     protected function validateCode(Request $request, int $companyId, ?TaxCode $existing = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'tax_category_id' => [
                 'required',
                 Rule::exists('tax_categories', 'id')->where('company_id', $companyId),
             ],
-            'code' => [
-                'required',
-                'string',
-                'max:30',
-                Rule::unique('tax_codes', 'code')
-                    ->where('company_id', $companyId)
-                    ->ignore($existing?->id),
-            ],
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [
+                    Rule::unique('tax_codes', 'code')
+                        ->where('company_id', $companyId)
+                        ->ignore($existing?->id),
+                ],
+            ),
             'name' => ['required', 'string', 'max:120'],
             'description' => ['nullable', 'string'],
             'is_active' => ['sometimes', 'boolean'],
@@ -132,5 +134,16 @@ class TaxCodeController extends Controller
             'rate_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'effective_from' => ['nullable', 'date', 'required_with:rate_percent'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            TaxCode::class,
+            $companyId,
+            $existing?->id,
+            30,
+        );
+
+        return $validated;
     }
 }

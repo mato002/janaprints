@@ -20,12 +20,7 @@
         :required="true"
     />
 
-    <x-admin.input
-        name="code"
-        :label="__('Code')"
-        :value="old('code', $branch?->code)"
-        :required="true"
-    />
+    <x-admin.entity-code-input :record="$branch" erp />
 
     <x-admin.form-field name="is_head_office" :label="__('Head office')" :colSpan="2">
         <input type="hidden" name="is_head_office" value="0">

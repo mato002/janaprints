@@ -22,6 +22,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use App\Support\Sales\SalesDeskViews;
 use Illuminate\View\View;
 
 class SalesOrderController extends Controller
@@ -34,15 +35,11 @@ class SalesOrderController extends Controller
         protected SalesOrderWorkflowService $workflow,
     ) {}
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', SalesOrder::class);
 
-        $orders = $this->scopeToTenant(
-            SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator'])
-        )->latest('order_date')->paginate(15);
-
-        return view('admin.sales.orders.index', compact('orders'));
+        return redirect()->to(SalesDeskViews::deskUrl(SalesDeskViews::ORDERS, request()->query()));
     }
 
     public function create(Request $request): View

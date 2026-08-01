@@ -62,6 +62,80 @@ function showErpSweetAlert(message, variant = 'success', options = {}) {
     });
 }
 
+function extractValidationErrorsFromDoc(doc) {
+    if (! doc) {
+        return [];
+    }
+
+    const fromHidden = [...doc.querySelectorAll('[data-erp-validation-errors] [data-erp-validation-message]')]
+        .map((element) => element.textContent?.trim())
+        .filter(Boolean);
+
+    if (fromHidden.length > 0) {
+        return [...new Set(fromHidden)];
+    }
+
+    const fromList = [...doc.querySelectorAll('[data-erp-validation-errors] li')]
+        .map((element) => element.textContent?.trim())
+        .filter(Boolean);
+
+    if (fromList.length > 0) {
+        return [...new Set(fromList)];
+    }
+
+    const fromFields = [...doc.querySelectorAll('[data-erp-field-error]')]
+        .map((element) => element.textContent?.trim())
+        .filter(Boolean);
+
+    if (fromFields.length > 0) {
+        return [...new Set(fromFields)];
+    }
+
+    return [];
+}
+
+function showErpFormErrorAlert(messages) {
+    const items = (Array.isArray(messages) ? messages : [messages])
+        .map((message) => String(message ?? '').trim())
+        .filter(Boolean);
+
+    if (items.length === 0) {
+        return;
+    }
+
+    const escapeHtml = (value) => value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+
+    if (items.length === 1) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Unable to save',
+            text: items[0],
+            confirmButtonText: 'OK',
+            heightAuto: false,
+            customClass: {
+                container: 'erp-swal-container',
+            },
+        });
+
+        return;
+    }
+
+    Swal.fire({
+        icon: 'error',
+        title: 'Please fix the following',
+        html: `<ul class="mt-2 list-disc space-y-1 pl-5 text-left text-sm">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`,
+        confirmButtonText: 'OK',
+        heightAuto: false,
+        customClass: {
+            container: 'erp-swal-container',
+        },
+    });
+}
+
 function erpCsrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 }
@@ -132,6 +206,7 @@ function showErpNotificationAlert(notification) {
 }
 
 window.showErpSweetAlert = showErpSweetAlert;
+window.showErpFormErrorAlert = showErpFormErrorAlert;
 window.showErpNotificationAlert = showErpNotificationAlert;
 
 window.Alpine = Alpine;
@@ -542,38 +617,8 @@ const erpModalManager = {
         }
     },
 
-    ensureValidationSummary(panel, doc) {
-        if (! panel || panel.querySelector('[data-erp-validation-errors]')) {
-            return;
-        }
-
-        const errors = [...doc.querySelectorAll('[data-erp-validation-errors] li, [data-erp-field-error] li')]
-            .map((element) => element.textContent?.trim())
-            .filter(Boolean);
-
-        if (errors.length === 0) {
-            return;
-        }
-
-        const alert = document.createElement('div');
-        alert.className = 'erp-alert erp-alert--danger mb-4';
-        alert.setAttribute('role', 'alert');
-        alert.setAttribute('data-erp-validation-errors', '');
-        alert.innerHTML = `
-            <p class="font-medium">Please correct the highlighted fields.</p>
-            <ul class="mt-2 list-disc space-y-1 pl-5">
-                ${errors.map((error) => `<li>${error}</li>`).join('')}
-            </ul>
-        `;
-
-        const body = panel.querySelector('.erp-form-modal__body') ?? panel;
-        const form = body.querySelector('form');
-
-        if (form) {
-            form.prepend(alert);
-        } else {
-            body.prepend(alert);
-        }
+    ensureValidationSummary() {
+        // Validation messages are shown via SweetAlert; field highlighting stays inline.
     },
 
     buildModalPanel(title, bodyHtml) {
@@ -850,6 +895,12 @@ const erpModalManager = {
     },
 
     showToast(message, variant = 'success') {
+        if (variant === 'error' && this.overlay() && ! this.overlay().hidden) {
+            showErpFormErrorAlert([message]);
+
+            return;
+        }
+
         showErpSweetAlert(message, variant);
     },
 
@@ -1148,11 +1199,16 @@ const erpModalManager = {
                             message: payload.message ?? '',
                         });
                     } else {
+                        const errorMessages = Object.values(payload.errors ?? {}).flat().filter(Boolean);
                         const errorMessage = payload.message
-                            ?? Object.values(payload.errors ?? {}).flat()?.[0]
+                            ?? errorMessages[0]
                             ?? `Unable to save form (${response.status}). Please try again.`;
 
-                        this.showToast(errorMessage, 'error');
+                        if (errorMessages.length > 1) {
+                            showErpFormErrorAlert(errorMessages);
+                        } else {
+                            this.showToast(errorMessage, 'error');
+                        }
                     }
 
                     return;
@@ -1293,11 +1349,12 @@ const erpModalManager = {
                     firstInvalid?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
                 }
 
-                const errorMessage = doc.querySelector('[data-erp-validation-errors] li')?.textContent?.trim()
-                    ?? doc.querySelector('[data-erp-validation-errors] p')?.textContent?.trim()
-                    ?? `Unable to save form (${response.status}). Please try again.`;
-
-                this.showToast(errorMessage, 'error');
+                const validationErrors = extractValidationErrorsFromDoc(doc);
+                showErpFormErrorAlert(
+                    validationErrors.length > 0
+                        ? validationErrors
+                        : [`Unable to save form (${response.status}). Please try again.`],
+                );
 
                 return;
             }
@@ -1315,10 +1372,12 @@ const erpModalManager = {
                     this.ensureValidationSummary(panel, doc);
                     this.highlightInvalidFields(panel, doc);
 
-                    const modalError = doc.querySelector('[data-erp-modal-error] p:last-child')?.textContent?.trim()
-                        ?? doc.querySelector('[data-erp-validation-errors] li')?.textContent?.trim();
-
-                    this.showToast(modalError || 'Please correct the highlighted fields.', 'error');
+                    const validationErrors = extractValidationErrorsFromDoc(doc);
+                    showErpFormErrorAlert(
+                        validationErrors.length > 0
+                            ? validationErrors
+                            : ['Unable to save form. Please try again.'],
+                    );
                 }
 
                 return;
@@ -1353,8 +1412,16 @@ const erpModalManager = {
             }
 
             if (this.isDeskShellForm(form)) {
-                const validationMessage = extractValidationMessageFromHtml(html);
-                this.showToast(validationMessage || 'Unable to save form. Please try again.', 'error');
+                const validationErrors = extractValidationErrorsFromDoc(
+                    new DOMParser().parseFromString(html, 'text/html'),
+                );
+                const validationMessage = validationErrors[0] ?? extractValidationMessageFromHtml(html);
+
+                if (validationErrors.length > 1) {
+                    showErpFormErrorAlert(validationErrors);
+                } else {
+                    this.showToast(validationMessage || 'Unable to save form. Please try again.', 'error');
+                }
 
                 return;
             }
@@ -2047,7 +2114,16 @@ const erpLookupManager = {
                 const payload = await response.json();
 
                 if (! response.ok) {
-                    throw new Error(payload.message ?? 'Unable to save record.');
+                    const errorMessages = Object.values(payload.errors ?? {}).flat().filter(Boolean);
+                    const message = payload.message ?? errorMessages[0] ?? 'Unable to save record.';
+
+                    if (errorMessages.length > 1) {
+                        showErpFormErrorAlert(errorMessages);
+                    } else {
+                        showErpFormErrorAlert([message]);
+                    }
+
+                    return;
                 }
 
                 this.handleSuccess(payload);
@@ -2072,7 +2148,7 @@ const erpLookupManager = {
             }
         } catch (error) {
             console.error('erpLookupManager.submitForm', error);
-            erpModalManager.showToast('Unable to save record. Please try again.', 'error');
+            showErpFormErrorAlert([error.message || 'Unable to save record. Please try again.']);
         }
     },
 
@@ -8604,16 +8680,13 @@ function extractValidationMessageFromHtml(html) {
     }
 
     const doc = new DOMParser().parseFromString(html, 'text/html');
-    const items = [...doc.querySelectorAll('[data-erp-validation-errors] li')]
-        .map((item) => item.textContent?.trim())
-        .filter(Boolean);
+    const items = extractValidationErrorsFromDoc(doc);
 
     if (items.length > 0) {
         return items.join('\n');
     }
 
     return doc.querySelector('[data-erp-modal-error] p:last-child')?.textContent?.trim()
-        ?? doc.querySelector('[data-erp-field-error]')?.textContent?.trim()
         ?? '';
 }
 
@@ -8669,7 +8742,28 @@ function promoteFlashAlertsToToast(root = document) {
     promote('[data-erp-flash-error], [data-erp-flash-danger]', 'error');
     promote('[data-erp-flash-warning]', 'warning');
     promote('[data-erp-flash-info]', 'info');
-    promote('[data-erp-validation-errors]', 'error', { preferListItems: true });
+
+    root.querySelectorAll('[data-erp-validation-errors]').forEach((alert) => {
+        const messages = [...alert.querySelectorAll('[data-erp-validation-message]')]
+            .map((item) => item.textContent?.trim())
+            .filter(Boolean);
+
+        const items = messages.length > 0
+            ? messages
+            : [...alert.querySelectorAll('li')]
+                .map((item) => item.textContent?.trim())
+                .filter(Boolean);
+
+        if (items.length > 0) {
+            if (window.erpModalManager?.overlay?.() && ! window.erpModalManager.overlay().hidden) {
+                showErpFormErrorAlert(items);
+            } else {
+                showErpSweetAlert(items.join('\n'), 'error');
+            }
+        }
+
+        alert.remove();
+    });
 }
 
 const FORM_SETTINGS_SCROLL_KEY = 'erp.formSettings.scrollTop';

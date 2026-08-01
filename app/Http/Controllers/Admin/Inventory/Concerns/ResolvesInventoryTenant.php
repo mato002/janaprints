@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Admin\Inventory\Concerns;
 
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
+
 trait ResolvesInventoryTenant
 {
+    use ResolvesEntityCode;
     /**
      * @return array{companyId: int, branchId: int}
      */

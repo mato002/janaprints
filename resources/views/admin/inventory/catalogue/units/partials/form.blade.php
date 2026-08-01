@@ -1,12 +1,11 @@
 @php($m = $unit ?? null)
 <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
     <div>
-        <label class="erp-label">{{ __('Code') }}</label>
-        <input type="text" name="code" class="erp-input w-full" value="{{ old('code', $m?->code) }}" required maxlength="50">
-    </div>
-    <div>
         <label class="erp-label">{{ __('Name') }}</label>
         <input type="text" name="name" class="erp-input w-full" value="{{ old('name', $m?->name) }}" required maxlength="255">
+    </div>
+    <div>
+        <x-admin.entity-code-input :record="$m" erp maxlength="50" />
     </div>
     <div>
         <label class="erp-label">{{ __('Base unit') }}</label>

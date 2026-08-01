@@ -12,7 +12,7 @@
     @if (($fields['code']['visible'] ?? true))
         <div>
             <label class="erp-label">{{ $fields['code']['label'] ?? __('Code') }}</label>
-            <input type="text" name="code" class="erp-input w-full" value="{{ old('code', $book?->code) }}" @required($fields['code']['required'] ?? true) @readonly($fields['code']['read_only'] ?? false)>
+            <input type="text" name="code" class="erp-input w-full" value="{{ old('code', $book?->code) }}" placeholder="{{ filled($book) ? '' : __('Auto-generated') }}" @required(filled($book) && ($fields['code']['required'] ?? true)) @readonly($fields['code']['read_only'] ?? false)>
         </div>
     @endif
     @if (($fields['description']['visible'] ?? true))

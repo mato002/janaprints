@@ -12,6 +12,7 @@ use App\Models\Procurement\RfqVendor;
 use App\Models\Procurement\Vendor;
 use App\Support\Procurement\RFQService;
 use App\Support\Procurement\VendorComparisonService;
+use App\Support\Procurement\ProcurementDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -20,15 +21,11 @@ class RfqController extends Controller
 {
     use ResolvesProcurementTenant, ScopesToTenant;
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', Rfq::class);
 
-        $rfqs = $this->scopeToTenant(
-            Rfq::query()->with(['purchaseRequest', 'awardedVendor'])->latest()
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.procurement.rfqs.index', compact('rfqs'));
+        return redirect()->to(ProcurementDeskViews::deskUrl(ProcurementDeskViews::RFQS, request()->query()));
     }
 
     public function show(Rfq $rfq): View

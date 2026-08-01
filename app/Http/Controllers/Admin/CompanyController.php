@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -21,6 +22,7 @@ class CompanyController extends Controller
 {
     use ExportsTabularIndex;
     use HandlesModalFormResponses;
+    use ResolvesEntityCode;
     use ScopesToTenant;
 
     public function __construct(
@@ -108,9 +110,14 @@ class CompanyController extends Controller
 
     protected function validateCompany(Request $request): array
     {
+        $company = $request->route('company');
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => ['required', 'string', 'max:50', Rule::unique('companies', 'code')->ignore($request->route('company'))],
+            'code' => array_merge(
+                $company ? ['required'] : $this->nullableCodeRules(50),
+                ['string', 'max:50', Rule::unique('companies', 'code')->ignore($company)],
+            ),
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string'],
@@ -121,6 +128,15 @@ class CompanyController extends Controller
             'remove_logo' => ['nullable', 'boolean'],
             'remove_favicon' => ['nullable', 'boolean'],
         ]);
+
+        if (! $company) {
+            $validated['code'] = $this->resolveEntityCode(
+                $request,
+                'name',
+                Company::class,
+                fn ($query) => $query,
+            );
+        }
 
         return Arr::only($validated, [
             'name',

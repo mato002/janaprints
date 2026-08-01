@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -17,6 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DepartmentController extends Controller
 {
     use ExportsTabularIndex;
+    use ResolvesEntityCode;
     use ScopesToTenant;
 
     public function index(): View
@@ -98,20 +100,28 @@ class DepartmentController extends Controller
             ? $request->input('company_id')
             : auth()->user()->company_id;
 
-        return $request->validate([
+        $validated = $request->validate([
             'company_id' => ['required', 'exists:companies,id'],
             'name' => ['required', 'string', 'max:255'],
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('departments', 'code')
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('departments', 'code')
                     ->where('company_id', $companyId)
-                    ->ignore($department?->id),
-            ],
+                    ->ignore($department?->id)],
+            ),
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            Department::class,
+            (int) $companyId,
+            $department?->id,
+        );
+
+        return $validated;
     }
 
     protected function companies()

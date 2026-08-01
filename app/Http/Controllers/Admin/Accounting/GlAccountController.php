@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Accounting;
 use App\Enums\GlAccountStatus;
 use App\Enums\NormalBalance;
 use App\Http\Controllers\Admin\Accounting\Concerns\ResolvesAccountingTenant;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Accounting\GlAccount;
@@ -20,7 +21,9 @@ use Illuminate\View\View;
 
 class GlAccountController extends Controller
 {
-    use ResolvesAccountingTenant, ScopesToTenant;
+    use ResolvesAccountingTenant;
+    use ResolvesEntityCode;
+    use ScopesToTenant;
 
     public function __construct(
         protected ChartOfAccountsService $chartOfAccounts,
@@ -185,7 +188,7 @@ class GlAccountController extends Controller
     {
         $branchId = $request->input('branch_id');
 
-        return $request->validate([
+        $validated = $request->validate([
             'gl_account_type_id' => ['required', 'exists:gl_account_types,id'],
             'gl_account_group_id' => ['nullable', 'exists:gl_account_groups,id'],
             'parent_id' => ['nullable', 'exists:gl_accounts,id'],
@@ -194,12 +197,10 @@ class GlAccountController extends Controller
                 'integer',
                 Rule::exists('branches', 'id')->where('company_id', $companyId),
             ],
-            'code' => [
-                'required',
-                'string',
-                'max:20',
-                'regex:/^[0-9A-Za-z\-\.]+$/',
-            ],
+            'code' => array_merge(
+                $this->nullableCodeRules(20),
+                ['regex:/^[0-9A-Za-z\-\.]+$/'],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'normal_balance' => ['nullable', Rule::enum(NormalBalance::class)],
@@ -207,5 +208,22 @@ class GlAccountController extends Controller
             'is_postable' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
         ]);
+
+        $validated['code'] = $this->resolveEntityCode(
+            $request,
+            'name',
+            GlAccount::class,
+            function ($query) use ($companyId, $branchId): void {
+                $query->where('company_id', $companyId);
+
+                if ($branchId) {
+                    $query->where('branch_id', $branchId);
+                }
+            },
+            $account?->id,
+            20,
+        );
+
+        return $validated;
     }
 }

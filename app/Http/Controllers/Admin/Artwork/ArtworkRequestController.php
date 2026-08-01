@@ -20,6 +20,7 @@ use App\Enums\WorkflowRuleTrigger;
 use App\Support\Artwork\DesignerOperatorMode;
 use App\Support\Artwork\ReturnsToDesignerDesk;
 use App\Support\Sales\ReturnsToSalesDesk;
+use App\Support\Sales\SalesDeskViews;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
@@ -45,11 +46,7 @@ class ArtworkRequestController extends Controller
             return redirect()->to(DesignerOperatorMode::homeUrl());
         }
 
-        $requests = $this->scopeToTenant(
-            ArtworkRequest::query()->with(['customer', 'branch', 'requester', 'assignedDesigner'])
-        )->latest()->paginate(15);
-
-        return view('admin.artwork.requests.index', compact('requests'));
+        return redirect()->to(SalesDeskViews::deskUrl(SalesDeskViews::ARTWORK, $request->query()));
     }
 
     public function create(Request $request): View

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Inventory;
 
 use App\Enums\InventoryVarianceReasonCategory;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryVarianceReasonCode;
@@ -14,6 +15,7 @@ use Illuminate\View\View;
 
 class InventoryVarianceReasonCodeController extends Controller
 {
+    use ResolvesEntityCode;
     use ResolvesInventoryTenant, ScopesToTenant;
 
     public function index(Request $request): View
@@ -105,17 +107,30 @@ class InventoryVarianceReasonCodeController extends Controller
      */
     protected function validated(Request $request, int $companyId, ?InventoryVarianceReasonCode $existing = null): array
     {
-        return $request->validate([
-            'code' => [
-                'required', 'string', 'max:50',
-                Rule::unique('inventory_variance_reason_codes', 'code')
-                    ->where('company_id', $companyId)
-                    ->ignore($existing?->id),
-            ],
+        $validated = $request->validate([
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [
+                    Rule::unique('inventory_variance_reason_codes', 'code')
+                        ->where('company_id', $companyId)
+                        ->ignore($existing?->id),
+                ],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'category' => ['required', Rule::enum(InventoryVarianceReasonCategory::class)],
             'requires_comment' => ['boolean'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            InventoryVarianceReasonCode::class,
+            $companyId,
+            $existing?->id,
+            50,
+        );
+
+        return $validated;
     }
 }

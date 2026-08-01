@@ -31,12 +31,14 @@ class ModalFormExceptionRenderer
         $errorBag = new ViewErrorBag;
         $errorBag->put('default', $exception->validator->errors());
 
+        $flatErrors = collect($exception->errors())->flatten()->filter()->values();
+
         // Nested app()->handle() runs in the same PHP request. flash() is only
         // readable on the next cycle, so use now() + View::share for the sub-render.
         $request->session()->now('errors', $errorBag);
         $request->session()->now('_old_input', $request->except(['_token', '_method']));
         $request->session()->now('form_error_presentation', $presentation);
-        $request->session()->now('modal_error', $presentation['message']);
+        $request->session()->now('modal_error', (string) ($flatErrors->first() ?? $presentation['message']));
         View::share('errors', $errorBag);
 
         $subRequest = Request::create($returnUrl, 'GET');

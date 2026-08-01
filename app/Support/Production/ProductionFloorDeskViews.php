@@ -30,6 +30,11 @@ final class ProductionFloorDeskViews
         return in_array($view, self::all(), true) ? $view : self::FLOOR;
     }
 
+    public static function isPanelView(?string $view): bool
+    {
+        return self::normalize($view) !== self::FLOOR;
+    }
+
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>

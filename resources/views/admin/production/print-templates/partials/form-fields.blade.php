@@ -8,7 +8,7 @@
         <h3 class="mb-4 font-medium">{{ __('General') }}</h3>
         <div class="space-y-3">
             <div class="grid grid-cols-2 gap-3">
-                <div><label class="erp-label">{{ __('Code') }}</label><input type="text" name="code" value="{{ $value('code') }}" class="erp-input w-full" required></div>
+                <div><x-admin.entity-code-input :record="$template" erp maxlength="40" /></div>
                 <div><label class="erp-label">{{ __('Name') }}</label><input type="text" name="name" value="{{ $value('name') }}" class="erp-input w-full" required></div>
             </div>
             <div class="grid grid-cols-2 gap-3">

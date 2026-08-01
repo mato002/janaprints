@@ -1,7 +1,7 @@
 @php($m = $category ?? null)
 <div class="erp-form-grid">
-    <div><label class="erp-label">{{ __('Code') }}</label><input name="code" class="erp-input w-full" value="{{ old('code', $m?->code) }}" required></div>
     <div><label class="erp-label">{{ __('Name') }}</label><input name="name" class="erp-input w-full" value="{{ old('name', $m?->name) }}" required></div>
+    <x-admin.entity-code-input :record="$m" erp />
     <div>
         <label class="erp-label">{{ __('Default UOM') }}</label>
         <select name="default_uom_id" class="erp-select w-full">

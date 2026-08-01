@@ -26,7 +26,7 @@ class PrintProductTemplateService
 
         return [
             'code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:40',
                 Rule::unique('print_product_templates', 'code')
@@ -103,11 +103,16 @@ class PrintProductTemplateService
      */
     public function create(int $companyId, int $branchId, User $user, array $data): PrintProductTemplate
     {
+        $rawCode = Arr::get($data, 'code');
+        $code = filled($rawCode)
+            ? Str::upper(Str::slug($rawCode, ''))
+            : $this->uniqueCode((string) Arr::get($data, 'name', 'TEMPLATE'), $companyId);
+
         return PrintProductTemplate::query()->create([
             ...$this->normalizePayload($data),
             'company_id' => $companyId,
             'branch_id' => $branchId,
-            'code' => Str::upper(Str::slug(Arr::get($data, 'code', ''), '')),
+            'code' => $code,
             'is_active' => Arr::get($data, 'is_active', true),
             'created_by' => $user->id,
             'updated_by' => $user->id,

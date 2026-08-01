@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
@@ -17,6 +18,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class BranchController extends Controller
 {
     use ExportsTabularIndex;
+    use ResolvesEntityCode;
     use ScopesToTenant;
 
     public function index(): View
@@ -98,23 +100,31 @@ class BranchController extends Controller
             ? $request->input('company_id')
             : auth()->user()->company_id;
 
-        return $request->validate([
+        $validated = $request->validate([
             'company_id' => ['required', 'exists:companies,id'],
             'name' => ['required', 'string', 'max:255'],
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('branches', 'code')
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('branches', 'code')
                     ->where('company_id', $companyId)
-                    ->ignore($branch?->id),
-            ],
+                    ->ignore($branch?->id)],
+            ),
             'email' => ['nullable', 'email'],
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string'],
             'is_head_office' => ['boolean'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            Branch::class,
+            (int) $companyId,
+            $branch?->id,
+        );
+
+        return $validated;
     }
 
     protected function companies()

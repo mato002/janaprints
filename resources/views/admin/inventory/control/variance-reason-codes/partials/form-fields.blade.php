@@ -1,5 +1,5 @@
 @php($m = $code ?? null)
-<div><label class="erp-label">{{ __('Code') }}</label><input name="code" class="erp-input w-full" value="{{ old('code', $m?->code) }}" required maxlength="50"></div>
+<div><x-admin.entity-code-input :record="$m" erp maxlength="50" /></div>
 <div><label class="erp-label">{{ __('Name') }}</label><input name="name" class="erp-input w-full" value="{{ old('name', $m?->name) }}" required maxlength="255"></div>
 <div>
     <label class="erp-label">{{ __('Category') }}</label>

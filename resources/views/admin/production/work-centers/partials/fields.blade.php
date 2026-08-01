@@ -6,8 +6,7 @@
         @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
     <div>
-        <label class="erp-label" for="code">{{ __('Code') }}</label>
-        <input id="code" name="code" class="erp-input w-full font-mono uppercase" value="{{ old('code', $wc?->code) }}" required maxlength="30">
+        <x-admin.entity-code-input :record="$wc" erp maxlength="30" />
         @error('code')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
     <div class="md:col-span-2">

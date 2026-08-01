@@ -11,10 +11,12 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Tests\Feature\Commercial\Concerns\GetsEmbeddedWorkspaceReports;
 use Tests\TestCase;
 
 class CommercialCustomerReportTest extends TestCase
 {
+    use GetsEmbeddedWorkspaceReports;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -29,8 +31,7 @@ class CommercialCustomerReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.customers.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.customers.index')
             ->assertForbidden();
     }
 
@@ -40,8 +41,7 @@ class CommercialCustomerReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.customers.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.customers.index')
             ->assertOk()
             ->assertSee(__('Customer Reports'), false)
             ->assertSee(__('Total Customers'), false)
@@ -69,11 +69,10 @@ class CommercialCustomerReportTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.customers.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.customers.index')
             ->assertOk()
             ->assertSee(__('Total Customers'), false)
-            ->assertSee(__('Top Customer Revenue'), false)
+            ->assertSee(__('Average Customer Value'), false)
             ->assertSee('18,000', false);
     }
 
@@ -83,15 +82,14 @@ class CommercialCustomerReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.customers.index', [
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.customers.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
                 'tab' => 'growth',
                 'search' => 'ACME',
                 'activity_status' => 'active',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('value="2026-01-01"', false)
             ->assertSee('value="2026-01-31"', false)
@@ -140,11 +138,10 @@ class CommercialCustomerReportTest extends TestCase
             'company_name' => 'Enum Test Customer',
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.customers.index', [
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.customers.index', [
                 'tab' => 'active',
                 'embedded' => '1',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('Enum Test Customer', false)
             ->assertSee('Corporate', false);

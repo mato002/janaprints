@@ -3,7 +3,7 @@
         <h3 class="mb-3 font-semibold text-erp-primary">{{ __('New leave type') }}</h3>
         <form method="POST" action="{{ route('admin.hr.leave.config.types.store') }}" class="grid gap-3 md:grid-cols-4">
             @csrf
-            <input type="text" name="code" class="erp-input" placeholder="{{ __('Code') }}" required>
+            <input type="text" name="code" class="erp-input" placeholder="{{ __('Auto-generated') }}">
             <input type="text" name="name" class="erp-input" placeholder="{{ __('Name') }}" required>
             <select name="unit" class="erp-input">
                 @foreach ($units as $unit)

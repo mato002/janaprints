@@ -3,21 +3,28 @@
 namespace App\Support\Sales;
 
 use App\Enums\ProductionPriority;
+use App\Models\Artwork\ArtworkRequest;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
+use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
+use App\Support\Commercial\CommercialApprovalQueueService;
 use App\Support\Crm\CustomerPrintSpecificationService;
 use App\Support\Lookup\LookupOptionService;
+use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use Illuminate\Http\Request;
 
 class SalesDeskPageBuilder
 {
+    use ScopesToTenant;
+
     public function __construct(
         protected SalesDeskService $desk,
         protected CustomerPrintSpecificationService $printSpecifications,
         protected SalesDeskWorkQueueService $workQueue,
         protected LookupOptionService $lookups,
         protected SalesDeskWalkInPanelPresenter $walkInPanel,
+        protected CommercialApprovalQueueService $approvalQueue,
     ) {}
 
     /**
@@ -26,7 +33,39 @@ class SalesDeskPageBuilder
     public function build(Request $request): array
     {
         $user = $request->user();
+        $activeView = SalesDeskViews::normalize($request->query('view'));
 
+        if (SalesDeskViews::isPanelView($activeView)) {
+            return array_merge(
+                $this->basePayload($request, $user, $activeView),
+                $this->panelPayload($activeView, $request),
+            );
+        }
+
+        return $this->walkInPayload($request, $user);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function basePayload(Request $request, $user, string $activeView): array
+    {
+        return [
+            'operatorMode' => SalesOperatorMode::enabledFor($user),
+            'activeSalesView' => $activeView,
+            'searchUrl' => route('admin.sales.desk.customers.search'),
+            'fullCommercialDeskUrl' => route('admin.workspaces.commercial.section', [
+                'section' => 'sales',
+                'tab' => 'sales-desk',
+            ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function walkInPayload(Request $request, $user): array
+    {
         $step = max(1, min(5, (int) $request->query('step', 1)));
         $customer = $this->resolveCustomer($request);
         $specification = $this->resolveSpecification($request, $customer);
@@ -56,6 +95,7 @@ class SalesDeskPageBuilder
 
         return [
             'operatorMode' => SalesOperatorMode::enabledFor($user),
+            'activeSalesView' => SalesDeskViews::DESK,
             'step' => $step,
             'customer' => $customer,
             'specification' => $specification,
@@ -82,9 +122,59 @@ class SalesDeskPageBuilder
             'inventoryItemOptions' => $inventoryItemOptions,
             'fullCommercialDeskUrl' => route('admin.workspaces.commercial.section', [
                 'section' => 'sales',
-                'tab' => 'quotations',
-                'desk' => 1,
+                'tab' => 'sales-desk',
             ]),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function panelPayload(string $view, Request $request): array
+    {
+        return match ($view) {
+            SalesDeskViews::QUOTES => [
+                'registerTitle' => __('Quotations'),
+                'quotations' => $this->scopeToTenant(
+                    Quotation::query()->with(['customer', 'branch', 'preparer'])
+                )->latest('quotation_date')->paginate(15)->withQueryString(),
+            ],
+            SalesDeskViews::ORDERS => [
+                'registerTitle' => __('Sales orders'),
+                'orders' => $this->scopeToTenant(
+                    SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator'])
+                )->latest('order_date')->paginate(15)->withQueryString(),
+            ],
+            SalesDeskViews::ARTWORK => [
+                'registerTitle' => __('Artwork requests'),
+                'requests' => $this->scopeToTenant(
+                    ArtworkRequest::query()->with(['customer', 'branch', 'requester', 'assignedDesigner'])
+                )->latest()->paginate(15)->withQueryString(),
+            ],
+            SalesDeskViews::APPROVALS => $this->approvalsPayload($request),
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function approvalsPayload(Request $request): array
+    {
+        abort_unless($request->user()?->can('commercial.approvals.view'), 403);
+
+        $companyId = tenant()->companyId() ?? $request->user()?->company_id;
+        $branchId = tenant()->branchId() ?? $request->user()?->default_branch_id;
+
+        return [
+            'registerTitle' => __('Commercial approvals'),
+            'registerDescription' => __('Pending quotations, sales orders, and artwork submissions.'),
+            'sections' => $this->approvalQueue->present($companyId, $branchId),
+            'canAction' => $request->user()->can('commercial.approvals.action'),
+            'canApproveQuotations' => $request->user()->can('quotations.approve'),
+            'canRejectQuotations' => $request->user()->can('quotations.edit'),
+            'canConfirmOrders' => $request->user()->can('sales_orders.confirm'),
+            'canApproveArtwork' => $request->user()->can('artwork.approve'),
         ];
     }
 

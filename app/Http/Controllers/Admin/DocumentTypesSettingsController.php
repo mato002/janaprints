@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\DocumentModule;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Admin\Concerns\PreservesWorkspaceEmbed;
 use App\Http\Controllers\Controller;
@@ -19,6 +20,7 @@ use InvalidArgumentException;
 class DocumentTypesSettingsController extends Controller
 {
     use PreservesWorkspaceEmbed;
+    use ResolvesEntityCode;
     use ResolvesSettingsScope;
 
     public function __construct(
@@ -63,6 +65,17 @@ class DocumentTypesSettingsController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->resolveSettingsScope($request);
         $validated = $this->validatePayload($request);
 
+        if (blank($validated['code'] ?? null)) {
+            $validated['code'] = $this->resolveEntityCode(
+                $request,
+                'name',
+                DocumentTypeDefinition::class,
+                fn ($query) => $query->where('company_id', $companyId)->where('branch_id', $branchId),
+                null,
+                50,
+            );
+        }
+
         try {
             $definition = $this->manager->create($companyId, $branchId, $validated);
         } catch (InvalidArgumentException $exception) {
@@ -102,6 +115,19 @@ class DocumentTypesSettingsController extends Controller
         $this->assertScope($request, $documentTypeDefinition);
 
         $validated = $this->validatePayload($request, $documentTypeDefinition);
+
+        if (! $documentTypeDefinition->is_system && blank($validated['code'] ?? null)) {
+            ['companyId' => $companyId, 'branchId' => $branchId] = $this->resolveSettingsScope($request);
+            $validated['code'] = $this->resolveEntityCode(
+                $request,
+                'name',
+                DocumentTypeDefinition::class,
+                fn ($query) => $query->where('company_id', $companyId)->where('branch_id', $branchId),
+                $documentTypeDefinition->id,
+                50,
+            );
+        }
+
         $before = $documentTypeDefinition->only([
             'code', 'name', 'module', 'prefix', 'number_series_key',
             'approval_required', 'approval_levels', 'approval_rule_type',
@@ -196,12 +222,10 @@ class DocumentTypesSettingsController extends Controller
         $moduleValues = array_map(fn (DocumentModule $module) => $module->value, DocumentModule::cases());
 
         return $request->validate([
-            'code' => [
-                $documentType?->is_system ? 'nullable' : 'required',
-                'string',
-                'max:50',
-                'alpha_dash',
-            ],
+            'code' => array_merge(
+                $documentType?->is_system ? ['nullable'] : $this->nullableCodeRules(50),
+                ['string', 'max:50', 'alpha_dash'],
+            ),
             'name' => ['required', 'string', 'max:120'],
             'module' => ['required', Rule::in($moduleValues)],
             'prefix' => ['nullable', 'string', 'max:20'],

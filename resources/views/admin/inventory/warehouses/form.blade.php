@@ -12,13 +12,7 @@
     @endif
 
     @if (($fields['code']['visible'] ?? true))
-        <x-admin.input
-            name="code"
-            :label="$fields['code']['label'] ?? __('Warehouse code')"
-            :value="old('code', $warehouse?->code)"
-            :required="($fields['code']['required'] ?? true)"
-            :readonly="($fields['code']['read_only'] ?? false)"
-        />
+        <x-admin.entity-code-input :record="$warehouse" erp maxlength="50" />
     @endif
 
     @if (($fields['branch_id']['visible'] ?? false))

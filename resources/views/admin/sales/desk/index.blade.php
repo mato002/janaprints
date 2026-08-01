@@ -1,6 +1,10 @@
 @php
     use App\Support\Navigation\WorkspaceEmbed;
+    use App\Support\Sales\SalesDeskViews;
 
+    $activeSalesView = SalesDeskViews::normalize($activeSalesView ?? request('view'));
+    $isPanel = SalesDeskViews::isPanelView($activeSalesView);
+    $deskTitle = $isPanel ? ($registerTitle ?? __('Sales Desk')) : __('Sales Desk');
     $stepLabels = [
         1 => __('Customer'),
         2 => __('Specification'),
@@ -17,7 +21,7 @@
 @endphp
 
 <x-admin-layout
-    :title="__('Sales Desk')"
+    :title="$deskTitle"
     :breadcrumbs="$operatorMode
         ? [['label' => __('Sales Desk')]]
         : [
@@ -27,13 +31,20 @@
 >
     <div
         class="sales-desk-shell min-w-0 max-w-full"
+        @unless ($isPanel)
         x-data="salesDeskSearch(@js([
             'searchUrl' => $searchUrl,
             'deskUrl' => route('admin.sales.desk'),
         ]))"
+        @endunless
     >
-        @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => \App\Support\Sales\SalesDeskViews::DESK])
+        @unless (WorkspaceEmbed::inWorkspaceContext())
+            @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => $activeSalesView])
+        @endunless
 
+        @if ($isPanel)
+            @include('admin.sales.desk.partials.register-panel')
+        @else
         <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-sm font-semibold text-erp-primary">{{ __('Sales desk') }}</p>
@@ -588,5 +599,6 @@
         </div>
 
         @include('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue])
+        @endif
     </div>
 </x-admin-layout>

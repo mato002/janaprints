@@ -7,10 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Governance\ApprovalChainRun;
 use App\Support\Procurement\ProcurementApprovalActionService;
 use App\Support\Procurement\ProcurementApprovalQueueService;
+use App\Support\Procurement\ProcurementDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
 
 class ProcurementApprovalQueueController extends Controller
 {
@@ -21,15 +21,11 @@ class ProcurementApprovalQueueController extends Controller
         protected ProcurementApprovalActionService $actions,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         abort_unless($request->user()?->can('procurement.approvals.view'), 403);
 
-        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
-
-        return view('admin.procurement.approvals.index', [
-            'sections' => $this->queue->present($companyId, $branchId, $request->user()),
-        ]);
+        return redirect()->to(ProcurementDeskViews::deskUrl(ProcurementDeskViews::APPROVALS, $request->query()));
     }
 
     public function approve(Request $request, ApprovalChainRun $run): RedirectResponse

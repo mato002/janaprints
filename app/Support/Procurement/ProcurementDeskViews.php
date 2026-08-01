@@ -44,19 +44,22 @@ final class ProcurementDeskViews
         return in_array($view, self::all(), true) ? $view : self::DESK;
     }
 
+    public static function isPanelView(?string $view): bool
+    {
+        return self::normalize($view) !== self::DESK;
+    }
+
     /**
      * @param  array<string, mixed>  $query
      */
     public static function deskUrl(string $view = self::DESK, array $query = []): string
     {
-        return match (self::normalize($view)) {
-            self::REQUESTS => route('admin.procurement.requests.index', $query),
-            self::SUPPLIERS => route('admin.procurement.vendors.index', $query),
-            self::RFQS => route('admin.procurement.rfqs.index', $query),
-            self::ORDERS => route('admin.procurement.orders.index', $query),
-            self::RECEIPTS => route('admin.procurement.receipts.index', $query),
-            self::APPROVALS => route('admin.procurement.approvals.index', $query),
-            default => route('admin.procurement.desk', $query),
-        };
+        $view = self::normalize($view);
+
+        if ($view === self::DESK) {
+            return route('admin.procurement.desk', $query);
+        }
+
+        return route('admin.procurement.desk', array_merge($query, ['view' => $view]));
     }
 }

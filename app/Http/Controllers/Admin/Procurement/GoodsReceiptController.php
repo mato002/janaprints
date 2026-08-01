@@ -11,6 +11,7 @@ use App\Models\Inventory\Warehouse;
 use App\Models\Procurement\GoodsReceipt;
 use App\Models\Procurement\PurchaseOrder;
 use App\Support\Procurement\GoodsReceiptService;
+use App\Support\Procurement\ProcurementDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -21,15 +22,11 @@ class GoodsReceiptController extends Controller
 {
     use ResolvesProcurementTenant, ScopesToTenant;
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', GoodsReceipt::class);
 
-        $receipts = $this->scopeToTenant(
-            GoodsReceipt::query()->with(['purchaseOrder.vendor', 'receiver'])->latest('receipt_date')
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.procurement.receipts.index', compact('receipts'));
+        return redirect()->to(ProcurementDeskViews::deskUrl(ProcurementDeskViews::RECEIPTS, request()->query()));
     }
 
     public function create(PurchaseOrder $order): View

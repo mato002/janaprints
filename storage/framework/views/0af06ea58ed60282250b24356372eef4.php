@@ -70,65 +70,7 @@ unset($__defined_vars, $__key, $__value); ?>
 <?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
 <?php endif; ?>
 <?php elseif(($tab_data['type'] ?? '') === 'summary'): ?>
-    <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926 = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.card','data' => ['class' => 'mb-6']] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.card'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['class' => 'mb-6']); ?>
-        <h2 class="mb-4 text-sm font-semibold text-erp-primary"><?php echo e(__('Quotation Summary')); ?></h2>
-        <?php $m = $tab_data['metrics'] ?? []; ?>
-        <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Quotes Issued')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($m['issued'] ?? 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Quotes Accepted')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($m['accepted'] ?? 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Total Quote Value')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e('KES '.number_format($m['total_value'] ?? 0, 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Conversion %')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(($m['conversion'] ?? 0).'%'); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Open Quotes')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($m['open'] ?? 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Quotes Rejected')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($m['rejected'] ?? 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Quotes Expired')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary"><?php echo e(number_format($m['expired'] ?? 0)); ?></p>
-            </div>
-            <div>
-                <p class="text-[11px] uppercase tracking-wide text-slate-500"><?php echo e(__('Avg Approval Time')); ?></p>
-                <p class="text-xl font-bold tabular-nums text-erp-primary">
-                    <?php echo e(isset($m['avg_approval_hours']) && $m['avg_approval_hours'] !== null ? $m['avg_approval_hours'].' '.__('hrs') : '—'); ?>
-
-                </p>
-            </div>
-        </div>
-     <?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $attributes = $__attributesOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__attributesOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926)): ?>
-<?php $component = $__componentOriginalad5130b5347ab6ecc017d2f5a278b926; ?>
-<?php unset($__componentOriginalad5130b5347ab6ecc017d2f5a278b926); ?>
-<?php endif; ?>
+    <?php echo $__env->make('admin.commercial.reports.partials.summary-tables', ['tables' => $tab_data['tables'] ?? []], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 <?php elseif(($tab_data['type'] ?? '') === 'win_rate'): ?>
     <?php $win = $tab_data['data'] ?? []; ?>
     <?php if (isset($component)) { $__componentOriginalad5130b5347ab6ecc017d2f5a278b926 = $component; } ?>

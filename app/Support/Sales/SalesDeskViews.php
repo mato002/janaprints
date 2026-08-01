@@ -32,24 +32,9 @@ final class SalesDeskViews
         return in_array($view, self::all(), true) ? $view : self::DESK;
     }
 
-    /**
-     * @param  array<string, mixed>  $query
-     * @return array<string, mixed>
-     */
-    public static function deskQuery(string $view = self::DESK, array $query = []): array
+    public static function isPanelView(?string $view): bool
     {
-        unset($query['view']);
-
-        $params = array_merge($query, ['view' => self::normalize($view)]);
-
-        if (($params['view'] ?? self::DESK) === self::DESK) {
-            unset($params['view']);
-        }
-
-        return array_filter(
-            $params,
-            fn ($value) => $value !== null && $value !== '',
-        );
+        return self::normalize($view) !== self::DESK;
     }
 
     /**
@@ -57,15 +42,13 @@ final class SalesDeskViews
      */
     public static function deskUrl(string $view = self::DESK, array $query = []): string
     {
-        unset($query['view']);
+        $view = self::normalize($view);
 
-        return match (self::normalize($view)) {
-            self::QUOTES => route('admin.quotations.index', $query),
-            self::ORDERS => route('admin.sales-orders.index', $query),
-            self::ARTWORK => route('admin.artwork.index', $query),
-            self::APPROVALS => route('admin.commercial.approvals.index', $query),
-            default => route('admin.sales.desk', $query),
-        };
+        if ($view === self::DESK) {
+            return route('admin.sales.desk', $query);
+        }
+
+        return route('admin.sales.desk', array_merge($query, ['view' => $view]));
     }
 
     public static function quotesUrl(array $query = []): string

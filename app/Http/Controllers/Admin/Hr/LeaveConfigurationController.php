@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Hr;
 
 use App\Enums\LeaveAccrualFrequency;
 use App\Enums\LeaveUnit;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\LeaveAccrualRule;
 use App\Models\Hr\LeaveCarryForwardRule;
@@ -18,6 +19,8 @@ use Illuminate\View\View;
 
 class LeaveConfigurationController extends Controller
 {
+    use ResolvesEntityCode;
+
     public function __construct(
         protected LeaveConfigurationService $config,
     ) {}
@@ -154,11 +157,11 @@ class LeaveConfigurationController extends Controller
      */
     protected function validateLeaveType(Request $request, int $companyId, ?int $ignoreId = null): array
     {
-        return $request->validate([
-            'code' => [
-                'required', 'string', 'max:30',
-                Rule::unique('leave_types', 'code')->where('company_id', $companyId)->ignore($ignoreId),
-            ],
+        $validated = $request->validate([
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [Rule::unique('leave_types', 'code')->where('company_id', $companyId)->ignore($ignoreId)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'unit' => ['required', Rule::enum(LeaveUnit::class)],
             'is_paid' => ['boolean'],
@@ -170,6 +173,17 @@ class LeaveConfigurationController extends Controller
             'is_active' => ['boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            LeaveType::class,
+            $companyId,
+            $ignoreId,
+            30,
+        );
+
+        return $validated;
     }
 
     /**
@@ -192,12 +206,12 @@ class LeaveConfigurationController extends Controller
      */
     protected function validatePolicy(Request $request, int $companyId, ?int $ignoreId = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'leave_type_id' => ['required', Rule::exists('leave_types', 'id')->where('company_id', $companyId)],
-            'code' => [
-                'required', 'string', 'max:30',
-                Rule::unique('leave_policies', 'code')->where('company_id', $companyId)->ignore($ignoreId),
-            ],
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [Rule::unique('leave_policies', 'code')->where('company_id', $companyId)->ignore($ignoreId)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'min_notice_days' => ['nullable', 'integer', 'min:0'],
@@ -205,6 +219,17 @@ class LeaveConfigurationController extends Controller
             'requires_documentation' => ['boolean'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            LeavePolicy::class,
+            $companyId,
+            $ignoreId,
+            30,
+        );
+
+        return $validated;
     }
 
     /**

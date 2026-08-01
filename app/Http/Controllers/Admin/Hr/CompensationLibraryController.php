@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Hr;
 use App\Enums\PayrollComponentCalculationType;
 use App\Enums\PayrollComponentFrequency;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\CompensationAllowanceDefinition;
 use App\Models\Hr\CompensationDeductionDefinition;
@@ -19,6 +20,7 @@ use Illuminate\View\View;
 class CompensationLibraryController extends Controller
 {
     use HandlesModalFormResponses;
+    use ResolvesEntityCode;
 
     public function __construct(
         protected CompensationComponentService $components,
@@ -125,13 +127,15 @@ class CompensationLibraryController extends Controller
      */
     protected function validateDefinition(Request $request, int $companyId, string $table, ?int $ignoreId = null): array
     {
-        return $request->validate([
-            'code' => [
-                'required',
-                'string',
-                'max:30',
-                Rule::unique($table, 'code')->where('company_id', $companyId)->ignore($ignoreId),
-            ],
+        $modelClass = $table === 'compensation_allowance_definitions'
+            ? CompensationAllowanceDefinition::class
+            : CompensationDeductionDefinition::class;
+
+        $validated = $request->validate([
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [Rule::unique($table, 'code')->where('company_id', $companyId)->ignore($ignoreId)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'calculation_type' => ['required', Rule::enum(PayrollComponentCalculationType::class)],
             'frequency' => ['required', Rule::enum(PayrollComponentFrequency::class)],
@@ -139,5 +143,16 @@ class CompensationLibraryController extends Controller
             'percentage_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            $modelClass,
+            $companyId,
+            $ignoreId,
+            30,
+        );
+
+        return $validated;
     }
 }

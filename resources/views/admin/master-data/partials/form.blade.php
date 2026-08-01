@@ -16,7 +16,7 @@
         @unless ($value)
             <div>
                 <label class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Code') }}</label>
-                <input type="text" name="code" value="{{ old('code') }}" class="erp-input mt-1 w-full" required maxlength="80" />
+                <input type="text" name="code" value="{{ old('code') }}" class="erp-input mt-1 w-full" placeholder="{{ __('Auto-generated') }}" maxlength="80" />
             </div>
         @endunless
     @endif

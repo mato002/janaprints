@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Navigation\DeskWorkspaceRoutes;
 use App\Support\Navigation\ModuleShellPresenter;
 use App\Support\Operator\OperatorModeKey;
 use App\Support\Operator\OperatorModeRegistry;
@@ -25,8 +26,6 @@ class RedirectToModuleWorkspaceShell
             return $next($request);
         }
 
-        // Only turbo-frame fetches (and lookup create) may render bare embedded content.
-        // A full-page load/refresh with ?embedded=1 must restore the module workspace desk.
         if (
             $request->header('Turbo-Frame') === 'module-workspace-content'
             || $request->header('X-Erp-Lookup-Create') === '1'
@@ -37,49 +36,12 @@ class RedirectToModuleWorkspaceShell
 
         $routeName = $request->route()?->getName();
 
-        if (! $routeName || $this->isDetailRoute($routeName) || $this->isWorkspaceShellRoute($routeName) || $this->isStandaloneAdminRoute($routeName)) {
+        if (! $routeName || $this->isDetailRoute($routeName) || $this->isWorkspaceShellRoute($routeName)) {
             return $next($request);
         }
 
-        $user = $request->user();
-
-        // Standalone operator desks (Designer, Sales, Store) render outside the module
-        // workspace shell for all users. Production floor stays embedded in the Production
-        // workspace for managers — see ProductionOperatorModeTest.
-        foreach (OperatorModeRegistry::modes() as $mode) {
-            if ($mode->key === OperatorModeKey::Production) {
-                continue;
-            }
-
-            if ($mode->matchesDeskRoute($routeName)) {
-                return $next($request);
-            }
-        }
-
-        foreach (OperatorModeRegistry::modes() as $mode) {
-            if (
-                $mode->key === OperatorModeKey::Production
-                && $mode->matchesDeskRoute($routeName)
-                && (
-                    OperatorModeRegistry::enabledFor($user, $mode->key)
-                    || $request->boolean('desk')
-                )
-            ) {
-                return $next($request);
-            }
-        }
-
-        // Artwork list/dashboard routes belong to Commercial for managers — designers must stay on their desk.
-        if (
-            $user !== null
-            && OperatorModeRegistry::enabledFor($user, OperatorModeKey::Designer)
-            && OperatorModeRegistry::definition(OperatorModeKey::Designer)->isArtworkFeatureRoute($routeName)
-        ) {
-            if ($request->hasSession()) {
-                $request->session()->reflash();
-            }
-
-            return redirect()->to(OperatorModeRegistry::homeUrl(OperatorModeKey::Designer));
+        if (DeskWorkspaceRoutes::allowsStandalone($routeName, $request)) {
+            return $next($request);
         }
 
         $deskUrl = $this->shell->deskUrlForFeatureRoute(
@@ -93,7 +55,7 @@ class RedirectToModuleWorkspaceShell
 
         $query = $request->query();
 
-        unset($query['embedded']);
+        unset($query['embedded'], $query['desk']);
 
         $existing = [];
 
@@ -104,49 +66,15 @@ class RedirectToModuleWorkspaceShell
 
         $merged = array_merge($existing, $query);
 
-        // Operator modes bounce from multi-tab desks unless ?desk=1 is set.
-        // Preserve that escape hatch when we wrap feature index routes into a desk.
-        if ($this->operatorNeedsDeskEscapeFlag($request)) {
-            $merged['desk'] = 1;
-        }
-
         if ($merged !== []) {
             $deskUrl .= '?'.http_build_query($merged);
         }
 
-        // The feature GET that should display flash is redirected to the desk shell.
-        // Reflash so SweetAlert markers survive the extra hop.
         if ($request->hasSession()) {
             $request->session()->reflash();
         }
 
         return redirect()->to($deskUrl);
-    }
-
-    /**
-     * Operators are redirected away from workspace hubs unless desk=1 is present.
-     */
-    protected function operatorNeedsDeskEscapeFlag(Request $request): bool
-    {
-        return OperatorModeRegistry::hasAnyOperatorMode($request->user());
-    }
-
-    /**
-     * Feature routes that must render as full pages (queues, module dashboards), not desk frames.
-     *
-     * @return list<string>
-     */
-    protected function standaloneAdminRoutes(): array
-    {
-        return [
-            'admin.procurement.desk',
-            'admin.procurement.dashboard',
-        ];
-    }
-
-    protected function isStandaloneAdminRoute(string $routeName): bool
-    {
-        return in_array($routeName, $this->standaloneAdminRoutes(), true);
     }
 
     protected function isDetailRoute(string $routeName): bool
@@ -168,7 +96,6 @@ class RedirectToModuleWorkspaceShell
             '.footer-contact',
             '.seo-global',
             '.quick-create',
-            // File streams used in iframes/img tags must never wrap into a desk shell.
             '.artwork',
             '.artwork-preview',
             '.modal',
@@ -178,12 +105,10 @@ class RedirectToModuleWorkspaceShell
             }
         }
 
-        // Named previews such as *.artwork-preview (hyphenated segment, not *.preview).
         if (str_ends_with($routeName, '-preview')) {
             return true;
         }
 
-        // Document wizards such as invoice-from-order and bill-from-PO must not redirect to workspace desks.
         if (preg_match('/\.from-[^.]+$/', $routeName) === 1) {
             return true;
         }

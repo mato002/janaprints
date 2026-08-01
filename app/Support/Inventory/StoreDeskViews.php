@@ -43,6 +43,11 @@ final class StoreDeskViews
         return in_array(self::normalize($view), self::inlineRegisters(), true);
     }
 
+    public static function isPanelView(?string $view): bool
+    {
+        return self::normalize($view) !== self::DESK;
+    }
+
     /**
      * @return list<string>
      */
@@ -74,15 +79,10 @@ final class StoreDeskViews
     {
         $view = self::normalize($view);
 
-        return match ($view) {
-            self::BALANCES => route('admin.inventory.store.balances', $query),
-            self::RECEIPTS,
-            self::ISSUES,
-            self::TRANSFERS,
-            self::ADJUSTMENTS => route('admin.store.desk', array_merge($query, ['view' => $view])),
-            self::MOVEMENTS => route('admin.inventory.movements.index', $query),
-            self::ALERTS => route('admin.inventory.alerts.index', $query),
-            default => route('admin.store.desk', $query),
-        };
+        if ($view === self::DESK) {
+            return route('admin.store.desk', $query);
+        }
+
+        return route('admin.store.desk', array_merge($query, ['view' => $view]));
     }
 }

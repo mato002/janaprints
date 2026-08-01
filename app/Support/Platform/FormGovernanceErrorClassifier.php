@@ -70,7 +70,17 @@ class FormGovernanceErrorClassifier
     protected function messageFor(Throwable $exception, string $category): string
     {
         if ($exception instanceof ValidationException) {
-            return __('Please review the highlighted fields and try again.');
+            $messages = collect($exception->errors())->flatten()->filter()->unique()->values();
+
+            if ($messages->count() === 1) {
+                return (string) $messages->first();
+            }
+
+            if ($messages->count() > 1) {
+                return $messages->implode("\n");
+            }
+
+            return __('Please fix the errors below and try again.');
         }
 
         if ($category === 'authorization') {

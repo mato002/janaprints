@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Hr;
 
 use App\Enums\PaymentFrequency;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\CompensationSalaryTemplate;
 use App\Models\Hr\EmployeeCompensation;
@@ -18,6 +19,7 @@ use Illuminate\View\View;
 class CompensationTemplateController extends Controller
 {
     use HandlesModalFormResponses;
+    use ResolvesEntityCode;
 
     public function __construct(
         protected CompensationTemplateService $templates,
@@ -136,13 +138,11 @@ class CompensationTemplateController extends Controller
     {
         $this->payrollGroups->ensureDefaults($companyId);
 
-        return $request->validate([
-            'code' => [
-                'required',
-                'string',
-                'max:30',
-                Rule::unique('compensation_salary_templates', 'code')->where('company_id', $companyId)->ignore($ignoreId),
-            ],
+        $validated = $request->validate([
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [Rule::unique('compensation_salary_templates', 'code')->where('company_id', $companyId)->ignore($ignoreId)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'basic_salary' => ['required', 'numeric', 'min:0'],
             'house_allowance' => ['nullable', 'numeric', 'min:0'],
@@ -161,5 +161,16 @@ class CompensationTemplateController extends Controller
             ],
             'currency' => ['required', 'string', 'size:3'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            CompensationSalaryTemplate::class,
+            $companyId,
+            $ignoreId,
+            30,
+        );
+
+        return $validated;
     }
 }

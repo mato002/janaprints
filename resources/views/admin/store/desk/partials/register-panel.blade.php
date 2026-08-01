@@ -15,6 +15,15 @@
 </x-admin.page-header>
 
 @switch ($activeStoreView)
+    @case(StoreDeskViews::BALANCES)
+        @include('admin.inventory.store.partials.balances-content')
+        @break
+    @case(StoreDeskViews::MOVEMENTS)
+        @include('admin.inventory.movements.partials.table')
+        @break
+    @case(StoreDeskViews::ALERTS)
+        @include('admin.inventory.alerts.partials.content')
+        @break
     @case(StoreDeskViews::RECEIPTS)
         @include('admin.inventory.receipts.partials.table', ['fromStoreDesk' => true])
         @break

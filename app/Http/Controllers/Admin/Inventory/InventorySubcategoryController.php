@@ -85,13 +85,31 @@ class InventorySubcategoryController extends Controller
 
     protected function validateSubcategory(Request $request, int $companyId, int $branchId, ?InventorySubcategory $subcategory = null): array
     {
-        return $request->validate([
+        $categoryId = $request->integer('inventory_category_id');
+
+        $validated = $request->validate([
             'inventory_category_id' => ['required', Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'code' => ['required', 'string', 'max:50', Rule::unique('inventory_subcategories', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->where('inventory_category_id', $request->integer('inventory_category_id'))->ignore($subcategory)],
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('inventory_subcategories', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->where('inventory_category_id', $categoryId)->ignore($subcategory)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveBranchScopedCode(
+            $request,
+            'name',
+            InventorySubcategory::class,
+            $companyId,
+            $branchId,
+            $subcategory?->id,
+            50,
+            ['inventory_category_id' => $categoryId],
+        );
+
+        return $validated;
     }
 
     protected function formMeta(): array

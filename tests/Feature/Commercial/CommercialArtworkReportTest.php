@@ -11,10 +11,12 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Tests\Feature\Commercial\Concerns\GetsEmbeddedWorkspaceReports;
 use Tests\TestCase;
 
 class CommercialArtworkReportTest extends TestCase
 {
+    use GetsEmbeddedWorkspaceReports;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -29,8 +31,7 @@ class CommercialArtworkReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.artwork.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.artwork.index')
             ->assertForbidden();
     }
 
@@ -40,8 +41,7 @@ class CommercialArtworkReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.artwork.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.artwork.index')
             ->assertOk()
             ->assertSee(__('Artwork Reports'), false)
             ->assertSee(__('Total Requests'), false)
@@ -62,11 +62,10 @@ class CommercialArtworkReportTest extends TestCase
             'created_at' => now(),
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.artwork.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.artwork.index')
             ->assertOk()
-            ->assertSee(__('Total Artwork Requests'), false)
-            ->assertSee(__('Approved Artwork'), false);
+            ->assertSee(__('Total Requests'), false)
+            ->assertSee(__('Approved'), false);
     }
 
     public function test_filters_persist_in_query_string(): void
@@ -75,13 +74,12 @@ class CommercialArtworkReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.artwork.index', [
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.artwork.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'tab' => 'pending',
                 'search' => 'AR-100',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('AR-100', false)
             ->assertSee(__('Artwork Pending'), false);

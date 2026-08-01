@@ -9,7 +9,7 @@
                     <option value="{{ $type->id }}">{{ $type->name }}</option>
                 @endforeach
             </select>
-            <input type="text" name="code" class="erp-input" placeholder="{{ __('Code') }}" required>
+            <input type="text" name="code" class="erp-input" placeholder="{{ __('Auto-generated') }}">
             <input type="text" name="name" class="erp-input" placeholder="{{ __('Policy name') }}" required>
             <input type="number" name="min_notice_days" class="erp-input" placeholder="{{ __('Min notice days') }}" value="0">
             <input type="number" step="0.5" name="max_consecutive_days" class="erp-input" placeholder="{{ __('Max consecutive days') }}">

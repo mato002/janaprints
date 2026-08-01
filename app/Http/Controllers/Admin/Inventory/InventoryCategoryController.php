@@ -85,14 +85,28 @@ class InventoryCategoryController extends Controller
 
     protected function validateCategory(Request $request, int $companyId, int $branchId, ?InventoryCategory $category = null): array
     {
-        return $request->validate([
-            'code' => ['required', 'string', 'max:50', Rule::unique('inventory_categories', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->ignore($category)],
+        $validated = $request->validate([
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('inventory_categories', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->ignore($category)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'default_uom_id' => ['nullable', Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'reorder_behavior' => ['required', Rule::in(['standard', 'made_to_order', 'non_stock', 'critical'])],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveBranchScopedCode(
+            $request,
+            'name',
+            InventoryCategory::class,
+            $companyId,
+            $branchId,
+            $category?->id,
+        );
+
+        return $validated;
     }
 
     protected function formMeta(): array

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\JobTitleLevel;
 use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Department;
@@ -21,6 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class JobTitleController extends Controller
 {
     use ExportsTabularIndex;
+    use ResolvesEntityCode;
     use ScopesToTenant;
 
     public function __construct(
@@ -124,14 +126,12 @@ class JobTitleController extends Controller
 
         $validated = $request->validate([
             'company_id' => ['required', 'exists:companies,id'],
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('job_titles', 'code')
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('job_titles', 'code')
                     ->where('company_id', $companyId)
-                    ->ignore($jobTitle?->id),
-            ],
+                    ->ignore($jobTitle?->id)],
+            ),
             'title' => ['required', 'string', 'max:120'],
             'department_id' => [
                 'nullable',
@@ -155,6 +155,15 @@ class JobTitleController extends Controller
 
         $validated['sort_order'] ??= 100;
         $validated['is_active'] ??= true;
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'title',
+            JobTitle::class,
+            $companyId,
+            $jobTitle?->id,
+            50,
+        );
 
         return $validated;
     }

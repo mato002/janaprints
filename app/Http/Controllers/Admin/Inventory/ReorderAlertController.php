@@ -5,15 +5,13 @@ namespace App\Http\Controllers\Admin\Inventory;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
-use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryReorderAlert;
-use App\Models\Inventory\Warehouse;
 use App\Support\Inventory\ReorderAlertService;
 use App\Support\Inventory\ReturnsToStoreDesk;
+use App\Support\Inventory\StoreDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
 
 class ReorderAlertController extends Controller
 {
@@ -23,21 +21,11 @@ class ReorderAlertController extends Controller
         protected ReorderAlertService $alerts,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', InventoryReorderAlert::class);
 
-        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
-
-        $filters = $request->only(['warehouse_id', 'category_id', 'subcategory_id', 'status', 'critical_only', 'search']);
-
-        return view('admin.inventory.alerts.index', [
-            'alerts' => $this->alerts->paginate($companyId, $branchId, $filters),
-            'filters' => $filters,
-            'warehouses' => Warehouse::query()->forTenant()->orderBy('name')->get(),
-            'categories' => InventoryCategory::query()->forTenant()->orderBy('name')->get(),
-            'statuses' => \App\Enums\ReorderAlertStatus::cases(),
-        ]);
+        return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::ALERTS, $request->query()));
     }
 
     public function acknowledge(Request $request, InventoryReorderAlert $alert): RedirectResponse

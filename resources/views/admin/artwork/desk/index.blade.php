@@ -1,4 +1,6 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $operatorMode = (bool) ($operatorMode ?? false);
     $greeting = $greeting ?? ['title' => __('Designer Desk'), 'facts' => []];
     $filters = $filters ?? [];
@@ -33,7 +35,7 @@
                 <p class="text-base font-semibold text-erp-primary">{{ $greeting['title'] }}</p>
                 <p class="mt-0.5 text-xs text-slate-600">{{ implode(' · ', $greeting['facts'] ?? []) }}</p>
             </div>
-            @unless ($operatorMode)
+            @unless ($operatorMode || WorkspaceEmbed::inWorkspaceContext())
                 <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary shrink-0 text-xs" data-turbo-frame="erp-main">{{ __('Full dashboard') }}</a>
             @endunless
         </section>

@@ -8,6 +8,7 @@ readonly class OperatorModeDefinition
      * @param  list<string>  $permissions
      * @param  list<OperatorModeKey>  $disabledWhen
      * @param  array<string, array<string, mixed>>  $navRemap
+     * @param  array<string, mixed>  $homeRouteParams
      */
     public function __construct(
         public OperatorModeKey $key,
@@ -18,6 +19,7 @@ readonly class OperatorModeDefinition
         public string $returnQueryFlag,
         public array $navRemap,
         public array $disabledWhen = [],
+        public array $homeRouteParams = [],
     ) {}
 
     public function matchesDeskRoute(string $routeName): bool

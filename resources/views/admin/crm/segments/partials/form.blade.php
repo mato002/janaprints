@@ -29,7 +29,8 @@
         name="code"
         :label="$fields['code']['label'] ?? __('Code')"
         :value="old('code', $segment?->code)"
-        :required="($fields['code']['required'] ?? true)"
+        :required="filled($segment) && ($fields['code']['required'] ?? true)"
+        :placeholder="filled($segment) ? null : __('Auto-generated')"
         :visible="($fields['code']['visible'] ?? true)"
         :readonly="($fields['code']['read_only'] ?? false)"
     />

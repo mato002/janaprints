@@ -10,10 +10,12 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Tests\Feature\Commercial\Concerns\GetsEmbeddedWorkspaceReports;
 use Tests\TestCase;
 
 class CommercialSalesOrderReportTest extends TestCase
 {
+    use GetsEmbeddedWorkspaceReports;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -28,8 +30,7 @@ class CommercialSalesOrderReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales_orders.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.sales_orders.index')
             ->assertForbidden();
     }
 
@@ -39,8 +40,7 @@ class CommercialSalesOrderReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales_orders.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.sales_orders.index')
             ->assertOk()
             ->assertSee(__('Sales Order Reports'), false)
             ->assertSee(__('Total Orders'), false)
@@ -62,8 +62,7 @@ class CommercialSalesOrderReportTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales_orders.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.sales_orders.index')
             ->assertOk()
             ->assertSee(__('Total Orders'), false)
             ->assertSee('45,000', false);
@@ -75,15 +74,14 @@ class CommercialSalesOrderReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales_orders.index', [
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.sales_orders.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
                 'tab' => 'open',
                 'search' => 'SO-200',
                 'quotation_source' => 'from_quotation',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('value="2026-01-01"', false)
             ->assertSee('value="2026-01-31"', false)
@@ -135,8 +133,7 @@ class CommercialSalesOrderReportTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales_orders.index', ['embedded' => '1']))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.sales_orders.index')
             ->assertOk()
             ->assertSee('12,000', false);
     }
@@ -156,8 +153,7 @@ class CommercialSalesOrderReportTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.sales_orders.index', ['tab' => 'open', 'embedded' => '1']))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.sales_orders.index', ['tab' => 'open'])
             ->assertOk()
             ->assertSee($order->order_number, false);
     }

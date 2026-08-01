@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Hr;
 
 use App\Enums\ShiftType;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Hr\Shift;
@@ -15,6 +16,7 @@ use Illuminate\View\View;
 
 class ShiftController extends Controller
 {
+    use ResolvesEntityCode;
     use ScopesToTenant;
 
     public function __construct(
@@ -102,14 +104,14 @@ class ShiftController extends Controller
         $companyId = tenant()->companyId() ?? $request->user()->company_id;
 
         $rules = [
-            'code' => [
-                'required',
-                'string',
-                'max:30',
-                Rule::unique('shifts', 'code')
-                    ->where(fn ($q) => $q->where('company_id', $request->input('company_id', $companyId)))
-                    ->ignore($shift?->id),
-            ],
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [
+                    Rule::unique('shifts', 'code')
+                        ->where(fn ($q) => $q->where('company_id', $request->input('company_id', $companyId)))
+                        ->ignore($shift?->id),
+                ],
+            ),
             'name' => ['required', 'string', 'max:120'],
             'shift_type' => ['required', Rule::enum(ShiftType::class)],
             'start_time' => ['required', 'date_format:H:i'],
@@ -126,6 +128,14 @@ class ShiftController extends Controller
         $data = $request->validate($rules);
         $data['company_id'] = $data['company_id'] ?? $companyId;
         $data['is_active'] = $request->boolean('is_active', true);
+        $data['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            Shift::class,
+            (int) $data['company_id'],
+            $shift?->id,
+            30,
+        );
 
         return $data;
     }

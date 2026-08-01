@@ -10,10 +10,12 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Tests\Feature\Commercial\Concerns\GetsEmbeddedWorkspaceReports;
 use Tests\TestCase;
 
 class CommercialQuotationReportTest extends TestCase
 {
+    use GetsEmbeddedWorkspaceReports;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -28,8 +30,7 @@ class CommercialQuotationReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.quotations.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.quotations.index')
             ->assertForbidden();
     }
 
@@ -39,8 +40,7 @@ class CommercialQuotationReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.quotations.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.quotations.index')
             ->assertOk()
             ->assertSee(__('Quotation Reports'), false)
             ->assertSee(__('Quotes Issued'), false)
@@ -62,8 +62,7 @@ class CommercialQuotationReportTest extends TestCase
             'prepared_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.quotations.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.quotations.index')
             ->assertOk()
             ->assertSee(__('Quotes Issued'), false)
             ->assertSee('50,000', false);
@@ -75,14 +74,13 @@ class CommercialQuotationReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.quotations.index', [
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.quotations.index', [
                 'from_date' => '2026-02-01',
                 'to_date' => '2026-02-28',
                 'expiry_status' => 'valid',
                 'tab' => 'open',
                 'search' => 'QUO-100',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('value="2026-02-01"', false)
             ->assertSee('QUO-100', false)

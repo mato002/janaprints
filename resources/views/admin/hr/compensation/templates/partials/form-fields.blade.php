@@ -1,7 +1,6 @@
 <div class="grid gap-4 sm:grid-cols-2">
     <div>
-        <label class="erp-label" for="template-code">{{ __('Code') }}</label>
-        <input type="text" id="template-code" name="code" class="erp-input w-full" value="{{ old('code', $template?->code) }}" required>
+        <x-admin.entity-code-input :record="$template" erp maxlength="30" />
     </div>
     <div>
         <label class="erp-label" for="template-name">{{ __('Name') }}</label>

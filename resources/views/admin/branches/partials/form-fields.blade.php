@@ -5,7 +5,7 @@
 @endif
 <div class="grid gap-4">
     <div><x-input-label for="name" :value="__('Name')" /><x-text-input id="name" name="name" class="block mt-1 w-full" :value="old('name', $branch?->name)" required /></div>
-    <div><x-input-label for="code" :value="__('Code')" /><x-text-input id="code" name="code" class="block mt-1 w-full" :value="old('code', $branch?->code)" required /></div>
+    <x-admin.entity-code-input :record="$branch" />
     <label class="flex gap-2"><input type="hidden" name="is_head_office" value="0"><input type="checkbox" name="is_head_office" value="1" @checked(old('is_head_office', $branch?->is_head_office))> {{ __('Head office') }}</label>
     <label class="flex gap-2"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $branch?->is_active ?? true))> {{ __('Active') }}</label>
 </div>

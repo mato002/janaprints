@@ -14,6 +14,7 @@ use App\Enums\VendorStatus;
 use App\Enums\VendorType;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\HandlesQuickCreateLookup;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Sales\Concerns\ManagesQuotationItems;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
@@ -60,7 +61,7 @@ use Illuminate\View\View;
 
 class QuickCreateLookupController extends Controller
 {
-    use HandlesFormCustomFields, HandlesQuickCreateLookup, ManagesQuotationItems;
+    use HandlesFormCustomFields, HandlesQuickCreateLookup, ManagesQuotationItems, ResolvesEntityCode;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -99,7 +100,14 @@ class QuickCreateLookupController extends Controller
             ]);
         }
 
-        $code = $validated['code'] ?? $this->uniqueCompanyCode($validated['name']);
+        $code = $this->resolveEntityCode(
+            $request,
+            'name',
+            Company::class,
+            fn ($query) => $query,
+            null,
+            50,
+        );
 
         $company = Company::query()->create([
             'name' => $validated['name'],
@@ -138,10 +146,10 @@ class QuickCreateLookupController extends Controller
             $validated = $request->validate([
                 'company_id' => ['required', 'exists:companies,id'],
                 'name' => ['required', 'string', 'max:255'],
-                'code' => [
-                    'required', 'string', 'max:50',
-                    Rule::unique('branches', 'code')->where('company_id', $companyId),
-                ],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [Rule::unique('branches', 'code')->where('company_id', $companyId)],
+                ),
                 'is_head_office' => ['boolean'],
                 'is_active' => ['boolean'],
             ]);
@@ -158,6 +166,7 @@ class QuickCreateLookupController extends Controller
         $branch = Branch::query()->create([
             ...$validated,
             'company_id' => $companyId,
+            'code' => $this->resolveCompanyScopedCode($request, 'name', Branch::class, $companyId),
             'is_head_office' => $request->boolean('is_head_office'),
             'is_active' => $request->boolean('is_active', true),
         ]);
@@ -514,7 +523,10 @@ class QuickCreateLookupController extends Controller
 
         try {
             $validated = $request->validate([
-                'code' => ['required', 'string', 'max:50', Rule::unique('inventory_categories', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [Rule::unique('inventory_categories', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)],
+                ),
                 'name' => ['required', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
                 'default_uom_id' => ['nullable', Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
@@ -535,6 +547,7 @@ class QuickCreateLookupController extends Controller
             ...$validated,
             'company_id' => $companyId,
             'branch_id' => $branchId,
+            'code' => $this->resolveBranchScopedCode($request, 'name', InventoryCategory::class, $companyId, $branchId),
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -569,13 +582,15 @@ class QuickCreateLookupController extends Controller
         try {
             $validated = $request->validate([
                 'inventory_category_id' => ['required', Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-                'code' => [
-                    'required', 'string', 'max:50',
-                    Rule::unique('inventory_subcategories', 'code')
-                        ->where('company_id', $companyId)
-                        ->where('branch_id', $branchId)
-                        ->where('inventory_category_id', $request->integer('inventory_category_id')),
-                ],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [
+                        Rule::unique('inventory_subcategories', 'code')
+                            ->where('company_id', $companyId)
+                            ->where('branch_id', $branchId)
+                            ->where('inventory_category_id', $request->integer('inventory_category_id')),
+                    ],
+                ),
                 'name' => ['required', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
                 'is_active' => ['boolean'],
@@ -594,6 +609,16 @@ class QuickCreateLookupController extends Controller
             ...$validated,
             'company_id' => $companyId,
             'branch_id' => $branchId,
+            'code' => $this->resolveBranchScopedCode(
+                $request,
+                'name',
+                InventorySubcategory::class,
+                $companyId,
+                $branchId,
+                null,
+                50,
+                ['inventory_category_id' => $request->integer('inventory_category_id')],
+            ),
             'is_active' => $request->boolean('is_active', true),
         ])->load('category');
 
@@ -620,7 +645,10 @@ class QuickCreateLookupController extends Controller
 
         try {
             $validated = $request->validate([
-                'code' => ['required', 'string', 'max:50', Rule::unique('brands', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [Rule::unique('brands', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)],
+                ),
                 'name' => ['required', 'string', 'max:255'],
                 'description' => ['nullable', 'string'],
                 'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
@@ -643,6 +671,7 @@ class QuickCreateLookupController extends Controller
             ...$validated,
             'company_id' => $companyId,
             'branch_id' => $branchId,
+            'code' => $this->resolveBranchScopedCode($request, 'name', Brand::class, $companyId, $branchId),
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -670,7 +699,10 @@ class QuickCreateLookupController extends Controller
 
         try {
             $validated = $request->validate([
-                'code' => ['required', 'string', 'max:50', Rule::unique('units_of_measure', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [Rule::unique('units_of_measure', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)],
+                ),
                 'name' => ['required', 'string', 'max:255'],
                 'base_unit_id' => ['nullable', Rule::exists('units_of_measure', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
                 'conversion_factor' => ['nullable', 'numeric', 'min:0.0001'],
@@ -697,6 +729,7 @@ class QuickCreateLookupController extends Controller
             ...$validated,
             'company_id' => $companyId,
             'branch_id' => $branchId,
+            'code' => $this->resolveBranchScopedCode($request, 'name', UnitOfMeasure::class, $companyId, $branchId),
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -825,7 +858,10 @@ class QuickCreateLookupController extends Controller
             $validated = $request->validate([
                 'company_id' => ['required', 'exists:companies,id'],
                 'name' => ['required', 'string', 'max:255'],
-                'code' => ['required', 'string', 'max:50', Rule::unique('customer_segments', 'code')->where('company_id', $companyId)],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [Rule::unique('customer_segments', 'code')->where('company_id', $companyId)],
+                ),
                 'is_active' => ['boolean'],
             ]);
         } catch (ValidationException $exception) {
@@ -841,6 +877,7 @@ class QuickCreateLookupController extends Controller
         $segment = CustomerSegment::query()->create([
             ...$validated,
             'company_id' => $companyId,
+            'code' => $this->resolveCompanyScopedCode($request, 'name', CustomerSegment::class, $companyId),
             'is_active' => $request->boolean('is_active', true),
         ]);
 
@@ -872,7 +909,10 @@ class QuickCreateLookupController extends Controller
             $validated = $request->validate([
                 'company_id' => ['required', 'exists:companies,id'],
                 'name' => ['required', 'string', 'max:255'],
-                'code' => ['required', 'string', 'max:50', Rule::unique('departments', 'code')->where('company_id', $companyId)],
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [Rule::unique('departments', 'code')->where('company_id', $companyId)],
+                ),
                 'description' => ['nullable', 'string'],
                 'is_active' => ['boolean'],
             ]);
@@ -889,6 +929,7 @@ class QuickCreateLookupController extends Controller
         $department = Department::query()->create([
             ...$validated,
             'company_id' => $companyId,
+            'code' => $this->resolveCompanyScopedCode($request, 'name', Department::class, $companyId),
             'is_active' => $request->boolean('is_active', true),
         ]);
 

@@ -8,6 +8,7 @@ use App\Enums\PostingEventCode;
 use App\Enums\PostingLineSide;
 use App\Enums\PostingModule;
 use App\Http\Controllers\Admin\Accounting\Concerns\ResolvesAccountingTenant;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Controller;
 use App\Models\Accounting\GlAccount;
 use App\Models\Accounting\PostingTemplate;
@@ -20,6 +21,7 @@ use Illuminate\View\View;
 class PostingTemplateController extends Controller
 {
     use ResolvesAccountingTenant;
+    use ResolvesEntityCode;
 
     public function __construct(
         protected PostingSetupService $setup,
@@ -135,20 +137,33 @@ class PostingTemplateController extends Controller
      */
     protected function validateTemplate(Request $request, int $companyId, ?PostingTemplate $template = null): array
     {
-        return $request->validate([
-            'code' => [
-                $template ? 'sometimes' : 'required',
-                'string',
-                'max:64',
-                Rule::unique('posting_templates', 'code')
-                    ->where(fn ($q) => $q->where('company_id', $companyId))
-                    ->ignore($template?->id),
-            ],
+        $validated = $request->validate([
+            'code' => array_merge(
+                $template ? ['sometimes'] : $this->nullableCodeRules(64),
+                [
+                    'string',
+                    'max:64',
+                    Rule::unique('posting_templates', 'code')
+                        ->where(fn ($q) => $q->where('company_id', $companyId))
+                        ->ignore($template?->id),
+                ],
+            ),
             'name' => ['required', 'string', 'max:160'],
             'module' => ['required', Rule::enum(PostingModule::class)],
             'description' => ['nullable', 'string', 'max:500'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
+
+        $validated['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            PostingTemplate::class,
+            $companyId,
+            $template?->id,
+            64,
+        );
+
+        return $validated;
     }
 
     /**

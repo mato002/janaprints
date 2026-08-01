@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Crm;
 
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -16,7 +17,9 @@ use Illuminate\View\View;
 
 class CustomerSegmentController extends Controller
 {
-    use HandlesModalFormResponses, ScopesToTenant;
+    use HandlesModalFormResponses;
+    use ResolvesEntityCode;
+    use ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -63,6 +66,8 @@ class CustomerSegmentController extends Controller
             'is_active' => ['boolean'],
         ], $companyId, $branchId, serverProvidedFields: ['company_id']);
 
+        $data['code'] = $this->resolveCompanyScopedCode($request, 'name', CustomerSegment::class, $companyId);
+
         CustomerSegment::query()->create([
             ...$data,
             'company_id' => $companyId,
@@ -98,6 +103,14 @@ class CustomerSegmentController extends Controller
             'description' => ['string'],
             'is_active' => ['boolean'],
         ], $segment->company_id, tenant()->branchId());
+
+        $data['code'] = $this->resolveCompanyScopedCode(
+            $request,
+            'name',
+            CustomerSegment::class,
+            $segment->company_id,
+            $segment->id,
+        );
 
         $segment->update([
             ...$data,

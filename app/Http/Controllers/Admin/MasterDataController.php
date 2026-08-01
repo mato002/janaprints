@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ResolvesSettingsScope;
 use App\Http\Controllers\Controller;
 use App\Models\MasterDataValue;
@@ -17,6 +18,7 @@ use Illuminate\View\View;
 
 class MasterDataController extends Controller
 {
+    use ResolvesEntityCode;
     use ResolvesSettingsScope;
 
     public function __construct(
@@ -70,23 +72,36 @@ class MasterDataController extends Controller
 
         $data = $request->validate([
             'category_key' => ['required', 'string', 'max:80'],
-            'code' => [
-                'required', 'string', 'max:80',
-                Rule::unique('master_data_values', 'code')
-                    ->where('company_id', $companyId)
-                    ->where('category_key', $request->input('category_key')),
-            ],
+            'code' => array_merge(
+                $this->nullableCodeRules(80),
+                [
+                    Rule::unique('master_data_values', 'code')
+                        ->where('company_id', $companyId)
+                        ->where('category_key', $request->input('category_key')),
+                ],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'is_active' => ['boolean'],
         ]);
 
+        $code = $this->resolveEntityCode(
+            $request,
+            'name',
+            MasterDataValue::class,
+            fn ($query) => $query
+                ->where('company_id', $companyId)
+                ->where('category_key', $data['category_key']),
+            null,
+            80,
+        );
+
         $this->masterData->create([
             'company_id' => $companyId,
             'branch_id' => $branchId,
             'category_key' => $data['category_key'],
-            'code' => $data['code'],
+            'code' => $code,
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'sort_order' => (int) ($data['sort_order'] ?? 0),

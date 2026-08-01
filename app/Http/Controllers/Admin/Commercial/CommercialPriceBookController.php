@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Commercial;
 
 use App\Enums\CommercialPriceBookStatus;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
@@ -24,7 +25,10 @@ use Illuminate\View\View;
 
 class CommercialPriceBookController extends Controller
 {
-    use HandlesModalFormResponses, ResolvesCrmTenant, ScopesToTenant;
+    use HandlesModalFormResponses;
+    use ResolvesEntityCode;
+    use ResolvesCrmTenant;
+    use ScopesToTenant;
 
     public function __construct(
         protected CommercialPriceBookService $priceBooks,
@@ -202,7 +206,7 @@ class CommercialPriceBookController extends Controller
             ? []
             : ['branch_id'];
 
-        return $this->formSettings->validateRequest($request, 'commercial_price_book.create', [
+        $validated = $this->formSettings->validateRequest($request, 'commercial_price_book.create', [
             'name' => ['string', 'max:120'],
             'code' => [
                 'string', 'max:40',
@@ -218,6 +222,31 @@ class CommercialPriceBookController extends Controller
             'ends_at' => ['date', 'after_or_equal:starts_at'],
             'is_default' => ['sometimes', 'boolean'],
         ], $companyId, $branchId, $serverProvidedFields);
+
+        $bookBranchId = $validated['branch_id'] ?? $branchId;
+
+        if ($bookBranchId) {
+            $validated['code'] = $this->resolveBranchScopedCode(
+                $request,
+                'name',
+                CommercialPriceBook::class,
+                $companyId,
+                (int) $bookBranchId,
+                $book?->id,
+                40,
+            );
+        } else {
+            $validated['code'] = $this->resolveEntityCode(
+                $request,
+                'name',
+                CommercialPriceBook::class,
+                fn ($query) => $query->where('company_id', $companyId)->whereNull('branch_id'),
+                $book?->id,
+                40,
+            );
+        }
+
+        return $validated;
     }
 
     /**

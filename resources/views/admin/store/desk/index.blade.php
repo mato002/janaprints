@@ -4,8 +4,8 @@
 
     $operatorMode = (bool) ($operatorMode ?? false);
     $activeStoreView = StoreDeskViews::normalize($activeStoreView ?? request('view'));
-    $isRegister = StoreDeskViews::isInlineRegister($activeStoreView);
-    $title = $isRegister ? ($registerTitle ?? __('Store Desk')) : __('Store Desk');
+    $isPanel = StoreDeskViews::isPanelView($activeStoreView);
+    $title = $isPanel ? ($registerTitle ?? __('Store Desk')) : __('Store Desk');
 @endphp
 
 <x-admin-layout
@@ -13,10 +13,10 @@
     :breadcrumbs="$operatorMode
         ? [['label' => __('Store Desk')]]
         : (
-            $isRegister
+            $isPanel
                 ? [
                     ['label' => __('Supply Chain'), 'url' => $fullSupplyChainDeskUrl],
-                    ['label' => __('Store Desk'), 'url' => route('admin.store.desk')],
+                    ['label' => __('Store Desk'), 'url' => StoreDeskViews::deskUrl()],
                     ['label' => $registerTitle ?? __('Register')],
                 ]
                 : [
@@ -27,10 +27,10 @@
 >
     <div
         @class([
-            'store-desk-command' => ! $isRegister,
-            'store-desk-register' => $isRegister,
+            'store-desk-command' => ! $isPanel,
+            'store-desk-register' => $isPanel,
         ])
-        @if (! $isRegister)
+        @if (! $isPanel)
             x-data="storeDeskLookup(@js(['searchUrl' => $searchUrl]))"
         @endif
     >
@@ -51,7 +51,7 @@
             </div>
         @endif
 
-        @if ($isRegister)
+        @if ($isPanel)
             @include('admin.store.desk.partials.register-panel')
         @else
             @include('admin.store.desk.partials.item-lookup')

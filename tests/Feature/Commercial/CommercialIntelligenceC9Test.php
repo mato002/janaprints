@@ -24,10 +24,12 @@ use App\Support\TenantContext;
 use Database\Seeders\OrganizationFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\Feature\Commercial\Concerns\GetsEmbeddedWorkspaceReports;
 use Tests\TestCase;
 
 class CommercialIntelligenceC9Test extends TestCase
 {
+    use GetsEmbeddedWorkspaceReports;
     use RefreshDatabase;
 
     protected Company $company;
@@ -139,8 +141,7 @@ class CommercialIntelligenceC9Test extends TestCase
 
     public function test_commercial_intelligence_report_route(): void
     {
-        $this->actingAs($this->user)
-            ->get(route('admin.reports.commercial-intelligence', ['embedded' => '1']))
+        $this->getEmbeddedReport($this->user, 'admin.reports.commercial-intelligence')
             ->assertOk()
             ->assertSee(__('Commercial Intelligence'));
     }

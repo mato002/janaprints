@@ -5,7 +5,9 @@ namespace App\Support\Inventory;
 use App\Enums\InventoryDocumentStatus;
 use App\Enums\StockIssueDestination;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
+use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryItem;
+use App\Models\Inventory\InventoryMovement;
 use App\Models\Inventory\StockAdjustment;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\StockReceipt;
@@ -41,8 +43,8 @@ class StoreDeskPageBuilder
             'searchUrl' => route('admin.store.desk.items.search'),
         ];
 
-        if (StoreDeskViews::isInlineRegister($activeView)) {
-            return array_merge($payload, $this->registerPayload($activeView, $request));
+        if (StoreDeskViews::isPanelView($activeView)) {
+            return array_merge($payload, $this->panelPayload($activeView, $request));
         }
 
         $workQueue = $this->workQueue->present($request);
@@ -55,6 +57,111 @@ class StoreDeskPageBuilder
             'warehouseSnapshot' => $this->desk->warehouseSnapshot($companyId, $branchId),
             'receivingPipeline' => $this->desk->receivingPipeline($user),
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function panelPayload(string $view, Request $request): array
+    {
+        if (StoreDeskViews::isInlineRegister($view)) {
+            return $this->registerPayload($view, $request);
+        }
+
+        return match ($view) {
+            StoreDeskViews::BALANCES => $this->balancesPayload(),
+            StoreDeskViews::MOVEMENTS => $this->movementsPayload($request),
+            StoreDeskViews::ALERTS => $this->alertsPayload($request),
+            default => [],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function balancesPayload(): array
+    {
+        $warehouses = Warehouse::query()->forTenant()->orderBy('name')->get();
+        $items = InventoryItem::query()->forTenant()->with('category')->where('is_active', true)->orderBy('item_name')->get();
+        $categories = InventoryCategory::query()->forTenant()->orderBy('name')->get();
+
+        $movementMap = InventoryMovement::query()
+            ->forTenant()
+            ->selectRaw('warehouse_id, inventory_item_id, SUM(quantity) as balance')
+            ->groupBy('warehouse_id', 'inventory_item_id')
+            ->get()
+            ->keyBy(fn ($movement) => "{$movement->warehouse_id}:{$movement->inventory_item_id}");
+
+        $balances = $warehouses->flatMap(fn (Warehouse $warehouse) => $items->map(function (InventoryItem $item) use ($warehouse, $movementMap) {
+            $movement = $movementMap->get("{$warehouse->id}:{$item->id}");
+
+            return (object) [
+                'item_id' => $item->id,
+                'item_public_id' => $item->public_id,
+                'warehouse_id' => $warehouse->id,
+                'warehouse_public_id' => $warehouse->public_id,
+                'warehouse_code' => $warehouse->code,
+                'warehouse_name' => $warehouse->name,
+                'sku' => $item->sku,
+                'item_name' => $item->item_name,
+                'reorder_level' => $item->reorder_level,
+                'standard_cost' => $item->standard_cost,
+                'category_name' => $item->category?->name,
+                'balance' => (float) ($movement?->balance ?? 0),
+            ];
+        }));
+
+        return [
+            'registerTitle' => __('Store Balances'),
+            'registerDescription' => __('View stock position by item, warehouse, and branch.'),
+            'balances' => $balances,
+            'warehouses' => $warehouses,
+            'categories' => $categories,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function movementsPayload(Request $request): array
+    {
+        $warehouseId = $request->integer('warehouse_id') ?: null;
+
+        $query = InventoryMovement::query()
+            ->forTenant()
+            ->with(['item', 'warehouse', 'creator'])
+            ->latest('created_at');
+
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        return [
+            'registerTitle' => __('Inventory movements'),
+            'registerDescription' => __('Audit trail — source of stock truth.'),
+            'movements' => $query->paginate(20)->withQueryString(),
+            'warehouse' => $warehouseId ? Warehouse::query()->find($warehouseId) : null,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function alertsPayload(Request $request): array
+    {
+        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
+
+        $filters = $request->only(['warehouse_id', 'category_id', 'subcategory_id', 'status', 'critical_only', 'search']);
+
+        return [
+            'registerTitle' => __('Reorder Alerts'),
+            'registerDescription' => __('Actionable low-stock alerts with acknowledgement, resolution, and purchase request handoff.'),
+            'alerts' => $this->reorderAlerts->paginate($companyId, $branchId, $filters),
+            'filters' => $filters,
+            'warehouses' => Warehouse::query()->forTenant()->orderBy('name')->get(),
+            'categories' => InventoryCategory::query()->forTenant()->orderBy('name')->get(),
+            'statuses' => \App\Enums\ReorderAlertStatus::cases(),
+        ];
     }
 
     /**

@@ -18,8 +18,7 @@
                 <input id="name" name="name" class="erp-input mt-1 w-full" value="{{ old('name', $category?->name) }}" required>
             </div>
             <div>
-                <label class="text-xs text-slate-600" for="code">{{ __('Code') }}</label>
-                <input id="code" name="code" class="erp-input mt-1 w-full" value="{{ old('code', $category?->code) }}">
+                <x-admin.entity-code-input :record="$category" erp maxlength="30" />
             </div>
             <div>
                 <label class="text-xs text-slate-600" for="asset_type">{{ __('Asset Type') }}</label>

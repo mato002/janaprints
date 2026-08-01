@@ -20,12 +20,7 @@
         :required="true"
     />
 
-    <x-admin.input
-        name="code"
-        :label="__('Code')"
-        :value="old('code', $department?->code)"
-        :required="true"
-    />
+    <x-admin.entity-code-input :record="$department" erp />
 
     <x-admin.textarea
         name="description"

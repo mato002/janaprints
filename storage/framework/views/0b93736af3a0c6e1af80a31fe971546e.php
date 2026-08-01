@@ -28,31 +28,5 @@ foreach ($attributes->all() as $__key => $__value) {
 
 unset($__defined_vars, $__key, $__value); ?>
 
-<section class="mb-6">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500"><?php echo e(__('Quotation Dashboard')); ?></h2>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <?php $__currentLoopData = $kpis; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $kpi): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-            <?php if (isset($component)) { $__componentOriginal6d3db93990d768743336ad0c9a75de7b = $component; } ?>
-<?php if (isset($attributes)) { $__attributesOriginal6d3db93990d768743336ad0c9a75de7b = $attributes; } ?>
-<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.admin.kpi-widget','data' => ['label' => $kpi['label'],'value' => $kpi['value'],'icon' => $kpi['icon'] ?? 'document-text','hint' => $kpi['hint'] ?? null]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
-<?php $component->withName('admin.kpi-widget'); ?>
-<?php if ($component->shouldRender()): ?>
-<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
-<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
-<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
-<?php endif; ?>
-<?php $component->withAttributes(['label' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($kpi['label']),'value' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($kpi['value']),'icon' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($kpi['icon'] ?? 'document-text'),'hint' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute($kpi['hint'] ?? null)]); ?>
-<?php echo $__env->renderComponent(); ?>
-<?php endif; ?>
-<?php if (isset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
-<?php $attributes = $__attributesOriginal6d3db93990d768743336ad0c9a75de7b; ?>
-<?php unset($__attributesOriginal6d3db93990d768743336ad0c9a75de7b); ?>
-<?php endif; ?>
-<?php if (isset($__componentOriginal6d3db93990d768743336ad0c9a75de7b)): ?>
-<?php $component = $__componentOriginal6d3db93990d768743336ad0c9a75de7b; ?>
-<?php unset($__componentOriginal6d3db93990d768743336ad0c9a75de7b); ?>
-<?php endif; ?>
-        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-    </div>
-</section>
+<?php echo $__env->make('admin.commercial.reports.partials.kpi-strip', ['kpis' => $kpis], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 <?php /**PATH C:\xampp\htdocs\jana-prints\resources\views/admin/commercial/reports/quotations/partials/kpi-strip.blade.php ENDPATH**/ ?>

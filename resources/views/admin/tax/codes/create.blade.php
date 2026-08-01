@@ -13,7 +13,7 @@
                 </select>
             </div>
             <div class="grid grid-cols-2 gap-3">
-                <div><label class="text-[11px] text-slate-500">{{ __('Code') }}</label><input name="code" value="{{ old('code') }}" class="erp-input mt-1 w-full" required></div>
+                <div><label class="text-[11px] text-slate-500">{{ __('Code') }}</label><input name="code" value="{{ old('code') }}" class="erp-input mt-1 w-full" placeholder="{{ __('Auto-generated') }}"></div>
                 <div><label class="text-[11px] text-slate-500">{{ __('Name') }}</label><input name="name" value="{{ old('name') }}" class="erp-input mt-1 w-full" required></div>
             </div>
             <div><label class="text-[11px] text-slate-500">{{ __('Description') }}</label><textarea name="description" class="erp-input mt-1 w-full" rows="2">{{ old('description') }}</textarea></div>

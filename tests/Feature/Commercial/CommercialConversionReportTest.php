@@ -14,10 +14,12 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
+use Tests\Feature\Commercial\Concerns\GetsEmbeddedWorkspaceReports;
 use Tests\TestCase;
 
 class CommercialConversionReportTest extends TestCase
 {
+    use GetsEmbeddedWorkspaceReports;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -32,8 +34,7 @@ class CommercialConversionReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.conversion.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.conversion.index')
             ->assertForbidden();
     }
 
@@ -43,8 +44,7 @@ class CommercialConversionReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.conversion.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.conversion.index')
             ->assertOk()
             ->assertSee(__('Conversion Reports'), false)
             ->assertSee(__('Lead-to-Quote %'), false)
@@ -83,8 +83,7 @@ class CommercialConversionReportTest extends TestCase
             'created_by' => $user->id,
         ]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.conversion.index'))
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.conversion.index')
             ->assertOk()
             ->assertSee(__('Leads'), false)
             ->assertSee(__('Quotes'), false)
@@ -97,14 +96,13 @@ class CommercialConversionReportTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.commercial.reports.conversion.index', [
+        $this->getEmbeddedReport($user, 'admin.commercial.reports.conversion.index', [
                 'from_date' => '2026-01-01',
                 'to_date' => '2026-01-31',
                 'branch_id' => $branch->id,
                 'tab' => 'lead_to_quote',
                 'search' => 'Acme',
-            ]))
+            ])
             ->assertOk()
             ->assertSee('value="2026-01-01"', false)
             ->assertSee('value="2026-01-31"', false)

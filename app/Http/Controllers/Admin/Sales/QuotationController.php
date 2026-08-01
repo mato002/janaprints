@@ -27,7 +27,7 @@ use App\Support\Governance\WorkflowRulesService;
 use App\Services\Crm\LeadQuotationService;
 use App\Support\QuotationConversionService;
 use App\Support\QuotationRevisionService;
-use App\Support\Sales\CustomerOrderContextService;
+use App\Support\Sales\SalesDeskViews;
 use App\Support\Sales\QuotationApprovalService;
 use App\Support\Sales\QuotationArtworkLinkService;
 use App\Support\Sales\ReturnsToSalesDesk;
@@ -49,15 +49,11 @@ class QuotationController extends Controller
         protected QuotationArtworkLinkService $quotationArtwork,
     ) {}
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', Quotation::class);
 
-        $quotations = $this->scopeToTenant(
-            Quotation::query()->with(['customer', 'branch', 'preparer'])
-        )->latest('quotation_date')->paginate(15);
-
-        return view('admin.sales.quotations.index', compact('quotations'));
+        return redirect()->to(SalesDeskViews::deskUrl(SalesDeskViews::QUOTES, request()->query()));
     }
 
     public function create(Request $request): View

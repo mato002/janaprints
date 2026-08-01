@@ -2,7 +2,7 @@
 
 <div class="grid grid-cols-1 gap-4">
     <div><x-input-label for="name" :value="__('Name')" /><x-text-input id="name" name="name" class="block mt-1 w-full" :value="old('name', $company?->name)" required /></div>
-    <div><x-input-label for="code" :value="__('Code')" /><x-text-input id="code" name="code" class="block mt-1 w-full" :value="old('code', $company?->code)" :placeholder="$company ? null : __('Auto-generated if blank')" :required="(bool) $company" /></div>
+    <x-admin.entity-code-input :record="$company" />
     <div><x-input-label for="email" :value="__('Email')" /><x-text-input id="email" name="email" type="email" class="block mt-1 w-full" :value="old('email', $company?->email)" /></div>
     <div><x-input-label for="phone" :value="__('Phone')" /><x-text-input id="phone" name="phone" class="block mt-1 w-full" :value="old('phone', $company?->phone)" /></div>
     <div><x-input-label for="address" :value="__('Address')" /><textarea id="address" name="address" class="block mt-1 w-full rounded-md border-gray-300">{{ old('address', $company?->address) }}</textarea></div>

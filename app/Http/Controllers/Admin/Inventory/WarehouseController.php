@@ -218,6 +218,17 @@ class WarehouseController extends Controller
         $validated['description'] = implode("\n\n", $descriptionParts);
         $validated['branch_id'] = $effectiveBranchId;
 
+        if (blank($validated['code'] ?? null)) {
+            $validated['code'] = $this->resolveBranchScopedCode(
+                $request,
+                'name',
+                Warehouse::class,
+                $companyId,
+                $effectiveBranchId,
+                $warehouse?->id,
+            );
+        }
+
         return collect($validated)->only(['code', 'name', 'description', 'is_active', 'branch_id'])->all();
     }
 

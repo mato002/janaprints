@@ -4,8 +4,7 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div>
-        <x-input-label for="code" :value="__('Code')" />
-        <x-text-input id="code" name="code" class="block mt-1 w-full" :value="old('code', $shift?->code)" required />
+        <x-admin.entity-code-input :record="$shift" />
     </div>
     <div>
         <x-input-label for="name" :value="__('Shift Name')" />

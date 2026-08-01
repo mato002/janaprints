@@ -15,6 +15,15 @@ class AssetCategoryService
     {
         $years = (int) ($data['useful_life_years'] ?? 5);
 
+        if (blank($data['code'] ?? null)) {
+            $data['code'] = app(\App\Support\Platform\EntityCodeGenerator::class)->unique(
+                AssetCategory::class,
+                (string) ($data['name'] ?? ''),
+                fn ($query) => $query->where('company_id', $companyId),
+                30,
+            );
+        }
+
         $category = AssetCategory::query()->create([
             ...$data,
             'company_id' => $companyId,

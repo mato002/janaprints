@@ -6,7 +6,8 @@ use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
 use App\Support\Commercial\CommercialApprovalQueueService;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
+use App\Support\Sales\SalesDeskViews;
+use Illuminate\Http\RedirectResponse;
 
 class CommercialApprovalQueueController extends Controller
 {
@@ -16,21 +17,10 @@ class CommercialApprovalQueueController extends Controller
         protected CommercialApprovalQueueService $queue,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         abort_unless($request->user()?->can('commercial.approvals.view'), 403);
 
-        ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds($request);
-
-        $sections = $this->queue->present($companyId, $branchId);
-
-        return view('admin.commercial.approvals.index', [
-            'sections' => $sections,
-            'canAction' => $request->user()->can('commercial.approvals.action'),
-            'canApproveQuotations' => $request->user()->can('quotations.approve'),
-            'canRejectQuotations' => $request->user()->can('quotations.edit'),
-            'canConfirmOrders' => $request->user()->can('sales_orders.confirm'),
-            'canApproveArtwork' => $request->user()->can('artwork.approve'),
-        ]);
+        return redirect()->to(SalesDeskViews::deskUrl(SalesDeskViews::APPROVALS, $request->query()));
     }
 }

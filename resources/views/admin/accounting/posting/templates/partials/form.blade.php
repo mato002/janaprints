@@ -2,7 +2,11 @@
     <div class="grid gap-3 sm:grid-cols-2">
         <label class="block text-sm">
             <span class="mb-1 block text-slate-600">{{ __('Code') }}</span>
-            <input name="code" value="{{ old('code', $template?->code) }}" class="erp-input w-full font-mono" @disabled($template) required>
+            @if ($template)
+                <input name="code" value="{{ old('code', $template->code) }}" class="erp-input w-full font-mono" disabled>
+            @else
+                <input name="code" value="{{ old('code') }}" class="erp-input w-full font-mono" placeholder="{{ __('Auto-generated') }}">
+            @endif
         </label>
         <label class="block text-sm">
             <span class="mb-1 block text-slate-600">{{ __('Name') }}</span>

@@ -97,13 +97,27 @@ class BrandController extends Controller
 
     protected function validateBrand(Request $request, int $companyId, int $branchId, ?Brand $brand = null): array
     {
-        return $request->validate([
-            'code' => ['required', 'string', 'max:50', Rule::unique('brands', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->ignore($brand)],
+        $validated = $request->validate([
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('brands', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->ignore($brand)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveBranchScopedCode(
+            $request,
+            'name',
+            Brand::class,
+            $companyId,
+            $branchId,
+            $brand?->id,
+        );
+
+        return $validated;
     }
 
     protected function ensureTenant(Brand $brand): void

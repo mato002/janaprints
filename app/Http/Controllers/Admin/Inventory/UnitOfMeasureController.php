@@ -124,13 +124,13 @@ class UnitOfMeasureController extends Controller
     protected function validateUnit(Request $request, int $companyId, int $branchId, ?UnitOfMeasure $unit = null): array
     {
         $data = $request->validate([
-            'code' => [
-                'required', 'string', 'max:50',
-                Rule::unique('units_of_measure', 'code')
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('units_of_measure', 'code')
                     ->where('company_id', $companyId)
                     ->where('branch_id', $branchId)
-                    ->ignore($unit),
-            ],
+                    ->ignore($unit)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'base_unit_id' => [
                 'nullable',
@@ -149,6 +149,15 @@ class UnitOfMeasureController extends Controller
         } else {
             $data['conversion_factor'] = (float) ($data['conversion_factor'] ?? 1);
         }
+
+        $data['code'] = $this->resolveBranchScopedCode(
+            $request,
+            'name',
+            UnitOfMeasure::class,
+            $companyId,
+            $branchId,
+            $unit?->id,
+        );
 
         return $data;
     }

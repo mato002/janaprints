@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin\Production;
 
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
+use App\Http\Controllers\Admin\Concerns\ResolvesEntityCode;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Production\WorkCenter;
@@ -14,7 +15,9 @@ use Illuminate\View\View;
 
 class WorkCenterSetupController extends Controller
 {
-    use HandlesModalFormResponses, ScopesToTenant;
+    use HandlesModalFormResponses;
+    use ResolvesEntityCode;
+    use ScopesToTenant;
 
     public function create(): View
     {
@@ -70,14 +73,13 @@ class WorkCenterSetupController extends Controller
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'code' => [
-                'required',
-                'string', 'max:30',
-                Rule::unique('work_centers', 'code')
+            'code' => array_merge(
+                $this->nullableCodeRules(30),
+                [Rule::unique('work_centers', 'code')
                     ->where('company_id', $companyId)
                     ->where('branch_id', $branchId)
-                    ->ignore($workCenter?->id),
-            ],
+                    ->ignore($workCenter?->id)],
+            ),
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
             'requires_machine' => ['boolean'],
@@ -85,7 +87,15 @@ class WorkCenterSetupController extends Controller
 
         $data['is_active'] = $request->boolean('is_active', true);
         $data['requires_machine'] = $request->boolean('requires_machine', false);
-        $data['code'] = strtoupper((string) $data['code']);
+        $data['code'] = strtoupper($this->resolveBranchScopedCode(
+            $request,
+            'name',
+            WorkCenter::class,
+            $companyId,
+            $branchId,
+            $workCenter?->id,
+            30,
+        ));
 
         return $data;
     }

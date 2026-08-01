@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Procurement\Concerns\ResolvesProcurementTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Procurement\Vendor;
+use App\Support\Procurement\ProcurementDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -20,15 +21,11 @@ class VendorController extends Controller
 {
     use HandlesModalFormResponses, ResolvesProcurementTenant, ScopesToTenant;
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', Vendor::class);
 
-        $vendors = $this->scopeToTenant(
-            Vendor::query()->latest('vendor_name')
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.procurement.vendors.index', compact('vendors'));
+        return redirect()->to(ProcurementDeskViews::deskUrl(ProcurementDeskViews::SUPPLIERS, request()->query()));
     }
 
     public function create(): View

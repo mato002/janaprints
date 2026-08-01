@@ -17,6 +17,7 @@ use App\Support\Accounting\InventoryAccountingPostingService;
 use Database\Seeders\InventoryFoundationSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -39,8 +40,7 @@ class StoreDeskOperatorFlowTest extends TestCase
         $catalogueUrl = route('admin.store.desk.catalogue');
         $alertsUrl = route('admin.store.desk.reorder-alerts');
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk'))
+        $this->getStoreDesk($user)
             ->assertOk()
             ->assertSee('data-erp-modal-open', false)
             ->assertSee('/admin/store/desk/catalogue', false)
@@ -66,8 +66,7 @@ class StoreDeskOperatorFlowTest extends TestCase
             ->get('Location');
 
         $this->assertNotNull($redirect);
-        $this->assertStringContainsString('desk=1', (string) $redirect);
-        $this->assertStringNotContainsString('/admin/store/desk', (string) $redirect);
+        $this->assertStringContainsString('store-operations', (string) $redirect);
     }
 
     public function test_storekeeper_can_open_inline_register_modes_on_desk(): void
@@ -77,8 +76,7 @@ class StoreDeskOperatorFlowTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk', ['view' => 'receipts']))
+        $this->getStoreDesk($user, ['view' => 'receipts'])
             ->assertOk()
             ->assertSee(__('Stock receipts'), false)
             ->assertSee($receipt->receipt_number, false)
@@ -88,18 +86,15 @@ class StoreDeskOperatorFlowTest extends TestCase
             ->get(route('admin.inventory.receipts.index'))
             ->assertRedirect(route('admin.store.desk', ['view' => 'receipts']));
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk', ['view' => 'issues']))
+        $this->getStoreDesk($user, ['view' => 'issues'])
             ->assertOk()
             ->assertSee(__('Stock issues'), false);
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk', ['view' => 'transfers']))
+        $this->getStoreDesk($user, ['view' => 'transfers'])
             ->assertOk()
             ->assertSee(__('Store Transfers'), false);
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk', ['view' => 'adjustments']))
+        $this->getStoreDesk($user, ['view' => 'adjustments'])
             ->assertOk()
             ->assertSee(__('Stock adjustments'), false);
     }
@@ -113,8 +108,7 @@ class StoreDeskOperatorFlowTest extends TestCase
 
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk'))
+        $this->getStoreDesk($user)
             ->assertOk()
             ->assertSee(__('Finish these drafts'), false)
             ->assertSee($receipt->receipt_number, false)
@@ -164,8 +158,7 @@ class StoreDeskOperatorFlowTest extends TestCase
 
         $modalUrl = route('admin.inventory.receipts.show', [$receipt, 'from' => 'store-desk']);
 
-        $this->actingAs($user)
-            ->get(route('admin.store.desk'))
+        $this->getStoreDesk($user)
             ->assertOk()
             ->assertSee('data-erp-modal-open', false)
             ->assertSee('from=store-desk', false);
@@ -335,5 +328,15 @@ class StoreDeskOperatorFlowTest extends TestCase
         ]);
 
         return $issue;
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     */
+    protected function getStoreDesk(User $user, array $query = []): TestResponse
+    {
+        return $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.store.desk', array_merge(['embedded' => 1], $query)));
     }
 }

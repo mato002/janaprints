@@ -61,8 +61,7 @@
 
     <div class="grid gap-4 sm:grid-cols-2">
         <div>
-            <x-input-label for="code" :value="__('Account code')" />
-            <x-text-input id="code" name="code" class="mt-1 w-full font-mono" :value="old('code', $account?->code)" required />
+            <x-admin.entity-code-input :record="$account" maxlength="20" class="mt-1 w-full font-mono" />
         </div>
         <div>
             <x-input-label for="name" :value="__('Account name')" />

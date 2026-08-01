@@ -6,7 +6,7 @@
             @else<input type="hidden" name="company_id" value="{{ auth()->user()->company_id }}">@endif
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><x-input-label for="code" :value="__('Code')" /><x-text-input id="code" name="code" class="block mt-1 w-full" :value="old('code', $jobTitle?->code)" required /></div>
+                <x-admin.entity-code-input :record="$jobTitle" />
                 <div><x-input-label for="title" :value="__('Title')" /><x-text-input id="title" name="title" class="block mt-1 w-full" :value="old('title', $jobTitle?->title)" required /></div>
                 <x-admin.lookup-select
                     name="department_id"

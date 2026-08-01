@@ -84,14 +84,28 @@ class ItemAttributeController extends Controller
 
     protected function validateAttribute(Request $request, int $companyId, int $branchId, ?ItemAttribute $attribute = null): array
     {
-        return $request->validate([
+        $validated = $request->validate([
             'inventory_category_id' => ['nullable', Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
-            'code' => ['required', 'string', 'max:50', Rule::unique('item_attributes', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->ignore($attribute)],
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [Rule::unique('item_attributes', 'code')->where('company_id', $companyId)->where('branch_id', $branchId)->ignore($attribute)],
+            ),
             'name' => ['required', 'string', 'max:255'],
             'data_type' => ['required', Rule::in(['text', 'number', 'select'])],
             'is_required' => ['boolean'],
             'is_active' => ['boolean'],
         ]);
+
+        $validated['code'] = $this->resolveBranchScopedCode(
+            $request,
+            'name',
+            ItemAttribute::class,
+            $companyId,
+            $branchId,
+            $attribute?->id,
+        );
+
+        return $validated;
     }
 
     protected function syncOptions(ItemAttribute $attribute, ?string $options): void

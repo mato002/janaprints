@@ -12,6 +12,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\PurchaseRequest;
 use App\Models\Procurement\Vendor;
 use App\Support\Procurement\PurchaseRequestService;
+use App\Support\Procurement\ProcurementDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -22,15 +23,11 @@ class PurchaseRequestController extends Controller
 {
     use ResolvesProcurementTenant, ScopesToTenant;
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', PurchaseRequest::class);
 
-        $requests = $this->scopeToTenant(
-            PurchaseRequest::query()->with(['requester', 'department'])->latest()
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.procurement.requests.index', compact('requests'));
+        return redirect()->to(ProcurementDeskViews::deskUrl(ProcurementDeskViews::REQUESTS, request()->query()));
     }
 
     public function create(): View

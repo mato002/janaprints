@@ -11,8 +11,7 @@
     <x-admin.form-shell :action="route('admin.hr.compensation.deductions.store')">
         <div class="grid gap-4 sm:grid-cols-2">
             <div>
-                <label class="erp-label" for="deduction-code">{{ __('Code') }}</label>
-                <input type="text" id="deduction-code" name="code" class="erp-input w-full" value="{{ old('code') }}" required>
+                <x-admin.entity-code-input erp maxlength="30" />
             </div>
             <div>
                 <label class="erp-label" for="deduction-name">{{ __('Name') }}</label>

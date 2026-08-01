@@ -13,6 +13,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\Vendor;
 use App\Support\Procurement\PurchaseOrderService;
+use App\Support\Procurement\ProcurementDeskViews;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -23,15 +24,11 @@ class PurchaseOrderController extends Controller
 {
     use ResolvesProcurementTenant, ScopesToTenant;
 
-    public function index(): View
+    public function index(): RedirectResponse
     {
         $this->authorize('viewAny', PurchaseOrder::class);
 
-        $orders = $this->scopeToTenant(
-            PurchaseOrder::query()->with(['vendor'])->latest('order_date')
-        )->paginate(config('platform.pagination.default', 15));
-
-        return view('admin.procurement.orders.index', compact('orders'));
+        return redirect()->to(ProcurementDeskViews::deskUrl(ProcurementDeskViews::ORDERS, request()->query()));
     }
 
     public function create(): View
