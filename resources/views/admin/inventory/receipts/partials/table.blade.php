@@ -28,7 +28,7 @@
                             :href="$fromStoreDesk
                                 ? route('admin.inventory.receipts.show', [$r, 'from' => 'store-desk'])
                                 : route('admin.inventory.receipts.show', $r)"
-                            @if ($fromStoreDesk) data-erp-modal-open @endif
+                            :data-erp-modal-open="$fromStoreDesk ? true : null"
                         >{{ __('View') }}</x-admin.table-row-action>
                     </x-admin.table-row-actions>
                 </td>

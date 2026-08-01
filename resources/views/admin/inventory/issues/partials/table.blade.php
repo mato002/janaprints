@@ -28,7 +28,7 @@
                             :href="$fromStoreDesk
                                 ? route('admin.inventory.issues.show', [$i, 'from' => 'store-desk'])
                                 : route('admin.inventory.issues.show', $i)"
-                            @if ($fromStoreDesk) data-erp-modal-open @endif
+                            :data-erp-modal-open="$fromStoreDesk ? true : null"
                         >{{ __('View issue') }}</x-admin.table-row-action>
                         @can('post', $i)
                             <x-admin.table-row-action method="POST" :action="route('admin.inventory.issues.post', $i)" :confirm="__('Post this issue?')">{{ __('Post issue') }}</x-admin.table-row-action>

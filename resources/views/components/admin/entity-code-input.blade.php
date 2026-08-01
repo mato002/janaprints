@@ -31,4 +31,4 @@
         :placeholder="$isEdit ? null : __('Auto-generated')"
         :required="$isEdit"
     />
-@endphp
+@endif
