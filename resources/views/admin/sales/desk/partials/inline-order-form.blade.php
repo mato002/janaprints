@@ -57,7 +57,15 @@
             >{{ __('Upload artwork') }}</a>
         </div>
     @else
-        <form method="POST" action="{{ route('admin.sales-orders.store') }}" class="space-y-3" data-turbo="false">
+        <form
+            method="POST"
+            action="{{ route('admin.sales-orders.store') }}"
+            class="space-y-3"
+            data-turbo="false"
+            data-erp-desk-form
+            data-erp-desk-success-message="{{ __('Order created.') }}"
+            data-erp-desk-submitting-message="{{ __('Creating order…') }}"
+        >
             @csrf
             <input type="hidden" name="from" value="sales-desk">
             <input type="hidden" name="entry_mode" value="direct">

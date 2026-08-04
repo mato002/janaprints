@@ -329,7 +329,7 @@ class QuickCreateLookupController extends Controller
 
     public function createArtworkType(): View
     {
-        abort_unless(auth()->user()?->can('crm.customers.update'), 403);
+        abort_unless(auth()->user()?->can('crm.customers.edit'), 403);
 
         return $this->lookupForm('admin.lookups.quick-create.artwork-type', [
             'title' => __('Create artwork type'),
@@ -340,7 +340,7 @@ class QuickCreateLookupController extends Controller
 
     public function storeArtworkType(Request $request, \App\Support\Crm\CustomerArtworkTypeCatalog $catalog): JsonResponse|Response
     {
-        abort_unless(auth()->user()?->can('crm.customers.update'), 403);
+        abort_unless(auth()->user()?->can('crm.customers.edit'), 403);
 
         $companyId = auth()->user()->hasRole('Super Admin')
             ? (int) ($request->input('company_id') ?: tenant()->companyId() ?: auth()->user()->company_id)

@@ -1,7 +1,10 @@
 @php
     use App\Support\Navigation\WorkspaceEmbed;
+    use App\Support\Operator\OperatorModeKey;
+    use App\Support\Operator\OperatorModeRegistry;
 
     $tabData = $tabData ?? [];
+    $productionOperator = OperatorModeRegistry::enabledFor(auth()->user(), OperatorModeKey::Production);
     $dispatchSummary = $dispatchSummary ?? null;
     $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
 
@@ -29,10 +32,13 @@
     @if ($jobCard->salesOrder || $salesOrder)
         @if ($jobCard->salesOrder && auth()->user()?->can('view', $jobCard->salesOrder))
             <a
-                href="{{ route('admin.sales-orders.show', $jobCard->salesOrder) }}"
+                href="{{ route('admin.sales-orders.show', array_filter([
+                    'salesOrder' => $jobCard->salesOrder,
+                    'from' => $productionOperator ? 'production-floor' : null,
+                ])) }}"
                 class="job-360-commercial-chips__chip job-360-commercial-chips__chip--link"
                 title="{{ __('Sales order') }}"
-                @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
+                @if ($productionOperator) data-erp-modal-open @else @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach @endif
             >
                 <span class="job-360-commercial-chips__abbr">{{ __('SO') }}</span>
                 <span class="mes-chip-status mes-chip-status--ok" aria-hidden="true">✓</span>

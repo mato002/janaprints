@@ -93,6 +93,7 @@
                 data-route="{{ Route::currentRouteName() }}"
                 data-title="{{ $title }}"
                 data-compact-page="{{ $compactPage ? '1' : '0' }}"
+                data-compact-workspace="{{ $compactWorkspace ? '1' : '0' }}"
                 data-app-name="{{ config('app.name') }}"
                 data-quick-create="{{ json_encode($frameQuickCreate, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) }}"
                 data-i18n-create="{{ __('Create') }}"

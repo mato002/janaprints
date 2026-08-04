@@ -46,7 +46,11 @@ class CommercialWorkspaceController extends Controller
     {
         // Designers never use the Commercial multi-tab shell — even with ?desk=1.
         if (DesignerOperatorMode::enabledFor($request->user())) {
-            return redirect()->to(DesignerOperatorMode::homeUrl());
+            if ($request->routeIs('admin.artwork.desk', 'admin.artwork.desk.*')) {
+                return null;
+            }
+
+            return redirect()->to(route('admin.artwork.desk'));
         }
 
         if ($request->boolean('desk')) {
@@ -54,7 +58,11 @@ class CommercialWorkspaceController extends Controller
         }
 
         if (SalesOperatorMode::enabledFor($request->user())) {
-            return redirect()->to(SalesOperatorMode::homeUrl());
+            if ($request->routeIs('admin.sales.desk', 'admin.sales.desk.*')) {
+                return null;
+            }
+
+            return redirect()->to(route('admin.sales.desk'));
         }
 
         return null;

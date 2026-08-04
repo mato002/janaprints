@@ -74,9 +74,14 @@ class HandleModalFormResponse
                 ? $bag->all()
                 : [];
 
+            $sessionError = $request->session()->get('error');
+            $message = $flat[0]
+                ?? (is_string($sessionError) && $sessionError !== '' ? $sessionError : null)
+                ?? __('Unable to save. Please check the form and try again.');
+
             return response()->json([
                 'ok' => false,
-                'message' => $flat[0] ?? __('Unable to save. Please check the form and try again.'),
+                'message' => $message,
                 'errors' => $messages,
                 'redirect' => $response->getTargetUrl(),
             ], 422);

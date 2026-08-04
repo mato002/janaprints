@@ -79,14 +79,14 @@ final class OperatorModeRegistry
                 key: OperatorModeKey::Designer,
                 role: 'Designer',
                 permissions: ['artwork.view'],
-                homeRoute: 'admin.workspaces.commercial.section',
+                homeRoute: 'admin.artwork.desk',
                 fromKey: 'designer-desk',
                 returnQueryFlag: 'designer_desk_return',
                 navRemap: [
                     'dashboard' => [
                         'label' => 'Designer Desk',
-                        'route' => 'admin.workspaces.commercial.section',
-                        'route_params' => ['section' => 'sales', 'tab' => 'designer-desk'],
+                        'route' => 'admin.artwork.desk',
+                        'route_params' => [],
                         'icon' => 'color-swatch',
                         'active_routes' => [
                             'admin.workspaces.commercial.section:sales',
@@ -98,8 +98,8 @@ final class OperatorModeRegistry
                     ],
                     'commercial' => [
                         'label' => 'Designer Desk',
-                        'route' => 'admin.workspaces.commercial.section',
-                        'route_params' => ['section' => 'sales', 'tab' => 'designer-desk'],
+                        'route' => 'admin.artwork.desk',
+                        'route_params' => [],
                         'icon' => 'color-swatch',
                         'active_routes' => [
                             'admin.workspaces.commercial.section:sales',
@@ -110,20 +110,20 @@ final class OperatorModeRegistry
                         ],
                     ],
                 ],
-                homeRouteParams: ['section' => 'sales', 'tab' => 'designer-desk'],
+                homeRouteParams: [],
             ),
             new OperatorModeDefinition(
                 key: OperatorModeKey::Sales,
                 role: 'Sales',
                 permissions: ['crm.customers.create', 'sales_orders.create'],
-                homeRoute: 'admin.workspaces.commercial.section',
+                homeRoute: 'admin.sales.desk',
                 fromKey: 'sales-desk',
                 returnQueryFlag: 'sales_desk_return',
                 navRemap: [
                     'dashboard' => [
                         'label' => 'Sales Desk',
-                        'route' => 'admin.workspaces.commercial.section',
-                        'route_params' => ['section' => 'sales', 'tab' => 'sales-desk'],
+                        'route' => 'admin.sales.desk',
+                        'route_params' => [],
                         'icon' => 'shopping-cart',
                         'active_routes' => [
                             'admin.workspaces.commercial.section:sales',
@@ -137,8 +137,8 @@ final class OperatorModeRegistry
                     ],
                     'commercial' => [
                         'label' => 'Sales Desk',
-                        'route' => 'admin.workspaces.commercial.section',
-                        'route_params' => ['section' => 'sales', 'tab' => 'sales-desk'],
+                        'route' => 'admin.sales.desk',
+                        'route_params' => [],
                         'icon' => 'shopping-cart',
                         'active_routes' => [
                             'admin.workspaces.commercial.section:sales',
@@ -151,7 +151,7 @@ final class OperatorModeRegistry
                         ],
                     ],
                 ],
-                homeRouteParams: ['section' => 'sales', 'tab' => 'sales-desk'],
+                homeRouteParams: [],
                 disabledWhen: [OperatorModeKey::Production],
             ),
             new OperatorModeDefinition(

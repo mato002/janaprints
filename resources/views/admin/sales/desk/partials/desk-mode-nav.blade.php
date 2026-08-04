@@ -44,17 +44,20 @@
 @endphp
 
 @if ($modes->count() > 1)
-    <nav class="workspace-context-tabs" aria-label="{{ __('Sales desk modes') }}">
-        @foreach ($modes as $mode)
-            <a
-                href="{{ WorkspaceEmbed::url($mode['url']) }}"
-                @class([
-                    'workspace-context-tab',
-                    'workspace-context-tab--active' => $mode['key'] === $active,
-                ])
-                data-turbo-frame="{{ $frame }}"
-                data-turbo-action="advance"
-            >{{ $mode['label'] }}</a>
-        @endforeach
-    </nav>
+    <div class="sales-desk-ribbon mb-3 shrink-0">
+        <nav class="sales-desk-ribbon__tabs" aria-label="{{ __('Sales desk modes') }}">
+            @foreach ($modes as $mode)
+                <a
+                    href="{{ WorkspaceEmbed::url($mode['url']) }}"
+                    @class([
+                        'sales-desk-ribbon__tab',
+                        'sales-desk-ribbon__tab--'.$mode['key'] => filled($mode['key'] ?? null),
+                        'sales-desk-ribbon__tab--active' => $mode['key'] === $active,
+                    ])
+                    data-turbo-frame="{{ $frame }}"
+                    data-turbo-action="advance"
+                >{{ $mode['label'] }}</a>
+            @endforeach
+        </nav>
+    </div>
 @endif

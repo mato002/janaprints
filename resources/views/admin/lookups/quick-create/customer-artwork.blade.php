@@ -38,7 +38,7 @@
         :value="old('artwork_type', $defaultArtworkType)"
         create-route="admin.crm.artwork-types.quick-create"
         refresh-route="admin.lookups.artwork_types"
-        permission="crm.customers.update"
+        permission="crm.customers.edit"
         :modal-title="__('Create artwork type')"
         select-class="erp-input w-full"
         :empty-option="false"

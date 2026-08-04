@@ -80,7 +80,9 @@ class SalesDeskActionPresenter
                 'document_url' => route('admin.invoices.document', $latestInvoice),
             ] : null,
             'show_url' => route('admin.sales-orders.show', [$salesOrder, 'from' => 'sales-desk']),
-            'edit_url' => route('admin.sales-orders.edit', [$salesOrder, 'from' => 'sales-desk']),
+            'edit_url' => auth()->user()?->can('update', $salesOrder)
+                ? route('admin.sales-orders.edit', [$salesOrder, 'from' => 'sales-desk'])
+                : null,
             'job_url' => $salesOrder->jobCard
                 ? route('admin.production.job-cards.show', [$salesOrder->jobCard, 'from' => 'sales-desk'])
                 : null,

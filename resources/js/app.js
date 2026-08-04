@@ -1206,6 +1206,12 @@ const erpModalManager = {
 
                         if (errorMessages.length > 1) {
                             showErpFormErrorAlert(errorMessages);
+                        } else if (payload.redirect) {
+                            this.completeDeskFormRedirect(form, {
+                                redirect: payload.redirect,
+                                message: errorMessage,
+                                variant: 'error',
+                            });
                         } else {
                             this.showToast(errorMessage, 'error');
                         }
@@ -8590,7 +8596,7 @@ function syncShellFromFrame() {
         return;
     }
 
-    const compact = meta.dataset.compactPage === '1';
+    const compact = meta.dataset.compactPage === '1' || meta.dataset.compactWorkspace === '1';
 
     applyShellLayout(compact);
 

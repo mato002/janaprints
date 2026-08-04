@@ -33,13 +33,19 @@
 
         @if (request('from') === 'sales-desk')
             <div class="flex flex-wrap gap-2">
-                <a href="{{ route('admin.sales-orders.edit', [$salesOrder, 'from' => 'sales-desk']) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Edit order') }}</a>
+                @can('update', $salesOrder)
+                    <a href="{{ route('admin.sales-orders.edit', [$salesOrder, 'from' => 'sales-desk']) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Edit order') }}</a>
+                @endcan
                 @can('create', App\Models\Sales\CustomerPayment::class)
                     <a href="{{ route('admin.payments.create', ['from' => 'sales-desk', 'customer_id' => $salesOrder->customer_id, 'sales_order_id' => $salesOrder->id]) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Record payment') }}</a>
                 @endcan
                 @can('create', App\Models\Sales\CustomerInvoice::class)
                     <a href="{{ route('admin.invoices.from-sales-order', [$salesOrder, 'from' => 'sales-desk']) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Create invoice') }}</a>
                 @endcan
+            </div>
+        @if (request('from') === 'production-floor')
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('admin.sales-orders.show', $salesOrder) }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open full order') }}</a>
             </div>
         @endif
     </div>

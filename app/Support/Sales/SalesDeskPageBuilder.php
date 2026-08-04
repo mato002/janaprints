@@ -58,6 +58,15 @@ class SalesDeskPageBuilder
                 'section' => 'sales',
                 'tab' => 'sales-desk',
             ]),
+            'printSpecifications' => [],
+            'orderPresentation' => null,
+            'step' => 1,
+            'customer' => null,
+            'specification' => null,
+            'order' => null,
+            'fastActions' => [],
+            'workQueue' => [],
+            'walkInPanel' => [],
         ];
     }
 

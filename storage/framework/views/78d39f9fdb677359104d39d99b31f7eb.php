@@ -23,30 +23,28 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <div class="job-360 w-full min-w-0 overflow-visible pb-16" data-turbo-frame="erp-main">
-        <div class="job-360-chrome">
-            <?php echo $__env->make('admin.production.job-cards.workspace.partials.mes-dashboard', [
-                'jobCard' => $jobCard,
-                'header' => $header,
-                'completion' => $completion,
-                'hasPostedOutput' => $hasPostedOutput,
-                'dispatchSummary' => $dispatchSummary,
-                'workflowPresentation' => $workflowPresentation,
-                'executionState' => $workspace['execution_state'] ?? [],
-                'primaryAction' => $workspace['primary_action'] ?? null,
-                'secondaryActions' => $workspace['secondary_actions'] ?? [],
-                'controlAlerts' => $workspace['control_alerts'] ?? [],
-                'materialReadiness' => $workspace['material_readiness'] ?? null,
-                'readinessChecklist' => $workspace['readiness_checklist'] ?? [],
-                'kpis' => $workspace['kpis'] ?? [],
-                'tabData' => $tabData,
-            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+        <?php echo $__env->make('admin.production.job-cards.workspace.partials.mes-dashboard', [
+            'jobCard' => $jobCard,
+            'header' => $header,
+            'completion' => $completion,
+            'hasPostedOutput' => $hasPostedOutput,
+            'dispatchSummary' => $dispatchSummary,
+            'workflowPresentation' => $workflowPresentation,
+            'executionState' => $workspace['execution_state'] ?? [],
+            'primaryAction' => $workspace['primary_action'] ?? null,
+            'secondaryActions' => $workspace['secondary_actions'] ?? [],
+            'controlAlerts' => $workspace['control_alerts'] ?? [],
+            'materialReadiness' => $workspace['material_readiness'] ?? null,
+            'readinessChecklist' => $workspace['readiness_checklist'] ?? [],
+            'kpis' => $workspace['kpis'] ?? [],
+            'tabData' => $tabData,
+        ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
 
-            <div class="job-360-tabs-sticky">
-                <?php echo $__env->make('admin.production.job-cards.workspace.tabs-nav', [
-                    'tabs' => $workspace['tabs'],
-                    'workspace' => $workspace,
-                ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-            </div>
+        <div class="job-360-tabs-sticky">
+            <?php echo $__env->make('admin.production.job-cards.workspace.tabs-nav', [
+                'tabs' => $workspace['tabs'],
+                'workspace' => $workspace,
+            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
 
         <div class="job-360__panel mt-2">

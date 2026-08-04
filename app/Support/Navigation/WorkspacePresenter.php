@@ -2,6 +2,7 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Sales\SalesOperatorMode;
 use App\Support\Platform\ModalFormRoutes;
 use Illuminate\Support\Facades\Route;
 
@@ -300,8 +301,19 @@ class WorkspacePresenter
         $definition = $workspaceKey !== null ? ($this->definitions()[$workspaceKey] ?? null) : null;
         $items = $definition['quick_create'] ?? $this->defaultQuickCreate();
 
-        return array_values(array_filter(
+        $presented = array_values(array_filter(
             array_map(fn (array $item) => $this->presentQuickCreateItem($item), $items),
+            fn (array $item) => $item['visible'],
+        ));
+
+        if ($presented !== [] || ! SalesOperatorMode::enabledFor(auth()->user())) {
+            return $presented;
+        }
+
+        $commercialItems = $this->definitions()['commercial']['quick_create'] ?? $this->defaultQuickCreate();
+
+        return array_values(array_filter(
+            array_map(fn (array $item) => $this->presentQuickCreateItem($item), $commercialItems),
             fn (array $item) => $item['visible'],
         ));
     }

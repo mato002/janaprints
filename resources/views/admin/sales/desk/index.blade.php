@@ -16,7 +16,7 @@
 
     $createCustomerUrl = route('admin.crm.customers.create', ['from' => 'sales-desk']);
     $walkInComplete = ! empty($orderPresentation['released_to_queue']);
-    $hasSpecs = count($printSpecifications) > 0;
+    $hasSpecs = count($printSpecifications ?? []) > 0;
     $defaultSpecMode = $hasSpecs ? 'existing' : 'new';
 @endphp
 

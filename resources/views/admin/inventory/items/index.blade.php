@@ -3,9 +3,27 @@
         <x-slot name="actions">
             @can('create', App\Models\Inventory\InventoryItem::class)
                 <a href="{{ route('admin.inventory.items.create') }}" class="erp-btn-primary">{{ __('New item') }}</a>
+            @elsecan('create', App\Models\Sales\Quotation::class)
+                <a href="{{ route('admin.sales.desk', ['view' => 'quotes']) }}" class="erp-btn-primary" data-turbo-frame="erp-main">{{ __('Create quote') }}</a>
+            @elsecan('create', App\Models\Sales\SalesOrder::class)
+                <a href="{{ route('admin.sales.desk') }}" class="erp-btn-primary" data-turbo-frame="erp-main">{{ __('Sales desk') }}</a>
             @endcan
         </x-slot>
     </x-admin.page-header>
+
+    @if (auth()->user()?->can('catalogue.view') && ! auth()->user()?->can('catalogue.create'))
+        <div class="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            {{ __('Read-only catalogue access.') }}
+            @can('create', App\Models\Sales\Quotation::class)
+                <a href="{{ route('admin.sales.desk', ['view' => 'quotes']) }}" class="font-semibold text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ __('Create a quote') }}</a>
+                {{ __('or') }}
+                <a href="{{ route('admin.sales.desk') }}" class="font-semibold text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ __('start a walk-in') }}</a>
+                {{ __('on the Sales Desk.') }}
+            @else
+                {{ __('Contact a store or catalogue administrator to add new products.') }}
+            @endcan
+        </div>
+    @endif
 
     <x-admin.data-table
         :search-placeholder="__('Search inventory...')"
