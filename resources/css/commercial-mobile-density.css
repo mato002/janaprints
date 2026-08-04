@@ -71,9 +71,33 @@
     color: #64748b;
 }
 
+.workspace-wrapper .c360-tabs-shell {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    gap: 0.25rem;
+    overflow: visible;
+    border-radius: 0.5rem;
+    border: 1px solid #E8ECF0;
+    background: #fff;
+    padding: 0.25rem;
+}
+
+.workspace-wrapper .c360-tabs--scroll {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-wrap: nowrap;
+    gap: 0.25rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
 .workspace-wrapper .c360-tabs {
     display: flex;
     flex-wrap: nowrap;
+    width: 100%;
     gap: 0.25rem;
     overflow-x: auto;
     border-radius: 0.5rem;
@@ -84,8 +108,27 @@
     -webkit-overflow-scrolling: touch;
 }
 
+.workspace-wrapper .c360-tabs__more-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.25rem);
+    z-index: 100;
+    min-width: 14rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    border-radius: 0.5rem;
+    border: 1px solid #E8ECF0;
+    background: #fff;
+    padding: 0.375rem;
+    box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.15);
+}
+
 .workspace-wrapper .c360-tabs__link {
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-width: 4.5rem;
+    text-align: center;
+    white-space: nowrap;
     border-radius: 0.375rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;

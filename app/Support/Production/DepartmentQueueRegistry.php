@@ -11,17 +11,19 @@ class DepartmentQueueRegistry
     /**
      * @return list<array{slug: string, label: string, url: string, active: bool, count: ?int}>
      */
-    public function navigation(?string $activeSlug = null): array
+    public function navigation(?string $activeSlug = null, bool $includeAll = true): array
     {
-        $items = [
-            [
+        $items = [];
+
+        if ($includeAll) {
+            $items[] = [
                 'slug' => '',
                 'label' => __('All departments'),
                 'url' => ProductionFloorDeskViews::queueIndexUrl(),
                 'active' => $activeSlug === null || $activeSlug === '',
                 'count' => null,
-            ],
-        ];
+            ];
+        }
 
         foreach ($this->availableDepartments() as $slug => $department) {
             $items[] = [

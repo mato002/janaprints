@@ -88,4 +88,44 @@ trait ResolvesEntityCode
             $maxLength,
         );
     }
+
+    /**
+     * @param  array<string, array<int, mixed>>  $rules
+     * @return array<string, array<int, mixed>>
+     */
+    protected function relaxCodeRulesForCreate(array $rules, int $maxLength = 50): array
+    {
+        if (! isset($rules['code'])) {
+            return $rules;
+        }
+
+        $codeRules = array_values(array_filter(
+            (array) $rules['code'],
+            fn ($rule) => $rule !== 'required' && ! (is_string($rule) && str_starts_with($rule, 'required:')),
+        ));
+
+        if (! in_array('nullable', $codeRules, true)) {
+            array_unshift($codeRules, 'nullable');
+        }
+
+        if (! in_array('string', $codeRules, true)) {
+            $codeRules[] = 'string';
+        }
+
+        $hasMaxRule = false;
+        foreach ($codeRules as $rule) {
+            if (is_string($rule) && str_starts_with($rule, 'max:')) {
+                $hasMaxRule = true;
+                break;
+            }
+        }
+
+        if (! $hasMaxRule) {
+            $codeRules[] = 'max:'.$maxLength;
+        }
+
+        $rules['code'] = $codeRules;
+
+        return $rules;
+    }
 }

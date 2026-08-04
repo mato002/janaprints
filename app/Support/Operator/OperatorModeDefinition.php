@@ -9,6 +9,7 @@ readonly class OperatorModeDefinition
      * @param  list<OperatorModeKey>  $disabledWhen
      * @param  array<string, array<string, mixed>>  $navRemap
      * @param  array<string, mixed>  $homeRouteParams
+     * @param  list<string>|null  $sidebarAllowedRoutes  When set, sidebar keeps only these route names after remap.
      */
     public function __construct(
         public OperatorModeKey $key,
@@ -20,6 +21,7 @@ readonly class OperatorModeDefinition
         public array $navRemap,
         public array $disabledWhen = [],
         public array $homeRouteParams = [],
+        public ?array $sidebarAllowedRoutes = null,
     ) {}
 
     public function matchesDeskRoute(string $routeName): bool

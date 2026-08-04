@@ -85,19 +85,19 @@ class Job360WorkspaceService
     /** @var list<string> */
     public const PRIMARY_TABS = [
         self::TAB_OVERVIEW,
+        self::TAB_MANUFACTURING,
         self::TAB_MATERIALS,
         self::TAB_OPERATIONS,
         self::TAB_QUALITY,
         self::TAB_OUTPUTS,
         self::TAB_DISPATCH,
         self::TAB_TIMELINE,
+        self::TAB_ARTWORK,
+        self::TAB_COMMERCIAL,
     ];
 
     /** @var list<string> */
     public const MORE_TABS = [
-        self::TAB_MANUFACTURING,
-        self::TAB_ARTWORK,
-        self::TAB_COMMERCIAL,
         self::TAB_COMMUNICATIONS,
         self::TAB_SPECIFICATION,
         self::TAB_ROUTE,
@@ -426,10 +426,15 @@ class Job360WorkspaceService
     {
         $manufacturing = app(JobCardManufacturingPresenter::class)->present($jobCard);
 
-        return array_merge($manufacturing, [
+        $data = array_merge($manufacturing, [
             'artwork' => $this->artworkTab($jobCard),
             'quality' => $this->qualityTab($jobCard),
         ]);
+
+        $data['dashboard_cards'] = app(JobCardManufacturingPresenter::class)
+            ->dashboardCards($jobCard, $data);
+
+        return $data;
     }
 
     /**
@@ -1254,6 +1259,9 @@ class Job360WorkspaceService
             ProductionJobCardStatus::ReadyForDispatch => __('Finished goods posted — job is ready for dispatch.'),
             ProductionJobCardStatus::OnHold => __('Job is on hold.'),
             ProductionJobCardStatus::Rework => __('Job requires rework.'),
+            ProductionJobCardStatus::Outsourced => __('Job is outsourced to an external vendor.'),
+            ProductionJobCardStatus::Returned => __('Job has returned from vendor — pending internal QC or production.'),
+            ProductionJobCardStatus::AwaitingCustomerApproval => __('Job is awaiting customer approval for conditional pass inspection.'),
             ProductionJobCardStatus::Cancelled => __('Job has been cancelled.'),
         };
     }

@@ -90,10 +90,12 @@ class JobCardManufacturingTest extends TestCase
             ->assertSee(__('Manufacturing'), false)
             ->assertSee('Brochures DL')
             ->assertSee('500')
-            ->assertSee(__('Material summary'), false);
+            ->assertSee(__('Manufacturing overview'), false)
+            ->assertSee(__('Materials'), false);
 
         $payload = app(Job360WorkspaceService::class)->build($jobCard, 'manufacturing');
         $this->assertTrue($payload['tab_data']['has_specification']);
+        $this->assertNotEmpty($payload['tab_data']['dashboard_cards']);
     }
 
     public function test_legacy_job_card_without_specification_still_works(): void

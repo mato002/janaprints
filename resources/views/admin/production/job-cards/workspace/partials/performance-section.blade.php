@@ -1,81 +1,65 @@
 @php
     $kpis = $kpis ?? [];
-    $criticalKeys = ['quality', 'dispatch_score', 'operation_completion'];
-    $advancedKeys = ['operators', 'materials', 'wastage', 'session_waste', 'serial_loss'];
-
-    $critical = collect($kpis)->filter(fn ($kpi) => in_array($kpi['key'] ?? '', $criticalKeys, true))->values();
-    $advanced = collect($kpis)->filter(fn ($kpi) => in_array($kpi['key'] ?? '', $advancedKeys, true))->values();
+    $compact = (bool) ($compact ?? false);
+    $kpiThemes = [
+        'operation_completion' => 'production',
+        'operators' => 'production',
+        'quality' => 'qc',
+        'dispatch_score' => 'dispatch',
+        'materials' => 'materials',
+        'wastage' => 'dispatch',
+        'session_waste' => 'slate',
+        'serial_loss' => 'slate',
+    ];
+    $allKeys = array_keys($kpiThemes);
+    $displayKpis = collect($kpis)
+        ->filter(fn ($kpi) => in_array($kpi['key'] ?? '', $allKeys, true))
+        ->when($compact, fn ($c) => $c->reject(fn ($kpi) => ($kpi['key'] ?? '') === 'materials'))
+        ->take($compact ? 5 : 6)
+        ->values();
 @endphp
 
-@if ($critical->isNotEmpty() || $advanced->isNotEmpty())
-    <section class="job-360-performance mb-4" aria-label="{{ __('Performance metrics') }}">
-        @if ($critical->isNotEmpty())
-            <div class="job-360-performance__critical">
-                @foreach ($critical as $kpi)
-                    <article @class([
-                        'job-360-kpi',
-                        'job-360-kpi--warning' => ! empty($kpi['warning']),
-                        'job-360-kpi--'.($kpi['key'] ?? 'default'),
-                    ])>
-                        <div class="job-360-kpi__head">
-                            @if (! empty($kpi['icon']))
-                                <x-admin.icon :name="$kpi['icon']" class="h-4 w-4" />
-                            @endif
-                            <h3 class="job-360-kpi__title">{{ $kpi['label'] }}</h3>
-                        </div>
-                        @if (! empty($kpi['metrics']))
-                            <dl class="job-360-kpi__metrics">
-                                @foreach ($kpi['metrics'] as $metric)
-                                    <div>
-                                        <dt>{{ $metric['label'] }}</dt>
-                                        <dd class="tabular-nums">{{ $metric['value'] }}</dd>
-                                    </div>
-                                @endforeach
-                            </dl>
-                        @endif
-                        @if (! empty($kpi['warning']))
-                            <p class="job-360-kpi__warning">{{ $kpi['warning'] }}</p>
-                        @endif
-                    </article>
+@if ($displayKpis->isNotEmpty())
+    @if ($compact)
+        @foreach ($displayKpis as $kpi)
+            @php
+                $theme = $kpiThemes[$kpi['key'] ?? ''] ?? 'slate';
+                $primaryMetric = $kpi['metrics'][0] ?? null;
+                $displayValue = $primaryMetric['value'] ?? ($kpi['placeholder'] ?? '—');
+                $shortLabel = match ($kpi['key'] ?? '') {
+                    'operation_completion' => __('Complete'),
+                    'operators' => __('Ops'),
+                    'quality' => __('QC'),
+                    'dispatch_score' => __('Dispatch'),
+                    'materials' => __('Mat'),
+                    'wastage' => __('Waste'),
+                    'session_waste' => __('Sess'),
+                    'serial_loss' => __('Serial'),
+                    default => \Illuminate\Support\Str::limit($kpi['label'] ?? '', 8, ''),
+                };
+            @endphp
+            <div @class(['mes-kpi', 'mes-kpi--'.$theme, 'mes-kpi--warning' => ! empty($kpi['warning'])]) title="{{ $kpi['label'] ?? '' }}">
+                <span class="mes-kpi__label">{{ $shortLabel }}</span>
+                <span class="mes-kpi__value">{{ $displayValue }}</span>
+            </div>
+        @endforeach
+    @else
+        <section aria-label="{{ __('Performance metrics') }}">
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                @foreach ($displayKpis as $kpi)
+                    @php
+                        $theme = $kpiThemes[$kpi['key'] ?? ''] ?? 'slate';
+                        $primaryMetric = $kpi['metrics'][0] ?? null;
+                        $displayValue = $primaryMetric['value'] ?? ($kpi['placeholder'] ?? '—');
+                    @endphp
+                    <x-admin.job-kpi-tile
+                        :theme="$theme"
+                        :label="$kpi['label'] ?? ''"
+                        :value="$displayValue"
+                        :emphasis="! empty($kpi['warning'])"
+                    />
                 @endforeach
             </div>
-        @endif
-
-        @if ($advanced->isNotEmpty())
-            <details class="job-360-performance__advanced">
-                <summary>
-                    <x-admin.icon name="chart-pie" class="h-4 w-4" />
-                    {{ __('Performance details') }}
-                    <span class="job-360-performance__count">{{ $advanced->count() }}</span>
-                </summary>
-                <div class="job-360-performance__advanced-grid">
-                    @foreach ($advanced as $kpi)
-                        <article class="job-360-kpi job-360-kpi--compact">
-                            <div class="job-360-kpi__head">
-                                @if (! empty($kpi['icon']))
-                                    <x-admin.icon :name="$kpi['icon']" class="h-4 w-4" />
-                                @endif
-                                <h3 class="job-360-kpi__title">{{ $kpi['label'] }}</h3>
-                            </div>
-                            @if (! empty($kpi['metrics']))
-                                <dl class="job-360-kpi__metrics">
-                                    @foreach ($kpi['metrics'] as $metric)
-                                        <div>
-                                            <dt>{{ $metric['label'] }}</dt>
-                                            <dd class="tabular-nums">{{ $metric['value'] }}</dd>
-                                        </div>
-                                    @endforeach
-                                </dl>
-                            @elseif (! empty($kpi['placeholder']))
-                                <p class="job-360-kpi__placeholder">{{ $kpi['placeholder'] }}</p>
-                            @endif
-                            @if (! empty($kpi['warning']))
-                                <p class="job-360-kpi__warning">{{ $kpi['warning'] }}</p>
-                            @endif
-                        </article>
-                    @endforeach
-                </div>
-            </details>
-        @endif
-    </section>
+        </section>
+    @endif
 @endif

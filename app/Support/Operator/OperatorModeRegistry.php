@@ -32,14 +32,14 @@ final class OperatorModeRegistry
                 key: OperatorModeKey::Production,
                 role: 'Production',
                 permissions: ['production.view'],
-                homeRoute: 'admin.workspaces.production.section',
+                homeRoute: 'admin.production.floor',
                 fromKey: 'production-floor',
                 returnQueryFlag: 'production_floor_return',
                 navRemap: [
                     'dashboard' => [
                         'label' => 'Production Floor',
-                        'route' => 'admin.workspaces.production.section',
-                        'route_params' => ['section' => 'operations', 'tab' => 'production-floor'],
+                        'route' => 'admin.production.floor',
+                        'route_params' => ['view' => 'queue'],
                         'icon' => 'cog',
                         'active_routes' => [
                             'admin.workspaces.production.section:operations',
@@ -53,8 +53,8 @@ final class OperatorModeRegistry
                     ],
                     'production' => [
                         'label' => 'Production Floor',
-                        'route' => 'admin.workspaces.production.section',
-                        'route_params' => ['section' => 'operations', 'tab' => 'production-floor'],
+                        'route' => 'admin.production.floor',
+                        'route_params' => ['view' => 'queue'],
                         'icon' => 'cog',
                         'active_routes' => [
                             'admin.workspaces.production.section:operations',
@@ -67,7 +67,13 @@ final class OperatorModeRegistry
                         ],
                     ],
                 ],
-                homeRouteParams: ['section' => 'operations', 'tab' => 'production-floor'],
+                homeRouteParams: ['view' => 'queue'],
+                sidebarAllowedRoutes: [
+                    'admin.production.floor',
+                    'admin.production.home',
+                    'admin.workspaces.production',
+                    'admin.workspaces.production.section',
+                ],
             ),
             new OperatorModeDefinition(
                 key: OperatorModeKey::Designer,

@@ -1,13 +1,17 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $action = $action ?? null;
     $completion = $completion ?? ['eligible' => false];
     $size = $size ?? 'md';
     $btnClass = $size === 'lg' ? 'job-360-hero__action erp-btn-primary' : 'erp-btn-primary text-sm';
+    $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
+    $formTurboAttrs = WorkspaceEmbed::mainFormAttributes();
 @endphp
 
 @if ($action)
     @if (($action['type'] ?? '') === 'post')
-        <form method="POST" action="{{ $action['url'] }}" class="inline">
+        <form method="POST" action="{{ $action['url'] }}" class="inline" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
             @csrf
             <button type="submit" @class([$btnClass, 'erp-btn-secondary' => ($action['variant'] ?? '') !== 'primary'])>
                 {{ $action['label'] }}
@@ -26,7 +30,7 @@
         <a
             href="{{ $action['url'] }}"
             @class([$btnClass, 'erp-btn-secondary' => ($action['variant'] ?? '') !== 'primary'])
-            data-turbo-frame="erp-main"
+            @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
         >{{ $action['label'] }}</a>
     @endif
 @endif

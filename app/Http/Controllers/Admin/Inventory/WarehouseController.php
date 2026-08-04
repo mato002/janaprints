@@ -187,15 +187,18 @@ class WarehouseController extends Controller
             ? (int) $request->input('branch_id')
             : ($warehouse?->branch_id ?? $branchId);
 
-        $validated = $this->formSettings->validateRequest($request, $formKey, [
-            'code' => [
-                'string',
-                'max:50',
-                Rule::unique('warehouses', 'code')
-                    ->where('company_id', $companyId)
-                    ->where('branch_id', $effectiveBranchId)
-                    ->ignore($warehouse),
-            ],
+        $this->formSettings->withoutHiddenInputs($request, $formKey, $companyId, $branchId);
+
+        $rules = $this->formSettings->mergeValidationRules($formKey, [
+            'code' => array_merge(
+                $this->nullableCodeRules(50),
+                [
+                    Rule::unique('warehouses', 'code')
+                        ->where('company_id', $companyId)
+                        ->where('branch_id', $effectiveBranchId)
+                        ->ignore($warehouse),
+                ],
+            ),
             'name' => ['string', 'max:255'],
             'branch_id' => [Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)],
             'location' => ['string', 'max:255'],
@@ -203,6 +206,12 @@ class WarehouseController extends Controller
             'description' => ['string'],
             'is_active' => ['boolean'],
         ], $companyId, $branchId, serverProvidedFields: ['branch_id']);
+
+        if (! $warehouse) {
+            $rules = $this->relaxCodeRulesForCreate($rules, 50);
+        }
+
+        $validated = $request->validate($rules);
         $descriptionParts = [];
 
         if (filled($validated['location'] ?? null)) {

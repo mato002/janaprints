@@ -169,7 +169,8 @@ class DepartmentProductionQueueTest extends TestCase
             ->assertOk()
             ->assertSee(__('Waiting jobs'), false)
             ->assertSee(__('Open Job 360'), false)
-            ->assertSee(__('Department operational register'), false);
+            ->assertSee(__('Department operational register'), false)
+            ->assertSee(__('More filters'), false);
     }
 
     public function test_invalid_department_redirects_to_main_queue(): void

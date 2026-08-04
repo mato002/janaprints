@@ -60,19 +60,16 @@ class DepartmentCommandCenterService
                 'production_status', 'payment_status',
             ],
             'offset' => [
-                'date', 'job_card_number', 'customer_name', 'job_type', 'product', 'quantity', 'finished_size',
-                'ink_colour', 'paper_type', 'binding', 'ups', 'estimated_sheets', 'serial_start', 'due_date',
-                'unit_price', 'line_amount', 'payment_status', 'order_status',
+                'date', 'job_card_number', 'customer_name', 'product', 'ink_colour', 'paper_type',
+                'estimated_sheets', 'due_date', 'progress', 'production_status',
             ],
             'digital' => [
-                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'paper_material', 'ups',
-                'estimated_sheets', 'finishing', 'unit_price', 'line_amount', 'due_date', 'payment_status',
-                'order_status',
+                'date', 'job_card_number', 'customer_name', 'product', 'paper_material', 'quantity',
+                'due_date', 'progress', 'production_status',
             ],
             'outsource' => [
-                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'production_type',
-                'vendor_name', 'vendor_cost', 'selling_price', 'margin', 'date_sent', 'expected_return',
-                'returned_date', 'payment_status', 'production_status', 'invoice_status', 'outsource_notes',
+                'date', 'job_card_number', 'customer_name', 'vendor_name', 'date_sent', 'expected_return',
+                'production_status', 'invoice_status',
             ],
             'large_format' => [
                 'job_card_number', 'customer_name', 'material', 'width', 'height', 'square_metres',
@@ -271,6 +268,7 @@ class DepartmentCommandCenterService
                 ? __('Yes')
                 : ($spec ? __('No') : '—'),
             'packaging' => $spec?->printProductTemplate?->recommended_packaging ?? '—',
+            'progress_percent' => $row['progress_percent'] ?? 0,
             'status_badges' => $this->statusBadges($row, $qc, $dispatch, $financial),
             'print_url' => $job ? JobCardPrintUrl::resolve($job, $department) : null,
             'print_label' => $job ? JobCardPrintUrl::actionLabel($job, $department) : null,
@@ -395,27 +393,13 @@ class DepartmentCommandCenterService
      */
     protected function statusBadges(array $row, array $qc, string $dispatch, ?array $financial): array
     {
-        $badges = [
-            ['label' => $row['operational_status'], 'variant' => $row['operational_variant'] ?? 'neutral'],
-        ];
+        $badges = $row['badges'] ?? [];
 
-        if (($qc['status'] ?? 'none') !== 'none') {
-            $badges[] = ['label' => $qc['label'], 'variant' => $this->qcVariant($qc['status'])];
-        }
-
-        if ($dispatch !== '—') {
-            $badges[] = ['label' => $dispatch, 'variant' => 'info'];
-        }
-
-        if ($financial) {
+        if ($financial && ($financial['financial_status_label'] ?? null)) {
             $badges[] = [
                 'label' => $financial['financial_status_label'],
                 'variant' => $financial['financial_status_variant'] ?? 'neutral',
             ];
-        }
-
-        foreach ($row['alerts'] ?? [] as $alert) {
-            $badges[] = ['label' => $alert['label'], 'variant' => 'warning'];
         }
 
         return $badges;
@@ -568,6 +552,7 @@ class DepartmentCommandCenterService
             'embossing' => __('Embossing'),
             'die_cutting' => __('Cutting'),
             'packaging' => __('Packaging'),
+            'progress' => __('Progress'),
             default => ucfirst(str_replace('_', ' ', $key)),
         };
     }
@@ -576,7 +561,7 @@ class DepartmentCommandCenterService
     {
         return match ($key) {
             'quantity', 'ups', 'estimated_sheets', 'days_remaining', 'unit_price', 'line_amount',
-            'vendor_cost', 'selling_price', 'margin', 'square_metres', 'width', 'height' => 'tabular-nums',
+            'vendor_cost', 'selling_price', 'margin', 'square_metres', 'width', 'height', 'progress_percent' => 'tabular-nums text-right',
             'job_card_number', 'printing_number' => 'font-mono text-xs',
             default => '',
         };

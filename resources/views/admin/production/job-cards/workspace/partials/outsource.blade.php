@@ -1,19 +1,13 @@
 @php $outsource = $tabData['outsource'] ?? []; @endphp
 
-<x-admin.card class="mt-6" id="outsource">
-    <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Outsourced Production') }}</h3>
-
+<x-admin.job-module-card theme="outsourcing" :title="__('Outsourcing')" icon="truck" compact id="outsource">
     @if ($outsource['vendor'] ?? null)
-        <dl class="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 mb-4">
-            <div><dt class="text-slate-500">{{ __('Vendor') }}</dt><dd class="font-medium">{{ $outsource['vendor']->vendor_name }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Issue date') }}</dt><dd>{{ $outsource['issue_date']?->format('Y-m-d') ?? '—' }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Expected return') }}</dt><dd>{{ $outsource['expected_return']?->format('Y-m-d') ?? '—' }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Quoted cost') }}</dt><dd>{{ $outsource['quoted_cost'] !== null ? number_format($outsource['quoted_cost'], 2) : '—' }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Actual cost') }}</dt><dd>{{ $outsource['actual_cost'] !== null ? number_format($outsource['actual_cost'], 2) : '—' }}</dd></div>
-            <div><dt class="text-slate-500">{{ __('Margin exposure') }}</dt><dd>{{ isset($outsource['cost_exposure']['margin_impact']) && $outsource['cost_exposure']['margin_impact'] !== null ? number_format($outsource['cost_exposure']['margin_impact'], 2) : '—' }}</dd></div>
-        </dl>
+        <div class="mb-3 grid grid-cols-2 gap-2">
+            <x-admin.job-kpi-tile theme="dispatch" :label="__('Vendor')" :value="$outsource['vendor']->vendor_name" />
+            <x-admin.job-kpi-tile theme="dispatch" :label="__('Expected return')" :value="$outsource['expected_return']?->format('Y-m-d') ?? '—'" />
+        </div>
         @if ($outsource['notes'])
-            <p class="text-sm text-slate-600 mb-4">{{ $outsource['notes'] }}</p>
+            <p class="mb-3 text-sm text-slate-600">{{ $outsource['notes'] }}</p>
         @endif
     @endif
 
@@ -43,4 +37,4 @@
     @elseif (! ($outsource['vendor'] ?? null))
         <p class="text-sm text-slate-500">{{ __('This job has not been outsourced.') }}</p>
     @endif
-</x-admin.card>
+</x-admin.job-module-card>

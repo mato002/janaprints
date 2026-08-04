@@ -2,11 +2,16 @@
 
 namespace App\Support\Navigation;
 
+use App\Support\Operator\OperatorModeKey;
+use App\Support\Operator\OperatorModeRegistry;
 use Illuminate\Http\Request;
 
 /**
- * Operator desks that may render standalone only with ?desk=1 (or turbo-frame embed).
- * Full-page visits redirect into the module workspace shell.
+ * Operator desks that may render outside the module workspace shell.
+ *
+ * Designer / Sales / Store / Dispatch desks are always standalone.
+ * Production floor is standalone for Production operators (or with ?desk=1);
+ * managers/admins are redirected into the Production workspace shell.
  */
 final class DeskWorkspaceRoutes
 {
@@ -25,14 +30,38 @@ final class DeskWorkspaceRoutes
         ];
     }
 
-    public static function allowsStandalone(string $routeName, Request $request = null): bool
+    public static function allowsStandalone(string $routeName, ?Request $request = null): bool
     {
         $request ??= request();
+        $user = $request->user();
 
-        if (! in_array($routeName, self::escapeRoutes(), true)) {
-            return false;
+        foreach (OperatorModeRegistry::modes() as $mode) {
+            if ($mode->key === OperatorModeKey::Production) {
+                continue;
+            }
+
+            if ($mode->matchesDeskRoute($routeName)) {
+                return true;
+            }
         }
 
-        return $request->boolean('desk');
+        foreach (OperatorModeRegistry::modes() as $mode) {
+            if (
+                $mode->key === OperatorModeKey::Production
+                && $mode->matchesDeskRoute($routeName)
+                && (
+                    OperatorModeRegistry::enabledFor($user, $mode->key)
+                    || $request->boolean('desk')
+                )
+            ) {
+                return true;
+            }
+        }
+
+        if ($request->boolean('desk') && in_array($routeName, self::escapeRoutes(), true)) {
+            return true;
+        }
+
+        return false;
     }
 }

@@ -42,7 +42,10 @@ class ProductionQueueWorkspaceService
             'queues' => $this->paginatedIndex($request, $department),
             'kpis' => $this->kpiCounts($request, $department),
             'metrics' => $this->liveMetrics($request, $department),
-            'department_nav' => $this->departments->navigation($department),
+            'department_nav' => $this->departments->navigation(
+                $department,
+                includeAll: ! \App\Support\Production\ProductionDeskPersona::resolve($request->user())->isOperator(),
+            ),
             'active_department' => $department,
             'active_department_label' => $department
                 ? ($this->departments->department($department)['label'] ?? ucfirst($department))
@@ -225,6 +228,7 @@ class ProductionQueueWorkspaceService
             'badges' => $this->statusBadges($queue, $jobCard, $alerts),
             'alerts' => $alerts,
             'row_tone' => $this->rowTone($alerts),
+            'row_urgency' => $this->rowUrgency($queue, $jobCard, $alerts),
             'spec_summary' => $spec ? [
                 'product' => $spec->product_description ?? $jobCard?->inventoryItem?->item_name,
                 'size' => $spec->size,
@@ -483,6 +487,35 @@ class ProductionQueueWorkspaceService
         return 'default';
     }
 
+    protected function rowUrgency(ProductionQueue $queue, ?ProductionJobCard $jobCard, array $alerts): string
+    {
+        $codes = collect($alerts)->pluck('code');
+
+        if ($codes->contains('overdue') || ($jobCard?->isDelayed() ?? false)) {
+            return 'overdue';
+        }
+
+        if ($codes->contains('due_today')) {
+            return 'due-today';
+        }
+
+        if ($queue->status === ProductionQueueStatus::Completed
+            || $jobCard?->status === ProductionJobCardStatus::Completed) {
+            return 'completed';
+        }
+
+        if (in_array($queue->status, [ProductionQueueStatus::Waiting, ProductionQueueStatus::Queued], true)) {
+            return 'waiting';
+        }
+
+        if ($queue->status === ProductionQueueStatus::Paused
+            || $jobCard?->status === ProductionJobCardStatus::OnHold) {
+            return 'paused';
+        }
+
+        return 'default';
+    }
+
     protected function finishingSummary($spec): ?string
     {
         if (! $spec) {
@@ -560,6 +593,21 @@ class ProductionQueueWorkspaceService
                 ->whereNull('assigned_operator_id');
         }
 
+        if ($bucket = $request->query('queue_bucket')) {
+            match ($bucket) {
+                'waiting' => $query->whereIn(self::STATUS_COLUMN, [
+                    ProductionQueueStatus::Waiting,
+                    ProductionQueueStatus::Queued,
+                ]),
+                'running' => $query->where(self::STATUS_COLUMN, ProductionQueueStatus::InProgress),
+                'paused' => $query->where(self::STATUS_COLUMN, ProductionQueueStatus::Paused),
+                'completed_today' => $query
+                    ->where(self::STATUS_COLUMN, ProductionQueueStatus::Completed)
+                    ->whereDate('updated_at', today()),
+                default => null,
+            };
+        }
+
         if ($workCenterId = $request->query('work_center_id')) {
             $query->where('work_center_id', (int) $workCenterId);
         }
@@ -607,6 +655,7 @@ class ProductionQueueWorkspaceService
             && ! $request->filled('due')
             && ! $request->filled('search')
             && ! $request->filled('status')
+            && ! $request->filled('queue_bucket')
         ) {
             $today = today()->toDateString();
             $query->whereDate('production_queues.created_at', '>=', $today)
@@ -671,6 +720,7 @@ class ProductionQueueWorkspaceService
             'all_dates' => $request->boolean('all_dates'),
             'due' => $request->query('due'),
             'search' => $request->query('search'),
+            'queue_bucket' => $request->query('queue_bucket'),
         ];
     }
 

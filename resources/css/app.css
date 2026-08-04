@@ -5499,6 +5499,470 @@ body.erp-navigating {
         --production-floor-sticky-offset: 0px;
     }
 
+    .production-floor-shell--dense {
+        gap: 0.5rem;
+    }
+
+    .production-floor-operator-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 1.875rem;
+        margin: 0;
+        padding: 0.25rem 0.75rem;
+        border: 1px solid color-mix(in srgb, var(--color-erp-accent, #e11d48) 25%, transparent);
+        border-radius: 0.375rem;
+        background: color-mix(in srgb, var(--color-erp-accent, #e11d48) 6%, white);
+        color: #475569;
+        font-size: 0.75rem;
+        line-height: 1.25;
+    }
+
+    .production-floor-operator-banner__label {
+        font-weight: 600;
+        color: #31339c;
+    }
+
+    .production-floor-operator-banner__sep {
+        color: #94a3b8;
+    }
+
+    .production-floor-dept-pills {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.375rem;
+        margin: 0;
+        padding: 0;
+    }
+
+    .production-floor-dept-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.25rem;
+        padding: 0.25rem 0.875rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 9999px;
+        background: #fff;
+        color: #64748b;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        line-height: 1.2;
+        text-decoration: none;
+        transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .production-floor-dept-pill:hover {
+        border-color: color-mix(in srgb, #31339c 40%, #e2e8f0);
+        color: #31339c;
+    }
+
+    .production-floor-dept-pill--active,
+    .production-floor-dept-pill--active:hover {
+        border-color: #31339c;
+        background: color-mix(in srgb, #31339c 10%, white);
+        color: #31339c;
+        font-weight: 600;
+    }
+
+    .production-floor-dept-segments {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+        box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+    }
+
+    .production-floor-dept-segment {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.75rem;
+        border-right: 1px solid #e2e8f0;
+        background: #fff;
+        padding: 0.5rem 0.75rem;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        text-decoration: none;
+        text-transform: uppercase;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .production-floor-dept-segment:last-child {
+        border-right: 0;
+    }
+
+    .production-floor-dept-segment:hover {
+        background: #f8fafc;
+        color: #31339c;
+    }
+
+    .production-floor-dept-segment--active,
+    .production-floor-dept-segment--active:hover {
+        background: #31339c;
+        color: #fff;
+    }
+
+    .production-floor-dept-segment--active.production-floor-dept-segment--digital,
+    .production-floor-dept-segment--active.production-floor-dept-segment--digital:hover {
+        background: #2563eb;
+    }
+
+    .production-floor-dept-segment--active.production-floor-dept-segment--offset,
+    .production-floor-dept-segment--active.production-floor-dept-segment--offset:hover {
+        background: #7c3aed;
+    }
+
+    .production-floor-dept-segment--active.production-floor-dept-segment--outsource,
+    .production-floor-dept-segment--active.production-floor-dept-segment--outsource:hover {
+        background: #ea580c;
+    }
+
+    .production-queue-ribbon {
+        overflow: visible;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+    }
+
+    .production-queue-ribbon__tabs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+        overflow: hidden;
+        border-bottom: 1px solid #e2e8f0;
+        border-radius: 0.375rem 0.375rem 0 0;
+    }
+
+    .production-queue-ribbon__tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.875rem;
+        border-right: 1px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 0.625rem 0.75rem;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        line-height: 1.2;
+        text-decoration: none;
+        text-transform: uppercase;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .production-queue-ribbon__tab:last-child {
+        border-right: 0;
+    }
+
+    .production-queue-ribbon__tab:hover {
+        background: #fff;
+        color: #31339c;
+    }
+
+    .production-queue-ribbon__tab--active,
+    .production-queue-ribbon__tab--active:hover {
+        background: #31339c;
+        color: #fff;
+        box-shadow: inset 0 -3px 0 rgb(255 255 255 / 0.2);
+    }
+
+    .production-queue-ribbon__tab--active.production-queue-ribbon__tab--digital,
+    .production-queue-ribbon__tab--active.production-queue-ribbon__tab--digital:hover {
+        background: #2563eb;
+    }
+
+    .production-queue-ribbon__tab--active.production-queue-ribbon__tab--offset,
+    .production-queue-ribbon__tab--active.production-queue-ribbon__tab--offset:hover {
+        background: #7c3aed;
+    }
+
+    .production-queue-ribbon__tab--active.production-queue-ribbon__tab--outsource,
+    .production-queue-ribbon__tab--active.production-queue-ribbon__tab--outsource:hover {
+        background: #ea580c;
+    }
+
+    .production-queue-ribbon__stats {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem 0.35rem;
+        min-height: 2.25rem;
+        border-bottom: 1px solid #e2e8f0;
+        background: #fff;
+        padding: 0.375rem 0.75rem;
+        color: #64748b;
+        font-size: 0.6875rem;
+        line-height: 1.3;
+    }
+
+    .production-queue-ribbon__stat {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        border-radius: 0.25rem;
+        padding: 0.125rem 0.35rem;
+        color: #64748b;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .production-queue-ribbon__stat:hover {
+        background: #f1f5f9;
+        color: #31339c;
+    }
+
+    .production-queue-ribbon__stat strong {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .production-queue-ribbon__stat--active {
+        background: rgb(49 51 156 / 0.08);
+        color: #31339c;
+    }
+
+    .production-queue-ribbon__stat--active strong {
+        color: #31339c;
+    }
+
+    .production-queue-ribbon__stat--danger:not(.production-queue-ribbon__stat--active) strong {
+        color: #b91c1c;
+    }
+
+    .production-queue-ribbon__stat-sep {
+        color: #cbd5e1;
+        user-select: none;
+    }
+
+    .production-queue-ribbon__stat-meta strong {
+        color: #334155;
+        font-weight: 700;
+    }
+
+    .production-queue-ribbon__filters .erp-index-toolbar {
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        overflow: visible;
+    }
+
+    .production-queue-ribbon__filters .erp-index-toolbar-row {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+
+    .production-queue-ribbon__filters .erp-index-toolbar-form--dense .erp-index-toolbar {
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+    }
+
+    .production-queue-ribbon__filters .erp-toolbar-export-btn + div,
+    .production-queue-ribbon__filters .relative > .absolute {
+        z-index: 50;
+    }
+
+    .production-queue-workspace--ribbon .production-queue-register-table thead th {
+        z-index: 10;
+    }
+
+    .production-queue-workspace--ribbon .production-queue-register-table thead .production-queue-col-frozen {
+        z-index: 11;
+    }
+
+    .production-queue-workspace--ribbon .production-queue-workspace__table {
+        margin-top: 0.5rem;
+    }
+
+    .production-queue-kpi-inline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.5rem;
+        min-height: 2.25rem;
+        margin-bottom: 0.375rem;
+        padding: 0.25rem 0.625rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+        color: #475569;
+        font-size: 0.75rem;
+        line-height: 1.25;
+    }
+
+    .production-queue-kpi-inline strong {
+        font-weight: 600;
+        color: #334155;
+    }
+
+    .production-queue-kpi-inline__sep {
+        color: #cbd5e1;
+        user-select: none;
+    }
+
+    .production-queue-kpi-chips {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.375rem;
+        min-height: 2rem;
+        margin-bottom: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+    }
+
+    .production-queue-kpi-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 9999px;
+        background: #f8fafc;
+        padding: 0.2rem 0.55rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #475569;
+        transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .production-queue-kpi-chip:hover {
+        border-color: #cbd5e1;
+        background: #fff;
+        color: #31339c;
+    }
+
+    .production-queue-kpi-chip--active {
+        border-color: rgb(212 20 132 / 0.35);
+        background: rgb(212 20 132 / 0.1);
+        color: #d41484;
+    }
+
+    .production-queue-kpi-chip--danger:not(.production-queue-kpi-chip--active) {
+        color: #b91c1c;
+    }
+
+    .production-queue-kpi-chip__count {
+        display: inline-flex;
+        min-width: 1rem;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9999px;
+        background: rgb(15 23 42 / 0.08);
+        padding: 0 0.3rem;
+        font-size: 0.625rem;
+        line-height: 1.4;
+    }
+
+    .production-queue-kpi-chips__meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.5rem;
+        margin-left: auto;
+        font-size: 0.6875rem;
+        color: #64748b;
+    }
+
+    .production-queue-kpi-chips__meta strong {
+        color: #334155;
+    }
+
+    .production-queue-kpi-card {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.35rem 0.625rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+    }
+
+    .production-queue-kpi-card__label {
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        line-height: 1.2;
+    }
+
+    .production-queue-kpi-card__value {
+        margin-top: 0.1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: #31339c;
+        line-height: 1.2;
+    }
+
+    .production-queue-summary--compact {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem 0.5rem;
+        margin: 0 0 0.375rem;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: #64748b;
+        font-size: 0.6875rem;
+        line-height: 1.25;
+    }
+
+    .production-queue-summary__sep {
+        color: #cbd5e1;
+    }
+
+    .production-queue-workspace--dense {
+        gap: 0;
+    }
+
+    .production-queue-workspace--dense .production-queue-workspace__chrome {
+        padding-bottom: 0.25rem;
+    }
+
+    .production-queue-workspace--dense .production-queue-workspace__table {
+        display: flex;
+        min-height: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
+    }
+
+    .production-queue-workspace--dense .production-queue-register--scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+    }
+
+    .production-queue-workspace--dense .production-queue-register-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background-color: #31339c;
+        color: #fff;
+        box-shadow: 0 1px 0 #31339c;
+    }
+
+    .production-queue-workspace--dense .erp-index-toolbar {
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+    }
+
+    .production-floor-shell--dense .workspace-context-tabs {
+        margin-bottom: 0.375rem;
+    }
+
     .production-floor-command-sticky {
         @apply sticky top-0 z-40 border-b border-erp-border/60 bg-erp-page pb-1;
     }
@@ -5649,6 +6113,10 @@ body.erp-navigating {
     }
 
     /* Department queue register — visible grid lines on all department tables */
+    .production-queue-register--scroll {
+        overflow: auto;
+    }
+
     .production-queue-register .production-queue-register-table th,
     .production-queue-register .production-queue-register-table td {
         white-space: normal;
@@ -5658,14 +6126,194 @@ body.erp-navigating {
         overflow: visible;
         text-overflow: clip;
         height: auto;
-        min-height: 3rem;
-        vertical-align: top;
-        line-height: 1.35;
+        min-height: 2.75rem;
+        vertical-align: middle;
+        line-height: 1.25;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
     }
 
     .production-queue-register .production-queue-register-table thead th {
-        white-space: normal;
-        line-height: 1.25;
+        position: sticky;
+        top: 0;
+        z-index: 30;
+        white-space: nowrap;
+        line-height: 1.2;
+    }
+
+    .production-queue-col-frozen {
+        position: sticky;
+        z-index: 20;
+        background-color: inherit;
+        box-shadow: 1px 0 0 rgb(226 232 240);
+    }
+
+    .production-queue-register-table thead .production-queue-col-frozen {
+        z-index: 40;
+        background-color: #31339c;
+        box-shadow: 1px 0 0 rgb(49 51 156 / 0.35);
+    }
+
+    .production-queue-col-frozen--1 {
+        left: 0;
+        min-width: 4.5rem;
+    }
+
+    .production-queue-col-frozen--2 {
+        left: 4.5rem;
+        min-width: 6.5rem;
+    }
+
+    .production-queue-col-frozen--3 {
+        left: 11rem;
+        min-width: 8rem;
+        max-width: 10rem;
+    }
+
+    .production-queue-row--overdue {
+        box-shadow: inset 3px 0 0 #ef4444;
+    }
+
+    .production-queue-row--due-today {
+        box-shadow: inset 3px 0 0 #f59e0b;
+    }
+
+    .production-queue-row--waiting {
+        box-shadow: inset 3px 0 0 #3b82f6;
+    }
+
+    .production-queue-row--completed {
+        box-shadow: inset 3px 0 0 #10b981;
+    }
+
+    .production-queue-row--paused {
+        box-shadow: inset 3px 0 0 #94a3b8;
+    }
+
+    .production-queue-row--overdue td,
+    .production-queue-row--due-today td,
+    .production-queue-row--waiting td,
+    .production-queue-row--completed td,
+    .production-queue-row--paused td {
+        background-color: inherit;
+    }
+
+    .production-queue-product {
+        max-width: 14rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .production-queue-progress {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        min-width: 5.5rem;
+    }
+
+    .production-queue-progress__track {
+        height: 0.375rem;
+        flex: 1;
+        overflow: hidden;
+        border-radius: 9999px;
+        background: #e2e8f0;
+    }
+
+    .production-queue-progress__fill {
+        height: 100%;
+        border-radius: 9999px;
+        background: #31339c;
+    }
+
+    .production-queue-progress__label {
+        font-size: 0.625rem;
+        font-weight: 600;
+        color: #475569;
+    }
+
+    .production-queue-row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .production-queue-action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        color: #475569;
+        white-space: nowrap;
+    }
+
+    .production-queue-action-btn:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        color: #31339c;
+    }
+
+    .production-queue-action-btn--primary {
+        border-color: rgb(212 20 132 / 0.25);
+        background: rgb(212 20 132 / 0.08);
+        color: #d41484;
+    }
+
+    .production-queue-action-btn--compact {
+        padding: 0.2rem 0.4rem;
+    }
+
+    .production-queue-row-actions__more summary {
+        cursor: pointer;
+        list-style: none;
+    }
+
+    .production-queue-row-actions__more summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .production-queue-row-actions__menu {
+        position: absolute;
+        right: 0;
+        z-index: 30;
+        margin-top: 0.25rem;
+        min-width: 10rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+        padding: 0.25rem;
+        box-shadow: 0 8px 20px rgb(15 23 42 / 0.12);
+    }
+
+    .production-queue-row-actions__more {
+        position: relative;
+    }
+
+    .production-queue-row-actions__menu-item {
+        display: block;
+        width: 100%;
+        border-radius: 0.25rem;
+        padding: 0.35rem 0.5rem;
+        text-align: left;
+        font-size: 0.6875rem;
+        color: #475569;
+    }
+
+    .production-queue-row-actions__menu-item:hover {
+        background: #f8fafc;
+        color: #31339c;
+    }
+
+    .production-queue-col-actions {
+        min-width: 8rem;
+        white-space: nowrap;
     }
 
     .production-floor-shell .production-floor-machine-select {
@@ -5913,77 +6561,57 @@ body.erp-navigating {
         @apply min-h-10 px-4 py-2 text-sm font-semibold touch-manipulation;
     }
 
-    /* Job 360 completion workstation */
+    /* Job 360 completion workstation — operator-first compact layout */
     .job-360-hero {
-        @apply rounded-xl border border-erp-border bg-white shadow-sm;
+        @apply rounded-lg border border-erp-border bg-white shadow-sm;
     }
 
     .job-360-hero__shell {
-        @apply flex flex-col gap-4 p-4 lg:flex-row lg:items-start lg:justify-between lg:p-5;
+        @apply flex flex-col gap-3 p-3 sm:flex-row sm:items-start sm:justify-between;
     }
 
-    .job-360-hero__main {
-        @apply grid min-w-0 flex-1 gap-4 lg:grid-cols-2 lg:gap-6;
+    .job-360-hero__identity {
+        @apply min-w-0 flex-1;
     }
 
-    .job-360-hero__eyebrow {
-        @apply mb-1 flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500;
+    .job-360-hero__top-row {
+        @apply flex flex-wrap items-center gap-2;
     }
 
-    .job-360-hero__title {
-        @apply text-xl font-bold leading-tight text-slate-900 sm:text-2xl;
+    .job-360-hero__job-number {
+        @apply text-sm font-bold text-slate-900;
     }
 
-    .job-360-hero__subtitle {
-        @apply mt-1 text-sm font-medium text-slate-600;
+    .job-360-hero__customer {
+        @apply mt-1 text-sm font-semibold text-slate-800;
     }
 
-    .job-360-hero__meta {
-        @apply mt-3 flex flex-wrap gap-3;
+    .job-360-hero__product {
+        @apply text-xs text-slate-500;
     }
 
-    .job-360-hero__meta-item {
-        @apply inline-flex items-center gap-1.5 text-sm text-slate-600;
+    .job-360-hero__meta-line {
+        @apply mt-0.5 text-xs text-slate-500;
     }
 
-    .job-360-hero__status-label {
-        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    .job-360-hero__assignments {
+        @apply mt-1 flex flex-wrap gap-x-2 text-xs text-slate-600;
     }
 
-    .job-360-hero__stage {
-        @apply mt-1 inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold;
+    .job-360-hero__assignments-sep {
+        @apply text-slate-300;
     }
 
-    .job-360-hero__stage--success {
-        @apply bg-emerald-50 text-emerald-800;
+    .job-360-hero__assignments strong {
+        @apply font-semibold text-slate-800;
     }
 
-    .job-360-hero__stage--warning {
-        @apply bg-amber-50 text-amber-900;
-    }
-
-    .job-360-hero__stage--danger {
-        @apply bg-red-50 text-red-800;
-    }
-
-    .job-360-hero__stage--info {
-        @apply bg-sky-50 text-sky-800;
-    }
-
-    .job-360-hero__stage--neutral {
-        @apply bg-slate-100 text-slate-700;
-    }
-
-    .job-360-hero__stage-dot {
-        @apply h-2 w-2 shrink-0 rounded-full bg-current;
-    }
-
-    .job-360-hero__progress {
-        @apply mt-3 flex items-center gap-3;
+    .job-360-hero__progress-inline {
+        @apply ml-auto flex items-center gap-2 sm:ml-0;
     }
 
     .job-360-hero__progress-track {
-        @apply h-2 min-w-[8rem] flex-1 overflow-hidden rounded-full bg-slate-100;
+        @apply h-1.5 w-16 overflow-hidden rounded-full bg-slate-100;
     }
 
     .job-360-hero__progress-fill {
@@ -5991,55 +6619,23 @@ body.erp-navigating {
     }
 
     .job-360-hero__progress-value {
-        @apply text-sm font-semibold text-slate-700;
-    }
-
-    .job-360-hero__next-action {
-        @apply mt-2 text-sm leading-relaxed text-slate-600;
-    }
-
-    .job-360-hero__readiness {
-        @apply mt-3 space-y-1.5 border-t border-slate-100 pt-3;
-    }
-
-    .job-360-hero__readiness-row {
-        @apply grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-sm;
-    }
-
-    .job-360-hero__readiness-row dt {
-        @apply text-slate-500;
-    }
-
-    .job-360-hero__readiness-row dd {
-        @apply font-medium text-slate-800;
-    }
-
-    .job-360-hero__readiness-row--ok dd {
-        @apply text-emerald-800;
-    }
-
-    .job-360-hero__readiness-row--warn dd {
-        @apply text-amber-800;
+        @apply text-xs font-semibold text-slate-700;
     }
 
     .job-360-hero__actions {
-        @apply flex shrink-0 flex-col items-stretch gap-2 sm:items-end;
+        @apply flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end;
     }
 
-    .job-360-hero__action-stack {
-        @apply flex flex-col gap-2 sm:items-end;
-    }
-
-    .job-360-hero__action {
-        @apply min-h-11 w-full px-5 text-sm font-semibold touch-manipulation sm:w-auto;
+    .job-360-hero__action-row {
+        @apply flex flex-wrap gap-2 sm:justify-end;
     }
 
     .job-360-hero__more summary {
-        @apply cursor-pointer list-none text-sm text-slate-500 hover:text-erp-primary [&::-webkit-details-marker]:hidden;
+        @apply cursor-pointer list-none text-xs text-slate-500 hover:text-erp-primary [&::-webkit-details-marker]:hidden;
     }
 
     .job-360-hero__more-menu {
-        @apply mt-2 flex min-w-[12rem] flex-col gap-1 rounded-lg border border-erp-border bg-white p-2 shadow-sm;
+        @apply mt-1 flex min-w-[12rem] flex-col gap-1 rounded-lg border border-erp-border bg-white p-2 shadow-sm;
     }
 
     .job-360-hero__more-link {
@@ -6063,102 +6659,379 @@ body.erp-navigating {
     }
 
     .job-360-workflow {
-        @apply rounded-xl border border-erp-border bg-white px-4 py-3;
-    }
-
-    .job-360-workflow__title {
-        @apply mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+        @apply rounded-lg border border-erp-border bg-white px-3 py-2;
     }
 
     .job-360-blockers {
-        @apply rounded-xl border border-red-200 bg-red-50/60 px-4 py-4;
+        @apply rounded-lg border border-red-200 bg-red-50/60 px-3 py-2.5;
     }
 
     .job-360-blockers__head {
-        @apply mb-3 flex items-start gap-3 text-red-900;
+        @apply mb-1.5 flex items-center gap-2 text-red-900;
     }
 
     .job-360-blockers__title {
-        @apply text-sm font-semibold;
+        @apply text-xs font-semibold uppercase tracking-wide;
     }
 
-    .job-360-blockers__subtitle {
-        @apply text-xs text-red-800/80;
+    .job-360-blockers__resolve {
+        @apply ml-auto shrink-0 text-xs font-semibold text-erp-primary hover:underline;
     }
 
     .job-360-blockers__list {
-        @apply space-y-2;
+        @apply flex flex-wrap gap-x-4 gap-y-1;
         list-style: none;
         margin: 0;
         padding: 0;
     }
 
     .job-360-blockers__item {
-        @apply flex flex-col gap-2 rounded-lg border bg-white px-3 py-3 sm:flex-row sm:items-center sm:justify-between;
-    }
-
-    .job-360-blockers__item--error {
-        @apply border-red-200;
+        @apply text-xs font-medium text-red-900;
+        list-style: disc;
+        margin-left: 1rem;
     }
 
     .job-360-blockers__item--warning {
-        @apply border-amber-200 bg-amber-50/50;
+        @apply text-amber-900;
     }
 
-    .job-360-blockers__message {
-        @apply text-sm font-medium text-slate-900;
+    .job-360-performance__pills {
+        @apply flex flex-wrap gap-2;
     }
 
-    .job-360-blockers__hint {
-        @apply mt-1 text-xs text-slate-500;
+    .job-360-pill-metric {
+        @apply inline-flex rounded-full border border-erp-border bg-white px-2.5 py-1 text-xs font-medium text-slate-700;
     }
 
-    .job-360-blockers__action {
-        @apply shrink-0 text-sm font-semibold text-erp-primary hover:underline;
-    }
-
-    .job-360-performance__critical {
-        @apply mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3;
+    .job-360-pill-metric--warning {
+        @apply border-amber-200 bg-amber-50 text-amber-800;
     }
 
     .job-360-performance__advanced {
-        @apply rounded-xl border border-erp-border bg-white;
+        @apply mt-2 rounded-lg border border-erp-border bg-white;
     }
 
     .job-360-performance__advanced summary {
-        @apply flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden;
+        @apply flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 [&::-webkit-details-marker]:hidden;
     }
 
     .job-360-performance__count {
-        @apply ml-auto rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600;
+        @apply ml-auto rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600;
     }
 
     .job-360-performance__advanced-grid {
-        @apply grid grid-cols-1 gap-3 border-t border-erp-border p-4 sm:grid-cols-2 lg:grid-cols-3;
+        @apply grid grid-cols-1 gap-2 border-t border-erp-border p-3 sm:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .job-360-tabs-sticky {
+        @apply sticky top-16 z-30 -mx-1 overflow-visible border-b border-erp-border/60 bg-slate-50/95 px-1 py-0.5 backdrop-blur;
+    }
+
+    /* MES dashboard — scrolls away; only tab bar stays fixed */
+    .mes-dashboard {
+        @apply mb-1 space-y-1;
+    }
+
+    .mes-header.job-360-hero {
+        @apply rounded-md border border-erp-border shadow-none;
+    }
+
+    .mes-header .job-360-hero__shell {
+        @apply gap-2 p-2;
+    }
+
+    .mes-header .job-360-hero__meta-line {
+        @apply mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0 text-[11px];
+    }
+
+    .mes-dashboard__row--split {
+        @apply grid grid-cols-1 gap-1 lg:grid-cols-12 lg:items-stretch;
+    }
+
+    .mes-dashboard__row--split .mes-blockers {
+        @apply lg:col-span-4;
+    }
+
+    .mes-dashboard__row--split .mes-workflow {
+        @apply lg:col-span-8;
+    }
+
+    .mes-blockers {
+        @apply min-h-[2.5rem] py-1.5;
+    }
+
+    .mes-blockers--clear {
+        @apply border-emerald-200 bg-emerald-50/50;
+    }
+
+    .mes-workflow {
+        @apply flex min-h-[2.5rem] items-center px-2 py-1;
+    }
+
+    .mes-dashboard__row--widgets {
+        @apply flex flex-nowrap items-center gap-1 overflow-x-auto pb-0.5;
+        scrollbar-width: thin;
+    }
+
+    .mes-kpi {
+        @apply inline-flex min-h-[2.25rem] shrink-0 flex-row items-center gap-1.5 rounded border border-erp-border bg-white px-2 py-1;
+    }
+
+    .mes-kpi__label {
+        @apply text-[9px] font-bold uppercase tracking-wider text-slate-500;
+    }
+
+    .mes-kpi__value {
+        @apply text-xs font-bold leading-none tabular-nums text-slate-900;
+    }
+
+    .mes-kpi__stat {
+        @apply mr-1.5 inline text-xs font-semibold;
+    }
+
+    .mes-kpi__stat--ok {
+        @apply text-emerald-700;
+    }
+
+    .mes-kpi__stat--warn {
+        @apply text-amber-700;
+    }
+
+    .mes-kpi--production {
+        @apply border-sky-200/80 bg-sky-50/40;
+    }
+
+    .mes-kpi--production .mes-kpi__label {
+        @apply text-sky-700;
+    }
+
+    .mes-kpi--materials {
+        @apply border-emerald-200/80 bg-emerald-50/40;
+    }
+
+    .mes-kpi--materials .mes-kpi__label {
+        @apply text-emerald-700;
+    }
+
+    .mes-kpi--qc {
+        @apply border-violet-200/80 bg-violet-50/40;
+    }
+
+    .mes-kpi--qc .mes-kpi__label {
+        @apply text-violet-700;
+    }
+
+    .mes-kpi--dispatch {
+        @apply border-orange-200/80 bg-orange-50/40;
+    }
+
+    .mes-kpi--dispatch .mes-kpi__label {
+        @apply text-orange-700;
+    }
+
+    .mes-kpi--slate {
+        @apply border-slate-200 bg-slate-50/50;
+    }
+
+    .mes-kpi--warning {
+        @apply ring-1 ring-amber-300;
+    }
+
+    .mes-kpi--warning .mes-kpi__value {
+        @apply text-amber-800;
+    }
+
+    .mes-kpi--history {
+        @apply border-indigo-200/80 bg-indigo-50/40;
+    }
+
+    .mes-kpi--history .mes-kpi__label {
+        @apply text-indigo-700;
+    }
+
+    .mes-kpi--link {
+        @apply cursor-pointer transition hover:brightness-95;
+    }
+
+    .mes-kpi__value--arrow {
+        @apply text-base font-normal text-slate-400;
+    }
+
+    .mes-quick-nav {
+        @apply flex shrink-0 flex-wrap gap-1;
+    }
+
+    .mes-quick-nav .mes-kpi {
+        @apply min-w-[3.5rem] flex-none;
+    }
+
+    .mes-widget--commercial {
+        @apply flex min-h-[2.25rem] shrink-0 items-center rounded border border-erp-border bg-white px-2 py-0.5;
+    }
+
+    .mes-widget--commercial .job-360-commercial-chips {
+        @apply flex-nowrap;
+    }
+
+    .mes-chip-status {
+        @apply text-[10px] font-bold text-slate-400;
+    }
+
+    .mes-chip-status--ok {
+        @apply text-emerald-600;
+    }
+
+    .job-360-pipeline--compact {
+        @apply w-full items-center;
+    }
+
+    .job-360-pipeline--compact .job-360-pipeline__step {
+        @apply flex-row gap-1;
+    }
+
+    .job-360-pipeline--compact .job-360-pipeline__step:not(:last-child)::after {
+        @apply left-[calc(50%+0.5rem)] top-2 w-[calc(100%-1rem)];
+    }
+
+    .job-360-pipeline--compact .job-360-pipeline__node {
+        @apply h-3 w-3 border;
+    }
+
+    .job-360-pipeline--compact .job-360-pipeline__step--current .job-360-pipeline__node {
+        @apply ring-2 ring-sky-100;
+    }
+
+    .job-360-pipeline--compact .job-360-pipeline__label {
+        @apply mt-0 text-[9px];
+    }
+
+    .job-360-overview__layout {
+        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+    }
+
+    .job-360-overview__main {
+        @apply space-y-3 lg:col-span-7;
+    }
+
+    .job-360-overview__sidebar {
+        @apply lg:col-span-5 lg:sticky lg:top-28;
+    }
+
+    .job-360-zone {
+        @apply rounded-lg border border-erp-border bg-white p-3;
+    }
+
+    .job-360-zone__title {
+        @apply mb-2 text-xs font-semibold uppercase tracking-wide text-slate-800;
+    }
+
+    .job-360-zone__compact-grid {
+        @apply grid grid-cols-2 gap-x-4 gap-y-1 text-sm;
+    }
+
+    .job-360-zone__compact-grid dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-zone__compact-grid dd {
+        @apply font-medium text-slate-900;
+    }
+
+    .job-360-zone__assign-row {
+        @apply mb-2 space-y-1;
+    }
+
+    .job-360-zone__assign-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-zone__assign-controls {
+        @apply flex items-end gap-2;
+    }
+
+    .job-360-zone__assign-controls .erp-select,
+    .job-360-zone__assign-controls select {
+        @apply min-w-0 flex-1;
+    }
+
+    .job-360-zone__inline-form {
+        @apply mt-2 flex flex-wrap items-end gap-2 rounded-lg border border-erp-border bg-slate-50 p-2;
+    }
+
+    .job-360-zone__form-field {
+        @apply min-w-[10rem] flex-1;
+    }
+
+    .job-360-zone__form-field label {
+        @apply mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-commercial-chips {
+        @apply flex flex-nowrap gap-1;
+    }
+
+    .job-360-commercial-chips__chip {
+        @apply inline-flex max-w-full items-center gap-1.5 rounded-md border border-erp-border bg-slate-50 px-2 py-1 text-xs;
+    }
+
+    .job-360-commercial-chips__chip--link {
+        @apply cursor-pointer text-erp-accent hover:border-erp-accent/30 hover:bg-erp-accent/5;
+    }
+
+    .job-360-commercial-chips__chip--muted {
+        @apply text-slate-600;
+    }
+
+    .job-360-commercial-chips__chip--customer {
+        @apply border-violet-200 bg-violet-50/50;
+    }
+
+    .job-360-commercial-chips__abbr {
+        @apply font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .job-360-commercial-chips__value {
+        @apply truncate font-medium text-slate-800;
+    }
+
+    .job-360-accordion {
+        @apply rounded-lg border border-erp-border bg-white;
+    }
+
+    .job-360-accordion__summary {
+        @apply flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden;
+    }
+
+    .job-360-accordion__body {
+        @apply border-t border-erp-border p-3;
+    }
+
+    .job-360-history-tabs {
+        @apply flex flex-wrap gap-1 px-3 pb-3 pt-1;
+    }
+
+    .job-360-history-tabs__link {
+        @apply inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-100 hover:text-erp-primary;
     }
 
     .job-360-kpi {
-        @apply rounded-xl border border-erp-border bg-white p-3;
+        @apply rounded-lg border border-erp-border bg-white p-2.5;
     }
 
     .job-360-kpi--compact {
-        @apply p-2.5;
-    }
-
-    .job-360-kpi--warning {
-        @apply border-amber-200 bg-amber-50/40;
+        @apply p-2;
     }
 
     .job-360-kpi__head {
-        @apply mb-2 flex items-center gap-2 text-slate-600;
+        @apply mb-1 flex items-center gap-2 text-slate-600;
     }
 
     .job-360-kpi__title {
-        @apply text-xs font-semibold uppercase tracking-wide;
+        @apply text-[10px] font-semibold uppercase tracking-wide;
     }
 
     .job-360-kpi__metrics {
-        @apply grid grid-cols-2 gap-2 text-sm;
+        @apply grid grid-cols-2 gap-1 text-xs;
     }
 
     .job-360-kpi__metrics dt {
@@ -6169,146 +7042,377 @@ body.erp-navigating {
         @apply font-semibold text-slate-900;
     }
 
-    .job-360-kpi__warning {
-        @apply mt-2 text-xs font-medium text-amber-700;
-    }
-
     .job-360-kpi__placeholder {
         @apply text-xs text-slate-500;
     }
 
-    .job-360-overview__zones {
-        @apply grid grid-cols-1 gap-4 lg:grid-cols-12;
+    .mfg-dashboard__header {
+        @apply mb-3;
     }
 
-    .job-360-zone {
-        @apply rounded-xl border border-erp-border bg-white p-4;
+    .mfg-dashboard__title {
+        @apply text-sm font-semibold uppercase tracking-wide text-erp-primary;
     }
 
-    .job-360-zone--operations {
-        @apply lg:col-span-7;
+    .mfg-dashboard__meta {
+        @apply mt-0.5 text-xs text-slate-500;
     }
 
-    .job-360-zone--commercial {
-        @apply lg:col-span-5;
+    .mfg-dashboard__grid {
+        @apply grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3;
     }
 
-    .job-360-zone--history {
-        @apply mt-4;
+    .mfg-dashboard__footer {
+        @apply mt-3 max-w-xs;
     }
 
-    .job-360-zone__head {
-        @apply mb-4 flex items-center gap-2;
+    .mfg-dashboard__card {
+        @apply flex min-h-[6.5rem] w-full flex-col items-start rounded-lg border border-erp-border bg-white p-3 text-left transition hover:border-erp-primary/30 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-erp-primary/20;
     }
 
-    .job-360-zone__title {
-        @apply text-sm font-semibold uppercase tracking-wide text-slate-800;
+    .mfg-dashboard__card--compact {
+        @apply min-h-0;
     }
 
-    .job-360-zone__grid {
-        @apply grid grid-cols-1 gap-3 sm:grid-cols-2;
+    .mfg-dashboard__card-label {
+        @apply text-xs font-semibold uppercase tracking-wide text-slate-600;
     }
 
-    .job-360-zone__field dt {
-        @apply text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    .mfg-dashboard__card-status {
+        @apply mt-1 text-base font-semibold text-slate-900;
     }
 
-    .job-360-zone__field dd {
-        @apply mt-0.5 text-sm font-medium text-slate-900;
+    .mfg-dashboard__card-summary {
+        @apply mt-1 line-clamp-2 text-xs text-slate-500;
     }
 
-    .job-360-zone__inline-form {
-        @apply mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-erp-border bg-slate-50 p-3;
+    .mfg-dashboard__card-action {
+        @apply mt-auto pt-2 text-xs font-medium text-erp-primary;
     }
 
-    .job-360-zone__form-field {
-        @apply min-w-[14rem] flex-1;
+    .mfg-dashboard__card--success {
+        @apply border-emerald-200 bg-emerald-50/40;
     }
 
-    .job-360-zone__form-field label {
-        @apply mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500;
+    .mfg-dashboard__card--success .mfg-dashboard__card-status {
+        @apply text-emerald-800;
     }
 
-    .job-360-commercial-links {
-        @apply space-y-3;
+    .mfg-dashboard__card--warning {
+        @apply border-amber-200 bg-amber-50/40;
+    }
+
+    .mfg-dashboard__card--warning .mfg-dashboard__card-status {
+        @apply text-amber-800;
+    }
+
+    .mfg-dashboard__card--danger {
+        @apply border-red-200 bg-red-50/40;
+    }
+
+    .mfg-dashboard__card--danger .mfg-dashboard__card-status {
+        @apply text-red-800;
+    }
+
+    .mfg-dashboard__card--active {
+        @apply border-sky-200 bg-sky-50/40;
+    }
+
+    .mfg-dashboard__card--active .mfg-dashboard__card-status {
+        @apply text-sky-800;
+    }
+
+    .mfg-dashboard__card--neutral {
+        @apply border-slate-200 bg-slate-50/60;
+    }
+
+    .mfg-dashboard__drawer-shell {
+        @apply fixed inset-0 z-40 flex justify-end;
+    }
+
+    .mfg-dashboard__drawer-backdrop {
+        @apply absolute inset-0 bg-slate-900/30;
+    }
+
+    .mfg-dashboard__drawer {
+        @apply relative z-10 flex h-full w-full max-w-md flex-col border-l border-erp-border bg-white shadow-xl;
+    }
+
+    .mfg-dashboard__drawer-header {
+        @apply flex items-center justify-between gap-3 border-b border-erp-border px-4 py-3;
+    }
+
+    .mfg-dashboard__drawer-title {
+        @apply text-base font-semibold text-erp-primary;
+    }
+
+    .mfg-dashboard__drawer-close {
+        @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-700;
+    }
+
+    .mfg-dashboard__drawer-body {
+        @apply flex-1 overflow-y-auto px-4 py-4;
+    }
+
+    .mfg-field-list {
+        @apply space-y-2 text-sm;
+    }
+
+    .mfg-field-list__row {
+        @apply flex justify-between gap-3;
+    }
+
+    .mfg-field-list__label {
+        @apply shrink-0 text-slate-500;
+    }
+
+    .mfg-field-list__value {
+        @apply text-right font-medium text-slate-900;
+    }
+
+    /* Job 360 module themes — semantic color hierarchy */
+    .job-360-module {
+        @apply relative overflow-hidden rounded-lg border border-erp-border bg-white shadow-sm;
+    }
+
+    .job-360-module--compact .job-360-module__body {
+        @apply p-3;
+    }
+
+    .job-360-module:not(.job-360-module--compact) .job-360-module__body {
+        @apply p-4;
+    }
+
+    .job-360-module__accent {
+        @apply absolute inset-x-0 top-0 h-1;
+    }
+
+    .job-360-module__head {
+        @apply flex items-center gap-2 px-3 pb-2 pt-3;
+    }
+
+    .job-360-module--compact .job-360-module__head {
+        @apply px-3 pb-1.5 pt-2.5;
+    }
+
+    .job-360-module__icon-wrap {
+        @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-md;
+    }
+
+    .job-360-module__title {
+        @apply min-w-0 flex-1 text-xs font-semibold uppercase tracking-wide;
+    }
+
+    .job-360-module__actions {
+        @apply shrink-0;
+    }
+
+    .job-360-module--production .job-360-module__accent { @apply bg-sky-500; }
+    .job-360-module--production .job-360-module__icon-wrap { @apply bg-sky-100 text-sky-700; }
+    .job-360-module--production .job-360-module__title { @apply text-sky-900; }
+    .job-360-module--production { @apply border-sky-200/80 bg-sky-50/20; }
+
+    .job-360-module--materials .job-360-module__accent { @apply bg-emerald-500; }
+    .job-360-module--materials .job-360-module__icon-wrap { @apply bg-emerald-100 text-emerald-700; }
+    .job-360-module--materials .job-360-module__title { @apply text-emerald-900; }
+    .job-360-module--materials { @apply border-emerald-200/80 bg-emerald-50/20; }
+
+    .job-360-module--qc .job-360-module__accent { @apply bg-violet-500; }
+    .job-360-module--qc .job-360-module__icon-wrap { @apply bg-violet-100 text-violet-700; }
+    .job-360-module--qc .job-360-module__title { @apply text-violet-900; }
+    .job-360-module--qc { @apply border-violet-200/80 bg-violet-50/20; }
+
+    .job-360-module--dispatch .job-360-module__accent { @apply bg-orange-500; }
+    .job-360-module--dispatch .job-360-module__icon-wrap { @apply bg-orange-100 text-orange-700; }
+    .job-360-module--dispatch .job-360-module__title { @apply text-orange-900; }
+    .job-360-module--dispatch { @apply border-orange-200/80 bg-orange-50/20; }
+
+    .job-360-module--commercial .job-360-module__accent { @apply bg-amber-400; }
+    .job-360-module--commercial .job-360-module__icon-wrap { @apply bg-amber-100 text-amber-800; }
+    .job-360-module--commercial .job-360-module__title { @apply text-amber-900; }
+    .job-360-module--commercial { @apply border-amber-200/80 bg-amber-50/25; }
+
+    .job-360-module--history .job-360-module__accent { @apply bg-indigo-500; }
+    .job-360-module--history .job-360-module__icon-wrap { @apply bg-indigo-100 text-indigo-700; }
+    .job-360-module--history .job-360-module__title { @apply text-indigo-900; }
+    .job-360-module--history { @apply border-indigo-200/80 bg-indigo-50/20; }
+
+    .job-360-module--alert .job-360-module__accent { @apply bg-red-500; }
+    .job-360-module--alert .job-360-module__icon-wrap { @apply bg-red-100 text-red-700; }
+    .job-360-module--alert .job-360-module__title { @apply text-red-900; }
+    .job-360-module--alert { @apply border-red-200/90 bg-red-50/30; }
+
+    .job-360-module--outsourcing .job-360-module__accent { @apply bg-teal-500; }
+    .job-360-module--outsourcing .job-360-module__icon-wrap { @apply bg-teal-100 text-teal-700; }
+    .job-360-module--outsourcing .job-360-module__title { @apply text-teal-900; }
+    .job-360-module--outsourcing { @apply border-teal-200/80 bg-teal-50/20; }
+
+    .job-360-module--slate .job-360-module__accent { @apply bg-slate-400; }
+    .job-360-module--slate .job-360-module__icon-wrap { @apply bg-slate-100 text-slate-600; }
+    .job-360-module--slate .job-360-module__title { @apply text-slate-800; }
+    .job-360-module--slate { @apply border-slate-200 bg-slate-50/30; }
+
+    .job-360-kpi-tile {
+        @apply rounded-lg border px-3 py-2.5;
+    }
+
+    .job-360-kpi-tile__label {
+        @apply text-[10px] font-semibold uppercase tracking-wide;
+    }
+
+    .job-360-kpi-tile__value {
+        @apply mt-0.5 text-lg font-bold leading-tight tabular-nums;
+    }
+
+    .job-360-kpi-tile--production { @apply border-sky-200/80 bg-sky-50/50; }
+    .job-360-kpi-tile--production .job-360-kpi-tile__label { @apply text-sky-700; }
+    .job-360-kpi-tile--production .job-360-kpi-tile__value { @apply text-sky-950; }
+
+    .job-360-kpi-tile--materials { @apply border-emerald-200/80 bg-emerald-50/50; }
+    .job-360-kpi-tile--materials .job-360-kpi-tile__label { @apply text-emerald-700; }
+    .job-360-kpi-tile--materials .job-360-kpi-tile__value { @apply text-emerald-950; }
+
+    .job-360-kpi-tile--qc { @apply border-violet-200/80 bg-violet-50/50; }
+    .job-360-kpi-tile--qc .job-360-kpi-tile__label { @apply text-violet-700; }
+    .job-360-kpi-tile--qc .job-360-kpi-tile__value { @apply text-violet-950; }
+
+    .job-360-kpi-tile--dispatch { @apply border-orange-200/80 bg-orange-50/50; }
+    .job-360-kpi-tile--dispatch .job-360-kpi-tile__label { @apply text-orange-700; }
+    .job-360-kpi-tile--dispatch .job-360-kpi-tile__value { @apply text-orange-950; }
+
+    .job-360-kpi-tile--commercial { @apply border-amber-200/80 bg-amber-50/50; }
+    .job-360-kpi-tile--commercial .job-360-kpi-tile__label { @apply text-amber-800; }
+    .job-360-kpi-tile--commercial .job-360-kpi-tile__value { @apply text-amber-950; }
+
+    .job-360-kpi-tile--slate { @apply border-slate-200 bg-white; }
+    .job-360-kpi-tile--slate .job-360-kpi-tile__label { @apply text-slate-500; }
+    .job-360-kpi-tile--slate .job-360-kpi-tile__value { @apply text-slate-900; }
+
+    .job-360-kpi-tile--emphasis {
+        @apply ring-1 ring-amber-300;
+    }
+
+    .job-360-kpi-tile--emphasis .job-360-kpi-tile__value {
+        @apply text-amber-800;
+    }
+
+    .job-360-pipeline {
+        @apply flex items-start justify-between gap-1;
         list-style: none;
         margin: 0;
         padding: 0;
     }
 
-    .job-360-commercial-links__item {
-        @apply flex flex-col gap-0.5 border-b border-erp-border pb-3 last:border-0 last:pb-0;
+    .job-360-pipeline__step {
+        @apply relative flex min-w-0 flex-1 flex-col items-center text-center;
     }
 
-    .job-360-commercial-links__item--secondary {
-        @apply opacity-80;
+    .job-360-pipeline__step:not(:last-child)::after {
+        content: '';
+        @apply absolute left-[calc(50%+0.75rem)] top-3 h-0.5 w-[calc(100%-1.5rem)] -translate-y-1/2 bg-slate-200;
     }
 
-    .job-360-commercial-links__label {
-        @apply text-[11px] font-semibold uppercase tracking-wide text-violet-600;
+    .job-360-pipeline__step--completed:not(:last-child)::after {
+        @apply bg-emerald-400;
     }
 
-    .job-360-commercial-links__value {
-        @apply text-sm font-semibold text-slate-900 hover:text-erp-primary hover:underline;
+    .job-360-pipeline__node {
+        @apply relative z-[1] h-6 w-6 rounded-full border-2 border-slate-300 bg-white;
     }
 
-    .job-360-commercial-links__value--link {
-        @apply cursor-pointer text-erp-accent underline decoration-erp-accent/40 underline-offset-2 hover:decoration-erp-accent;
+    .job-360-pipeline__step--completed .job-360-pipeline__node {
+        @apply border-emerald-500 bg-emerald-500;
+        box-shadow: inset 0 0 0 3px rgb(255 255 255 / 0.35);
     }
 
-    .job-360-commercial-links__value--muted {
-        @apply font-medium text-slate-600;
+    .job-360-pipeline__step--current .job-360-pipeline__node {
+        @apply border-sky-500 bg-sky-500 ring-4 ring-sky-100;
     }
 
-    .job-360-commercial-links__meta {
-        @apply text-xs text-slate-500;
+    .job-360-pipeline__step--blocked .job-360-pipeline__node {
+        @apply border-amber-500 bg-amber-400;
     }
 
-    .job-360-commercial-links__empty {
-        @apply text-sm text-slate-400;
+    .job-360-pipeline__label {
+        @apply mt-1.5 text-[10px] font-semibold leading-tight text-slate-500;
     }
 
-    .job-360-history-links {
-        @apply grid grid-cols-2 gap-2 sm:grid-cols-4;
+    .job-360-pipeline__step--completed .job-360-pipeline__label {
+        @apply text-emerald-800;
     }
 
-    .job-360-history-links__item {
-        @apply flex items-center gap-2 rounded-lg border border-erp-border bg-slate-50 px-3 py-2.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-white;
+    .job-360-pipeline__step--current .job-360-pipeline__label {
+        @apply font-bold text-sky-800;
     }
 
-    .job-360-overview__details {
-        @apply mt-4 rounded-xl border border-erp-border bg-white;
+    .job-360-pipeline__step--blocked .job-360-pipeline__label {
+        @apply text-amber-800;
     }
 
-    .job-360-overview__details summary {
-        @apply cursor-pointer list-none px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 [&::-webkit-details-marker]:hidden;
+    .job-360-commercial-badge {
+        @apply flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition hover:shadow-sm;
     }
 
-    .job-360-overview__details-body {
-        @apply border-t border-erp-border p-4;
+    .job-360-commercial-badge__label {
+        @apply text-[10px] font-bold uppercase tracking-wide;
     }
 
-    .job-360-stage-timeline {
-        @apply rounded-lg;
+    .job-360-commercial-badge__value {
+        @apply truncate text-sm font-semibold;
     }
+
+    .job-360-commercial-badge--materials { @apply border-emerald-200 bg-emerald-50/70 text-emerald-900 hover:border-emerald-300; }
+    .job-360-commercial-badge--materials .job-360-commercial-badge__label { @apply text-emerald-700; }
+
+    .job-360-commercial-badge--commercial { @apply border-amber-200 bg-amber-50/70 text-amber-900 hover:border-amber-300; }
+    .job-360-commercial-badge--commercial .job-360-commercial-badge__label { @apply text-amber-800; }
+
+    .job-360-commercial-badge--qc { @apply border-violet-200 bg-violet-50/70 text-violet-900 hover:border-violet-300; }
+    .job-360-commercial-badge--qc .job-360-commercial-badge__label { @apply text-violet-700; }
+
+    .job-360-commercial-badge--dispatch { @apply border-orange-200 bg-orange-50/70 text-orange-900 hover:border-orange-300; }
+    .job-360-commercial-badge--dispatch .job-360-commercial-badge__label { @apply text-orange-700; }
+
+    .job-360-commercial-badge--slate { @apply border-slate-200 bg-slate-50 text-slate-800; }
+    .job-360-commercial-badge--slate .job-360-commercial-badge__label { @apply text-slate-500; }
+
+    .job-360-history-tile {
+        @apply flex flex-col items-center gap-1.5 rounded-lg border px-2 py-3 text-center transition hover:shadow-sm;
+    }
+
+    .job-360-history-tile__label {
+        @apply text-[11px] font-semibold leading-tight;
+    }
+
+    .job-360-history-tile--history { @apply border-indigo-200 bg-indigo-50/60 text-indigo-900 hover:border-indigo-300; }
+    .job-360-history-tile--history .job-360-history-tile__icon { @apply text-indigo-600; }
+
+    .job-360-history-tile--materials { @apply border-emerald-200 bg-emerald-50/60 text-emerald-900 hover:border-emerald-300; }
+    .job-360-history-tile--materials .job-360-history-tile__icon { @apply text-emerald-600; }
+
+    .job-360-history-tile--qc { @apply border-violet-200 bg-violet-50/60 text-violet-900 hover:border-violet-300; }
+    .job-360-history-tile--qc .job-360-history-tile__icon { @apply text-violet-600; }
+
+    .job-360-history-tile--dispatch { @apply border-orange-200 bg-orange-50/60 text-orange-900 hover:border-orange-300; }
+    .job-360-history-tile--dispatch .job-360-history-tile__icon { @apply text-orange-600; }
 
     .job-360-stage-timeline__track {
-        @apply flex flex-wrap items-center gap-y-2 gap-x-1;
+        @apply flex flex-wrap items-center gap-y-1;
         list-style: none;
         margin: 0;
         padding: 0;
     }
 
     .job-360-stage-timeline__step {
-        @apply flex items-center gap-1.5 text-xs font-medium;
+        @apply flex items-center gap-1 text-[11px] font-medium;
     }
 
     .job-360-stage-timeline__icon {
-        @apply flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold;
+        @apply flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold;
     }
 
     .job-360-stage-timeline__connector {
-        @apply mx-1 hidden h-px w-4 sm:inline-block lg:w-8;
+        @apply mx-0.5 text-slate-300;
     }
 
     .job-360-stage-timeline__step--completed .job-360-stage-timeline__icon {
@@ -6320,7 +7424,7 @@ body.erp-navigating {
     }
 
     .job-360-stage-timeline__step--current .job-360-stage-timeline__icon {
-        @apply bg-sky-100 text-sky-700 ring-2 ring-sky-200;
+        @apply bg-sky-100 text-sky-700 ring-1 ring-sky-200;
     }
 
     .job-360-stage-timeline__step--current .job-360-stage-timeline__label {
@@ -6344,11 +7448,75 @@ body.erp-navigating {
     }
 
     .job-360-stage-timeline__connector--completed {
-        @apply bg-emerald-300;
+        @apply text-emerald-400;
     }
 
-    .job-360-stage-timeline__connector--future {
-        @apply bg-slate-200;
+    .job-360-fab {
+        @apply fixed bottom-0 left-0 right-0 z-30 border-t border-erp-border bg-white/95 px-4 py-2 shadow-lg backdrop-blur;
+    }
+
+    .job-360-fab__inner {
+        @apply mx-auto flex max-w-3xl flex-wrap justify-center gap-2;
+    }
+
+    .job-360-fab__form {
+        @apply inline;
+    }
+
+    .job-360-fab__btn {
+        @apply inline-flex min-h-9 items-center rounded-lg px-3 py-1.5 text-xs font-semibold touch-manipulation;
+    }
+
+    .job-360-fab__btn--primary {
+        @apply bg-erp-primary text-white hover:bg-erp-primary/90;
+    }
+
+    .job-360-fab__btn--secondary {
+        @apply border border-erp-border bg-white text-slate-700 hover:bg-slate-50;
+    }
+
+    .c360-tabs-shell {
+        @apply relative flex w-full items-stretch gap-0.5 overflow-visible rounded-lg border border-erp-border bg-white p-0.5;
+    }
+
+    .c360-tabs--compact.c360-tabs--scroll {
+        @apply flex min-w-0 flex-1 flex-nowrap gap-0.5 overflow-x-auto;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .c360-tabs--compact:not(.c360-tabs--scroll) {
+        @apply flex w-full flex-nowrap gap-0.5 overflow-x-auto rounded-lg border border-erp-border bg-white p-0.5;
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .c360-tabs--stretch .c360-tabs__link:not(.c360-tabs__link--more) {
+        @apply min-w-0 flex-1 whitespace-nowrap text-center;
+    }
+
+    .c360-tabs--compact .c360-tabs__link--more {
+        @apply shrink-0 flex-none px-3;
+    }
+
+    .c360-tabs--compact .c360-tabs__link {
+        @apply rounded-md px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-erp-primary;
+    }
+
+    .c360-tabs__more {
+        @apply relative shrink-0 self-stretch;
+    }
+
+    .c360-tabs__more-menu {
+        @apply absolute right-0 top-[calc(100%+0.25rem)] z-[100] flex min-w-[14rem] flex-col gap-0.5 rounded-lg border border-erp-border bg-white p-1.5 shadow-xl;
+    }
+
+    .c360-tabs__more-link {
+        @apply block rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50;
+    }
+
+    .c360-tabs__more-link--active {
+        @apply bg-erp-accent/10 font-semibold text-erp-accent;
     }
 
     .job-360-outputs-workspace .job-360-readiness-panel {
@@ -6357,15 +7525,11 @@ body.erp-navigating {
 
     @media (max-width: 767px) {
         .job-360-fg-action-bar {
-            @apply sticky bottom-0 z-30 -mx-4 border-t border-erp-border bg-white/95 px-4 py-3 backdrop-blur;
+            @apply sticky bottom-14 z-30 -mx-4 border-t border-erp-border bg-white/95 px-4 py-3 backdrop-blur;
         }
 
         .job-360-fg-action-bar .erp-btn-primary {
             @apply min-h-11 w-full touch-manipulation;
-        }
-
-        .job-360-hero__action {
-            @apply w-full;
         }
     }
 

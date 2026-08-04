@@ -57,15 +57,20 @@
             ['label' => __('Production Floor')],
         ]"
     :compact-page="false"
+    :compact-workspace="$operatorMode || $activeFloorView === ProductionFloorDeskViews::QUEUE"
 >
-    <div class="production-floor-shell">
+    <div @class([
+        'production-floor-shell flex min-h-0 flex-1 flex-col',
+        'production-floor-shell--dense' => $operatorMode || $activeFloorView === ProductionFloorDeskViews::QUEUE,
+    ])>
         @if ($operatorMode)
-            <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p class="text-sm font-semibold text-erp-primary">{{ __('Operator mode') }}</p>
-                    <p class="text-xs text-slate-600">{{ __('Work arrives here — use Next step on each job. Preview orders and jobs in modals without leaving the floor.') }}</p>
+            @unless ($activeFloorView === ProductionFloorDeskViews::QUEUE)
+                <div class="production-floor-operator-banner">
+                    <span class="production-floor-operator-banner__label">{{ __('Operator mode') }}</span>
+                    <span class="production-floor-operator-banner__sep" aria-hidden="true">•</span>
+                    <span>{{ __('Choose Offset, Digital, or Outsourced') }}</span>
                 </div>
-            </div>
+            @endunless
         @elseif ($activeFloorView === ProductionFloorDeskViews::FLOOR && ! \App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())
             <x-admin.page-header
                 :title="__('Production Floor')"
@@ -76,42 +81,43 @@
         @include('admin.production.floor.partials.desk-mode-nav', ['activeFloorView' => $activeFloorView])
 
         @if (session('status'))
-            <div class="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('status') }}</div>
+            <div class="mb-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-sm text-emerald-800">{{ session('status') }}</div>
         @endif
 
-        @if ($activeFloorView === ProductionFloorDeskViews::REGISTER)
-            @include('admin.production.job-cards.partials.register-content', ['embeddedInFloor' => true])
-        @elseif ($activeFloorView === ProductionFloorDeskViews::QUEUE)
-            @include('admin.production.queue.partials.workspace-content', ['embeddedInFloor' => true])
-        @elseif ($activeFloorView === ProductionFloorDeskViews::OUTPUTS)
-            @include('admin.production.outputs.partials.register-content', ['embeddedInFloor' => true])
-        @else
-            <div
-                class="production-floor"
-                x-data="productionFloor(@js([
-                    'panelBase' => url('admin/production/floor/jobs'),
-                    'initialJobKey' => request('job'),
-                    'assignMachineUrl' => url('admin/production/floor/jobs'),
-                    'labelUrl' => url('admin/production/job-cards'),
-                    'jobCardUrl' => url('admin/production/job-cards'),
-                    'csrf' => csrf_token(),
-                    'machines' => $machinesForUi,
-                    'operatorCreateUrl' => auth()->user()?->can('employees.manage')
-                        ? route('admin.operators.quick-create')
-                        : null,
-                    'operatorsRefreshUrl' => route('admin.lookups.operators'),
-                    'modalTitles' => [
-                        'operator' => __('Assign operator'),
-                        'machine' => __('Assign machine'),
-                        'outsource-send' => __('Send to vendor'),
-                        'outsource-return' => __('Mark returned from vendor'),
-                        'qc' => __('Record inspection'),
-                        'fulfilment' => __('Hand off'),
-                        'default' => __('Next step'),
-                    ],
-                ]))"
-                x-cloak
-            >
+        <div class="flex min-h-0 flex-1 flex-col">
+            @if ($activeFloorView === ProductionFloorDeskViews::REGISTER)
+                @include('admin.production.job-cards.partials.register-content', ['embeddedInFloor' => true])
+            @elseif ($activeFloorView === ProductionFloorDeskViews::QUEUE)
+                @include('admin.production.queue.partials.workspace-content', ['embeddedInFloor' => true])
+            @elseif ($activeFloorView === ProductionFloorDeskViews::OUTPUTS)
+                @include('admin.production.outputs.partials.register-content', ['embeddedInFloor' => true])
+            @else
+                <div
+                    class="production-floor flex min-h-0 flex-1 flex-col"
+                    x-data="productionFloor(@js([
+                        'panelBase' => url('admin/production/floor/jobs'),
+                        'initialJobKey' => request('job'),
+                        'assignMachineUrl' => url('admin/production/floor/jobs'),
+                        'labelUrl' => url('admin/production/job-cards'),
+                        'jobCardUrl' => url('admin/production/job-cards'),
+                        'csrf' => csrf_token(),
+                        'machines' => $machinesForUi,
+                        'operatorCreateUrl' => auth()->user()?->can('employees.manage')
+                            ? route('admin.operators.quick-create')
+                            : null,
+                        'operatorsRefreshUrl' => route('admin.lookups.operators'),
+                        'modalTitles' => [
+                            'operator' => __('Assign operator'),
+                            'machine' => __('Assign machine'),
+                            'outsource-send' => __('Send to vendor'),
+                            'outsource-return' => __('Mark returned from vendor'),
+                            'qc' => __('Record inspection'),
+                            'fulfilment' => __('Hand off'),
+                            'default' => __('Next step'),
+                        ],
+                    ]))"
+                    x-cloak
+                >
                 <div class="production-floor-command-sticky" x-ref="commandBar">
                     @include('admin.production.floor.partials.summary-strip', ['summary' => $summary])
 
@@ -238,10 +244,13 @@
                     'operatorMode' => $operatorMode,
                 ])
 
-                <div class="mt-4 pb-6">{{ $jobs->links() }}</div>
+                <div class="mt-4 pb-6">
+                    <x-admin.table-pagination :paginator="$jobs" turbo-frame="erp-main" />
+                </div>
 
                 @include('admin.production.floor.partials.job-panel', ['operatorMode' => $operatorMode])
             </div>
         @endif
+        </div>
     </div>
 </x-admin-layout>

@@ -1,14 +1,14 @@
 @php
     use App\Enums\ProductionJobCardStatus;
+    use App\Support\Navigation\WorkspaceEmbed;
 
     $workflowPresentation = $workflowPresentation ?? null;
     $controlAlerts = $controlAlerts ?? [];
     $completion = $completion ?? ['eligible' => false, 'blockers' => [], 'already_posted' => false];
     $hasPostedOutput = (bool) ($hasPostedOutput ?? ($completion['already_posted'] ?? false));
     $materialReadiness = is_array($materialReadiness ?? null) ? $materialReadiness : null;
+    $executionState = $executionState ?? [];
 
-    // Completion / finished-goods / dispatch requirements belong near the end of the job —
-    // not while the job is still queued or only just starting work.
     $showDownstreamRequirements = in_array($jobCard->status, [
         ProductionJobCardStatus::QualityCheck,
         ProductionJobCardStatus::Completed,
@@ -24,23 +24,38 @@
 
     $items = [];
     $seen = [];
+    $resolveUrl = null;
 
     if ($showMaterialReleaseGate && $materialReadiness && ! ($materialReadiness['ready'] ?? false)) {
         $message = ! ($materialReadiness['has_requirements'] ?? false)
-            ? __('Material requirements not generated — release to production is blocked.')
-            : __('Material readiness :percent% — stock shortages block release to the floor.', [
-                'percent' => (int) ($materialReadiness['percent'] ?? 0),
-            ]);
+            ? __('Material requirements missing')
+            : __('Material shortages block release');
 
         $seen[$message] = true;
+        $resolveUrl ??= $materialReadiness['materials_url']
+            ?? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']);
         $items[] = [
             'severity' => 'error',
             'message' => $message,
-            'hint' => $materialReadiness['detail'] ?? null,
-            'action_url' => $materialReadiness['materials_url']
-                ?? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']),
-            'action_label' => __('Resolve shortages'),
         ];
+    }
+
+    if ($showMaterialReleaseGate && ($executionState['needs_operator'] ?? false)) {
+        $message = __('Operator not assigned');
+        if (! isset($seen[$message])) {
+            $seen[$message] = true;
+            $items[] = ['severity' => 'error', 'message' => $message];
+            $resolveUrl ??= route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-operator';
+        }
+    }
+
+    if ($showMaterialReleaseGate && ($executionState['needs_machine'] ?? false)) {
+        $message = __('Machine not assigned');
+        if (! isset($seen[$message])) {
+            $seen[$message] = true;
+            $items[] = ['severity' => 'error', 'message' => $message];
+            $resolveUrl ??= route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-machine';
+        }
     }
 
     if ($showDownstreamRequirements) {
@@ -55,12 +70,10 @@
             }
 
             $seen[$label] = true;
+            $resolveUrl ??= $item['action'] ?? null;
             $items[] = [
                 'severity' => 'error',
                 'message' => $label,
-                'hint' => $item['hint'] ?? null,
-                'action_url' => $item['action'] ?? null,
-                'action_label' => $item['action_label'] ?? __('Resolve'),
             ];
         }
     }
@@ -72,39 +85,22 @@
         }
 
         $seen[$message] = true;
-        $actionUrl = null;
-        $actionLabel = null;
         $lower = strtolower($message);
 
-        if (str_contains($lower, 'artwork')) {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'artwork']);
-            $actionLabel = __('Approve artwork');
-        } elseif (str_contains($lower, 'qc')) {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality']);
-            $actionLabel = __('Open QC');
-        } elseif (str_contains($lower, 'shortag') || str_contains($lower, 'readiness') || str_contains($lower, 'requirements')) {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']);
-            $actionLabel = __('Resolve shortages');
-        } elseif (str_contains($lower, 'material')) {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'material-consumption', 'open' => 'record-consumption-modal']);
-            $actionLabel = __('Record consumption');
-        } elseif (str_contains($lower, 'finished goods') || str_contains($lower, 'post')) {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']);
-            $actionLabel = __('Post finished goods');
-        } elseif (str_contains($lower, 'operation')) {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']);
-            $actionLabel = __('Complete operations');
-        } else {
-            $actionUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']);
-            $actionLabel = __('Review dispatch');
+        if ($resolveUrl === null) {
+            $resolveUrl = match (true) {
+                str_contains($lower, 'artwork') => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'artwork']),
+                str_contains($lower, 'qc') => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality']),
+                str_contains($lower, 'shortag'), str_contains($lower, 'readiness'), str_contains($lower, 'requirements'), str_contains($lower, 'material') => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']),
+                str_contains($lower, 'finished goods'), str_contains($lower, 'post') => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']),
+                str_contains($lower, 'operation') => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']),
+                default => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch']),
+            };
         }
 
         $items[] = [
             'severity' => ($alert['type'] ?? '') === 'warning' ? 'warning' : 'error',
             'message' => $message,
-            'hint' => null,
-            'action_url' => $actionUrl,
-            'action_label' => $actionLabel,
         ];
     }
 
@@ -120,43 +116,69 @@
             }
 
             $seen[$message] = true;
+            $resolveUrl ??= route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']);
             $items[] = [
                 'severity' => 'warning',
                 'message' => $message,
-                'hint' => null,
-                'action_url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']),
-                'action_label' => __('Open finished goods'),
             ];
         }
     }
+    $compact = (bool) ($compact ?? false);
 @endphp
 
-@if (! empty($items))
-    <section class="job-360-blockers mb-4" aria-label="{{ __('Blockers') }}">
-        <div class="job-360-blockers__head">
-            <x-admin.icon name="exclamation" class="h-5 w-5" />
-            <div>
-                <h2 class="job-360-blockers__title">{{ __('Blockers') }}</h2>
-                <p class="job-360-blockers__subtitle">{{ trans_choice(':count item needs attention before the job can proceed.|:count items need attention before the job can proceed.', count($items), ['count' => count($items)]) }}</p>
+@if ($compact)
+    @if (! empty($items))
+        <div class="job-360-blockers mes-blockers">
+            <div class="job-360-blockers__head">
+                <span class="job-360-blockers__title">🚨 {{ __('Blockers') }} ({{ count($items) }})</span>
+                @if ($resolveUrl)
+                    <a href="{{ $resolveUrl }}" class="job-360-blockers__resolve" @foreach (WorkspaceEmbed::leaveWorkspaceLinkAttributes() as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                        {{ __('Resolve') }} →
+                    </a>
+                @endif
+            </div>
+            <ul class="job-360-blockers__list">
+                @foreach ($items as $item)
+                    <li @class(['job-360-blockers__item', 'job-360-blockers__item--warning' => ($item['severity'] ?? '') === 'warning'])>
+                        {{ $item['message'] }}
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+    @else
+        <div class="job-360-blockers mes-blockers mes-blockers--clear">
+            <div class="job-360-blockers__head">
+                <span class="job-360-blockers__title text-emerald-800">✓ {{ __('No blockers') }}</span>
             </div>
         </div>
+    @endif
+@elseif (! empty($items))
+    <x-admin.job-module-card theme="alert" :title="__('Blockers')" icon="exclamation" compact class="h-full">
+        <x-slot:actions>
+            @if ($resolveUrl)
+                <a href="{{ $resolveUrl }}" class="text-xs font-semibold text-red-700 hover:underline" @foreach (WorkspaceEmbed::leaveWorkspaceLinkAttributes() as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                    {{ __('Resolve') }} →
+                </a>
+            @endif
+        </x-slot:actions>
 
-        <ul class="job-360-blockers__list">
+        <p class="mb-2 text-xs font-medium text-red-800">{{ trans_choice(':count issue blocking release|:count issues blocking release', count($items), ['count' => count($items)]) }}</p>
+
+        <ul class="space-y-1.5">
             @foreach ($items as $item)
-                <li @class(['job-360-blockers__item', 'job-360-blockers__item--'.$item['severity']])>
-                    <div class="job-360-blockers__content">
-                        <p class="job-360-blockers__message">{{ $item['message'] }}</p>
-                        @if ($item['hint'] ?? null)
-                            <p class="job-360-blockers__hint">{{ $item['hint'] }}</p>
-                        @endif
-                    </div>
-                    @if ($item['action_url'] ?? null)
-                        <a href="{{ $item['action_url'] }}" class="job-360-blockers__action" data-turbo-frame="erp-main">
-                            {{ $item['action_label'] }} →
-                        </a>
-                    @endif
+                <li @class([
+                    'flex items-start gap-2 rounded-md px-2 py-1.5 text-sm',
+                    'bg-red-100/70 text-red-900' => ($item['severity'] ?? '') === 'error',
+                    'bg-amber-100/70 text-amber-900' => ($item['severity'] ?? '') === 'warning',
+                ])>
+                    <span class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-current"></span>
+                    <span>{{ $item['message'] }}</span>
                 </li>
             @endforeach
         </ul>
-    </section>
+    </x-admin.job-module-card>
+@else
+    <x-admin.job-module-card theme="materials" :title="__('Blockers')" icon="badge-check" compact class="h-full">
+        <p class="text-sm font-medium text-emerald-800">{{ __('No blockers — clear to proceed') }}</p>
+    </x-admin.job-module-card>
 @endif

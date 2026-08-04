@@ -1,25 +1,27 @@
-<section class="job-360-zone job-360-zone--history" aria-label="{{ __('History') }}">
-    <header class="job-360-zone__head">
-        <x-admin.icon name="clock" class="h-5 w-5 text-slate-500" />
-        <h2 class="job-360-zone__title">{{ __('History') }}</h2>
-    </header>
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
 
-    <div class="job-360-history-links">
-        <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'timeline']) }}" class="job-360-history-links__item" data-turbo-frame="erp-main">
-            <x-admin.icon name="switch-horizontal" class="h-4 w-4" />
-            <span>{{ __('Timeline') }}</span>
-        </a>
-        <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'communications']) }}" class="job-360-history-links__item" data-turbo-frame="erp-main">
-            <x-admin.icon name="document-text" class="h-4 w-4" />
-            <span>{{ __('Communications') }}</span>
-        </a>
-        <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'traceability']) }}" class="job-360-history-links__item" data-turbo-frame="erp-main">
-            <x-admin.icon name="clipboard-list" class="h-4 w-4" />
-            <span>{{ __('Traceability') }}</span>
-        </a>
-        <a href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'artwork']) }}" class="job-360-history-links__item" data-turbo-frame="erp-main">
-            <x-admin.icon name="photograph" class="h-4 w-4" />
-            <span>{{ __('Attachments') }}</span>
-        </a>
+    $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
+
+    $historyLinks = [
+        ['route' => 'timeline', 'icon' => 'clock', 'label' => __('Timeline'), 'theme' => 'history'],
+        ['route' => 'communications', 'icon' => 'document-text', 'label' => __('Communications'), 'theme' => 'materials'],
+        ['route' => 'artwork', 'icon' => 'photograph', 'label' => __('Attachments'), 'theme' => 'qc'],
+        ['route' => 'traceability', 'icon' => 'search', 'label' => __('Traceability'), 'theme' => 'dispatch'],
+    ];
+@endphp
+
+<x-admin.job-module-card theme="history" :title="__('History & records')" icon="clock" compact>
+    <div class="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        @foreach ($historyLinks as $link)
+            <a
+                href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => $link['route']]) }}"
+                class="job-360-history-tile job-360-history-tile--{{ $link['theme'] }}"
+                @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
+            >
+                <x-admin.icon :name="$link['icon']" class="job-360-history-tile__icon h-5 w-5" />
+                <span class="job-360-history-tile__label">{{ $link['label'] }}</span>
+            </a>
+        @endforeach
     </div>
-</section>
+</x-admin.job-module-card>

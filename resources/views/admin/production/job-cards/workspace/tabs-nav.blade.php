@@ -1,33 +1,37 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $groups = $workspace['tab_groups'] ?? ['primary' => $tabs, 'more' => [], 'more_open' => false];
+    $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
 @endphp
 
-<nav class="c360-tabs" aria-label="{{ __('Job workspace tabs') }}">
-    @foreach ($groups['primary'] as $tab)
-        <a
-            href="{{ $tab['url'] }}"
-            class="c360-tabs__link {{ $tab['active'] ? 'c360-tabs__link--active' : '' }}"
-            data-turbo-frame="erp-main"
-            data-turbo-action="advance"
-            @if ($tab['active']) aria-current="page" @endif
-        >{{ $tab['label'] }}</a>
-    @endforeach
+<div class="c360-tabs-shell" aria-label="{{ __('Job workspace tabs') }}">
+    <nav class="c360-tabs c360-tabs--compact c360-tabs--stretch c360-tabs--scroll">
+        @foreach ($groups['primary'] as $tab)
+            <a
+                href="{{ $tab['url'] }}"
+                class="c360-tabs__link {{ $tab['active'] ? 'c360-tabs__link--active' : '' }}"
+                @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
+                @if ($tab['active']) aria-current="page" @endif
+            >{{ $tab['label'] }}</a>
+        @endforeach
+    </nav>
 
     @if (! empty($groups['more']))
-        <details class="c360-tabs__more inline-block" @if ($groups['more_open'] ?? false) open @endif>
-            <summary class="c360-tabs__link cursor-pointer list-none {{ collect($groups['more'])->contains('active', true) ? 'c360-tabs__link--active' : '' }}">
+        <details class="c360-tabs__more" @if ($groups['more_open'] ?? false) open @endif>
+            <summary class="c360-tabs__link c360-tabs__link--more flex h-full cursor-pointer list-none items-center [&::-webkit-details-marker]:hidden {{ collect($groups['more'])->contains('active', true) ? 'c360-tabs__link--active' : '' }}">
                 {{ __('More') }}
             </summary>
-            <div class="mt-1 flex flex-wrap gap-1 rounded-lg border border-erp-border bg-white p-2 shadow-sm">
+            <div class="c360-tabs__more-menu" role="menu">
                 @foreach ($groups['more'] as $tab)
                     <a
                         href="{{ $tab['url'] }}"
-                        class="rounded px-2 py-1 text-xs {{ $tab['active'] ? 'bg-erp-accent/10 font-semibold text-erp-accent' : 'text-slate-600 hover:bg-slate-50' }}"
-                        data-turbo-frame="erp-main"
-                        data-turbo-action="advance"
+                        class="c360-tabs__more-link {{ $tab['active'] ? 'c360-tabs__more-link--active' : '' }}"
+                        role="menuitem"
+                        @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
                     >{{ $tab['label'] }}</a>
                 @endforeach
             </div>
         </details>
     @endif
-</nav>
+</div>

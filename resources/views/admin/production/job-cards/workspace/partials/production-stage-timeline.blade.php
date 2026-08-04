@@ -12,18 +12,14 @@
     $materialsConsumed = in_array($materialsPassed, ['passed', 'warning'], true)
         || ($jobCard?->material_consumptions_count ?? 0) > 0;
 
-    // Stock readiness (planning gate) takes precedence over consumption completeness on the timeline.
     if ($materialReadiness !== null) {
         if ($materialReadiness['ready'] ?? false) {
             $materialsState = 'completed';
-            $materialsIcon = '✓';
         } else {
-            $materialsState = 'blocked';
-            $materialsIcon = ($materialReadiness['has_requirements'] ?? false) ? '⚠' : '!';
+            $materialsState = ($materialReadiness['has_requirements'] ?? false) ? 'blocked' : 'blocked';
         }
     } else {
         $materialsState = $materialsConsumed ? 'completed' : 'future';
-        $materialsIcon = $materialsConsumed ? '✓' : '○';
     }
 
     $operationsItem = $checklist->firstWhere('key', 'operations');
@@ -57,33 +53,36 @@
     };
 
     $stages = [
-        ['label' => __('Materials'), 'state' => $materialsState, 'icon' => $materialsIcon],
-        ['label' => __('Production'), 'state' => $productionDone ? 'completed' : (in_array($jobCard?->status, [ProductionJobCardStatus::InProduction], true) ? 'current' : 'future'), 'icon' => $productionDone ? '✓' : ($jobCard?->status === ProductionJobCardStatus::InProduction ? '●' : '○')],
-        ['label' => __('QC'), 'state' => $qcDone ? 'completed' : ($jobCard?->status === ProductionJobCardStatus::QualityCheck ? 'current' : 'future'), 'icon' => $qcDone ? '✓' : ($jobCard?->status === ProductionJobCardStatus::QualityCheck ? '●' : '○')],
-        ['label' => __('Finished goods'), 'state' => $fgState, 'icon' => $fgDone ? '✓' : ($fgState === 'current' ? '●' : ($fgState === 'blocked' ? '!' : '○'))],
-        ['label' => __('Dispatch'), 'state' => $dispatchState, 'icon' => in_array($dispatchState, ['completed'], true) ? '✓' : (in_array($dispatchState, ['current', 'blocked'], true) ? '●' : '○')],
+        ['label' => __('MAT'), 'full' => __('Materials'), 'state' => $materialsState, 'theme' => 'materials'],
+        ['label' => __('PROD'), 'full' => __('Production'), 'state' => $productionDone ? 'completed' : (in_array($jobCard?->status, [ProductionJobCardStatus::InProduction], true) ? 'current' : 'future'), 'theme' => 'production'],
+        ['label' => __('QC'), 'full' => __('QC'), 'state' => $qcDone ? 'completed' : ($jobCard?->status === ProductionJobCardStatus::QualityCheck ? 'current' : 'future'), 'theme' => 'qc'],
+        ['label' => __('FG'), 'full' => __('Finished goods'), 'state' => $fgState, 'theme' => 'slate'],
+        ['label' => __('DISP'), 'full' => __('Dispatch'), 'state' => $dispatchState, 'theme' => 'dispatch'],
     ];
+
+    $compact = (bool) ($compact ?? false);
 @endphp
 
-<section class="job-360-workflow mb-4" aria-label="{{ __('Workflow') }}">
-    <h2 class="job-360-workflow__title">{{ __('Workflow') }}</h2>
-    <nav class="job-360-stage-timeline" aria-label="{{ __('Production stage progression') }}">
-        <ol class="job-360-stage-timeline__track">
+@if ($compact)
+    <div class="job-360-workflow mes-workflow" aria-label="{{ __('Production stage progression') }}">
+        <ol class="job-360-pipeline job-360-pipeline--compact">
             @foreach ($stages as $stage)
-                <li @class([
-                    'job-360-stage-timeline__step',
-                    'job-360-stage-timeline__step--'.$stage['state'],
-                ])>
-                    <span class="job-360-stage-timeline__icon" aria-hidden="true">{{ $stage['icon'] }}</span>
-                    <span class="job-360-stage-timeline__label">{{ $stage['label'] }}</span>
-                    @unless ($loop->last)
-                        <span @class([
-                            'job-360-stage-timeline__connector',
-                            'job-360-stage-timeline__connector--'.($stage['state'] === 'completed' ? 'completed' : 'future'),
-                        ]) aria-hidden="true"></span>
-                    @endunless
+                <li @class(['job-360-pipeline__step', 'job-360-pipeline__step--'.$stage['state'], 'job-360-pipeline__step--'.$stage['theme']]) title="{{ $stage['full'] }}">
+                    <div class="job-360-pipeline__node" aria-hidden="true"></div>
+                    <span class="job-360-pipeline__label">{{ $stage['label'] }}</span>
                 </li>
             @endforeach
         </ol>
-    </nav>
-</section>
+    </div>
+@else
+    <x-admin.job-module-card theme="slate" :title="__('Workflow')" icon="switch-horizontal" compact aria-label="{{ __('Production stage progression') }}">
+        <ol class="job-360-pipeline">
+            @foreach ($stages as $stage)
+                <li @class(['job-360-pipeline__step', 'job-360-pipeline__step--'.$stage['state'], 'job-360-pipeline__step--'.$stage['theme']])>
+                    <div class="job-360-pipeline__node" aria-hidden="true"></div>
+                    <span class="job-360-pipeline__label">{{ $stage['full'] }}</span>
+                </li>
+            @endforeach
+        </ol>
+    </x-admin.job-module-card>
+@endif

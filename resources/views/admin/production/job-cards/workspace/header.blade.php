@@ -1,5 +1,6 @@
 @php
     use App\Enums\ProductionJobCardStatus;
+    use App\Support\Navigation\WorkspaceEmbed;
 
     $executionState = $executionState ?? [];
     $primaryAction = $primaryAction ?? null;
@@ -7,29 +8,24 @@
     $workflowPresentation = $workflowPresentation ?? null;
     $dispatchSummary = $dispatchSummary ?? null;
 
-    $stageLabel = $workflowPresentation['phase_label']
-        ?? $executionState['phase_label']
-        ?? $header['status']?->label()
-        ?? '—';
-
-    $stagePhase = $workflowPresentation['phase'] ?? $executionState['phase'] ?? 'other';
-    $stageTone = match (true) {
-        in_array($stagePhase, ['dispatch'], true) => 'success',
-        in_array($stagePhase, ['awaiting_fg_post', 'dispatch_blocked'], true) => 'warning',
-        in_array($stagePhase, ['cancelled'], true) => 'danger',
-        in_array($stagePhase, ['in_progress', 'qc'], true) => 'info',
-        default => 'neutral',
-    };
-
-    $productName = $header['product_name'] ?? __('No product');
     $customerName = $header['customer_name'] ?? __('No customer');
     $qtyLabel = isset($header['quantity']) && (float) $header['quantity'] > 0
         ? number_format((float) $header['quantity'], 0)
-        : null;
+        : '—';
     $dueLabel = $header['due_date']
-        ? ($header['due_date']->isToday() ? __('Due today') : $header['due_date']->format('M j, Y'))
-        : null;
+        ? ($header['due_date']->isToday() ? __('Due today') : $header['due_date']->format('M j'))
+        : '—';
     $progress = (int) ($header['progress_percent'] ?? 0);
+    $stageLabel = $header['current_stage_label']
+        ?? $executionState['stage_name']
+        ?? $executionState['work_center']
+        ?? '—';
+    $statusLabel = $header['status']->label();
+
+    $operatorName = $executionState['operator_name'] ?? null;
+    $machineName = $executionState['machine_name'] ?? null;
+    $needsOperator = (bool) ($executionState['needs_operator'] ?? false);
+    $needsMachine = (bool) ($executionState['needs_machine'] ?? false);
 
     $dispatchSummaryState = $executionState['dispatch_summary'] ?? $dispatchSummary;
     $hasDispatch = ! empty($dispatchSummaryState['has_delivery_note']);
@@ -41,150 +37,110 @@
         : ($workflowNextStep
             ? ['label' => $workflowNextStep['label'], 'type' => 'link', 'url' => $workflowNextStep['url'], 'variant' => 'primary']
             : $primaryAction);
+
+    $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
+    $formTurboAttrs = WorkspaceEmbed::mainFormAttributes();
 @endphp
 
-<header class="job-360-hero mb-4">
+<header class="job-360-hero mes-header">
     <div class="job-360-hero__shell">
-        <div class="job-360-hero__main">
-            <div class="job-360-hero__identity">
-                <p class="job-360-hero__eyebrow">
-                    <span class="font-mono">{{ $header['job_number'] }}</span>
-                    @if ($header['is_delayed'])
-                        <span class="job-360-pill job-360-pill--danger">{{ __('Delayed') }}</span>
-                    @endif
-                    <span class="job-360-pill job-360-pill--neutral">{{ str_replace('_', ' ', $header['priority']->value) }}</span>
-                </p>
-
-                <h1 class="job-360-hero__title">{{ $productName }}</h1>
-                <p class="job-360-hero__subtitle">{{ $customerName }}</p>
-
-                @if ($jobCard->salesOrder)
-                    <p class="mt-1.5 text-sm text-slate-600">
-                        <span class="text-slate-500">{{ __('Linked sales order') }}:</span>
-                        <a
-                            href="{{ route('admin.sales-orders.show', $jobCard->salesOrder) }}"
-                            class="font-mono font-medium text-erp-accent underline decoration-erp-accent/40 underline-offset-2 hover:decoration-erp-accent"
-                            data-turbo-frame="erp-main"
-                            data-turbo-action="advance"
-                        >{{ $jobCard->salesOrder->order_number }}</a>
-                    </p>
+        <div class="job-360-hero__identity">
+            <div class="job-360-hero__top-row">
+                <span class="job-360-hero__job-number font-mono">{{ $header['job_number'] }}</span>
+                @if ($header['is_delayed'])
+                    <span class="job-360-pill job-360-pill--danger">{{ __('Delayed') }}</span>
                 @endif
-
-                <div class="job-360-hero__meta">
-                    @if ($qtyLabel)
-                        <span class="job-360-hero__meta-item">
-                            <x-admin.icon name="cube" class="h-4 w-4" />
-                            {{ __('Qty :qty', ['qty' => $qtyLabel]) }}
-                        </span>
-                    @endif
-                    @if ($dueLabel)
-                        <span class="job-360-hero__meta-item">
-                            <x-admin.icon name="calendar" class="h-4 w-4" />
-                            {{ $dueLabel }}
-                        </span>
-                    @endif
-                    @if ($header['machine_name'] ?? $header['work_center'] ?? null)
-                        <span class="job-360-hero__meta-item hidden sm:inline-flex">
-                            <x-admin.icon name="cog" class="h-4 w-4" />
-                            {{ $header['machine_name'] ?? $header['work_center'] }}
-                        </span>
-                    @endif
-                </div>
+                <span class="job-360-pill job-360-pill--neutral">{{ str_replace('_', ' ', $header['priority']->value) }}</span>
+                <span class="job-360-pill job-360-pill--neutral">{{ $statusLabel }}</span>
             </div>
 
-            <div class="job-360-hero__status">
-                <p class="job-360-hero__status-label">{{ __("Today's action") }}</p>
-                <div @class(['job-360-hero__stage', 'job-360-hero__stage--'.$stageTone])>
-                    <span class="job-360-hero__stage-dot" aria-hidden="true"></span>
-                    <span class="job-360-hero__stage-text">{{ $stageLabel }}</span>
-                </div>
-
-                <div class="job-360-hero__progress" aria-label="{{ __('Workflow progress') }}">
-                    <div class="job-360-hero__progress-track">
-                        <div class="job-360-hero__progress-fill" style="width: {{ $progress }}%"></div>
-                    </div>
-                    <span class="job-360-hero__progress-value tabular-nums">{{ $progress }}%</span>
-                </div>
-
-                <p class="job-360-hero__next-action">{{ $executionState['next_action'] ?? '' }}</p>
-
-                @if (! empty($executionState['readiness_facts']))
-                    <dl class="job-360-hero__readiness">
-                        @foreach ($executionState['readiness_facts'] as $fact)
-                            <div @class(['job-360-hero__readiness-row', 'job-360-hero__readiness-row--'.$fact['tone']])>
-                                <dt>{{ $fact['label'] }}</dt>
-                                <dd>{{ $fact['value'] }}</dd>
-                            </div>
-                        @endforeach
-                    </dl>
-                @endif
-            </div>
+            <p class="job-360-hero__meta-line">
+                <span class="font-semibold text-slate-800">{{ $customerName }}</span>
+                <span class="text-slate-300" aria-hidden="true">|</span>
+                <span>{{ __('Qty') }} {{ $qtyLabel }}</span>
+                <span class="text-slate-300" aria-hidden="true">|</span>
+                <span @class(['text-red-700' => $header['is_delayed']])>{{ __('Due') }} {{ $dueLabel }}</span>
+                <span class="text-slate-300" aria-hidden="true">|</span>
+                <span>{{ __('Stage') }} {{ $stageLabel }}</span>
+                <span class="text-slate-300" aria-hidden="true">|</span>
+                <span @class(['text-amber-800' => $needsOperator])>{{ __('Operator') }} {{ $operatorName ?? '—' }}</span>
+                <span class="text-slate-300" aria-hidden="true">|</span>
+                <span @class(['text-amber-800' => $needsMachine])>{{ __('Machine') }} {{ $machineName ?? '—' }}</span>
+                <span class="text-slate-300" aria-hidden="true">|</span>
+                <span class="job-360-hero__progress-inline">
+                    <span class="job-360-hero__progress-track" aria-hidden="true">
+                        <span class="job-360-hero__progress-fill" style="width: {{ min(100, max(0, $progress)) }}%"></span>
+                    </span>
+                    <span class="job-360-hero__progress-value">{{ $progress }}%</span>
+                </span>
+            </p>
         </div>
 
         <div class="job-360-hero__actions">
-            <div class="job-360-hero__action-stack">
+            <div class="job-360-hero__action-row">
                 @if ($hasDispatch)
                     @if ($dispatchActions['primary'] ?? null)
-                        <a href="{{ $dispatchActions['primary']['url'] }}" class="job-360-hero__action erp-btn-primary" data-turbo-frame="erp-main">
+                        <a href="{{ $dispatchActions['primary']['url'] }}" class="erp-btn-primary px-3 py-1.5 text-xs" @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                             {{ $dispatchActions['primary']['label'] }}
                         </a>
                     @endif
-                    @foreach ($dispatchActions['secondary'] ?? [] as $action)
-                        <a
-                            href="{{ $action['url'] }}"
-                            class="erp-btn-secondary text-sm"
-                            @if (($action['target'] ?? null) === '_blank') target="_blank" rel="noopener" @else data-turbo-frame="erp-main" @endif
-                        >{{ $action['label'] }}</a>
-                    @endforeach
                 @else
-                    @include('admin.production.job-cards.workspace.partials.primary-action-button', [
-                        'action' => $heroAction,
-                        'completion' => $completion,
-                        'size' => 'lg',
-                    ])
-                @endif
-            </div>
-
-            <details class="job-360-hero__more">
-                <summary>{{ __('More actions') }}</summary>
-                <div class="job-360-hero__more-menu">
-                    <a href="{{ route('admin.production.floor') }}" class="job-360-hero__more-link" data-turbo-frame="erp-main">{{ __('Back to floor') }}</a>
-                    @can('update', $jobCard)
-                        <a href="{{ route('admin.production.job-cards.edit', $jobCard) }}" class="job-360-hero__more-link" data-turbo-frame="erp-main">{{ __('Edit job') }}</a>
-                    @endcan
-                    @unless ($hasDispatch)
-                        @foreach ($secondaryActions as $action)
-                            @include('admin.production.job-cards.workspace.partials.primary-action-button', [
-                                'action' => $action,
-                                'completion' => $completion,
-                                'size' => 'sm',
-                            ])
-                        @endforeach
-                        @can('transition', $jobCard)
-                            @if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)
-                                && $jobCard->status !== ProductionJobCardStatus::InProduction)
-                                <form method="POST" action="{{ route('admin.production.job-cards.hold', $jobCard) }}">
-                                    @csrf
-                                    <button type="submit" class="job-360-hero__more-link">{{ __('Hold job') }}</button>
-                                </form>
-                            @endif
-                            @if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Cancelled))
-                                <form method="POST" action="{{ route('admin.production.job-cards.cancel', $jobCard) }}">
-                                    @csrf
-                                    <button type="submit" class="job-360-hero__more-link job-360-hero__more-link--danger">{{ __('Cancel job') }}</button>
-                                </form>
-                            @endif
-                        @endcan
+                    @if ($needsOperator)
+                        <a href="#assign-operator" class="erp-btn-primary px-3 py-1.5 text-xs">{{ __('Assign operator') }}</a>
+                    @endif
+                    @if ($needsMachine)
+                        <a href="#assign-machine" class="erp-btn-primary px-3 py-1.5 text-xs">{{ __('Assign machine') }}</a>
+                    @endif
+                    @unless ($needsOperator || $needsMachine)
+                        @include('admin.production.job-cards.workspace.partials.primary-action-button', [
+                            'action' => $heroAction,
+                            'completion' => $completion,
+                            'size' => 'sm',
+                        ])
                     @endunless
-                    @can('delete', $jobCard)
-                        <form method="POST" action="{{ route('admin.production.job-cards.destroy', $jobCard) }}" onsubmit="return confirm(@js(__('Permanently delete this job card? This cannot be undone.')))">
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="job-360-hero__more-link job-360-hero__more-link--danger">{{ __('Delete job') }}</button>
-                        </form>
-                    @endcan
-                </div>
-            </details>
+                @endif
+
+                <details class="job-360-hero__more relative">
+                    <summary>{{ __('More') }}</summary>
+                    <div class="job-360-hero__more-menu absolute right-0 z-40">
+                        <a href="{{ route('admin.production.floor') }}" class="job-360-hero__more-link" @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>{{ __('Back to floor') }}</a>
+                        @can('update', $jobCard)
+                            <a href="{{ route('admin.production.job-cards.edit', $jobCard) }}" class="job-360-hero__more-link" @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>{{ __('Edit job') }}</a>
+                        @endcan
+                        @unless ($hasDispatch)
+                            @foreach ($secondaryActions as $action)
+                                @include('admin.production.job-cards.workspace.partials.primary-action-button', [
+                                    'action' => $action,
+                                    'completion' => $completion,
+                                    'size' => 'sm',
+                                ])
+                            @endforeach
+                            @can('transition', $jobCard)
+                                @if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::OnHold)
+                                    && $jobCard->status !== ProductionJobCardStatus::InProduction)
+                                    <form method="POST" action="{{ route('admin.production.job-cards.hold', $jobCard) }}" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                                        @csrf
+                                        <button type="submit" class="job-360-hero__more-link w-full">{{ __('Hold job') }}</button>
+                                    </form>
+                                @endif
+                                @if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Cancelled))
+                                    <form method="POST" action="{{ route('admin.production.job-cards.cancel', $jobCard) }}" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                                        @csrf
+                                        <button type="submit" class="job-360-hero__more-link job-360-hero__more-link--danger w-full">{{ __('Cancel job') }}</button>
+                                    </form>
+                                @endif
+                            @endcan
+                        @endunless
+                        @can('delete', $jobCard)
+                            <form method="POST" action="{{ route('admin.production.job-cards.destroy', $jobCard) }}" onsubmit="return confirm(@js(__('Permanently delete this job card? This cannot be undone.')))" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="job-360-hero__more-link job-360-hero__more-link--danger w-full">{{ __('Delete job') }}</button>
+                            </form>
+                        @endcan
+                    </div>
+                </details>
+            </div>
         </div>
     </div>
 </header>

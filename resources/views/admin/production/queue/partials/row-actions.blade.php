@@ -1,4 +1,8 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $inline = (bool) ($inline ?? false);
+    $compact = (bool) ($compact ?? false);
     $actions = [];
     $seenUrls = [];
     $seenKeys = [];
@@ -31,10 +35,24 @@
 
     if (! empty($row['job_360_url'])) {
         $pushAction([
-            'label' => __('Open Job 360'),
+            'label' => __('View'),
             'url' => $row['job_360_url'],
             'type' => 'link',
+            'slot' => 'view',
         ]);
+    }
+
+    foreach ($row['quick_actions'] ?? [] as $action) {
+        if (! is_array($action)) {
+            continue;
+        }
+
+        $label = strtolower((string) ($action['label'] ?? ''));
+        if (str_contains($label, 'job 360') || str_contains($label, 'open job')) {
+            continue;
+        }
+
+        $pushAction($action);
     }
 
     if (! empty($row['customer_360_url'])) {
@@ -47,44 +65,97 @@
 
     if (! empty($row['print_url'])) {
         $pushAction([
-            'label' => $row['print_label'] ?? __('Print job sheet'),
+            'label' => $row['print_label'] ?? __('Print'),
             'url' => $row['print_url'],
             'type' => 'link',
             'target' => '_blank',
         ]);
     }
 
-    foreach ($row['quick_actions'] ?? [] as $action) {
-        $pushAction(is_array($action) ? $action : []);
+    $inlineActions = [];
+    $moreActions = [];
+
+    foreach ($actions as $action) {
+        $label = strtolower((string) ($action['label'] ?? ''));
+        $isPrimary = ($action['variant'] ?? '') === 'primary'
+            || str_contains($label, 'start')
+            || str_contains($label, 'assign')
+            || str_contains($label, 'complete');
+
+        if (($action['slot'] ?? null) === 'view') {
+            $inlineActions[] = $action;
+        } elseif ($isPrimary && count($inlineActions) < 3) {
+            $inlineActions[] = $action;
+        } else {
+            $moreActions[] = $action;
+        }
     }
+
+    if ($inline && count($inlineActions) === 0 && count($actions) > 0) {
+        $inlineActions[] = $actions[0];
+        $moreActions = array_slice($actions, 1);
+    }
+
+    $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
+    $formTurboAttrs = WorkspaceEmbed::turboFormAttributes();
 @endphp
 
-@if (count($actions) > 0)
-    <details class="relative inline-block text-left">
-        <summary class="erp-btn-secondary cursor-pointer list-none text-xs py-2 px-3 [&::-webkit-details-marker]:hidden">
-            {{ __('Actions') }}
-            <span aria-hidden="true" class="ml-1">▾</span>
-        </summary>
-        <div class="absolute right-0 z-20 mt-1 min-w-[11rem] rounded-md border border-erp-border bg-white py-1 shadow-lg">
-            @foreach ($actions as $action)
-                @if (($action['type'] ?? 'link') === 'post')
-                    <form method="POST" action="{{ $action['url'] }}" class="block">
-                        @csrf
-                        <button type="submit" class="block w-full px-3 py-2 text-left text-xs text-slate-700 hover:bg-slate-50">{{ $action['label'] }}</button>
-                    </form>
-                @else
-                    <a
-                        href="{{ $action['url'] }}"
-                        class="block px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
-                        @if (($action['target'] ?? null) === '_blank')
-                            target="_blank"
-                            rel="noopener"
+@if (count($inlineActions) > 0 || count($moreActions) > 0)
+    <div @class(['production-queue-row-actions', 'production-queue-row-actions--compact' => $compact || $inline])>
+        @foreach ($inlineActions as $action)
+            @php
+                $btnClass = 'production-queue-action-btn';
+                if ($inline || $compact) {
+                    $btnClass .= ' production-queue-action-btn--compact';
+                }
+                if (($action['variant'] ?? '') === 'primary') {
+                    $btnClass .= ' production-queue-action-btn--primary';
+                }
+            @endphp
+            @if (($action['type'] ?? 'link') === 'post')
+                <form method="POST" action="{{ $action['url'] }}" class="inline" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                    @csrf
+                    <button type="submit" class="{{ $btnClass }}">{{ $action['label'] }}</button>
+                </form>
+            @else
+                <a
+                    href="{{ $action['url'] }}"
+                    class="{{ $btnClass }}"
+                    @if (($action['target'] ?? null) === '_blank')
+                        target="_blank"
+                        rel="noopener"
+                    @else
+                        @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
+                    @endif
+                >{{ $action['label'] }}</a>
+            @endif
+        @endforeach
+
+        @if (count($moreActions) > 0)
+            <details class="production-queue-row-actions__more">
+                <summary class="production-queue-action-btn production-queue-action-btn--compact">{{ __('More') }} ▾</summary>
+                <div class="production-queue-row-actions__menu">
+                    @foreach ($moreActions as $action)
+                        @if (($action['type'] ?? 'link') === 'post')
+                            <form method="POST" action="{{ $action['url'] }}" class="block" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                                @csrf
+                                <button type="submit" class="production-queue-row-actions__menu-item">{{ $action['label'] }}</button>
+                            </form>
                         @else
-                            data-turbo-frame="erp-main"
+                            <a
+                                href="{{ $action['url'] }}"
+                                class="production-queue-row-actions__menu-item"
+                                @if (($action['target'] ?? null) === '_blank')
+                                    target="_blank"
+                                    rel="noopener"
+                                @else
+                                    @foreach ($linkTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach
+                                @endif
+                            >{{ $action['label'] }}</a>
                         @endif
-                    >{{ $action['label'] }}</a>
-                @endif
-            @endforeach
-        </div>
-    </details>
+                    @endforeach
+                </div>
+            </details>
+        @endif
+    </div>
 @endif

@@ -100,7 +100,7 @@ class ProductionWorkspaceConsolidationTest extends TestCase
             ->get(ProductionFloorDeskViews::queueIndexUrl())
             ->assertOk()
             ->assertSee(__('By department'), false)
-            ->assertSee(__('Department operational register'), false);
+            ->assertSee(__('More filters'), false);
 
         $this->actingAs($user)
             ->get(ProductionFloorDeskViews::outputsIndexUrl())

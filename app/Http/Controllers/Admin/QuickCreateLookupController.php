@@ -1272,22 +1272,27 @@ class QuickCreateLookupController extends Controller
      */
     protected function validateWarehouseQuickCreate(Request $request, int $companyId, int $branchId): array
     {
-        $rules = $this->formSettings->mergeValidationRules('warehouse.create', [
-            'code' => [
-                'required',
-                'string',
-                'max:50',
-                Rule::unique('warehouses', 'code')
-                    ->where('company_id', $companyId)
-                    ->where('branch_id', $branchId),
-            ],
-            'name' => ['required', 'string', 'max:255'],
-            'branch_id' => ['required', Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)],
-            'location' => ['string', 'max:255'],
-            'notes' => ['string'],
-            'description' => ['string'],
-            'is_active' => ['boolean'],
-        ], $companyId, $branchId);
+        $this->formSettings->withoutHiddenInputs($request, 'warehouse.create', $companyId, $branchId);
+
+        $rules = $this->relaxCodeRulesForCreate(
+            $this->formSettings->mergeValidationRules('warehouse.create', [
+                'code' => array_merge(
+                    $this->nullableCodeRules(50),
+                    [
+                        Rule::unique('warehouses', 'code')
+                            ->where('company_id', $companyId)
+                            ->where('branch_id', $branchId),
+                    ],
+                ),
+                'name' => ['required', 'string', 'max:255'],
+                'branch_id' => ['required', Rule::exists('branches', 'id')->where('company_id', $companyId)->where('is_active', true)],
+                'location' => ['string', 'max:255'],
+                'notes' => ['string'],
+                'description' => ['string'],
+                'is_active' => ['boolean'],
+            ], $companyId, $branchId, serverProvidedFields: ['branch_id']),
+            50,
+        );
 
         $validated = $request->validate($rules);
         $descriptionParts = [];
@@ -1305,6 +1310,16 @@ class QuickCreateLookupController extends Controller
         }
 
         $validated['description'] = implode("\n\n", $descriptionParts);
+
+        if (blank($validated['code'] ?? null)) {
+            $validated['code'] = $this->resolveBranchScopedCode(
+                $request,
+                'name',
+                Warehouse::class,
+                $companyId,
+                $branchId,
+            );
+        }
 
         return collect($validated)->only(['code', 'name', 'description', 'is_active'])->all();
     }

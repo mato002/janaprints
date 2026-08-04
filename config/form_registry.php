@@ -96,7 +96,7 @@ return [
             'description' => 'Fields on the new warehouse form.',
             'fields' => [
                 'name' => ['label' => 'Warehouse name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
-                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 2],
                 'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => false, 'sort_order' => 3],
                 'is_active' => ['label' => 'Status', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
                 'location' => ['label' => 'Location', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 5],
@@ -175,7 +175,7 @@ return [
             'description' => 'Create commercial price book header fields.',
             'fields' => [
                 'name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
-                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 2],
                 'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 3],
                 'currency' => ['label' => 'Currency', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 4, 'default' => 'KES'],
                 'branch_id' => ['label' => 'Branch', 'type' => 'select', 'required' => false, 'visible' => true, 'sort_order' => 5],
@@ -206,7 +206,7 @@ return [
             'description' => 'Customer segment definition fields.',
             'fields' => [
                 'name' => ['label' => 'Name', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 1],
-                'code' => ['label' => 'Code', 'type' => 'text', 'required' => true, 'visible' => true, 'sort_order' => 2],
+                'code' => ['label' => 'Code', 'type' => 'text', 'required' => false, 'visible' => true, 'sort_order' => 2],
                 'description' => ['label' => 'Description', 'type' => 'textarea', 'required' => false, 'visible' => true, 'sort_order' => 3],
                 'is_active' => ['label' => 'Active', 'type' => 'checkbox', 'required' => false, 'visible' => true, 'sort_order' => 4],
             ],

@@ -1,4 +1,9 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $detailLinkAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
+    $turboFrame = WorkspaceEmbed::turboFrame();
+
     $presentRow = function ($queue) use ($commandCenter, $workspace, $activeDepartment) {
         if ($commandCenter) {
             return $commandCenter->presentCommandRow($queue, $activeDepartment);
@@ -15,65 +20,92 @@
         'order_status' => 'order_status_variant',
     ];
 
+    $frozenColumnKeys = ['date', 'job_card_number', 'customer_name'];
+
     $displayColumns = $columns !== [] ? $columns : [
         ['key' => 'priority_label', 'label' => __('Priority'), 'class' => ''],
         ['key' => 'job_card_number', 'label' => __('Job card'), 'class' => 'font-mono text-xs'],
         ['key' => 'customer_name', 'label' => __('Customer'), 'class' => ''],
         ['key' => 'product', 'label' => __('Product'), 'class' => ''],
-        ['key' => 'due_date', 'label' => __('Due'), 'class' => 'tabular-nums'],
-        ['key' => 'production_status', 'label' => __('Status'), 'class' => ''],
+        ['key' => 'due_date', 'label' => __('Due'), 'class' => 'tabular-nums text-right'],
+        ['key' => 'order_status', 'label' => __('Status'), 'class' => ''],
     ];
     $colCount = count($displayColumns) + 1;
+
+    $frozenIndex = 0;
 @endphp
 
-<div class="border-b border-erp-border px-4 py-3">
-    <h2 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Department operational register') }}</h2>
-    <p class="mt-0.5 text-xs text-slate-500">{{ __('Live ERP data — ordered by priority and due date') }}</p>
-</div>
+@unless ($dense ?? false)
+    <div class="border-b border-erp-border px-4 py-2">
+        <h2 class="text-xs font-semibold uppercase tracking-wide text-erp-primary">{{ __('Department operational register') }}</h2>
+        <p class="text-[11px] text-slate-500">{{ __('Live ERP data — ordered by priority and due date') }}</p>
+    </div>
+@endunless
 
-<div class="hidden md:block overflow-x-auto production-queue-register">
+<div class="hidden md:block production-queue-register production-queue-register--scroll">
     <table class="erp-table erp-table--grid production-queue-register-table w-full text-sm">
         <thead>
             <tr>
                 @foreach ($displayColumns as $column)
-                    <th>{{ $column['label'] }}</th>
+                    @php
+                        $isFrozen = in_array($column['key'], $frozenColumnKeys, true);
+                        $frozenClass = $isFrozen ? 'production-queue-col-frozen production-queue-col-frozen--'.(++$frozenIndex) : '';
+                    @endphp
+                    <th @class([$frozenClass, 'text-right' => str_contains($column['class'] ?? '', 'text-right')])>{{ $column['label'] }}</th>
                 @endforeach
-                <th class="erp-table-actions-col">{{ __('Actions') }}</th>
+                <th class="erp-table-actions-col production-queue-col-actions">{{ __('Actions') }}</th>
             </tr>
         </thead>
         <tbody>
             @forelse ($queues as $queue)
                 @php $row = $presentRow($queue); @endphp
                 <tr @class([
-                    'bg-red-50/50' => $row['row_tone'] === 'danger',
-                    'bg-amber-50/40' => $row['row_tone'] === 'warning',
+                    'production-queue-row',
+                    'production-queue-row--'.$row['row_urgency'] => ($row['row_urgency'] ?? 'default') !== 'default',
                 ])>
+                    @php $frozenIndex = 0; @endphp
                     @foreach ($displayColumns as $column)
                         @php
                             $key = $column['key'];
                             $value = $row[$key] ?? '—';
                             $variantKey = $statusColumns[$key] ?? null;
+                            $isFrozen = in_array($key, $frozenColumnKeys, true);
+                            $frozenClass = $isFrozen ? 'production-queue-col-frozen production-queue-col-frozen--'.(++$frozenIndex) : '';
                         @endphp
-                        <td @class([$column['class'] ?? '', 'whitespace-nowrap' => in_array($key, ['due_date', 'date'], true)])>
+                        <td @class([
+                            $column['class'] ?? '',
+                            $frozenClass,
+                            'whitespace-nowrap' => in_array($key, ['due_date', 'date', 'date_sent', 'expected_return'], true),
+                        ])>
                             @if ($key === 'job_card_number' && ! empty($row['job_360_url']))
-                                <a href="{{ $row['job_360_url'] }}" class="font-mono text-xs text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ $value }}</a>
+                                <a href="{{ $row['job_360_url'] }}" class="font-mono text-xs text-erp-primary hover:underline" @foreach ($detailLinkAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>{{ $value }}</a>
                             @elseif ($key === 'product')
-                                <div class="font-medium max-w-xs truncate" title="{{ $value }}">{{ $value }}</div>
-                                @if (! empty($row['status_badges']))
-                                    <div class="mt-1 flex flex-wrap gap-1">
-                                        @foreach ($row['status_badges'] as $badge)
-                                            @include('admin.production.queue.partials.status-badge', [
-                                                'label' => $badge['label'],
-                                                'variant' => $badge['variant'] ?? 'neutral',
-                                            ])
-                                        @endforeach
+                                <div class="production-queue-product" title="{{ $value }}">{{ $value }}</div>
+                            @elseif ($key === 'progress')
+                                @php $percent = (int) ($row['progress_percent'] ?? 0); @endphp
+                                <div class="production-queue-progress" title="{{ __(':percent% complete', ['percent' => $percent]) }}">
+                                    <div class="production-queue-progress__track">
+                                        <div class="production-queue-progress__fill" style="width: {{ $percent }}%"></div>
                                     </div>
-                                @endif
+                                    <span class="production-queue-progress__label tabular-nums">{{ $percent }}%</span>
+                                </div>
                             @elseif ($variantKey && filled($value) && $value !== '—')
-                                @include('admin.production.queue.partials.status-badge', [
-                                    'label' => $value,
-                                    'variant' => $row[$variantKey] ?? 'neutral',
-                                ])
+                                <div class="space-y-1">
+                                    @include('admin.production.queue.partials.status-badge', [
+                                        'label' => $value,
+                                        'variant' => $row[$variantKey] ?? 'neutral',
+                                    ])
+                                    @if (in_array($key, ['order_status', 'production_status'], true) && ! empty($row['status_badges']))
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach ($row['status_badges'] as $badge)
+                                                @include('admin.production.queue.partials.status-badge', [
+                                                    'label' => $badge['label'],
+                                                    'variant' => $badge['variant'] ?? 'neutral',
+                                                ])
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
                             @elseif ($key === 'due_date' && $row['days_remaining'] !== null)
                                 {{ $value }}
                                 <span @class([
@@ -86,8 +118,8 @@
                             @endif
                         </td>
                     @endforeach
-                    <td class="erp-table-actions-col">
-                        @include('admin.production.queue.partials.row-actions', ['row' => $row])
+                    <td class="erp-table-actions-col production-queue-col-actions">
+                        @include('admin.production.queue.partials.row-actions', ['row' => $row, 'inline' => true])
                     </td>
                 </tr>
             @empty
@@ -105,14 +137,13 @@
     @forelse ($queues as $queue)
         @php $row = $presentRow($queue); @endphp
         <div @class([
-            'p-4 space-y-2',
-            'bg-red-50/50' => $row['row_tone'] === 'danger',
-            'bg-amber-50/40' => $row['row_tone'] === 'warning',
+            'p-4 space-y-2 production-queue-row',
+            'production-queue-row--'.$row['row_urgency'] => ($row['row_urgency'] ?? 'default') !== 'default',
         ])>
             <div class="flex items-start justify-between gap-2">
                 <div>
                     @if (! empty($row['job_360_url']))
-                        <a href="{{ $row['job_360_url'] }}" class="font-mono text-sm font-semibold text-erp-primary" data-turbo-frame="erp-main">{{ $row['job_card_number'] }}</a>
+                        <a href="{{ $row['job_360_url'] }}" class="font-mono text-sm font-semibold text-erp-primary" @foreach ($detailLinkAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>{{ $row['job_card_number'] }}</a>
                     @else
                         <p class="font-mono text-sm font-semibold">{{ $row['job_card_number'] }}</p>
                     @endif
@@ -134,6 +165,13 @@
                     @endforeach
                 </div>
             @endif
+            @php $percent = (int) ($row['progress_percent'] ?? 0); @endphp
+            <div class="production-queue-progress production-queue-progress--mobile">
+                <div class="production-queue-progress__track">
+                    <div class="production-queue-progress__fill" style="width: {{ $percent }}%"></div>
+                </div>
+                <span class="production-queue-progress__label tabular-nums">{{ $percent }}%</span>
+            </div>
             <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-600">
                 <div><dt class="inline">{{ __('Due') }}:</dt> <dd class="inline font-medium">{{ $row['due_date'] ?? '—' }}</dd></div>
                 <div><dt class="inline">{{ __('Qty') }}:</dt> <dd class="inline font-medium">{{ $row['quantity'] ?? '—' }}</dd></div>
@@ -141,7 +179,7 @@
                 <div><dt class="inline">{{ __('Machine') }}:</dt> <dd class="inline font-medium">{{ $row['machine_name'] }}</dd></div>
             </dl>
             <div class="flex flex-wrap gap-2 pt-1">
-                @include('admin.production.queue.partials.row-actions', ['row' => $row, 'compact' => true])
+                @include('admin.production.queue.partials.row-actions', ['row' => $row, 'compact' => true, 'inline' => true])
             </div>
         </div>
     @empty
@@ -152,7 +190,5 @@
 </div>
 
 @if ($queues->hasPages())
-    <div class="border-t border-erp-border px-4 py-3">
-        {{ $queues->links() }}
-    </div>
+    <x-admin.table-pagination :paginator="$queues" :turbo-frame="$turboFrame" />
 @endif

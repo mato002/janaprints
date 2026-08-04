@@ -157,4 +157,28 @@ class WorkspaceEmbed
             'data-turbo-action' => 'advance',
         ];
     }
+
+    /**
+     * Attributes for GET/POST forms that should refresh the active workspace frame.
+     *
+     * @return array<string, string>
+     */
+    public static function turboFormAttributes(?Request $request = null): array
+    {
+        return [
+            'data-turbo-frame' => self::turboFrame($request),
+        ];
+    }
+
+    /**
+     * Attributes for forms on detail surfaces that live inside erp-main.
+     *
+     * @return array<string, string>
+     */
+    public static function mainFormAttributes(): array
+    {
+        return [
+            'data-turbo-frame' => 'erp-main',
+        ];
+    }
 }

@@ -70,7 +70,9 @@ class ProductionCommandCentreDemoSeedService
         }
 
         if ($this->alreadySeeded($ctx)) {
-            $command?->warn('Production command centre demo already exists (DEMO-CC-* job cards). Skipping.');
+            $refreshed = $this->refreshDigitalAndOffsetForToday($ctx);
+            $command?->warn("Production command centre demo already exists (DEMO-CC-* job cards).");
+            $command?->info("  Refreshed {$refreshed} Digital/Offset queue rows to today's date so department boards show jobs.");
 
             return;
         }
@@ -133,6 +135,64 @@ class ProductionCommandCentreDemoSeedService
             ->where('company_id', $ctx->company->id)
             ->where('job_card_number', 'DEMO-CC-0001')
             ->exists();
+    }
+
+    /**
+     * Department boards default-filter to production_queues.created_at = today.
+     * Existing DEMO-CC Digital/Offset rows were often seeded with older dates.
+     */
+    protected function refreshDigitalAndOffsetForToday(OperationalDemoContext $ctx): int
+    {
+        $this->loadWorkCenters($ctx);
+
+        $workCenterIds = collect([$this->workCenters['DIGITAL']?->id, $this->workCenters['OFFSET']?->id])
+            ->filter()
+            ->values()
+            ->all();
+
+        if ($workCenterIds === []) {
+            return 0;
+        }
+
+        $queues = ProductionQueue::query()
+            ->where('company_id', $ctx->company->id)
+            ->whereIn('work_center_id', $workCenterIds)
+            ->whereHas('jobCard', fn ($q) => $q->where('job_card_number', 'like', 'DEMO-CC-%'))
+            ->with('jobCard')
+            ->get();
+
+        $now = now();
+        $refreshed = 0;
+
+        foreach ($queues as $index => $queue) {
+            $queueAt = today()->setTime(8 + ($index % 6), 15 + ($index % 3) * 10);
+            $queue->forceFill([
+                'created_at' => $queueAt,
+                'updated_at' => $queue->status === ProductionQueueStatus::Completed ? $now : $queueAt,
+            ])->saveQuietly();
+
+            $job = $queue->jobCard;
+            if ($job !== null) {
+                $isOverdue = $job->required_date !== null
+                    && Carbon::parse($job->required_date)->lt(today());
+
+                $job->forceFill([
+                    'created_at' => $queueAt,
+                    'planned_start_date' => $queueAt->toDateString(),
+                    'required_date' => $isOverdue
+                        ? today()->subDays(2)->toDateString()
+                        : ($job->required_date ?? today()->addDays(2)->toDateString()),
+                    'planned_end_date' => $isOverdue
+                        ? today()->subDays(2)->toDateString()
+                        : ($job->planned_end_date ?? today()->addDays(2)->toDateString()),
+                    'updated_at' => $now,
+                ])->saveQuietly();
+            }
+
+            $refreshed++;
+        }
+
+        return $refreshed;
     }
 
     protected function loadWorkCenters(OperationalDemoContext $ctx): void
@@ -346,13 +406,24 @@ class ProductionCommandCentreDemoSeedService
         $designer = User::query()->where('email', 'designer@janaprints.local')->first();
 
         $flags = $scenario['flags'] ?? [];
+        $isPrintLane = in_array($scenario['workCenterCode'], ['DIGITAL', 'OFFSET'], true);
+
+        // Digital/Offset department boards default-filter to queue created_at = today.
         $createdAt = isset($flags['completed_today'])
-            ? today()->subDays(3)
-            : (isset($flags['overdue']) ? today()->subDays(8) : today()->subDays(2));
+            ? today()->setTime(9, 30)
+            : (isset($flags['overdue'])
+                ? today()->setTime(7, 45)
+                : ($isPrintLane
+                    ? today()->setTime(8 + ($index % 6), 15 + ($index % 3) * 10)
+                    : today()->subDays(2)->setTime(10, 0)));
 
         $requiredDate = isset($flags['overdue'])
             ? today()->subDays(2)
-            : today()->addDays((int) ($flags['required_offset'] ?? 7));
+            : today()->addDays((int) ($flags['required_offset'] ?? ($isPrintLane ? 2 : 7)));
+
+        if ($isPrintLane && ! isset($flags['overdue']) && ! isset($flags['completed_today'])) {
+            $requiredDate = today()->addDays((int) ($flags['required_offset'] ?? 2));
+        }
 
         $subtotal = round((float) $scenario['qty'] * (float) $scenario['unitPrice'], 2);
         $tax = round($subtotal * 0.16, 2);
@@ -520,8 +591,8 @@ class ProductionCommandCentreDemoSeedService
         }
 
         $queueCreated = ($flags['completed_today'] ?? false)
-            ? today()->subDays(2)
-            : $createdAt;
+            ? today()->setTime(10, 0)
+            : ($isPrintLane ? today()->setTime(8 + ($index % 6), 15 + ($index % 3) * 10) : $createdAt);
 
         $queue = ProductionQueue::query()->create([
             'company_id' => $ctx->company->id,

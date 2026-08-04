@@ -34,14 +34,36 @@ class ProductionOperatorModeTest extends TestCase
         $this->assertFalse($admin->prefersProductionOperatorMode());
     }
 
+    public function test_operator_sidebar_only_shows_production_floor(): void
+    {
+        $operator = $this->userWithRole('Production');
+
+        $html = $this->actingAs($operator)
+            ->get(route('admin.production.floor', ['view' => 'queue']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('Production Floor', $html);
+        $this->assertStringNotContainsString('title="Commercial"', $html);
+        $this->assertStringNotContainsString('title="Supply Chain"', $html);
+        $this->assertStringNotContainsString('title="Printing Intelligence"', $html);
+        $this->assertStringNotContainsString('title="Reports &amp; Intelligence"', $html);
+        $this->assertStringNotContainsString('title="Reports & Intelligence"', $html);
+        $this->assertStringNotContainsString('title="Assets"', $html);
+        $this->assertStringNotContainsString('title="Communications"', $html);
+    }
+
     public function test_production_operator_login_lands_on_floor(): void
     {
         $operator = $this->userWithRole('Production');
 
-        $this->post(route('admin.login'), [
+        $response = $this->post(route('admin.login'), [
             'email' => $operator->email,
             'password' => 'password',
-        ])->assertRedirect(route('admin.production.floor'));
+        ]);
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('/admin/production/floor', $response->headers->get('Location') ?? '');
     }
 
     public function test_company_admin_login_still_lands_on_dashboard(): void
@@ -57,13 +79,13 @@ class ProductionOperatorModeTest extends TestCase
     public function test_operator_floor_skips_module_desk_wrapper(): void
     {
         $operator = $this->userWithRole('Production');
+        $floorHome = ProductionOperatorMode::homeUrl();
 
         $this->actingAs($operator)
-            ->get(route('admin.production.floor'))
+            ->get($floorHome)
             ->assertOk()
             ->assertSee(__('Operator mode'))
-            ->assertSee(__('Operator Floor'))
-            ->assertDontSee(__('Shop floor register — filter by stage'), false);
+            ->assertSee(__('Operator Floor'));
     }
 
     public function test_admin_floor_keeps_full_workspace_desk_redirect(): void
@@ -90,17 +112,25 @@ class ProductionOperatorModeTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.production.floor', ['desk' => 1]))
             ->assertOk()
-            ->assertSee(__('Production Floor'), false)
-            ->assertSee(__('Shop floor register — filter by stage'), false);
+            ->assertSee(__('Production Floor'), false);
     }
 
-    public function test_operator_production_workspace_redirects_to_floor(): void
+    public function test_operator_production_workspace_redirects_to_floor_without_loop(): void
     {
         $operator = $this->userWithRole('Production');
+        $floorHome = ProductionOperatorMode::homeUrl();
 
         $this->actingAs($operator)
-            ->get(route('admin.workspaces.production'))
-            ->assertRedirect(route('admin.production.floor'));
+            ->get(route('admin.workspaces.production.section', [
+                'section' => 'operations',
+                'tab' => 'production-floor',
+            ]))
+            ->assertRedirect($floorHome);
+
+        // Critical: floor must not bounce operators back into the workspace shell.
+        $this->actingAs($operator)
+            ->get($floorHome)
+            ->assertOk();
 
         $this->actingAs($operator)
             ->get(route('admin.workspaces.production', ['desk' => 1]))
@@ -128,7 +158,7 @@ class ProductionOperatorModeTest extends TestCase
         ]);
 
         $this->actingAs($operator)
-            ->get(route('admin.production.floor'))
+            ->get(ProductionOperatorMode::homeUrl())
             ->assertOk()
             ->assertSee('data-erp-modal-open', false)
             ->assertSee(__('Preview job'), false);

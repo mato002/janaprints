@@ -700,11 +700,76 @@ class AppServiceProvider extends ServiceProvider
     {
         $remap = \App\Support\Operator\OperatorModeRegistry::navigationRemap($user);
 
-        if ($remap === null) {
+        if ($remap !== null) {
+            $items = $this->remapOperatorNav($items, $remap);
+            $items = $this->restrictOperatorSidebar($items, $user);
+        }
+
+        return $this->applyProductionDeskSidebar($items, $user);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function restrictOperatorSidebar(array $items, ?User $user): array
+    {
+        if ($user === null) {
             return $items;
         }
 
-        return $this->remapOperatorNav($items, $remap);
+        foreach (\App\Support\Operator\OperatorModeRegistry::modes() as $mode) {
+            if (! \App\Support\Operator\OperatorModeRegistry::enabledFor($user, $mode->key)) {
+                continue;
+            }
+
+            if ($mode->sidebarAllowedRoutes === null || $mode->sidebarAllowedRoutes === []) {
+                return $items;
+            }
+
+            $allowed = $mode->sidebarAllowedRoutes;
+
+            return array_values(array_filter(
+                $items,
+                fn (array $item): bool => in_array((string) ($item['route'] ?? ''), $allowed, true),
+            ));
+        }
+
+        return $items;
+    }
+
+    /**
+     * Production Manager keeps a focused sidebar without deleting modules from the system.
+     *
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function applyProductionDeskSidebar(array $items, ?User $user): array
+    {
+        $persona = \App\Support\Production\ProductionDeskPersona::resolve($user);
+
+        if ($persona->isAdmin() || $persona->isOperator()) {
+            // Operator already restricted via operator-mode allowlist.
+            return $items;
+        }
+
+        // Manager: Production (+ Dispatch if present). Hide commercial / reports / etc.
+        $allowedWorkspaces = ['production', 'dispatch'];
+
+        return array_values(array_filter($items, function (array $item) use ($allowedWorkspaces): bool {
+            $workspace = $item['workspace'] ?? null;
+
+            if ($workspace !== null) {
+                return in_array($workspace, $allowedWorkspaces, true);
+            }
+
+            $route = (string) ($item['route'] ?? '');
+
+            return str_starts_with($route, 'admin.production.')
+                || str_starts_with($route, 'admin.workspaces.production')
+                || str_starts_with($route, 'admin.dispatch.')
+                || str_starts_with($route, 'admin.workspaces.dispatch');
+        }));
     }
 
     /**

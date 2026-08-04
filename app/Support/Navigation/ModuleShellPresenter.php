@@ -732,6 +732,14 @@ class ModuleShellPresenter
                 continue;
             }
 
+            if (
+                $moduleKey === 'production'
+                && \App\Support\Production\ProductionDeskPersona::resolve(auth()->user())->operationsHubOnly()
+                && ($this->hubItemKey($item) !== 'operations')
+            ) {
+                continue;
+            }
+
             $key = $this->hubItemKey($item);
             $deskHref = $this->resolvePrimaryHref($module, $item);
             $hasSecondaryTabs = $this->sectionHasSecondaryTabs($catalog, $key);
@@ -861,6 +869,15 @@ class ModuleShellPresenter
         string $tabKey,
         ?string $deskHref,
     ): array {
+        if ($moduleKey === 'production' && ($item['key'] ?? null) === 'production-floor') {
+            $personaModes = \App\Support\Production\ProductionDeskPersona::resolve(auth()->user())
+                ->operationsFloorModes();
+
+            if ($personaModes !== []) {
+                $item = [...$item, 'modes' => $personaModes];
+            }
+        }
+
         $modes = [];
 
         foreach ($item['modes'] ?? [] as $mode) {

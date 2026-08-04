@@ -334,4 +334,193 @@ class JobCardManufacturingPresenter
             ->values()
             ->all();
     }
+
+    /**
+     * Status cards for the manufacturing overview grid.
+     *
+     * @param  array<string, mixed>  $context  Full manufacturing tab payload (sections, artwork, quality, etc.)
+     * @return list<array{id: string, label: string, status: string, tone: string, summary: ?string}>
+     */
+    public function dashboardCards(ProductionJobCard $jobCard, array $context): array
+    {
+        $sections = $context['sections'] ?? [];
+        $materialPlan = $context['material_plan'] ?? [];
+        $operators = $context['operators'] ?? [];
+        $recommendations = $context['recommendations'] ?? [];
+        $pipeline = collect($context['timeline_pipeline'] ?? []);
+        $artwork = $context['artwork'] ?? [];
+        $status = $jobCard->status;
+
+        $pipelineState = fn (string $needle) => $pipeline->first(
+            fn ($stage) => str_contains(strtolower($stage['label']), strtolower($needle)),
+        )['state'] ?? 'upcoming';
+
+        $stageStatus = function (string $needle) use ($pipelineState, $status): array {
+            $state = $pipelineState($needle);
+
+            return match ($state) {
+                'complete' => ['status' => __('Complete'), 'tone' => 'success'],
+                'current' => match ($needle) {
+                    'printing' => ['status' => __('Running'), 'tone' => 'active'],
+                    'qc' => ['status' => __('In progress'), 'tone' => 'active'],
+                    default => ['status' => __('In progress'), 'tone' => 'active'],
+                },
+                default => match ($status) {
+                    ProductionJobCardStatus::OnHold => ['status' => __('On hold'), 'tone' => 'warning'],
+                    ProductionJobCardStatus::Cancelled => ['status' => __('Cancelled'), 'tone' => 'neutral'],
+                    default => ['status' => __('Pending'), 'tone' => 'neutral'],
+                },
+            };
+        };
+
+        $generalFields = $sections['general'] ?? [];
+        $generalReady = count($generalFields) >= 2;
+
+        $materialReady = ! empty($materialPlan['paper']) || ! empty($sections['material']);
+        $materialSummary = $materialPlan['paper']
+            ?? collect($sections['material'] ?? [])->firstWhere('label', __('Paper'))['value'] ?? null;
+
+        $machineName = $operators['machine']
+            ?? $recommendations['machine']
+            ?? null;
+
+        $productionStatus = match (true) {
+            in_array($status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true) => ['status' => __('Complete'), 'tone' => 'success'],
+            $status === ProductionJobCardStatus::InProduction => ['status' => __('Running'), 'tone' => 'active'],
+            $status === ProductionJobCardStatus::Queued => ['status' => __('Queued'), 'tone' => 'neutral'],
+            $status === ProductionJobCardStatus::OnHold => ['status' => __('On hold'), 'tone' => 'warning'],
+            default => ['status' => __('Waiting'), 'tone' => 'neutral'],
+        };
+
+        $dispatchStatus = match (true) {
+            $status === ProductionJobCardStatus::ReadyForDispatch => ['status' => __('Ready'), 'tone' => 'success'],
+            in_array($status, [ProductionJobCardStatus::Completed], true) => ['status' => __('Pending'), 'tone' => 'neutral'],
+            default => ['status' => __('Pending'), 'tone' => 'neutral'],
+        };
+
+        $artworkStatus = $this->artworkCardStatus($artwork, $sections['artwork'] ?? []);
+
+        $qcStatus = match (true) {
+            in_array($status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true) => ['status' => __('Passed'), 'tone' => 'success'],
+            $status === ProductionJobCardStatus::QualityCheck => ['status' => __('In progress'), 'tone' => 'active'],
+            $status === ProductionJobCardStatus::Rework => ['status' => __('Rework'), 'tone' => 'warning'],
+            default => ['status' => __('Not started'), 'tone' => 'neutral'],
+        };
+
+        return [
+            [
+                'id' => 'general',
+                'label' => __('General'),
+                'status' => $generalReady ? __('Ready') : __('Incomplete'),
+                'tone' => $generalReady ? 'success' : 'warning',
+                'summary' => collect($generalFields)->take(2)->pluck('value')->filter()->implode(' · ') ?: null,
+            ],
+            [
+                'id' => 'materials',
+                'label' => __('Materials'),
+                'status' => $materialReady ? __('Ready') : __('Missing'),
+                'tone' => $materialReady ? 'success' : 'warning',
+                'summary' => $materialSummary,
+            ],
+            [
+                'id' => 'production',
+                'label' => __('Production'),
+                'status' => $productionStatus['status'],
+                'tone' => $productionStatus['tone'],
+                'summary' => collect($sections['production'] ?? [])->firstWhere('label', __('Estimated sheets'))['value'] ?? null,
+            ],
+            [
+                'id' => 'printing',
+                'label' => __('Printing'),
+                'status' => $stageStatus('printing')['status'],
+                'tone' => $stageStatus('printing')['tone'],
+                'summary' => collect($sections['printing'] ?? [])->firstWhere('label', __('Colour mode'))['value'] ?? null,
+            ],
+            [
+                'id' => 'finishing',
+                'label' => __('Finishing'),
+                'status' => $stageStatus('finishing')['status'],
+                'tone' => $stageStatus('finishing')['tone'],
+                'summary' => collect($sections['finishing'] ?? [])->first()['value'] ?? null,
+            ],
+            [
+                'id' => 'qc',
+                'label' => __('QC'),
+                'status' => $qcStatus['status'],
+                'tone' => $qcStatus['tone'],
+                'summary' => null,
+            ],
+            [
+                'id' => 'dispatch',
+                'label' => __('Dispatch'),
+                'status' => $dispatchStatus['status'],
+                'tone' => $dispatchStatus['tone'],
+                'summary' => null,
+            ],
+            [
+                'id' => 'artwork',
+                'label' => __('Artwork'),
+                'status' => $artworkStatus['status'],
+                'tone' => $artworkStatus['tone'],
+                'summary' => $artworkStatus['summary'],
+            ],
+            [
+                'id' => 'machine',
+                'label' => __('Machine'),
+                'status' => $machineName ? __('Assigned') : __('Unassigned'),
+                'tone' => $machineName ? 'success' : 'warning',
+                'summary' => $machineName,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $artwork
+     * @param  list<array{label: string, value: mixed}>  $artworkSection
+     * @return array{status: string, tone: string, summary: ?string}
+     */
+    protected function artworkCardStatus(array $artwork, array $artworkSection): array
+    {
+        if (! empty($artwork['empty'])) {
+            $ref = collect($artworkSection)->firstWhere('label', __('Artwork reference'))['value'] ?? null;
+
+            return [
+                'status' => $ref ? __('Linked') : __('Not linked'),
+                'tone' => $ref ? 'neutral' : 'warning',
+                'summary' => $ref,
+            ];
+        }
+
+        $approval = strtolower((string) ($artwork['approval_status'] ?? ''));
+
+        if (str_contains($approval, 'approved') || str_contains($approval, 'pass')) {
+            return [
+                'status' => __('Approved'),
+                'tone' => 'success',
+                'summary' => $artwork['request']?->request_number ?? null,
+            ];
+        }
+
+        if (str_contains($approval, 'reject')) {
+            return [
+                'status' => __('Rejected'),
+                'tone' => 'danger',
+                'summary' => $artwork['request']?->request_number ?? null,
+            ];
+        }
+
+        if ($artwork['request'] ?? null) {
+            return [
+                'status' => __('Pending'),
+                'tone' => 'warning',
+                'summary' => $artwork['request']->request_number,
+            ];
+        }
+
+        return [
+            'status' => __('Not linked'),
+            'tone' => 'warning',
+            'summary' => null,
+        ];
+    }
 }

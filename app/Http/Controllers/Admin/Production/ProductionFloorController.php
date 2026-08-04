@@ -12,6 +12,7 @@ use App\Services\Production\ProductionFloorActionService;
 use App\Services\Production\ProductionFloorService;
 use App\Services\Production\ProductionJobCardIndexService;
 use App\Support\Production\DepartmentQueueRegistry;
+use App\Support\Production\ProductionDeskPersona;
 use App\Support\Production\ProductionFloorDeskViews;
 use App\Support\Production\ReturnsToProductionFloor;
 use Illuminate\Http\JsonResponse;
@@ -32,13 +33,19 @@ class ProductionFloorController extends Controller
     ): View|RedirectResponse {
         $this->authorize('viewAny', ProductionJobCard::class);
 
+        $persona = ProductionDeskPersona::resolve($request->user());
         $activeFloorView = ProductionFloorDeskViews::normalize($request->query('view'));
         $operatorMode = $request->user()?->prefersProductionOperatorMode() ?? false;
+
+        if ($persona->prefersQueueLanding() && $activeFloorView !== ProductionFloorDeskViews::QUEUE) {
+            return redirect()->to($persona->defaultFloorUrl());
+        }
 
         if ($activeFloorView === ProductionFloorDeskViews::REGISTER) {
             return view('admin.production.floor.index', array_merge($jobCardIndex->build($request), [
                 'activeFloorView' => $activeFloorView,
                 'operatorMode' => $operatorMode,
+                'deskPersona' => $persona,
                 'embeddedInFloor' => true,
             ]));
         }
@@ -53,9 +60,14 @@ class ProductionFloorController extends Controller
                 return redirect()->to(ProductionFloorDeskViews::queueIndexUrl());
             }
 
+            if ($persona->isOperator() && $department === null && array_key_first($departments->availableDepartments()) !== null) {
+                return redirect()->to($persona->defaultFloorUrl());
+            }
+
             return view('admin.production.floor.index', array_merge($commandCenter->build($request, $department), [
                 'activeFloorView' => $activeFloorView,
                 'operatorMode' => $operatorMode,
+                'deskPersona' => $persona,
                 'embeddedInFloor' => true,
             ]));
         }
@@ -73,6 +85,7 @@ class ProductionFloorController extends Controller
             return view('admin.production.floor.index', [
                 'activeFloorView' => $activeFloorView,
                 'operatorMode' => $operatorMode,
+                'deskPersona' => $persona,
                 'embeddedInFloor' => true,
                 'outputs' => $outputs,
             ]);
@@ -81,6 +94,7 @@ class ProductionFloorController extends Controller
         $payload = $floor->build($request);
         $payload['activeFloorView'] = ProductionFloorDeskViews::FLOOR;
         $payload['operatorMode'] = $operatorMode;
+        $payload['deskPersona'] = $persona;
 
         return view('admin.production.floor.index', $payload);
     }
