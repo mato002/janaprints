@@ -4,7 +4,7 @@ return [
 
     'categories' => [
         'commercial' => [
-            'label' => 'Commercial',
+            'label' => 'Sales',
             'icon' => 'shopping-bag',
             'description' => 'CRM, sales, quotations, POS, and customer-facing capture forms.',
         ],
@@ -14,7 +14,7 @@ return [
             'description' => 'Job cards, shop floor, and production workflow forms.',
         ],
         'supply_chain' => [
-            'label' => 'Supply Chain',
+            'label' => 'Inventory',
             'icon' => 'truck',
             'description' => 'Inventory, warehousing, stock movement, and procurement forms.',
         ],

@@ -21,7 +21,7 @@ return [
     ],
 
     'commercial' => [
-        'title' => 'Commercial Reports',
+        'title' => 'Sales Reports',
         'description' => 'Sales, CRM, and quotation analytics.',
         'permission' => 'reports.view',
         'widgets' => [

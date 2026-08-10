@@ -7,7 +7,7 @@
 return [
 
     'commercial' => [
-        'title' => 'Commercial',
+        'title' => 'Sales',
         'description' => 'CRM, sales, customer service, point of sale, and commercial reporting.',
         'icon' => 'shopping-cart',
         'managed_by' => 'commercial_workspaces',
@@ -73,7 +73,7 @@ return [
     ],
 
     'supply-chain' => [
-        'title' => 'Supply Chain',
+        'title' => 'Inventory',
         'description' => 'Catalogue, store operations, procurement, inventory control, costing, assets, and reports.',
         'icon' => 'cube',
         'managed_by' => 'supply_chain_workspaces',

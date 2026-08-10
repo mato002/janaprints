@@ -49,6 +49,7 @@ unset($__defined_vars, $__key, $__value); ?>
     <?php echo csrf_field(); ?>
     <?php if($inFormModal): ?>
         <input type="hidden" name="_erp_modal" value="1">
+        <input type="hidden" name="_erp_modal_form_url" value="<?php echo e(url()->current()); ?>">
         <input type="hidden" name="_erp_modal_return" value="<?php echo e(url()->current()); ?>">
     <?php endif; ?>
     <?php if(! in_array($httpMethod, ['GET', 'POST'], true)): ?>

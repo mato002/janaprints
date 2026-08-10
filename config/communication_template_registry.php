@@ -7,7 +7,7 @@
 return [
     'groups' => [
         'commercial' => [
-            'label' => 'Commercial',
+            'label' => 'Sales',
             'categories' => [
                 'quotation_ready',
                 'quotation_approved',

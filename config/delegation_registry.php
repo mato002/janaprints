@@ -3,9 +3,9 @@
 return [
 
     'modules' => [
-        'commercial' => ['label' => 'Commercial'],
+        'commercial' => ['label' => 'Sales'],
         'production' => ['label' => 'Production'],
-        'supply_chain' => ['label' => 'Supply Chain'],
+        'supply_chain' => ['label' => 'Inventory'],
         'inventory' => ['label' => 'Inventory'],
         'accounting' => ['label' => 'Accounting'],
         'hr' => ['label' => 'HR'],

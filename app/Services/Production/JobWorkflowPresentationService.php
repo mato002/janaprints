@@ -240,7 +240,7 @@ class JobWorkflowPresentationService
                 'label' => __('Finished goods warehouse setup incomplete'),
                 'action' => null,
                 'action_label' => null,
-                'hint' => __('Create a branch for this company, then use Verify defaults on Virtual Locations (Supply Chain → Store Operations).'),
+                'hint' => __('Create a branch for this company, then use Verify defaults on Virtual Locations (Inventory → Store Operations).'),
             ];
         } elseif ($fgWarehouse) {
             $items[] = [

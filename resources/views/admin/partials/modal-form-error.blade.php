@@ -14,6 +14,10 @@
             </button>
         </div>
         <div class="erp-form-modal__body">
+            @include('admin.partials.modal-validation-alert', [
+                'validationMessages' => $validationMessages ?? [],
+                'validationPresentation' => $presentation ?? null,
+            ])
             @include('admin.partials.governed-form-errors', [
                 'presentation' => $presentation ?? null,
                 'message' => $message ?? null,

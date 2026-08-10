@@ -13,7 +13,7 @@ return [
         'icon' => 'home',
     ],
     [
-        'label' => 'Commercial',
+        'label' => 'Sales',
         'route' => 'admin.workspaces.commercial',
         'workspace' => 'commercial',
         'icon' => 'shopping-cart',
@@ -25,7 +25,7 @@ return [
         'icon' => 'cog',
     ],
     [
-        'label' => 'Supply Chain',
+        'label' => 'Inventory',
         'route' => 'admin.workspaces.supply-chain',
         'workspace' => 'supply-chain',
         'icon' => 'cube',

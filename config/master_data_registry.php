@@ -10,7 +10,7 @@ return [
     'modules' => [
 
         'commercial' => [
-            'label' => 'Commercial',
+            'label' => 'Sales',
             'categories' => [
                 'customer_types' => [
                     'label' => 'Customer Types',
@@ -50,7 +50,7 @@ return [
         ],
 
         'supply_chain' => [
-            'label' => 'Supply Chain',
+            'label' => 'Inventory',
             'categories' => [
                 'vendor_categories' => ['label' => 'Vendor Categories', 'dependencies' => []],
                 'purchase_types' => ['label' => 'Purchase Types', 'dependencies' => []],

@@ -69,6 +69,24 @@ class ModalFormWorkspaceTest extends TestCase
             ->assertSee('data-erp-validation-errors', false);
     }
 
+    public function test_modal_store_validation_uses_inferred_create_route_when_return_url_is_workspace(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext();
+        $workspaceUrl = route('admin.workspaces.commercial.section', ['section' => 'customers']);
+
+        $this->actingAs($user)
+            ->post(route('admin.crm.customers.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_return' => $workspaceUrl,
+                'status' => 'active',
+                'credit_limit' => 0,
+            ])
+            ->assertStatus(422)
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee('data-erp-validation-message', false)
+            ->assertSee(__('The customer type field is required.'), false);
+    }
+
     public function test_customer_store_from_modal_with_empty_credit_limit_succeeds(): void
     {
         [$company, $branch, $user] = $this->tenantContext();

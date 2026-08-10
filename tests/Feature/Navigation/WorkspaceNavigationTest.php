@@ -31,7 +31,7 @@ class WorkspaceNavigationTest extends TestCase
         $response = $this->actingAs($user)->get(route('admin.dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Commercial', false);
+        $response->assertSee('Sales', false);
         $response->assertSee('Administration', false);
         $response->assertDontSee('data-nav-depth="child"', false);
     }

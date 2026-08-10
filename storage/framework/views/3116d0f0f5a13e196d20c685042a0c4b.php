@@ -64,7 +64,7 @@
 <?php endif; ?>
 <?php $component->withAttributes([]); ?>
     <div class="<?php echo \Illuminate\Support\Arr::toCssClasses([
-        'production-floor-shell flex min-h-0 flex-1 flex-col',
+        'production-floor-shell flex min-h-0 flex-1 flex-col overflow-y-auto',
         'production-floor-shell--dense' => $operatorMode || $activeFloorView === ProductionFloorDeskViews::QUEUE,
     ]); ?>">
         <?php if($operatorMode): ?>

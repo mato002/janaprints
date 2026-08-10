@@ -102,6 +102,26 @@ function extractValidationErrorsFromDoc(doc) {
     return [];
 }
 
+function extractValidationPresentationFromDoc(doc) {
+    const marker = doc?.querySelector('[data-erp-validation-errors]');
+
+    if (! marker) {
+        return null;
+    }
+
+    const category = marker.dataset.erpValidationCategory?.trim();
+    const categoryLabel = marker.dataset.erpValidationCategoryLabel?.trim();
+
+    if (! category && ! categoryLabel) {
+        return null;
+    }
+
+    return {
+        category: categoryLabel || category || null,
+        category_label: categoryLabel || category || null,
+    };
+}
+
 function showErpFormErrorAlert(messages, errorDetails = null) {
     const items = (Array.isArray(messages) ? messages : [messages])
         .map((message) => String(message ?? '').trim())
@@ -576,8 +596,8 @@ const erpModalManager = {
         const parentUrl = this.modalStack.length > 0
             ? this.modalStack[this.modalStack.length - 1]?.url
             : null;
-        // Nested forms return to the parent modal; top-level forms keep their own URL.
-        const returnUrl = parentUrl || sourceUrl;
+        const formUrl = this.currentModalUrl || sourceUrl || parentUrl;
+        const returnUrl = window.location.href;
 
         root.querySelectorAll('form').forEach((form) => {
             form.setAttribute('data-turbo', 'false');
@@ -602,6 +622,24 @@ const erpModalManager = {
                 input.name = '_erp_modal';
                 input.value = '1';
                 form.appendChild(input);
+            }
+
+            let formUrlInput = form.querySelector('[name="_erp_modal_form_url"]');
+            const resolvedFormUrl = formUrl
+                || form.querySelector('[name="_erp_modal_form_url"]')?.value
+                || form.dataset.erpModalFormUrl
+                || null;
+
+            if (resolvedFormUrl) {
+                if (! formUrlInput) {
+                    formUrlInput = document.createElement('input');
+                    formUrlInput.type = 'hidden';
+                    formUrlInput.name = '_erp_modal_form_url';
+                    form.appendChild(formUrlInput);
+                }
+
+                formUrlInput.value = resolvedFormUrl;
+                form.dataset.erpModalFormUrl = resolvedFormUrl;
             }
 
             let returnInput = form.querySelector('[name="_erp_modal_return"]');
@@ -1239,6 +1277,10 @@ const erpModalManager = {
         const modalReturnUrl = formData.get('_erp_modal_return')?.toString()
             || form.dataset.erpModalReturn
             || null;
+        const modalFormUrl = formData.get('_erp_modal_form_url')?.toString()
+            || form.dataset.erpModalFormUrl
+            || this.currentModalUrl
+            || null;
 
         if (submitButton) {
             submitButton.disabled = true;
@@ -1429,7 +1471,7 @@ const erpModalManager = {
                 const frame = this.modalFrame();
 
                 if (frame) {
-                    this.prepareModalFormContent(errorPanel, modalReturnUrl || response.url);
+                    this.prepareModalFormContent(errorPanel, modalFormUrl || modalReturnUrl || response.url);
                     frame.replaceChildren(errorPanel);
                     this.showOverlay();
                     Alpine.initTree(frame);
@@ -1441,6 +1483,7 @@ const erpModalManager = {
                 }
 
                 const validationErrors = extractValidationErrorsFromDoc(doc);
+                const validationPresentation = extractValidationPresentationFromDoc(doc);
                 showErpFormErrorAlert(
                     validationErrors.length > 0
                         ? validationErrors
@@ -1450,6 +1493,7 @@ const erpModalManager = {
                         url: erpFormActionUrl(form),
                         method: method,
                         timestamp: new Date().toISOString(),
+                        category: validationPresentation?.category_label ?? validationPresentation?.category ?? null,
                     },
                 );
 
@@ -1460,7 +1504,7 @@ const erpModalManager = {
             const frame = this.modalFrame();
 
             if (panel && frame) {
-                this.prepareModalFormContent(panel, modalReturnUrl || response.url);
+                this.prepareModalFormContent(panel, modalFormUrl || modalReturnUrl || response.url);
                 frame.replaceChildren(panel);
                 this.showOverlay();
                 Alpine.initTree(frame);
@@ -1470,10 +1514,12 @@ const erpModalManager = {
                     this.highlightInvalidFields(panel, doc);
 
                     const validationErrors = extractValidationErrorsFromDoc(doc);
+                    const validationPresentation = extractValidationPresentationFromDoc(doc);
                     showErpFormErrorAlert(
                         validationErrors.length > 0
                             ? validationErrors
                             : ['Unable to save form. Please try again.'],
+                        validationPresentation ? { category: validationPresentation.category_label ?? validationPresentation.category } : null,
                     );
                 }
 
@@ -1485,7 +1531,21 @@ const erpModalManager = {
                     status: response.status,
                     url: erpFormActionUrl(form),
                 });
-                this.showToast(`Unable to save form (${response.status}). Please try again.`, 'error');
+
+                const validationErrors = extractValidationErrorsFromDoc(doc);
+                const validationPresentation = extractValidationPresentationFromDoc(doc);
+
+                if (validationErrors.length > 0) {
+                    showErpFormErrorAlert(validationErrors, {
+                        status: response.status,
+                        url: erpFormActionUrl(form),
+                        method: method,
+                        timestamp: new Date().toISOString(),
+                        category: validationPresentation?.category_label ?? validationPresentation?.category ?? null,
+                    });
+                } else {
+                    this.showToast(`Unable to save form (${response.status}). Please try again.`, 'error');
+                }
 
                 return;
             }

@@ -44,8 +44,8 @@ class ProductionOperatorModeTest extends TestCase
             ->getContent();
 
         $this->assertStringContainsString('Production Floor', $html);
-        $this->assertStringNotContainsString('title="Commercial"', $html);
-        $this->assertStringNotContainsString('title="Supply Chain"', $html);
+        $this->assertStringNotContainsString('title="Sales"', $html);
+        $this->assertStringNotContainsString('title="Inventory"', $html);
         $this->assertStringNotContainsString('title="Printing Intelligence"', $html);
         $this->assertStringNotContainsString('title="Reports &amp; Intelligence"', $html);
         $this->assertStringNotContainsString('title="Reports & Intelligence"', $html);

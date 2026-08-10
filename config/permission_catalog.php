@@ -1213,7 +1213,7 @@ return [
         ],
 
         'commercial' => [
-            'label' => 'Commercial',
+            'label' => 'Sales',
             'entities' => [
                 'price_books' => [
                     'label' => 'Price Books',

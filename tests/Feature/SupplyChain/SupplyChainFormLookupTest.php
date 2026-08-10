@@ -32,6 +32,22 @@ class SupplyChainFormLookupTest extends TestCase
             ->assertSee('erpLookupCreate', false);
     }
 
+    public function test_inventory_item_modal_store_validation_returns_field_messages(): void
+    {
+        [$company, $branch, $user] = $this->storeContext();
+        $workspaceUrl = route('admin.workspaces.supply-chain.section', ['section' => 'catalogue']);
+
+        $this->actingAs($user)
+            ->post(route('admin.inventory.items.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_return' => $workspaceUrl,
+                'stock_role' => 'raw_material',
+            ])
+            ->assertStatus(422)
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee('data-erp-validation-message', false);
+    }
+
     public function test_price_list_create_renders_modal_panel(): void
     {
         [$company, $branch, $user] = $this->storeContext();

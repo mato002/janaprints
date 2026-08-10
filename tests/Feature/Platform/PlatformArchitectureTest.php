@@ -165,7 +165,7 @@ class PlatformArchitectureTest extends TestCase
             'Dashboard',
             'Commercial',
             'Production',
-            'Supply Chain',
+            'Inventory',
             'Administration',
             'Reports &amp; Intelligence',
         ] as $section) {
