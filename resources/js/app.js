@@ -10472,8 +10472,3 @@ function initInboxTopbarBadgePoll() {
     refresh();
     window.setInterval(refresh, 15000);
 }
-    };
-
-    refresh();
-    window.setInterval(refresh, 15000);
-}

@@ -39,8 +39,7 @@ return [
                         'key' => 'designer-desk',
                         'label' => 'Designer Desk',
                         'description' => 'Artwork queue, uploads, and designer workflow.',
-                        'route' => 'admin.workspaces.designer.section',
-                        'route_params' => ['section' => 'design', 'tab' => 'designer-desk'],
+                        'route' => 'admin.artwork.desk',
                         'permission' => 'artwork.view',
                         'icon' => 'color-swatch',
                         'active_routes' => [

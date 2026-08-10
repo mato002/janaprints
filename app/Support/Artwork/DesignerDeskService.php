@@ -519,7 +519,7 @@ class DesignerDeskService
                 'label' => __('Mark complete'),
                 'type' => 'post',
                 'url' => route('admin.artwork.submit', $request),
-                'variant' => 'primary',
+                'variant' => $request->lacksUploadedVersion() ? 'secondary' : 'primary',
             ];
         }
 

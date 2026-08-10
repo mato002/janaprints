@@ -575,13 +575,19 @@ class ModuleShellPresenter
 
         $activePrimary = $this->resolveActivePrimary($primaryWorkspaces, $primaryKey);
         $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module, $moduleKey);
-        $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
+        $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey, $request);
         $contextWorkspaces = $activeSecondary['modes'] ?? [];
-        $activeContext = $this->resolveActiveContext($contextWorkspaces, request()->query('mode'));
+        $activeContext = $this->resolveActiveContext($contextWorkspaces, $this->resolveContextModeKey($request));
         $contentUrl = ($activeContext['content_href'] ?? null)
             ?? $this->resolveContentUrl($activeSecondary)
             ?? $this->resolveSectionHubContentUrl($catalog, $activePrimary)
             ?? $this->resolvePrimaryContentUrl($catalog, $activePrimary, $module);
+
+        $activeSecondary = $this->resolveActiveSecondaryByContentHref($secondaryWorkspaces, $contentUrl)
+            ?? $activeSecondary;
+        $contextWorkspaces = $activeSecondary['modes'] ?? [];
+        $activeContext = $this->resolveActiveContext($contextWorkspaces, $this->resolveContextModeKey($request))
+            ?? $activeContext;
 
         return $this->presentDeskPayload(
             $moduleKey,
@@ -656,11 +662,17 @@ class ModuleShellPresenter
 
         $activePrimary = $this->resolveActivePrimary($primaryWorkspaces, $primaryKey);
         $secondaryWorkspaces = $this->presentSecondaryWorkspaces($catalog, $activePrimary['key'] ?? null, $module, $moduleKey);
-        $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey);
+        $activeSecondary = $this->resolveActiveSecondary($secondaryWorkspaces, $tabKey, $request);
         $contextWorkspaces = $activeSecondary['modes'] ?? [];
-        $activeContext = $this->resolveActiveContext($contextWorkspaces, request()->query('mode'));
+        $activeContext = $this->resolveActiveContext($contextWorkspaces, $this->resolveContextModeKey($request));
         $contentUrl = ($activeContext['content_href'] ?? null)
             ?? $this->resolveContentUrl($activeSecondary);
+
+        $activeSecondary = $this->resolveActiveSecondaryByContentHref($secondaryWorkspaces, $contentUrl)
+            ?? $activeSecondary;
+        $contextWorkspaces = $activeSecondary['modes'] ?? [];
+        $activeContext = $this->resolveActiveContext($contextWorkspaces, $this->resolveContextModeKey($request))
+            ?? $activeContext;
 
         return $this->presentDeskPayload(
             $moduleKey,
@@ -1019,23 +1031,27 @@ class ModuleShellPresenter
      * @param  list<array<string, mixed>>  $secondaryWorkspaces
      * @return array<string, mixed>|null
      */
-    protected function resolveActiveSecondary(array $secondaryWorkspaces, ?string $tabKey): ?array
+    protected function resolveActiveSecondary(array $secondaryWorkspaces, ?string $tabKey, ?Request $request = null): ?array
     {
         if ($secondaryWorkspaces === []) {
             return null;
         }
 
+        $request ??= request();
+
         if ($tabKey !== null && $tabKey !== '') {
-            $normalized = Str::slug($tabKey);
+            $matched = $this->matchSecondaryWorkspace($secondaryWorkspaces, $tabKey);
 
+            if ($matched !== null) {
+                return $matched;
+            }
+        }
+
+        $routeName = $request->route()?->getName();
+
+        if (is_string($routeName) && $routeName !== '') {
             foreach ($secondaryWorkspaces as $workspace) {
-                $key = (string) ($workspace['key'] ?? '');
-
-                if (
-                    $key === $tabKey
-                    || $key === $normalized
-                    || Str::slug((string) ($workspace['label'] ?? '')) === $normalized
-                ) {
+                if ($this->routeMatchesSecondaryWorkspace($routeName, $workspace, $request)) {
                     return array_merge($workspace, ['active' => true]);
                 }
             }
@@ -1044,6 +1060,119 @@ class ModuleShellPresenter
         return array_merge($secondaryWorkspaces[0], ['active' => true]);
     }
 
+    /**
+     * @param  list<array<string, mixed>>  $secondaryWorkspaces
+     * @return array<string, mixed>|null
+     */
+    protected function resolveActiveSecondaryByContentHref(array $secondaryWorkspaces, ?string $contentUrl): ?array
+    {
+        if ($contentUrl === null || $contentUrl === '') {
+            return null;
+        }
+
+        $contentPath = $this->normalizeWorkspaceContentPath($contentUrl);
+
+        if ($contentPath === null) {
+            return null;
+        }
+
+        foreach ($secondaryWorkspaces as $workspace) {
+            $href = $workspace['content_href'] ?? null;
+
+            if (! is_string($href) || $href === '') {
+                continue;
+            }
+
+            $workspacePath = $this->normalizeWorkspaceContentPath($href);
+
+            if ($workspacePath === null) {
+                continue;
+            }
+
+            if ($this->workspaceContentPathsMatch($contentPath, $workspacePath)) {
+                return array_merge($workspace, ['active' => true]);
+            }
+        }
+
+        return null;
+    }
+
+    protected function resolveContextModeKey(?Request $request = null): ?string
+    {
+        $request ??= request();
+
+        $mode = $request->query('mode');
+
+        if (is_string($mode) && $mode !== '') {
+            return $mode;
+        }
+
+        $filter = $request->query('filter');
+
+        if (is_string($filter) && $filter !== '' && $filter !== 'all') {
+            return $filter;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $secondaryWorkspaces
+     * @return array<string, mixed>|null
+     */
+    protected function matchSecondaryWorkspace(array $secondaryWorkspaces, string $tabKey): ?array
+    {
+        $normalized = Str::slug($tabKey);
+
+        foreach ($secondaryWorkspaces as $workspace) {
+            $key = (string) ($workspace['key'] ?? '');
+
+            if (
+                $key === $tabKey
+                || $key === $normalized
+                || Str::slug((string) ($workspace['label'] ?? '')) === $normalized
+            ) {
+                return array_merge($workspace, ['active' => true]);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $workspace
+     */
+    protected function routeMatchesSecondaryWorkspace(string $routeName, array $workspace, Request $request): bool
+    {
+        if ($this->routeMatchesItem($routeName, $workspace, $request)) {
+            return true;
+        }
+
+        foreach ($workspace['modes'] ?? [] as $mode) {
+            if (is_array($mode) && $this->routeMatchesItem($routeName, $mode, $request)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function normalizeWorkspaceContentPath(string $url): ?string
+    {
+        $path = parse_url($url, PHP_URL_PATH);
+
+        return is_string($path) && $path !== '' ? $path : null;
+    }
+
+    protected function workspaceContentPathsMatch(string $contentPath, string $workspacePath): bool
+    {
+        if ($contentPath === $workspacePath) {
+            return true;
+        }
+
+        return $workspacePath !== '/'
+            && str_starts_with($contentPath, rtrim($workspacePath, '/').'/');
+    }
     /**
      * @param  array<string, mixed>  $catalog
      * @param  array<string, mixed>|null  $activePrimary

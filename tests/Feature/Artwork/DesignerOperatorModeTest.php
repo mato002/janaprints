@@ -113,7 +113,42 @@ class DesignerOperatorModeTest extends TestCase
             ->assertSee(__('Available'), false)
             ->assertSee(__('All Requests'), false)
             ->assertSee(__('Overview'), false)
-            ->assertSee('moduleWorkspaceShell', false);
+            ->assertSee('moduleWorkspaceShell', false)
+            ->assertSee('/admin/artwork/desk?embedded=1', false)
+            ->assertSee('data-workspace-tab-key="designer-desk"', false)
+            ->assertSee('workspace-pill--active', false);
+    }
+
+    public function test_designer_workspace_highlights_all_requests_tab(): void
+    {
+        $designer = $this->userWithRole('Designer');
+
+        $response = $this->actingAs($designer)
+            ->get(route('admin.workspaces.designer.section', ['section' => 'design', 'tab' => 'artwork-requests']));
+
+        $response->assertOk()
+            ->assertSee('/admin/artwork/requests?embedded=1', false);
+
+        $html = $response->getContent();
+        $this->assertMatchesRegularExpression(
+            '/data-workspace-tab-key="artwork-requests"[^>]*workspace-pill--active|workspace-pill--active[^>]*data-workspace-tab-key="artwork-requests"/s',
+            $html,
+        );
+    }
+
+    public function test_designer_workspace_highlights_overview_tab(): void
+    {
+        $designer = $this->userWithRole('Designer');
+
+        $html = $this->actingAs($designer)
+            ->get(route('admin.workspaces.designer.section', ['section' => 'design', 'tab' => 'artwork-overview']))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertMatchesRegularExpression(
+            '/data-workspace-tab-key="artwork-overview"[^>]*workspace-pill--active|workspace-pill--active[^>]*data-workspace-tab-key="artwork-overview"/s',
+            $html,
+        );
     }
 
     public function test_designer_can_open_desk_and_return_from_request_show(): void
@@ -147,7 +182,7 @@ class DesignerOperatorModeTest extends TestCase
             ->get(route('admin.artwork.desk'))
             ->assertOk()
             ->assertSee('AW-DESK-001')
-            ->assertSee(__("Today's queue"), false)
+            ->assertSee(__('My queue'), false)
             ->assertSee(__('Today'), false)
             ->assertSee('designerDesk', false);
 
