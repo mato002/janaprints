@@ -94,7 +94,7 @@ function extractValidationErrorsFromDoc(doc) {
     return [];
 }
 
-function showErpFormErrorAlert(messages) {
+function showErpFormErrorAlert(messages, errorDetails = null) {
     const items = (Array.isArray(messages) ? messages : [messages])
         .map((message) => String(message ?? '').trim())
         .filter(Boolean);
@@ -109,7 +109,37 @@ function showErpFormErrorAlert(messages) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
 
-    if (items.length === 1) {
+    // Build detailed error information
+    let detailsHtml = '';
+    if (errorDetails) {
+        const details = [];
+        if (errorDetails.status) {
+            details.push(`Status: ${errorDetails.status}`);
+        }
+        if (errorDetails.url) {
+            details.push(`URL: ${escapeHtml(errorDetails.url)}`);
+        }
+        if (errorDetails.method) {
+            details.push(`Method: ${errorDetails.method}`);
+        }
+        if (errorDetails.route) {
+            details.push(`Route: ${escapeHtml(errorDetails.route)}`);
+        }
+        if (errorDetails.timestamp) {
+            details.push(`Time: ${errorDetails.timestamp}`);
+        }
+        
+        if (details.length > 0) {
+            detailsHtml = `<div class="mt-4 p-3 bg-gray-100 rounded text-xs text-gray-600 font-mono">
+                <div class="font-semibold mb-1">Technical Details:</div>
+                ${details.map(d => `<div>${escapeHtml(d)}</div>`).join('')}
+            </div>`;
+        }
+    }
+
+    const errorListHtml = `<ul class="mt-2 list-disc space-y-1 pl-5 text-left text-sm">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+
+    if (items.length === 1 && !errorDetails) {
         Swal.fire({
             icon: 'error',
             title: 'Unable to save',
@@ -126,10 +156,11 @@ function showErpFormErrorAlert(messages) {
 
     Swal.fire({
         icon: 'error',
-        title: 'Please fix the following',
-        html: `<ul class="mt-2 list-disc space-y-1 pl-5 text-left text-sm">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`,
+        title: items.length === 1 ? 'Unable to save' : 'Please fix the following',
+        html: errorListHtml + detailsHtml,
         confirmButtonText: 'OK',
         heightAuto: false,
+        width: items.length > 3 || errorDetails ? '600px' : '500px',
         customClass: {
             container: 'erp-swal-container',
         },
@@ -1360,6 +1391,12 @@ const erpModalManager = {
                     validationErrors.length > 0
                         ? validationErrors
                         : [`Unable to save form (${response.status}). Please try again.`],
+                    {
+                        status: response.status,
+                        url: erpFormActionUrl(form),
+                        method: method,
+                        timestamp: new Date().toISOString(),
+                    },
                 );
 
                 return;
@@ -2124,9 +2161,19 @@ const erpLookupManager = {
                     const message = payload.message ?? errorMessages[0] ?? 'Unable to save record.';
 
                     if (errorMessages.length > 1) {
-                        showErpFormErrorAlert(errorMessages);
+                        showErpFormErrorAlert(errorMessages, {
+                            status: response.status,
+                            url: erpFormActionUrl(form),
+                            method: method,
+                            timestamp: new Date().toISOString(),
+                        });
                     } else {
-                        showErpFormErrorAlert([message]);
+                        showErpFormErrorAlert([message], {
+                            status: response.status,
+                            url: erpFormActionUrl(form),
+                            method: method,
+                            timestamp: new Date().toISOString(),
+                        });
                     }
 
                     return;
@@ -5195,6 +5242,16 @@ document.addEventListener('alpine:init', () => {
         activeFilter: null,
 
         init() {
+            if (config.initialFilter) {
+                this.activeFilter = config.initialFilter;
+            } else {
+                const urlFilter = new URLSearchParams(window.location.search).get('filter');
+
+                if (urlFilter && urlFilter !== 'all') {
+                    this.activeFilter = urlFilter;
+                }
+            }
+
             if (config.initialRequestKey) {
                 this.selectRequest(config.initialRequestKey);
 
@@ -10410,6 +10467,11 @@ function initInboxTopbarBadgePoll() {
         } catch {
             // ignore transient network errors
         }
+    };
+
+    refresh();
+    window.setInterval(refresh, 15000);
+}
     };
 
     refresh();

@@ -169,7 +169,7 @@
         <?php $__currentLoopData = $navItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
             <?php $active = Nav::navItemIsActive($item); ?>
             <a
-                href="<?php echo e(route($item['route'])); ?>"
+                href="<?php echo e(route($item['route'], $item['route_params'] ?? [])); ?>"
                 data-turbo-frame="erp-main"
                 data-turbo-action="advance"
                 data-turbo-preload="hover"

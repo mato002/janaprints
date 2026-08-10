@@ -24,6 +24,17 @@ return [
         'groups' => [],
     ],
 
+    'designer' => [
+        'title' => 'Designer Desk',
+        'description' => 'Artwork queue, uploads, register, and designer workflow.',
+        'icon' => 'color-swatch',
+        'managed_by' => 'designer_workspaces',
+        'quick_create' => [
+            ['label' => 'Artwork Request', 'route' => 'admin.artwork.create', 'route_params' => ['from' => 'designer-desk'], 'permission' => 'artwork.create'],
+        ],
+        'groups' => [],
+    ],
+
     'production' => [
         'title' => 'Production',
         'description' => 'Job cards, scheduling, work centers, quality, dispatch, and production intelligence.',

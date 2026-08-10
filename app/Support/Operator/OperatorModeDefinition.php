@@ -47,6 +47,10 @@ readonly class OperatorModeDefinition
             return false;
         }
 
+        if (str_starts_with($routeName, 'admin.workspaces.designer')) {
+            return false;
+        }
+
         if ($this->matchesDeskRoute($routeName)) {
             return false;
         }

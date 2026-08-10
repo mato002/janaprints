@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Enums\WorkflowRuleTrigger;
 use App\Support\Artwork\DesignerOperatorMode;
 use App\Support\Artwork\ReturnsToDesignerDesk;
+use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Sales\SalesDeskViews;
 use App\Support\Governance\WorkflowRulesService;
@@ -42,11 +43,22 @@ class ArtworkRequestController extends Controller
     {
         $this->authorize('viewAny', ArtworkRequest::class);
 
-        if (DesignerOperatorMode::enabledFor($request->user())) {
+        if (DesignerOperatorMode::enabledFor($request->user()) && ! WorkspaceEmbed::inWorkspaceContext()) {
             return redirect()->to(DesignerOperatorMode::homeUrl());
         }
 
-        return redirect()->to(SalesDeskViews::deskUrl(SalesDeskViews::ARTWORK, $request->query()));
+        if (! WorkspaceEmbed::inWorkspaceContext()) {
+            return redirect()->to(SalesDeskViews::deskUrl(SalesDeskViews::ARTWORK, $request->query()));
+        }
+
+        $requests = ArtworkRequest::query()
+            ->forTenant()
+            ->with(['customer', 'branch', 'requester', 'assignedDesigner'])
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.artwork.requests.index', compact('requests'));
     }
 
     public function create(Request $request): View

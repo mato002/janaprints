@@ -45,7 +45,10 @@ class DesignerOperatorModeTest extends TestCase
         $this->post(route('admin.login'), [
             'email' => $designer->email,
             'password' => 'password',
-        ])->assertRedirect(route('admin.artwork.desk'));
+        ])->assertRedirect(route('admin.workspaces.designer.section', [
+            'section' => 'design',
+            'tab' => 'designer-desk',
+        ]));
     }
 
     public function test_designer_commercial_workspace_redirects_to_desk(): void
@@ -54,11 +57,17 @@ class DesignerOperatorModeTest extends TestCase
 
         $this->actingAs($designer)
             ->get(route('admin.workspaces.commercial'))
-            ->assertRedirect(route('admin.artwork.desk'));
+            ->assertRedirect(route('admin.workspaces.designer.section', [
+                'section' => 'design',
+                'tab' => 'designer-desk',
+            ]));
 
         $this->actingAs($designer)
             ->get(route('admin.workspaces.commercial.section', ['section' => 'sales']))
-            ->assertRedirect(route('admin.artwork.desk'));
+            ->assertRedirect(route('admin.workspaces.designer.section', [
+                'section' => 'design',
+                'tab' => 'designer-desk',
+            ]));
     }
 
     public function test_designer_artwork_list_and_dashboard_redirect_to_desk(): void
@@ -67,11 +76,17 @@ class DesignerOperatorModeTest extends TestCase
 
         $this->actingAs($designer)
             ->get(route('admin.artwork.index'))
-            ->assertRedirect(route('admin.artwork.desk'));
+            ->assertRedirect(route('admin.workspaces.designer.section', [
+                'section' => 'design',
+                'tab' => 'designer-desk',
+            ]));
 
         $this->actingAs($designer)
             ->get(route('admin.artwork.dashboard'))
-            ->assertRedirect(route('admin.artwork.desk'));
+            ->assertRedirect(route('admin.workspaces.designer.section', [
+                'section' => 'design',
+                'tab' => 'designer-desk',
+            ]));
     }
 
     public function test_designer_dashboard_redirects_to_desk(): void
@@ -80,7 +95,25 @@ class DesignerOperatorModeTest extends TestCase
 
         $this->actingAs($designer)
             ->get(route('admin.dashboard'))
-            ->assertRedirect(route('admin.artwork.desk'));
+            ->assertRedirect(route('admin.workspaces.designer.section', [
+                'section' => 'design',
+                'tab' => 'designer-desk',
+            ]));
+    }
+
+    public function test_designer_workspace_shell_renders_ribbon_tabs(): void
+    {
+        $designer = $this->userWithRole('Designer');
+
+        $this->actingAs($designer)
+            ->get(route('admin.workspaces.designer.section', ['section' => 'design', 'tab' => 'designer-desk']))
+            ->assertOk()
+            ->assertSee(__('Designer Desk'), false)
+            ->assertSee(__('Queue'), false)
+            ->assertSee(__('Available'), false)
+            ->assertSee(__('All Requests'), false)
+            ->assertSee(__('Overview'), false)
+            ->assertSee('moduleWorkspaceShell', false);
     }
 
     public function test_designer_can_open_desk_and_return_from_request_show(): void

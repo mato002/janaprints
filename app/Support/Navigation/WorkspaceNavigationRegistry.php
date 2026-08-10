@@ -48,7 +48,7 @@ class WorkspaceNavigationRegistry
         }
 
         foreach (config('workspaces', []) as $workspaceKey => $definition) {
-            if (in_array($workspaceKey, ['accounting', 'supply-chain', 'commercial', 'administration'], true) || ! empty($definition['managed_by'])) {
+            if (in_array($workspaceKey, ['accounting', 'supply-chain', 'commercial', 'administration', 'designer'], true) || ! empty($definition['managed_by'])) {
                 continue;
             }
 
@@ -59,6 +59,7 @@ class WorkspaceNavigationRegistry
         $this->registerSupplyChain();
         $this->registerCommercial();
         $this->registerAdministration();
+        $this->registerDesigner();
         $this->registerHr();
         $this->registerPrintingIntelligence();
 
@@ -304,6 +305,78 @@ class WorkspaceNavigationRegistry
             $sectionTitle = $section['title'] ?? $sectionKey;
 
             $this->registerEntry("admin.workspaces.commercial.section:{$sectionKey}", [
+                'workspace_key' => "{$workspaceKey}:{$sectionKey}",
+                'parent_workspace_key' => $workspaceKey,
+                'workspace_title' => $sectionTitle,
+                'parent_workspace_title' => $hubTitle,
+                'parent_route' => $hubRoute,
+                'parent_route_params' => [],
+                'ancestors' => [
+                    $this->ancestor($hubTitle, $hubRoute),
+                ],
+                'route' => $sectionRoute,
+                'route_params' => ['section' => $sectionKey],
+            ]);
+
+            foreach ($section['groups'] ?? [] as $group) {
+                $groupLabel = $group['label'] ?? '';
+
+                foreach ($group['items'] ?? [] as $item) {
+                    if (! empty($item['coming_soon'])) {
+                        continue;
+                    }
+
+                    $this->registerFeatureItem(
+                        $workspaceKey,
+                        $hubRoute,
+                        $hubTitle,
+                        $groupLabel,
+                        $item,
+                        $sectionKey,
+                        $sectionTitle,
+                        $sectionRoute,
+                    );
+                }
+            }
+        }
+    }
+
+    protected function registerDesigner(): void
+    {
+        $workspaceKey = 'designer';
+        $hubRoute = 'admin.workspaces.designer';
+        $hubTitle = __('Designer Desk');
+
+        $this->registerEntry($hubRoute, [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => null,
+            'workspace_title' => $hubTitle,
+            'parent_workspace_title' => null,
+            'parent_route' => null,
+            'parent_route_params' => [],
+            'ancestors' => [],
+        ]);
+
+        $presenter = app(DesignerWorkspacePresenter::class);
+
+        $this->registerEntry('admin.workspaces.designer.section', [
+            'workspace_key' => $workspaceKey,
+            'parent_workspace_key' => $workspaceKey,
+            'workspace_title' => null,
+            'parent_workspace_title' => $hubTitle,
+            'parent_route' => $hubRoute,
+            'parent_route_params' => [],
+            'ancestors' => [
+                $this->ancestor($hubTitle, $hubRoute),
+            ],
+            'dynamic_section' => true,
+        ]);
+
+        foreach ($presenter->sectionDefinitions() as $sectionKey => $section) {
+            $sectionRoute = 'admin.workspaces.designer.section';
+            $sectionTitle = $section['title'] ?? $sectionKey;
+
+            $this->registerEntry("admin.workspaces.designer.section:{$sectionKey}", [
                 'workspace_key' => "{$workspaceKey}:{$sectionKey}",
                 'parent_workspace_key' => $workspaceKey,
                 'workspace_title' => $sectionTitle,

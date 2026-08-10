@@ -1,25 +1,30 @@
 @php
+    use App\Support\Artwork\DesignerDeskViews;
     use App\Support\Navigation\WorkspaceEmbed;
 
     $operatorMode = (bool) ($operatorMode ?? false);
+    $embeddedInWorkspace = WorkspaceEmbed::inWorkspaceContext();
     $greeting = $greeting ?? ['title' => __('Designer Desk'), 'facts' => []];
     $filters = $filters ?? [];
+    $activeFilter = DesignerDeskViews::normalize(request('filter', DesignerDeskViews::QUEUE));
 @endphp
 
 <x-admin-layout
     :title="$operatorMode ? __('Designer Desk') : __('Artwork Desk')"
-    :breadcrumbs="$operatorMode
+    :breadcrumbs="$operatorMode || $embeddedInWorkspace
         ? [['label' => __('Designer Desk')]]
         : [
             ['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')],
             ['label' => __('Designer Desk')],
         ]"
+    :compact-workspace="$operatorMode || $embeddedInWorkspace"
 >
     <div
         class="designer-desk-shell designer-desk-command"
         x-data="designerDesk(@js([
             'panelBase' => url('admin/artwork/desk/requests'),
             'initialRequestKey' => request('request'),
+            'initialFilter' => $activeFilter === DesignerDeskViews::QUEUE ? null : $activeFilter,
             'autoSelectFirst' => collect($rows)->isNotEmpty(),
             'firstKey' => data_get(collect($rows)->first(), 'key'),
         ]))"
@@ -29,22 +34,28 @@
             <div class="mb-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</div>
         @endif
 
-        {{-- Smart banner --}}
-        <section class="mb-3 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-erp-border bg-white px-4 py-3 shadow-sm">
-            <div class="min-w-0">
-                <p class="text-base font-semibold text-erp-primary">{{ $greeting['title'] }}</p>
-                <p class="mt-0.5 text-xs text-slate-600">{{ implode(' · ', $greeting['facts'] ?? []) }}</p>
-            </div>
-            @unless ($operatorMode || WorkspaceEmbed::inWorkspaceContext())
-                <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary shrink-0 text-xs" data-turbo-frame="erp-main">{{ __('Full dashboard') }}</a>
-            @endunless
-        </section>
+        @unless ($embeddedInWorkspace)
+            @include('admin.artwork.desk.partials.desk-mode-nav')
+
+            {{-- Smart banner --}}
+            <section class="mb-3 flex flex-wrap items-start justify-between gap-3 rounded-xl border border-erp-border bg-white px-4 py-3 shadow-sm">
+                <div class="min-w-0">
+                    <p class="text-base font-semibold text-erp-primary">{{ $greeting['title'] }}</p>
+                    <p class="mt-0.5 text-xs text-slate-600">{{ implode(' · ', $greeting['facts'] ?? []) }}</p>
+                </div>
+                @unless ($operatorMode)
+                    <a href="{{ route('admin.artwork.dashboard') }}" class="erp-btn-secondary shrink-0 text-xs" data-turbo-frame="erp-main">{{ __('Full dashboard') }}</a>
+                @endunless
+            </section>
+        @endunless
 
         {{-- Compact TODAY strip --}}
         @include('admin.artwork.desk.partials.summary-strip', ['summary' => $summary])
 
-        {{-- Quick filters --}}
-        @include('admin.artwork.desk.partials.queue-filters', ['filters' => $filters])
+        {{-- Quick filters (standalone desk only — workspace shell uses context tabs) --}}
+        @unless ($embeddedInWorkspace)
+            @include('admin.artwork.desk.partials.queue-filters', ['filters' => $filters])
+        @endunless
 
         {{-- Split: Queue | Selected job --}}
         <div class="designer-desk-split grid gap-3 lg:grid-cols-12 lg:items-start">

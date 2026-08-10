@@ -44,13 +44,17 @@ class CommercialWorkspaceController extends Controller
 
     protected function operatorDeskRedirect(Request $request): ?\Illuminate\Http\RedirectResponse
     {
-        // Designers never use the Commercial multi-tab shell — even with ?desk=1.
         if (DesignerOperatorMode::enabledFor($request->user())) {
-            if ($request->routeIs('admin.artwork.desk', 'admin.artwork.desk.*')) {
+            if ($request->routeIs(
+                'admin.workspaces.designer',
+                'admin.workspaces.designer.section',
+                'admin.artwork.desk',
+                'admin.artwork.desk.*',
+            )) {
                 return null;
             }
 
-            return redirect()->to(route('admin.artwork.desk'));
+            return redirect()->to(DesignerOperatorMode::homeUrl());
         }
 
         if ($request->boolean('desk')) {

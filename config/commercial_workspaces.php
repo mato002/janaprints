@@ -232,11 +232,12 @@ return [
                             'key' => 'designer-desk',
                             'label' => 'Designer Desk',
                             'description' => 'Artwork queue, uploads, and designer workflow.',
-                            'route' => 'admin.workspaces.commercial.section',
-                            'route_params' => ['section' => 'sales', 'tab' => 'designer-desk'],
+                            'route' => 'admin.workspaces.designer.section',
+                            'route_params' => ['section' => 'design', 'tab' => 'designer-desk'],
                             'permission' => 'artwork.view',
                             'icon' => 'color-swatch',
                             'active_routes' => [
+                                'admin.workspaces.designer.section:design',
                                 'admin.artwork.desk',
                                 'admin.artwork.desk.*',
                                 'admin.artwork.show',
@@ -244,14 +245,53 @@ return [
                             ],
                             'modes' => [
                                 [
-                                    'key' => 'desk',
-                                    'label' => 'Desk',
+                                    'key' => 'queue',
+                                    'label' => 'Queue',
                                     'route' => 'admin.artwork.desk',
+                                    'route_params' => ['filter' => 'all'],
                                     'active_routes' => [
                                         'admin.artwork.desk',
                                         'admin.artwork.desk.*',
-                                        'admin.artwork.show',
-                                        'admin.artwork.edit',
+                                    ],
+                                ],
+                                [
+                                    'key' => 'available',
+                                    'label' => 'Available',
+                                    'route' => 'admin.artwork.desk',
+                                    'route_params' => ['filter' => 'available'],
+                                    'active_routes' => [
+                                        'admin.artwork.desk',
+                                        'admin.artwork.desk.*',
+                                    ],
+                                ],
+                                [
+                                    'key' => 'mine',
+                                    'label' => 'Mine',
+                                    'route' => 'admin.artwork.desk',
+                                    'route_params' => ['filter' => 'mine'],
+                                    'active_routes' => [
+                                        'admin.artwork.desk',
+                                        'admin.artwork.desk.*',
+                                    ],
+                                ],
+                                [
+                                    'key' => 'working',
+                                    'label' => 'Working',
+                                    'route' => 'admin.artwork.desk',
+                                    'route_params' => ['filter' => 'working'],
+                                    'active_routes' => [
+                                        'admin.artwork.desk',
+                                        'admin.artwork.desk.*',
+                                    ],
+                                ],
+                                [
+                                    'key' => 'review',
+                                    'label' => 'Review',
+                                    'route' => 'admin.artwork.desk',
+                                    'route_params' => ['filter' => 'review'],
+                                    'active_routes' => [
+                                        'admin.artwork.desk',
+                                        'admin.artwork.desk.*',
                                     ],
                                 ],
                             ],

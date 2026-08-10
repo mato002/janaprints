@@ -112,7 +112,7 @@
         @foreach ($navItems as $item)
             @php $active = Nav::navItemIsActive($item); @endphp
             <a
-                href="{{ route($item['route']) }}"
+                href="{{ route($item['route'], $item['route_params'] ?? []) }}"
                 data-turbo-frame="erp-main"
                 data-turbo-action="advance"
                 data-turbo-preload="hover"

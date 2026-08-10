@@ -91,6 +91,10 @@ class WorkspacePresenter
             return $this->commercial->isVisible();
         }
 
+        if ($key === 'designer') {
+            return app(DesignerWorkspacePresenter::class)->isVisible();
+        }
+
         if ($key === 'production') {
             return $this->production->isVisible();
         }

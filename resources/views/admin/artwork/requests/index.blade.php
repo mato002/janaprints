@@ -1,5 +1,25 @@
-<x-admin-layout :title="__('Artwork requests')" :breadcrumbs="[['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => __('Requests')]]">
-    @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => \App\Support\Sales\SalesDeskViews::ARTWORK])
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+    use App\Support\Sales\SalesDeskViews;
+
+    $designerOperator = auth()->user()?->prefersDesignerOperatorMode() ?? false;
+    $embeddedInWorkspace = WorkspaceEmbed::inWorkspaceContext();
+@endphp
+
+<x-admin-layout
+    :title="__('Artwork requests')"
+    :breadcrumbs="$designerOperator || $embeddedInWorkspace
+        ? [['label' => __('Designer Desk')], ['label' => __('All Requests')]]
+        : [['label' => __('Artwork'), 'url' => route('admin.artwork.dashboard')], ['label' => __('Requests')]]"
+    :compact-workspace="$designerOperator || $embeddedInWorkspace"
+>
+    @unless ($embeddedInWorkspace)
+        @if ($designerOperator)
+            @include('admin.artwork.desk.partials.desk-mode-nav')
+        @else
+            @include('admin.sales.desk.partials.desk-mode-nav', ['activeSalesView' => SalesDeskViews::ARTWORK])
+        @endif
+    @endunless
 
     <x-admin.page-header :title="__('Artwork requests')" :description="__('All design requests for your branch.')">
         @can('create', App\Models\Artwork\ArtworkRequest::class)

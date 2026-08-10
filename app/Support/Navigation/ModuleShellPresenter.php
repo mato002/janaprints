@@ -57,6 +57,15 @@ class ModuleShellPresenter
                 'section_route' => 'admin.workspaces.administration.section',
                 'type' => 'sectioned',
             ],
+            'designer' => [
+                'config' => 'designer_workspaces',
+                'title' => __('Designer Desk'),
+                'description' => __('Artwork queue · uploads · register'),
+                'icon' => 'color-swatch',
+                'hub_route' => 'admin.workspaces.designer',
+                'section_route' => 'admin.workspaces.designer.section',
+                'type' => 'sectioned',
+            ],
             'production' => [
                 'config' => 'production_workspaces',
                 'title' => __('Production'),

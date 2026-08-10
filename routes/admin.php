@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserSessionController;
 use App\Http\Controllers\Admin\Accounting\AccountingWorkspaceController;
 use App\Http\Controllers\Admin\Administration\AdministrationWorkspaceController;
+use App\Http\Controllers\Admin\Artwork\DesignerWorkspaceController;
 use App\Http\Controllers\Admin\Commercial\CommercialWorkspaceController;
 use App\Http\Controllers\Admin\Assets\AssetsWorkspaceController;
 use App\Http\Controllers\Admin\PrintingIntelligence\PrintingIntelligenceWorkspaceController;
@@ -68,6 +69,12 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
         Route::get('workspaces/production/{section}', [ProductionWorkspaceController::class, 'section'])
             ->where('section', 'operations|planning|quality|dispatch|reports')
             ->name('workspaces.production.section');
+
+        Route::get('workspaces/designer', [DesignerWorkspaceController::class, 'hub'])
+            ->name('workspaces.designer');
+        Route::get('workspaces/designer/{section}', [DesignerWorkspaceController::class, 'section'])
+            ->where('section', implode('|', array_keys(config('designer_workspaces.sections', []))))
+            ->name('workspaces.designer.section');
 
         Route::get('workspaces/printing-intelligence', [PrintingIntelligenceWorkspaceController::class, 'hub'])
             ->name('workspaces.printing-intelligence');

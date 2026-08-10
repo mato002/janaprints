@@ -16,7 +16,7 @@ class ArtworkDashboardController extends Controller
     {
         $this->authorize('viewAny', ArtworkRequest::class);
 
-        if (DesignerOperatorMode::enabledFor($request->user())) {
+        if (DesignerOperatorMode::enabledFor($request->user()) && ! \App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext()) {
             return redirect()->to(DesignerOperatorMode::homeUrl());
         }
 
