@@ -95,6 +95,18 @@ class FormGovernanceErrorClassifier
             return __('The requested record could not be found.');
         }
 
+        $raw = trim($exception->getMessage());
+
+        if ($raw !== '') {
+            if ($exception instanceof HttpException && $exception->getStatusCode() < 500) {
+                return $raw;
+            }
+
+            if ($exception instanceof \InvalidArgumentException || $exception instanceof \RuntimeException) {
+                return $raw;
+            }
+        }
+
         return __('Something went wrong while processing this form. Please try again.');
     }
 }

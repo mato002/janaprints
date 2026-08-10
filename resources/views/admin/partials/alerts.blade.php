@@ -26,7 +26,7 @@
 @if (($errors ?? null)?->any())
     <div hidden data-erp-validation-errors>
         @foreach ($errors->all() as $error)
-            <span>{{ $error }}</span>
+            <span data-erp-validation-message>{{ $error }}</span>
         @endforeach
     </div>
 @endif

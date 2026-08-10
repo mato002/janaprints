@@ -26,7 +26,7 @@
 <?php if(($errors ?? null)?->any()): ?>
     <div hidden data-erp-validation-errors>
         <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-            <span><?php echo e($error); ?></span>
+            <span data-erp-validation-message><?php echo e($error); ?></span>
         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 <?php endif; ?>

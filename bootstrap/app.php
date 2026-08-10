@@ -129,10 +129,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
             if ($exception instanceof ValidationException) {
                 if ($deskFrom) {
+                    $classifier = app(FormGovernanceErrorClassifier::class);
+                    $presentation = $classifier->present($exception, config('app.debug'));
+
                     return response()->json([
                         'ok' => false,
-                        'message' => $exception->getMessage(),
+                        'message' => $presentation['message'],
                         'errors' => $exception->errors(),
+                        'category' => $presentation['category'],
+                        'category_label' => $presentation['category_label'],
                     ], $exception->status);
                 }
 
@@ -166,9 +171,19 @@ return Application::configure(basePath: dirname(__DIR__))
             ]);
 
             if ($deskFrom) {
+                $message = $presentation['message'] ?: trim($exception->getMessage()) ?: __('Something went wrong while processing this form. Please try again.');
+                $detail = $presentation['detail'] ?? null;
+
+                if ($detail === null && trim($exception->getMessage()) !== '' && trim($exception->getMessage()) !== $message) {
+                    $detail = trim($exception->getMessage());
+                }
+
                 return response()->json([
                     'ok' => false,
-                    'message' => $presentation['message'] ?: $exception->getMessage(),
+                    'message' => $message,
+                    'detail' => $detail,
+                    'category' => $presentation['category'],
+                    'category_label' => $presentation['category_label'],
                 ], $status >= 400 && $status < 600 ? $status : 500);
             }
 
