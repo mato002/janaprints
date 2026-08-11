@@ -502,8 +502,8 @@
                                     <p class="mt-3 text-sm font-semibold uppercase tracking-wide text-emerald-800">{{ __('Ready for production') }}</p>
                                 @elseif (! empty($orderPresentation['readiness']['blockers']))
                                     <p class="mt-3 text-sm text-rose-800">{{ $orderPresentation['readiness']['blockers'][0] }}</p>
-                                    @if ($orderPresentation['job_url'] ?? null)
-                                        <a href="{{ $orderPresentation['job_url'] }}" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open>{{ __('Open job card to resolve materials') }}</a>
+                                    @if ($orderPresentation['materials_handoff_url'] ?? null)
+                                        <a href="{{ $orderPresentation['materials_handoff_url'] }}" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open>{{ __('View material shortages') }}</a>
                                     @endif
                                 @endif
                             </div>
@@ -545,7 +545,7 @@
                         <div class="flex flex-wrap gap-2">
                             <a href="{{ $orderPresentation['show_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open sales order') }}</a>
                             @if ($orderPresentation['job_url'])
-                                <a href="{{ $orderPresentation['job_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open job card') }}</a>
+                                <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open job card') }}</a>
                             @endif
                         </div>
                     </x-admin.card>
@@ -589,7 +589,7 @@
                         <div class="flex flex-wrap gap-2">
                             <a href="{{ $orderPresentation['show_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open sales order') }}</a>
                             @if ($orderPresentation['job_url'])
-                                <a href="{{ $orderPresentation['job_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open job card') }}</a>
+                                <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open job card') }}</a>
                             @endif
                             @if (! empty($orderPresentation['production']['department_queue_url']))
                                 <a href="{{ WorkspaceEmbed::url($orderPresentation['production']['department_queue_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open production queue') }}</a>

@@ -23,7 +23,16 @@ class ProductionJobCardPolicy
 
     public function view(User $user, ProductionJobCard $jobCard): bool
     {
-        return $user->can('production.view') && $this->sameTenant($user, $jobCard);
+        if (! $this->sameTenant($user, $jobCard)) {
+            return false;
+        }
+
+        if ($user->can('production.view')) {
+            return true;
+        }
+
+        return $user->can('sales_orders.production')
+            && $jobCard->sales_order_id !== null;
     }
 
     public function create(User $user): bool

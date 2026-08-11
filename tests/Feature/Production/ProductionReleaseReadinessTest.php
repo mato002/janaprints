@@ -84,6 +84,27 @@ class ProductionReleaseReadinessTest extends TestCase
         $this->assertSame('warning', $materialsCheck['severity'] ?? null);
     }
 
+    public function test_sales_desk_materials_handoff_returns_modal_panel(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
+
+        ProductionJobCard::factory()->create([
+            'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
+            'sales_order_id' => $order->id,
+            'customer_id' => $order->customer_id,
+            'status' => ProductionJobCardStatus::Draft,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])
+            ->get(route('admin.sales.desk.materials', $order))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee(__('Material shortages'), false);
+    }
+
     /**
      * @return array{0: User, 1: SalesOrder}
      */
