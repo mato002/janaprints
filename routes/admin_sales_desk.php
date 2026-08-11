@@ -18,5 +18,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         Route::middleware('permission:sales_orders.view')->group(function () {
             Route::get('orders/{salesOrder}/materials', [SalesDeskController::class, 'materialsHandoff'])
                 ->name('desk.materials');
+            Route::post('orders/{salesOrder}/park', [SalesDeskController::class, 'parkWalkIn'])
+                ->name('desk.park');
         });
     });

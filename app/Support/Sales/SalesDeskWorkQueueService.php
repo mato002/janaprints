@@ -3,6 +3,7 @@
 namespace App\Support\Sales;
 
 use App\Enums\ArtworkRequestStatus;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\PublicQuoteRequestStatus;
 use App\Enums\QuotationStatus;
 use App\Enums\SalesOrderStatus;
@@ -44,6 +45,15 @@ class SalesDeskWorkQueueService
             ->whereDoesntHave('jobCard')
             ->count();
 
+        $walkInsPendingRelease = SalesOrder::query()
+            ->forTenant()
+            ->where('status', SalesOrderStatus::Confirmed)
+            ->where(function ($query) {
+                $query->whereDoesntHave('jobCard')
+                    ->orWhereHas('jobCard', fn ($job) => $job->where('status', ProductionJobCardStatus::Draft));
+            })
+            ->count();
+
         $pendingArtwork = ArtworkRequest::query()
             ->forTenant()
             ->whereIn('status', [
@@ -72,7 +82,7 @@ class SalesDeskWorkQueueService
 
         return [
             'summary' => $summary,
-            'items' => $this->queueItems($user, $newQuoteRequests, $quotesAwaitingFollowUp, $ordersReadyForRelease, $myDraftQuotes),
+            'items' => $this->queueItems($user, $newQuoteRequests, $quotesAwaitingFollowUp, $ordersReadyForRelease, $walkInsPendingRelease, $myDraftQuotes),
         ];
     }
 
@@ -84,6 +94,7 @@ class SalesDeskWorkQueueService
         int $newQuoteRequests,
         int $quotesAwaitingFollowUp,
         int $ordersReadyForRelease,
+        int $walkInsPendingRelease,
         int $myDraftQuotes,
     ): array {
         $items = collect();
@@ -125,6 +136,39 @@ class SalesDeskWorkQueueService
                     'modal' => true,
                 ]);
             });
+
+        if ($walkInsPendingRelease > 0) {
+            SalesOrder::query()
+                ->forTenant()
+                ->where('status', SalesOrderStatus::Confirmed)
+                ->where(function ($query) {
+                    $query->whereDoesntHave('jobCard')
+                        ->orWhereHas('jobCard', fn ($job) => $job->where('status', ProductionJobCardStatus::Draft));
+                })
+                ->with('customer:id,company_name,public_id')
+                ->latest('updated_at')
+                ->limit(5)
+                ->get()
+                ->each(function (SalesOrder $order) use ($items) {
+                    $customerKey = $order->customer?->getRouteKey();
+
+                    if ($customerKey === null) {
+                        return;
+                    }
+
+                    $items->push([
+                        'kind' => 'walk_in_pending',
+                        'label' => $order->order_number,
+                        'meta' => trim(($order->customer?->name ?? '').' · '.__('Resume walk-in')),
+                        'tone' => 'rose',
+                        'url' => route('admin.sales.desk', [
+                            'customer' => $customerKey,
+                            'order' => $order->getRouteKey(),
+                            'step' => 4,
+                        ]),
+                    ]);
+                });
+        }
 
         SalesOrder::query()
             ->forTenant()

@@ -194,6 +194,15 @@ class ProductionReleaseReadinessService
             }
 
             $materials = $this->materialReadiness->previewForSalesOrder($salesOrder);
+
+            if (! $materials['has_requirements']) {
+                $message = __('No bill of materials is configured for this product. Production must set up a BOM before this order can be released.');
+                $blockers[] = $message;
+                $checks[] = $this->failedCheck('materials', __('Material availability'), $message);
+
+                return;
+            }
+
             $this->applyMaterialAssessment($checks, $blockers, $warnings, $materials);
 
             return;

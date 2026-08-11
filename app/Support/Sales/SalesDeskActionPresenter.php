@@ -90,9 +90,15 @@ class SalesDeskActionPresenter
                     'tab' => 'materials',
                 ])
                 : null,
-            'materials_handoff_url' => $salesOrder->jobCard
-                ? route('admin.sales.desk.materials', $salesOrder)
+            'materials_handoff_url' => route('admin.sales.desk.materials', $salesOrder),
+            'resume_url' => $customer
+                ? route('admin.sales.desk', [
+                    'customer' => $customer->getRouteKey(),
+                    'order' => $salesOrder->getRouteKey(),
+                    'step' => 4,
+                ])
                 : null,
+            'park_url' => route('admin.sales.desk.park', $salesOrder),
             'payment_url' => $customer && auth()->user()?->can('create', \App\Models\Sales\CustomerPayment::class)
                 ? route('admin.payments.create', [
                     'from' => 'sales-desk',

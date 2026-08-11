@@ -466,6 +466,11 @@
                             </div>
                         @endif
 
+                        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            <p class="font-medium text-slate-900">{{ __('This order is already saved') }}</p>
+                            <p class="mt-1">{{ __('You can leave this page anytime. Resume from Needs attention on the Sales Desk, or use Save & continue later below.') }}</p>
+                        </div>
+
                         @if ($orderPresentation['can_release'] && ! empty($orderPresentation['readiness']['checks']))
                             @php
                                 $releaseDashboard = $walkInPanel['dashboard'] ?? [];
@@ -503,7 +508,7 @@
                                 @elseif (! empty($orderPresentation['readiness']['blockers']))
                                     <p class="mt-3 text-sm text-rose-800">{{ $orderPresentation['readiness']['blockers'][0] }}</p>
                                     @if ($orderPresentation['materials_handoff_url'] ?? null)
-                                        <a href="{{ $orderPresentation['materials_handoff_url'] }}" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open>{{ __('View material shortages') }}</a>
+                                        <a href="{{ $orderPresentation['materials_handoff_url'] }}" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open>{{ __('What needs to be fixed?') }}</a>
                                     @endif
                                 @endif
                             </div>
@@ -543,6 +548,12 @@
                         @endif
 
                         <div class="flex flex-wrap gap-2">
+                            @if ($orderPresentation['park_url'] ?? null)
+                                <form method="POST" action="{{ $orderPresentation['park_url'] }}" class="inline">
+                                    @csrf
+                                    <button type="submit" class="erp-btn-secondary text-sm">{{ __('Save & continue later') }}</button>
+                                </form>
+                            @endif
                             <a href="{{ $orderPresentation['show_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open sales order') }}</a>
                             @if ($orderPresentation['job_url'])
                                 <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open job card') }}</a>

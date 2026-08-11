@@ -102,7 +102,29 @@ class ProductionReleaseReadinessTest extends TestCase
             ->get(route('admin.sales.desk.materials', $order))
             ->assertOk()
             ->assertSee('data-erp-form-modal-panel', false)
-            ->assertSee(__('Material shortages'), false);
+            ->assertSee(__('Production materials'), false);
+    }
+
+    public function test_sales_desk_materials_handoff_works_before_job_card_exists(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])
+            ->get(route('admin.sales.desk.materials', $order))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee(__('Production materials'), false);
+    }
+
+    public function test_park_walk_in_redirects_to_desk_with_message(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
+
+        $this->actingAs($user)
+            ->post(route('admin.sales.desk.park', $order))
+            ->assertRedirect(route('admin.sales.desk'))
+            ->assertSessionHas('status');
     }
 
     /**
