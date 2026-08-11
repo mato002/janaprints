@@ -1361,12 +1361,21 @@ const erpModalManager = {
                     });
                     const redirectHtml = await followUp.text();
 
-                    this.completeDeskFormRedirect(form, {
-                        redirect: location,
-                        html: redirectHtml,
-                        message: extractFlashMessageFromHtml(redirectHtml),
-                        returnUrl: modalReturnUrl,
-                    });
+                    if (this.isDeskShellForm(form)) {
+                        this.completeDeskFormRedirect(form, {
+                            redirect: location,
+                            html: redirectHtml,
+                            message: extractFlashMessageFromHtml(redirectHtml),
+                            returnUrl: modalReturnUrl,
+                        });
+                    } else {
+                        this.safeHandleSuccess({
+                            redirect: location,
+                            message: extractFlashMessageFromHtml(redirectHtml),
+                            refresh: false,
+                            returnUrl: modalReturnUrl,
+                        });
+                    }
 
                     return;
                 }
@@ -1386,18 +1395,91 @@ const erpModalManager = {
                 const redirectMessage = extractFlashMessageFromHtml(redirectHtml);
 
                 if (redirectTarget && ! this.isModalFormUrl(redirectTarget)) {
-                    this.completeDeskFormRedirect(form, {
-                        redirect: redirectTarget,
-                        html: redirectHtml,
-                        message: redirectMessage,
-                        returnUrl: modalReturnUrl,
-                    });
+                    if (this.isDeskShellForm(form)) {
+                        this.completeDeskFormRedirect(form, {
+                            redirect: redirectTarget,
+                            html: redirectHtml,
+                            message: redirectMessage,
+                            returnUrl: modalReturnUrl,
+                        });
+                    } else {
+                        this.safeHandleSuccess({
+                            redirect: redirectTarget,
+                            message: redirectMessage,
+                            refresh: false,
+                            returnUrl: modalReturnUrl,
+                        });
+                    }
 
                     return;
                 }
             }
 
-            const html = await response.text();
+            const contentType = response.headers.get('content-type') ?? '';
+            const responseBody = await response.text();
+
+            if (contentType.includes('application/json')) {
+                let payload = {};
+
+                try {
+                    payload = JSON.parse(responseBody);
+                } catch {
+                    payload = {};
+                }
+
+                if (payload.ok === false) {
+                    const errorMessages = Object.values(payload.errors ?? {}).flat().filter(Boolean);
+                    const errorMessage = payload.message
+                        ?? errorMessages[0]
+                        ?? `Unable to save form (${response.status}). Please try again.`;
+
+                    if (deskForm) {
+                        showErpDeskErrorAlert(
+                            errorMessages.length > 1 ? errorMessages : [errorMessage],
+                            {
+                                detail: payload.detail ?? null,
+                                categoryLabel: payload.category_label ?? null,
+                                status: response.status,
+                                url: erpFormActionUrl(form),
+                                method,
+                            },
+                        );
+                    } else {
+                        showErpFormErrorAlert(
+                            errorMessages.length > 1 ? errorMessages : [errorMessage],
+                            {
+                                status: response.status,
+                                url: erpFormActionUrl(form),
+                                method,
+                                timestamp: new Date().toISOString(),
+                            },
+                        );
+                    }
+
+                    return;
+                }
+
+                if (payload.ok !== false) {
+                    if (deskForm) {
+                        this.completeDeskFormRedirect(form, {
+                            redirect: payload.redirect ?? window.location.href,
+                            message: payload.message ?? '',
+                            returnUrl: modalReturnUrl,
+                        });
+                    } else {
+                        this.safeHandleSuccess({
+                            message: payload.message ?? '',
+                            redirect: payload.redirect ?? '',
+                            refresh: true,
+                            returnUrl: modalReturnUrl,
+                        });
+                    }
+
+                    return;
+                }
+            }
+
+            const html = responseBody;
 
             if (html.includes('data-erp-modal-success')) {
                 const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -1551,6 +1633,11 @@ const erpModalManager = {
             }
 
             if (method !== 'GET' && ! this.hasValidationErrors(doc)) {
+                console.error('erpModalManager.submitFormRequest unexpected modal response', {
+                    status: response.status,
+                    url: erpFormActionUrl(form),
+                });
+
                 if (this.isDeskShellForm(form)) {
                     this.completeDeskFormRedirect(form, {
                         redirect: window.location.href,
@@ -1559,10 +1646,15 @@ const erpModalManager = {
                         returnUrl: modalReturnUrl,
                     });
                 } else {
-                    this.safeHandleSuccess({
-                        refresh: true,
-                        returnUrl: modalReturnUrl,
-                    });
+                    showErpFormErrorAlert(
+                        ['Unable to save form. The server response was unexpected. Please try again.'],
+                        {
+                            status: response.status,
+                            url: erpFormActionUrl(form),
+                            method,
+                            timestamp: new Date().toISOString(),
+                        },
+                    );
                 }
 
                 return;

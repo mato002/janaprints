@@ -160,6 +160,35 @@ class ModalFormWorkspaceTest extends TestCase
         ]);
     }
 
+    public function test_customer_store_from_sales_desk_modal_returns_success_marker_and_persists(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext();
+        $createUrl = route('admin.crm.customers.create', ['from' => 'sales-desk']);
+
+        $response = $this->actingAs($user)
+            ->post(route('admin.crm.customers.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_return' => $createUrl,
+                'from' => 'sales-desk',
+                'customer_type' => 'corporate',
+                'company_name' => 'Sales Desk Modal Customer Ltd',
+                'status' => 'active',
+                'credit_limit' => 0,
+            ]);
+
+        $customer = Customer::query()->where('company_name', 'Sales Desk Modal Customer Ltd')->firstOrFail();
+
+        $response->assertSee('data-erp-modal-success', false);
+        $response->assertSee(__('Customer created.'), false);
+        $response->assertSee('admin/sales/desk?customer='.$customer->getRouteKey(), false);
+        $response->assertSee('step=2', false);
+
+        $this->assertDatabaseHas('customers', [
+            'company_name' => 'Sales Desk Modal Customer Ltd',
+            'company_id' => $company->id,
+        ]);
+    }
+
     public function test_customer_store_outside_modal_still_redirects_to_show(): void
     {
         [$company, $branch, $user] = $this->tenantContext();

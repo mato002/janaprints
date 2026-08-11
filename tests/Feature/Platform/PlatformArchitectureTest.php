@@ -163,7 +163,7 @@ class PlatformArchitectureTest extends TestCase
         $response->assertSee('id="nav-search"', false);
         foreach ([
             'Dashboard',
-            'Commercial',
+            'Sales',
             'Production',
             'Inventory',
             'Administration',

@@ -105,8 +105,8 @@ class FormGovernanceTest extends TestCase
             ->assertSee(__('Total Forms'))
             ->assertSee(__('Configuration Health'))
             ->assertSee(__('Recently Modified'))
-            ->assertSee(__('Commercial'))
-            ->assertSee(__('Supply Chain'))
+            ->assertSee(__('Sales'))
+            ->assertSee(__('Inventory'))
             ->assertSee(__('Planned Forms'))
             ->assertSee(__('Customers'));
 

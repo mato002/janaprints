@@ -35,12 +35,7 @@ class HandleModalFormResponse
         }
 
         if ($response instanceof RedirectResponse && ! $request->session()->has('errors')) {
-            $message = $request->session()->get('status')
-                ?? $request->session()->get('success');
-
-            if (! is_string($message) || $message === '') {
-                $message = __('Saved successfully.');
-            }
+            $message = $this->flashMessageFromRedirect($response, $request);
 
             return response()->view('admin.partials.modal-form-success', [
                 'message' => $message,
@@ -54,8 +49,26 @@ class HandleModalFormResponse
 
     protected function isDeskShellFormRequest(Request $request): bool
     {
-        return in_array($request->input('from'), $this->deskShellFromValues, true)
-            && $request->header('Turbo-Frame') !== 'erp-form-modal';
+        if ($request->boolean('_erp_modal') || $request->header('Turbo-Frame') === 'erp-form-modal') {
+            return false;
+        }
+
+        return in_array($request->input('from'), $this->deskShellFromValues, true);
+    }
+
+    protected function flashMessageFromRedirect(RedirectResponse $response, Request $request): string
+    {
+        $session = $response->getSession() ?? $request->session();
+
+        foreach (['status', 'success', 'message'] as $key) {
+            $value = $session->get($key);
+
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        return __('Saved successfully.');
     }
 
     protected function transformDeskShellResponse(Request $request, Response $response): Response
