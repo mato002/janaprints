@@ -3,6 +3,7 @@
 namespace App\Support\Production;
 
 use App\Models\Production\ProductionJobCard;
+use App\Models\Sales\SalesOrder;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
@@ -36,11 +37,113 @@ class MaterialReadinessService
     public function assess(ProductionJobCard $jobCard): array
     {
         $rows = $this->requirements->panelRows($jobCard);
-        $materialsUrl = route('admin.production.job-cards.show', [
-            'jobCard' => $jobCard,
-            'tab' => 'materials',
-        ]);
 
+        return $this->assessFromPanelRows(
+            $rows,
+            route('admin.production.job-cards.show', [
+                'jobCard' => $jobCard,
+                'tab' => 'materials',
+            ]),
+        );
+    }
+
+    /**
+     * Preview stock readiness from the sales order BOM before a job card exists.
+     *
+     * @return array{
+     *     status: string,
+     *     ready: bool,
+     *     percent: int,
+     *     label: string,
+     *     detail: string,
+     *     has_requirements: bool,
+     *     line_count: int,
+     *     ready_count: int,
+     *     short_count: int,
+     *     missing: list<array{item: string, sku: ?string, shortfall: float, unit: ?string, available: float, required: float, remaining: float}>,
+     *     materials_url: ?string
+     * }
+     */
+    public function previewForSalesOrder(SalesOrder $salesOrder): array
+    {
+        $rows = $this->requirements->previewPanelRowsForSalesOrder($salesOrder);
+
+        return $this->assessFromPanelRows($rows, null);
+    }
+
+    /**
+     * @param  array{
+     *     status: string,
+     *     ready: bool,
+     *     percent: int,
+     *     label: string,
+     *     detail: string,
+     *     has_requirements: bool,
+     *     line_count: int,
+     *     ready_count: int,
+     *     short_count: int,
+     *     missing: list<array{item: string, sku: ?string, shortfall: float, unit: ?string, available: float, required: float, remaining: float}>,
+     *     materials_url: ?string
+     * }  $assessment
+     */
+    public function formatBlockerMessage(array $assessment): string
+    {
+        if (! $assessment['has_requirements']) {
+            return __('Generate material requirements and clear stock shortages before releasing this job to production.');
+        }
+
+        $summary = collect($assessment['missing'])
+            ->take(3)
+            ->map(function (array $line) {
+                $qty = rtrim(rtrim(number_format($line['shortfall'], 3, '.', ''), '0'), '.');
+                $unit = $line['unit'] ? ' '.$line['unit'] : '';
+
+                return $line['item'].' ('.$qty.$unit.')';
+            })
+            ->implode(', ');
+
+        $more = $assessment['short_count'] > 3
+            ? ' '.__('and :count more', ['count' => $assessment['short_count'] - 3])
+            : '';
+
+        return __('Material readiness :percent%. Missing: :items.:more', [
+            'percent' => $assessment['percent'],
+            'items' => $summary !== '' ? $summary : __('stock shortages'),
+            'more' => $more,
+        ]);
+    }
+
+    public function assertReadyToRelease(ProductionJobCard $jobCard): void
+    {
+        $assessment = $this->assess($jobCard);
+
+        if ($assessment['ready']) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'materials' => $this->formatBlockerMessage($assessment),
+        ]);
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $rows
+     * @return array{
+     *     status: string,
+     *     ready: bool,
+     *     percent: int,
+     *     label: string,
+     *     detail: string,
+     *     has_requirements: bool,
+     *     line_count: int,
+     *     ready_count: int,
+     *     short_count: int,
+     *     missing: list<array{item: string, sku: ?string, shortfall: float, unit: ?string, available: float, required: float, remaining: float}>,
+     *     materials_url: ?string
+     * }
+     */
+    protected function assessFromPanelRows(Collection $rows, ?string $materialsUrl): array
+    {
         if ($rows->isEmpty()) {
             return [
                 'status' => 'unknown',
@@ -94,43 +197,6 @@ class MaterialReadinessService
             'missing' => $missing,
             'materials_url' => $materialsUrl,
         ];
-    }
-
-    public function assertReadyToRelease(ProductionJobCard $jobCard): void
-    {
-        $assessment = $this->assess($jobCard);
-
-        if ($assessment['ready']) {
-            return;
-        }
-
-        if (! $assessment['has_requirements']) {
-            throw ValidationException::withMessages([
-                'materials' => __('Generate material requirements and clear stock shortages before releasing this job to production.'),
-            ]);
-        }
-
-        $summary = collect($assessment['missing'])
-            ->take(3)
-            ->map(function (array $line) {
-                $qty = rtrim(rtrim(number_format($line['shortfall'], 3, '.', ''), '0'), '.');
-                $unit = $line['unit'] ? ' '.$line['unit'] : '';
-
-                return $line['item'].' ('.$qty.$unit.')';
-            })
-            ->implode(', ');
-
-        $more = $assessment['short_count'] > 3
-            ? ' '.__('and :count more', ['count' => $assessment['short_count'] - 3])
-            : '';
-
-        throw ValidationException::withMessages([
-            'materials' => __('Material readiness :percent%. Missing: :items.:more', [
-                'percent' => $assessment['percent'],
-                'items' => $summary !== '' ? $summary : __('stock shortages'),
-                'more' => $more,
-            ]),
-        ]);
     }
 
     /**

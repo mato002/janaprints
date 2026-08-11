@@ -19,6 +19,7 @@ use App\Models\Sales\SalesOrderItem;
 use App\Models\User;
 use App\Support\InventoryStockService;
 use App\Support\Production\JobCostingService;
+use App\Support\Production\MaterialReadinessService;
 use App\Support\Production\MaterialRequirementsService;
 use App\Support\Production\ProductBomService;
 use App\Support\StockReceiptService;
@@ -88,6 +89,19 @@ class BomMaterialRequirementsTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.boms.index', ['embedded' => 1]))
             ->assertForbidden();
+    }
+
+    public function test_preview_material_readiness_before_job_card_exists(): void
+    {
+        [$company, $branch, $user, $finished, $paper, $ink, $warehouse, $jobCard] = $this->jobWithBom();
+        $salesOrder = $jobCard->salesOrder->fresh(['items']);
+        $jobCard->delete();
+
+        $preview = app(MaterialReadinessService::class)->previewForSalesOrder($salesOrder);
+
+        $this->assertFalse($preview['ready']);
+        $this->assertTrue($preview['has_requirements']);
+        $this->assertGreaterThan(0, $preview['short_count']);
     }
 
     public function test_material_requirement_generation_from_sales_order(): void

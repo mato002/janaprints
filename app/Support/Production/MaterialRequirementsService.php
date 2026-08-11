@@ -10,6 +10,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionMaterialIssue;
 use App\Models\Production\ProductionMaterialRequirement;
 use App\Models\Production\ProductBom;
+use App\Models\Sales\SalesOrder;
 use App\Support\Inventory\InventoryCostingService;
 use App\Support\InventoryStockService;
 use App\Support\ProductionMaterialConsumptionService;
@@ -388,6 +389,89 @@ class MaterialRequirementsService
         });
     }
 
+    /**
+     * Estimate material panel rows from the sales order BOM without persisting a job card.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    public function previewPanelRowsForSalesOrder(SalesOrder $salesOrder): Collection
+    {
+        $salesOrder->loadMissing(['items.inventoryItem.unitOfMeasure', 'inventoryItem.unitOfMeasure']);
+
+        $warehouse = Warehouse::query()
+            ->where('company_id', $salesOrder->company_id)
+            ->where('branch_id', $salesOrder->branch_id)
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->first();
+
+        if ($warehouse === null) {
+            return collect();
+        }
+
+        $sources = $this->resolveSourcesFromSalesOrder($salesOrder);
+
+        if ($sources->isEmpty()) {
+            return collect();
+        }
+
+        /** @var array<string, array<string, mixed>> $aggregated */
+        $aggregated = [];
+
+        foreach ($sources as $source) {
+            $bom = $this->bomService->findActiveForFinishedItem(
+                $salesOrder->company_id,
+                $salesOrder->branch_id,
+                $source['finished_item_id'],
+            );
+
+            if ($bom === null) {
+                continue;
+            }
+
+            foreach ($this->bomService->requirementsForQuantity($bom, $source['quantity']) as $calc) {
+                /** @var \App\Models\Production\ProductBomLine $line */
+                $line = $calc['line'];
+                $itemId = (int) $line->inventory_item_id;
+                $key = $itemId.'|'.$warehouse->id;
+
+                if (! isset($aggregated[$key])) {
+                    $aggregated[$key] = [
+                        'inventory_item_id' => $itemId,
+                        'warehouse_id' => $warehouse->id,
+                        'item_name' => $line->inventoryItem?->item_name,
+                        'sku' => $line->inventoryItem?->sku,
+                        'unit' => $line->inventoryItem?->unitOfMeasure?->code,
+                        'required' => 0.0,
+                    ];
+                }
+
+                $aggregated[$key]['required'] += (float) $calc['required_quantity'];
+            }
+        }
+
+        return collect($aggregated)->map(function (array $row) use ($salesOrder) {
+            $available = $this->availableStockForPreview(
+                $salesOrder->company_id,
+                $salesOrder->branch_id,
+                (int) $row['inventory_item_id'],
+                (int) $row['warehouse_id'],
+            );
+            $remaining = round((float) $row['required'], 3);
+            $shortfall = max(0, round($remaining - $available, 3));
+
+            return [
+                'item_name' => $row['item_name'],
+                'sku' => $row['sku'],
+                'unit' => $row['unit'],
+                'required' => $remaining,
+                'remaining' => $remaining,
+                'available' => $available,
+                'shortfall' => $shortfall,
+            ];
+        })->values();
+    }
+
     public function availableStock(ProductionMaterialRequirement $requirement): float
     {
         $balance = InventoryStockService::balance(
@@ -500,11 +584,16 @@ class MaterialRequirementsService
         return $suggestions;
     }
 
-    protected function resolveSources(ProductionJobCard $jobCard): Collection
+    /**
+     * @return Collection<int, array{finished_item_id: int, quantity: float, sales_order_item_id: ?int}>
+     */
+    public function resolveSourcesFromSalesOrder(SalesOrder $salesOrder): Collection
     {
+        $salesOrder->loadMissing(['items', 'inventoryItem']);
+
         $sources = collect();
 
-        foreach ($jobCard->salesOrder?->items ?? [] as $orderItem) {
+        foreach ($salesOrder->items as $orderItem) {
             if ($orderItem->inventory_item_id === null) {
                 continue;
             }
@@ -516,17 +605,30 @@ class MaterialRequirementsService
             ]);
         }
 
-        if ($sources->isEmpty() && $jobCard->salesOrder?->inventory_item_id) {
-            $qty = (float) ($jobCard->salesOrder->items->sum('quantity') ?: 1);
+        if ($sources->isEmpty() && $salesOrder->inventory_item_id) {
+            $qty = (float) ($salesOrder->items->sum('quantity') ?: 1);
             $sources->push([
-                'finished_item_id' => (int) $jobCard->salesOrder->inventory_item_id,
+                'finished_item_id' => (int) $salesOrder->inventory_item_id,
                 'quantity' => $qty > 0 ? $qty : 1,
                 'sales_order_item_id' => null,
             ]);
         }
 
+        return $sources;
+    }
+
+    protected function resolveSources(ProductionJobCard $jobCard): Collection
+    {
+        $jobCard->loadMissing(['salesOrder.items', 'salesOrder.inventoryItem']);
+
+        if ($jobCard->salesOrder === null) {
+            return collect();
+        }
+
+        $sources = $this->resolveSourcesFromSalesOrder($jobCard->salesOrder);
+
         if ($sources->isEmpty() && $jobCard->inventory_item_id) {
-            $qty = (float) ($jobCard->salesOrder?->items->sum('quantity') ?: 1);
+            $qty = (float) ($jobCard->salesOrder->items->sum('quantity') ?: 1);
             $sources->push([
                 'finished_item_id' => (int) $jobCard->inventory_item_id,
                 'quantity' => $qty > 0 ? $qty : 1,
@@ -535,5 +637,29 @@ class MaterialRequirementsService
         }
 
         return $sources;
+    }
+
+    protected function availableStockForPreview(
+        int $companyId,
+        int $branchId,
+        int $inventoryItemId,
+        int $warehouseId,
+    ): float {
+        $balance = InventoryStockService::balance($inventoryItemId, $warehouseId);
+
+        $otherReservations = (float) ProductionMaterialRequirement::query()
+            ->where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('inventory_item_id', $inventoryItemId)
+            ->where('warehouse_id', $warehouseId)
+            ->whereIn('status', [
+                MaterialRequirementStatus::Planned,
+                MaterialRequirementStatus::Reserved,
+                MaterialRequirementStatus::Partial,
+                MaterialRequirementStatus::Shortfall,
+            ])
+            ->sum('reserved_quantity');
+
+        return max(0, round($balance - $otherReservations, 3));
     }
 }

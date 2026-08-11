@@ -300,29 +300,11 @@ function showErpDeskErrorAlert(messages, options = {}) {
         return;
     }
 
-    const errorDetails = {};
+    const errorDetails = options.categoryLabel
+        ? { category: options.categoryLabel }
+        : null;
 
-    if (options.detail) {
-        errorDetails.detail = options.detail;
-    }
-
-    if (options.categoryLabel) {
-        errorDetails.category = options.categoryLabel;
-    }
-
-    if (options.status) {
-        errorDetails.status = options.status;
-    }
-
-    if (options.url) {
-        errorDetails.url = options.url;
-    }
-
-    if (options.method) {
-        errorDetails.method = options.method;
-    }
-
-    showErpFormErrorAlert(items, Object.keys(errorDetails).length > 0 ? errorDetails : null);
+    showErpFormErrorAlert(items, errorDetails);
 }
 
 function erpCsrfToken() {
