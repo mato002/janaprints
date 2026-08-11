@@ -43,6 +43,12 @@ class SalesOrderProductionBridgeService
             return $jobCard;
         }
 
+        $requirements = app(\App\Support\Production\MaterialRequirementsService::class);
+        if ($jobCard->materialRequirements()->doesntExist()) {
+            $requirements->snapshotForJobCard($jobCard, $userId);
+            $jobCard->refresh();
+        }
+
         app(MaterialReadinessService::class)->assertReadyToRelease($jobCard);
 
         $autoScheduling = app(ProductionAutoSchedulingService::class);

@@ -21,6 +21,10 @@
          <?php $__env->slot('actions', null, []); ?> 
             <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Inventory\InventoryItem::class)): ?>
                 <a href="<?php echo e(route('admin.inventory.items.create')); ?>" class="erp-btn-primary"><?php echo e(__('New item')); ?></a>
+            <?php elseif (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Sales\Quotation::class)): ?>
+                <a href="<?php echo e(route('admin.sales.desk', ['view' => 'quotes'])); ?>" class="erp-btn-primary" data-turbo-frame="erp-main"><?php echo e(__('Create quote')); ?></a>
+            <?php elseif (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Sales\SalesOrder::class)): ?>
+                <a href="<?php echo e(route('admin.sales.desk')); ?>" class="erp-btn-primary" data-turbo-frame="erp-main"><?php echo e(__('Sales desk')); ?></a>
             <?php endif; ?>
          <?php $__env->endSlot(); ?>
      <?php echo $__env->renderComponent(); ?>
@@ -33,6 +37,24 @@
 <?php $component = $__componentOriginalcb19cb35a534439097b02b8af91726ee; ?>
 <?php unset($__componentOriginalcb19cb35a534439097b02b8af91726ee); ?>
 <?php endif; ?>
+
+    <?php if(auth()->user()?->can('catalogue.view') && ! auth()->user()?->can('catalogue.create')): ?>
+        <div class="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+            <?php echo e(__('Read-only catalogue access.')); ?>
+
+            <?php if (app(\Illuminate\Contracts\Auth\Access\Gate::class)->check('create', App\Models\Sales\Quotation::class)): ?>
+                <a href="<?php echo e(route('admin.sales.desk', ['view' => 'quotes'])); ?>" class="font-semibold text-erp-primary hover:underline" data-turbo-frame="erp-main"><?php echo e(__('Create a quote')); ?></a>
+                <?php echo e(__('or')); ?>
+
+                <a href="<?php echo e(route('admin.sales.desk')); ?>" class="font-semibold text-erp-primary hover:underline" data-turbo-frame="erp-main"><?php echo e(__('start a walk-in')); ?></a>
+                <?php echo e(__('on the Sales Desk.')); ?>
+
+            <?php else: ?>
+                <?php echo e(__('Contact a store or catalogue administrator to add new products.')); ?>
+
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
 
     <?php if (isset($component)) { $__componentOriginal8a75a2be9d4747e9fac92a4568c3c2d0 = $component; } ?>
 <?php if (isset($attributes)) { $__attributesOriginal8a75a2be9d4747e9fac92a4568c3c2d0 = $attributes; } ?>

@@ -60,7 +60,15 @@
             ><?php echo e(__('Upload artwork')); ?></a>
         </div>
     <?php else: ?>
-        <form method="POST" action="<?php echo e(route('admin.sales-orders.store')); ?>" class="space-y-3" data-turbo="false">
+        <form
+            method="POST"
+            action="<?php echo e(route('admin.sales-orders.store')); ?>"
+            class="space-y-3"
+            data-turbo="false"
+            data-erp-desk-form
+            data-erp-desk-success-message="<?php echo e(__('Order created.')); ?>"
+            data-erp-desk-submitting-message="<?php echo e(__('Creating order…')); ?>"
+        >
             <?php echo csrf_field(); ?>
             <input type="hidden" name="from" value="sales-desk">
             <input type="hidden" name="entry_mode" value="direct">

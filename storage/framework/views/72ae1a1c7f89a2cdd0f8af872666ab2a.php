@@ -34,6 +34,10 @@
             </button>
         </div>
         <div class="erp-form-modal__body">
+            <?php echo $__env->make('admin.partials.modal-validation-alert', [
+                'validationMessages' => $validationMessages ?? [],
+                'validationPresentation' => $presentation ?? null,
+            ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
             <?php echo $__env->make('admin.partials.governed-form-errors', [
                 'presentation' => $presentation ?? null,
                 'message' => $message ?? null,

@@ -52,7 +52,7 @@
                     <a href="<?php echo e(route('admin.invoices.from-sales-order', [$salesOrder, 'from' => 'sales-desk'])); ?>" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Create invoice')); ?></a>
                 <?php endif; ?>
             </div>
-        <?php if(request('from') === 'production-floor'): ?>
+        <?php elseif(request('from') === 'production-floor'): ?>
             <div class="flex flex-wrap gap-2">
                 <a href="<?php echo e(route('admin.sales-orders.show', $salesOrder)); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance"><?php echo e(__('Open full order')); ?></a>
             </div>
@@ -68,4 +68,4 @@
 <?php $component = $__componentOriginald3ad0f200dc20b794011e332a16c068d; ?>
 <?php unset($__componentOriginald3ad0f200dc20b794011e332a16c068d); ?>
 <?php endif; ?>
-<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\admin\sales\desk\order-modal.blade.php ENDPATH**/ ?>
+<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views/admin/sales/desk/order-modal.blade.php ENDPATH**/ ?>

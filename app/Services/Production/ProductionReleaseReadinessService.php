@@ -10,6 +10,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Models\ActivityLog;
+use App\Support\Production\MaterialReadinessService;
 use App\Support\Sales\DirectCustomerSalesOrderService;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 
@@ -17,6 +18,7 @@ class ProductionReleaseReadinessService
 {
     public function __construct(
         protected SalesOrderFinancialStatusService $financialStatus,
+        protected MaterialReadinessService $materialReadiness,
     ) {}
 
     /**
@@ -146,8 +148,6 @@ class ProductionReleaseReadinessService
             $checks[] = $this->passedCheck('routing', __('Production routing resolvable'));
         }
 
-        $checks[] = $this->passedCheck('materials', __('Material availability'), __('Review material requirements after the job card is created.'));
-
         $depositWarning = $this->depositWarning($salesOrder);
 
         if ($depositWarning !== null) {
@@ -157,12 +157,64 @@ class ProductionReleaseReadinessService
             $checks[] = $this->passedCheck('commercial', __('Commercial prerequisites'));
         }
 
+        $this->appendMaterialReadinessCheck($checks, $blockers, $warnings, $salesOrder->jobCard);
+
         return [
             'ready' => $blockers === [],
             'blockers' => array_values(array_unique($blockers)),
             'warnings' => array_values(array_unique($warnings)),
             'checks' => $checks,
         ];
+    }
+
+    /**
+     * @param  list<array{key: string, label: string, passed: bool, severity: string, message: ?string}>  $checks
+     * @param  list<string>  $blockers
+     * @param  list<string>  $warnings
+     */
+    protected function appendMaterialReadinessCheck(
+        array &$checks,
+        array &$blockers,
+        array &$warnings,
+        ?ProductionJobCard $jobCard,
+    ): void {
+        if ($jobCard === null) {
+            $checks[] = $this->warningCheck(
+                'materials',
+                __('Material availability'),
+                __('Material requirements are generated when the job card is created. Stock must be available before queuing.'),
+            );
+
+            return;
+        }
+
+        $materials = $this->materialReadiness->assess($jobCard);
+
+        if ($materials['ready']) {
+            $checks[] = $this->passedCheck(
+                'materials',
+                __('Material availability'),
+                $materials['detail'],
+            );
+
+            return;
+        }
+
+        $message = $materials['detail'];
+        $blockers[] = $message;
+        $checks[] = $this->failedCheck('materials', __('Material availability'), $message);
+
+        if (! empty($materials['missing'])) {
+            foreach (array_slice($materials['missing'], 0, 3) as $line) {
+                $qty = rtrim(rtrim(number_format($line['shortfall'], 3, '.', ''), '0'), '.');
+                $unit = $line['unit'] ? ' '.$line['unit'] : '';
+                $warnings[] = __('Short: :item (:qty:unit)', [
+                    'item' => $line['item'],
+                    'qty' => $qty,
+                    'unit' => $unit,
+                ]);
+            }
+        }
     }
 
     public function assertReady(SalesOrder $salesOrder, ?User $user = null, bool $allowOverride = false): void
@@ -247,6 +299,8 @@ class ProductionReleaseReadinessService
         if (! $canQueue) {
             $warnings[] = __('Open the job card to assign a work centre manually if auto-scheduling is disabled.');
         }
+
+        $this->appendMaterialReadinessCheck($checks, $blockers, $warnings, $jobCard);
 
         return [
             'ready' => $blockers === [],

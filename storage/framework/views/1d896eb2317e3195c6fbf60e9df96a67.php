@@ -112,6 +112,7 @@
                 data-route="<?php echo e(Route::currentRouteName()); ?>"
                 data-title="<?php echo e($title); ?>"
                 data-compact-page="<?php echo e($compactPage ? '1' : '0'); ?>"
+                data-compact-workspace="<?php echo e($compactWorkspace ? '1' : '0'); ?>"
                 data-app-name="<?php echo e(config('app.name')); ?>"
                 data-quick-create="<?php echo e(json_encode($frameQuickCreate, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT)); ?>"
                 data-i18n-create="<?php echo e(__('Create')); ?>"

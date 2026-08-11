@@ -122,6 +122,93 @@ function extractValidationPresentationFromDoc(doc) {
     };
 }
 
+function extractModalLoadErrorsFromHtml(html, status = null) {
+    if (! html) {
+        if (status === 403) {
+            return {
+                messages: ['You do not have permission to open this form.'],
+                presentation: { category_label: 'Access Denied' },
+            };
+        }
+
+        if (status === 404) {
+            return {
+                messages: ['The requested form or record could not be found.'],
+                presentation: { category_label: 'Not Found' },
+            };
+        }
+
+        return {
+            messages: [`Unable to open form${status ? ` (${status})` : ''}. Please try again.`],
+            presentation: { category_label: 'Unable to open form' },
+        };
+    }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const validationErrors = extractValidationErrorsFromDoc(doc);
+
+    if (validationErrors.length > 0) {
+        return {
+            messages: validationErrors,
+            presentation: extractValidationPresentationFromDoc(doc),
+        };
+    }
+
+    const errorBox = doc.querySelector('[data-erp-form-modal-panel] .rounded-lg.border-rose-200')
+        ?? doc.querySelector('.rounded-lg.border-rose-200.bg-rose-50');
+
+    if (errorBox) {
+        const message = errorBox.querySelector('p.font-medium')?.textContent?.trim();
+        const detail = errorBox.querySelector('p.text-xs')?.textContent?.trim();
+        const categoryLabel = doc.querySelector('.erp-form-modal__title')?.textContent?.trim();
+
+        if (message) {
+            return {
+                messages: [message],
+                presentation: {
+                    category: categoryLabel || 'System Errors',
+                    category_label: categoryLabel || 'System Errors',
+                    detail: detail || null,
+                },
+            };
+        }
+    }
+
+    const modalTitle = doc.querySelector('.erp-form-modal__title')?.textContent?.trim();
+
+    if (status === 403) {
+        return {
+            messages: ['You do not have permission to open this form.'],
+            presentation: { category_label: modalTitle || 'Access Denied' },
+        };
+    }
+
+    if (status === 404) {
+        return {
+            messages: ['The requested form or record could not be found.'],
+            presentation: { category_label: modalTitle || 'Not Found' },
+        };
+    }
+
+    const exceptionMessage = doc.querySelector('.exception-message')?.textContent?.trim()
+        ?? doc.querySelector('.break-all')?.textContent?.trim();
+
+    if (exceptionMessage) {
+        return {
+            messages: [exceptionMessage],
+            presentation: {
+                category_label: modalTitle || 'System Errors',
+                detail: doc.querySelector('title')?.textContent?.trim() || null,
+            },
+        };
+    }
+
+    return {
+        messages: [`Unable to open form${status ? ` (${status})` : ''}. Please try again.`],
+        presentation: { category_label: modalTitle || 'Unable to open form' },
+    };
+}
+
 function showErpFormErrorAlert(messages, errorDetails = null) {
     const items = (Array.isArray(messages) ? messages : [messages])
         .map((message) => String(message ?? '').trim())
@@ -887,14 +974,31 @@ const erpModalManager = {
                 return;
             }
 
+            const responseText = await response.text();
+            const responseUrl = response.url || url;
+
             if (! response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                this.handleModalLoadFailure({
+                    url: responseUrl,
+                    status: response.status,
+                    html: responseText,
+                    reason: `HTTP ${response.status}`,
+                });
+
+                return;
             }
 
-            const panel = this.extractModalPanel(await response.text());
+            const panel = this.extractModalPanel(responseText);
 
             if (! panel) {
-                throw new Error('Modal form markup was not found in the response.');
+                this.handleModalLoadFailure({
+                    url: responseUrl,
+                    status: response.status,
+                    html: responseText,
+                    reason: 'Modal form markup was not found in the response.',
+                });
+
+                return;
             }
 
             this.prepareModalFormContent(panel, url);
@@ -917,17 +1021,36 @@ const erpModalManager = {
             this.pendingModalLoad = false;
             this.modalAbortController = null;
 
-            // Keep the primary modal alive if a nested open failed.
-            if (this.modalStack.length > 0) {
-                this.popModal();
-                this.showToast('Unable to open form. Please try again.', 'error');
-
-                return;
-            }
-
-            this.closeModal();
-            this.showToast('Unable to open form. Please try again.', 'error');
+            this.handleModalLoadFailure({
+                url,
+                status: null,
+                html: '',
+                reason: error?.message || 'Unable to open form. Please try again.',
+            });
         }
+    },
+
+    handleModalLoadFailure({ url, status, html, reason }) {
+        const { messages, presentation } = extractModalLoadErrorsFromHtml(html, status);
+
+        if (this.modalStack.length > 0) {
+            this.popModal();
+        } else {
+            this.closeModal();
+        }
+
+        showErpFormErrorAlert(
+            messages.length > 0 ? messages : [reason || 'Unable to open form. Please try again.'],
+            {
+                status,
+                url,
+                method: 'GET',
+                detail: presentation?.detail
+                    ?? (reason && ! messages.includes(reason) ? reason : null),
+                category: presentation?.category_label ?? presentation?.category ?? 'Unable to open form',
+                timestamp: new Date().toISOString(),
+            },
+        );
     },
 
     closeModal() {

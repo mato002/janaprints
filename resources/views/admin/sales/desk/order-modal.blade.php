@@ -43,7 +43,7 @@
                     <a href="{{ route('admin.invoices.from-sales-order', [$salesOrder, 'from' => 'sales-desk']) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Create invoice') }}</a>
                 @endcan
             </div>
-        @if (request('from') === 'production-floor')
+        @elseif (request('from') === 'production-floor')
             <div class="flex flex-wrap gap-2">
                 <a href="{{ route('admin.sales-orders.show', $salesOrder) }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open full order') }}</a>
             </div>

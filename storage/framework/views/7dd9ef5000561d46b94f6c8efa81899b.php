@@ -1,7 +1,10 @@
 <?php
     use App\Support\Navigation\WorkspaceEmbed;
+    use App\Support\Operator\OperatorModeKey;
+    use App\Support\Operator\OperatorModeRegistry;
 
     $tabData = $tabData ?? [];
+    $productionOperator = OperatorModeRegistry::enabledFor(auth()->user(), OperatorModeKey::Production);
     $dispatchSummary = $dispatchSummary ?? null;
     $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
 
@@ -9,9 +12,15 @@
         'name' => $jobCard->customer->company_name,
         'code' => $jobCard->customer->customer_code,
     ] : null);
-    $salesOrder = $tabData['sales_order'] ?? ($jobCard->salesOrder ? ['number' => $jobCard->salesOrder->order_number] : null);
-    $quotation = $tabData['quotation'] ?? ($jobCard->quotation ? ['number' => $jobCard->quotation->quotation_number] : null);
-    $artwork = $tabData['artwork'] ?? ($jobCard->artworkRequest ? ['number' => $jobCard->artworkRequest->request_number] : null);
+    $salesOrder = isset($tabData['sales_order']['number'])
+        ? $tabData['sales_order']
+        : ($jobCard->salesOrder ? ['number' => $jobCard->salesOrder->order_number] : null);
+    $quotation = isset($tabData['quotation']['number'])
+        ? $tabData['quotation']
+        : ($jobCard->quotation ? ['number' => $jobCard->quotation->quotation_number] : null);
+    $artwork = isset($tabData['artwork']['number'])
+        ? $tabData['artwork']
+        : ($jobCard->artworkRequest ? ['number' => $jobCard->artworkRequest->request_number] : null);
 
     $deliveryNote = $dispatchSummary['summary'] ?? null;
     $hasDeliveryNote = (bool) ($dispatchSummary['has_delivery_note'] ?? false);
@@ -23,10 +32,13 @@
     <?php if($jobCard->salesOrder || $salesOrder): ?>
         <?php if($jobCard->salesOrder && auth()->user()?->can('view', $jobCard->salesOrder)): ?>
             <a
-                href="<?php echo e(route('admin.sales-orders.show', $jobCard->salesOrder)); ?>"
+                href="<?php echo e(route('admin.sales-orders.show', array_filter([
+                    'salesOrder' => $jobCard->salesOrder,
+                    'from' => $productionOperator ? 'production-floor' : null,
+                ]))); ?>"
                 class="job-360-commercial-chips__chip job-360-commercial-chips__chip--link"
                 title="<?php echo e(__('Sales order')); ?>"
-                <?php $__currentLoopData = $linkTurboAttrs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $attr => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?> <?php echo e($attr); ?>="<?php echo e($val); ?>" <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                <?php if($productionOperator): ?> data-erp-modal-open <?php else: ?> <?php $__currentLoopData = $linkTurboAttrs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $attr => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?> <?php echo e($attr); ?>="<?php echo e($val); ?>" <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?> <?php endif; ?>
             >
                 <span class="job-360-commercial-chips__abbr"><?php echo e(__('SO')); ?></span>
                 <span class="mes-chip-status mes-chip-status--ok" aria-hidden="true">✓</span>
@@ -57,7 +69,7 @@
             <span class="job-360-commercial-chips__chip" title="<?php echo e(__('Quotation')); ?>">
                 <span class="job-360-commercial-chips__abbr"><?php echo e(__('QT')); ?></span>
                 <span class="mes-chip-status mes-chip-status--ok" aria-hidden="true">✓</span>
-                <span class="job-360-commercial-chips__value"><?php echo e($quotation['number']); ?></span>
+                <span class="job-360-commercial-chips__value"><?php echo e($quotation['number'] ?? $jobCard->quotation?->quotation_number); ?></span>
             </span>
         <?php endif; ?>
     <?php else: ?>
@@ -78,7 +90,7 @@
             <a href="<?php echo e(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'artwork'])); ?>" class="job-360-commercial-chips__chip job-360-commercial-chips__chip--link" <?php $__currentLoopData = $linkTurboAttrs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $attr => $val): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?> <?php echo e($attr); ?>="<?php echo e($val); ?>" <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?> title="<?php echo e(__('Artwork')); ?>">
                 <span class="job-360-commercial-chips__abbr"><?php echo e(__('AW')); ?></span>
                 <span class="mes-chip-status mes-chip-status--ok" aria-hidden="true">✓</span>
-                <span class="job-360-commercial-chips__value"><?php echo e($artwork['number']); ?></span>
+                <span class="job-360-commercial-chips__value"><?php echo e($artwork['number'] ?? $jobCard->artworkRequest?->request_number); ?></span>
             </a>
         <?php endif; ?>
     <?php else: ?>

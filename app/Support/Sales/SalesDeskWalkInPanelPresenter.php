@@ -173,7 +173,9 @@ class SalesDeskWalkInPanelPresenter
             $this->dashboardRow('customer', __('Customer'), $byKey, ['customer', 'order_status']),
             $this->dashboardRow('specification', __('Specification'), $byKey, ['production_spec', 'spec_approval', 'job_card']),
             $this->dashboardRow('artwork', __('Artwork'), $byKey, ['artwork']),
-            $this->dashboardRow('materials', __('Materials'), $byKey, ['materials']),
+            $this->dashboardRow('materials', __('Materials'), $byKey, ['materials'], [
+                'has_job_card' => ! empty($orderPresentation['job_card_id']),
+            ]),
             $this->dashboardRow('machine', __('Routing'), $byKey, ['routing', 'queue_route']),
             $this->dashboardRow('commercial', __('Commercial'), $byKey, ['commercial', 'due_date']),
         ];
@@ -232,7 +234,7 @@ class SalesDeskWalkInPanelPresenter
      * @param  list<string>  $keys
      * @return array<string, mixed>
      */
-    protected function dashboardRow(string $id, string $label, $byKey, array $keys): array
+    protected function dashboardRow(string $id, string $label, $byKey, array $keys, array $context = []): array
     {
         $relevant = collect($keys)
             ->map(fn (string $key) => $byKey->get($key))
@@ -240,12 +242,17 @@ class SalesDeskWalkInPanelPresenter
             ->values();
 
         if ($relevant->isEmpty()) {
+            $pendingWhenJobExists = $id === 'materials'
+                && ! empty($context['has_job_card'] ?? false);
+
             return [
                 'id' => $id,
                 'label' => $label,
-                'passed' => true,
-                'severity' => 'info',
-                'message' => __('Not applicable'),
+                'passed' => ! $pendingWhenJobExists,
+                'severity' => $pendingWhenJobExists ? 'blocker' : 'info',
+                'message' => $pendingWhenJobExists
+                    ? __('Material requirements have not been assessed yet.')
+                    : __('Not applicable'),
             ];
         }
 

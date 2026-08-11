@@ -75,8 +75,6 @@
                 'dispatchSummary' => $dispatchSummary,
             ], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
         </div>
-
-        <?php echo $__env->make('admin.production.job-cards.workspace.partials.mes-quick-nav', ['jobCard' => $jobCard], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
     </div>
 </div>
 <?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\admin\production\job-cards\workspace\partials\mes-dashboard.blade.php ENDPATH**/ ?>

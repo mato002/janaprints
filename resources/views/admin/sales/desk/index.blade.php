@@ -476,6 +476,8 @@
                                     <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Release readiness') }}</p>
                                     @if ($releaseReady)
                                         <span class="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800">{{ __('Ready') }}</span>
+                                    @else
+                                        <span class="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-800">{{ __('Not ready') }}</span>
                                     @endif
                                 </div>
                                 <ul class="divide-y divide-slate-100 rounded-lg border border-erp-border bg-white text-sm">
@@ -498,6 +500,11 @@
                                 </ul>
                                 @if ($releaseReady)
                                     <p class="mt-3 text-sm font-semibold uppercase tracking-wide text-emerald-800">{{ __('Ready for production') }}</p>
+                                @elseif (! empty($orderPresentation['readiness']['blockers']))
+                                    <p class="mt-3 text-sm text-rose-800">{{ $orderPresentation['readiness']['blockers'][0] }}</p>
+                                    @if ($orderPresentation['job_url'] ?? null)
+                                        <a href="{{ $orderPresentation['job_url'] }}" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open>{{ __('Open job card to resolve materials') }}</a>
+                                    @endif
                                 @endif
                             </div>
                         @endif

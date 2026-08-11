@@ -285,6 +285,28 @@ class SalesOperatorModeTest extends TestCase
             ->assertSee(__('Contact'), false);
     }
 
+    public function test_sales_order_show_from_sales_desk_renders_modal_panel(): void
+    {
+        $sales = $this->userWithRole('Sales');
+        $companyId = $sales->company_id;
+        $branchId = $sales->default_branch_id;
+        session(['active_company_id' => $companyId, 'active_branch_id' => $branchId]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'order_number' => 'JANA-HQ-SO-'.now()->year.'-00099',
+            'status' => SalesOrderStatus::Confirmed,
+        ]);
+
+        $this->actingAs($sales)
+            ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])
+            ->get(route('admin.sales-orders.show', [$order, 'from' => 'sales-desk']))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee($order->order_number, false);
+    }
+
     protected function userWithRole(string $role): User
     {
         $user = User::factory()->create([

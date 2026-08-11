@@ -4,6 +4,7 @@ namespace Tests\Feature\Production;
 
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\CustomerStatus;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionSpecificationApprovalStatus;
 use App\Enums\QuotationStatus;
 use App\Enums\SalesOrderStatus;
@@ -11,12 +12,12 @@ use App\Models\Artwork\ArtworkRequest;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
+use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionSpecification;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Services\Production\ProductionReleaseReadinessService;
-use App\Support\Sales\SalesOrderWorkflowService;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Role;
@@ -51,14 +52,36 @@ class ProductionReleaseReadinessTest extends TestCase
         $this->assertFalse($assessment['ready']);
     }
 
-    public function test_release_allowed_when_checks_pass(): void
+    public function test_draft_job_without_materials_blocks_readiness(): void
     {
         [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
 
-        $jobCard = app(SalesOrderWorkflowService::class)->releaseToProduction($order->fresh(), $user->id);
+        ProductionJobCard::factory()->create([
+            'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
+            'sales_order_id' => $order->id,
+            'customer_id' => $order->customer_id,
+            'status' => ProductionJobCardStatus::Draft,
+            'created_by' => $user->id,
+        ]);
 
-        $this->assertNotNull($jobCard->id);
-        $this->assertDatabaseHas('production_job_cards', ['sales_order_id' => $order->id]);
+        $assessment = app(ProductionReleaseReadinessService::class)->assess($order->fresh(['jobCard']), $user);
+
+        $this->assertFalse($assessment['ready']);
+        $materialsCheck = collect($assessment['checks'])->firstWhere('key', 'materials');
+        $this->assertNotNull($materialsCheck);
+        $this->assertFalse($materialsCheck['passed']);
+    }
+
+    public function test_assess_ready_when_prerequisites_pass_without_draft_job(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
+
+        $assessment = app(ProductionReleaseReadinessService::class)->assess($order->fresh(), $user);
+
+        $this->assertTrue($assessment['ready']);
+        $materialsCheck = collect($assessment['checks'])->firstWhere('key', 'materials');
+        $this->assertSame('warning', $materialsCheck['severity'] ?? null);
     }
 
     /**
