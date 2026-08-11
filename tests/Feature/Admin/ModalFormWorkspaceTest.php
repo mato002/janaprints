@@ -176,6 +176,8 @@ class ModalFormWorkspaceTest extends TestCase
                 'credit_limit' => 0,
             ]);
 
+        $response->assertOk();
+
         $customer = Customer::query()->where('company_name', 'Sales Desk Modal Customer Ltd')->firstOrFail();
 
         $response->assertSee('data-erp-modal-success', false);
