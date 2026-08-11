@@ -69,6 +69,28 @@ class StoreDeskOperatorFlowTest extends TestCase
         $this->assertStringContainsString('store-operations', (string) $redirect);
     }
 
+    public function test_storekeeper_login_and_legacy_workspace_url_do_not_redirect_loop(): void
+    {
+        [$company, $branch, $user] = $this->storeContext();
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.dashboard'))
+            ->assertRedirect(route('admin.store.desk'));
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.supply-chain.section', [
+                'section' => 'store-operations',
+                'tab' => 'store-desk',
+            ]))
+            ->assertRedirect(route('admin.store.desk'));
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk'))
+            ->assertOk();
+    }
+
     public function test_storekeeper_can_open_inline_register_modes_on_desk(): void
     {
         [$company, $branch, $user, $item, $warehouse] = $this->storeContext();

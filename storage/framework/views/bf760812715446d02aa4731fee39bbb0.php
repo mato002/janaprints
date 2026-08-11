@@ -34,6 +34,7 @@
                             'quote_request' => __('Lead'),
                             'quotation' => __('Quote'),
                             'release' => __('Release'),
+                            'walk_in_pending' => __('Walk-in'),
                             'draft_quote' => __('Draft'),
                             'follow_up' => __('Follow-up'),
                             default => __('Task'),

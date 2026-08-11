@@ -619,6 +619,11 @@
                             </div>
                         <?php endif; ?>
 
+                        <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                            <p class="font-medium text-slate-900"><?php echo e(__('This order is already saved')); ?></p>
+                            <p class="mt-1"><?php echo e(__('You can leave this page anytime. Resume from Needs attention on the Sales Desk, or use Save & continue later below.')); ?></p>
+                        </div>
+
                         <?php if($orderPresentation['can_release'] && ! empty($orderPresentation['readiness']['checks'])): ?>
                             <?php
                                 $releaseDashboard = $walkInPanel['dashboard'] ?? [];
@@ -656,7 +661,7 @@
                                 <?php elseif(! empty($orderPresentation['readiness']['blockers'])): ?>
                                     <p class="mt-3 text-sm text-rose-800"><?php echo e($orderPresentation['readiness']['blockers'][0]); ?></p>
                                     <?php if($orderPresentation['materials_handoff_url'] ?? null): ?>
-                                        <a href="<?php echo e($orderPresentation['materials_handoff_url']); ?>" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open><?php echo e(__('View material shortages')); ?></a>
+                                        <a href="<?php echo e($orderPresentation['materials_handoff_url']); ?>" class="mt-2 inline-block text-xs font-semibold text-erp-accent hover:underline" data-erp-modal-open><?php echo e(__('What needs to be fixed?')); ?></a>
                                     <?php endif; ?>
                                 <?php endif; ?>
                             </div>
@@ -698,9 +703,15 @@
                         <?php endif; ?>
 
                         <div class="flex flex-wrap gap-2">
+                            <?php if($orderPresentation['park_url'] ?? null): ?>
+                                <form method="POST" action="<?php echo e($orderPresentation['park_url']); ?>" class="inline">
+                                    <?php echo csrf_field(); ?>
+                                    <button type="submit" class="erp-btn-secondary text-sm"><?php echo e(__('Save & continue later')); ?></button>
+                                </form>
+                            <?php endif; ?>
                             <a href="<?php echo e($orderPresentation['show_url']); ?>" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Open sales order')); ?></a>
                             <?php if($orderPresentation['job_url']): ?>
-                                <a href="<?php echo e(WorkspaceEmbed::url($orderPresentation['job_url'])); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="<?php echo e($deskFrame); ?>" data-turbo-action="advance"><?php echo e(__('Open job card')); ?></a>
+                                <a href="<?php echo e(WorkspaceEmbed::url($orderPresentation['job_url'])); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance"><?php echo e(__('Open job card')); ?></a>
                             <?php endif; ?>
                         </div>
                      <?php echo $__env->renderComponent(); ?>
@@ -764,7 +775,7 @@
                         <div class="flex flex-wrap gap-2">
                             <a href="<?php echo e($orderPresentation['show_url']); ?>" class="erp-btn-secondary text-sm" data-erp-modal-open><?php echo e(__('Open sales order')); ?></a>
                             <?php if($orderPresentation['job_url']): ?>
-                                <a href="<?php echo e(WorkspaceEmbed::url($orderPresentation['job_url'])); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="<?php echo e($deskFrame); ?>" data-turbo-action="advance"><?php echo e(__('Open job card')); ?></a>
+                                <a href="<?php echo e(WorkspaceEmbed::url($orderPresentation['job_url'])); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance"><?php echo e(__('Open job card')); ?></a>
                             <?php endif; ?>
                             <?php if(! empty($orderPresentation['production']['department_queue_url'])): ?>
                                 <a href="<?php echo e(WorkspaceEmbed::url($orderPresentation['production']['department_queue_url'])); ?>" class="erp-btn-secondary text-sm" data-turbo-frame="<?php echo e($deskFrame); ?>" data-turbo-action="advance"><?php echo e(__('Open production queue')); ?></a>

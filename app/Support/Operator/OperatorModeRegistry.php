@@ -212,14 +212,14 @@ final class OperatorModeRegistry
                 key: OperatorModeKey::Storekeeper,
                 role: 'Storekeeper',
                 permissions: ['inventory.view'],
-                homeRoute: 'admin.workspaces.supply-chain.section',
+                homeRoute: 'admin.store.desk',
                 fromKey: 'store-desk',
                 returnQueryFlag: 'store_desk_return',
                 navRemap: [
                     'dashboard' => [
                         'label' => 'Store Desk',
-                        'route' => 'admin.workspaces.supply-chain.section',
-                        'route_params' => ['section' => 'store-operations', 'tab' => 'store-desk'],
+                        'route' => 'admin.store.desk',
+                        'route_params' => [],
                         'icon' => 'cube',
                         'active_routes' => [
                             'admin.workspaces.supply-chain.section:store-operations',
@@ -236,8 +236,8 @@ final class OperatorModeRegistry
                     ],
                     'supply-chain' => [
                         'label' => 'Store Desk',
-                        'route' => 'admin.workspaces.supply-chain.section',
-                        'route_params' => ['section' => 'store-operations', 'tab' => 'store-desk'],
+                        'route' => 'admin.store.desk',
+                        'route_params' => [],
                         'icon' => 'cube',
                         'active_routes' => [
                             'admin.workspaces.supply-chain.section:store-operations',
@@ -253,7 +253,7 @@ final class OperatorModeRegistry
                         ],
                     ],
                 ],
-                homeRouteParams: ['section' => 'store-operations', 'tab' => 'store-desk'],
+                homeRouteParams: [],
             ),
         ];
     }
