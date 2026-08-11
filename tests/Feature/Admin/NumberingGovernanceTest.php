@@ -180,6 +180,35 @@ class NumberingGovernanceTest extends TestCase
         $generator->generate(DocumentType::Invoice, $company->id, $branch->id);
     }
 
+    public function test_sequence_syncs_when_existing_document_numbers_are_ahead_of_counter(): void
+    {
+        $company = Company::query()->where('code', 'JANA')->firstOrFail();
+        $branch = Branch::query()->where('company_id', $company->id)->where('code', 'HQ')->firstOrFail();
+        $generator = app(NumberGenerator::class);
+        $year = now()->year;
+        $existingNumber = "JANA-HQ-SO-{$year}-00001";
+
+        \App\Models\Sales\SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'order_number' => $existingNumber,
+        ]);
+
+        NumberingSequence::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->where('document_type', DocumentType::SalesOrder->value)
+            ->update(['next_number' => 1]);
+
+        $number = $generator->generate(DocumentType::SalesOrder, $company->id, $branch->id);
+
+        $this->assertSame("JANA-HQ-SO-{$year}-00002", $number);
+        $this->assertSame(3, NumberingSequence::query()
+            ->where('document_type', DocumentType::SalesOrder->value)
+            ->where('branch_id', $branch->id)
+            ->value('next_number'));
+    }
+
     /**
      * @param  list<string>  $permissions
      */

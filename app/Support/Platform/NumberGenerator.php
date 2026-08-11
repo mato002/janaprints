@@ -13,6 +13,7 @@ class NumberGenerator
 {
     public function __construct(
         protected SystemSettingsService $settings,
+        protected DocumentNumberFloorResolver $floorResolver,
     ) {}
 
     public function generate(
@@ -30,6 +31,7 @@ class NumberGenerator
             }
 
             $this->applyYearRollover($sequence, $documentType, $companyId, $branchId);
+            $this->ensureSequenceAheadOfExisting($sequence, $documentType, $companyId, $branchId);
 
             $number = (int) $sequence->next_number;
             $sequence->increment('next_number');
@@ -110,6 +112,8 @@ class NumberGenerator
             ->first();
 
         if ($sequence) {
+            $this->ensureSequenceAheadOfExisting($sequence, $documentType, $companyId, $branchId);
+
             return $sequence;
         }
 
@@ -132,7 +136,31 @@ class NumberGenerator
             'include_branch_code' => $isCompanyLevel ? false : true,
         ]);
 
-        return NumberingSequence::query()->lockForUpdate()->findOrFail($created->id);
+        $sequence = NumberingSequence::query()->lockForUpdate()->findOrFail($created->id);
+        $this->ensureSequenceAheadOfExisting($sequence, $documentType, $companyId, $branchId);
+
+        return $sequence;
+    }
+
+    protected function ensureSequenceAheadOfExisting(
+        NumberingSequence $sequence,
+        DocumentType $documentType,
+        int $companyId,
+        ?int $branchId,
+    ): void {
+        $floor = $this->floorResolver->highestUsedNumber(
+            $documentType,
+            $companyId,
+            $branchId,
+            (bool) $sequence->include_year,
+        );
+
+        if ($floor <= 0 || (int) $sequence->next_number > $floor) {
+            return;
+        }
+
+        $sequence->update(['next_number' => $floor + 1]);
+        $sequence->refresh();
     }
 
     protected function applyYearRollover(
