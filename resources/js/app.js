@@ -62,12 +62,12 @@ function showErpSweetAlert(message, variant = 'success', options = {}) {
     });
 }
 
-function extractValidationErrorsFromDoc(doc) {
-    if (! doc) {
+function extractValidationErrorsFromDoc(root) {
+    if (! root?.querySelectorAll) {
         return [];
     }
 
-    const fromHidden = [...doc.querySelectorAll('[data-erp-validation-errors] [data-erp-validation-message]')]
+    const fromHidden = [...root.querySelectorAll('[data-erp-validation-errors] [data-erp-validation-message]')]
         .map((element) => element.textContent?.trim())
         .filter(Boolean);
 
@@ -75,7 +75,7 @@ function extractValidationErrorsFromDoc(doc) {
         return [...new Set(fromHidden)];
     }
 
-    const fromList = [...doc.querySelectorAll('[data-erp-validation-errors] li')]
+    const fromList = [...root.querySelectorAll('[data-erp-validation-errors] li')]
         .map((element) => element.textContent?.trim())
         .filter(Boolean);
 
@@ -83,7 +83,7 @@ function extractValidationErrorsFromDoc(doc) {
         return [...new Set(fromList)];
     }
 
-    const fromSpans = [...doc.querySelectorAll('[data-erp-validation-errors] > span, [data-erp-validation-errors] span[data-erp-validation-message]')]
+    const fromSpans = [...root.querySelectorAll('[data-erp-validation-errors] > span, [data-erp-validation-errors] span[data-erp-validation-message]')]
         .map((element) => element.textContent?.trim())
         .filter(Boolean);
 
@@ -91,7 +91,7 @@ function extractValidationErrorsFromDoc(doc) {
         return [...new Set(fromSpans)];
     }
 
-    const fromFields = [...doc.querySelectorAll('[data-erp-field-error]')]
+    const fromFields = [...root.querySelectorAll('[data-erp-field-error]')]
         .map((element) => element.textContent?.trim())
         .filter(Boolean);
 
@@ -102,8 +102,8 @@ function extractValidationErrorsFromDoc(doc) {
     return [];
 }
 
-function extractValidationPresentationFromDoc(doc) {
-    const marker = doc?.querySelector('[data-erp-validation-errors]');
+function extractValidationPresentationFromDoc(root) {
+    const marker = root?.querySelector?.('[data-erp-validation-errors]');
 
     if (! marker) {
         return null;
@@ -1655,6 +1655,9 @@ const erpModalManager = {
                 ?? doc.querySelector('#erp-form-modal [data-erp-form-modal-panel]');
 
             if (! response.ok && errorPanel) {
+                // Extract before replaceChildren — moving the panel empties these nodes from `doc`.
+                const validationErrors = extractValidationErrorsFromDoc(errorPanel);
+                const validationPresentation = extractValidationPresentationFromDoc(errorPanel);
                 const frame = this.modalFrame();
 
                 if (frame) {
@@ -1662,15 +1665,13 @@ const erpModalManager = {
                     frame.replaceChildren(errorPanel);
                     this.showOverlay();
                     Alpine.initTree(frame);
-                    this.ensureValidationSummary(errorPanel, doc);
-                    this.highlightInvalidFields(errorPanel, doc);
+                    this.ensureValidationSummary(errorPanel, errorPanel);
+                    this.highlightInvalidFields(errorPanel, errorPanel);
 
                     const firstInvalid = errorPanel.querySelector('.erp-input--invalid, .erp-select--invalid, [data-erp-field-error]');
                     firstInvalid?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
                 }
 
-                const validationErrors = extractValidationErrorsFromDoc(doc);
-                const validationPresentation = extractValidationPresentationFromDoc(doc);
                 showErpFormErrorAlert(
                     validationErrors.length > 0
                         ? validationErrors
@@ -1691,17 +1692,23 @@ const erpModalManager = {
             const frame = this.modalFrame();
 
             if (panel && frame) {
+                const panelHasValidation = this.hasValidationErrors(panel);
+                const validationErrors = panelHasValidation
+                    ? extractValidationErrorsFromDoc(panel)
+                    : [];
+                const validationPresentation = panelHasValidation
+                    ? extractValidationPresentationFromDoc(panel)
+                    : null;
+
                 this.prepareModalFormContent(panel, modalFormUrl || modalReturnUrl || response.url);
                 frame.replaceChildren(panel);
                 this.showOverlay();
                 Alpine.initTree(frame);
 
-                if (this.hasValidationErrors(doc)) {
-                    this.ensureValidationSummary(panel, doc);
-                    this.highlightInvalidFields(panel, doc);
+                if (panelHasValidation) {
+                    this.ensureValidationSummary(panel, panel);
+                    this.highlightInvalidFields(panel, panel);
 
-                    const validationErrors = extractValidationErrorsFromDoc(doc);
-                    const validationPresentation = extractValidationPresentationFromDoc(doc);
                     showErpFormErrorAlert(
                         validationErrors.length > 0
                             ? validationErrors
