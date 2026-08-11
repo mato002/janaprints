@@ -83,10 +83,9 @@ class SalesDeskActionPresenter
             'edit_url' => auth()->user()?->can('update', $salesOrder)
                 ? route('admin.sales-orders.edit', [$salesOrder, 'from' => 'sales-desk'])
                 : null,
-            'job_url' => $salesOrder->jobCard
+            'job_url' => $salesOrder->jobCard && auth()->user()?->can('view', $salesOrder->jobCard)
                 ? route('admin.production.job-cards.show', [
                     $salesOrder->jobCard,
-                    'from' => 'sales-desk',
                     'tab' => 'materials',
                 ])
                 : null,

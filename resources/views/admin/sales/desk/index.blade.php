@@ -556,7 +556,7 @@
                             @endif
                             <a href="{{ $orderPresentation['show_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open sales order') }}</a>
                             @if ($orderPresentation['job_url'])
-                                <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open job card') }}</a>
+                                <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open job card') }}</a>
                             @endif
                         </div>
                     </x-admin.card>
@@ -600,7 +600,7 @@
                         <div class="flex flex-wrap gap-2">
                             <a href="{{ $orderPresentation['show_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Open sales order') }}</a>
                             @if ($orderPresentation['job_url'])
-                                <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open job card') }}</a>
+                                <a href="{{ WorkspaceEmbed::url($orderPresentation['job_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open job card') }}</a>
                             @endif
                             @if (! empty($orderPresentation['production']['department_queue_url']))
                                 <a href="{{ WorkspaceEmbed::url($orderPresentation['production']['department_queue_url']) }}" class="erp-btn-secondary text-sm" data-turbo-frame="{{ $deskFrame }}" data-turbo-action="advance">{{ __('Open production queue') }}</a>

@@ -127,6 +127,30 @@ class ProductionReleaseReadinessTest extends TestCase
             ->assertSessionHas('status');
     }
 
+    public function test_sales_desk_user_can_open_linked_job_card_without_production_view(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
+
+        $jobCard = ProductionJobCard::factory()->create([
+            'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
+            'sales_order_id' => $order->id,
+            'customer_id' => $order->customer_id,
+            'status' => ProductionJobCardStatus::Draft,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'erp-main'])
+            ->get(route('admin.production.job-cards.show', [
+                'jobCard' => $jobCard,
+                'tab' => 'materials',
+            ]))
+            ->assertOk()
+            ->assertSee('data-turbo-frame="erp-main"', false)
+            ->assertSee($jobCard->job_card_number, false);
+    }
+
     /**
      * @return array{0: User, 1: SalesOrder}
      */

@@ -94,8 +94,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('job-cards', [ProductionJobCardController::class, 'store'])->name('job-cards.store');
         });
 
+        // Policy on ProductionJobCardController::show also allows sales_orders.production
+        // for order-linked cards — do not gate the route on production.view alone.
+        Route::get('job-cards/{jobCard}', [ProductionJobCardController::class, 'show'])->name('job-cards.show');
+
         Route::middleware('permission:production.view')->group(function () {
-            Route::get('job-cards/{jobCard}', [ProductionJobCardController::class, 'show'])->name('job-cards.show');
             Route::get('job-cards/{jobCard}/floor-display', [ProductionGovernanceController::class, 'floorDisplay'])->name('job-cards.floor-display');
             Route::get('outputs', [ProductionOutputController::class, 'index'])->name('outputs.index');
         });
