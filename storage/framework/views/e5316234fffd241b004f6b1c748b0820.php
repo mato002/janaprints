@@ -1,2 +1,0 @@
-<?php echo $__env->make('admin.companies.form', ['company' => $company, 'action' => route('admin.companies.update', $company), 'method' => 'PUT'], array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
-<?php /**PATH C:\xampp\htdocs\jana-prints\resources\views\admin\companies\edit.blade.php ENDPATH**/ ?>
