@@ -42,7 +42,17 @@ class ProductionFloorController extends Controller
         }
 
         if ($activeFloorView === ProductionFloorDeskViews::REGISTER) {
-            return view('admin.production.floor.index', array_merge($jobCardIndex->build($request), [
+            $payload = $jobCardIndex->build($request);
+
+            // When opening "New job card" from within the production floor register,
+            // ensure the create form submission knows it should return back to the floor context.
+            if (($payload['create_url'] ?? null) && ! $request->filled('from')) {
+                $payload['create_url'] = route('admin.production.job-cards.create', [
+                    'from' => 'production-floor',
+                ]);
+            }
+
+            return view('admin.production.floor.index', array_merge($payload, [
                 'activeFloorView' => $activeFloorView,
                 'operatorMode' => $operatorMode,
                 'deskPersona' => $persona,
