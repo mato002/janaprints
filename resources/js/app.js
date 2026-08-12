@@ -1656,8 +1656,12 @@ const erpModalManager = {
 
             if (! response.ok && errorPanel) {
                 // Extract before replaceChildren — moving the panel empties these nodes from `doc`.
-                const validationErrors = extractValidationErrorsFromDoc(errorPanel);
-                const validationPresentation = extractValidationPresentationFromDoc(errorPanel);
+                let validationErrors = extractValidationErrorsFromDoc(errorPanel);
+                if (validationErrors.length === 0) {
+                    validationErrors = extractValidationErrorsFromDoc(doc);
+                }
+                const validationPresentation = extractValidationPresentationFromDoc(errorPanel)
+                    ?? extractValidationPresentationFromDoc(doc);
                 const frame = this.modalFrame();
 
                 if (frame) {
@@ -1672,17 +1676,17 @@ const erpModalManager = {
                     firstInvalid?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
                 }
 
+                const alertMessages = validationErrors.length > 0
+                    ? validationErrors
+                    : [validationPresentation?.category_label
+                        ? 'Please fix the highlighted fields and try again.'
+                        : `Unable to save form (${response.status}). Please try again.`];
+
                 showErpFormErrorAlert(
-                    validationErrors.length > 0
-                        ? validationErrors
-                        : [`Unable to save form (${response.status}). Please try again.`],
-                    {
-                        status: response.status,
-                        url: erpFormActionUrl(form),
-                        method: method,
-                        timestamp: new Date().toISOString(),
-                        category: validationPresentation?.category_label ?? validationPresentation?.category ?? null,
-                    },
+                    alertMessages,
+                    validationPresentation?.category_label
+                        ? { category: validationPresentation.category_label }
+                        : null,
                 );
 
                 return;

@@ -12,6 +12,8 @@ use Illuminate\Validation\ValidationException;
 
 class ModalFormExceptionRenderer
 {
+    protected static bool $rendering = false;
+
     /**
      * Re-render the modal form with validation errors instead of redirecting.
      */
@@ -23,13 +25,8 @@ class ModalFormExceptionRenderer
         $flatErrors = collect($exception->errors())->flatten()->filter()->values();
         $formUrl = self::resolveFormUrl($request);
 
-        if (! $formUrl) {
-            return response()->view('admin.partials.modal-form-error', [
-                'presentation' => $presentation,
-                'message' => $presentation['message'],
-                'detail' => $presentation['detail'],
-                'validationMessages' => $flatErrors->all(),
-            ], 422);
+        if (! $formUrl || self::$rendering) {
+            return self::errorPanel($presentation, $flatErrors->all());
         }
 
         $errorBag = new ViewErrorBag;
@@ -43,39 +40,88 @@ class ModalFormExceptionRenderer
         $request->session()->now('modal_error', (string) ($flatErrors->first() ?? $presentation['message']));
         View::share('errors', $errorBag);
 
-        $subRequest = Request::create($formUrl, 'GET');
-        $subRequest->headers->set('Turbo-Frame', 'erp-form-modal');
-        $subRequest->headers->set('Accept', 'text/html, application/xhtml+xml');
-        $subRequest->setLaravelSession($request->session());
-        $subRequest->setUserResolver(fn () => $request->user());
+        self::$rendering = true;
 
-        $subResponse = app()->handle($subRequest);
-        $content = $subResponse->getContent();
+        try {
+            $subRequest = Request::create($formUrl, 'GET');
+            $subRequest->headers->set('Turbo-Frame', 'erp-form-modal');
+            $subRequest->headers->set('Accept', 'text/html, application/xhtml+xml');
+            $subRequest->setLaravelSession($request->session());
+            $subRequest->setUserResolver(fn () => $request->user());
 
-        if ($flatErrors->isNotEmpty() && ! str_contains($content, 'data-erp-validation-message')) {
+            $subResponse = app()->handle($subRequest);
+            $content = is_string($subResponse->getContent()) ? $subResponse->getContent() : '';
+        } catch (\Throwable) {
+            return self::errorPanel($presentation, $flatErrors->all());
+        } finally {
+            self::$rendering = false;
+        }
+
+        // Prefer the dedicated error panel when the form URL did not re-render a modal form
+        // (e.g. desk/workspace URL stored in _erp_modal_form_url).
+        if (
+            $subResponse->getStatusCode() >= 400
+            || $content === ''
+            || ! str_contains($content, 'data-erp-form-modal-panel')
+        ) {
+            return self::errorPanel($presentation, $flatErrors->all());
+        }
+
+        // Always ensure markers exist — ShareErrorsFromSession can miss nested app()->handle() renders.
+        if ($flatErrors->isNotEmpty()) {
             $content = self::injectValidationMessages($content, $flatErrors->all(), $presentation);
+        }
+
+        if (! str_contains($content, 'data-erp-validation-message')) {
+            return self::errorPanel($presentation, $flatErrors->all());
         }
 
         return response($content, 422, $subResponse->headers->allPreserveCaseWithoutCookies());
     }
 
+    /**
+     * @param  array<string, mixed>  $presentation
+     * @param  list<string>  $validationMessages
+     */
+    protected static function errorPanel(array $presentation, array $validationMessages): Response
+    {
+        return response()->view('admin.partials.modal-form-error', [
+            'presentation' => $presentation,
+            'message' => $presentation['message'],
+            'detail' => $presentation['detail'],
+            'validationMessages' => $validationMessages,
+        ], 422);
+    }
+
     protected static function resolveFormUrl(Request $request): ?string
     {
+        $inferred = self::inferFormUrlFromRoute($request);
         $formUrl = $request->input('_erp_modal_form_url');
 
-        if (is_string($formUrl) && $formUrl !== '') {
+        if (is_string($formUrl) && $formUrl !== '' && self::looksLikeFormUrl($formUrl)) {
             return $formUrl;
         }
-
-        $inferred = self::inferFormUrlFromRoute($request);
 
         if ($inferred !== null) {
             return $inferred;
         }
 
+        if (is_string($formUrl) && $formUrl !== '') {
+            return $formUrl;
+        }
+
         $returnUrl = $request->input('_erp_modal_return') ?: url()->previous();
 
         return is_string($returnUrl) && $returnUrl !== '' ? $returnUrl : null;
+    }
+
+    protected static function looksLikeFormUrl(string $url): bool
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? $url;
+
+        return (bool) preg_match('#/(create|edit)(/|$|\?)#i', $path)
+            || str_contains($path, '/quick-create')
+            || str_contains($path, '/from-');
     }
 
     protected static function inferFormUrlFromRoute(Request $request): ?string
@@ -119,6 +165,14 @@ class ModalFormExceptionRenderer
      */
     protected static function injectValidationMessages(string $content, array $messages, array $presentation): string
     {
+        // Remove stale markers so re-inject always carries the current messages.
+        $content = preg_replace(
+            '/<div\b[^>]*\bdata-erp-validation-errors\b[^>]*>[\s\S]*?<\/div>/i',
+            '',
+            $content,
+            1,
+        ) ?? $content;
+
         $marker = View::make('admin.partials.modal-validation-alert', [
             'validationMessages' => $messages,
             'validationPresentation' => $presentation,

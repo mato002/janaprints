@@ -27,6 +27,13 @@ class EmailMessagePolicy
             && in_array($message->status, [EmailDeliveryStatus::Failed, EmailDeliveryStatus::Bounced], true);
     }
 
+    public function send(User $user, EmailMessage $message): bool
+    {
+        return $user->can('communications.email.send')
+            && $this->sameCompany($user, $message->company_id)
+            && $message->status === EmailDeliveryStatus::Draft;
+    }
+
     protected function sameCompany(User $user, int $companyId): bool
     {
         return $user->hasRole('Super Admin') || $user->company_id === $companyId;

@@ -26,7 +26,7 @@
                         <td>{{ $row['amount'] }}</td>
                         <td>{{ $row['requested_by'] }}</td>
                         <td>{{ $row['submitted_at']?->format('d M Y') }}</td>
-                        <td>{{ $row['age_days'] }}d</td>
+                        <td>{{ $row['age_label'] ?? (((int) ($row['age_days'] ?? 0)).'d') }}</td>
                         <td>{{ $row['status_label'] }}</td>
                         <td class="erp-table-actions-col">
                             <div class="flex flex-wrap gap-2">

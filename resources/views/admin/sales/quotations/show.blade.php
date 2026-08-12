@@ -1,120 +1,72 @@
-<x-admin-layout :title="$quotation->quotation_number" :breadcrumbs="[['label' => __('Quotations'), 'url' => route('admin.quotations.index')], ['label' => $quotation->quotation_number]]">
-    <x-admin.page-header :title="$quotation->quotation_number" :description="$quotation->customer?->company_name">
-        <x-slot:actions>
-            <span class="erp-badge">{{ str_replace('_', ' ', $quotation->status->value) }}</span>
-            <span class="text-sm text-slate-500">Rev {{ $quotation->revision_number }}</span>
-            @can('view', $quotation)
-                <a href="{{ route('admin.quotations.document', $quotation) }}" class="erp-btn-secondary">{{ __('View document') }}</a>
-                <x-documents.pdf-download-button
-                    :url="route('admin.quotations.document.pdf', $quotation)"
-                    :filename="$quotation->quotation_number"
-                    class="erp-btn-secondary"
-                />
-            @endcan
-            @can('update', $quotation)
-                <a href="{{ route('admin.quotations.edit', $quotation) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
-            @endcan
-        </x-slot:actions>
-    </x-admin.page-header>
+@php
+    use App\Support\Sales\SalesDeskViews;
 
-    <div class="workspace-kpi-grid grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <x-admin.kpi-widget :label="__('Subtotal')" :value="$quotation->currency.' '.number_format($quotation->subtotal, 2)" icon="currency-dollar" />
-        <x-admin.kpi-widget :label="__('Tax')" :value="$quotation->currency.' '.number_format($quotation->tax_amount, 2)" icon="receipt-tax" />
-        <x-admin.kpi-widget :label="__('Total')" :value="$quotation->currency.' '.number_format($quotation->total_amount, 2)" icon="calculator" />
-    </div>
+    $fromSalesDesk = request('from') === 'sales-desk';
+    $breadcrumbs = $fromSalesDesk
+        ? [
+            ['label' => __('Sales Desk'), 'url' => SalesDeskViews::quotesUrl()],
+            ['label' => $quotation->quotation_number],
+        ]
+        : [
+            ['label' => __('Quotations'), 'url' => route('admin.quotations.index')],
+            ['label' => $quotation->quotation_number],
+        ];
+@endphp
+
+<x-admin-layout :title="$quotation->quotation_number" :breadcrumbs="$breadcrumbs">
+    {{-- 1. Header: identity, status, workflow + document actions --}}
+    <header class="mb-6">
+        @if ($fromSalesDesk)
+            <a
+                href="{{ SalesDeskViews::quotesUrl() }}"
+                class="mb-3 inline-flex items-center text-sm text-slate-600 hover:text-erp-primary"
+                data-turbo-frame="erp-main"
+                data-turbo-action="advance"
+            >← {{ __('Back to Sales Desk') }}</a>
+        @endif
+
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <h1 class="text-dashboard-title font-mono text-erp-primary">{{ $quotation->quotation_number }}</h1>
+                <p class="mt-1 text-sm text-slate-500">{{ __('Revision :n', ['n' => $quotation->revision_number]) }}</p>
+            </div>
+
+            <div class="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                <x-admin.enum-status-badge :status="$quotation->status->value" />
+
+                @include('admin.sales.quotations.partials.show-workflow-actions')
+
+                @can('view', $quotation)
+                    <a href="{{ route('admin.quotations.document', $quotation) }}" class="erp-btn-secondary">{{ __('View document') }}</a>
+                    <x-documents.pdf-download-button
+                        :url="route('admin.quotations.document.pdf', $quotation)"
+                        :filename="$quotation->quotation_number"
+                        class="erp-btn-secondary"
+                    />
+                @endcan
+                @can('update', $quotation)
+                    <a href="{{ route('admin.quotations.edit', $quotation) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
+                @endcan
+            </div>
+        </div>
+    </header>
+
+    <x-admin.workflow-error />
+
+    {{-- 2. Customer / quote summary --}}
+    @include('admin.sales.quotations.partials.show-summary')
+
+    {{-- 3. Line items + pricing (central commercial section) --}}
+    @include('admin.sales.quotations.partials.show-line-items')
 
     @include('admin.sales.quotations.partials.printing-intelligence-estimate')
-    @include('admin.sales.quotations.partials.artwork-link')
 
-    <x-admin.card class="mb-6">
-        <h3 class="font-medium mb-3">{{ __('Workflow') }}</h3>
-        <x-admin.workflow-error />
-        <div class="workspace-action-bar flex flex-wrap gap-2">
-            @if ($quotation->status === App\Enums\QuotationStatus::Draft)
-                @can('transition', $quotation)
-                    <form method="POST" action="{{ route('admin.quotations.submit-approval', $quotation) }}">@csrf
-                        <button class="erp-btn-secondary">{{ __('Submit for approval') }}</button></form>
-                @endcan
-            @endif
-            @if ($quotation->status === App\Enums\QuotationStatus::PendingApproval)
-                @can('approve', $quotation)
-                    <form method="POST" action="{{ route('admin.quotations.approve', $quotation) }}">@csrf
-                        <button class="erp-btn-primary">{{ __('Approve & send') }}</button></form>
-                @endcan
-                @can('send', $quotation)
-                    <form method="POST" action="{{ route('admin.quotations.send', $quotation) }}">@csrf
-                        <button class="erp-btn-secondary">{{ __('Send') }}</button></form>
-                @endcan
-            @endif
-            @if ($quotation->status === App\Enums\QuotationStatus::Sent)
-                @can('transition', $quotation)
-                    <form method="POST" action="{{ route('admin.quotations.mark-viewed', $quotation) }}">@csrf
-                        <button class="erp-btn-secondary">{{ __('Mark viewed') }}</button></form>
-                @endcan
-            @endif
-            @if ($quotation->status === App\Enums\QuotationStatus::Viewed)
-                @can('transition', $quotation)
-                    <form method="POST" action="{{ route('admin.quotations.accept', $quotation) }}">@csrf
-                        <button class="erp-btn-primary">{{ __('Accept') }}</button></form>
-                    <form method="POST" action="{{ route('admin.quotations.reject', $quotation) }}">@csrf
-                        <button class="erp-btn-secondary text-red-600">{{ __('Reject') }}</button></form>
-                @endcan
-            @endif
-            @if ($quotation->status === App\Enums\QuotationStatus::Accepted)
-                @can('convert', $quotation)
-                    <a
-                        href="{{ route('admin.sales-orders.create', ['quotation_id' => $quotation->id, 'tab' => 'quotation', 'customer_id' => $quotation->customer_id]) }}"
-                        class="erp-btn-primary"
-                        data-turbo-frame="erp-form-modal"
-                    >{{ __('Convert to sales order') }}</a>
-                    <form method="POST" action="{{ route('admin.quotations.convert', $quotation) }}" class="inline">@csrf
-                        <button class="erp-btn-secondary">{{ __('Quick convert') }}</button></form>
-                @endcan
-            @endif
-            @if ($quotation->salesOrder)
-                @can('view', $quotation->salesOrder)
-                    <a href="{{ route('admin.sales-orders.show', $quotation->salesOrder) }}" class="erp-btn-secondary">{{ __('View sales order') }}</a>
-                @endcan
-            @endif
-        </div>
-    </x-admin.card>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <x-admin.card>
-            <h3 class="font-medium mb-3">{{ __('Line items') }}</h3>
-            <table class="erp-table text-sm">
-                <thead><tr><th>{{ __('Item') }}</th><th>{{ __('Qty') }}</th><th>{{ __('Total') }}</th></tr></thead>
-                <tbody>
-                    @foreach ($quotation->items as $item)
-                        <tr>
-                            <td>{{ $item->item_name }}</td>
-                            <td>{{ $item->quantity }}</td>
-                            <td>{{ number_format($item->line_total, 2) }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </x-admin.card>
-
-        <x-admin.card>
-            <h3 class="font-medium mb-3">{{ __('Revision history') }}</h3>
-            @foreach ($quotation->revisions as $revision)
-                <div class="text-sm border-b py-2">
-                    Rev {{ $revision->revision_number }} — {{ $revision->created_at }}
-                    <span class="text-slate-400">({{ $revision->creator?->name }})</span>
-                </div>
-            @endforeach
-        </x-admin.card>
-
-        <x-admin.card>
-            <h3 class="font-medium mb-3">{{ __('Notes') }}</h3>
-            @foreach ($quotation->quotationNotes as $note)
-                <p class="text-sm border-b py-2">{{ $note->note }} <span class="text-xs text-slate-400">{{ $note->user?->name }}</span></p>
-            @endforeach
-            <form method="POST" action="{{ route('admin.quotations.notes.store', $quotation) }}" class="mt-3">@csrf
-                <textarea name="note" class="erp-input" rows="2" required></textarea>
-                <button class="erp-btn-secondary mt-2 text-sm">{{ __('Add note') }}</button>
-            </form>
-        </x-admin.card>
+    {{-- 4. Production + history (two-column supporting panel) --}}
+    <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        @include('admin.sales.quotations.partials.artwork-link', ['variant' => 'panel'])
+        @include('admin.sales.quotations.partials.show-activity')
     </div>
+
+    {{-- 5. Notes --}}
+    @include('admin.sales.quotations.partials.show-notes')
 </x-admin-layout>

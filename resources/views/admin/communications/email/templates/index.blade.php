@@ -1,6 +1,6 @@
-<x-admin-layout :title="__('Email templates')">
-    @include('admin.communications.email.partials.nav')
-    <x-admin.page-header :title="__('Email template bindings')" :description="__('COM-1 email templates linked for campaigns and automation.')">
+<x-admin-layout :title="__('Email templates')" :breadcrumbs="[['label' => __('Email'), 'url' => route('admin.communications.email.dashboard')], ['label' => __('Templates')]]">
+    @include('admin.communications.email.partials.mailbox-chrome')
+    <x-admin.page-header :title="__('Templates')" :description="__('Reusable email templates for campaigns and follow-ups.')">
         @can('manage', App\Models\Communications\EmailCampaign::class)
             <x-slot:actions><form method="POST" action="{{ route('admin.communications.email.templates.sync') }}">@csrf<button class="erp-btn erp-btn--secondary erp-btn--sm">{{ __('Sync COM-1') }}</button></form></x-slot:actions>
         @endcan

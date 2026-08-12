@@ -28,6 +28,9 @@ class EmailTemplateController extends Controller
         return view('admin.communications.email.templates.index', [
             'bindings' => $this->templates->listBindings($companyId),
             'automationMap' => $this->automation->mapForCompany($companyId),
+            'mailbox' => app(\App\Support\Communications\Email\EmailVisibilityService::class)->mailboxSummary($companyId),
+            'activeFolder' => 'templates',
+            'filters' => [],
         ]);
     }
 

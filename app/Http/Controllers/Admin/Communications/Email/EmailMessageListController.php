@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Communications\EmailCampaign;
 use App\Support\Communications\Email\EmailAccountService;
 use App\Support\Communications\Email\EmailMessageService;
+use App\Support\Communications\Email\EmailVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -17,6 +18,7 @@ abstract class EmailMessageListController extends Controller
     public function __construct(
         protected EmailMessageService $messages,
         protected EmailAccountService $accounts,
+        protected EmailVisibilityService $visibility,
     ) {}
 
     abstract protected function viewName(): string;
@@ -28,7 +30,7 @@ abstract class EmailMessageListController extends Controller
         $this->authorize('viewAny', EmailCampaign::class);
 
         $companyId = $this->requireCompanyId();
-        $filters = $request->only(['status', 'sender', 'module', 'date_from', 'date_to']);
+        $filters = $request->only(['status', 'sender', 'module', 'date_from', 'date_to', 'q']);
 
         $messages = $this->messages
             ->query($companyId, array_merge($filters, ['view' => $this->viewMode()]))
@@ -40,6 +42,8 @@ abstract class EmailMessageListController extends Controller
             'filters' => $filters,
             'accounts' => $this->accounts->listForCompany($companyId),
             'viewMode' => $this->viewMode(),
+            'mailbox' => $this->visibility->mailboxSummary($companyId),
+            'activeFolder' => $this->viewMode() === 'inbox' ? 'needs_attention' : $this->viewMode(),
         ]);
     }
 }

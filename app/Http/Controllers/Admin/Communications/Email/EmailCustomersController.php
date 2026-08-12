@@ -5,17 +5,15 @@ namespace App\Http\Controllers\Admin\Communications\Email;
 use App\Http\Controllers\Admin\Communications\Concerns\ResolvesCommunicationsTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Communications\EmailCampaign;
-use App\Support\Communications\Email\EmailMessageService;
 use App\Support\Communications\Email\EmailVisibilityService;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-class EmailDashboardController extends Controller
+class EmailCustomersController extends Controller
 {
     use ResolvesCommunicationsTenant;
 
     public function __construct(
-        protected EmailMessageService $messages,
         protected EmailVisibilityService $visibility,
     ) {}
 
@@ -26,19 +24,21 @@ class EmailDashboardController extends Controller
         $companyId = $this->requireCompanyId();
         $q = trim((string) $request->get('q', ''));
 
-        $messages = $this->messages
-            ->query($companyId, array_filter([
-                'view' => 'sent',
-                'q' => $q !== '' ? $q : null,
-            ]))
-            ->paginate(25)
-            ->withQueryString();
+        $customers = $this->visibility->topCustomersByEmail($companyId, 50);
 
-        return view('admin.communications.email.dashboard', [
-            'messages' => $messages,
-            'mailbox' => $this->visibility->mailboxSummary($companyId),
+        if ($q !== '') {
+            $needle = mb_strtolower($q);
+            $customers = array_values(array_filter(
+                $customers,
+                fn (array $row) => str_contains(mb_strtolower($row['customer_name']), $needle)
+                    || str_contains(mb_strtolower((string) ($row['email'] ?? '')), $needle),
+            ));
+        }
+
+        return view('admin.communications.email.customers', [
+            'customers' => $customers,
             'filters' => ['q' => $q],
-            'activeFolder' => 'sent',
+            'mailbox' => $this->visibility->mailboxSummary($companyId),
         ]);
     }
 }

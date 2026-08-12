@@ -104,6 +104,49 @@ class SalesOrderFoundationTest extends TestCase
         ]);
     }
 
+    public function test_modal_create_from_quotation_without_selection_shows_validation_message(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'quotations.view', 'sales_orders.view', 'sales_orders.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.sales-orders.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_form_url' => route('admin.sales-orders.create', ['from' => 'sales-desk']),
+                'entry_mode' => 'quotation',
+            ])
+            ->assertStatus(422)
+            ->assertSee('data-erp-validation-message', false)
+            ->assertSee(__('Select a quotation before creating the sales order.'), false);
+    }
+
+    public function test_modal_create_from_quotation_blocks_without_approved_artwork(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'quotations.view', 'sales_orders.view', 'sales_orders.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $quotation = $this->makeAcceptedQuotation($company, $branch, $customer, $user);
+
+        $this->actingAs($user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->post(route('admin.sales-orders.store'), [
+                '_erp_modal' => '1',
+                '_erp_modal_form_url' => route('admin.sales.desk', ['view' => 'orders']),
+                'entry_mode' => 'quotation',
+                'quotation_id' => $quotation->id,
+            ])
+            ->assertStatus(422)
+            ->assertSee('data-erp-validation-message', false)
+            ->assertSee(__('No artwork request is linked to this quotation.'), false);
+    }
+
     public function test_create_form_only_lists_quotations_with_approved_artwork(): void
     {
         [$company, $branch, $customer, $user] = $this->salesContext([

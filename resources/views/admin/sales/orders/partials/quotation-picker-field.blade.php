@@ -18,5 +18,5 @@
 />
 
 <p class="mt-2 text-xs text-slate-500">
-    {{ __('Shows open quotations without a sales order. The quotation must be accepted with approved artwork before conversion.') }}
+    {{ __('Only accepted quotations with approved artwork appear here. If none are listed, accept the quotation and approve artwork first.') }}
 </p>

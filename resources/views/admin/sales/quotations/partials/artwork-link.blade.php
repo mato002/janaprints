@@ -1,21 +1,36 @@
-<x-admin.card class="mb-6">
-    <h3 class="font-medium mb-3">{{ __('Artwork') }}</h3>
+@php
+    $panel = ($variant ?? 'card') === 'panel';
+@endphp
+
+@if ($panel)
+    <x-admin.card>
+        <h2 class="mb-4 font-medium text-slate-900">{{ __('Artwork & print specifications') }}</h2>
+@else
+    <x-admin.card class="mb-6">
+        <h3 class="font-medium mb-3">{{ __('Artwork') }}</h3>
+@endif
 
     @if ($artworkLink['linked'])
-        <div class="mb-4 rounded-lg border border-erp-border bg-slate-50 p-4">
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                    <p class="text-sm font-medium text-slate-900">{{ $artworkLink['linked']['title'] }}</p>
-                    <p class="text-xs text-slate-500">{{ $artworkLink['linked']['number'] }}</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <x-admin.enum-status-badge :status="$artworkLink['linked']['status']" />
-                    <a href="{{ $artworkLink['linked']['url'] }}" class="erp-btn-ghost text-xs">{{ __('Open artwork') }}</a>
-                </div>
+        <dl class="mb-4 space-y-3 text-sm">
+            <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Linked artwork') }}</dt>
+                <dd class="mt-1 font-medium text-slate-900">{{ $artworkLink['linked']['title'] }}</dd>
+                <dd class="text-xs text-slate-500">{{ $artworkLink['linked']['number'] }}</dd>
             </div>
-            @if (! $artworkLink['linked']['is_approved'])
-                <p class="mt-2 text-sm text-amber-700">{{ __('Artwork must be approved before converting this quotation to a sales order.') }}</p>
-            @endif
+            <div>
+                <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Status') }}</dt>
+                <dd class="mt-1">
+                    <x-admin.enum-status-badge :status="$artworkLink['linked']['status']" />
+                </dd>
+            </div>
+        </dl>
+
+        @if (! $artworkLink['linked']['is_approved'])
+            <p class="mb-4 text-sm text-amber-700">{{ __('Artwork must be approved before converting this quotation to a sales order.') }}</p>
+        @endif
+
+        <div class="flex flex-wrap items-center gap-2">
+            <a href="{{ $artworkLink['linked']['url'] }}" class="erp-btn-secondary text-xs">{{ __('Open artwork') }}</a>
         </div>
     @else
         <p class="mb-4 text-sm text-slate-600">{{ __('Link artwork from a print specification or an approved artwork request before converting to a sales order.') }}</p>
@@ -23,7 +38,7 @@
 
     @can('linkArtwork', $quotation)
         @if ($artworkLink['can_link'] && (count($artworkLink['library']) > 0 || count($artworkLink['requests']) > 0))
-            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="space-y-4" x-data="{ source: '{{ count($artworkLink['library']) > 0 ? 'library' : 'request' }}' }">
+            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="mt-4 space-y-4 border-t border-erp-border pt-4" x-data="{ source: '{{ count($artworkLink['library']) > 0 ? 'library' : 'request' }}' }">
                 @csrf
                 <div>
                     <label class="erp-label">{{ __('Artwork source') }}</label>
@@ -65,7 +80,7 @@
                 </div>
             </form>
         @elseif ($artworkLink['can_link'])
-            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="space-y-4">
+            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="mt-4 space-y-4 border-t border-erp-border pt-4">
                 @csrf
                 <input type="hidden" name="artwork_source" value="library">
                 @if ($quotation->customer)

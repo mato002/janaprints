@@ -91,9 +91,12 @@ class SalesOrderController extends Controller
 
         $validated = $request->validate(
             $this->formSettings->mergeValidationRules('sales_order', [
-                'quotation_id' => ['exists:quotations,id'],
+                'quotation_id' => ['required', 'exists:quotations,id'],
             ], $companyId, $branchId),
-            [],
+            [
+                'quotation_id.required' => __('Select a quotation before creating the sales order.'),
+                'quotation_id.exists' => __('The selected quotation is invalid or no longer available.'),
+            ],
             ['quotation_id' => __('quotation')],
         );
 

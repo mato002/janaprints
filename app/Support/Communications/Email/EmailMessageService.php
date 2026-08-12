@@ -87,7 +87,8 @@ class EmailMessageService
         if ($q = trim((string) ($filters['q'] ?? ''))) {
             $query->where(function (Builder $inner) use ($q) {
                 $inner->where('subject', 'like', "%{$q}%")
-                    ->orWhere('body', 'like', "%{$q}%");
+                    ->orWhere('body', 'like', "%{$q}%")
+                    ->orWhere('to_emails', 'like', "%{$q}%");
             });
         }
 
@@ -356,9 +357,13 @@ class EmailMessageService
         $retryCount = (int) ($message->provider_response['retry_count'] ?? 0);
         $lastAttempt = $message->provider_response['last_attempt_at'] ?? null;
 
+        $preview = trim(preg_replace('/\s+/', ' ', strip_tags((string) $message->body)) ?? '');
+        $customer = app(EmailVisibilityService::class)->customerContextForMessage($message);
+
         return [
             'id' => $message->id,
             'subject' => $message->subject,
+            'body_preview' => \Illuminate\Support\Str::limit($preview, 280),
             'sender' => [
                 'email' => $message->account?->from_email,
                 'name' => $message->account?->from_name,
@@ -386,6 +391,13 @@ class EmailMessageService
             'entity_id' => $metadata['entity_id'] ?? null,
             'document_number' => $metadata['document_number'] ?? null,
             'related_entity' => $this->entityLinks->resolve($metadata),
+            'customer' => $customer,
+            'compose_url' => $customer
+                ? route('admin.communications.email.compose', ['to' => $customer['email'], 'customer_id' => $customer['id']])
+                : route('admin.communications.email.compose', [
+                    'to' => collect($message->to_emails)->pluck('email')->first(),
+                ]),
+            'has_attachments' => $message->attachments->isNotEmpty(),
             'attachments' => $message->attachments->map(fn ($attachment) => [
                 'label' => $attachment->label,
                 'type' => $attachment->attachment_type,

@@ -178,6 +178,65 @@ class EmailVisibilityService
     }
 
     /**
+     * Salesperson mailbox folder counts (no infrastructure health).
+     *
+     * @return array{sent: int, drafts: int, queued: int, needs_attention: int}
+     */
+    public function mailboxSummary(int $companyId): array
+    {
+        $base = EmailMessage::query()->where('company_id', $companyId);
+
+        return [
+            'sent' => (clone $base)->whereIn('status', [
+                EmailDeliveryStatus::Sent,
+                EmailDeliveryStatus::Delivered,
+                EmailDeliveryStatus::Opened,
+                EmailDeliveryStatus::Clicked,
+            ])->count(),
+            'drafts' => (clone $base)->where('status', EmailDeliveryStatus::Draft)->count(),
+            'queued' => (clone $base)->whereIn('status', [
+                EmailDeliveryStatus::Queued,
+                EmailDeliveryStatus::Sending,
+            ])->count(),
+            'needs_attention' => (clone $base)->whereIn('status', [
+                EmailDeliveryStatus::Failed,
+                EmailDeliveryStatus::Bounced,
+            ])->count(),
+        ];
+    }
+
+    /**
+     * Compact customer panel data for an outbound email recipient.
+     *
+     * @return array{id: int, name: string, email: string|null, type: string|null, url: string}|null
+     */
+    public function customerContextForMessage(EmailMessage $message): ?array
+    {
+        $email = collect($message->to_emails)->pluck('email')->first();
+
+        if (! filled($email)) {
+            return null;
+        }
+
+        $customer = Customer::query()
+            ->where('company_id', $message->company_id)
+            ->whereRaw('LOWER(email) = ?', [mb_strtolower((string) $email)])
+            ->first(['id', 'company_name', 'email', 'customer_type', 'contact_person']);
+
+        if (! $customer) {
+            return null;
+        }
+
+        return [
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'email' => $customer->email,
+            'type' => $customer->customer_type?->label(),
+            'url' => route('admin.crm.customers.show', $customer),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function communicationHealth(int $companyId): array
@@ -227,7 +286,7 @@ class EmailVisibilityService
     }
 
     /**
-     * @return list<array{customer_id: int, customer_name: string, email_count: int, url: string|null}>
+     * @return list<array{customer_id: int|null, customer_name: string, email: string, email_count: int, url: string|null}>
      */
     public function topCustomersByEmail(int $companyId, int $limit = 10): array
     {
@@ -272,6 +331,7 @@ class EmailVisibilityService
             $results[] = [
                 'customer_id' => $customer?->id,
                 'customer_name' => $customer?->company_name ?? $email,
+                'email' => $email,
                 'email_count' => $count,
                 'url' => $customer ? route('admin.crm.customers.show', $customer) : null,
             ];

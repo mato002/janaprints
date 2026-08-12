@@ -175,10 +175,20 @@ class SalesDeskPageBuilder
         $companyId = tenant()->companyId() ?? $request->user()?->company_id;
         $branchId = tenant()->branchId() ?? $request->user()?->default_branch_id;
 
+        $workspace = $this->approvalQueue->workspace($companyId, $branchId, [
+            'tab' => $request->query('tab'),
+            'type' => $request->query('type'),
+            'q' => $request->query('q'),
+            'branch_id' => $request->query('branch_id'),
+            'requested_by' => $request->query('requested_by'),
+            'date_from' => $request->query('date_from'),
+            'date_to' => $request->query('date_to'),
+        ]);
+
         return [
-            'registerTitle' => __('Commercial approvals'),
-            'registerDescription' => __('Pending quotations, sales orders, and artwork submissions.'),
-            'sections' => $this->approvalQueue->present($companyId, $branchId),
+            'registerTitle' => __('Sales approvals'),
+            'registerDescription' => __('Needs attention now — then searchable approval history.'),
+            'approvals' => $workspace,
             'canAction' => $request->user()->can('commercial.approvals.action'),
             'canApproveQuotations' => $request->user()->can('quotations.approve'),
             'canRejectQuotations' => $request->user()->can('quotations.edit'),

@@ -20,6 +20,12 @@ class EmailAnalyticsController extends Controller
     {
         $this->authorize('viewAny', EmailCampaign::class);
 
+        $user = request()->user();
+        abort_unless(
+            $user?->can('communications.email.manage') || $user?->can('communications.email.audit'),
+            403,
+        );
+
         return view('admin.communications.email.analytics', [
             'stats' => $this->analytics->dashboard($this->requireCompanyId()),
         ]);

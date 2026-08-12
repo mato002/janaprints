@@ -546,7 +546,7 @@ class LookupOptionService
     {
         $query = Quotation::query()
             ->forTenant()
-            ->selectableForSalesOrderPicker()
+            ->eligibleForSalesOrderConversion()
             ->with('customer:id,company_name')
             ->orderByDesc('quotation_date')
             ->orderByDesc('id');
@@ -559,7 +559,7 @@ class LookupOptionService
             ->get()
             ->map(fn (Quotation $quotation) => [
                 'value' => $quotation->id,
-                'label' => $quotation->salesOrderPickerLabel(),
+                'label' => $quotation->salesOrderConversionLabel(),
             ])
             ->values()
             ->all();

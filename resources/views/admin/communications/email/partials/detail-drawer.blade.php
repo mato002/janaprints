@@ -38,6 +38,26 @@
                         <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Recipients') }}</p>
                         <p class="mt-1" x-text="(detail.recipients?.to ?? []).map(r => r.email).join(', ')"></p>
                     </div>
+                    <template x-if="detail.customer">
+                        <div class="rounded-lg border border-erp-border bg-slate-50 px-4 py-3">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Customer') }}</p>
+                            <p class="mt-1 font-semibold text-erp-primary" x-text="detail.customer.name"></p>
+                            <p class="text-sm text-slate-500" x-text="detail.customer.type ?? ''"></p>
+                            <p class="text-sm text-slate-500" x-text="detail.customer.email ?? ''"></p>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <a :href="detail.customer.url" class="erp-btn erp-btn--secondary text-sm" data-turbo-frame="erp-main">{{ __('Customer 360') }}</a>
+                                <template x-if="detail.compose_url">
+                                    <a :href="detail.compose_url" class="erp-btn erp-btn--primary text-sm" data-turbo-frame="erp-main">{{ __('Compose follow-up') }}</a>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="detail.body_preview">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Preview') }}</p>
+                            <p class="mt-1 text-slate-700" x-text="detail.body_preview"></p>
+                        </div>
+                    </template>
                     <template x-if="detail.related_entity">
                         <div>
                             <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Related entity') }}</p>

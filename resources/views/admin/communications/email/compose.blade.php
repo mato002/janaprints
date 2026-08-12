@@ -1,5 +1,9 @@
-<x-admin-layout :title="__('Compose email')" :breadcrumbs="[['label' => __('Email Center'), 'url' => route('admin.communications.email.dashboard')], ['label' => __('Compose')]]">
-    @include('admin.communications.email.partials.nav')
+<x-admin-layout :title="__('Compose email')" :breadcrumbs="[['label' => __('Email'), 'url' => route('admin.communications.email.dashboard')], ['label' => __('Compose')]]">
+    @include('admin.communications.email.partials.mailbox-chrome', [
+        'mailbox' => $mailbox ?? ['sent' => 0, 'drafts' => 0, 'queued' => 0, 'needs_attention' => 0],
+        'activeFolder' => 'compose',
+        'filters' => [],
+    ])
     <x-admin.page-header :title="__('Compose email')" />
     <form method="POST" action="{{ route('admin.communications.email.compose.store') }}" class="erp-card max-w-3xl space-y-4">
         @csrf

@@ -38,6 +38,7 @@ class EmailComposerController extends Controller
             'templates' => $templates,
             'to' => $request->get('to'),
             'customer_id' => $request->get('customer_id'),
+            'mailbox' => app(\App\Support\Communications\Email\EmailVisibilityService::class)->mailboxSummary($companyId),
         ]);
     }
 
