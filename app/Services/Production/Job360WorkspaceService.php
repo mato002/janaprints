@@ -82,34 +82,35 @@ class Job360WorkspaceService
 
     public const TAB_TIMELINE = 'timeline';
 
-    /** @var list<string> */
+    /**
+     * Visible Job 360 navigation — production work path only.
+     * Advanced / rare screens stay deep-linkable via TABS but are not shown in the tab bar.
+     *
+     * @var list<string>
+     */
     public const PRIMARY_TABS = [
         self::TAB_OVERVIEW,
         self::TAB_MANUFACTURING,
         self::TAB_MATERIALS,
+        self::TAB_ARTWORK,
         self::TAB_OPERATIONS,
         self::TAB_QUALITY,
         self::TAB_OUTPUTS,
         self::TAB_DISPATCH,
-        self::TAB_TIMELINE,
-        self::TAB_ARTWORK,
-        self::TAB_COMMERCIAL,
     ];
 
-    /** @var list<string> */
-    public const MORE_TABS = [
-        self::TAB_COMMUNICATIONS,
-        self::TAB_SPECIFICATION,
-        self::TAB_ROUTE,
-        self::TAB_FULFILMENT,
-        self::TAB_SESSIONS,
-        self::TAB_TRACEABILITY,
-        self::TAB_SERIALS,
-        self::TAB_MATERIAL_ISSUES,
-        self::TAB_MATERIAL_CONSUMPTION,
-    ];
+    /**
+     * Secondary overflow menu. Kept empty so Job 360 stays a work tool, not a sitemap.
+     *
+     * @var list<string>
+     */
+    public const MORE_TABS = [];
 
-    /** @var list<string> */
+    /**
+     * All resolvable tabs (including hidden ones used by Overview history tiles, FABs, and tests).
+     *
+     * @var list<string>
+     */
     public const TABS = [
         self::TAB_OVERVIEW,
         self::TAB_MANUFACTURING,
@@ -117,6 +118,7 @@ class Job360WorkspaceService
         self::TAB_ARTWORK,
         self::TAB_OPERATIONS,
         self::TAB_QUALITY,
+        self::TAB_OUTPUTS,
         self::TAB_DISPATCH,
         self::TAB_COMMERCIAL,
         self::TAB_TIMELINE,
@@ -128,7 +130,6 @@ class Job360WorkspaceService
         self::TAB_SESSIONS,
         self::TAB_MATERIAL_ISSUES,
         self::TAB_MATERIAL_CONSUMPTION,
-        self::TAB_OUTPUTS,
         self::TAB_FULFILMENT,
     ];
 
@@ -327,7 +328,9 @@ class Job360WorkspaceService
      */
     protected function tabNavigation(ProductionJobCard $jobCard, string $activeTab): array
     {
-        return collect(self::TABS)->map(fn (string $tab) => [
+        $navTabs = array_values(array_unique([...self::PRIMARY_TABS, ...self::MORE_TABS]));
+
+        return collect($navTabs)->map(fn (string $tab) => [
             'id' => $tab,
             'label' => $this->tabLabel($tab),
             'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => $tab]),
@@ -337,7 +340,7 @@ class Job360WorkspaceService
     }
 
     /**
-     * @return array{primary: list<array<string, mixed>>, more: list<array<string, mixed>>}
+     * @return array{primary: list<array<string, mixed>>, more: list<array<string, mixed>>, more_open: bool}
      */
     protected function tabGroups(ProductionJobCard $jobCard, string $activeTab): array
     {
@@ -969,12 +972,12 @@ class Job360WorkspaceService
         $requirementsService = app(\App\Support\Production\MaterialRequirementsService::class);
         $requirements = $requirementsService->panelRows($jobCard);
         $costs = app(\App\Support\Production\ProductionMaterialCostVisibilityService::class)->summary($jobCard);
-        $missingBoms = $requirements->isEmpty()
-            ? $requirementsService->missingBomSources($jobCard)
-            : collect();
+        $workflow = $requirementsService->workflowChecklist($jobCard);
         $canCreateBom = auth()->user()?->can('create', \App\Models\Production\ProductBom::class) ?? false;
+        $canLinkProduct = (auth()->user()?->can('production.edit')
+            || auth()->user()?->can('production.materials.generate')) ?? false;
 
-        $missingBomActions = $missingBoms->map(function (array $source) use ($jobCard, $canCreateBom) {
+        $missingBomActions = collect($workflow['missing_boms'] ?? [])->map(function (array $source) use ($jobCard, $canCreateBom) {
             return [
                 'finished_item_id' => $source['finished_item_id'],
                 'label' => trim(($source['sku'] ?? '').' — '.($source['item_name'] ?? __('Finished product'))),
@@ -991,11 +994,17 @@ class Job360WorkspaceService
         return [
             'requirements' => $requirements,
             'costs' => $costs,
+            'workflow' => $workflow,
             'has_requirements' => $requirements->isNotEmpty(),
             'missing_boms' => $missingBomActions,
             'can_create_bom' => $canCreateBom && count($missingBomActions) > 0,
-            'can_generate' => auth()->user()?->can('production.materials.generate') ?? false,
-            'can_reserve' => auth()->user()?->can('production.materials.reserve') ?? false,
+            'can_link_product' => $canLinkProduct && ! ($workflow['has_finished_product'] ?? false),
+            'finished_items' => $this->finishedItemsCatalog($jobCard),
+            'can_generate' => (auth()->user()?->can('production.materials.generate') ?? false)
+                && (bool) ($workflow['can_generate'] ?? false),
+            'can_show_generate_form' => auth()->user()?->can('production.materials.generate') ?? false,
+            'can_reserve' => (auth()->user()?->can('production.materials.reserve') ?? false)
+                && $requirements->isNotEmpty(),
             'can_consume' => $this->userCanRecordMaterialConsumption(),
             'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];

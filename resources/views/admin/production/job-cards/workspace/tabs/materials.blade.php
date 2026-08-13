@@ -1,12 +1,126 @@
 @php
     $requirements = $tabData['requirements'] ?? collect();
     $costs = $tabData['costs'] ?? [];
+    $workflow = $tabData['workflow'] ?? [];
     $missingBoms = $tabData['missing_boms'] ?? [];
     $canCreateBom = (bool) ($tabData['can_create_bom'] ?? false);
-    $emptyDescription = $canCreateBom
-        ? __('Create a BOM for the finished product, then generate requirements.')
-        : __('Requirements are snapshotted from the product catalog BOM when the job card is created, or can be generated manually.');
+    $canLinkProduct = (bool) ($tabData['can_link_product'] ?? false);
+    $canShowGenerateForm = (bool) ($tabData['can_show_generate_form'] ?? false);
+    $canGenerate = (bool) ($tabData['can_generate'] ?? false);
+    $steps = $workflow['steps'] ?? [];
+    $currentKey = $workflow['current_key'] ?? null;
+    $emptyDescription = match ($currentKey) {
+        'link_product' => __('Link the finished product first, then add a BOM and generate requirements.'),
+        'bom' => __('Create a BOM for the finished product, then generate requirements.'),
+        'generate' => __('Choose a warehouse and generate requirements from the BOM.'),
+        default => __('Requirements are snapshotted from the product catalog BOM when the job card is created, or can be generated manually.'),
+    };
 @endphp
+
+@if (! empty($steps) && ! ($tabData['has_requirements'] ?? false))
+    <x-admin.card class="mb-4 border-slate-200">
+        <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
+            <div>
+                <h3 class="text-sm font-semibold text-erp-primary">{{ __('Materials workflow') }}</h3>
+                <p class="mt-1 text-xs text-slate-600">
+                    {{ __('Complete these steps in order. The next action stays on this page — you should not discover blockers only after clicking Generate.') }}
+                </p>
+            </div>
+            @if (! empty($workflow['blocker']))
+                <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-950">
+                    {{ $workflow['blocker'] }}
+                </p>
+            @endif
+        </div>
+
+        <ol class="space-y-3">
+            @foreach ($steps as $index => $step)
+                @php
+                    $status = $step['status'] ?? 'blocked';
+                @endphp
+                <li @class([
+                    'rounded-lg border px-3 py-3',
+                    'border-emerald-200 bg-emerald-50/50' => $status === 'done',
+                    'border-erp-accent/40 bg-erp-accent/5 ring-1 ring-erp-accent/20' => $status === 'current',
+                    'border-slate-200 bg-slate-50/60 opacity-70' => $status === 'blocked',
+                ])>
+                    <div class="flex flex-wrap items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                                {{ __('Step :n', ['n' => $index + 1]) }}
+                                @if ($status === 'done')
+                                    <span class="ml-2 text-emerald-700">✓ {{ __('Done') }}</span>
+                                @elseif ($status === 'current')
+                                    <span class="ml-2 text-erp-accent">{{ __('Next') }}</span>
+                                @endif
+                            </p>
+                            <p class="mt-0.5 text-sm font-semibold text-slate-900">{{ $step['title'] }}</p>
+                            <p class="mt-1 text-xs text-slate-600">{{ $step['detail'] }}</p>
+                        </div>
+                    </div>
+
+                    @if ($status === 'current' && ($step['key'] ?? '') === 'link_product' && $canLinkProduct)
+                        <form
+                            method="POST"
+                            action="{{ route('admin.production.job-cards.finished-product', $jobCard) }}"
+                            class="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-200/80 pt-3"
+                        >
+                            @csrf
+                            <div class="min-w-[16rem] flex-1">
+                                <label class="erp-label required text-xs" for="finished_inventory_item_id">{{ __('Finished product') }}</label>
+                                <select id="finished_inventory_item_id" name="inventory_item_id" class="erp-input w-full text-sm" required>
+                                    <option value="">{{ __('Select catalogue finished good') }}</option>
+                                    @foreach ($tabData['finished_items'] ?? [] as $item)
+                                        <option value="{{ $item->id }}">{{ $item->item_name }} ({{ $item->sku }})</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="erp-btn-primary text-sm">{{ __('Link product') }}</button>
+                        </form>
+                        @if (($tabData['finished_items'] ?? collect())->isEmpty())
+                            <p class="mt-2 text-xs text-amber-800">
+                                {{ __('No finished-good catalogue items found for this branch. Create one under Inventory first.') }}
+                            </p>
+                        @endif
+                    @endif
+
+                    @if ($status === 'current' && ($step['key'] ?? '') === 'bom' && $canCreateBom)
+                        <div class="mt-3 flex flex-wrap gap-2 border-t border-slate-200/80 pt-3">
+                            @foreach ($missingBoms as $missing)
+                                @if (! empty($missing['create_url']))
+                                    <a href="{{ $missing['create_url'] }}" class="erp-btn-primary text-sm" data-erp-modal-open>
+                                        {{ count($missingBoms) === 1 ? __('Add BOM') : __('Add BOM: :item', ['item' => $missing['label']]) }}
+                                    </a>
+                                @endif
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if ($status === 'current' && ($step['key'] ?? '') === 'generate' && $canShowGenerateForm)
+                        <form
+                            method="POST"
+                            action="{{ route('admin.production.job-cards.materials.generate', $jobCard) }}"
+                            class="mt-3 flex flex-wrap items-end gap-2 border-t border-slate-200/80 pt-3"
+                        >
+                            @csrf
+                            <div class="min-w-[12rem]">
+                                <label class="erp-label required text-xs" for="materials_warehouse_id">{{ __('Warehouse') }}</label>
+                                <select id="materials_warehouse_id" name="warehouse_id" class="erp-input w-full text-sm" required>
+                                    @foreach ($tabData['warehouses'] ?? [] as $wh)
+                                        <option value="{{ $wh->id }}">{{ $wh->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <button type="submit" class="erp-btn-primary text-sm" @disabled(! $canGenerate)>
+                                {{ __('Generate requirements') }}
+                            </button>
+                        </form>
+                    @endif
+                </li>
+            @endforeach
+        </ol>
+    </x-admin.card>
+@endif
 
 <x-admin.card class="mb-4">
     <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Material cost summary') }}</h3>
@@ -18,34 +132,7 @@
     </dl>
 </x-admin.card>
 
-@if ($canCreateBom && count($missingBoms) > 0)
-    <x-admin.card class="mb-4 border-amber-200 bg-amber-50/60">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div class="min-w-0">
-                <h3 class="text-sm font-semibold text-amber-950">{{ __('No active BOM for this job’s finished product') }}</h3>
-                <p class="mt-1 text-xs text-amber-900/80">
-                    {{ __('Add the bill of materials here, then generate requirements — no need to leave Job 360.') }}
-                </p>
-                <ul class="mt-2 space-y-1 text-xs text-amber-950">
-                    @foreach ($missingBoms as $missing)
-                        <li class="truncate">{{ $missing['label'] }}</li>
-                    @endforeach
-                </ul>
-            </div>
-            <div class="flex shrink-0 flex-wrap gap-2">
-                @foreach ($missingBoms as $missing)
-                    @if (! empty($missing['create_url']))
-                        <a href="{{ $missing['create_url'] }}" class="erp-btn-primary text-sm" data-erp-modal-open>
-                            {{ count($missingBoms) === 1 ? __('Add BOM') : __('Add BOM: :item', ['item' => $missing['label']]) }}
-                        </a>
-                    @endif
-                @endforeach
-            </div>
-        </div>
-    </x-admin.card>
-@endif
-
-@if (($tabData['can_generate'] ?? false) && ! ($tabData['has_requirements'] ?? false))
+@if (($tabData['has_requirements'] ?? false) && $canShowGenerateForm)
     <x-admin.card class="mb-4">
         <form method="POST" action="{{ route('admin.production.job-cards.materials.generate', $jobCard) }}" class="flex flex-wrap items-end gap-2">
             @csrf
@@ -57,13 +144,8 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="erp-btn-primary text-sm" @disabled($canCreateBom && count($missingBoms) > 0)>
-                {{ __('Generate requirements') }}
-            </button>
+            <button type="submit" class="erp-btn-secondary text-sm">{{ __('Regenerate requirements') }}</button>
         </form>
-        @if ($canCreateBom && count($missingBoms) > 0)
-            <p class="mt-2 text-xs text-slate-500">{{ __('Generate requirements after the BOM is created.') }}</p>
-        @endif
     </x-admin.card>
 @endif
 

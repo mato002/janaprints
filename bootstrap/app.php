@@ -187,19 +187,15 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], $status >= 400 && $status < 600 ? $status : 500);
             }
 
-            $returnUrl = $request->input('_erp_modal_return') ?: url()->previous();
-
-            if (! $returnUrl) {
-                return response()->view('admin.partials.modal-form-error', [
-                    'presentation' => $presentation,
-                    'message' => $presentation['message'],
-                    'detail' => $presentation['detail'],
-                ], $status);
-            }
-
-            return redirect($returnUrl)
-                ->withInput()
-                ->with('form_error_presentation', $presentation)
-                ->with('modal_error', $presentation['message']);
+            // Always return an in-modal error body — never redirect.
+            // fetch(redirect:'manual') turns 302s into opaque status 0 and hides the real message.
+            return response()->view('admin.partials.modal-form-error', [
+                'presentation' => $presentation,
+                'message' => $presentation['message'],
+                'detail' => $presentation['detail'],
+                'validationMessages' => array_values(array_filter([
+                    $presentation['message'] ?? null,
+                ])),
+            ], $status >= 400 && $status < 600 ? $status : 500);
         });
     })->create();

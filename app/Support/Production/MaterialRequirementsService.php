@@ -618,6 +618,123 @@ class MaterialRequirementsService
     }
 
     /**
+     * Guided Materials workflow for Job 360 — surface prerequisites before generate fails.
+     *
+     * @return array{
+     *     has_finished_product: bool,
+     *     has_active_bom: bool,
+     *     has_requirements: bool,
+     *     can_generate: bool,
+     *     current_key: string|null,
+     *     blocker: string|null,
+     *     finished_product_label: string|null,
+     *     missing_boms: list<array{finished_item_id: int, quantity: float, sales_order_item_id: ?int, item_name: string|null, sku: string|null}>,
+     *     steps: list<array{key: string, status: string, title: string, detail: string}>
+     * }
+     */
+    public function workflowChecklist(ProductionJobCard $jobCard): array
+    {
+        $jobCard->loadMissing(['salesOrder.items', 'salesOrder.inventoryItem', 'inventoryItem']);
+
+        $sources = $this->resolveSources($jobCard);
+        $hasFinishedProduct = $sources->isNotEmpty();
+        $hasRequirements = ProductionMaterialRequirement::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->exists();
+        $missingBoms = $hasFinishedProduct && ! $hasRequirements
+            ? $this->missingBomSources($jobCard)
+            : collect();
+        $hasActiveBom = $hasFinishedProduct && $missingBoms->isEmpty();
+        $canGenerate = $hasFinishedProduct && $hasActiveBom && ! $hasRequirements;
+
+        $productLabel = null;
+        if ($hasFinishedProduct) {
+            $first = $sources->first();
+            $item = InventoryItem::query()->find($first['finished_item_id'] ?? null);
+            $productLabel = $item
+                ? trim(($item->sku ? $item->sku.' — ' : '').$item->item_name)
+                : ($jobCard->inventoryItem?->item_name
+                    ?? $jobCard->salesOrder?->inventoryItem?->item_name);
+        }
+
+        $blocker = match (true) {
+            ! $hasFinishedProduct => __('No finished product linked. Assign the catalogue item this job produces before generating requirements.'),
+            ! $hasActiveBom && ! $hasRequirements => __('No active BOM for the finished product. Add the bill of materials, then generate requirements.'),
+            ! $hasRequirements => __('Material requirements have not been generated yet.'),
+            default => null,
+        };
+
+        $currentKey = match (true) {
+            ! $hasFinishedProduct => 'link_product',
+            ! $hasActiveBom && ! $hasRequirements => 'bom',
+            ! $hasRequirements => 'generate',
+            default => null,
+        };
+
+        $steps = [
+            [
+                'key' => 'link_product',
+                'status' => $hasFinishedProduct ? 'done' : 'current',
+                'title' => __('Link finished product'),
+                'detail' => $hasFinishedProduct
+                    ? __('Linked: :product', ['product' => $productLabel ?? __('Catalogue item')])
+                    : __('Assign the finished-good inventory item this job produces. Required before BOM and material requirements.'),
+            ],
+            [
+                'key' => 'bom',
+                'status' => match (true) {
+                    $hasRequirements || $hasActiveBom => 'done',
+                    ! $hasFinishedProduct => 'blocked',
+                    default => 'current',
+                },
+                'title' => __('Add bill of materials'),
+                'detail' => match (true) {
+                    $hasRequirements || $hasActiveBom => __('Active BOM is available for this finished product.'),
+                    ! $hasFinishedProduct => __('Complete the finished product step first.'),
+                    default => __('Define component materials and quantities for the finished product.'),
+                },
+            ],
+            [
+                'key' => 'generate',
+                'status' => match (true) {
+                    $hasRequirements => 'done',
+                    $canGenerate => 'current',
+                    default => 'blocked',
+                },
+                'title' => __('Generate requirements'),
+                'detail' => match (true) {
+                    $hasRequirements => __('Material requirement lines are on this job.'),
+                    $canGenerate => __('Snapshot BOM quantities onto this job, then reserve or receive stock as needed.'),
+                    default => __('Available after the finished product and BOM are in place.'),
+                },
+            ],
+            [
+                'key' => 'reserve',
+                'status' => match (true) {
+                    ! $hasRequirements => 'blocked',
+                    default => 'current',
+                },
+                'title' => __('Reserve / clear shortages'),
+                'detail' => $hasRequirements
+                    ? __('Reserve available stock or receive shortages before production consumes materials.')
+                    : __('Generate requirements first.'),
+            ],
+        ];
+
+        return [
+            'has_finished_product' => $hasFinishedProduct,
+            'has_active_bom' => $hasActiveBom,
+            'has_requirements' => $hasRequirements,
+            'can_generate' => $canGenerate,
+            'current_key' => $currentKey,
+            'blocker' => $blocker,
+            'finished_product_label' => $productLabel,
+            'missing_boms' => $missingBoms->values()->all(),
+            'steps' => $steps,
+        ];
+    }
+
+    /**
      * Finished products on this job that still need an active BOM.
      *
      * @return Collection<int, array{finished_item_id: int, quantity: float, sales_order_item_id: ?int, item_name: string|null, sku: string|null}>

@@ -226,6 +226,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('job-cards/{jobCard}/materials/generate', [ProductionMaterialRequirementController::class, 'generate'])->name('job-cards.materials.generate');
         });
 
+        Route::middleware('permission:production.materials.generate|production.edit')->group(function () {
+            Route::post('job-cards/{jobCard}/finished-product', [ProductionMaterialRequirementController::class, 'linkFinishedProduct'])
+                ->name('job-cards.finished-product');
+        });
+
         Route::middleware('permission:production.materials.reserve')->group(function () {
             Route::post('job-cards/{jobCard}/materials/reserve-all', [ProductionMaterialRequirementController::class, 'reserveAll'])->name('job-cards.materials.reserve-all');
             Route::post('job-cards/{jobCard}/materials/{requirement}/reserve', [ProductionMaterialRequirementController::class, 'reserve'])->name('job-cards.materials.reserve');

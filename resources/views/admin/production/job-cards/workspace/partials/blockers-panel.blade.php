@@ -20,6 +20,7 @@
         ProductionJobCardStatus::Queued,
         ProductionJobCardStatus::Rework,
         ProductionJobCardStatus::OnHold,
+        ProductionJobCardStatus::InProduction,
     ], true);
 
     $items = [];
@@ -28,7 +29,7 @@
 
     if ($showMaterialReleaseGate && $materialReadiness && ! ($materialReadiness['ready'] ?? false)) {
         $message = ! ($materialReadiness['has_requirements'] ?? false)
-            ? __('Material requirements missing')
+            ? ((string) ($materialReadiness['setup_blocker'] ?? '') ?: __('Material requirements missing'))
             : __('Material shortages block release');
 
         $seen[$message] = true;

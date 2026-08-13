@@ -37,14 +37,31 @@ class MaterialReadinessService
     public function assess(ProductionJobCard $jobCard): array
     {
         $rows = $this->requirements->panelRows($jobCard);
+        $workflow = $this->requirements->workflowChecklist($jobCard);
 
-        return $this->assessFromPanelRows(
+        $assessment = $this->assessFromPanelRows(
             $rows,
             route('admin.production.job-cards.show', [
                 'jobCard' => $jobCard,
                 'tab' => 'materials',
             ]),
         );
+
+        $assessment['workflow'] = $workflow;
+        $assessment['setup_blocker'] = $workflow['blocker'];
+        $assessment['setup_complete'] = (bool) ($workflow['has_requirements'] ?? false);
+
+        if (! $assessment['has_requirements'] && filled($workflow['blocker'] ?? null)) {
+            $assessment['detail'] = $workflow['blocker'];
+            $assessment['label'] = match ($workflow['current_key'] ?? null) {
+                'link_product' => __('Product not linked'),
+                'bom' => __('BOM missing'),
+                'generate' => __('Requirements missing'),
+                default => __('Materials setup incomplete'),
+            };
+        }
+
+        return $assessment;
     }
 
     /**

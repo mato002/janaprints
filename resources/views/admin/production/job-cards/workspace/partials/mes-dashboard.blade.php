@@ -57,7 +57,7 @@
                             <span class="mes-kpi__stat mes-kpi__stat--warn">⚠ {{ $materialReadiness['short_count'] }}</span>
                         @endif
                     @else
-                        <span class="mes-kpi__stat">{{ __('N/A') }}</span>
+                        <span class="mes-kpi__stat mes-kpi__stat--warn">{{ $materialReadiness['label'] ?? __('Setup') }}</span>
                     @endif
                 </span>
             </a>

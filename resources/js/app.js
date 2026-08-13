@@ -122,6 +122,166 @@ function extractValidationPresentationFromDoc(root) {
     };
 }
 
+function extractAnyFormErrorsFromHtml(html) {
+    if (! html || typeof html !== 'string') {
+        return { messages: [], presentation: null, detail: null };
+    }
+
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    const validationErrors = extractValidationErrorsFromDoc(doc);
+
+    if (validationErrors.length > 0) {
+        return {
+            messages: validationErrors,
+            presentation: extractValidationPresentationFromDoc(doc),
+            detail: null,
+        };
+    }
+
+    const governed = doc.querySelector('.rounded-lg.border-rose-200.bg-rose-50, [data-erp-form-modal-panel] .rounded-lg.border-rose-200');
+    if (governed) {
+        const message = governed.querySelector('p.font-medium')?.textContent?.trim()
+            || governed.textContent?.trim();
+        const detail = governed.querySelector('p.text-xs')?.textContent?.trim() || null;
+
+        if (message) {
+            return {
+                messages: [message],
+                presentation: {
+                    category_label: doc.querySelector('.erp-form-modal__title')?.textContent?.trim() || 'Unable to save',
+                },
+                detail,
+            };
+        }
+    }
+
+    const flashError = doc.querySelector('[data-erp-flash-error]')?.textContent?.trim()
+        || doc.querySelector('[data-erp-modal-error]')?.textContent?.trim();
+    if (flashError) {
+        return { messages: [flashError], presentation: null, detail: null };
+    }
+
+    const laravelList = [...doc.querySelectorAll('.text-red-600 li, .text-rose-600 li, #erp-form-modal .text-sm.text-red-600')]
+        .map((element) => element.textContent?.trim())
+        .filter(Boolean);
+    if (laravelList.length > 0) {
+        return { messages: [...new Set(laravelList)], presentation: { category_label: 'Validation Errors' }, detail: null };
+    }
+
+    const exceptionMessage = doc.querySelector('.exception-message, .message-body, #exception-message')?.textContent?.trim();
+    if (exceptionMessage) {
+        return { messages: [exceptionMessage], presentation: { category_label: 'System Errors' }, detail: null };
+    }
+
+    return { messages: [], presentation: null, detail: null };
+}
+
+function humanizeFormSaveFailure({ status = null, html = '', payload = null, networkError = null } = {}) {
+    if (payload && typeof payload === 'object') {
+        const fromPayload = Object.values(payload.errors ?? {}).flat().filter(Boolean);
+        const message = payload.message || fromPayload[0] || null;
+        if (message) {
+            return {
+                messages: fromPayload.length > 1 ? fromPayload : [message],
+                presentation: {
+                    category_label: payload.category_label || payload.category || null,
+                },
+                detail: payload.detail || null,
+            };
+        }
+    }
+
+    const extracted = extractAnyFormErrorsFromHtml(html);
+    if (extracted.messages.length > 0) {
+        return extracted;
+    }
+
+    if (networkError?.message) {
+        return {
+            messages: [networkError.message],
+            presentation: { category_label: 'Network Error' },
+            detail: null,
+        };
+    }
+
+    if (status === 0) {
+        return {
+            messages: [
+                'The server redirected without returning error details. Check required fields and try again. If it keeps failing, open the browser Network tab for the failed request.',
+            ],
+            presentation: { category_label: 'Unable to save' },
+            detail: 'HTTP status 0 (opaque redirect or interrupted request)',
+        };
+    }
+
+    if (status === 419) {
+        return {
+            messages: ['Your session expired. Refresh the page and try again.'],
+            presentation: { category_label: 'Session Expired' },
+            detail: null,
+        };
+    }
+
+    if (status === 403) {
+        return {
+            messages: ['You do not have permission to complete this action.'],
+            presentation: { category_label: 'Access Denied' },
+            detail: null,
+        };
+    }
+
+    if (status === 404) {
+        return {
+            messages: ['The requested record or form action was not found.'],
+            presentation: { category_label: 'Not Found' },
+            detail: null,
+        };
+    }
+
+    if (status === 422) {
+        return {
+            messages: ['Please fix the highlighted fields and try again.'],
+            presentation: { category_label: 'Validation Errors' },
+            detail: null,
+        };
+    }
+
+    if (status >= 500) {
+        return {
+            messages: ['A server error prevented this form from saving. Check logs or try again.'],
+            presentation: { category_label: 'Server Error' },
+            detail: status ? `HTTP ${status}` : null,
+        };
+    }
+
+    return {
+        messages: [
+            status
+                ? `Unable to save form (HTTP ${status}). Please try again.`
+                : 'Unable to save form. Please try again.',
+        ],
+        presentation: { category_label: 'Unable to save' },
+        detail: status ? `HTTP ${status}` : null,
+    };
+}
+
+function reportFormSaveFailure(messagesOrOptions, errorDetails = null) {
+    let messages = messagesOrOptions;
+    let details = errorDetails;
+
+    if (messagesOrOptions && typeof messagesOrOptions === 'object' && ! Array.isArray(messagesOrOptions) && messagesOrOptions.messages) {
+        const resolved = messagesOrOptions;
+        messages = resolved.messages;
+        details = {
+            ...(errorDetails || {}),
+            category: resolved.presentation?.category_label || resolved.presentation?.category || errorDetails?.category || null,
+            detail: resolved.detail || errorDetails?.detail || null,
+        };
+    }
+
+    showErpFormErrorAlert(messages, details);
+}
+
 function extractModalLoadErrorsFromHtml(html, status = null) {
     if (! html) {
         if (status === 403) {
@@ -300,11 +460,14 @@ function showErpDeskErrorAlert(messages, options = {}) {
         return;
     }
 
-    const errorDetails = options.categoryLabel
-        ? { category: options.categoryLabel }
-        : null;
-
-    showErpFormErrorAlert(items, errorDetails);
+    showErpFormErrorAlert(items, {
+        category: options.categoryLabel || options.category || null,
+        detail: options.detail || null,
+        status: options.status || null,
+        url: options.url || null,
+        method: options.method || null,
+        timestamp: options.timestamp || null,
+    });
 }
 
 function erpCsrfToken() {
@@ -1420,6 +1583,18 @@ const erpModalManager = {
                 redirect: 'manual',
             });
 
+            // Opaque redirects (status 0) hide Location + body. Follow once so we can
+            // recover success markers or the real validation/exception message.
+            if (response.status === 0 || response.type === 'opaqueredirect') {
+                response = await fetch(erpFormActionUrl(form), {
+                    method: method === 'GET' ? 'GET' : 'POST',
+                    body: method === 'GET' ? null : formData,
+                    headers: fetchHeaders,
+                    credentials: 'same-origin',
+                    redirect: 'follow',
+                });
+            }
+
             if (deskForm) {
                 const contentType = response.headers.get('content-type') ?? '';
 
@@ -1432,21 +1607,17 @@ const erpModalManager = {
                             message: payload.message ?? '',
                         });
                     } else {
-                        const errorMessages = Object.values(payload.errors ?? {}).flat().filter(Boolean);
-                        const errorMessage = payload.message
-                            ?? errorMessages[0]
-                            ?? `Unable to save form (${response.status}). Please try again.`;
+                        const failure = humanizeFormSaveFailure({
+                            status: response.status,
+                            payload,
+                        });
 
-                        showErpDeskErrorAlert(
-                            errorMessages.length > 1 ? errorMessages : [errorMessage],
-                            {
-                                detail: payload.detail ?? null,
-                                categoryLabel: payload.category_label ?? null,
-                                status: response.status,
-                                url: erpFormActionUrl(form),
-                                method,
-                            },
-                        );
+                        reportFormSaveFailure(failure, {
+                            status: response.status,
+                            url: erpFormActionUrl(form),
+                            method,
+                            timestamp: new Date().toISOString(),
+                        });
                     }
 
                     return;
@@ -1532,34 +1703,19 @@ const erpModalManager = {
                     payload = {};
                 }
 
-                if (payload.ok === false) {
-                    const errorMessages = Object.values(payload.errors ?? {}).flat().filter(Boolean);
-                    const errorMessage = payload.message
-                        ?? errorMessages[0]
-                        ?? `Unable to save form (${response.status}). Please try again.`;
+                if (payload.ok === false || (! response.ok && Object.keys(payload).length > 0)) {
+                    const failure = humanizeFormSaveFailure({
+                        status: response.status,
+                        payload,
+                        html: responseBody,
+                    });
 
-                    if (deskForm) {
-                        showErpDeskErrorAlert(
-                            errorMessages.length > 1 ? errorMessages : [errorMessage],
-                            {
-                                detail: payload.detail ?? null,
-                                categoryLabel: payload.category_label ?? null,
-                                status: response.status,
-                                url: erpFormActionUrl(form),
-                                method,
-                            },
-                        );
-                    } else {
-                        showErpFormErrorAlert(
-                            errorMessages.length > 1 ? errorMessages : [errorMessage],
-                            {
-                                status: response.status,
-                                url: erpFormActionUrl(form),
-                                method,
-                                timestamp: new Date().toISOString(),
-                            },
-                        );
-                    }
+                    reportFormSaveFailure(failure, {
+                        status: response.status,
+                        url: erpFormActionUrl(form),
+                        method,
+                        timestamp: new Date().toISOString(),
+                    });
 
                     return;
                 }
@@ -1676,18 +1832,24 @@ const erpModalManager = {
                     firstInvalid?.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
                 }
 
+                const failure = humanizeFormSaveFailure({
+                    status: response.status,
+                    html,
+                });
                 const alertMessages = validationErrors.length > 0
                     ? validationErrors
-                    : [validationPresentation?.category_label
-                        ? 'Please fix the highlighted fields and try again.'
-                        : `Unable to save form (${response.status}). Please try again.`];
+                    : failure.messages;
 
-                showErpFormErrorAlert(
-                    alertMessages,
-                    validationPresentation?.category_label
-                        ? { category: validationPresentation.category_label }
-                        : null,
-                );
+                reportFormSaveFailure({
+                    messages: alertMessages,
+                    presentation: validationPresentation || failure.presentation,
+                    detail: failure.detail,
+                }, {
+                    status: response.status,
+                    url: erpFormActionUrl(form),
+                    method,
+                    timestamp: new Date().toISOString(),
+                });
 
                 return;
             }
@@ -1713,12 +1875,17 @@ const erpModalManager = {
                     this.ensureValidationSummary(panel, panel);
                     this.highlightInvalidFields(panel, panel);
 
-                    showErpFormErrorAlert(
-                        validationErrors.length > 0
-                            ? validationErrors
-                            : ['Unable to save form. Please try again.'],
-                        validationPresentation ? { category: validationPresentation.category_label ?? validationPresentation.category } : null,
-                    );
+                    const failure = humanizeFormSaveFailure({ status: response.status, html });
+                    reportFormSaveFailure({
+                        messages: validationErrors.length > 0 ? validationErrors : failure.messages,
+                        presentation: validationPresentation || failure.presentation,
+                        detail: failure.detail,
+                    }, {
+                        status: response.status,
+                        url: erpFormActionUrl(form),
+                        method,
+                        timestamp: new Date().toISOString(),
+                    });
                 }
 
                 return;
@@ -1730,20 +1897,17 @@ const erpModalManager = {
                     url: erpFormActionUrl(form),
                 });
 
-                const validationErrors = extractValidationErrorsFromDoc(doc);
-                const validationPresentation = extractValidationPresentationFromDoc(doc);
+                const failure = humanizeFormSaveFailure({
+                    status: response.status,
+                    html,
+                });
 
-                if (validationErrors.length > 0) {
-                    showErpFormErrorAlert(validationErrors, {
-                        status: response.status,
-                        url: erpFormActionUrl(form),
-                        method: method,
-                        timestamp: new Date().toISOString(),
-                        category: validationPresentation?.category_label ?? validationPresentation?.category ?? null,
-                    });
-                } else {
-                    this.showToast(`Unable to save form (${response.status}). Please try again.`, 'error');
-                }
+                reportFormSaveFailure(failure, {
+                    status: response.status,
+                    url: erpFormActionUrl(form),
+                    method,
+                    timestamp: new Date().toISOString(),
+                });
 
                 return;
             }
@@ -1762,44 +1926,51 @@ const erpModalManager = {
                         returnUrl: modalReturnUrl,
                     });
                 } else {
-                    showErpFormErrorAlert(
-                        ['Unable to save form. The server response was unexpected. Please try again.'],
-                        {
-                            status: response.status,
-                            url: erpFormActionUrl(form),
-                            method,
-                            timestamp: new Date().toISOString(),
-                        },
-                    );
+                    const failure = humanizeFormSaveFailure({ status: response.status, html });
+                    reportFormSaveFailure({
+                        messages: [
+                            failure.messages[0] || 'Unable to save form. The server response was unexpected. Please try again.',
+                        ],
+                        presentation: failure.presentation,
+                        detail: failure.detail || html.slice(0, 280),
+                    }, {
+                        status: response.status,
+                        url: erpFormActionUrl(form),
+                        method,
+                        timestamp: new Date().toISOString(),
+                    });
                 }
 
                 return;
             }
 
             if (this.isDeskShellForm(form)) {
-                const validationErrors = extractValidationErrorsFromDoc(
-                    new DOMParser().parseFromString(html, 'text/html'),
-                );
-                const validationMessage = validationErrors[0] ?? extractValidationMessageFromHtml(html);
-
-                if (validationErrors.length > 1) {
-                    showErpDeskErrorAlert(validationErrors);
-                } else {
-                    showErpDeskErrorAlert([validationMessage || 'Unable to save form. Please try again.']);
-                }
+                const failure = humanizeFormSaveFailure({ status: response.status, html });
+                reportFormSaveFailure(failure, {
+                    status: response.status,
+                    url: erpFormActionUrl(form),
+                    method,
+                    timestamp: new Date().toISOString(),
+                });
 
                 return;
             }
 
-            this.showToast('Unable to save form. Please try again.', 'error');
+            reportFormSaveFailure(humanizeFormSaveFailure({ status: response.status, html }), {
+                status: response.status,
+                url: erpFormActionUrl(form),
+                method,
+                timestamp: new Date().toISOString(),
+            });
         } catch (error) {
             console.error('erpModalManager.submitFormRequest', error);
 
-            if (deskForm) {
-                showErpDeskErrorAlert([error?.message || 'Unable to save form. Please try again.']);
-            } else {
-                this.showToast('Unable to save form. Please try again.', 'error');
-            }
+            reportFormSaveFailure(humanizeFormSaveFailure({ networkError: error }), {
+                url: erpFormActionUrl(form),
+                method,
+                timestamp: new Date().toISOString(),
+                detail: error?.stack || null,
+            });
         } finally {
             delete form.dataset.erpModalSubmitting;
 
@@ -2484,24 +2655,15 @@ const erpLookupManager = {
                 const payload = await response.json();
 
                 if (! response.ok) {
-                    const errorMessages = Object.values(payload.errors ?? {}).flat().filter(Boolean);
-                    const message = payload.message ?? errorMessages[0] ?? 'Unable to save record.';
-
-                    if (errorMessages.length > 1) {
-                        showErpFormErrorAlert(errorMessages, {
-                            status: response.status,
-                            url: erpFormActionUrl(form),
-                            method: method,
-                            timestamp: new Date().toISOString(),
-                        });
-                    } else {
-                        showErpFormErrorAlert([message], {
-                            status: response.status,
-                            url: erpFormActionUrl(form),
-                            method: method,
-                            timestamp: new Date().toISOString(),
-                        });
-                    }
+                    reportFormSaveFailure(humanizeFormSaveFailure({
+                        status: response.status,
+                        payload,
+                    }), {
+                        status: response.status,
+                        url: erpFormActionUrl(form),
+                        method,
+                        timestamp: new Date().toISOString(),
+                    });
 
                     return;
                 }
@@ -2525,10 +2687,23 @@ const erpLookupManager = {
 
             if (response.ok) {
                 this.handleSuccess({ message: 'Saved successfully.' });
+            } else {
+                reportFormSaveFailure(humanizeFormSaveFailure({
+                    status: response.status,
+                    html,
+                }), {
+                    status: response.status,
+                    url: erpFormActionUrl(form),
+                    method,
+                    timestamp: new Date().toISOString(),
+                });
             }
         } catch (error) {
             console.error('erpLookupManager.submitForm', error);
-            showErpFormErrorAlert([error.message || 'Unable to save record. Please try again.']);
+            reportFormSaveFailure(humanizeFormSaveFailure({ networkError: error }), {
+                url: erpFormActionUrl(form),
+                timestamp: new Date().toISOString(),
+            });
         }
     },
 

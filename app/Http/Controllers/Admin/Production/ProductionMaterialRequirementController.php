@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin\Production;
 
+use App\Enums\InventoryStockRole;
 use App\Http\Controllers\Controller;
+use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionMaterialRequirement;
 use App\Support\Production\MaterialRequirementsService;
@@ -17,10 +19,57 @@ class ProductionMaterialRequirementController extends Controller
         protected MaterialRequirementsService $requirementsService,
     ) {}
 
+    public function linkFinishedProduct(Request $request, ProductionJobCard $jobCard): RedirectResponse
+    {
+        $this->authorize('view', $jobCard);
+        abort_unless(
+            auth()->user()?->can('production.edit')
+            || auth()->user()?->can('production.materials.generate'),
+            403,
+        );
+
+        $validated = $request->validate([
+            'inventory_item_id' => [
+                'required',
+                Rule::exists('inventory_items', 'id')
+                    ->where('company_id', $jobCard->company_id)
+                    ->where('branch_id', $jobCard->branch_id)
+                    ->where('stock_role', InventoryStockRole::FinishedGood->value)
+                    ->where('is_active', true),
+            ],
+        ]);
+
+        $item = InventoryItem::query()->findOrFail($validated['inventory_item_id']);
+
+        $jobCard->update(['inventory_item_id' => $item->id]);
+
+        if ($jobCard->salesOrder) {
+            $jobCard->salesOrder->update(['inventory_item_id' => $item->id]);
+            $jobCard->salesOrder->items()
+                ->whereNull('inventory_item_id')
+                ->update(['inventory_item_id' => $item->id]);
+        }
+
+        return back()->with(
+            'status',
+            __('Finished product :item linked. Continue with BOM and generate requirements.', [
+                'item' => $item->item_name,
+            ]),
+        );
+    }
+
     public function generate(Request $request, ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('view', $jobCard);
         abort_unless(auth()->user()?->can('production.materials.generate'), 403);
+
+        $workflow = $this->requirementsService->workflowChecklist($jobCard);
+        if (! ($workflow['can_generate'] ?? false)) {
+            return back()->withErrors([
+                'sales_order' => $workflow['blocker']
+                    ?? __('Finish the materials workflow steps before generating requirements.'),
+            ]);
+        }
 
         $validated = $request->validate([
             'warehouse_id' => ['required', Rule::exists('warehouses', 'id')

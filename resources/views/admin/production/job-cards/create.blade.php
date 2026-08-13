@@ -7,8 +7,6 @@
     maxWidth="xl"
 >
     @php
-        use App\Support\Production\ProductionFloorDeskViews;
-
         $resolution = $resolutionContext ?? [
             'summary' => $eligibilitySummary ?? ['already_have_job' => 0, 'blocked_artwork' => 0, 'ready_without_job' => 0],
             'already_have_job' => [],
@@ -18,7 +16,7 @@
         $alreadyCount = (int) ($summary['already_have_job'] ?? 0);
         $blockedCount = (int) ($summary['blocked_artwork'] ?? 0);
         $hasBlockers = $alreadyCount > 0 || $blockedCount > 0;
-        $registerUrl = ProductionFloorDeskViews::registerIndexUrl();
+        $registerUrl = \App\Support\Production\ProductionFloorDeskViews::registerIndexUrl();
         $lookupOptions = $eligibleOrders->map(fn ($order) => [
             'value' => $order->id,
             'label' => trim($order->order_number.' — '.($order->customer?->company_name ?? '')),
