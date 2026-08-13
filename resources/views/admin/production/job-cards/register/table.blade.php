@@ -104,6 +104,18 @@
                             @endif
                         >
                             @switch($column['key'])
+                                @case('job_number')
+                                    @if ($row['job_360_url'])
+                                        <a
+                                            href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl($row['job_360_url']) }}"
+                                            class="text-erp-accent hover:underline"
+                                            data-turbo-frame="erp-main"
+                                            data-turbo-action="advance"
+                                        >{{ $row['job_number'] }}</a>
+                                    @else
+                                        {{ $row['job_number'] ?? '—' }}
+                                    @endif
+                                    @break
                                 @case('status')
                                     <x-admin.status-badge :variant="$row['badge']['variant']">{{ $row['badge']['label'] }}</x-admin.status-badge>
                                     @break

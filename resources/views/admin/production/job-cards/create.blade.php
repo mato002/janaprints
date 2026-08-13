@@ -106,7 +106,12 @@
                                                     <li class="flex items-center justify-between gap-2 rounded px-1.5 py-1.5 text-xs hover:bg-amber-50/80">
                                                         <span class="min-w-0 truncate" title="{{ $row['label'] }} · {{ $row['job_label'] }}">{{ $row['label'] }} · {{ $row['job_label'] }}</span>
                                                         @if ($row['job_url'])
-                                                            <a href="{{ $row['job_url'] }}" class="shrink-0 text-erp-primary hover:underline" data-erp-modal-open>{{ __('Open') }}</a>
+                                                            <a
+                                                                href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl($row['job_url']) }}"
+                                                                class="shrink-0 text-erp-primary hover:underline"
+                                                                data-turbo-frame="erp-main"
+                                                                data-turbo-action="advance"
+                                                            >{{ __('Open') }}</a>
                                                         @endif
                                                     </li>
                                                 @endforeach
@@ -130,7 +135,12 @@
                                                     <li class="flex items-center justify-between gap-2 rounded px-1.5 py-1.5 text-xs hover:bg-amber-50/80">
                                                         <span class="min-w-0 truncate" title="{{ $row['label'] }}">{{ $row['label'] }}</span>
                                                         @if ($row['resolve_url'])
-                                                            <a href="{{ $row['resolve_url'] }}" class="shrink-0 text-erp-primary hover:underline" data-erp-modal-open>{{ $row['resolve_label'] }}</a>
+                                                            <a
+                                                                href="{{ \App\Support\Navigation\WorkspaceEmbed::mainUrl($row['resolve_url']) }}"
+                                                                class="shrink-0 text-erp-primary hover:underline"
+                                                                data-turbo-frame="erp-main"
+                                                                data-turbo-action="advance"
+                                                            >{{ $row['resolve_label'] }}</a>
                                                         @endif
                                                     </li>
                                                 @endforeach

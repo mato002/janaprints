@@ -2093,6 +2093,36 @@ const erpModalManager = {
         return Boolean(lookupOverlay && ! lookupOverlay.hidden);
     },
 
+    isDetailPageUrl(url) {
+        try {
+            const parsed = new URL(url, window.location.origin);
+
+            if (parsed.origin !== window.location.origin) {
+                return false;
+            }
+
+            const path = parsed.pathname.toLowerCase();
+
+            if (/\/(create|edit)(\/|$)/.test(path)) {
+                return false;
+            }
+
+            // Entity show / workspace detail pages must leave the form modal.
+            return /\/[a-z0-9_-]+$/i.test(path)
+                && ! path.endsWith('/index')
+                && (
+                    path.includes('/job-cards/')
+                    || path.includes('/artwork/')
+                    || path.includes('/sales-orders/')
+                    || path.includes('/quotations/')
+                    || path.includes('/customers/')
+                    || path.includes('/delivery-notes/')
+                );
+        } catch {
+            return false;
+        }
+    },
+
     handleInModalLink(event, link) {
         if (! link?.href || link.hasAttribute('data-no-modal') || link.getAttribute('target') === '_blank') {
             return false;
@@ -2108,17 +2138,10 @@ const erpModalManager = {
             return false;
         }
 
-        if (link.hasAttribute('data-erp-modal-open') || this.isModalFormUrl(link.href)) {
-            event.preventDefault();
-            event.stopImmediatePropagation();
-            this.loadForm(link.href);
-
-            return true;
-        }
-
         const turboFrame = link.getAttribute('data-turbo-frame');
+        const wantsMainShell = turboFrame === 'erp-main' || turboFrame === '_top' || this.isDetailPageUrl(link.href);
 
-        if (turboFrame === 'erp-main' || turboFrame === '_top') {
+        if (wantsMainShell && ! this.isModalFormUrl(link.href)) {
             event.preventDefault();
             event.stopImmediatePropagation();
             this.closeModal();
@@ -2131,6 +2154,14 @@ const erpModalManager = {
                     action: 'advance',
                 });
             }
+
+            return true;
+        }
+
+        if (link.hasAttribute('data-erp-modal-open') || this.isModalFormUrl(link.href)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.loadForm(link.href);
 
             return true;
         }
