@@ -6,9 +6,31 @@
     $checklistItems = $snapshot?->checklist_items ?? [];
 @endphp
 
-@if ($tabData['qc_blocking'] ?? false)
+@if (($tabData['needs_qc'] ?? false) && ($tabData['can_record'] ?? false))
+    <x-admin.card class="mb-4 border-amber-200 bg-amber-50">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+                <p class="text-sm font-medium text-amber-950">{{ __('QC approval required') }}</p>
+                <p class="mt-0.5 text-sm text-amber-900">{{ __('No passing inspection yet. Record one below to clear the QC approved blocker.') }}</p>
+            </div>
+            <a href="#add-qc" class="erp-btn-primary text-sm shrink-0">{{ __('Record inspection') }}</a>
+        </div>
+    </x-admin.card>
+@elseif ($tabData['qc_blocking'] ?? false)
     <x-admin.card class="mb-4 border-red-200 bg-red-50">
         <p class="text-sm font-medium text-red-900">{{ __('QC failed or awaiting approval — dispatch blocked') }}</p>
+    </x-admin.card>
+@endif
+
+@if (($tabData['can_send_to_qc'] ?? false) && ! ($tabData['can_record'] ?? false))
+    <x-admin.card class="mb-4 border-slate-200 bg-slate-50">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm text-slate-800">{{ __('Move this job into Quality Check to unlock the inspection form.') }}</p>
+            <form method="POST" action="{{ route('admin.production.job-cards.send-to-qc', $jobCard) }}">
+                @csrf
+                <button type="submit" class="erp-btn-primary text-sm">{{ __('Send to QC') }}</button>
+            </form>
+        </div>
     </x-admin.card>
 @endif
 
@@ -210,6 +232,13 @@
         </div>
         @if ($checks->hasPages())<div class="mt-4">{{ $checks->links() }}</div>@endif
     @else
-        <x-admin.empty-state :title="__('No inspections')" :description="__('Quality inspections will appear here once recorded.')" />
+        <x-admin.empty-state
+            :title="__('No inspections')"
+            :description="($tabData['can_record'] ?? false)
+                ? __('Use Record inspection above to pass or fail this job.')
+                : (($tabData['can_send_to_qc'] ?? false)
+                    ? __('Send the job to QC first, then record an inspection.')
+                    : __('Quality inspections will appear here once recorded.'))"
+        />
     @endif
 </x-admin.card>

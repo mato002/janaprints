@@ -45,9 +45,9 @@
                 ? __('Material consumption recorded')
                 : __('Material consumption missing'),
             'action' => ($materials['state'] ?? null) !== 'passed'
-                ? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'material-consumption', 'open' => 'record-consumption-modal'])
+                ? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']).'#materials-consume'
                 : null,
-            'action_label' => __('Record consumption'),
+            'action_label' => __('Consume materials'),
             'hint' => null,
         ];
 

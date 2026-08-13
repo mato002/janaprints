@@ -179,6 +179,37 @@ class ProductionQualityC6Test extends TestCase
         });
     }
 
+    public function test_late_qc_can_be_recorded_when_job_is_ready_for_dispatch(): void
+    {
+        [$company, $branch, , $user, $jobCard] = $this->qcJobContext();
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+        app()->instance(\App\Support\TenantContext::class, new \App\Support\TenantContext($company, $branch));
+
+        $jobCard->update(['status' => ProductionJobCardStatus::ReadyForDispatch]);
+
+        $this->assertTrue($user->can('create', [QualityCheck::class, $jobCard]));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality']))
+            ->assertOk()
+            ->assertSee(__('Record inspection'), false)
+            ->assertSee(__('QC approval required'), false);
+
+        $this->actingAs($user)
+            ->post(route('admin.production.quality-checks.store', $jobCard), [
+                'result' => QualityCheckResult::Passed->value,
+                'comments' => 'Late catch-up pass',
+            ])
+            ->assertRedirect();
+
+        $this->assertEquals(ProductionJobCardStatus::ReadyForDispatch, $jobCard->fresh()->status);
+        $this->assertDatabaseHas('quality_checks', [
+            'production_job_card_id' => $jobCard->id,
+            'result' => QualityCheckResult::Passed->value,
+        ]);
+        $this->assertFalse($user->can('create', [QualityCheck::class, $jobCard->fresh()]));
+    }
+
     public function test_tenant_isolation_on_quality_checks(): void
     {
         $companyA = Company::factory()->create();

@@ -127,16 +127,20 @@ class QualityInspectionService
         QualityCheckResult $result,
         bool $requiresApproval,
     ): void {
-        match ($result) {
-            QualityCheckResult::Passed => $jobCard->transitionTo(ProductionJobCardStatus::Completed),
-            QualityCheckResult::Failed => $jobCard->transitionTo(ProductionJobCardStatus::Rework),
-            QualityCheckResult::ConditionalPass => $jobCard->transitionTo(
-                $requiresApproval
-                    ? ProductionJobCardStatus::AwaitingCustomerApproval
-                    : ProductionJobCardStatus::Completed,
-            ),
-            QualityCheckResult::ReworkRequired => $jobCard->transitionTo(ProductionJobCardStatus::Rework),
+        $target = match ($result) {
+            QualityCheckResult::Passed => ProductionJobCardStatus::Completed,
+            QualityCheckResult::Failed, QualityCheckResult::ReworkRequired => ProductionJobCardStatus::Rework,
+            QualityCheckResult::ConditionalPass => $requiresApproval
+                ? ProductionJobCardStatus::AwaitingCustomerApproval
+                : ProductionJobCardStatus::Completed,
         };
+
+        // Late QC on Completed / Ready for dispatch should not force an illegal status jump.
+        if ($jobCard->status === $target || ! $jobCard->status->canTransitionTo($target)) {
+            return;
+        }
+
+        $jobCard->transitionTo($target);
     }
 
     protected function productRequiresCustomerApproval(ProductionJobCard $jobCard): bool

@@ -130,7 +130,17 @@ class DeliveryNoteController extends Controller
             'dispatch_notes' => ['nullable', 'string'],
         ]);
 
-        $result = $this->deliveryAuthority->createDraftFromJobCard($jobCard, $validated);
+        try {
+            $result = $this->deliveryAuthority->createDraftFromJobCard($jobCard, $validated);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            throw $exception;
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $exception) {
+            return redirect()
+                ->route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'dispatch'])
+                ->withErrors([
+                    'delivery_note' => __('Could not allocate a delivery note number. Please try again.'),
+                ]);
+        }
 
         $flash = $result->wasExisting
             ? ($result->message ?? __('Existing delivery note opened.'))

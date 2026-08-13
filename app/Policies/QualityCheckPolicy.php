@@ -2,6 +2,8 @@
 
 namespace App\Policies;
 
+use App\Enums\ProductionJobCardStatus;
+use App\Enums\QualityCheckResult;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\QualityCheck;
 use App\Models\User;
@@ -23,20 +25,43 @@ class QualityCheckPolicy
 
     public function create(User $user, ProductionJobCard $jobCard): bool
     {
-        return $user->can('production.qc')
-            && $this->sameTenant($user, $jobCard)
-            && $jobCard->status === \App\Enums\ProductionJobCardStatus::QualityCheck;
+        if (! $user->can('production.qc') || ! $this->sameTenant($user, $jobCard)) {
+            return false;
+        }
+
+        // Normal path: job is waiting in QC.
+        if ($jobCard->status === ProductionJobCardStatus::QualityCheck) {
+            return true;
+        }
+
+        // Late / catch-up path: job advanced without a pass, but readiness still blocks on QC.
+        if (in_array($jobCard->status, [
+            ProductionJobCardStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch,
+        ], true)) {
+            return ! $this->hasPassedQc($jobCard);
+        }
+
+        return false;
     }
 
     public function approveCustomerHold(User $user, ProductionJobCard $jobCard): bool
     {
         return $user->can('production.qc')
             && $this->sameTenant($user, $jobCard)
-            && $jobCard->status === \App\Enums\ProductionJobCardStatus::AwaitingCustomerApproval;
+            && $jobCard->status === ProductionJobCardStatus::AwaitingCustomerApproval;
     }
 
     public function view(User $user, QualityCheck $check): bool
     {
         return $user->can('production.view') && $this->sameTenant($user, $check->jobCard);
+    }
+
+    protected function hasPassedQc(ProductionJobCard $jobCard): bool
+    {
+        return QualityCheck::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->where('result', QualityCheckResult::Passed)
+            ->exists();
     }
 }

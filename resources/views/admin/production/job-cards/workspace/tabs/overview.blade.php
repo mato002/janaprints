@@ -6,8 +6,8 @@
 @endphp
 
 <div class="job-360-overview">
-    <div class="space-y-3">
-        <x-admin.job-module-card theme="production" :title="__('Production')" icon="cog" compact>
+    <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
+        <x-admin.job-module-card class="h-full" theme="production" :title="__('Production')" icon="cog" compact>
             @include('admin.production.job-cards.workspace.partials.operations-zone', [
                 'jobCard' => $jobCard,
                 'executionState' => $executionState ?? [],
@@ -15,10 +15,8 @@
             ])
         </x-admin.job-module-card>
 
-        @include('admin.production.job-cards.workspace.partials.history-zone', ['jobCard' => $jobCard])
-
         @if ($hasSpecs)
-            <x-admin.job-module-card theme="materials" :title="__('Job specifications')" icon="document-text" compact>
+            <x-admin.job-module-card class="h-full" theme="materials" :title="__('Job specifications')" icon="document-text" compact>
                 <x-slot:actions>
                     @if (! empty($manufacturingSummary['manufacturing_url']))
                         <a href="{{ $manufacturingSummary['manufacturing_url'] }}" class="text-xs font-medium text-emerald-700 hover:underline" data-turbo-frame="erp-main">{{ __('Manufacturing tab') }} →</a>
@@ -50,6 +48,8 @@
                 @endif
             </x-admin.job-module-card>
         @endif
+
+        @include('admin.production.job-cards.workspace.partials.history-zone', ['jobCard' => $jobCard])
 
         @include('admin.production.job-cards.workspace.partials.outsource', ['jobCard' => $jobCard, 'tabData' => $tabData])
     </div>

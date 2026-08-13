@@ -1116,6 +1116,11 @@ class Job360WorkspaceService
 
         $serialService = app(SerialNumberGovernanceService::class);
         $allocation = $jobCard->serialAllocation;
+        $qcSummary = $this->controls->qcStatusSummary($jobCard);
+        $needsQc = ($qcSummary['status'] ?? 'none') === 'none'
+            || $this->controls->hasUnresolvedQcFailure($jobCard);
+        $canSendToQc = (auth()->user()?->can('complete', $jobCard) ?? false)
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck);
 
         return [
             'checks' => $checks,
@@ -1134,8 +1139,12 @@ class Job360WorkspaceService
             'fail_reasons' => \App\Enums\QualityFailReason::cases(),
             'rework_reasons' => \App\Enums\QualityReworkReason::cases(),
             'can_record' => auth()->user()?->can('create', [QualityCheck::class, $jobCard]) ?? false,
-            'can_approve_customer' => auth()->user()?->can('create', [QualityCheck::class, $jobCard]) ?? false,
-            'qc_blocking' => $this->controls->hasUnresolvedQcFailure($jobCard),
+            'can_send_to_qc' => $canSendToQc,
+            'needs_qc' => $needsQc,
+            'qc_summary' => $qcSummary,
+            'can_approve_customer' => auth()->user()?->can('approveCustomerHold', $jobCard) ?? false,
+            'qc_blocking' => $this->controls->hasUnresolvedQcFailure($jobCard)
+                || (($qcSummary['status'] ?? null) === 'none' && $needsQc),
             'pending_customer_approval' => $checks->first(fn ($c) => $c->requires_customer_approval
                 && $c->result === \App\Enums\QualityCheckResult::ConditionalPass
                 && $c->customer_approved_at === null),

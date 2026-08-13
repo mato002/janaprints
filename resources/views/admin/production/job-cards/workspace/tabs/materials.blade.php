@@ -283,12 +283,17 @@
                             <td><span class="erp-badge text-xs">{{ $row['status']->label() }}</span></td>
                             @if ($tabData['can_consume'] ?? false)
                                 <td class="whitespace-nowrap">
-                                    @if (($row['remaining'] ?? 0) > 0)
+                                    @if (($row['remaining'] ?? 0) > 0 && ($row['available'] ?? 0) > 0)
+                                        @php
+                                            $consumeQty = min((float) $row['remaining'], (float) $row['available']);
+                                        @endphp
                                         <form method="POST" action="{{ route('admin.production.job-cards.materials.consume', [$jobCard, $row['requirement']]) }}" class="inline-flex items-center gap-1">
                                             @csrf
-                                            <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-20 text-xs" value="{{ $row['remaining'] }}">
+                                            <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-20 text-xs" value="{{ $consumeQty }}">
                                             <button type="submit" class="erp-btn-primary text-xs">{{ __('Consume') }}</button>
                                         </form>
+                                    @elseif (($row['remaining'] ?? 0) > 0)
+                                        <span class="text-xs text-amber-700">{{ __('No stock') }}</span>
                                     @else
                                         <span class="text-xs text-slate-400">—</span>
                                     @endif

@@ -7,6 +7,7 @@ use App\Models\Accounting\Journal;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\Assets\FixedAsset;
 use App\Models\Crm\Customer;
+use App\Models\Dispatch\DeliveryNote;
 use App\Models\Inventory\StockIssue;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Procurement\GoodsReceipt;
@@ -37,6 +38,7 @@ class DocumentNumberFloorResolver
             DocumentType::ArtworkRequest => ['model' => ArtworkRequest::class, 'column' => 'request_number', 'branch_scoped' => true],
             DocumentType::SalesOrder => ['model' => SalesOrder::class, 'column' => 'order_number', 'branch_scoped' => true],
             DocumentType::JobCard => ['model' => ProductionJobCard::class, 'column' => 'job_card_number', 'branch_scoped' => true],
+            DocumentType::DeliveryNote => ['model' => DeliveryNote::class, 'column' => 'delivery_note_number', 'branch_scoped' => true],
             DocumentType::StockReceipt => ['model' => StockReceipt::class, 'column' => 'receipt_number', 'branch_scoped' => true],
             DocumentType::StockIssue => ['model' => StockIssue::class, 'column' => 'issue_number', 'branch_scoped' => true],
             DocumentType::Invoice => ['model' => CustomerInvoice::class, 'column' => 'invoice_number', 'branch_scoped' => true],
@@ -76,6 +78,10 @@ class DocumentNumberFloorResolver
             ->where('company_id', $companyId)
             ->whereNotNull($column)
             ->where($column, '!=', '');
+
+        if (in_array(\Illuminate\Database\Eloquent\SoftDeletes::class, class_uses_recursive($modelClass), true)) {
+            $query->withTrashed();
+        }
 
         if ($branchScoped && $branchId) {
             $query->where('branch_id', $branchId);

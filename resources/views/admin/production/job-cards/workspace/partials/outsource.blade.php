@@ -1,6 +1,6 @@
 @php $outsource = $tabData['outsource'] ?? []; @endphp
 
-<x-admin.job-module-card theme="outsourcing" :title="__('Outsourcing')" icon="truck" compact id="outsource">
+<x-admin.job-module-card class="h-full" theme="outsourcing" :title="__('Outsourcing')" icon="truck" compact id="outsource">
     @if ($outsource['vendor'] ?? null)
         <div class="mb-3 grid grid-cols-2 gap-2">
             <x-admin.job-kpi-tile theme="dispatch" :label="__('Vendor')" :value="$outsource['vendor']->vendor_name" />

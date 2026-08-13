@@ -10,8 +10,8 @@
     ];
 @endphp
 
-<x-admin.job-module-card theme="history" :title="__('History & records')" icon="clock" compact>
-    <div class="grid grid-cols-3 gap-2">
+<x-admin.job-module-card class="h-full" theme="history" :title="__('History & records')" icon="clock" compact>
+    <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
         @foreach ($historyLinks as $link)
             <a
                 href="{{ route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => $link['route']]) }}"

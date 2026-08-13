@@ -71,6 +71,51 @@ class DeliveryFoundationTest extends TestCase
         $this->assertStringContainsString('DN', $number);
     }
 
+    public function test_delivery_note_numbering_skips_existing_numbers_when_sequence_is_stale(): void
+    {
+        [$job, $user, $finishedItem] = $this->createEligibleDispatchJobWithFg();
+        $company = Company::query()->findOrFail($job->company_id);
+        $branch = Branch::query()->findOrFail($job->branch_id);
+        $customer = $job->customer;
+
+        DeliveryNote::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'delivery_note_number' => sprintf('%s-%s-DN-%s-00001', $company->code, $branch->code, now()->year),
+            'customer_id' => $customer->id,
+            'sales_order_id' => $job->sales_order_id,
+            'production_job_card_id' => null,
+            'delivery_date' => now()->toDateString(),
+            'status' => DeliveryNoteStatus::Delivered,
+        ]);
+
+        \App\Models\Platform\NumberingSequence::query()->updateOrCreate(
+            [
+                'company_id' => $company->id,
+                'branch_id' => $branch->id,
+                'document_type' => DocumentType::DeliveryNote->value,
+            ],
+            [
+                'format_template' => '{company}-{branch}-{type}-{year}-{number}',
+                'next_number' => 1,
+                'padding' => 5,
+                'include_year' => true,
+                'include_branch_code' => true,
+            ],
+        );
+
+        $note = app(DeliveryNoteService::class)->createDraftFromJobCard($job->fresh());
+
+        $this->assertSame(
+            sprintf('%s-%s-DN-%s-00002', $company->code, $branch->code, now()->year),
+            $note->delivery_note_number,
+        );
+        $this->assertSame(DeliveryNoteStatus::Draft, $note->status);
+        $this->assertSame($job->id, $note->production_job_card_id);
+        $this->assertNotNull($finishedItem->id);
+        $this->assertNotNull($user->id);
+    }
+
     public function test_create_draft_from_ready_job(): void
     {
         [$company, $branch, $customer, $user, $job] = $this->readyJobContext();

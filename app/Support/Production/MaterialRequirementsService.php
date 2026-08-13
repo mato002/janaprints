@@ -65,11 +65,12 @@ class MaterialRequirementsService
             ->where('company_id', $jobCard->company_id)
             ->where('branch_id', $jobCard->branch_id)
             ->where('is_active', true)
+            ->where('is_virtual', false)
             ->find($warehouseId);
 
         if ($warehouse === null) {
             throw ValidationException::withMessages([
-                'warehouse_id' => __('Warehouse not found or inactive.'),
+                'warehouse_id' => __('Choose a physical warehouse for material requirements. Finished goods / virtual locations cannot hold raw materials.'),
             ]);
         }
 

@@ -176,6 +176,43 @@ class BomMaterialRequirementsTest extends TestCase
         $this->assertGreaterThan(0, (float) $costSheet->material_cost);
     }
 
+    public function test_consume_all_remaining_records_consumption_for_stocked_lines(): void
+    {
+        [$company, $branch, $user, $finished, $paper, $ink, $warehouse, $jobCard] = $this->jobWithBom();
+
+        $this->postReceipt($company, $branch, $user, $paper, $warehouse, 500);
+        $this->postReceipt($company, $branch, $user, $ink, $warehouse, 50);
+
+        $service = app(MaterialRequirementsService::class);
+        $service->generate($jobCard, $warehouse->id, $user->id);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']))
+            ->assertOk()
+            ->assertSee(__('Consume all remaining'), false)
+            ->assertSee('id="materials-consume"', false);
+
+        $this->actingAs($user)
+            ->post(route('admin.production.job-cards.materials.consume-all', $jobCard))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            0,
+            ProductionMaterialRequirement::query()
+                ->where('production_job_card_id', $jobCard->id)
+                ->get()
+                ->filter(fn ($row) => $row->remainingQuantity() > 0)
+                ->count()
+        );
+        $this->assertGreaterThanOrEqual(
+            2,
+            ProductionMaterialConsumption::query()->where('production_job_card_id', $jobCard->id)->count()
+        );
+    }
+
     public function test_manual_consumption_is_capped_by_open_requirement(): void
     {
         [$company, $branch, $user, $finished, $paper, $ink, $warehouse, $jobCard] = $this->jobWithBom();
