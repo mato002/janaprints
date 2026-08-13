@@ -86,7 +86,9 @@
             }
 
             $seen[$label] = true;
-            $resolveUrl ??= $item['action'] ?? null;
+            $action = $item['action'] ?? null;
+            $method = $item['action_method'] ?? 'GET';
+            $resolveUrl ??= ($method === 'GET') ? $action : route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']);
             $items[] = [
                 'severity' => 'error',
                 'message' => $label,

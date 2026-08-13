@@ -46,6 +46,16 @@
                     {{ $suggestedItem->item_name }}
                     @if ($needsRole)
                         <span class="mt-1 block text-xs text-amber-700">{{ __('Set stock role to Finished Good') }}</span>
+                        <div class="mt-2">
+                            @include('admin.inventory.items.partials.set-finished-good-form', [
+                                'item' => $suggestedItem,
+                                'jobCard' => $jobCard,
+                                'buttonClass' => 'erp-btn-primary text-xs',
+                            ])
+                            @cannot('classify', $suggestedItem)
+                                <p class="text-xs text-slate-500">{{ __('Ask store to open this product in Inventory and set stock role to Finished good.') }}</p>
+                            @endcannot
+                        </div>
                     @endif
                 @else
                     {{ __('Not resolved yet') }}

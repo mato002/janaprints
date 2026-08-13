@@ -71,12 +71,21 @@
 
         if (in_array('stock_role', $blockerCodes, true)) {
             $productItem = $jobCard->inventoryItem;
+            $canClassify = $productItem && auth()->user()?->can('classify', $productItem);
             $items[] = [
                 'passed' => false,
                 'label' => __('Product stock role incorrect'),
-                'action' => $productItem ? route('admin.inventory.items.edit', $productItem) : route('admin.inventory.items.index'),
-                'action_label' => __('Open product'),
-                'hint' => null,
+                'action' => $canClassify && $productItem
+                    ? route('admin.inventory.items.classify-finished-good', $productItem)
+                    : ($productItem
+                        ? route('admin.inventory.items.show', ['item' => $productItem, 'needed_role' => \App\Enums\InventoryStockRole::FinishedGood->value])
+                        : route('admin.inventory.items.index')),
+                'action_label' => $canClassify ? __('Set as finished good') : __('View product'),
+                'action_method' => $canClassify ? 'POST' : 'GET',
+                'action_fields' => $canClassify ? ['production_job_card_id' => $jobCard->id] : [],
+                'hint' => $canClassify
+                    ? __('Set this product to Finished good so output can be posted.')
+                    : __('Ask store to set this product’s stock role to Finished good in Inventory.'),
             ];
         }
 
@@ -136,7 +145,17 @@
                     </div>
                 </div>
                 @if (! $item['passed'] && ($item['action'] ?? null))
-                    <a href="{{ $item['action'] }}" class="shrink-0 text-xs font-medium text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ $item['action_label'] }}</a>
+                    @if (($item['action_method'] ?? 'GET') === 'POST')
+                        <form method="POST" action="{{ $item['action'] }}" class="shrink-0" onsubmit="return confirm(@js(__('Set this product as a finished good so output can be posted?')))">
+                            @csrf
+                            @foreach ($item['action_fields'] ?? [] as $field => $value)
+                                <input type="hidden" name="{{ $field }}" value="{{ $value }}">
+                            @endforeach
+                            <button type="submit" class="text-xs font-medium text-erp-primary hover:underline">{{ $item['action_label'] }}</button>
+                        </form>
+                    @else
+                        <a href="{{ $item['action'] }}" class="shrink-0 text-xs font-medium text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ $item['action_label'] }}</a>
+                    @endif
                 @endif
             </li>
         @endforeach

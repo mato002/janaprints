@@ -5,6 +5,7 @@ namespace App\Services\Production;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionQueueStatus;
 use App\Models\Production\ProductionJobCard;
+use App\Models\Production\ProductionOperation;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\WorkCenter;
 use App\Models\User;
@@ -66,7 +67,9 @@ class JobExecutionStateService
             ?? $workCenter?->name
             ?? $queue?->workCenter?->name;
         $requiresMachine = $this->stageRequiresMachine($workCenter);
-        $hasOperator = $queue?->assigned_operator_id !== null;
+        $operationOperator = $this->assignedOperationOperator($jobCard, $queue);
+        $hasOperator = $queue?->assigned_operator_id !== null || $operationOperator !== null;
+        $operatorName = $queue?->assignedOperator?->name ?? $operationOperator;
         $hasMachine = $jobCard->assigned_machine_asset_id !== null;
         $needsMachine = $requiresMachine && ! $hasMachine;
         $alreadyInQueue = $this->alreadyInQueue($jobCard);
@@ -89,7 +92,7 @@ class JobExecutionStateService
             'next_action' => $dispatchSummary['next_action'] ?? $this->nextActionCopy(
                 $phase,
                 $stageName,
-                $queue?->assignedOperator?->name,
+                $operatorName,
                 $requiresMachine,
                 $jobCard->assignedMachine?->asset_name,
             ),
@@ -101,7 +104,7 @@ class JobExecutionStateService
             'stage_name' => $stageName,
             'work_center' => $workCenter?->name ?? $queue?->workCenter?->name,
             'machine_name' => $jobCard->assignedMachine?->asset_name,
-            'operator_name' => $queue?->assignedOperator?->name,
+            'operator_name' => $operatorName,
             'has_operator' => $hasOperator,
             'has_machine' => $hasMachine,
             'requires_machine' => $requiresMachine,
@@ -121,7 +124,7 @@ class JobExecutionStateService
                 $jobCard,
                 $phase,
                 $stageName,
-                $queue?->assignedOperator?->name,
+                $operatorName,
                 $requiresMachine,
                 $hasMachine,
                 $jobCard->assignedMachine?->asset_name,
@@ -148,7 +151,7 @@ class JobExecutionStateService
             $queue ??= $context['current'] ?? null;
         }
 
-        if ($queue === null || $queue->assigned_operator_id === null) {
+        if ($queue === null || ($queue->assigned_operator_id === null && $this->assignedOperationOperator($jobCard, $queue) === null)) {
             return false;
         }
 
@@ -173,6 +176,33 @@ class JobExecutionStateService
         }
 
         return (bool) $workCenter->requires_machine;
+    }
+
+    protected function assignedOperationOperator(ProductionJobCard $jobCard, ?ProductionQueue $queue): ?string
+    {
+        $query = ProductionOperation::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->whereNull('ended_at')
+            ->whereNotNull('assigned_employee_id')
+            ->with('assignedEmployee:id,first_name,last_name,middle_name');
+
+        if ($queue?->work_center_id) {
+            $matched = (clone $query)->where('work_center_id', $queue->work_center_id)->latest('started_at')->first();
+
+            if ($matched?->assignedEmployee) {
+                return $matched->assignedEmployee->full_name
+                    ?: trim($matched->assignedEmployee->first_name.' '.$matched->assignedEmployee->last_name);
+            }
+        }
+
+        $operation = $query->latest('started_at')->first();
+
+        if (! $operation?->assignedEmployee) {
+            return null;
+        }
+
+        return $operation->assignedEmployee->full_name
+            ?: trim($operation->assignedEmployee->first_name.' '.$operation->assignedEmployee->last_name);
     }
 
     public function alreadyInQueue(ProductionJobCard $jobCard): bool

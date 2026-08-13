@@ -9,6 +9,27 @@
         </x-slot>
     </x-admin.page-header>
 
+    @if (($item->stock_role?->value ?? null) !== \App\Enums\InventoryStockRole::FinishedGood->value && request('needed_role') === \App\Enums\InventoryStockRole::FinishedGood->value)
+        <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            <p class="font-medium">{{ __('Production needs this product classified as a finished good before output can be posted.') }}</p>
+            <div class="mt-2">
+                @include('admin.inventory.items.partials.set-finished-good-form', ['item' => $item, 'buttonClass' => 'erp-btn-primary text-sm'])
+                @cannot('classify', $item)
+                    <p class="mt-1 text-amber-800">{{ __('Ask a storekeeper to set stock role to Finished good. Sales catalogue access cannot change this.') }}</p>
+                @endcannot
+            </div>
+        </div>
+    @elseif (($item->stock_role?->value ?? null) !== \App\Enums\InventoryStockRole::FinishedGood->value)
+        @can('classify', $item)
+            <div class="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                <p>{{ __('Stock role is :role. If this is the item produced on a job, set it to Finished good.', ['role' => $item->stock_role?->label() ?? __('unset')]) }}</p>
+                <div class="mt-2">
+                    @include('admin.inventory.items.partials.set-finished-good-form', ['item' => $item, 'buttonClass' => 'erp-btn-secondary text-sm'])
+                </div>
+            </div>
+        @endcan
+    @endif
+
     <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <x-admin.card class="xl:col-span-2">
             <dl class="text-sm space-y-2">

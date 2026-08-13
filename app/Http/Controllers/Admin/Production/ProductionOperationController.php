@@ -42,6 +42,12 @@ class ProductionOperationController extends Controller
             'started_at' => now(),
         ]);
 
+        app(\App\Support\Production\ProductionQueueService::class)->syncOperatorFromEmployee(
+            $jobCard,
+            isset($validated['assigned_employee_id']) ? (int) $validated['assigned_employee_id'] : null,
+            (int) $validated['work_center_id'],
+        );
+
         return back()->with('status', __('Production operation started.'));
     }
 
@@ -60,6 +66,12 @@ class ProductionOperationController extends Controller
             'assigned_employee_id' => $validated['assigned_employee_id'] ?? null,
             'remarks' => $validated['remarks'] ?? $operation->remarks,
         ]);
+
+        app(\App\Support\Production\ProductionQueueService::class)->syncOperatorFromEmployee(
+            $jobCard,
+            isset($validated['assigned_employee_id']) ? (int) $validated['assigned_employee_id'] : null,
+            $operation->work_center_id,
+        );
 
         return back()->with('status', __('Operation updated.'));
     }

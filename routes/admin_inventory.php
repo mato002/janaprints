@@ -112,6 +112,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('items/{item}', [InventoryItemController::class, 'show'])->name('items.show');
         });
 
+        Route::middleware('permission:inventory.classification.manage|catalogue.edit|inventory.edit')->group(function () {
+            Route::post('items/{item}/classify-finished-good', [InventoryItemController::class, 'classifyAsFinishedGood'])
+                ->name('items.classify-finished-good');
+        });
+
         Route::middleware('permission:catalogue.edit')->group(function () {
             Route::get('catalogue/categories/{category}/edit', [InventoryCategoryController::class, 'edit'])->whereNumber('category')->name('catalogue.categories.edit');
             Route::put('catalogue/categories/{category}', [InventoryCategoryController::class, 'update'])->whereNumber('category')->name('catalogue.categories.update');

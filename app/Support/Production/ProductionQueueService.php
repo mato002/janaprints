@@ -7,6 +7,7 @@ use App\Enums\ProductionQueueStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\Production\WorkCenter;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -124,6 +125,53 @@ class ProductionQueueService
         ]);
 
         return $queue->fresh(['workCenter', 'assignedOperator']);
+    }
+
+    public function syncOperatorFromEmployee(
+        ProductionJobCard $jobCard,
+        ?int $employeeId,
+        ?int $workCenterId = null,
+    ): void {
+        if ($employeeId === null) {
+            return;
+        }
+
+        $userId = User::query()
+            ->where('company_id', $jobCard->company_id)
+            ->where('employee_id', $employeeId)
+            ->value('id');
+
+        $activeStatuses = array_map(
+            fn (ProductionQueueStatus $status) => $status->value,
+            ProductionQueueStatus::activeStatuses(),
+        );
+
+        $queues = $jobCard->queues()
+            ->whereIn('status', $activeStatuses)
+            ->get();
+
+        $queue = $workCenterId
+            ? $queues->firstWhere('work_center_id', $workCenterId)
+            : null;
+
+        $queue ??= app(RouteStepQueueService::class)->currentQueueContext($jobCard)['current'] ?? null;
+
+        if ($queue === null) {
+            return;
+        }
+
+        if ($userId) {
+            $this->updateEntry($queue, [
+                'assigned_operator_id' => (int) $userId,
+            ]);
+
+            return;
+        }
+
+        // Employee has no login — still mark the queue assigned so start-work gates clear.
+        if ($queue->assigned_operator_id === null && $queue->status === ProductionQueueStatus::Waiting) {
+            $queue->update(['status' => ProductionQueueStatus::Assigned]);
+        }
     }
 
     public function remove(ProductionQueue $queue): void

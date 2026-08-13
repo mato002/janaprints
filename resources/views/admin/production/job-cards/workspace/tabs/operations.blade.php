@@ -2,7 +2,34 @@
     $operations = $tabData['operations'] ?? null;
     $queues = $tabData['queues'] ?? collect();
     $controls = $tabData['controls'] ?? null;
+    $state = $executionState ?? [];
+    $operators = $state['operators'] ?? collect();
 @endphp
+
+@if (($state['needs_operator'] ?? false) && (auth()->user()?->can('schedule', $jobCard) || auth()->user()?->can('update', $jobCard)) && ($state['queue_id'] ?? null))
+    <x-admin.card class="mb-6 border-amber-200 bg-amber-50" id="assign-operator">
+        <form method="POST" action="{{ route('admin.production.job-cards.assign-operator', $jobCard) }}" class="flex flex-wrap items-end gap-3">
+            @csrf
+            <input type="hidden" name="production_queue_id" value="{{ $state['queue_id'] }}">
+            <div class="min-w-[16rem] flex-1">
+                <p class="mb-1 text-sm font-medium text-amber-950">{{ __('Assign an operator to this queue stage') }}</p>
+                <p class="mb-2 text-xs text-amber-900/80">{{ __('This unblocks the job so production can start.') }}</p>
+                <x-admin.lookup-select
+                    name="assigned_operator_id"
+                    :options="$operators->map(fn ($operator) => ['value' => $operator->id, 'label' => $operator->name])->values()->all()"
+                    :required="true"
+                    create-route="admin.operators.quick-create"
+                    refresh-route="admin.lookups.operators"
+                    permission="employees.manage"
+                    :modal-title="__('Create operator')"
+                    select-class="erp-select w-full text-sm"
+                    :placeholder="__('Select operator')"
+                />
+            </div>
+            <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign operator') }}</button>
+        </form>
+    </x-admin.card>
+@endif
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-6">
     <x-admin.card>

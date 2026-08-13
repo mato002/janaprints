@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryCategory;
 use App\Models\Inventory\InventoryItem;
+use App\Models\Production\ProductionJobCard;
 use App\Models\Production\WorkCenter;
 use App\Models\Inventory\InventorySubcategory;
 use App\Models\Inventory\ItemAttribute;
@@ -150,6 +151,28 @@ class InventoryItemController extends Controller
         InventoryStockService::syncReorderAlerts($item->fresh());
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', __('Item updated.'));
+    }
+
+    public function classifyAsFinishedGood(Request $request, InventoryItem $item): RedirectResponse
+    {
+        $this->authorize('classify', $item);
+
+        $item->update(['stock_role' => InventoryStockRole::FinishedGood]);
+        InventoryStockService::syncReorderAlerts($item->fresh());
+
+        $status = __(':item is now classified as a finished good.', ['item' => $item->item_name]);
+
+        $jobCardId = $request->integer('production_job_card_id');
+        if ($jobCardId > 0) {
+            $jobCard = ProductionJobCard::query()->find($jobCardId);
+            if ($jobCard && $jobCard->company_id === $item->company_id && $request->user()?->can('view', $jobCard)) {
+                return redirect()
+                    ->route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs'])
+                    ->with('status', $status);
+            }
+        }
+
+        return redirect()->route('admin.inventory.items.show', $item)->with('status', $status);
     }
 
     public function destroy(InventoryItem $item): RedirectResponse

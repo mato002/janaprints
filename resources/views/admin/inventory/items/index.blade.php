@@ -11,7 +11,7 @@
         </x-slot>
     </x-admin.page-header>
 
-    @if (auth()->user()?->can('catalogue.view') && ! auth()->user()?->can('catalogue.create'))
+    @if (auth()->user()?->can('catalogue.view') && ! auth()->user()?->can('catalogue.create') && ! auth()->user()?->can('catalogue.edit') && ! auth()->user()?->can('inventory.classification.manage'))
         <div class="mb-4 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
             {{ __('Read-only catalogue access.') }}
             @can('create', App\Models\Sales\Quotation::class)

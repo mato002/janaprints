@@ -87,6 +87,53 @@ class JobProductionControlTest extends TestCase
             ->assertSee('Jane');
     }
 
+    public function test_assigning_operation_operator_clears_job_operator_blocker(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext([
+            'production.view', 'production.create', 'production.start', 'production.edit',
+        ]);
+        $this->seed(ProductionFoundationSeeder::class);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $jobCard = $this->createJobCard($salesOrder, $user);
+        $employee = $this->createEmployee($company->id, $branch->id, 'Daniel', 'Kamau');
+        $user->update(['employee_id' => $employee->id]);
+        $workCenter = WorkCenter::query()->where('company_id', $company->id)->first();
+        $stage = ProductionStage::query()->where('company_id', $company->id)->first();
+
+        $queue = \App\Models\Production\ProductionQueue::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $jobCard->id,
+            'work_center_id' => $workCenter->id,
+            'queue_position' => 1,
+            'status' => \App\Enums\ProductionQueueStatus::Waiting,
+        ]);
+        $jobCard->update(['status' => ProductionJobCardStatus::Queued]);
+
+        $operation = ProductionOperation::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $jobCard->id,
+            'work_center_id' => $workCenter->id,
+            'production_stage_id' => $stage->id,
+            'started_at' => now(),
+        ]);
+
+        $this->assertTrue(app(\App\Services\Production\JobExecutionStateService::class)->state($jobCard->fresh())['needs_operator']);
+
+        $this->actingAs($user)
+            ->put(route('admin.production.operations.update', [$jobCard, $operation]), [
+                'assigned_employee_id' => $employee->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertSame($user->id, $queue->fresh()->assigned_operator_id);
+        $state = app(\App\Services\Production\JobExecutionStateService::class)->state($jobCard->fresh());
+        $this->assertFalse($state['needs_operator']);
+        $this->assertNotEmpty($state['operator_name']);
+    }
+
     public function test_dispatch_blocked_when_qc_fails(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext([

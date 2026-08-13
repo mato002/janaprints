@@ -2,7 +2,9 @@
 
 namespace App\Services\Production;
 
+use App\Enums\InventoryStockRole;
 use App\Enums\ProductionJobCardStatus;
+use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionJobCard;
 use App\Services\Dispatch\JobDispatchPresentationService;
 
@@ -181,7 +183,7 @@ class JobWorkflowPresentationService
     /**
      * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $checklist
      * @param  array<string, mixed>  $completion
-     * @return list<array{passed: bool, label: string, action: ?string, action_label: ?string, hint: ?string}>
+     * @return list<array{passed: bool, label: string, action: ?string, action_label: ?string, hint: ?string, action_method?: string, action_fields?: array<string, mixed>}>
      */
     protected function readinessItems(
         ProductionJobCard $jobCard,
@@ -253,14 +255,7 @@ class JobWorkflowPresentationService
         }
 
         if (in_array('stock_role', $blockerCodes, true)) {
-            $productItem = $jobCard->inventoryItem;
-            $items[] = [
-                'passed' => false,
-                'label' => __('Product stock role incorrect'),
-                'action' => $productItem ? route('admin.inventory.items.edit', $productItem) : route('admin.inventory.items.index'),
-                'action_label' => __('Open product'),
-                'hint' => null,
-            ];
+            $items[] = $this->stockRoleBlockerItem($jobCard, $completion);
         }
 
         if ($hasPostedOutput) {
@@ -358,6 +353,51 @@ class JobWorkflowPresentationService
         }
 
         return min(100, $score);
+    }
+
+    /**
+     * @param  array<string, mixed>  $completion
+     * @return array{passed: bool, label: string, action: ?string, action_label: ?string, hint: ?string, action_method: string, action_fields: array<string, mixed>}
+     */
+    protected function stockRoleBlockerItem(ProductionJobCard $jobCard, array $completion): array
+    {
+        $itemId = $completion['suggested_finished_item_id'] ?? $jobCard->inventory_item_id;
+        $productItem = $itemId
+            ? InventoryItem::query()->find($itemId)
+            : $jobCard->inventoryItem;
+        $user = auth()->user();
+        $canClassify = $productItem !== null && $user !== null && $user->can('classify', $productItem);
+
+        if ($canClassify && $productItem) {
+            return [
+                'passed' => false,
+                'label' => __('Product stock role incorrect'),
+                'action' => route('admin.inventory.items.classify-finished-good', $productItem),
+                'action_label' => __('Set as finished good'),
+                'hint' => __(':item is not classified as a finished good. Store can set the stock role here so output can be posted.', [
+                    'item' => $productItem->item_name,
+                ]),
+                'action_method' => 'POST',
+                'action_fields' => ['production_job_card_id' => $jobCard->id],
+            ];
+        }
+
+        return [
+            'passed' => false,
+            'label' => __('Product stock role incorrect'),
+            'action' => $productItem
+                ? route('admin.inventory.items.show', [
+                    'item' => $productItem,
+                    'needed_role' => InventoryStockRole::FinishedGood->value,
+                ])
+                : route('admin.inventory.items.index'),
+            'action_label' => __('View product'),
+            'hint' => __('Ask store to open :item in Inventory and set stock role to Finished good.', [
+                'item' => $productItem?->item_name ?? __('this product'),
+            ]),
+            'action_method' => 'GET',
+            'action_fields' => [],
+        ];
     }
 
     /**

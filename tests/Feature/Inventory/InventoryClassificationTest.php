@@ -106,6 +106,80 @@ class InventoryClassificationTest extends TestCase
         $response->assertDontSee('RM-001', false);
     }
 
+    public function test_storekeeper_can_classify_item_as_finished_good(): void
+    {
+        [$company, $branch, $user] = $this->context();
+
+        $item = InventoryItem::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sku' => 'NCR-WHITE',
+            'item_name' => 'Ncr white',
+            'stock_role' => InventoryStockRole::RawMaterial,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->post(route('admin.inventory.items.classify-finished-good', $item))
+            ->assertRedirect(route('admin.inventory.items.show', $item));
+
+        $this->assertSame(InventoryStockRole::FinishedGood, $item->fresh()->stock_role);
+    }
+
+    public function test_catalogue_viewer_cannot_classify_item(): void
+    {
+        [$company, $branch] = $this->context();
+
+        $item = InventoryItem::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sku' => 'NCR-WHITE',
+            'item_name' => 'Ncr white',
+            'stock_role' => InventoryStockRole::RawMaterial,
+        ]);
+
+        $viewer = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $viewer->assignRole('Sales');
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($viewer)
+            ->post(route('admin.inventory.items.classify-finished-good', $item))
+            ->assertForbidden();
+
+        $this->assertSame(InventoryStockRole::RawMaterial, $item->fresh()->stock_role);
+    }
+
+    public function test_product_show_prompts_store_to_classify_when_production_needs_finished_good(): void
+    {
+        [$company, $branch, $user] = $this->context();
+
+        $item = InventoryItem::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sku' => 'NCR-WHITE',
+            'item_name' => 'Ncr white',
+            'stock_role' => InventoryStockRole::RawMaterial,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.inventory.items.show', [
+                'item' => $item,
+                'needed_role' => InventoryStockRole::FinishedGood->value,
+            ]))
+            ->assertOk()
+            ->assertSee(__('Set as finished good'), false)
+            ->assertSee(__('Production needs this product classified as a finished good before output can be posted.'), false);
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2: User, 3: InventoryCategory, 4: UnitOfMeasure}
      */
