@@ -105,6 +105,16 @@ class FormGovernanceErrorClassifier
             if ($exception instanceof \InvalidArgumentException || $exception instanceof \RuntimeException) {
                 return $raw;
             }
+
+            // Prefer a concise exception message over a generic system fallback so operators can troubleshoot.
+            if (
+                strlen($raw) <= 400
+                && ! str_contains($raw, 'SQLSTATE')
+                && ! str_contains($raw, 'Stack trace')
+                && ! str_contains($raw, 'vendor/')
+            ) {
+                return $raw;
+            }
         }
 
         return __('Something went wrong while processing this form. Please try again.');
