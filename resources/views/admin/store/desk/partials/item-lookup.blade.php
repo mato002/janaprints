@@ -73,5 +73,13 @@
                 <dd class="truncate font-medium text-slate-700" x-text="selected?.warehouse ?? '—'"></dd>
             </div>
         </dl>
+        <div class="mt-3">
+            <a
+                x-show="selected?.item_url"
+                :href="selected?.item_url"
+                class="text-xs font-medium text-erp-primary hover:underline"
+                data-turbo-frame="erp-main"
+            >{{ __('Open product') }}</a>
+        </div>
     </div>
 </div>

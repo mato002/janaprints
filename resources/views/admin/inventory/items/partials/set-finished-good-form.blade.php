@@ -13,6 +13,9 @@
             @if ($jobCard)
                 <input type="hidden" name="production_job_card_id" value="{{ $jobCard->id }}">
             @endif
+            @if (($from ?? null) === 'store-desk')
+                <input type="hidden" name="from" value="store-desk">
+            @endif
             <button type="submit" class="{{ $buttonClass }}">{{ __('Set as finished good') }}</button>
         </form>
     @endcan

@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Inventory\StoreDeskViews;
+use App\Support\Inventory\StorekeeperOperatorMode;
 use App\Support\Navigation\DeskWorkspaceRoutes;
 use App\Support\Navigation\ModuleShellPresenter;
 use App\Support\Operator\OperatorModeKey;
@@ -40,11 +42,26 @@ class RedirectToModuleWorkspaceShell
             return $next($request);
         }
 
+        $user = $request->user();
+
+        if (
+            $user !== null
+            && StorekeeperOperatorMode::enabledFor($user)
+            && in_array($routeName, ['admin.inventory.items.index', 'admin.inventory.catalogue.dashboard'], true)
+        ) {
+            $query = $request->query();
+            unset($query['embedded'], $query['desk'], $query['view']);
+
+            if ($request->hasSession()) {
+                $request->session()->reflash();
+            }
+
+            return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS, $query));
+        }
+
         if (DeskWorkspaceRoutes::allowsStandalone($routeName, $request)) {
             return $next($request);
         }
-
-        $user = $request->user();
 
         // Artwork list/dashboard routes belong to Commercial for managers — designers must stay on their desk.
         if (

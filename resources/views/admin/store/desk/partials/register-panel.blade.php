@@ -15,6 +15,9 @@
 </x-admin.page-header>
 
 @switch ($activeStoreView)
+    @case(StoreDeskViews::PRODUCTS)
+        @include('admin.store.desk.partials.products-panel')
+        @break
     @case(StoreDeskViews::BALANCES)
         @include('admin.inventory.store.partials.balances-content')
         @break

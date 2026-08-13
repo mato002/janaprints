@@ -3,6 +3,7 @@
 namespace App\Support\Inventory;
 
 use App\Enums\InventoryDocumentStatus;
+use App\Enums\InventoryStockRole;
 use App\Enums\StockIssueDestination;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
 use App\Models\Inventory\InventoryCategory;
@@ -69,11 +70,47 @@ class StoreDeskPageBuilder
         }
 
         return match ($view) {
+            StoreDeskViews::PRODUCTS => $this->productsPayload($request),
             StoreDeskViews::BALANCES => $this->balancesPayload(),
             StoreDeskViews::MOVEMENTS => $this->movementsPayload($request),
             StoreDeskViews::ALERTS => $this->alertsPayload($request),
             default => [],
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function productsPayload(Request $request): array
+    {
+        $search = trim((string) $request->query('search', ''));
+        $stockRole = $request->string('stock_role')->toString() ?: null;
+
+        $items = InventoryItem::query()
+            ->forTenant()
+            ->with(['category', 'brand', 'unitOfMeasure'])
+            ->when($search !== '', function ($query) use ($search) {
+                $like = '%'.strtolower($search).'%';
+                $query->where(function ($inner) use ($like) {
+                    $inner->whereRaw('LOWER(sku) LIKE ?', [$like])
+                        ->orWhereRaw('LOWER(item_name) LIKE ?', [$like]);
+                });
+            })
+            ->when($stockRole !== null && $stockRole !== '' && $stockRole !== 'all', function ($query) use ($stockRole) {
+                $query->where('stock_role', $stockRole);
+            })
+            ->orderBy('item_name')
+            ->paginate(20)
+            ->withQueryString();
+
+        return [
+            'registerTitle' => __('Products'),
+            'registerDescription' => __('Every inventory item and its stock role. Use this list when production needs an item classified as a finished good.'),
+            'items' => $items,
+            'stockRole' => $stockRole ?: 'all',
+            'stockRoles' => InventoryStockRole::cases(),
+            'search' => $search,
+        ];
     }
 
     /**

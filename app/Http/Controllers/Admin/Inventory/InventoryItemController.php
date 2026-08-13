@@ -16,6 +16,8 @@ use App\Models\Inventory\ItemAttribute;
 use App\Models\Inventory\UnitOfMeasure;
 use App\Support\Catalogue\CatalogueService;
 use App\Support\Catalogue\ItemAttributeService;
+use App\Support\Inventory\StoreDeskViews;
+use App\Support\Inventory\StorekeeperOperatorMode;
 use App\Support\InventoryStockService;
 use App\Support\Production\ProductBomService;
 use App\Support\Production\ProductQcChecklistService;
@@ -40,9 +42,16 @@ class InventoryItemController extends Controller
         protected ProductQcChecklistService $productQcChecklists,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
         $this->authorize('viewAny', InventoryItem::class);
+
+        if (StorekeeperOperatorMode::enabledFor($request->user()) && ! $request->boolean('desk')) {
+            $query = $request->query();
+            unset($query['embedded'], $query['desk'], $query['view']);
+
+            return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS, $query));
+        }
 
         $stockRole = $request->string('stock_role')->toString() ?: null;
 
@@ -170,6 +179,12 @@ class InventoryItemController extends Controller
                     ->route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs'])
                     ->with('status', $status);
             }
+        }
+
+        if ($request->input('from') === 'store-desk' || StorekeeperOperatorMode::enabledFor($request->user())) {
+            return redirect()
+                ->to(StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS))
+                ->with('status', $status);
         }
 
         return redirect()->route('admin.inventory.items.show', $item)->with('status', $status);

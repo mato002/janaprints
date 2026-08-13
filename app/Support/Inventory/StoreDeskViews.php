@@ -9,6 +9,8 @@ final class StoreDeskViews
 {
     public const DESK = 'desk';
 
+    public const PRODUCTS = 'products';
+
     public const BALANCES = 'balances';
 
     public const RECEIPTS = 'receipts';
@@ -55,6 +57,7 @@ final class StoreDeskViews
     {
         return [
             self::DESK,
+            self::PRODUCTS,
             self::BALANCES,
             self::RECEIPTS,
             self::ISSUES,

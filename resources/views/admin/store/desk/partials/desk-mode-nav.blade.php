@@ -17,6 +17,12 @@
             'visible' => $user?->can('inventory.view') ?? false,
         ],
         [
+            'key' => StoreDeskViews::PRODUCTS,
+            'label' => __('Products'),
+            'url' => StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS),
+            'visible' => $user?->can('catalogue.view') || ($user?->can('inventory.view') ?? false),
+        ],
+        [
             'key' => StoreDeskViews::BALANCES,
             'label' => __('Balances'),
             'url' => StoreDeskViews::deskUrl(StoreDeskViews::BALANCES),

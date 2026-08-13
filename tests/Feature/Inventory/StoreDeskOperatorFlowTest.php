@@ -42,9 +42,16 @@ class StoreDeskOperatorFlowTest extends TestCase
 
         $this->getStoreDesk($user)
             ->assertOk()
+            ->assertSee(__('Products'), false)
+            ->assertSee(route('admin.store.desk', ['view' => 'products']), false)
             ->assertSee('data-erp-modal-open', false)
-            ->assertSee('/admin/store/desk/catalogue', false)
             ->assertSee('/admin/store/desk/reorder-alerts', false);
+
+        $this->actingAs($user)
+            ->get(route('admin.store.desk', ['view' => 'products']))
+            ->assertOk()
+            ->assertSee(__('Products'), false)
+            ->assertSee(__('Every inventory item and its stock role'), false);
 
         $this->actingAs($user)
             ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])
@@ -60,13 +67,9 @@ class StoreDeskOperatorFlowTest extends TestCase
             ->assertSee('data-erp-form-modal-panel', false)
             ->assertSee(__('Reorder alerts'), false);
 
-        $redirect = $this->actingAs($user)
+        $this->actingAs($user)
             ->get(route('admin.inventory.items.index'))
-            ->headers
-            ->get('Location');
-
-        $this->assertNotNull($redirect);
-        $this->assertStringContainsString('store-operations', (string) $redirect);
+            ->assertRedirect(route('admin.store.desk', ['view' => 'products']));
     }
 
     public function test_storekeeper_login_and_legacy_workspace_url_do_not_redirect_loop(): void
@@ -271,7 +274,10 @@ class StoreDeskOperatorFlowTest extends TestCase
             'inventory.view',
             'inventory.receive',
             'inventory.issue',
+            'inventory.edit',
             'catalogue.view',
+            'catalogue.edit',
+            'inventory.classification.manage',
             'inventory.reorder.view',
         ]);
         $user->assignRole('Storekeeper');

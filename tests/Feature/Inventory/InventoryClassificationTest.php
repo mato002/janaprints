@@ -99,7 +99,10 @@ class InventoryClassificationTest extends TestCase
         session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
 
         $response = $this->actingAs($user)
-            ->get(route('admin.inventory.items.index', ['stock_role' => InventoryStockRole::FinishedGood->value]));
+            ->get(route('admin.store.desk', [
+                'view' => 'products',
+                'stock_role' => InventoryStockRole::FinishedGood->value,
+            ]));
 
         $response->assertOk();
         $response->assertSee('FG-001', false);
@@ -122,7 +125,7 @@ class InventoryClassificationTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('admin.inventory.items.classify-finished-good', $item))
-            ->assertRedirect(route('admin.inventory.items.show', $item));
+            ->assertRedirect(route('admin.store.desk', ['view' => 'products']));
 
         $this->assertSame(InventoryStockRole::FinishedGood, $item->fresh()->stock_role);
     }

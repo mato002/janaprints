@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\SupplyChain;
 
 use App\Http\Controllers\Admin\Concerns\HandlesModuleWorkspaceDesk;
 use App\Http\Controllers\Controller;
+use App\Support\Inventory\StoreDeskViews;
 use App\Support\Inventory\StorekeeperOperatorMode;
 use App\Support\Navigation\SupplyChainWorkspacePresenter;
 use Illuminate\Http\RedirectResponse;
@@ -38,6 +39,10 @@ class SupplyChainWorkspaceController extends Controller
         abort_unless($this->presenter->sectionExists($section), 404);
 
         if (StorekeeperOperatorMode::enabledFor($request->user()) && ! $request->boolean('desk')) {
+            if ($section === 'catalogue') {
+                return redirect()->to(StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS));
+            }
+
             return redirect()->to(StorekeeperOperatorMode::homeUrl());
         }
 

@@ -203,6 +203,14 @@ return [
                                     'active_routes' => ['admin.store.desk', 'admin.store.desk.*', 'admin.inventory.store.dashboard'],
                                 ],
                                 [
+                                    'key' => 'products',
+                                    'label' => 'Products',
+                                    'route' => 'admin.store.desk',
+                                    'route_params' => ['view' => 'products'],
+                                    'permission' => 'catalogue.view|inventory.view',
+                                    'active_routes' => ['admin.inventory.items.*', 'admin.inventory.catalogue.dashboard'],
+                                ],
+                                [
                                     'key' => 'balances',
                                     'label' => 'Balances',
                                     'route' => 'admin.store.desk',

@@ -100,10 +100,10 @@ class StoreDeskService
 
         $actions[] = [
             'key' => 'catalogue',
-            'label' => __('Catalogue'),
+            'label' => __('Products'),
             'icon' => 'collection',
-            'url' => route('admin.store.desk.catalogue'),
-            'modal' => true,
+            'url' => StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS),
+            'modal' => false,
         ];
 
         return $actions;
@@ -184,7 +184,9 @@ class StoreDeskService
             'warehouse' => $warehouse?->name,
             'warehouse_code' => $warehouse?->code,
             'shelf' => null,
-            'catalogue_url' => route('admin.store.desk.catalogue', ['search' => $item->sku]),
+            'role' => $item->stock_role?->label(),
+            'item_url' => route('admin.inventory.items.show', $item),
+            'catalogue_url' => StoreDeskViews::deskUrl(StoreDeskViews::PRODUCTS, ['search' => $item->sku]),
         ];
     }
 

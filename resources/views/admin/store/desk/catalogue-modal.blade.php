@@ -28,13 +28,16 @@
                         <th>{{ __('Shelf') }}</th>
                         <th>{{ __('Category') }}</th>
                         <th>{{ __('Role') }}</th>
+                        <th>{{ __('Actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($rows as $row)
                         @php($item = $row['item'])
                         <tr>
-                            <td class="font-medium">{{ $item->item_name }}</td>
+                            <td class="font-medium">
+                                <a href="{{ route('admin.inventory.items.show', $item) }}" class="text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ $item->item_name }}</a>
+                            </td>
                             <td class="font-mono text-xs">{{ $item->sku }}</td>
                             <td class="text-right font-mono text-xs tabular-nums">{{ number_format($row['available'], 2) }}</td>
                             <td class="text-right font-mono text-xs tabular-nums">{{ number_format($row['reserved'], 2) }}</td>
@@ -48,10 +51,20 @@
                                     —
                                 @endif
                             </td>
+                            <td>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    @include('admin.inventory.items.partials.set-finished-good-form', [
+                                        'item' => $item,
+                                        'from' => 'store-desk',
+                                        'buttonClass' => 'erp-btn-ghost py-1 text-xs',
+                                    ])
+                                    <a href="{{ route('admin.inventory.items.show', $item) }}" class="text-xs font-medium text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ __('View') }}</a>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="py-6 text-center text-sm text-slate-500">{{ __('No items match your search.') }}</td>
+                            <td colspan="9" class="py-6 text-center text-sm text-slate-500">{{ __('No items match your search.') }}</td>
                         </tr>
                     @endforelse
                 </tbody>
