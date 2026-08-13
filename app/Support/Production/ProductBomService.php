@@ -2,9 +2,11 @@
 
 namespace App\Support\Production;
 
+use App\Enums\InventoryStockRole;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductBom;
 use App\Models\Production\ProductBomLine;
+use App\Models\Production\ProductionJobCard;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -226,6 +228,117 @@ class ProductBomService
             'name' => $bom->name,
             'is_active' => true,
         ], $normalized);
+    }
+
+    /**
+     * Prefill BOM lines from the job specification and typical print ingredients.
+     *
+     * @return list<array{inventory_item_id: string, quantity_per_unit: float|string, waste_factor_percent: float|int, notes: string}>
+     */
+    public function suggestedLinesForJobCard(ProductionJobCard $jobCard): array
+    {
+        $jobCard->loadMissing([
+            'productionSpecification.paperInventoryItem',
+            'productionSpecification.materialInventoryItem',
+        ]);
+
+        $spec = $jobCard->productionSpecification;
+        $jobQty = max(1.0, (float) ($spec?->quantity ?? 1));
+        $sheets = (float) ($spec?->estimated_sheets ?? 0);
+        $paperQty = $sheets > 0 ? max(0.0001, round($sheets / $jobQty, 4)) : 1;
+        $waste = (float) ($spec?->waste_allowance_percent ?? 5);
+        $finishedId = (int) ($jobCard->inventory_item_id ?? 0);
+
+        $lines = [];
+        $seen = [];
+
+        $push = function (?InventoryItem $item, float $qty, float $wastePercent, string $note) use (&$lines, &$seen, $finishedId): void {
+            if ($item === null || isset($seen[$item->id]) || (int) $item->id === $finishedId) {
+                return;
+            }
+
+            if ($item->stock_role === InventoryStockRole::FinishedGood) {
+                return;
+            }
+
+            $seen[$item->id] = true;
+            $lines[] = [
+                'inventory_item_id' => (string) $item->id,
+                'quantity_per_unit' => $qty,
+                'waste_factor_percent' => $wastePercent,
+                'notes' => $note,
+            ];
+        };
+
+        $push($spec?->paperInventoryItem, $paperQty, $waste, __('Paper from job specification'));
+        $push($spec?->materialInventoryItem, $paperQty, $waste, __('Stock from job specification'));
+
+        if ($spec?->lamination) {
+            $push(
+                $this->findComponent($jobCard, ['RAW-LAM', 'LAM'], ['FINISHING', 'LAMINATION']),
+                1,
+                2,
+                __('Lamination'),
+            );
+        }
+
+        $push(
+            $this->findComponent($jobCard, ['RAW-INK', 'INK'], ['INK']),
+            0.02,
+            3,
+            __('Process ink'),
+        );
+
+        if ($lines === []) {
+            $push(
+                $this->findComponent($jobCard, ['RAW-PAPER', 'PAPER', 'NCR'], ['PAPER']),
+                $paperQty,
+                $waste,
+                __('Paper stock'),
+            );
+            $push(
+                $this->findComponent($jobCard, ['RAW-INK', 'INK'], ['INK']),
+                0.02,
+                3,
+                __('Process ink'),
+            );
+        }
+
+        return $lines !== []
+            ? $lines
+            : [['inventory_item_id' => '', 'quantity_per_unit' => '', 'waste_factor_percent' => 0, 'notes' => '']];
+    }
+
+    /**
+     * @param  list<string>  $skuNeedles
+     * @param  list<string>  $categoryCodes
+     */
+    protected function findComponent(ProductionJobCard $jobCard, array $skuNeedles, array $categoryCodes = []): ?InventoryItem
+    {
+        $query = InventoryItem::query()
+            ->where('company_id', $jobCard->company_id)
+            ->where('branch_id', $jobCard->branch_id)
+            ->where('is_active', true)
+            ->whereIn('stock_role', [
+                InventoryStockRole::RawMaterial,
+                InventoryStockRole::Consumable,
+                InventoryStockRole::Packaging,
+            ]);
+
+        $query->where(function ($outer) use ($skuNeedles, $categoryCodes) {
+            foreach ($skuNeedles as $needle) {
+                $outer->orWhere('sku', 'like', $needle.'%')
+                    ->orWhere('item_name', 'like', '%'.$needle.'%');
+            }
+
+            if ($categoryCodes !== []) {
+                $outer->orWhereHas('category', function ($category) use ($categoryCodes) {
+                    $category->whereIn('code', $categoryCodes);
+                });
+            }
+        });
+
+        return $query->orderBy('sku')->first();
     }
 
     /**

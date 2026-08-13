@@ -80,6 +80,49 @@ class BomMaterialRequirementsTest extends TestCase
         $this->assertEqualsWithDelta(262.5, $paperReq['required_quantity'], 0.01);
     }
 
+    public function test_bom_create_from_job_suggests_specification_materials(): void
+    {
+        [$company, $branch, $user, $finished, $paper, $ink] = $this->materialContext([
+            'production.view', 'production.bom.view', 'production.bom.create',
+        ]);
+
+        $jobCard = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'inventory_item_id' => $finished->id,
+            'created_by' => $user->id,
+        ]);
+
+        \App\Models\Production\ProductionSpecification::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $jobCard->customer_id,
+            'production_job_card_id' => $jobCard->id,
+            'paper_inventory_item_id' => $paper->id,
+            'quantity' => 1000,
+            'estimated_sheets' => 250,
+            'waste_allowance_percent' => 5,
+            'created_by' => $user->id,
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('admin.production.boms.create', [
+                'finished_item_id' => $finished->id,
+                'job_card_id' => $jobCard->getRouteKey(),
+            ]))
+            ->assertOk()
+            ->assertDontSee('PROD-FLYER', false)
+            ->assertSee($paper->sku, false)
+            ->assertSee(__('Lines below are suggested from the job specification'), false);
+
+        $suggested = app(ProductBomService::class)->suggestedLinesForJobCard($jobCard->fresh());
+        $this->assertSame((string) $paper->id, $suggested[0]['inventory_item_id']);
+        $this->assertEqualsWithDelta(0.25, (float) $suggested[0]['quantity_per_unit'], 0.0001);
+        $this->assertContains((string) $ink->id, array_column($suggested, 'inventory_item_id'));
+    }
+
     public function test_bom_index_requires_permission(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['production.view']);
@@ -302,22 +345,27 @@ class BomMaterialRequirementsTest extends TestCase
             'inventory_category_id' => $category->id,
             'unit_of_measure_id' => $unit->id,
             'sku' => 'FIN-'.uniqid(),
+            'stock_role' => \App\Enums\InventoryStockRole::FinishedGood,
         ]);
         $paper = InventoryItem::factory()->create([
             'company_id' => $company->id,
             'branch_id' => $branch->id,
             'inventory_category_id' => $category->id,
             'unit_of_measure_id' => $unit->id,
-            'sku' => 'RAW-P-'.uniqid(),
+            'sku' => 'RAW-PAPER-'.uniqid(),
+            'item_name' => 'Art Paper',
             'standard_cost' => 10,
+            'stock_role' => \App\Enums\InventoryStockRole::RawMaterial,
         ]);
         $ink = InventoryItem::factory()->create([
             'company_id' => $company->id,
             'branch_id' => $branch->id,
             'inventory_category_id' => $category->id,
             'unit_of_measure_id' => $unit->id,
-            'sku' => 'RAW-I-'.uniqid(),
+            'sku' => 'RAW-INK-'.uniqid(),
+            'item_name' => 'CMYK Ink',
             'standard_cost' => 20,
+            'stock_role' => \App\Enums\InventoryStockRole::RawMaterial,
         ]);
 
         return [$company, $branch, $user, $finished, $paper, $ink];

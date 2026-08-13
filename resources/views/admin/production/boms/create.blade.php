@@ -19,6 +19,7 @@
             'bom' => null,
             'preselectedFinishedItemId' => $preselectedFinishedItemId ?? null,
             'prefilledName' => $prefilledName ?? null,
+            'suggestedLines' => $suggestedLines ?? null,
         ])
 
         <x-admin.form-actions :cancel-url="route('admin.production.boms.index')">

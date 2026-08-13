@@ -1,6 +1,7 @@
 @php
     $bom = $bom ?? null;
-    $defaultLines = [['inventory_item_id' => '', 'quantity_per_unit' => '', 'waste_factor_percent' => 0, 'notes' => '']];
+    $suggestedLines = $suggestedLines ?? null;
+    $defaultLines = $suggestedLines ?: [['inventory_item_id' => '', 'quantity_per_unit' => '', 'waste_factor_percent' => 0, 'notes' => '']];
     $lineRows = old('lines', $bom
         ? $bom->lines->map(fn ($line) => [
             'inventory_item_id' => (string) $line->inventory_item_id,
@@ -13,8 +14,10 @@
     $nameValue = old('name', $bom?->name ?? $prefilledName ?? '');
     $materialOptions = collect($rawMaterials)->map(fn ($material) => [
         'id' => (string) $material->id,
-        'label' => $material->sku.' — '.$material->item_name,
+        'label' => trim(($material->category?->name ? $material->category->name.' · ' : '').$material->sku.' — '.$material->item_name),
+        'group' => $material->category?->name ?: ($material->stock_role?->label() ?? __('Materials')),
     ])->values()->all();
+    $hasSuggestions = ! $bom && collect($lineRows)->contains(fn ($line) => filled($line['inventory_item_id'] ?? null));
 @endphp
 
 <div class="space-y-4" x-data="bomFormLines(@js($lineRows), @js($materialOptions))">
@@ -59,6 +62,14 @@
             <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Raw materials') }}</h3>
             <button type="button" class="erp-btn-secondary text-sm" @click="addLine()">{{ __('Add line') }}</button>
         </div>
+        <p class="mb-3 text-sm text-slate-600">
+            {{ __('Pick paper, ink, and finishing this job will consume — not the finished product. Qty / unit is how much of that material one finished piece uses (for example 0.5 sheets of paper per flyer). Generate requirements next to scale by job quantity.') }}
+        </p>
+        @if ($hasSuggestions)
+            <p class="mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-950">
+                {{ __('Lines below are suggested from the job specification and typical print stock. Change or remove anything that does not apply.') }}
+            </p>
+        @endif
 
         <div class="space-y-3">
             <template x-for="(line, index) in lines" :key="index">

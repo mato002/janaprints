@@ -43,11 +43,15 @@ class ProductBomController extends Controller
         $this->authorize('create', ProductBom::class);
 
         $jobCard = $this->resolveReturnJobCard($request);
+        $preselectedFinishedItemId = $request->integer('finished_item_id') ?: null;
 
-        return view('admin.production.boms.create', array_merge($this->formMeta(), [
-            'preselectedFinishedItemId' => $request->integer('finished_item_id') ?: null,
+        return view('admin.production.boms.create', array_merge($this->formMeta($preselectedFinishedItemId), [
+            'preselectedFinishedItemId' => $preselectedFinishedItemId,
             'prefilledName' => $request->string('name')->toString() ?: null,
             'returnJobCard' => $jobCard,
+            'suggestedLines' => $jobCard
+                ? $this->bomService->suggestedLinesForJobCard($jobCard)
+                : null,
         ]));
     }
 
@@ -164,23 +168,38 @@ class ProductBomController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function formMeta(): array
+    protected function formMeta(?int $preselectedFinishedItemId = null): array
     {
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
+        $finishedQuery = InventoryItem::query()
+            ->where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->where(function ($query) use ($preselectedFinishedItemId) {
+                $query->where('stock_role', \App\Enums\InventoryStockRole::FinishedGood);
+
+                if ($preselectedFinishedItemId) {
+                    $query->orWhere('id', $preselectedFinishedItemId);
+                }
+            });
+
         return [
-            'finishedItems' => InventoryItem::query()
-                ->where('company_id', $companyId)
-                ->where('branch_id', $branchId)
-                ->where('is_active', true)
+            'finishedItems' => $finishedQuery
                 ->orderBy('item_name')
                 ->get(['id', 'sku', 'item_name']),
             'rawMaterials' => InventoryItem::query()
                 ->where('company_id', $companyId)
                 ->where('branch_id', $branchId)
                 ->where('is_active', true)
+                ->whereIn('stock_role', [
+                    \App\Enums\InventoryStockRole::RawMaterial,
+                    \App\Enums\InventoryStockRole::Consumable,
+                    \App\Enums\InventoryStockRole::Packaging,
+                ])
+                ->with('category:id,name,code')
                 ->orderBy('sku')
-                ->get(['id', 'sku', 'item_name']),
+                ->get(['id', 'sku', 'item_name', 'inventory_category_id', 'stock_role']),
         ];
     }
 
