@@ -991,11 +991,27 @@ class Job360WorkspaceService
             ];
         })->values()->all();
 
+        $readiness = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
+        $shortages = collect($readiness['missing'] ?? [])->values()->all();
+        $hasShortages = count($shortages) > 0;
+        $reservableCount = $requirements->filter(fn (array $row) => (bool) ($row['can_reserve'] ?? false))->count();
+        $pendingConsumeCount = $requirements->filter(fn (array $row) => (float) ($row['remaining'] ?? 0) > 0)->count();
+        $consumableCount = $requirements->filter(function (array $row) {
+            return (float) ($row['remaining'] ?? 0) > 0 && (float) ($row['available'] ?? 0) > 0;
+        })->count();
+
         return [
             'requirements' => $requirements,
             'costs' => $costs,
             'workflow' => $workflow,
             'has_requirements' => $requirements->isNotEmpty(),
+            'shortages' => $shortages,
+            'has_shortages' => $hasShortages,
+            'short_count' => (int) ($readiness['short_count'] ?? 0),
+            'ready_count' => (int) ($readiness['ready_count'] ?? 0),
+            'reservable_count' => $reservableCount,
+            'pending_consume_count' => $pendingConsumeCount,
+            'consumable_count' => $consumableCount,
             'missing_boms' => $missingBomActions,
             'can_create_bom' => $canCreateBom && count($missingBomActions) > 0,
             'can_link_product' => $canLinkProduct && ! ($workflow['has_finished_product'] ?? false),
@@ -1005,6 +1021,10 @@ class Job360WorkspaceService
             'can_show_generate_form' => auth()->user()?->can('production.materials.generate') ?? false,
             'can_reserve' => (auth()->user()?->can('production.materials.reserve') ?? false)
                 && $requirements->isNotEmpty(),
+            'can_receive_stock' => auth()->user()?->can('inventory.receive') ?? false,
+            'receipts_url' => route('admin.inventory.receipts.create', [
+                'job_card_id' => $jobCard->getRouteKey(),
+            ]),
             'can_consume' => $this->userCanRecordMaterialConsumption(),
             'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
         ];

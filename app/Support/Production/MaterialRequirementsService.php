@@ -246,18 +246,22 @@ class MaterialRequirementsService
 
             $this->linkOrphanConsumptions($requirement);
 
-            $qty = $quantity ?? $requirement->remainingQuantity();
+            $remaining = $requirement->remainingQuantity();
+            $available = $this->availableStock($requirement);
+            $qty = $quantity ?? min($remaining, $available);
 
             if ($qty <= 0) {
                 throw ValidationException::withMessages([
-                    'quantity' => __('Nothing remaining to consume for this requirement.'),
+                    'quantity' => $remaining <= 0
+                        ? __('Nothing remaining to consume for this requirement.')
+                        : __('No available stock to consume for this material. Receive stock into the requirement warehouse first.'),
                 ]);
             }
 
-            if ($qty > $requirement->remainingQuantity()) {
+            if ($qty > $remaining) {
                 throw ValidationException::withMessages([
                     'quantity' => __('Quantity exceeds remaining requirement. Only :remaining :unit remain.', [
-                        'remaining' => $requirement->remainingQuantity(),
+                        'remaining' => $remaining,
                         'unit' => $requirement->inventoryItem?->unitOfMeasure?->code ?? '',
                     ]),
                 ]);
@@ -276,6 +280,46 @@ class MaterialRequirementsService
                 $requirement->id,
             );
         });
+    }
+
+    /**
+     * Consume remaining qty on every open line, capped by available warehouse stock.
+     *
+     * @return array{consumed: int, skipped: int}
+     */
+    public function consumeAll(ProductionJobCard $jobCard, int $userId): array
+    {
+        $requirements = ProductionMaterialRequirement::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->whereIn('status', [
+                MaterialRequirementStatus::Planned,
+                MaterialRequirementStatus::Reserved,
+                MaterialRequirementStatus::Partial,
+                MaterialRequirementStatus::Shortfall,
+            ])
+            ->orderBy('inventory_item_id')
+            ->get();
+
+        $consumed = 0;
+        $skipped = 0;
+
+        foreach ($requirements as $requirement) {
+            if ($requirement->remainingQuantity() <= 0) {
+                continue;
+            }
+
+            try {
+                $this->consumeFromRequirement($requirement, $userId);
+                $consumed++;
+            } catch (ValidationException) {
+                $skipped++;
+            }
+        }
+
+        return [
+            'consumed' => $consumed,
+            'skipped' => $skipped,
+        ];
     }
 
     public function findOpenRequirement(
@@ -387,6 +431,65 @@ class MaterialRequirementsService
                 'can_consume' => $remaining > 0 && $available >= min($remaining, $available),
             ];
         });
+    }
+
+    /**
+     * Prefill a goods receipt from live job shortfalls. Quantity and cost stay editable.
+     *
+     * @return array{
+     *     lines: list<array{inventory_item_id: string, quantity: string, unit_cost: string}>,
+     *     warehouse_id: ?int
+     * }
+     */
+    public function stockReceiptPrefill(ProductionJobCard $jobCard): array
+    {
+        $grouped = [];
+
+        foreach ($this->panelRows($jobCard) as $row) {
+            $shortfall = (float) ($row['shortfall'] ?? 0);
+            if ($shortfall <= 0) {
+                continue;
+            }
+
+            $requirement = $row['requirement'] ?? null;
+            $itemId = (int) ($requirement?->inventory_item_id ?? 0);
+            if ($itemId <= 0) {
+                continue;
+            }
+
+            $unitCost = (float) ($row['unit_cost'] ?? 0);
+            if ($unitCost <= 0) {
+                $unitCost = (float) ($requirement?->inventoryItem?->standard_cost ?? 0);
+            }
+
+            if (! isset($grouped[$itemId])) {
+                $grouped[$itemId] = [
+                    'inventory_item_id' => (string) $itemId,
+                    'quantity' => 0.0,
+                    'unit_cost' => $unitCost,
+                    'warehouse_id' => $requirement?->warehouse_id ? (int) $requirement->warehouse_id : null,
+                ];
+            }
+
+            $grouped[$itemId]['quantity'] += $shortfall;
+            if ((float) $grouped[$itemId]['unit_cost'] <= 0 && $unitCost > 0) {
+                $grouped[$itemId]['unit_cost'] = $unitCost;
+            }
+        }
+
+        $warehouseId = collect($grouped)->pluck('warehouse_id')->filter()->first();
+
+        return [
+            'lines' => collect($grouped)
+                ->map(fn (array $line) => [
+                    'inventory_item_id' => $line['inventory_item_id'],
+                    'quantity' => $this->formatReceiptQuantity((float) $line['quantity']),
+                    'unit_cost' => number_format((float) $line['unit_cost'], 2, '.', ''),
+                ])
+                ->values()
+                ->all(),
+            'warehouse_id' => $warehouseId ? (int) $warehouseId : null,
+        ];
     }
 
     /**
@@ -816,5 +919,10 @@ class MaterialRequirementsService
             ->sum('reserved_quantity');
 
         return max(0, round($balance - $otherReservations, 3));
+    }
+
+    protected function formatReceiptQuantity(float $qty): string
+    {
+        return rtrim(rtrim(number_format($qty, 3, '.', ''), '0'), '.') ?: '0';
     }
 }

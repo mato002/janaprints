@@ -28,13 +28,28 @@
     $resolveUrl = null;
 
     if ($showMaterialReleaseGate && $materialReadiness && ! ($materialReadiness['ready'] ?? false)) {
-        $message = ! ($materialReadiness['has_requirements'] ?? false)
-            ? ((string) ($materialReadiness['setup_blocker'] ?? '') ?: __('Material requirements missing'))
-            : __('Material shortages block release');
+        $hasRequirements = (bool) ($materialReadiness['has_requirements'] ?? false);
+        $shortCount = (int) ($materialReadiness['short_count'] ?? 0);
+
+        if (! $hasRequirements) {
+            $message = (string) ($materialReadiness['setup_blocker'] ?? '') ?: __('Material requirements missing');
+        } elseif ($jobCard->status === ProductionJobCardStatus::InProduction) {
+            $message = $shortCount > 0
+                ? __('Material shortages (:count) — receive stock or reserve what is available', ['count' => $shortCount])
+                : __('Materials not ready — open Materials to finish setup');
+        } else {
+            $message = $shortCount > 0
+                ? __('Material shortages (:count) block release — receive stock or reserve available', ['count' => $shortCount])
+                : __('Material shortages block release');
+        }
 
         $seen[$message] = true;
-        $resolveUrl ??= $materialReadiness['materials_url']
-            ?? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']);
+        $materialsUrl = (string) ($materialReadiness['materials_url']
+            ?? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']));
+        $materialsBase = strstr($materialsUrl, '#', true) ?: $materialsUrl;
+        $resolveUrl ??= ($hasRequirements && $shortCount > 0)
+            ? $materialsBase.'#materials-shortages'
+            : $materialsBase;
         $items[] = [
             'severity' => 'error',
             'message' => $message,

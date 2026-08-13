@@ -2,13 +2,17 @@
     $fields = $formFields ?? [];
     $dynamic = $dynamic ?? false;
     $directions = $directions ?? [];
+    $prefilledLines = collect($prefilledLines ?? [])
+        ->filter(fn ($line) => is_array($line) && filled($line['inventory_item_id'] ?? null))
+        ->values()
+        ->all();
     $defaultLine = ['inventory_item_id' => '', 'quantity' => '', 'unit_cost' => ''];
 
     if ($directions !== []) {
         $defaultLine['direction'] = $directions[0]->value ?? '';
     }
 
-    $initialLines = collect(old('items', [$defaultLine]))
+    $initialLines = collect(old('items', $prefilledLines !== [] ? $prefilledLines : [$defaultLine]))
         ->values()
         ->map(function (array $line) use ($directions) {
             $mapped = [

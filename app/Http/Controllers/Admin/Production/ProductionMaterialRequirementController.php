@@ -119,6 +119,7 @@ class ProductionMaterialRequirementController extends Controller
     {
         $this->authorize('view', $jobCard);
         abort_unless(auth()->user()?->can('production.materials.consume'), 403);
+        abort_unless(auth()->user()?->can('inventory.issue'), 403);
         abort_unless($requirement->production_job_card_id === $jobCard->id, 404);
 
         $validated = $request->validate([
@@ -136,5 +137,31 @@ class ProductionMaterialRequirementController extends Controller
         }
 
         return back()->with('status', __('Material consumption recorded from requirement.'));
+    }
+
+    public function consumeAll(ProductionJobCard $jobCard): RedirectResponse
+    {
+        $this->authorize('view', $jobCard);
+        abort_unless(auth()->user()?->can('production.materials.consume'), 403);
+        abort_unless(auth()->user()?->can('inventory.issue'), 403);
+
+        $result = $this->requirementsService->consumeAll($jobCard, (int) auth()->id());
+        $consumed = (int) ($result['consumed'] ?? 0);
+        $skipped = (int) ($result['skipped'] ?? 0);
+
+        if ($consumed === 0 && $skipped > 0) {
+            return back()->withErrors([
+                'materials' => __('No lines consumed. Receive stock into the requirement warehouse(s), then try again.'),
+            ]);
+        }
+
+        $message = $skipped > 0
+            ? __(':count material lines consumed. :skipped skipped (no stock or already complete).', [
+                'count' => $consumed,
+                'skipped' => $skipped,
+            ])
+            : __(':count material lines consumed.', ['count' => $consumed]);
+
+        return back()->with('status', $message);
     }
 }

@@ -12,10 +12,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Inventory\StockReceipt;
 use App\Models\Inventory\Warehouse;
+use App\Models\Production\ProductionJobCard;
 use App\Support\Inventory\ReturnsToStoreDesk;
 use App\Support\Inventory\StoreDeskViews;
 use App\Support\Platform\FormSettingsService;
 use App\Support\Platform\NumberingService;
+use App\Support\Production\MaterialRequirementsService;
 use App\Support\StockReceiptService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,6 +31,7 @@ class StockReceiptController extends Controller
 
     public function __construct(
         protected FormSettingsService $formSettings,
+        protected MaterialRequirementsService $materialRequirements,
     ) {}
 
     public function index(Request $request): RedirectResponse
@@ -42,9 +45,20 @@ class StockReceiptController extends Controller
     {
         $this->authorize('create', StockReceipt::class);
 
+        $jobCard = $this->resolveJobCard($request);
+        $prefill = $jobCard
+            ? $this->materialRequirements->stockReceiptPrefill($jobCard)
+            : ['lines' => [], 'warehouse_id' => null];
+
         return view('admin.inventory.receipts.create', [
             ...$this->formMeta(),
             'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
+            'sourceJobCard' => $jobCard,
+            'prefilledLines' => $prefill['lines'],
+            'selectedWarehouseId' => old('warehouse_id', $prefill['warehouse_id']),
+            'prefilledNotes' => $jobCard
+                ? __('Material shortfall for job :job', ['job' => $jobCard->job_card_number])
+                : null,
         ]);
     }
 
@@ -55,6 +69,10 @@ class StockReceiptController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
         $header = $this->validateHeader($request, $companyId, $branchId);
         [$header, $customData] = $this->partitionCustomFields('stock_receipt.create', $header, $companyId, $branchId);
+        $jobCard = $this->resolveJobCard($request);
+        if ($jobCard && blank($header['notes'] ?? null)) {
+            $header['notes'] = __('Material shortfall for job :job', ['job' => $jobCard->job_card_number]);
+        }
         $lines = $this->validateLines($request, $companyId, $branchId);
         $shouldPost = $request->input('intent') === 'post';
 
@@ -130,7 +148,30 @@ class StockReceiptController extends Controller
             return redirect()->to($this->storeDeskUrl());
         }
 
+        $jobCard = $this->resolveJobCard($request);
+        if ($jobCard && ($request->user()?->can('view', $jobCard) ?? false)) {
+            return redirect()->route('admin.production.job-cards.show', [
+                'jobCard' => $jobCard,
+                'tab' => 'materials',
+            ]);
+        }
+
         return redirect()->route('admin.inventory.receipts.show', $receipt);
+    }
+
+    protected function resolveJobCard(Request $request): ?ProductionJobCard
+    {
+        if (! $request->filled('job_card_id')) {
+            return null;
+        }
+
+        return ProductionJobCard::query()
+            ->forTenant()
+            ->where(function ($query) use ($request) {
+                $query->where('public_id', $request->input('job_card_id'))
+                    ->orWhere('id', $request->input('job_card_id'));
+            })
+            ->first();
     }
 
     /**

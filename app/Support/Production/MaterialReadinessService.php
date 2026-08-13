@@ -39,12 +39,16 @@ class MaterialReadinessService
         $rows = $this->requirements->panelRows($jobCard);
         $workflow = $this->requirements->workflowChecklist($jobCard);
 
+        $materialsUrl = route('admin.production.job-cards.show', [
+            'jobCard' => $jobCard,
+            'tab' => 'materials',
+        ]);
+        $hasShortages = ! $rows->isEmpty()
+            && $rows->contains(fn (array $row) => (float) ($row['shortfall'] ?? 0) > 0);
+
         $assessment = $this->assessFromPanelRows(
             $rows,
-            route('admin.production.job-cards.show', [
-                'jobCard' => $jobCard,
-                'tab' => 'materials',
-            ]),
+            $hasShortages ? $materialsUrl.'#materials-shortages' : $materialsUrl,
         );
 
         $assessment['workflow'] = $workflow;

@@ -242,6 +242,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:production.materials.consume')->group(function () {
+            Route::post('job-cards/{jobCard}/materials/consume-all', [ProductionMaterialRequirementController::class, 'consumeAll'])->name('job-cards.materials.consume-all');
             Route::post('job-cards/{jobCard}/materials/{requirement}/consume', [ProductionMaterialRequirementController::class, 'consume'])->name('job-cards.materials.consume');
         });
 

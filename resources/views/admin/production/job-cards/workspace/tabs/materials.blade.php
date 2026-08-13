@@ -122,6 +122,102 @@
     </x-admin.card>
 @endif
 
+@if (($tabData['has_shortages'] ?? false) || (($tabData['has_requirements'] ?? false) && ($tabData['reservable_count'] ?? 0) > 0))
+    <x-admin.card id="materials-shortages" class="mb-4 border-amber-200 bg-amber-50/70">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <h3 class="text-sm font-semibold text-amber-950">
+                    @if ($tabData['has_shortages'] ?? false)
+                        {{ __('Material shortages (:count)', ['count' => $tabData['short_count'] ?? 0]) }}
+                    @else
+                        {{ __('Reserve materials for this job') }}
+                    @endif
+                </h3>
+                <p class="mt-1 text-xs text-amber-900/80">
+                    @if ($tabData['has_shortages'] ?? false)
+                        {{ __('Stock on hand is below what this job needs. Reserve whatever is available now, then receive the shortfall into warehouse stock.') }}
+                    @else
+                        {{ __('Stock is available. Reserve it against this job so other jobs cannot take it.') }}
+                    @endif
+                </p>
+            </div>
+            <div class="flex shrink-0 flex-wrap gap-2">
+                @if (($tabData['can_reserve'] ?? false) && ($tabData['reservable_count'] ?? 0) > 0)
+                    <form method="POST" action="{{ route('admin.production.job-cards.materials.reserve-all', $jobCard) }}">
+                        @csrf
+                        <button type="submit" class="erp-btn-primary text-sm">{{ __('Reserve all available') }}</button>
+                    </form>
+                @endif
+                @if ($tabData['can_receive_stock'] ?? false)
+                    <a href="{{ $tabData['receipts_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>
+                        {{ __('Receive stock') }}
+                    </a>
+                @elseif ($tabData['has_shortages'] ?? false)
+                    <p class="self-center text-xs text-amber-900">{{ __('Ask store / inventory to receive the short materials.') }}</p>
+                @endif
+            </div>
+        </div>
+
+        @if (! empty($tabData['shortages']))
+            <ul class="mt-3 space-y-2 border-t border-amber-200/80 pt-3 text-sm">
+                @foreach ($tabData['shortages'] as $line)
+                    @php
+                        $qty = rtrim(rtrim(number_format((float) $line['shortfall'], 3, '.', ''), '0'), '.');
+                        $unit = $line['unit'] ? ' '.$line['unit'] : '';
+                        $available = rtrim(rtrim(number_format((float) ($line['available'] ?? 0), 3, '.', ''), '0'), '.');
+                        $required = rtrim(rtrim(number_format((float) ($line['required'] ?? 0), 3, '.', ''), '0'), '.');
+                    @endphp
+                    <li class="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-amber-200/70 bg-white/80 px-3 py-2">
+                        <span class="font-medium text-slate-900">
+                            {{ $line['item'] }}
+                            @if (! empty($line['sku']))
+                                <span class="text-xs font-normal text-slate-500">({{ $line['sku'] }})</span>
+                            @endif
+                        </span>
+                        <span class="text-xs text-amber-950">
+                            {{ __('Need :qty:unit more', ['qty' => $qty, 'unit' => $unit]) }}
+                            <span class="text-slate-500">· {{ __('Have :available / need :required', ['available' => $available, 'required' => $required]) }}</span>
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </x-admin.card>
+@endif
+
+@if (($tabData['has_requirements'] ?? false) && (($tabData['pending_consume_count'] ?? 0) > 0))
+    <x-admin.card id="materials-consume" class="mb-4 border-sky-200 bg-sky-50/70">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <h3 class="text-sm font-semibold text-sky-950">
+                    {{ __('Record material consumption (:count)', ['count' => $tabData['pending_consume_count'] ?? 0]) }}
+                </h3>
+                <p class="mt-1 text-xs text-sky-900/80">
+                    @if (($tabData['consumable_count'] ?? 0) > 0)
+                        {{ __('Finished goods posting needs consumption recorded. Consume all remaining lines in one step (qty is capped by available stock).') }}
+                    @else
+                        {{ __('Consumption is still required, but warehouse stock is zero for these lines. Receive stock first, then consume.') }}
+                    @endif
+                </p>
+            </div>
+            <div class="flex shrink-0 flex-wrap gap-2">
+                @if (($tabData['can_consume'] ?? false) && ($tabData['consumable_count'] ?? 0) > 0)
+                    <form method="POST" action="{{ route('admin.production.job-cards.materials.consume-all', $jobCard) }}">
+                        @csrf
+                        <button type="submit" class="erp-btn-primary text-sm">{{ __('Consume all remaining') }}</button>
+                    </form>
+                @elseif ($tabData['can_receive_stock'] ?? false)
+                    <a href="{{ $tabData['receipts_url'] }}" class="erp-btn-secondary text-sm" data-erp-modal-open>
+                        {{ __('Receive stock') }}
+                    </a>
+                @elseif (! ($tabData['can_consume'] ?? false))
+                    <p class="self-center text-xs text-sky-900">{{ __('You need production consume and inventory issue permissions to record consumption.') }}</p>
+                @endif
+            </div>
+        </div>
+    </x-admin.card>
+@endif
+
 <x-admin.card class="mb-4">
     <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Material cost summary') }}</h3>
     <dl class="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
@@ -147,13 +243,6 @@
             <button type="submit" class="erp-btn-secondary text-sm">{{ __('Regenerate requirements') }}</button>
         </form>
     </x-admin.card>
-@endif
-
-@if ($tabData['can_reserve'] ?? false)
-    <form method="POST" action="{{ route('admin.production.job-cards.materials.reserve-all', $jobCard) }}" class="mb-4">
-        @csrf
-        <button type="submit" class="erp-btn-secondary text-sm">{{ __('Reserve all available') }}</button>
-    </form>
 @endif
 
 <x-admin.card>
