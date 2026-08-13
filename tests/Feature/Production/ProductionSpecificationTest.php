@@ -49,7 +49,7 @@ class ProductionSpecificationTest extends TestCase
                 'estimated_sheets' => 300,
                 'binding_type' => 'top',
             ])
-            ->assertRedirect(route('admin.sales-orders.show', $salesOrder))
+            ->assertRedirect(route('admin.sales-orders.show', ['salesOrder' => $salesOrder, 'tab' => 'specifications']))
             ->assertSessionHas('status');
 
         $spec = ProductionSpecification::query()->where('sales_order_item_id', $item->id)->first();

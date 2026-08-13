@@ -16,7 +16,7 @@
     if ($canConfirm) {
         $primary = ['type' => 'form', 'action' => route('admin.sales-orders.confirm', $salesOrder), 'label' => __('Confirm order')];
     } elseif ($canRelease) {
-        $primary = ['type' => 'form', 'action' => route('admin.sales-orders.release-to-production', $salesOrder), 'label' => __('Send to production')];
+        $primary = ['type' => 'form', 'action' => route('admin.sales-orders.release-to-production', $salesOrder), 'label' => $salesOrder->production_destination?->sendToLabel() ?? __('Send to production')];
     } elseif ($onHold && $canTransition) {
         $primary = ['type' => 'form', 'action' => route('admin.sales-orders.resume', $salesOrder), 'label' => __('Resume')];
     } elseif ($canInvoice) {

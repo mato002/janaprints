@@ -92,6 +92,7 @@ class SalesOrderController extends Controller
         $validated = $request->validate(
             $this->formSettings->mergeValidationRules('sales_order', [
                 'quotation_id' => ['required', 'exists:quotations,id'],
+                'production_destination' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ProductionDestination::class)],
             ], $companyId, $branchId),
             [
                 'quotation_id.required' => __('Select a quotation before creating the sales order.'),
@@ -103,7 +104,9 @@ class SalesOrderController extends Controller
         $quotation = Quotation::query()->forTenant()->findOrFail($validated['quotation_id']);
         $this->authorize('view', $quotation);
 
-        $salesOrder = QuotationConversionService::convert($quotation, (int) auth()->id());
+        $salesOrder = QuotationConversionService::convert($quotation, (int) auth()->id(), [
+            'production_destination' => $validated['production_destination'] ?? null,
+        ]);
 
         return $this->modalOrRedirect(
             __('Sales order created from quotation.'),
@@ -124,6 +127,7 @@ class SalesOrderController extends Controller
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
             'billing_type' => ['nullable', 'string', 'in:deposit_50,advance_100,net_30'],
             'repeat_source_sales_order_id' => ['nullable', 'exists:sales_orders,id'],
+            'production_destination' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ProductionDestination::class)],
             'send_to_production' => ['sometimes', 'boolean'],
         ]);
 
@@ -201,6 +205,8 @@ class SalesOrderController extends Controller
         $salesOrder->load([
             'invoices', 'orderNotes.user', 'attachments.uploader', 'conversion.converter',
             'items.productionSpecification.paperInventoryItem',
+            'items.productionSpecification.materialInventoryItem',
+            'items.productionSpecification.inkProfile',
         ]);
 
         $financial = app(\App\Support\Sales\SalesOrderFinancialStatusService::class)->snapshot($salesOrder);
@@ -215,6 +221,7 @@ class SalesOrderController extends Controller
                 $item->id => [
                     'model' => $model,
                     'summary' => $model ? $specificationService->presentSummary($model) : ['has_specification' => false],
+                    'display' => $specificationService->present($model),
                 ],
             ];
         })->all();
@@ -323,18 +330,52 @@ class SalesOrderController extends Controller
         $this->authorize('updateProductionSetup', $salesOrder);
 
         $validated = $request->validate([
-            'inventory_item_id' => ['required', 'exists:inventory_items,id'],
+            'inventory_item_id' => ['nullable', 'exists:inventory_items,id'],
+            'production_destination' => ['nullable', \Illuminate\Validation\Rule::enum(\App\Enums\ProductionDestination::class)],
         ]);
 
-        $item = InventoryItem::query()->forTenant()->findOrFail($validated['inventory_item_id']);
+        $updates = [];
 
-        $salesOrder->update(['inventory_item_id' => $item->id]);
-
-        if ($salesOrder->jobCard) {
-            $salesOrder->jobCard->update(['inventory_item_id' => $item->id]);
+        if (! empty($validated['inventory_item_id'])) {
+            $item = InventoryItem::query()->forTenant()->findOrFail($validated['inventory_item_id']);
+            $updates['inventory_item_id'] = $item->id;
         }
 
-        return back()->with('status', __('Production product linked to this order.'));
+        if (array_key_exists('production_destination', $validated) && $validated['production_destination'] !== null) {
+            $updates['production_destination'] = $validated['production_destination'];
+        }
+
+        if ($updates === []) {
+            return back()->withErrors([
+                'production_destination' => __('Choose where this order should go.'),
+            ]);
+        }
+
+        $salesOrder->update($updates);
+
+        if ($salesOrder->jobCard) {
+            $jobUpdates = [];
+
+            if (isset($updates['inventory_item_id'])) {
+                $jobUpdates['inventory_item_id'] = $updates['inventory_item_id'];
+            }
+
+            if (isset($updates['production_destination'])) {
+                $jobUpdates['production_destination'] = $updates['production_destination'];
+                $destination = $updates['production_destination'] instanceof \App\Enums\ProductionDestination
+                    ? $updates['production_destination']
+                    : \App\Enums\ProductionDestination::from($updates['production_destination']);
+                if ($type = $destination->productionType()) {
+                    $jobUpdates['production_type'] = $type->value;
+                }
+            }
+
+            if ($jobUpdates !== []) {
+                $salesOrder->jobCard->update($jobUpdates);
+            }
+        }
+
+        return back()->with('status', __('Production setup updated.'));
     }
 
     public function destroy(SalesOrder $salesOrder): RedirectResponse

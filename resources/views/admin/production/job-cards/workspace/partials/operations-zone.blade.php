@@ -17,8 +17,7 @@
             ProductionJobCardStatus::Draft,
             ProductionJobCardStatus::Queued,
             ProductionJobCardStatus::OnHold,
-        ], true)
-        && ! (($state['needs_operator'] ?? false) || ($state['needs_machine'] ?? false));
+        ], true);
 @endphp
 
 <section aria-label="{{ __('Production') }}">
@@ -46,15 +45,15 @@
                     <x-admin.lookup-select
                         name="assigned_operator_id"
                         :options="$operators->map(fn ($operator) => ['value' => $operator->id, 'label' => $operator->name])->values()->all()"
-                        :required="true"
+                        :required="false"
                         create-route="admin.operators.quick-create"
                         refresh-route="admin.lookups.operators"
                         permission="employees.manage"
                         :modal-title="__('Create operator')"
                         select-class="erp-select w-full text-sm"
-                        :placeholder="__('Select operator')"
+                        :placeholder="__('Select operator (optional)')"
                     />
-                    <button type="submit" class="erp-btn-primary text-sm shrink-0">{{ __('Assign') }}</button>
+                    <button type="submit" class="erp-btn-secondary text-sm shrink-0">{{ __('Assign') }}</button>
                 </div>
             </form>
         @endif
@@ -70,13 +69,13 @@
                 @csrf
                 <label class="job-360-zone__assign-label">{{ __('Machine') }}</label>
                 <div class="job-360-zone__assign-controls">
-                    <select name="assigned_machine_asset_id" class="erp-select w-full text-sm" required>
-                        <option value="">{{ __('Select machine') }}</option>
+                    <select name="assigned_machine_asset_id" class="erp-select w-full text-sm">
+                        <option value="">{{ __('Select machine (optional)') }}</option>
                         @foreach ($machines as $machine)
                             <option value="{{ $machine->fixed_asset_id }}">{{ $machine->asset?->asset_name }} ({{ $machine->machine_code }})</option>
                         @endforeach
                     </select>
-                    <button type="submit" class="erp-btn-primary text-sm shrink-0">{{ __('Assign') }}</button>
+                    <button type="submit" class="erp-btn-secondary text-sm shrink-0">{{ __('Assign') }}</button>
                 </div>
             </form>
         @endif

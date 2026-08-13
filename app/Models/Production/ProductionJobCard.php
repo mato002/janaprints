@@ -3,6 +3,7 @@
 namespace App\Models\Production;
 
 use App\Enums\ProductionJobCardStatus;
+use App\Enums\ProductionDestination;
 use App\Enums\ProductionPriority;
 use App\Enums\ProductionType;
 use App\Models\Artwork\ArtworkRequest;
@@ -39,7 +40,7 @@ class ProductionJobCard extends Model
         'customer_print_specification_id', 'order_source',
         'specification_code', 'specification_name', 'artwork_version_number',
         'production_notes_snapshot', 'commercial_notes_snapshot', 'customer_instructions_snapshot',
-        'job_card_number', 'production_type', 'priority',
+        'job_card_number', 'production_type', 'production_destination', 'priority',
         'planned_start_date', 'planned_end_date', 'required_date', 'estimated_duration_minutes',
         'actual_start_date', 'actual_end_date',
         'status', 'created_by', 'assigned_machine_asset_id',
@@ -53,6 +54,7 @@ class ProductionJobCard extends Model
         return [
             'status' => ProductionJobCardStatus::class,
             'production_type' => ProductionType::class,
+            'production_destination' => ProductionDestination::class,
             'priority' => ProductionPriority::class,
             'planned_start_date' => 'date',
             'planned_end_date' => 'date',

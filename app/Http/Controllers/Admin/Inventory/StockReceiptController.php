@@ -55,7 +55,7 @@ class StockReceiptController extends Controller
             'fromStoreDesk' => $this->wantsStoreDeskReturn($request),
             'sourceJobCard' => $jobCard,
             'prefilledLines' => $prefill['lines'],
-            'selectedWarehouseId' => old('warehouse_id', $prefill['warehouse_id']),
+            'selectedWarehouseId' => old('warehouse_id', $prefill['warehouse_id'] ?? $this->defaultReceiptWarehouseId()),
             'prefilledNotes' => $jobCard
                 ? __('Material shortfall for job :job', ['job' => $jobCard->job_card_number])
                 : null,
@@ -231,10 +231,27 @@ class StockReceiptController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
         return [
-            'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(),
+            'warehouses' => Warehouse::query()
+                ->forTenant()
+                ->physical()
+                ->where('is_active', true)
+                ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 ELSE 1 END")
+                ->orderBy('name')
+                ->get(),
             'items' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(),
             'sources' => StockReceiptSource::cases(),
             'formFields' => $this->formSettings->resolvedFields('stock_receipt.create', $companyId, $branchId),
         ];
+    }
+
+    protected function defaultReceiptWarehouseId(): ?int
+    {
+        return Warehouse::query()
+            ->forTenant()
+            ->physical()
+            ->where('is_active', true)
+            ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->value('id');
     }
 }

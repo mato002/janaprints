@@ -24,10 +24,12 @@ class SalesOrderProductionBridgeService
         $salesOrder->loadMissing('jobCard');
 
         if ($salesOrder->jobCard) {
-            return $salesOrder->jobCard;
+            $this->syncDestinationOntoJobCard($salesOrder->jobCard, $salesOrder);
+
+            return $salesOrder->jobCard->fresh();
         }
 
-        return ProductionJobCardService::createFromSalesOrder($salesOrder, $userId, $attributes);
+        return ProductionJobCardService::createFromSalesOrder($salesOrder, $userId, $attributes + $salesOrder->productionJobAttributes());
     }
 
     /**
@@ -38,6 +40,22 @@ class SalesOrderProductionBridgeService
     public function activateJobForProduction(ProductionJobCard $jobCard, int $userId): ProductionJobCard
     {
         $jobCard->refresh();
+        $jobCard->loadMissing('salesOrder');
+
+        $destination = $jobCard->production_destination
+            ?? $jobCard->salesOrder?->production_destination;
+
+        if ($destination?->isOutsource()) {
+            if ($jobCard->status === ProductionJobCardStatus::Draft
+                && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+                $jobCard = $jobCard->fresh();
+            }
+
+            $this->syncSalesOrderStatus($jobCard, $jobCard->status);
+
+            return $jobCard;
+        }
 
         if ($jobCard->status !== ProductionJobCardStatus::Draft) {
             return $jobCard;
@@ -49,7 +67,9 @@ class SalesOrderProductionBridgeService
             $jobCard->refresh();
         }
 
-        app(MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+        if ($destination === null) {
+            app(MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+        }
 
         $autoScheduling = app(ProductionAutoSchedulingService::class);
         $scheduled = $autoScheduling->trySchedule($jobCard, $userId);
@@ -77,6 +97,18 @@ class SalesOrderProductionBridgeService
 
             $jobCard = $jobCard->fresh();
             $this->syncSalesOrderStatus($jobCard, ProductionJobCardStatus::Queued);
+
+            return $jobCard;
+        }
+
+        if ($destination !== null) {
+            if ($jobCard->status === ProductionJobCardStatus::Draft
+                && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+                $jobCard = $jobCard->fresh();
+            }
+
+            $this->syncSalesOrderStatus($jobCard, $jobCard->status);
 
             return $jobCard;
         }
@@ -264,5 +296,16 @@ class SalesOrderProductionBridgeService
         }
 
         return $stepRank > $currentRank && $stepRank <= $targetRank;
+    }
+
+    protected function syncDestinationOntoJobCard(ProductionJobCard $jobCard, SalesOrder $salesOrder): void
+    {
+        $attributes = $salesOrder->productionJobAttributes();
+
+        if ($attributes === []) {
+            return;
+        }
+
+        $jobCard->update($attributes);
     }
 }

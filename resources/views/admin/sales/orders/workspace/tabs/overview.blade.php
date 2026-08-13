@@ -68,8 +68,29 @@
     </div>
 </section>
 
-{{-- Section 2: commercial + production --}}
+{{-- Section 2: destination + commercial + production --}}
 <section class="so-360__section">
+    <article class="so-360__card mb-4">
+        <div class="so-360__card-head">
+            <h2 class="so-360__card-title">{{ __('Where this order is going') }}</h2>
+            <button type="button" class="so-360__text-btn" @click="setTab('production')">{{ __('Production') }}</button>
+        </div>
+        @can('updateProductionSetup', $salesOrder)
+            <form method="POST" action="{{ route('admin.sales-orders.production-setup.update', $salesOrder) }}" class="space-y-3">
+                @csrf
+                @method('PATCH')
+                @include('admin.sales.orders.partials.production-destination-picker', [
+                    'value' => old('production_destination', $salesOrder->production_destination?->value),
+                    'required' => true,
+                ])
+                <button type="submit" class="erp-btn-secondary">{{ __('Save destination') }}</button>
+            </form>
+        @else
+            <p class="text-sm font-semibold text-slate-900">{{ $salesOrder->production_destination?->label() ?? __('Not set') }}</p>
+            <p class="mt-1 text-xs text-slate-500">{{ $salesOrder->production_destination?->hint() }}</p>
+        @endcan
+    </article>
+
     <div class="so-360__grid so-360__grid--two">
         <article class="so-360__card">
             <div class="so-360__card-head">
@@ -110,6 +131,10 @@
                 <button type="button" class="so-360__text-btn" @click="setTab('production')">{{ __('Open') }}</button>
             </div>
             <dl class="so-360__dl so-360__dl--compact">
+                <div>
+                    <dt>{{ __('Goes to') }}</dt>
+                    <dd>{{ $salesOrder->production_destination?->label() ?? __('Not set') }}</dd>
+                </div>
                 <div>
                     <dt>{{ __('Product') }}</dt>
                     <dd>{{ $productLabel }}</dd>

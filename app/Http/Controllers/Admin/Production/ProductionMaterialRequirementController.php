@@ -8,6 +8,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionMaterialRequirement;
 use App\Support\Production\MaterialRequirementsService;
+use App\Support\Production\ProductBomService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -17,7 +18,63 @@ class ProductionMaterialRequirementController extends Controller
 {
     public function __construct(
         protected MaterialRequirementsService $requirementsService,
+        protected ProductBomService $bomService,
     ) {}
+
+    public function storeBom(Request $request, ProductionJobCard $jobCard): RedirectResponse
+    {
+        $this->authorize('view', $jobCard);
+        abort_unless(
+            auth()->user()?->can('production.edit')
+            || auth()->user()?->can('production.bom.create'),
+            403,
+        );
+
+        try {
+            $header = $request->validate([
+                'finished_item_id' => [
+                    'required',
+                    Rule::exists('inventory_items', 'id')
+                        ->where('company_id', $jobCard->company_id)
+                        ->where('branch_id', $jobCard->branch_id),
+                ],
+                'name' => ['required', 'string', 'max:120'],
+                'version' => ['nullable', 'integer', 'min:1'],
+                'is_active' => ['nullable', 'boolean'],
+                'notes' => ['nullable', 'string', 'max:2000'],
+            ]);
+
+            $lines = $request->validate([
+                'lines' => ['required', 'array', 'min:1'],
+                'lines.*.inventory_item_id' => [
+                    'required',
+                    Rule::exists('inventory_items', 'id')
+                        ->where('company_id', $jobCard->company_id)
+                        ->where('branch_id', $jobCard->branch_id),
+                ],
+                'lines.*.quantity_per_unit' => ['required', 'numeric', 'min:0.0001'],
+                'lines.*.waste_factor_percent' => ['nullable', 'numeric', 'min:0', 'max:100'],
+                'lines.*.notes' => ['nullable', 'string', 'max:255'],
+            ])['lines'];
+
+            $this->bomService->create(
+                (int) $jobCard->company_id,
+                (int) $jobCard->branch_id,
+                (int) auth()->id(),
+                $header,
+                $lines,
+            );
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials'])
+                ->withInput()
+                ->withErrors($exception->errors());
+        }
+
+        return redirect()
+            ->route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials'])
+            ->with('status', __('Bill of materials created. Generate requirements next.'));
+    }
 
     public function linkFinishedProduct(Request $request, ProductionJobCard $jobCard): RedirectResponse
     {
@@ -61,7 +118,11 @@ class ProductionMaterialRequirementController extends Controller
     public function generate(Request $request, ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('view', $jobCard);
-        abort_unless(auth()->user()?->can('production.materials.generate'), 403);
+        abort_unless(
+            auth()->user()?->can('production.materials.generate')
+            || auth()->user()?->can('production.edit'),
+            403,
+        );
 
         $workflow = $this->requirementsService->workflowChecklist($jobCard);
         if (! ($workflow['can_generate'] ?? false)) {
@@ -82,6 +143,8 @@ class ProductionMaterialRequirementController extends Controller
                 $jobCard,
                 (int) $validated['warehouse_id'],
                 (int) auth()->id(),
+                true,
+                true,
             );
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -151,7 +214,7 @@ class ProductionMaterialRequirementController extends Controller
 
         if ($consumed === 0 && $skipped > 0) {
             return back()->withErrors([
-                'materials' => __('No lines consumed. Receive stock into the requirement warehouse(s), then try again.'),
+                'materials' => __('No lines consumed. Receive stock into a physical warehouse, then try again.'),
             ]);
         }
 

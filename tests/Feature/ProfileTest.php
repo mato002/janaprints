@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\Branch;
+use App\Models\Company;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,6 +42,35 @@ class ProfileTest extends TestCase
             ->assertSee('production.view')
             ->assertSee(__('Active devices & sessions'))
             ->assertSee(__('Manage all sessions'));
+    }
+
+    public function test_profile_dropdown_shows_role_email_and_workplace(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+
+        $company = Company::factory()->create(['name' => 'Acme Print House']);
+        $branch = Branch::factory()->create([
+            'company_id' => $company->id,
+            'name' => 'Westlands Plant',
+        ]);
+        $user = User::factory()->create([
+            'company_id' => $company->id,
+            'default_branch_id' => $branch->id,
+            'name' => 'Daniel Kamau',
+            'email' => 'daniel.operator@example.test',
+            'email_verified_at' => now(),
+            'is_active' => true,
+        ]);
+        $user->assignRole(Role::findByName('Production', 'web'));
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $this->actingAs($user)
+            ->get(route('profile.edit'))
+            ->assertOk()
+            ->assertSee('daniel.operator@example.test', false)
+            ->assertSee('Acme Print House · Westlands Plant', false)
+            ->assertSee(__('My Sessions'), false)
+            ->assertSee(__('Log Out'), false);
     }
 
     public function test_profile_information_can_be_updated(): void

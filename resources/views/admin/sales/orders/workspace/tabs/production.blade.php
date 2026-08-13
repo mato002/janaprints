@@ -1,3 +1,23 @@
+<article class="so-360__card mb-4" id="production-destination">
+    <div class="so-360__card-head">
+        <h2 class="so-360__card-title">{{ __('Where this order is going') }}</h2>
+    </div>
+    @can('updateProductionSetup', $salesOrder)
+        <form method="POST" action="{{ route('admin.sales-orders.production-setup.update', $salesOrder) }}" class="space-y-3">
+            @csrf
+            @method('PATCH')
+            @include('admin.sales.orders.partials.production-destination-picker', [
+                'value' => old('production_destination', $salesOrder->production_destination?->value),
+                'required' => true,
+            ])
+            <button type="submit" class="erp-btn-secondary">{{ __('Save destination') }}</button>
+        </form>
+    @else
+        <p class="text-sm font-semibold text-slate-900">{{ $salesOrder->production_destination?->label() ?? __('Not set') }}</p>
+        <p class="mt-1 text-xs text-slate-500">{{ $salesOrder->production_destination?->hint() }}</p>
+    @endcan
+</article>
+
 <div class="so-360__grid so-360__grid--two">
     <article class="so-360__card">
         <h2 class="so-360__card-title">{{ __('Production product') }}</h2>
@@ -63,16 +83,31 @@
             @can('production', $salesOrder)
                 <form method="POST" action="{{ route('admin.sales-orders.release-to-production', $salesOrder) }}" class="mt-4">
                     @csrf
-                    <button type="submit" class="erp-btn-primary">{{ __('Send to production') }}</button>
+                    <button type="submit" class="erp-btn-primary">{{ $salesOrder->production_destination?->sendToLabel() ?? __('Send to production') }}</button>
                 </form>
             @endcan
         @endif
     </article>
 </div>
 
-<details class="so-360__collapse so-360__collapse--block mt-4" open>
-    <summary>{{ __('Line items & production specifications') }}</summary>
+<div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+    <p class="text-sm text-slate-600">{{ __('Print recipes for each line live on the Specifications tab.') }}</p>
+    <div class="flex flex-wrap items-center gap-2">
+        <button type="button" class="erp-btn-secondary text-xs" @click="setTab('specifications')">{{ __('Open specifications') }}</button>
+        <a
+            href="{{ route('admin.sales-orders.specifications.print', $salesOrder) }}"
+            class="erp-btn-secondary text-xs"
+            target="_blank"
+            rel="noopener"
+            data-turbo="false"
+        >{{ __('Print specifications') }}</a>
+    </div>
+</div>
+
+<details class="so-360__collapse so-360__collapse--block mt-3">
+    <summary>{{ __('How production will make each line') }}</summary>
     <div class="so-360__collapse-body">
+        <p class="mb-3 text-sm text-slate-600">{{ __('A production specification is the print recipe — size, paper, ink, finishing — copied onto the job card when you send this order to production. It is not the sales price.') }}</p>
         @forelse ($salesOrder->items as $item)
             @include('admin.sales.orders.partials.item-specification', [
                 'salesOrder' => $salesOrder,

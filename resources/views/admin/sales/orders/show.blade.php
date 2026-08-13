@@ -1,7 +1,7 @@
 {{-- Sales Order 360 — presentation shell only. Permissions/routes/actions unchanged. --}}
 @php
     $activeTab = request()->string('tab')->toString() ?: 'overview';
-    $allowedTabs = ['overview', 'commercial', 'production', 'financial', 'notes', 'attachments'];
+    $allowedTabs = ['overview', 'commercial', 'production', 'specifications', 'financial', 'notes', 'attachments'];
     if (! in_array($activeTab, $allowedTabs, true)) {
         $activeTab = 'overview';
     }
@@ -39,6 +39,7 @@
                 'overview' => __('Overview'),
                 'commercial' => __('Commercial'),
                 'production' => __('Production'),
+                'specifications' => __('Specifications'),
                 'financial' => __('Financial'),
                 'notes' => __('Notes'),
                 'attachments' => __('Attachments'),
@@ -62,6 +63,9 @@
             </div>
             <div x-show="tab === 'production'" x-cloak class="so-360__panel">
                 @include('admin.sales.orders.workspace.tabs.production')
+            </div>
+            <div x-show="tab === 'specifications'" x-cloak class="so-360__panel">
+                @include('admin.sales.orders.workspace.tabs.specifications')
             </div>
             <div x-show="tab === 'financial'" x-cloak class="so-360__panel">
                 @include('admin.sales.orders.workspace.tabs.financial')

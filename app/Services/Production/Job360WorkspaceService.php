@@ -26,6 +26,7 @@ use App\Services\Production\ProductionCompletionService;
 use App\Support\Production\JobCardManufacturingPresenter;
 use App\Support\Production\JobCardOutsourceService;
 use App\Support\Production\JobCardPrintUrl;
+use App\Support\Production\ProductBomService;
 use App\Support\Production\ProductionRouteService;
 use App\Support\Production\ProductionSessionService;
 use App\Support\Production\ProductionSpecificationService;
@@ -879,6 +880,49 @@ class Job360WorkspaceService
     }
 
     /**
+     * @return array{
+     *     finishedItems: \Illuminate\Support\Collection<int, InventoryItem>,
+     *     rawMaterials: \Illuminate\Support\Collection<int, InventoryItem>,
+     *     suggestedLines: list<array<string, mixed>>
+     * }
+     */
+    protected function materialsBomFormMeta(ProductionJobCard $jobCard, ?int $preselectedFinishedItemId): array
+    {
+        $finishedItems = InventoryItem::query()
+            ->where('company_id', $jobCard->company_id)
+            ->where('branch_id', $jobCard->branch_id)
+            ->where('is_active', true)
+            ->where(function ($query) use ($preselectedFinishedItemId) {
+                $query->where('stock_role', InventoryStockRole::FinishedGood);
+
+                if ($preselectedFinishedItemId) {
+                    $query->orWhere('id', $preselectedFinishedItemId);
+                }
+            })
+            ->orderBy('item_name')
+            ->get(['id', 'sku', 'item_name']);
+
+        $rawMaterials = InventoryItem::query()
+            ->where('company_id', $jobCard->company_id)
+            ->where('branch_id', $jobCard->branch_id)
+            ->where('is_active', true)
+            ->whereIn('stock_role', [
+                InventoryStockRole::RawMaterial,
+                InventoryStockRole::Consumable,
+                InventoryStockRole::Packaging,
+            ])
+            ->with('category:id,name,code')
+            ->orderBy('sku')
+            ->get(['id', 'sku', 'item_name', 'inventory_category_id', 'stock_role']);
+
+        return [
+            'finishedItems' => $finishedItems,
+            'rawMaterials' => $rawMaterials,
+            'suggestedLines' => app(ProductBomService::class)->suggestedLinesForJobCard($jobCard),
+        ];
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     protected function printSpecificationSource(ProductionJobCard $jobCard): ?array
@@ -979,10 +1023,14 @@ class Job360WorkspaceService
         $requirementsService = app(\App\Support\Production\MaterialRequirementsService::class);
         $requirements = $requirementsService->panelRows($jobCard);
         $costs = app(\App\Support\Production\ProductionMaterialCostVisibilityService::class)->summary($jobCard);
+        $jobCard->loadMissing('inventoryItem:id,sku,item_name');
         $workflow = $requirementsService->workflowChecklist($jobCard);
-        $canCreateBom = auth()->user()?->can('create', \App\Models\Production\ProductBom::class) ?? false;
-        $canLinkProduct = (auth()->user()?->can('production.edit')
-            || auth()->user()?->can('production.materials.generate')) ?? false;
+        $user = auth()->user();
+        $canCreateBom = (bool) ($user?->can('create', \App\Models\Production\ProductBom::class)
+            || $user?->can('production.edit'));
+        $canGenerateMaterials = (bool) ($user?->can('production.materials.generate')
+            || $user?->can('production.edit'));
+        $canLinkProduct = (bool) ($user?->can('production.edit') || $user?->can('production.materials.generate'));
 
         $missingBomActions = collect($workflow['missing_boms'] ?? [])->map(function (array $source) use ($jobCard, $canCreateBom) {
             return [
@@ -997,6 +1045,24 @@ class Job360WorkspaceService
                     : null,
             ];
         })->values()->all();
+
+        if ($missingBomActions === [] && ($workflow['current_key'] ?? null) === 'bom' && $jobCard->inventory_item_id) {
+            $item = $jobCard->inventoryItem;
+            $missingBomActions[] = [
+                'finished_item_id' => (int) $jobCard->inventory_item_id,
+                'label' => trim(($item?->sku ?? '').' — '.($item?->item_name ?? __('Finished product'))),
+                'create_url' => $canCreateBom
+                    ? route('admin.production.boms.create', [
+                        'finished_item_id' => $jobCard->inventory_item_id,
+                        'job_card_id' => $jobCard->getRouteKey(),
+                        'name' => trim(($item?->item_name ?? 'BOM').' BOM'),
+                    ])
+                    : null,
+            ];
+        }
+
+        $preselectedFinishedItemId = (int) ($missingBomActions[0]['finished_item_id'] ?? $jobCard->inventory_item_id ?? 0) ?: null;
+        $bomFormMeta = $this->materialsBomFormMeta($jobCard, $preselectedFinishedItemId);
 
         $readiness = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
         $shortages = collect($readiness['missing'] ?? [])->values()->all();
@@ -1020,12 +1086,18 @@ class Job360WorkspaceService
             'pending_consume_count' => $pendingConsumeCount,
             'consumable_count' => $consumableCount,
             'missing_boms' => $missingBomActions,
-            'can_create_bom' => $canCreateBom && count($missingBomActions) > 0,
+            'can_create_bom' => $canCreateBom,
             'can_link_product' => $canLinkProduct && ! ($workflow['has_finished_product'] ?? false),
             'finished_items' => $this->finishedItemsCatalog($jobCard),
-            'can_generate' => (auth()->user()?->can('production.materials.generate') ?? false)
-                && (bool) ($workflow['can_generate'] ?? false),
-            'can_show_generate_form' => auth()->user()?->can('production.materials.generate') ?? false,
+            'bom_finished_items' => $bomFormMeta['finishedItems'],
+            'bom_raw_materials' => $bomFormMeta['rawMaterials'],
+            'bom_suggested_lines' => $bomFormMeta['suggestedLines'],
+            'bom_preselected_finished_item_id' => $preselectedFinishedItemId,
+            'bom_prefilled_name' => $preselectedFinishedItemId
+                ? trim(($missingBomActions[0]['label'] ?? 'BOM').' BOM')
+                : null,
+            'can_generate' => $canGenerateMaterials && (bool) ($workflow['can_generate'] ?? false),
+            'can_show_generate_form' => $canGenerateMaterials,
             'can_reserve' => (auth()->user()?->can('production.materials.reserve') ?? false)
                 && $requirements->isNotEmpty(),
             'can_receive_stock' => auth()->user()?->can('inventory.receive') ?? false,
@@ -1033,7 +1105,13 @@ class Job360WorkspaceService
                 'job_card_id' => $jobCard->getRouteKey(),
             ]),
             'can_consume' => $this->userCanRecordMaterialConsumption(),
-            'warehouses' => Warehouse::query()->forTenant()->physical()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'warehouses' => Warehouse::query()
+                ->forTenant()
+                ->physical()
+                ->where('is_active', true)
+                ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 WHEN code = 'FG' THEN 9 ELSE 1 END")
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ];
     }
 

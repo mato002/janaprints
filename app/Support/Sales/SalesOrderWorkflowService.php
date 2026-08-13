@@ -36,6 +36,12 @@ class SalesOrderWorkflowService
         $user = \App\Models\User::query()->find($userId);
         $this->releaseReadiness->assertReady($salesOrder, $user);
 
+        if (! $salesOrder->production_destination) {
+            throw ValidationException::withMessages([
+                'production_destination' => __('Choose Digital, Offset, or Outsourced before sending this order to production.'),
+            ]);
+        }
+
         if ($salesOrder->status === SalesOrderStatus::Confirmed) {
             if (! $salesOrder->status->canTransitionTo(SalesOrderStatus::ReadyForProduction)) {
                 throw ValidationException::withMessages([

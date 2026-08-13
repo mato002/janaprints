@@ -10,6 +10,7 @@
         && $salesOrder->remainingInvoiceTotal() > 0
         && ! in_array($salesOrder->status, [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled], true);
     $canUpdate = auth()->user()?->can('update', $salesOrder);
+    $canEditProduction = auth()->user()?->can('updateProductionSetup', $salesOrder);
 
     $onHold = $salesOrder->status === SalesOrderStatus::OnHold;
     $canHold = $canTransition && $salesOrder->status->canTransitionTo(SalesOrderStatus::OnHold);
@@ -19,7 +20,7 @@
     if ($canConfirm) {
         $primary = ['type' => 'form', 'action' => route('admin.sales-orders.confirm', $salesOrder), 'label' => __('Confirm order'), 'method' => 'POST'];
     } elseif ($canRelease) {
-        $primary = ['type' => 'form', 'action' => route('admin.sales-orders.release-to-production', $salesOrder), 'label' => __('Send to production'), 'method' => 'POST'];
+        $primary = ['type' => 'form', 'action' => route('admin.sales-orders.release-to-production', $salesOrder), 'label' => $salesOrder->production_destination?->sendToLabel() ?? __('Send to production'), 'method' => 'POST'];
     } elseif ($onHold && $canTransition) {
         $primary = ['type' => 'form', 'action' => route('admin.sales-orders.resume', $salesOrder), 'label' => __('Resume'), 'method' => 'POST'];
     } elseif ($canInvoice) {
@@ -83,6 +84,9 @@
                         'so-360__badge--neutral' => ! in_array($financialVariant, ['success', 'warning'], true),
                     ])>{{ $financialLabel }}</span>
                 @endif
+                @if ($salesOrder->production_destination)
+                    <span class="so-360__badge so-360__badge--info">{{ $salesOrder->production_destination->label() }}</span>
+                @endif
                 <span class="so-360__total-chip">
                     <span class="so-360__total-label">{{ __('Total') }}</span>
                     <span class="so-360__total-value font-mono">{{ number_format($salesOrder->total_amount, 2) }}</span>
@@ -122,11 +126,18 @@
 
             @if ($canUpdate)
                 <a href="{{ route('admin.sales-orders.edit', $salesOrder) }}" class="erp-btn-secondary">{{ __('Edit') }}</a>
+            @elseif ($canEditProduction)
+                <button type="button" class="erp-btn-secondary" @click="setTab('production')">{{ __('Edit') }}</button>
             @endif
 
             <details class="so-360__more">
                 <summary class="erp-btn-secondary so-360__more-summary">{{ __('More') }}</summary>
                 <div class="so-360__more-menu">
+                    @if ($canUpdate)
+                        <a href="{{ route('admin.sales-orders.edit', $salesOrder) }}" class="so-360__more-item">{{ __('Edit order') }}</a>
+                    @elseif ($canEditProduction)
+                        <button type="button" class="so-360__more-item" @click="setTab('production')">{{ __('Edit destination') }}</button>
+                    @endif
                     @if ($canHold)
                         <form method="POST" action="{{ route('admin.sales-orders.hold', $salesOrder) }}">
                             @csrf

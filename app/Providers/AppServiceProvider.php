@@ -524,6 +524,10 @@ class AppServiceProvider extends ServiceProvider
             $view->with([
                 'userAvatarUrl' => $assets->url($user?->avatar_path),
             ]);
+
+            if ($user?->employee_id) {
+                $user->loadMissing(['employee.jobTitle']);
+            }
         });
 
         View::composer(['layouts.admin', 'layouts.admin.partials.sidebar'], function ($view) {

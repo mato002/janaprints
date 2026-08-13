@@ -90,27 +90,75 @@
 
         @include('layouts.admin.partials.notification-bell')
 
-        <x-dropdown align="right" width="48">
+        @php
+            $profileUser = auth()->user();
+            $profileRoles = $profileUser?->getRoleNames()->sort()->values() ?? collect();
+            $profileJobTitle = $profileUser?->employee?->jobTitle?->title
+                ?? $profileUser?->employee?->designation
+                ?? null;
+            $profileCompany = tenant()->company?->name;
+            $profileBranch = tenant()->branch?->name;
+            $profileWorkplace = collect([$profileCompany, $profileBranch])->filter()->implode(' · ');
+            $profileInitials = strtoupper(substr((string) $profileUser?->name, 0, 2));
+        @endphp
+
+        <x-dropdown align="right" width="72">
             <x-slot name="trigger">
                 <button type="button" class="erp-topbar__user inline-flex items-center gap-1 rounded-lg p-1 text-sm font-medium text-slate-700 hover:bg-erp-page sm:gap-2 sm:px-2 sm:py-1.5">
                     @if (! empty($userAvatarUrl))
                         <img src="{{ $userAvatarUrl }}" alt="" class="h-8 w-8 shrink-0 rounded-full border border-erp-border object-cover">
                     @else
                         <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-erp-accent/10 text-xs font-semibold text-erp-accent">
-                            {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}
+                            {{ $profileInitials }}
                         </span>
                     @endif
-                    <span class="hidden max-w-[8rem] truncate md:inline">{{ auth()->user()->name }}</span>
+                    <span class="hidden min-w-0 md:block">
+                        <span class="block max-w-[9rem] truncate text-left leading-tight">{{ $profileUser?->name }}</span>
+                        @if ($profileRoles->isNotEmpty())
+                            <span class="block max-w-[9rem] truncate text-left text-[11px] font-normal leading-tight text-slate-500">{{ $profileRoles->join(', ') }}</span>
+                        @endif
+                    </span>
                     <x-admin.icon name="chevron-down" class="hidden h-4 w-4 text-slate-400 sm:block" />
                 </button>
             </x-slot>
             <x-slot name="content">
-                <div class="border-b border-erp-border px-4 py-2 md:hidden">
-                    <p class="text-xs text-slate-500">{{ tenant()->company?->name }}</p>
-                    <p class="text-sm font-medium text-erp-primary">{{ auth()->user()->name }}</p>
+                <div class="border-b border-erp-border px-4 py-3">
+                    <div class="flex items-start gap-3">
+                        @if (! empty($userAvatarUrl))
+                            <img src="{{ $userAvatarUrl }}" alt="" class="h-10 w-10 shrink-0 rounded-full border border-erp-border object-cover">
+                        @else
+                            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-erp-accent/10 text-sm font-semibold text-erp-accent">
+                                {{ $profileInitials }}
+                            </span>
+                        @endif
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-erp-primary">{{ $profileUser?->name }}</p>
+                            @if (filled($profileUser?->email))
+                                <p class="truncate text-xs text-slate-500">{{ $profileUser->email }}</p>
+                            @endif
+                            @if ($profileRoles->isNotEmpty())
+                                <div class="mt-1.5 flex flex-wrap gap-1">
+                                    @foreach ($profileRoles as $roleName)
+                                        <span class="inline-flex items-center rounded-full border border-erp-accent/20 bg-erp-accent/10 px-2 py-0.5 text-[11px] font-medium text-erp-accent">
+                                            {{ $roleName }}
+                                        </span>
+                                    @endforeach
+                                </div>
+                            @endif
+                            @if (filled($profileJobTitle))
+                                <p class="mt-1.5 truncate text-xs text-slate-500">{{ $profileJobTitle }}</p>
+                            @endif
+                            @if (filled($profileWorkplace))
+                                <p class="mt-0.5 truncate text-xs text-slate-500">{{ $profileWorkplace }}</p>
+                            @endif
+                        </div>
+                    </div>
                 </div>
                 <x-dropdown-link :href="route('profile.edit')" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Profile') }}</x-dropdown-link>
                 <x-dropdown-link :href="route('profile.sessions.index')" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('My Sessions') }}</x-dropdown-link>
+                @if ($profileUser?->can('ess.access') && Route::has('ess.dashboard'))
+                    <x-dropdown-link :href="route('ess.dashboard')" data-turbo-frame="_top" data-erp-full-document>{{ __('Self-service') }}</x-dropdown-link>
+                @endif
                 <form method="POST" action="{{ route('logout') }}" data-turbo-frame="_top" data-erp-full-document>
                     @csrf
                     <x-dropdown-link :href="route('logout')" data-turbo="false" onclick="event.preventDefault(); this.closest('form').submit();">

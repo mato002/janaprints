@@ -151,7 +151,7 @@ class SalesDeskPageBuilder
             SalesDeskViews::ORDERS => [
                 'registerTitle' => __('Sales orders'),
                 'orders' => $this->scopeToTenant(
-                    SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator'])
+                    SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator', 'jobCard', 'invoices'])
                 )->latest('order_date')->paginate(15)->withQueryString(),
             ],
             SalesDeskViews::ARTWORK => [

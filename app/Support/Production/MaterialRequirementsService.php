@@ -30,12 +30,7 @@ class MaterialRequirementsService
      */
     public function snapshotForJobCard(ProductionJobCard $jobCard, int $userId): Collection
     {
-        $warehouse = Warehouse::query()
-            ->where('company_id', $jobCard->company_id)
-            ->where('branch_id', $jobCard->branch_id)
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->first();
+        $warehouse = $this->defaultPhysicalWarehouse($jobCard->company_id, $jobCard->branch_id);
 
         if ($warehouse === null) {
             return collect();
@@ -48,7 +43,7 @@ class MaterialRequirementsService
         }
 
         try {
-            return $this->generate($jobCard, $warehouse->id, $userId, false);
+            return $this->generate($jobCard, $warehouse->id, $userId, false, true);
         } catch (ValidationException) {
             return collect();
         }
@@ -57,8 +52,13 @@ class MaterialRequirementsService
     /**
      * @return Collection<int, ProductionMaterialRequirement>
      */
-    public function generate(ProductionJobCard $jobCard, int $warehouseId, int $userId, bool $replaceExisting = true): Collection
-    {
+    public function generate(
+        ProductionJobCard $jobCard,
+        int $warehouseId,
+        int $userId,
+        bool $replaceExisting = true,
+        bool $bindToStockLocation = false,
+    ): Collection {
         $jobCard->loadMissing(['salesOrder.items.inventoryItem']);
 
         $warehouse = Warehouse::query()
@@ -82,7 +82,7 @@ class MaterialRequirementsService
             ]);
         }
 
-        return DB::transaction(function () use ($jobCard, $warehouse, $userId, $replaceExisting, $sources) {
+        return DB::transaction(function () use ($jobCard, $warehouse, $userId, $replaceExisting, $sources, $bindToStockLocation) {
             if ($replaceExisting) {
                 ProductionMaterialRequirement::query()
                     ->where('production_job_card_id', $jobCard->id)
@@ -108,18 +108,32 @@ class MaterialRequirementsService
                     $line = $calc['line'];
                     $requiredQty = (float) $calc['required_quantity'];
                     $formula = $line->quantity_formula;
+                    $lineWarehouse = $warehouse;
+                    if ($bindToStockLocation) {
+                        $atSelected = InventoryStockService::balance((int) $line->inventory_item_id, $warehouse->id);
+                        if ($atSelected <= 0) {
+                            $stocked = $this->physicalWarehouseWithMostStock(
+                                $jobCard->company_id,
+                                $jobCard->branch_id,
+                                (int) $line->inventory_item_id,
+                            );
+                            if ($stocked && InventoryStockService::balance((int) $line->inventory_item_id, $stocked->id) > 0) {
+                                $lineWarehouse = $stocked;
+                            }
+                        }
+                    }
                     $unitCost = InventoryCostingService::resolveIssueUnitCost(
                         $jobCard->company_id,
                         $jobCard->branch_id,
                         $line->inventory_item_id,
-                        $warehouse->id,
+                        $lineWarehouse->id,
                         $requiredQty,
                     ) ?: (float) ($line->inventoryItem?->standard_cost ?? 0);
 
                     $existing = ProductionMaterialRequirement::query()
                         ->where('production_job_card_id', $jobCard->id)
                         ->where('inventory_item_id', $line->inventory_item_id)
-                        ->where('warehouse_id', $warehouse->id)
+                        ->where('warehouse_id', $lineWarehouse->id)
                         ->where('finished_item_id', $source['finished_item_id'])
                         ->first();
 
@@ -142,7 +156,7 @@ class MaterialRequirementsService
                         'finished_item_id' => $source['finished_item_id'],
                         'sales_order_item_id' => $source['sales_order_item_id'],
                         'inventory_item_id' => $line->inventory_item_id,
-                        'warehouse_id' => $warehouse->id,
+                        'warehouse_id' => $lineWarehouse->id,
                         'job_quantity' => $source['quantity'],
                         'quantity_formula' => $formula,
                         'required_quantity' => $requiredQty,
@@ -181,6 +195,7 @@ class MaterialRequirementsService
             ]);
         }
 
+        $requirement = $this->retargetToStockWarehouse($requirement);
         $toReserve = $requirement->remainingQuantity();
         $available = $this->availableStock($requirement);
 
@@ -246,6 +261,7 @@ class MaterialRequirementsService
                 ->firstOrFail();
 
             $this->linkOrphanConsumptions($requirement);
+            $requirement = $this->retargetToStockWarehouse($requirement);
 
             $remaining = $requirement->remainingQuantity();
             $available = $this->availableStock($requirement);
@@ -255,7 +271,7 @@ class MaterialRequirementsService
                 throw ValidationException::withMessages([
                     'quantity' => $remaining <= 0
                         ? __('Nothing remaining to consume for this requirement.')
-                        : __('No available stock to consume for this material. Receive stock into the requirement warehouse first.'),
+                        : __('No available stock to consume for this material. Receive the shortfall into a physical warehouse first.'),
                 ]);
             }
 
@@ -405,10 +421,15 @@ class MaterialRequirementsService
             ->orderBy('inventory_item_id')
             ->get();
 
-        return $requirements->map(function (ProductionMaterialRequirement $row) use ($jobCard) {
-            $available = $this->availableStock($row);
+        return $requirements->map(function (ProductionMaterialRequirement $row) {
+            $stockWarehouseId = $this->stockWarehouseId($row);
+            $available = $this->availableAtWarehouse($row, $stockWarehouseId);
             $remaining = $row->remainingQuantity();
             $shortfall = max(0, round($remaining - $available - (float) $row->reserved_quantity, 3));
+            $stockWarehouse = $stockWarehouseId === (int) $row->warehouse_id
+                ? $row->warehouse
+                : $this->physicalWarehouses((int) $row->company_id, (int) $row->branch_id)
+                    ->firstWhere('id', $stockWarehouseId);
 
             return [
                 'requirement' => $row,
@@ -427,9 +448,11 @@ class MaterialRequirementsService
                 'shortfall' => $shortfall,
                 'unit_cost' => (float) $row->unit_cost,
                 'estimated_cost' => (float) $row->estimated_cost,
-                'status' => $row->status,
+                'warehouse_name' => $row->warehouse?->name,
+                'stock_warehouse_name' => $stockWarehouse?->name,
+                'status' => $this->resolveStatus($row),
                 'can_reserve' => $row->status->isOpen() && $row->unreservedRemaining() > 0 && $available >= $row->unreservedRemaining(),
-                'can_consume' => $remaining > 0 && $available >= min($remaining, $available),
+                'can_consume' => $remaining > 0 && $available > 0,
             ];
         });
     }
@@ -502,12 +525,7 @@ class MaterialRequirementsService
     {
         $salesOrder->loadMissing(['items.inventoryItem.unitOfMeasure', 'inventoryItem.unitOfMeasure']);
 
-        $warehouse = Warehouse::query()
-            ->where('company_id', $salesOrder->company_id)
-            ->where('branch_id', $salesOrder->branch_id)
-            ->where('is_active', true)
-            ->orderBy('id')
-            ->first();
+        $warehouse = $this->defaultPhysicalWarehouse($salesOrder->company_id, $salesOrder->branch_id);
 
         if ($warehouse === null) {
             return collect();
@@ -559,7 +577,6 @@ class MaterialRequirementsService
                 $salesOrder->company_id,
                 $salesOrder->branch_id,
                 (int) $row['inventory_item_id'],
-                (int) $row['warehouse_id'],
             );
             $remaining = round((float) $row['required'], 3);
             $shortfall = max(0, round($remaining - $available, 3));
@@ -578,16 +595,50 @@ class MaterialRequirementsService
 
     public function availableStock(ProductionMaterialRequirement $requirement): float
     {
+        return $this->availableAtWarehouse($requirement, $this->stockWarehouseId($requirement));
+    }
+
+    /**
+     * Warehouse that can actually fulfil this line. Prefers the bound warehouse,
+     * then any physical location that holds the material (e.g. Main Store).
+     */
+    public function stockWarehouseId(ProductionMaterialRequirement $requirement): int
+    {
+        $currentId = (int) $requirement->warehouse_id;
+        $remaining = $requirement->unreservedRemaining();
+        $currentQty = $this->availableAtWarehouse($requirement, $currentId);
+
+        if ($remaining <= 0 || $currentQty >= $remaining) {
+            return $currentId;
+        }
+
+        $best = $this->physicalWarehouseWithMostStock(
+            (int) $requirement->company_id,
+            (int) $requirement->branch_id,
+            (int) $requirement->inventory_item_id,
+        );
+
+        if ($best === null) {
+            return $currentId;
+        }
+
+        $bestQty = $this->availableAtWarehouse($requirement, (int) $best->id);
+
+        return $bestQty > $currentQty ? (int) $best->id : $currentId;
+    }
+
+    protected function availableAtWarehouse(ProductionMaterialRequirement $requirement, int $warehouseId): float
+    {
         $balance = InventoryStockService::balance(
-            $requirement->inventory_item_id,
-            $requirement->warehouse_id,
+            (int) $requirement->inventory_item_id,
+            $warehouseId,
         );
 
         $otherReservations = (float) ProductionMaterialRequirement::query()
             ->where('company_id', $requirement->company_id)
             ->where('branch_id', $requirement->branch_id)
             ->where('inventory_item_id', $requirement->inventory_item_id)
-            ->where('warehouse_id', $requirement->warehouse_id)
+            ->where('warehouse_id', $warehouseId)
             ->where('production_job_card_id', '!=', $requirement->production_job_card_id)
             ->whereIn('status', [
                 MaterialRequirementStatus::Planned,
@@ -598,6 +649,18 @@ class MaterialRequirementsService
             ->sum('reserved_quantity');
 
         return max(0, round($balance - $otherReservations, 3));
+    }
+
+    protected function retargetToStockWarehouse(ProductionMaterialRequirement $requirement): ProductionMaterialRequirement
+    {
+        $warehouseId = $this->stockWarehouseId($requirement);
+        if ($warehouseId === (int) $requirement->warehouse_id) {
+            return $requirement;
+        }
+
+        $requirement->update(['warehouse_id' => $warehouseId]);
+
+        return $requirement->fresh(['inventoryItem', 'warehouse', 'finishedItem', 'jobCard']) ?? $requirement;
     }
 
     public function resolveStatus(ProductionMaterialRequirement $requirement): MaterialRequirementStatus
@@ -642,13 +705,7 @@ class MaterialRequirementsService
             return [];
         }
 
-        $warehouseId = Warehouse::query()
-            ->where('company_id', $jobCard->company_id)
-            ->where('branch_id', $jobCard->branch_id)
-            ->where('is_active', true)
-            ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 ELSE 1 END")
-            ->orderBy('id')
-            ->value('id');
+        $warehouseId = $this->defaultPhysicalWarehouse($jobCard->company_id, $jobCard->branch_id)?->id;
 
         $suggestions = [];
 
@@ -902,15 +959,24 @@ class MaterialRequirementsService
         int $companyId,
         int $branchId,
         int $inventoryItemId,
-        int $warehouseId,
+        ?int $warehouseId = null,
     ): float {
-        $balance = InventoryStockService::balance($inventoryItemId, $warehouseId);
+        $warehouseIds = $warehouseId
+            ? collect([$warehouseId])
+            : $this->physicalWarehouses($companyId, $branchId)->pluck('id');
+
+        if ($warehouseIds->isEmpty()) {
+            return 0.0;
+        }
+
+        $balance = $warehouseIds
+            ->sum(fn ($id) => InventoryStockService::balance($inventoryItemId, (int) $id));
 
         $otherReservations = (float) ProductionMaterialRequirement::query()
             ->where('company_id', $companyId)
             ->where('branch_id', $branchId)
             ->where('inventory_item_id', $inventoryItemId)
-            ->where('warehouse_id', $warehouseId)
+            ->whereIn('warehouse_id', $warehouseIds->all())
             ->whereIn('status', [
                 MaterialRequirementStatus::Planned,
                 MaterialRequirementStatus::Reserved,
@@ -920,6 +986,46 @@ class MaterialRequirementsService
             ->sum('reserved_quantity');
 
         return max(0, round($balance - $otherReservations, 3));
+    }
+
+    /**
+     * @return Collection<int, Warehouse>
+     */
+    protected function physicalWarehouses(int $companyId, int $branchId): Collection
+    {
+        return Warehouse::query()
+            ->where('company_id', $companyId)
+            ->where('branch_id', $branchId)
+            ->where('is_active', true)
+            ->physical()
+            ->orderByRaw("CASE WHEN code = 'MAIN' THEN 0 ELSE 1 END")
+            ->orderBy('id')
+            ->get();
+    }
+
+    protected function defaultPhysicalWarehouse(int $companyId, int $branchId): ?Warehouse
+    {
+        return $this->physicalWarehouses($companyId, $branchId)->first();
+    }
+
+    protected function physicalWarehouseWithMostStock(
+        int $companyId,
+        int $branchId,
+        int $inventoryItemId,
+    ): ?Warehouse {
+        $warehouses = $this->physicalWarehouses($companyId, $branchId);
+        $best = $warehouses->first();
+        $bestQty = $best ? InventoryStockService::balance($inventoryItemId, $best->id) : -1;
+
+        foreach ($warehouses as $warehouse) {
+            $qty = InventoryStockService::balance($inventoryItemId, $warehouse->id);
+            if ($qty > $bestQty) {
+                $bestQty = $qty;
+                $best = $warehouse;
+            }
+        }
+
+        return $best;
     }
 
     protected function formatReceiptQuantity(float $qty): string

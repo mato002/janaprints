@@ -180,7 +180,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::get('boms', [ProductBomController::class, 'index'])->name('boms.index');
         });
 
-        Route::middleware('permission:production.bom.create')->group(function () {
+        Route::middleware('permission:production.bom.create|production.edit')->group(function () {
             Route::get('boms/create', [ProductBomController::class, 'create'])->name('boms.create');
             Route::post('boms', [ProductBomController::class, 'store'])->name('boms.store');
         });
@@ -222,11 +222,11 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('print-templates/{printTemplate}/toggle-active', [PrintProductTemplateController::class, 'toggleActive'])->name('print-templates.toggle-active');
         });
 
-        Route::middleware('permission:production.materials.generate')->group(function () {
-            Route::post('job-cards/{jobCard}/materials/generate', [ProductionMaterialRequirementController::class, 'generate'])->name('job-cards.materials.generate');
-        });
-
-        Route::middleware('permission:production.materials.generate|production.edit')->group(function () {
+        Route::middleware('permission:production.materials.generate|production.edit|production.bom.create')->group(function () {
+            Route::post('job-cards/{jobCard}/materials/bom', [ProductionMaterialRequirementController::class, 'storeBom'])
+                ->name('job-cards.materials.bom');
+            Route::post('job-cards/{jobCard}/materials/generate', [ProductionMaterialRequirementController::class, 'generate'])
+                ->name('job-cards.materials.generate');
             Route::post('job-cards/{jobCard}/finished-product', [ProductionMaterialRequirementController::class, 'linkFinishedProduct'])
                 ->name('job-cards.finished-product');
         });

@@ -2,6 +2,10 @@
 
 namespace App\Support\Sales;
 
+use App\Enums\CustomerInvoiceStatus;
+use App\Enums\SalesOrderStatus;
+use App\Models\Sales\CustomerInvoice;
+use App\Models\Sales\CustomerPayment;
 use App\Models\Sales\SalesOrder;
 use App\Services\Production\ProductionReleaseReadinessService;
 
@@ -236,5 +240,209 @@ class SalesDeskActionPresenter
         }
 
         return $actions;
+    }
+
+    /**
+     * Status-aware register actions the current user may take on this order.
+     *
+     * @return list<array{
+     *     key: string,
+     *     label: string,
+     *     href?: string,
+     *     action?: string,
+     *     method?: string,
+     *     confirm?: string|null,
+     *     variant?: string,
+     *     modal?: bool,
+     *     new_tab?: bool
+     * }>
+     */
+    public function rowActions(SalesOrder $salesOrder): array
+    {
+        $user = auth()->user();
+
+        if (! $user?->can('view', $salesOrder)) {
+            return [];
+        }
+
+        $salesOrder->loadMissing(['jobCard', 'invoices', 'customer']);
+
+        $workflow = $this->workflow->present($salesOrder);
+        $from = ['from' => 'sales-desk'];
+        $actions = [];
+        $notDraftOrCancelled = ! in_array($salesOrder->status, [
+            SalesOrderStatus::Draft,
+            SalesOrderStatus::Cancelled,
+        ], true);
+
+        $actions[] = [
+            'key' => 'view',
+            'label' => __('View'),
+            'href' => route('admin.sales-orders.show', [$salesOrder, ...$from]),
+        ];
+
+        if (($workflow['can_confirm'] ?? false) && $user->can('confirm', $salesOrder)) {
+            $actions[] = [
+                'key' => 'confirm',
+                'label' => __('Confirm order'),
+                'action' => route('admin.sales-orders.confirm', $salesOrder),
+                'method' => 'POST',
+                'confirm' => __('Confirm this sales order?'),
+            ];
+        }
+
+        if (($workflow['can_release'] ?? false) && $user->can('production', $salesOrder)) {
+            $actions[] = [
+                'key' => 'release',
+                'label' => $salesOrder->production_destination?->sendToLabel() ?? __('Send to production'),
+                'action' => route('admin.sales-orders.release-to-production', $salesOrder),
+                'method' => 'POST',
+                'confirm' => __('Send this order to production?'),
+            ];
+        }
+
+        if ($user->can('update', $salesOrder)) {
+            $actions[] = [
+                'key' => 'edit',
+                'label' => __('Edit'),
+                'href' => route('admin.sales-orders.edit', [$salesOrder, ...$from]),
+            ];
+        }
+
+        if ($user->can('create', CustomerInvoice::class)
+            && $notDraftOrCancelled
+            && $this->remainingInvoiceable($salesOrder) > 0
+        ) {
+            $actions[] = [
+                'key' => 'invoice',
+                'label' => __('Generate invoice'),
+                'href' => route('admin.invoices.from-sales-order', ['salesOrder' => $salesOrder, ...$from]),
+                'modal' => true,
+            ];
+        }
+
+        $latestInvoice = $salesOrder->invoices->sortByDesc('id')->first();
+        if ($latestInvoice && $user->can('view', $latestInvoice)) {
+            $actions[] = [
+                'key' => 'view_invoice',
+                'label' => __('View invoice'),
+                'href' => route('admin.invoices.show', [$latestInvoice, ...$from]),
+            ];
+        }
+
+        $customer = $salesOrder->customer;
+        if ($customer && $notDraftOrCancelled && $user->can('create', CustomerPayment::class)) {
+            $actions[] = [
+                'key' => 'payment',
+                'label' => __('Record payment'),
+                'href' => route('admin.payments.create', [
+                    ...$from,
+                    'customer_id' => $customer->id,
+                    'sales_order_id' => $salesOrder->id,
+                ]),
+            ];
+        }
+
+        $jobCard = $salesOrder->jobCard;
+        if ($jobCard && $user->can('view', $jobCard)) {
+            $actions[] = [
+                'key' => 'job_card',
+                'label' => __('Open job card'),
+                'href' => route('admin.production.job-cards.show', $jobCard),
+            ];
+            $actions[] = [
+                'key' => 'dispatch',
+                'label' => __('Delivery / dispatch'),
+                'href' => route('admin.production.job-cards.show', [$jobCard, 'tab' => 'dispatch']),
+            ];
+        }
+
+        $actions[] = [
+            'key' => 'print',
+            'label' => __('Print specifications'),
+            'href' => route('admin.sales-orders.specifications.print', $salesOrder),
+            'new_tab' => true,
+        ];
+
+        if ($customer && $user->can('create', SalesOrder::class) && $salesOrder->status !== SalesOrderStatus::Draft) {
+            $actions[] = [
+                'key' => 'repeat',
+                'label' => __('Repeat order'),
+                'action' => route('admin.crm.customers.repeat-order', [$customer, $salesOrder]),
+                'method' => 'POST',
+                'confirm' => __('Create a new order from this one?'),
+            ];
+        }
+
+        $canTransition = $user->can('transition', $salesOrder);
+
+        if ($canTransition && $salesOrder->status->canTransitionTo(SalesOrderStatus::OnHold)) {
+            $actions[] = [
+                'key' => 'hold',
+                'label' => __('On hold'),
+                'action' => route('admin.sales-orders.hold', $salesOrder),
+                'method' => 'POST',
+                'confirm' => __('Put this order on hold?'),
+            ];
+        }
+
+        if ($salesOrder->status === SalesOrderStatus::OnHold && $canTransition) {
+            $actions[] = [
+                'key' => 'resume',
+                'label' => __('Resume'),
+                'action' => route('admin.sales-orders.resume', $salesOrder),
+                'method' => 'POST',
+            ];
+        }
+
+        if (($workflow['can_close'] ?? false) && $user->can('close', $salesOrder)) {
+            $actions[] = [
+                'key' => 'close',
+                'label' => __('Close order'),
+                'action' => route('admin.sales-orders.close', $salesOrder),
+                'method' => 'POST',
+                'confirm' => __('Close this sales order?'),
+            ];
+        }
+
+        if ($canTransition && $salesOrder->status->canTransitionTo(SalesOrderStatus::Cancelled)) {
+            $actions[] = [
+                'key' => 'cancel',
+                'label' => __('Cancel'),
+                'action' => route('admin.sales-orders.cancel', $salesOrder),
+                'method' => 'POST',
+                'confirm' => __('Cancel this sales order?'),
+                'variant' => 'danger',
+            ];
+        }
+
+        if ($user->can('delete', $salesOrder)) {
+            $actions[] = [
+                'key' => 'delete',
+                'label' => __('Delete'),
+                'action' => route('admin.sales-orders.destroy', $salesOrder),
+                'method' => 'DELETE',
+                'confirm' => __('Delete this draft sales order?'),
+                'variant' => 'danger',
+            ];
+        }
+
+        return $actions;
+    }
+
+    protected function remainingInvoiceable(SalesOrder $salesOrder): float
+    {
+        if (! $salesOrder->relationLoaded('invoices')) {
+            return $salesOrder->remainingInvoiceTotal();
+        }
+
+        $pending = (float) $salesOrder->invoices
+            ->filter(fn (CustomerInvoice $invoice) => in_array($invoice->status, [
+                CustomerInvoiceStatus::Draft,
+                CustomerInvoiceStatus::Approved,
+            ], true))
+            ->sum('total_amount');
+
+        return round(max(0, (float) $salesOrder->total_amount - (float) $salesOrder->invoiced_total - $pending), 2);
     }
 }

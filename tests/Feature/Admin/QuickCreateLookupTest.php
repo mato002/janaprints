@@ -95,6 +95,39 @@ class QuickCreateLookupTest extends TestCase
         $this->assertDatabaseHas('customers', ['company_name' => 'Quick Customer Ltd']);
     }
 
+    public function test_artwork_type_quick_create_returns_json_and_lists_in_lookup(): void
+    {
+        [$company, $branch, $user] = $this->tenantContext(['crm.customers.edit', 'crm.leads.create']);
+
+        $response = $this->actingAs($user)
+            ->withHeaders(['X-Erp-Lookup-Create' => '1', 'Accept' => 'application/json'])
+            ->post(route('admin.crm.artwork-types.quick-store'), [
+                '_erp_lookup_create' => 1,
+                'name' => 'Die-cut label',
+                'is_active' => 1,
+            ]);
+
+        $response->assertOk()
+            ->assertJsonPath('label', 'Die-cut label');
+
+        $code = $response->json('value');
+        $this->assertNotEmpty($code);
+        $this->assertDatabaseHas('customer_artwork_types', [
+            'company_id' => $company->id,
+            'name' => 'Die-cut label',
+            'code' => $code,
+            'is_active' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('admin.lookups.artwork_types'))
+            ->assertOk()
+            ->assertJsonFragment([
+                'value' => $code,
+                'label' => 'Die-cut label',
+            ]);
+    }
+
     public function test_vendor_quick_create_form_renders(): void
     {
         [$company, $branch, $user] = $this->tenantContext(['procurement.vendors.create']);

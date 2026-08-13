@@ -7234,6 +7234,66 @@ body.erp-navigating {
         @apply lg:col-span-5 lg:sticky lg:top-28;
     }
 
+    .job-360-materials {
+        @apply grid grid-cols-1 gap-3;
+    }
+
+    .job-360-materials__steps {
+        @apply grid grid-cols-1 gap-2 sm:grid-cols-3;
+    }
+
+    .job-360-materials__step {
+        @apply rounded-lg border px-3 py-2 text-left;
+    }
+
+    .job-360-materials__step--done {
+        @apply border-emerald-200 bg-emerald-50/60;
+    }
+
+    .job-360-materials__step--current {
+        @apply border-erp-accent/40 bg-erp-accent/5 ring-1 ring-erp-accent/20;
+    }
+
+    .job-360-materials__step--blocked {
+        @apply border-slate-200 bg-slate-50/70 text-slate-500;
+    }
+
+    .job-360-materials__workspace {
+        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+    }
+
+    .job-360-materials__action {
+        @apply rounded-lg border border-erp-border bg-white p-3 lg:col-span-12;
+    }
+
+    .job-360-materials__split {
+        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+    }
+
+    .job-360-materials__header {
+        @apply rounded-lg border border-erp-border bg-white p-3 lg:col-span-5;
+    }
+
+    .job-360-materials__lines {
+        @apply rounded-lg border border-erp-border bg-white p-3 lg:col-span-7;
+    }
+
+    .job-360-materials__meta {
+        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+    }
+
+    .job-360-materials__costs {
+        @apply lg:col-span-4;
+    }
+
+    .job-360-materials__alert {
+        @apply lg:col-span-8;
+    }
+
+    .job-360-materials__table {
+        @apply lg:col-span-12;
+    }
+
     .job-360-zone {
         @apply rounded-lg border border-erp-border bg-white p-3;
     }

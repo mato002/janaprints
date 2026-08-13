@@ -74,6 +74,7 @@ class DirectCustomerSalesOrderService
                 'order_date' => $payload['order_date'] ?? now()->toDateString(),
                 'required_date' => $payload['required_date'] ?? null,
                 'priority' => $payload['priority'] ?? ProductionPriority::Normal->value,
+                'production_destination' => $payload['production_destination'] ?? null,
                 'status' => SalesOrderStatus::Confirmed,
                 'subtotal' => $lineItem['line_total'],
                 'tax_amount' => 0,
@@ -128,6 +129,7 @@ class DirectCustomerSalesOrderService
                 ...$overrides,
                 'repeat_source_sales_order_id' => $source->id,
                 'unit_price' => (float) ($source->items->first()?->unit_price ?? 0),
+                'production_destination' => $overrides['production_destination'] ?? $source->production_destination?->value,
             ], $createdBy);
         }
 
@@ -269,6 +271,7 @@ class DirectCustomerSalesOrderService
                 'total_amount' => $totals['total_amount'],
                 'is_direct_order' => true,
                 'repeat_source_sales_order_id' => $source->id,
+                'production_destination' => $overrides['production_destination'] ?? $source->production_destination?->value,
                 'notes' => $overrides['notes'] ?? $source->notes,
                 'created_by' => $createdBy,
             ]);
@@ -311,6 +314,7 @@ class DirectCustomerSalesOrderService
                 'order_date' => $payload['order_date'] ?? now()->toDateString(),
                 'required_date' => $payload['required_date'] ?? null,
                 'priority' => $payload['priority'] ?? ProductionPriority::Normal->value,
+                'production_destination' => $payload['production_destination'] ?? null,
                 'status' => SalesOrderStatus::Confirmed,
                 'subtotal' => $totals['subtotal'],
                 'tax_amount' => $totals['tax_amount'],

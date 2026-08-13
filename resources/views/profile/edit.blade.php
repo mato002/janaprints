@@ -11,34 +11,32 @@
         </div>
     @endif
 
-    <div class="mx-auto max-w-5xl space-y-6">
-        <x-admin.card>
+    <div class="mx-auto grid max-w-7xl gap-6 lg:grid-cols-2 lg:items-stretch">
+        <x-admin.card class="h-full">
             @include('profile.partials.update-profile-information-form')
         </x-admin.card>
 
-        <x-admin.card>
+        <x-admin.card class="h-full">
             @include('profile.partials.authentication-summary')
         </x-admin.card>
 
-        <div class="grid gap-6 lg:grid-cols-2">
-            <x-admin.card>
-                @include('profile.partials.roles-summary')
-            </x-admin.card>
+        <x-admin.card class="h-full">
+            @include('profile.partials.roles-summary')
+        </x-admin.card>
 
-            <x-admin.card>
-                @include('profile.partials.sessions-summary')
-            </x-admin.card>
-        </div>
+        <x-admin.card class="h-full">
+            @include('profile.partials.sessions-summary')
+        </x-admin.card>
 
-        <x-admin.card>
+        <x-admin.card class="h-full lg:col-span-2">
             @include('profile.partials.permissions-summary')
         </x-admin.card>
 
-        <x-admin.card>
+        <x-admin.card class="h-full">
             @include('profile.partials.update-password-form')
         </x-admin.card>
 
-        <x-admin.card>
+        <x-admin.card class="h-full">
             @include('profile.partials.delete-user-form')
         </x-admin.card>
     </div>

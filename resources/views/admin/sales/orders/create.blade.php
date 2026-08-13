@@ -32,6 +32,7 @@
                 priority: @js(old('priority', 'normal')),
                 fulfilment_method: @js(old('fulfilment_method', 'collection')),
                 billing_type: @js(old('billing_type', '')),
+                production_destination: @js(old('production_destination', '')),
             },
             get selectedSpec() {
                 if (!this.context?.print_specifications || !this.selectedSpecId) {
@@ -42,7 +43,7 @@
                 ) ?? null;
             },
             get canSubmit() {
-                if (!this.customerId || !this.selectedSpecId) {
+                if (!this.customerId || !this.selectedSpecId || !this.form.production_destination) {
                     return false;
                 }
                 const spec = this.selectedSpec;
@@ -171,6 +172,10 @@
                     <input type="hidden" name="from" value="sales-desk">
                 @endif
                 <input type="hidden" name="entry_mode" value="quotation">
+                @include('admin.sales.orders.partials.production-destination-picker', [
+                    'value' => old('production_destination'),
+                    'required' => true,
+                ])
                 @if(($fields['quotation_id']['visible'] ?? true))
                     @include('admin.sales.orders.partials.quotation-picker-field', [
                         'value' => old('quotation_id', $selectedQuotationId ?? null),
@@ -233,6 +238,12 @@
                         />
                     </div>
                 @endif
+
+                @include('admin.sales.orders.partials.production-destination-picker', [
+                    'alpineModel' => 'form.production_destination',
+                    'value' => old('production_destination'),
+                    'required' => true,
+                ])
 
                 <template x-if="loadingContext">
                     <p class="text-sm text-slate-400">{{ __('Loading…') }}</p>

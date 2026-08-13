@@ -216,12 +216,18 @@ class ProductionJobCardController extends Controller
         $this->authorize('start', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction), 403);
 
-        app(\App\Support\Production\MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+        $jobCard->loadMissing('salesOrder');
+        $materialsOptional = $jobCard->production_destination !== null
+            || $jobCard->salesOrder?->production_destination !== null;
+
+        if (! $materialsOptional) {
+            app(\App\Support\Production\MaterialReadinessService::class)->assertReadyToRelease($jobCard);
+        }
 
         $execution = app(\App\Services\Production\JobExecutionStateService::class);
         if (! $execution->isReadyToStart($jobCard)) {
             throw ValidationException::withMessages([
-                'status' => __('Assign an operator (and machine, when required) before starting work.'),
+                'status' => __('Queue this job before starting work.'),
             ]);
         }
 
@@ -414,11 +420,7 @@ class ProductionJobCardController extends Controller
         }
 
         $jobCard->refresh();
-        $execution = app(\App\Services\Production\JobExecutionStateService::class)->state($jobCard);
-        $statusMessage = ($execution['needs_machine'] ?? false)
-            ? __('Operator assigned. Assign a machine before this stage can start.')
-            : __('Operator assigned. Ready to start — this stage does not require a machine.');
 
-        return $this->redirectAfterProductionFloorAction($jobCard, $statusMessage);
+        return $this->redirectAfterProductionFloorAction($jobCard, __('Operator assigned.'));
     }
 }

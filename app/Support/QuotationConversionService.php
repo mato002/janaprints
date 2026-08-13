@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 
 class QuotationConversionService
 {
-    public static function convert(Quotation $quotation, int $convertedBy): SalesOrder
+    public static function convert(Quotation $quotation, int $convertedBy, array $attributes = []): SalesOrder
     {
         if ($quotation->salesOrder()->exists()) {
             throw ValidationException::withMessages([
@@ -39,6 +39,7 @@ class QuotationConversionService
                 'order_date' => now()->toDateString(),
                 'required_date' => $quotation->valid_until,
                 'status' => SalesOrderStatus::Draft,
+                'production_destination' => $attributes['production_destination'] ?? null,
                 'subtotal' => $quotation->subtotal,
                 'tax_amount' => $quotation->tax_amount,
                 'discount_amount' => $quotation->discount_amount,

@@ -19,6 +19,7 @@ use App\Support\Catalogue\ItemAttributeService;
 use App\Support\Inventory\StoreDeskViews;
 use App\Support\Inventory\StorekeeperOperatorMode;
 use App\Support\InventoryStockService;
+use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Production\ProductBomService;
 use App\Support\Production\ProductQcChecklistService;
 use App\Support\Production\ProductionRouteService;
@@ -46,7 +47,11 @@ class InventoryItemController extends Controller
     {
         $this->authorize('viewAny', InventoryItem::class);
 
-        if (StorekeeperOperatorMode::enabledFor($request->user()) && ! $request->boolean('desk')) {
+        if (
+            StorekeeperOperatorMode::enabledFor($request->user())
+            && ! $request->boolean('desk')
+            && ! WorkspaceEmbed::inWorkspaceContext($request)
+        ) {
             $query = $request->query();
             unset($query['embedded'], $query['desk'], $query['view']);
 

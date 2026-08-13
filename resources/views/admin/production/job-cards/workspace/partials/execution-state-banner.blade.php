@@ -170,15 +170,15 @@
             <div class="min-w-[16rem] flex-1">
                 <x-admin.lookup-select
                     name="assigned_operator_id"
-                    :label="__('Assign operator')"
+                    :label="__('Assign operator (optional)')"
                     :options="$operators->map(fn ($operator) => ['value' => $operator->id, 'label' => $operator->name])->values()->all()"
-                    :required="true"
+                    :required="false"
                     create-route="admin.operators.quick-create"
                     refresh-route="admin.lookups.operators"
                     permission="employees.manage"
                     :modal-title="__('Create operator')"
                     select-class="erp-select w-full text-sm"
-                    :placeholder="__('Select operator')"
+                    :placeholder="__('Select operator (optional)')"
                 />
             </div>
             <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign operator') }}</button>
@@ -194,9 +194,9 @@
         >
             @csrf
             <div class="min-w-[16rem] flex-1">
-                <label class="block text-[11px] uppercase tracking-wide text-slate-500">{{ __('Assign machine') }}</label>
-                    <select name="assigned_machine_asset_id" class="erp-select w-full text-sm" required>
-                    <option value="">{{ __('Select machine') }}</option>
+                <label class="block text-[11px] uppercase tracking-wide text-slate-500">{{ __('Assign machine (optional)') }}</label>
+                    <select name="assigned_machine_asset_id" class="erp-select w-full text-sm">
+                    <option value="">{{ __('Select machine (optional)') }}</option>
                     @foreach ($machines as $machine)
                         <option value="{{ $machine->fixed_asset_id }}">{{ $machine->asset?->asset_name }} ({{ $machine->machine_code }})</option>
                     @endforeach

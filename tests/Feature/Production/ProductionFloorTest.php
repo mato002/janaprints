@@ -131,7 +131,7 @@ class ProductionFloorTest extends TestCase
             ->assertDontSee($jobCard->job_card_number, false);
     }
 
-    public function test_queued_job_on_floor_offers_assign_operator_before_machine(): void
+    public function test_queued_job_on_floor_offers_start_work_without_operator(): void
     {
         [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
 
@@ -143,12 +143,12 @@ class ProductionFloorTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
-            ->assertJsonPath('primary_action.label', __('Assign operator'))
-            ->assertJsonPath('primary_action.type', 'modal')
-            ->assertJsonPath('primary_action.target', 'operator')
-            ->assertJsonMissing(['primary_action' => ['label' => __('Add to queue')]])
-            ->assertJsonMissing(['primary_action' => ['label' => __('Start')]])
-            ->assertJsonMissing(['primary_action' => ['label' => __('Start work')]]);
+            ->assertJsonPath('primary_action.label', __('Start work'))
+            ->assertJsonPath('execution.is_ready_to_start', true)
+            ->assertJsonPath('execution.needs_operator', true)
+            ->assertJsonMissing(['primary_action' => ['label' => __('Assign operator')]])
+            ->assertJsonMissing(['primary_action' => ['label' => __('Assign machine')]])
+            ->assertJsonMissing(['primary_action' => ['label' => __('Add to queue')]]);
     }
 
     public function test_queued_job_with_operator_and_machine_offers_start_work(): void
@@ -229,11 +229,13 @@ class ProductionFloorTest extends TestCase
             ->assertJsonPath('execution.requires_machine', false)
             ->assertJsonPath('execution.needs_machine', false)
             ->assertJsonPath('execution.is_ready_to_start', true)
-            ->assertJsonPath('execution.next_action', __('Ready to start — operator assigned; this stage does not require a machine.'))
+            ->assertJsonPath('execution.next_action', __('Ready to start — operator :name assigned. Machine is optional.', [
+                'name' => 'Grace Wanjiku',
+            ]))
             ->assertJsonPath('execution.operator_name', 'Grace Wanjiku');
     }
 
-    public function test_machine_required_stage_blocks_start_until_machine_assigned(): void
+    public function test_machine_required_stage_can_start_without_machine_assigned(): void
     {
         [$company, $branch, $customer, $user, $jobCard] = $this->productionContext(withJob: true);
 
@@ -261,10 +263,10 @@ class ProductionFloorTest extends TestCase
         $this->actingAs($user)
             ->getJson(route('admin.production.floor.panel', $jobCard))
             ->assertOk()
-            ->assertJsonPath('primary_action.label', __('Assign machine'))
+            ->assertJsonPath('primary_action.label', __('Start work'))
             ->assertJsonPath('execution.requires_machine', true)
             ->assertJsonPath('execution.needs_machine', true)
-            ->assertJsonPath('execution.is_ready_to_start', false)
+            ->assertJsonPath('execution.is_ready_to_start', true)
             ->assertJsonPath('blockers', []);
     }
 
@@ -296,10 +298,10 @@ class ProductionFloorTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', $jobCard))
             ->assertOk()
-            ->assertSee(__('Ready to start — operator assigned; this stage does not require a machine.'), false)
-            ->assertSee(__('Assigned operator'), false)
+            ->assertSee(__('Start work'), false)
             ->assertSee('Grace Wanjiku', false)
-            ->assertSee(__('Not required for :stage', ['stage' => 'Design']), false)
+            ->assertDontSee(__('Operator not assigned'), false)
+            ->assertDontSee(__('Machine not assigned'), false)
             ->assertDontSee(__('Production complete'), false)
             ->assertDontSee(__('Material consumption missing'), false)
             ->assertDontSee(__('items need attention before the job can proceed.'), false);

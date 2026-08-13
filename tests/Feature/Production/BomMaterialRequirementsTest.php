@@ -298,6 +298,43 @@ class BomMaterialRequirementsTest extends TestCase
         $this->assertSame(1, ProductionMaterialConsumption::query()->where('production_job_card_id', $jobCard->id)->count());
     }
 
+    public function test_availability_uses_stock_received_into_another_physical_warehouse(): void
+    {
+        [$company, $branch, $user, $finished, $paper, $ink, $warehouse, $jobCard] = $this->jobWithBom();
+
+        $main = Warehouse::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->where('code', 'MAIN')
+            ->firstOrFail();
+        $fg = Warehouse::query()
+            ->where('company_id', $company->id)
+            ->where('branch_id', $branch->id)
+            ->where('code', 'FG')
+            ->firstOrFail();
+
+        $this->postReceipt($company, $branch, $user, $paper, $main, 500);
+        $this->postReceipt($company, $branch, $user, $ink, $main, 50);
+
+        $service = app(MaterialRequirementsService::class);
+        $requirements = $service->generate($jobCard, $fg->id, $user->id, true, false);
+        $paperReq = $requirements->firstWhere('inventory_item_id', $paper->id);
+
+        $this->assertSame($fg->id, (int) $paperReq->warehouse_id);
+
+        $row = $service->panelRows($jobCard)->firstWhere('sku', $paper->sku);
+
+        $this->assertGreaterThan(0, (float) $row['available']);
+        $this->assertSame(0.0, (float) $row['shortfall']);
+        $this->assertTrue($row['can_reserve']);
+        $this->assertSame($main->name, $row['stock_warehouse_name']);
+
+        $reserved = $service->reserve($paperReq, $user->id);
+
+        $this->assertSame($main->id, (int) $reserved->warehouse_id);
+        $this->assertSame(MaterialRequirementStatus::Reserved, $reserved->status);
+    }
+
     public function test_viewer_cannot_create_bom(): void
     {
         [$company, $branch, $user] = $this->tenantUser(['production.bom.view']);

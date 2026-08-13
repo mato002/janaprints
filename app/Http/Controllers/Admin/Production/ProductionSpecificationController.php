@@ -56,7 +56,7 @@ class ProductionSpecificationController extends Controller
         $this->specifications->createForSalesOrderItem($salesOrderItem, $validated, $request->user());
 
         return redirect()
-            ->route('admin.sales-orders.show', $salesOrder)
+            ->route('admin.sales-orders.show', ['salesOrder' => $salesOrder, 'tab' => 'specifications'])
             ->with('status', __('Production specification saved.'));
     }
 
@@ -75,8 +75,33 @@ class ProductionSpecificationController extends Controller
         $this->specifications->update($specification, $validated, $request->user());
 
         return redirect()
-            ->route('admin.sales-orders.show', $salesOrder)
+            ->route('admin.sales-orders.show', ['salesOrder' => $salesOrder, 'tab' => 'specifications'])
             ->with('status', __('Production specification updated.'));
+    }
+
+    public function printForSalesOrder(SalesOrder $salesOrder): View
+    {
+        $this->authorize('view', $salesOrder);
+
+        $salesOrder->load([
+            'customer',
+            'company:id,name,phone,email,address',
+            'branch:id,name',
+            'items.productionSpecification.paperInventoryItem:id,item_name',
+            'items.productionSpecification.materialInventoryItem:id,item_name',
+            'items.productionSpecification.inkProfile:id,name',
+        ]);
+
+        $lines = $salesOrder->items->map(fn (SalesOrderItem $item) => [
+            'item' => $item,
+            'specification' => $this->specifications->present($item->productionSpecification),
+        ]);
+
+        return view('admin.sales.orders.specifications-print', [
+            'salesOrder' => $salesOrder,
+            'lines' => $lines,
+            'autoPrint' => true,
+        ]);
     }
 
     /**

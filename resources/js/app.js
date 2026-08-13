@@ -20,6 +20,128 @@ const ErpToast = Swal.mixin({
     },
 });
 
+function showErpConfirm(message, options = {}) {
+    const text = String(message ?? '').trim() || 'Are you sure?';
+
+    return Swal.fire({
+        icon: options.icon || 'question',
+        title: options.title || text,
+        text: options.title ? text : undefined,
+        showCancelButton: true,
+        confirmButtonText: options.confirmButtonText || 'OK',
+        cancelButtonText: options.cancelButtonText || 'Cancel',
+        reverseButtons: true,
+        focusCancel: false,
+        heightAuto: false,
+        customClass: {
+            container: 'erp-swal-container',
+        },
+    }).then((result) => result.isConfirmed === true);
+}
+
+window.showErpConfirm = showErpConfirm;
+
+function extractInlineConfirmMessage(handler) {
+    if (! handler) {
+        return null;
+    }
+
+    const source = String(handler).trim();
+
+    if (! /\bconfirm\s*\(/.test(source)) {
+        return null;
+    }
+
+    const match = source.match(/\bconfirm\s*\(([\s\S]*)\)\s*;?\s*$/i);
+
+    if (! match) {
+        return null;
+    }
+
+    try {
+        return Function(`"use strict"; return (${match[1]});`)();
+    } catch {
+        return match[1].replace(/^['"`]|['"`]$/g, '');
+    }
+}
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+
+    if (! (form instanceof HTMLFormElement)) {
+        return;
+    }
+
+    if (form.dataset.erpConfirmed === '1') {
+        delete form.dataset.erpConfirmed;
+        return;
+    }
+
+    const message = extractInlineConfirmMessage(form.getAttribute('onsubmit'));
+
+    if (! message) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const onsubmit = form.getAttribute('onsubmit');
+
+    showErpConfirm(message).then((ok) => {
+        if (! ok) {
+            return;
+        }
+
+        form.dataset.erpConfirmed = '1';
+        form.removeAttribute('onsubmit');
+
+        if (typeof form.requestSubmit === 'function') {
+            form.requestSubmit();
+        } else {
+            HTMLFormElement.prototype.submit.call(form);
+        }
+
+        if (onsubmit) {
+            form.setAttribute('onsubmit', onsubmit);
+        }
+    });
+}, true);
+
+document.addEventListener('click', (event) => {
+    const el = event.target instanceof Element
+        ? event.target.closest('[onclick]')
+        : null;
+
+    if (! (el instanceof HTMLElement) || el.dataset.erpConfirmed === '1') {
+        return;
+    }
+
+    const onclick = el.getAttribute('onclick');
+    const message = extractInlineConfirmMessage(onclick);
+
+    if (! message) {
+        return;
+    }
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    showErpConfirm(message).then((ok) => {
+        if (! ok) {
+            return;
+        }
+
+        el.dataset.erpConfirmed = '1';
+        el.removeAttribute('onclick');
+        el.click();
+        if (onclick) {
+            el.setAttribute('onclick', onclick);
+        }
+        delete el.dataset.erpConfirmed;
+    });
+}, true);
+
 function erpFormActionUrl(form) {
     if (! form) {
         return '';
@@ -2451,8 +2573,9 @@ const erpLookupManager = {
     abortController: null,
     onSuccess: null,
     suppressBackdropCloseUntil: 0,
-    /** @type {{ panelHTML: string, onSuccess: (() => void)|null }[]} */
+    /** @type {{ panelHTML: string, onSuccess: (() => void)|null, fieldName: string|null }[]} */
     stack: [],
+    pendingFieldName: null,
 
     overlay() {
         return document.getElementById('erp-lookup-modal-overlay');
@@ -2516,6 +2639,7 @@ const erpLookupManager = {
         this.stack.push({
             panelHTML: html,
             onSuccess: this.onSuccess,
+            fieldName: this.pendingFieldName,
         });
     },
 
@@ -2528,12 +2652,13 @@ const erpLookupManager = {
 
         frame.innerHTML = entry.panelHTML;
         this.onSuccess = entry.onSuccess ?? null;
+        this.pendingFieldName = entry.fieldName ?? null;
         this.pendingLoad = false;
         this.showOverlay();
         Alpine.initTree(frame);
     },
 
-    async open(url, { onSuccess = null, title = 'Loading…' } = {}) {
+    async open(url, { onSuccess = null, title = 'Loading…', fieldName = null } = {}) {
         const frame = this.frame();
 
         if (! frame || ! url) {
@@ -2552,6 +2677,7 @@ const erpLookupManager = {
 
         this.pushStack();
         this.onSuccess = onSuccess;
+        this.pendingFieldName = fieldName ?? null;
         this.abortLoad();
         const loadId = ++this.loadSeq;
         this.abortController = new AbortController();
@@ -2738,28 +2864,85 @@ const erpLookupManager = {
         }
     },
 
+    lookupDataForField(fieldName) {
+        const frame = this.frame();
+
+        if (! frame || ! fieldName) {
+            return null;
+        }
+
+        const escaped = typeof CSS !== 'undefined' && typeof CSS.escape === 'function'
+            ? CSS.escape(fieldName)
+            : fieldName;
+        const select = frame.querySelector(`select[name="${escaped}"]`);
+        const root = select?.closest('.erp-lookup-select');
+
+        return root?._x_dataStack?.[0] ?? null;
+    },
+
+    applyCreatedRecord(fieldName, record) {
+        const value = record?.value ?? record?.id;
+
+        if (value === null || value === undefined || value === '') {
+            return false;
+        }
+
+        const data = this.lookupDataForField(fieldName);
+
+        if (! data) {
+            return false;
+        }
+
+        const next = {
+            value: String(value),
+            label: record.label || String(value),
+        };
+        const existing = Array.isArray(data.options) ? [...data.options] : [];
+        const index = existing.findIndex((option) => String(option.value) === next.value);
+
+        if (index >= 0) {
+            existing[index] = { ...existing[index], ...next };
+        } else {
+            existing.push(next);
+        }
+
+        data.options = existing;
+        data.selected = next.value;
+
+        if (typeof data.refreshOptions === 'function' && data.refreshUrl) {
+            data.refreshOptions(next.value);
+        }
+
+        return true;
+    },
+
     handleSuccess(payload = {}) {
         const callback = this.onSuccess;
+        const fieldName = this.pendingFieldName ?? null;
         const message = payload.message ?? '';
-
-        if (typeof callback === 'function') {
-            callback({
-                id: payload.id ?? payload.value,
-                value: payload.value ?? payload.id,
-                label: payload.label ?? '',
-            });
-        }
+        const record = {
+            id: payload.id ?? payload.value,
+            value: payload.value ?? payload.id,
+            label: payload.label ?? '',
+        };
 
         if (this.stack.length > 0) {
             this.loadSeq += 1;
             this.abortLoad();
             this.pendingLoad = false;
             this.restoreStackedPanel(this.stack.pop());
+
+            window.requestAnimationFrame(() => {
+                if (! this.applyCreatedRecord(fieldName, record) && typeof callback === 'function') {
+                    callback(record);
+                }
+            });
         } else {
             this.loadSeq += 1;
             this.abortLoad();
             this.pendingLoad = false;
             this.onSuccess = null;
+            this.pendingFieldName = null;
             this.stack = [];
 
             const frame = this.frame();
@@ -2769,6 +2952,10 @@ const erpLookupManager = {
             }
 
             this.hideOverlay();
+
+            if (typeof callback === 'function') {
+                callback(record);
+            }
         }
 
         if (message) {
@@ -3681,46 +3868,50 @@ function bindWebsiteSettingsListeners() {
 
             event.preventDefault();
 
-            if (! window.confirm(confirmMessage)) {
-                return;
-            }
-
-            const resetForm = document.createElement('form');
-            resetForm.method = 'POST';
-            resetForm.action = resetUrl;
-            resetForm.hidden = true;
-            resetForm.dataset.websiteSettingsReset = '';
-
-            const inWorkspace = Boolean(resetTrigger.closest('#module-workspace-content'));
-            resetForm.dataset.turboFrame = inWorkspace ? 'module-workspace-content' : 'erp-main';
-
-            if (inWorkspace) {
-                try {
-                    const url = new URL(resetUrl, window.location.origin);
-
-                    if (! url.searchParams.has('embedded')) {
-                        url.searchParams.set('embedded', '1');
-                        resetForm.action = `${url.pathname}${url.search}`;
-                    }
-                } catch {
-                    // Keep the original reset URL when it cannot be parsed.
+            showErpConfirm(confirmMessage).then((ok) => {
+                if (! ok) {
+                    return;
                 }
-            }
 
-            const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                ?? resetTrigger.closest('form')?.querySelector('input[name="_token"]')?.value;
+                const resetForm = document.createElement('form');
+                resetForm.method = 'POST';
+                resetForm.action = resetUrl;
+                resetForm.hidden = true;
+                resetForm.dataset.websiteSettingsReset = '';
 
-            if (csrf) {
-                const tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = '_token';
-                tokenInput.value = csrf;
-                resetForm.appendChild(tokenInput);
-            }
+                const inWorkspace = Boolean(resetTrigger.closest('#module-workspace-content'));
+                resetForm.dataset.turboFrame = inWorkspace ? 'module-workspace-content' : 'erp-main';
 
-            document.body.appendChild(resetForm);
-            resetForm.requestSubmit();
-            resetForm.remove();
+                if (inWorkspace) {
+                    try {
+                        const url = new URL(resetUrl, window.location.origin);
+
+                        if (! url.searchParams.has('embedded')) {
+                            url.searchParams.set('embedded', '1');
+                            resetForm.action = `${url.pathname}${url.search}`;
+                        }
+                    } catch {
+                        // Keep the original reset URL when it cannot be parsed.
+                    }
+                }
+
+                const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    ?? resetTrigger.closest('form')?.querySelector('input[name="_token"]')?.value;
+
+                if (csrf) {
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = '_token';
+                    tokenInput.value = csrf;
+                    resetForm.appendChild(tokenInput);
+                }
+
+                document.body.appendChild(resetForm);
+                resetForm.requestSubmit();
+                resetForm.remove();
+            });
+
+            return;
         }
     }, true);
 
@@ -3963,6 +4154,30 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        ensureOption(record) {
+            const value = record?.value ?? record?.id;
+
+            if (value === null || value === undefined || value === '') {
+                return;
+            }
+
+            const next = {
+                value: String(value),
+                label: record.label || String(value),
+            };
+            const existing = Array.isArray(this.options) ? [...this.options] : [];
+            const index = existing.findIndex((option) => String(option.value) === next.value);
+
+            if (index >= 0) {
+                existing[index] = { ...existing[index], ...next };
+            } else {
+                existing.push(next);
+            }
+
+            this.options = existing;
+            this.selected = next.value;
+        },
+
         async refreshOptions(selectValue = null) {
             if (! this.refreshUrl) {
                 return;
@@ -4026,7 +4241,9 @@ document.addEventListener('alpine:init', () => {
 
             window.erpLookupManager.open(url, {
                 title: this.modalTitle,
+                fieldName: this.name,
                 onSuccess: async (record) => {
+                    this.ensureOption(record);
                     await this.refreshOptions(record.value);
                     this.selected = String(record.value ?? '');
                 },
@@ -8622,7 +8839,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async restoreVersion(version) {
-            if (! this.can.restore || ! confirm('Restore this version? A new version will be created.')) {
+            if (! this.can.restore || ! await showErpConfirm('Restore this version? A new version will be created.')) {
                 return;
             }
 
@@ -10450,7 +10667,30 @@ document.addEventListener('turbo:frame-missing', async (event) => {
         const status = response?.status ?? 0;
 
         if (! response || status >= 400) {
-            showFormSettingsSweetAlert('Unable to load that page. Please try again.', 'error');
+            let fallback = 'Unable to load that page. Please try again.';
+            if (status === 403) {
+                fallback = 'You do not have permission to complete this action.';
+            } else if (status === 419) {
+                fallback = 'Your session expired. Refresh the page and try again.';
+            } else if (status === 422) {
+                fallback = 'Please fix the form errors and try again.';
+            } else if (status >= 500) {
+                fallback = 'A server error prevented this from saving. Try again, or check the form values.';
+            }
+
+            try {
+                const html = await response?.clone()?.text();
+                const extracted = extractAnyFormErrorsFromHtml(html);
+                if (extracted?.messages?.length) {
+                    reportFormSaveFailure(extracted);
+
+                    return;
+                }
+            } catch {
+                // Fall through to the specific status message.
+            }
+
+            showFormSettingsSweetAlert(fallback, 'error');
 
             return;
         }

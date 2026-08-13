@@ -3,6 +3,7 @@
 namespace App\Models\Sales;
 
 use App\Enums\FulfilmentMethod;
+use App\Enums\ProductionDestination;
 use App\Enums\ProductionPriority;
 use App\Enums\CustomerInvoiceStatus;
 use App\Enums\SalesOrderBillingType;
@@ -37,7 +38,7 @@ class SalesOrder extends Model
         'quotation_id', 'artwork_request_id',
         'inventory_item_id', 'uses_existing_artwork', 'customer_artwork_id',
         'artwork_confirmed_by', 'artwork_confirmed_at',
-        'order_number', 'order_date', 'required_date', 'priority', 'status',
+        'order_number', 'order_date', 'required_date', 'priority', 'production_destination', 'status',
         'subtotal', 'tax_amount', 'discount_amount', 'total_amount',
         'invoiced_subtotal', 'invoiced_tax_amount', 'invoiced_total',
         'notes', 'created_by',
@@ -64,6 +65,7 @@ class SalesOrder extends Model
             'artwork_confirmed_at' => 'datetime',
             'is_direct_order' => 'boolean',
             'priority' => ProductionPriority::class,
+            'production_destination' => ProductionDestination::class,
             'fulfilment_method' => FulfilmentMethod::class,
             'billing_type' => SalesOrderBillingType::class,
             'payment_terms_days' => 'integer',
@@ -166,6 +168,26 @@ class SalesOrder extends Model
     public function remainingInvoiceTotal(): float
     {
         return round(max(0, (float) $this->total_amount - (float) $this->invoiced_total - $this->pendingInvoiceTotal()), 2);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function productionJobAttributes(): array
+    {
+        if (! $this->production_destination) {
+            return [];
+        }
+
+        $attributes = [
+            'production_destination' => $this->production_destination->value,
+        ];
+
+        if ($type = $this->production_destination->productionType()) {
+            $attributes['production_type'] = $type->value;
+        }
+
+        return $attributes;
     }
 
     public function transitionTo(SalesOrderStatus $status): void

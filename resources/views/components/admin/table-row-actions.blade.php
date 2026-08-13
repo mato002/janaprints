@@ -32,7 +32,7 @@
         :style="open ? menuStyle : null"
         :class="open ? 'erp-row-actions-menu--open' : ''"
         data-erp-row-actions-menu
-        class="erp-row-actions-menu min-w-[12rem] rounded-lg border border-erp-border bg-white py-1 shadow-lg"
+        class="erp-row-actions-menu max-h-[min(24rem,70vh)] min-w-[12rem] overflow-y-auto rounded-lg border border-erp-border bg-white py-1 shadow-lg"
         role="menu"
     >
         {{ $slot }}

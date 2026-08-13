@@ -72,6 +72,11 @@
             <input type="hidden" name="customer_id" value="{{ $customer->id }}">
             <input type="hidden" name="customer_print_specification_id" value="{{ $specification->id }}">
 
+            @include('admin.sales.orders.partials.production-destination-picker', [
+                'value' => old('production_destination'),
+                'required' => true,
+            ])
+
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                     <label class="erp-label" for="desk-order-qty">{{ __('Order quantity') }}</label>

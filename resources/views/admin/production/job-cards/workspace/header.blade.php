@@ -89,19 +89,11 @@
                         </a>
                     @endif
                 @else
-                    @if ($needsOperator)
-                        <a href="#assign-operator" class="erp-btn-primary px-3 py-1.5 text-xs">{{ __('Assign operator') }}</a>
-                    @endif
-                    @if ($needsMachine)
-                        <a href="#assign-machine" class="erp-btn-primary px-3 py-1.5 text-xs">{{ __('Assign machine') }}</a>
-                    @endif
-                    @unless ($needsOperator || $needsMachine)
-                        @include('admin.production.job-cards.workspace.partials.primary-action-button', [
-                            'action' => $heroAction,
-                            'completion' => $completion,
-                            'size' => 'sm',
-                        ])
-                    @endunless
+                    @include('admin.production.job-cards.workspace.partials.primary-action-button', [
+                        'action' => $heroAction,
+                        'completion' => $completion,
+                        'size' => 'sm',
+                    ])
                 @endif
 
                 <details class="job-360-hero__more relative">

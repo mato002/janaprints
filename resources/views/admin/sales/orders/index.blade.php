@@ -37,18 +37,20 @@
                     $chip = strtolower($order->status->value);
                 @endphp
                 <tr x-show="rowVisible(@js($search), @js($chip))">
-                    <td class="font-medium">{{ $order->order_number }}</td>
+                    <td class="font-medium">
+                        <a
+                            href="{{ route('admin.sales-orders.show', [$order, 'from' => 'sales-desk']) }}"
+                            class="text-erp-accent hover:underline"
+                            data-turbo-frame="erp-main"
+                            data-turbo-action="advance"
+                        >{{ $order->order_number }}</a>
+                    </td>
                     <td>{{ $order->customer?->company_name ?? '—' }}</td>
                     <td class="hidden lg:table-cell">{{ $order->quotation?->quotation_number ?? '—' }}</td>
                     <td><x-admin.enum-status-badge :status="$order->status->value" /></td>
                     <td class="tabular-nums">{{ number_format($order->total_amount, 2) }}</td>
                     <td class="erp-table-actions-col">
-                        <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.sales-orders.show', $order)">{{ __('View') }}</x-admin.table-row-action>
-                            @can('update', $order)
-                                <x-admin.table-row-action :href="route('admin.sales-orders.edit', $order)">{{ __('Edit') }}</x-admin.table-row-action>
-                            @endcan
-                        </x-admin.table-row-actions>
+                        @include('admin.sales.orders.partials.row-actions', ['order' => $order])
                     </td>
                 </tr>
             @empty

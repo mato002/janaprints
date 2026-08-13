@@ -73,7 +73,7 @@
                             @endcan
                         </div>
                     </div>
-                    <p class="text-xs text-slate-500">{{ __('Assigning an operator marks this queue entry Ready.') }}</p>
+                    <p class="text-xs text-slate-500">{{ __('Optional. Assigning an operator marks this queue entry Ready.') }}</p>
                     <div class="flex justify-end gap-2 border-t border-erp-border pt-3">
                         <button type="button" class="erp-btn-secondary text-sm" @click="closeActionModal()">{{ __('Cancel') }}</button>
                         <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign operator') }}</button>

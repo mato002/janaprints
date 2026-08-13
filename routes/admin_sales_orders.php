@@ -29,6 +29,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
 
         Route::middleware('permission:sales_orders.view')->group(function () {
             Route::get('list/{salesOrder}', [SalesOrderController::class, 'show'])->name('show');
+            Route::get('list/{salesOrder}/specifications/print', [ProductionSpecificationController::class, 'printForSalesOrder'])
+                ->name('specifications.print');
         });
 
         Route::middleware('permission:sales_orders.edit')->group(function () {

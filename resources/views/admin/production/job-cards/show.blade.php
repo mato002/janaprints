@@ -61,6 +61,7 @@
             'primaryAction' => $workspace['primary_action'] ?? null,
             'linkActions' => $workspace['link_actions'] ?? [],
             'completion' => $completion,
+            'activeTab' => $activeTab,
         ])
     </div>
 

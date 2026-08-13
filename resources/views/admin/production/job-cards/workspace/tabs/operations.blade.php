@@ -1,33 +1,67 @@
 @php
+    use App\Support\Navigation\WorkspaceEmbed;
+
     $operations = $tabData['operations'] ?? null;
     $queues = $tabData['queues'] ?? collect();
     $controls = $tabData['controls'] ?? null;
     $state = $executionState ?? [];
     $operators = $state['operators'] ?? collect();
+    $formTurboAttrs = WorkspaceEmbed::mainFormAttributes();
+    $openOperations = $operations
+        ? $operations->getCollection()->filter(fn ($op) => $op->ended_at === null)->values()
+        : collect();
 @endphp
 
 @if (($state['needs_operator'] ?? false) && (auth()->user()?->can('schedule', $jobCard) || auth()->user()?->can('update', $jobCard)) && ($state['queue_id'] ?? null))
-    <x-admin.card class="mb-6 border-amber-200 bg-amber-50" id="assign-operator">
-        <form method="POST" action="{{ route('admin.production.job-cards.assign-operator', $jobCard) }}" class="flex flex-wrap items-end gap-3">
+    <x-admin.card class="mb-6 border-slate-200 bg-slate-50" id="assign-operator">
+        <form method="POST" action="{{ route('admin.production.job-cards.assign-operator', $jobCard) }}" class="flex flex-wrap items-end gap-3" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
             @csrf
             <input type="hidden" name="production_queue_id" value="{{ $state['queue_id'] }}">
             <div class="min-w-[16rem] flex-1">
-                <p class="mb-1 text-sm font-medium text-amber-950">{{ __('Assign an operator to this queue stage') }}</p>
-                <p class="mb-2 text-xs text-amber-900/80">{{ __('This unblocks the job so production can start.') }}</p>
+                <p class="mb-1 text-sm font-medium text-slate-900">{{ __('Assign an operator (optional)') }}</p>
+                <p class="mb-2 text-xs text-slate-600">{{ __('Not required to start this job. Assign someone if you want them on this stage.') }}</p>
                 <x-admin.lookup-select
                     name="assigned_operator_id"
                     :options="$operators->map(fn ($operator) => ['value' => $operator->id, 'label' => $operator->name])->values()->all()"
-                    :required="true"
+                    :required="false"
                     create-route="admin.operators.quick-create"
                     refresh-route="admin.lookups.operators"
                     permission="employees.manage"
                     :modal-title="__('Create operator')"
                     select-class="erp-select w-full text-sm"
-                    :placeholder="__('Select operator')"
+                    :placeholder="__('Select operator (optional)')"
                 />
             </div>
-            <button type="submit" class="erp-btn-primary text-sm">{{ __('Assign operator') }}</button>
+            <button type="submit" class="erp-btn-secondary text-sm">{{ __('Assign operator') }}</button>
         </form>
+    </x-admin.card>
+@endif
+
+@if ($openOperations->isNotEmpty())
+    <x-admin.card class="mb-6 border-amber-200 bg-amber-50" id="open-operations">
+        <h3 class="mb-1 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Finish these operations') }}</h3>
+        <p class="mb-3 text-sm text-amber-950">{{ __('Dispatch is waiting on the operations below. Complete each one — adding to the queue will not clear this blocker.') }}</p>
+        <ul class="space-y-2">
+            @foreach ($openOperations as $op)
+                <li class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-200 bg-white px-3 py-2">
+                    <div class="min-w-0">
+                        <p class="font-medium text-slate-900">{{ $op->stage?->name ?? __('Pending stage') }} · {{ $op->workCenter?->name ?? __('—') }}</p>
+                        <p class="text-xs text-slate-500">
+                            {{ $op->started_at ? __('In progress since :time', ['time' => $op->started_at->format('d M H:i')]) : __('Not started') }}
+                            @if ($op->assignedEmployee)
+                                · {{ trim($op->assignedEmployee->first_name.' '.$op->assignedEmployee->last_name) }}
+                            @endif
+                        </p>
+                    </div>
+                    @if ($tabData['can_complete_op'] ?? false)
+                        <form method="POST" action="{{ route('admin.production.operations.complete', [$jobCard, $op]) }}" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                            @csrf
+                            <button type="submit" class="erp-btn-primary text-sm">{{ __('Complete') }}</button>
+                        </form>
+                    @endif
+                </li>
+            @endforeach
+        </ul>
     </x-admin.card>
 @endif
 
@@ -43,7 +77,7 @@
                     </div>
                     @if ($tabData['can_manage_queue'] ?? false)
                         <div class="flex flex-wrap items-center gap-2">
-                            <form method="POST" action="{{ route('admin.production.queues.update', [$jobCard, $entry]) }}" class="inline-flex flex-wrap items-center gap-1">
+                            <form method="POST" action="{{ route('admin.production.queues.update', [$jobCard, $entry]) }}" class="inline-flex flex-wrap items-center gap-1" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                                 @csrf
                                 @method('PUT')
                                 <input type="number" name="queue_position" class="erp-input w-16 text-xs py-1" value="{{ $entry->queue_position }}" min="1" required>
@@ -54,7 +88,7 @@
                                 </select>
                                 <button type="submit" class="erp-btn-secondary text-xs">{{ __('Update') }}</button>
                             </form>
-                            <form method="POST" action="{{ route('admin.production.queues.destroy', [$jobCard, $entry]) }}" class="inline" onsubmit="return confirm(@js(__('Remove this queue entry?')))">
+                            <form method="POST" action="{{ route('admin.production.queues.destroy', [$jobCard, $entry]) }}" class="inline" onsubmit="return confirm(@js(__('Remove this queue entry?')))" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="text-xs text-red-600 hover:underline">{{ __('Remove') }}</button>
@@ -68,14 +102,17 @@
         @endforelse
 
         @if ($tabData['can_queue'] ?? false)
-            <form method="POST" action="{{ route('admin.production.queues.store', $jobCard) }}" class="mt-4 space-y-2" id="queue-form">
+            <form method="POST" action="{{ route('admin.production.queues.store', $jobCard) }}" class="mt-4 space-y-2" id="queue-form" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                 @csrf
                 <select name="work_center_id" class="erp-input w-full text-sm" required>
                     @foreach ($tabData['work_centers'] ?? [] as $wc)
                         <option value="{{ $wc->id }}">{{ $wc->name }}</option>
                     @endforeach
                 </select>
-                <input type="number" name="queue_position" class="erp-input w-full text-sm" value="1" min="1" required>
+                @error('work_center_id')
+                    <p class="text-xs text-red-600">{{ $message }}</p>
+                @enderror
+                <input type="number" name="queue_position" class="erp-input w-full text-sm" value="{{ old('queue_position', 1) }}" min="1" required>
                 <button type="submit" class="erp-btn-secondary text-sm">{{ __('Add to queue') }}</button>
             </form>
         @endif
@@ -84,7 +121,7 @@
     @if ($tabData['can_log'] ?? false)
         <x-admin.card id="log-operation">
             <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Log operation') }}</h3>
-            <form method="POST" action="{{ route('admin.production.operations.store', $jobCard) }}" class="grid grid-cols-1 gap-2">
+            <form method="POST" action="{{ route('admin.production.operations.store', $jobCard) }}" class="grid grid-cols-1 gap-2" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                 @csrf
                 <select name="work_center_id" class="erp-input text-sm" required>
                     @foreach ($tabData['work_centers'] ?? [] as $wc)
@@ -114,7 +151,7 @@
     @endif
 </div>
 
-<x-admin.card id="open-operations">
+<x-admin.card>
     <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Operations log') }}</h3>
     @if ($operations && $operations->count() > 0)
         <div class="overflow-x-auto">
@@ -126,9 +163,7 @@
                         <th>{{ __('Operator') }}</th>
                         <th>{{ __('Started') }}</th>
                         <th>{{ __('Completed') }}</th>
-                        <th>{{ __('Duration') }}</th>
                         <th>{{ __('Status') }}</th>
-                        <th>{{ __('Notes') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -136,9 +171,6 @@
                     @foreach ($operations as $op)
                         @php
                             $execStatus = $controls ? $controls->operationExecutionStatus($op, $jobCard) : 'pending';
-                            $duration = ($op->started_at && $op->ended_at)
-                                ? $op->started_at->diffForHumans($op->ended_at, true)
-                                : ($op->started_at ? __('In progress') : '—');
                             $operator = $op->assignedEmployee?->full_name
                                 ?? trim(($op->assignedEmployee?->first_name ?? '').' '.($op->assignedEmployee?->last_name ?? ''));
                         @endphp
@@ -148,7 +180,6 @@
                             <td>{{ $operator !== '' ? $operator : '—' }}</td>
                             <td class="tabular-nums">{{ $op->started_at?->format('Y-m-d H:i') ?? '—' }}</td>
                             <td class="tabular-nums">{{ $op->ended_at?->format('Y-m-d H:i') ?? '—' }}</td>
-                            <td>{{ $duration }}</td>
                             <td>
                                 @php
                                     $badgeClass = match ($execStatus) {
@@ -160,25 +191,9 @@
                                 @endphp
                                 <span class="erp-badge {{ $badgeClass }}">{{ str_replace('_', ' ', $execStatus) }}</span>
                             </td>
-                            <td class="max-w-[12rem] truncate" title="{{ $op->remarks }}">{{ $op->remarks ?? '—' }}</td>
                             <td class="text-end whitespace-nowrap">
-                                @if (($tabData['can_assign'] ?? false) && ! $op->ended_at)
-                                    <form method="POST" action="{{ route('admin.production.operations.update', [$jobCard, $op]) }}" class="inline-flex items-center gap-1">
-                                        @csrf
-                                        @method('PUT')
-                                        <select name="assigned_employee_id" class="erp-input text-xs py-1 max-w-[8rem]">
-                                            <option value="">{{ __('Unassigned') }}</option>
-                                            @foreach ($tabData['operators'] ?? [] as $employee)
-                                                <option value="{{ $employee->id }}" @selected($op->assigned_employee_id === $employee->id)>
-                                                    {{ $employee->first_name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        <button type="submit" class="erp-btn-secondary text-xs">{{ __('Assign') }}</button>
-                                    </form>
-                                @endif
                                 @if (($tabData['can_complete_op'] ?? false) && ! $op->ended_at)
-                                    <form method="POST" action="{{ route('admin.production.operations.complete', [$jobCard, $op]) }}" class="inline mt-1">
+                                    <form method="POST" action="{{ route('admin.production.operations.complete', [$jobCard, $op]) }}" class="inline" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                                         @csrf
                                         <button type="submit" class="erp-btn-primary text-xs">{{ __('Complete') }}</button>
                                     </form>

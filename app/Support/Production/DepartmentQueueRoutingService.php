@@ -2,6 +2,8 @@
 
 namespace App\Support\Production;
 
+use App\Enums\ProductionDestination;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionType;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionSpecification;
@@ -26,11 +28,38 @@ class DepartmentQueueRoutingService
     {
         $jobCard->loadMissing([
             'productionSpecification.printProductTemplate.preferredWorkCenter',
+            'salesOrder',
         ]);
 
         $spec = $jobCard->productionSpecification;
         $template = $spec?->printProductTemplate;
-        $productionType = $spec?->production_type ?? $jobCard->production_type;
+        $destination = $jobCard->production_destination
+            ?? $jobCard->salesOrder?->production_destination;
+        $productionType = $destination?->productionType()
+            ?? $spec?->production_type
+            ?? $jobCard->production_type;
+
+        if ($destination?->isOutsource()) {
+            return [
+                'department_slug' => 'outsource',
+                'department_label' => __('Outsourced'),
+                'work_center' => null,
+                'production_type' => $productionType,
+                'source' => 'sales_destination',
+            ];
+        }
+
+        if ($destination && in_array($destination, [ProductionDestination::Digital, ProductionDestination::Offset], true)) {
+            $workCenter = $this->recommendedWorkCenter($jobCard, $spec, $productionType);
+
+            return [
+                'department_slug' => $destination->value,
+                'department_label' => $destination->label(),
+                'work_center' => $workCenter,
+                'production_type' => $productionType,
+                'source' => 'sales_destination',
+            ];
+        }
 
         if ($template?->preferredWorkCenter && $template->preferredWorkCenter->is_active) {
             return [

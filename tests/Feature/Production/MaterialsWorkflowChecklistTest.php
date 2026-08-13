@@ -52,7 +52,7 @@ class MaterialsWorkflowChecklistTest extends TestCase
         $this->actingAs($user)
             ->get(route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']))
             ->assertOk()
-            ->assertSee(__('Materials workflow'), false)
+            ->assertSee(__('Use the highlighted step to add a BOM or generate requirements on this job.'), false)
             ->assertSee(__('Link finished product'), false)
             ->assertSee(__('Link product'), false)
             ->assertDontSee('name="warehouse_id"', false);

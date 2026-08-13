@@ -2,6 +2,7 @@
 
 namespace App\Support\Production;
 
+use App\Enums\ProductionDestination;
 use App\Enums\ProductionJobCardStatus;
 use App\Models\Production\WorkCenter;
 use Illuminate\Database\Eloquent\Builder;
@@ -109,21 +110,37 @@ class DepartmentQueueRegistry
 
         if ($department['job_statuses'] !== []) {
             return $query->whereHas('jobCard', function (Builder $jobQuery) use ($department) {
-                $jobQuery->whereIn('status', $department['job_statuses']);
+                $jobQuery->where(function (Builder $statusScope) use ($department) {
+                    $statusScope->whereIn('status', $department['job_statuses']);
+
+                    if (in_array(ProductionJobCardStatus::Outsourced->value, $department['job_statuses'], true)) {
+                        $statusScope->orWhere('production_destination', ProductionDestination::Outsource->value);
+                    }
+                });
             });
         }
 
         $codes = $department['work_center_codes'];
         $types = $department['production_types'];
 
-        return $query->where(function (Builder $scope) use ($codes, $types) {
-            if ($codes !== []) {
-                $scope->whereHas('workCenter', fn (Builder $wc) => $wc->whereIn('code', $codes));
-            }
+        return $query
+            ->whereHas('jobCard', function (Builder $jobQuery) {
+                $jobQuery->where(function (Builder $destinationScope) {
+                    $destinationScope
+                        ->whereNull('production_destination')
+                        ->orWhere('production_destination', '!=', ProductionDestination::Outsource->value);
+                });
+            })
+            ->where(function (Builder $scope) use ($codes, $types, $slug) {
+                if ($codes !== []) {
+                    $scope->whereHas('workCenter', fn (Builder $wc) => $wc->whereIn('code', $codes));
+                }
 
-            if ($types !== []) {
-                $scope->orWhereHas('jobCard', fn (Builder $job) => $job->whereIn('production_type', $types));
-            }
-        });
+                if ($types !== []) {
+                    $scope->orWhereHas('jobCard', fn (Builder $job) => $job->whereIn('production_type', $types));
+                }
+
+                $scope->orWhereHas('jobCard', fn (Builder $job) => $job->where('production_destination', $slug));
+            });
     }
 }

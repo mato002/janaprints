@@ -1,11 +1,8 @@
 @php
     use App\Support\Navigation\WorkspaceEmbed;
 
-    $executionState = $executionState ?? [];
     $primaryAction = $primaryAction ?? null;
     $linkActions = $linkActions ?? [];
-    $needsOperator = (bool) ($executionState['needs_operator'] ?? false);
-    $needsMachine = (bool) ($executionState['needs_machine'] ?? false);
     $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
     $formTurboAttrs = WorkspaceEmbed::mainFormAttributes();
 
@@ -13,14 +10,11 @@
 
     $actions = [];
 
-    if ($needsOperator) {
-        $actions[] = ['label' => __('Assign operator'), 'type' => 'anchor', 'url' => '#assign-operator', 'variant' => 'primary'];
-    }
-    if ($needsMachine) {
-        $actions[] = ['label' => __('Assign machine'), 'type' => 'anchor', 'url' => '#assign-machine', 'variant' => 'primary'];
-    }
-    if ($primaryAction && ! $needsOperator && ! $needsMachine) {
-        $actions[] = $primaryAction;
+    if ($primaryAction) {
+        $isOperationsLink = str_contains((string) ($primaryAction['url'] ?? ''), 'tab=operations');
+        if (! ($isOperationsLink && ($activeTab ?? null) === 'operations')) {
+            $actions[] = $primaryAction;
+        }
     }
     if ($printAction) {
         $actions[] = [

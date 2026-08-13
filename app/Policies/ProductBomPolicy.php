@@ -22,7 +22,7 @@ class ProductBomPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('production.bom.create');
+        return $user->can('production.bom.create') || $user->can('production.edit');
     }
 
     public function update(User $user, ProductBom $bom): bool

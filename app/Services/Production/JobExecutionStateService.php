@@ -16,8 +16,8 @@ use Illuminate\Support\Collection;
 /**
  * Derives supervisor/operator execution readiness for job cards already released from Sales.
  *
- * Start-work gates are capability-driven from the current work center:
- * operator always required; machine only when the stage requires one.
+ * Operator and machine assignment are optional helpers — they never block start.
+ * `needs_operator` / `needs_machine` mean "not yet assigned" for the assign UI.
  */
 class JobExecutionStateService
 {
@@ -73,9 +73,9 @@ class JobExecutionStateService
         $hasMachine = $jobCard->assigned_machine_asset_id !== null;
         $needsMachine = $requiresMachine && ! $hasMachine;
         $alreadyInQueue = $this->alreadyInQueue($jobCard);
-        $isReady = $this->isReadyToStart($jobCard, $queue, $needsMachine);
+        $isReady = $this->isReadyToStart($jobCard, $queue);
 
-        $phase = $this->resolvePhase($jobCard, $hasOperator, $needsMachine, $isReady, $alreadyInQueue);
+        $phase = $this->resolvePhase($jobCard, $isReady, $alreadyInQueue);
         $dispatchSummary = null;
 
         if ($jobCard->status === ProductionJobCardStatus::ReadyForDispatch) {
@@ -138,6 +138,7 @@ class JobExecutionStateService
         ?ProductionQueue $queue = null,
         ?bool $needsMachine = null,
     ): bool {
+        unset($needsMachine);
         if (! in_array($jobCard->status, [
             ProductionJobCardStatus::Queued,
             ProductionJobCardStatus::Rework,
@@ -145,24 +146,11 @@ class JobExecutionStateService
             return false;
         }
 
-        $context = null;
-        if ($queue === null || $needsMachine === null) {
-            $context = $this->routeQueues->currentQueueContext($jobCard);
-            $queue ??= $context['current'] ?? null;
+        if ($queue === null) {
+            $queue = $this->routeQueues->currentQueueContext($jobCard)['current'] ?? null;
         }
 
-        if ($queue === null || ($queue->assigned_operator_id === null && $this->assignedOperationOperator($jobCard, $queue) === null)) {
-            return false;
-        }
-
-        if ($needsMachine === null) {
-            $workCenter = $context['work_center'] ?? $queue->workCenter;
-            $needsMachine = $this->stageRequiresMachine($workCenter)
-                && $jobCard->assigned_machine_asset_id === null;
-        }
-
-        return ! $needsMachine
-            && app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard)['ready'];
+        return $queue !== null;
     }
 
     public function stageRequiresMachine(?WorkCenter $workCenter): bool
@@ -241,8 +229,6 @@ class JobExecutionStateService
 
     protected function resolvePhase(
         ProductionJobCard $jobCard,
-        bool $hasOperator,
-        bool $needsMachine,
         bool $isReady,
         bool $alreadyInQueue,
     ): string {
@@ -256,11 +242,9 @@ class JobExecutionStateService
             ProductionJobCardStatus::Outsourced => 'outsourced',
             ProductionJobCardStatus::Cancelled => 'cancelled',
             ProductionJobCardStatus::Draft => $alreadyInQueue
-                ? (! $hasOperator ? 'awaiting_operator' : ($needsMachine ? 'awaiting_machine' : 'awaiting_accept'))
+                ? ($isReady ? 'awaiting_accept' : 'queued')
                 : 'draft',
-            ProductionJobCardStatus::Queued, ProductionJobCardStatus::Rework => ! $hasOperator
-                ? 'awaiting_operator'
-                : ($needsMachine ? 'awaiting_machine' : ($isReady ? 'ready' : 'queued')),
+            ProductionJobCardStatus::Queued, ProductionJobCardStatus::Rework => $isReady ? 'ready' : 'queued',
             default => 'other',
         };
     }
@@ -301,20 +285,10 @@ class JobExecutionStateService
 
         return match ($phase) {
             'draft' => __('Release this job into the production queue when planning is complete.'),
-            'awaiting_accept' => __('Supervisor: confirm queue placement, then assign an operator.'),
-            'awaiting_operator' => __('Assign an operator before :stage can start.', ['stage' => $stage]),
-            'awaiting_machine' => $operatorName
-                ? __('Operator :name assigned. Assign a machine before :stage can start.', [
-                    'name' => $operatorName,
-                    'stage' => $stage,
-                ])
-                : __('Assign a machine before :stage can start.', ['stage' => $stage]),
-            'ready' => $requiresMachine
-                ? __('Ready to start — operator assigned; machine :machine ready for :stage.', [
-                    'machine' => $machineName ?: __('assigned'),
-                    'stage' => $stage,
-                ])
-                : __('Ready to start — operator assigned; this stage does not require a machine.'),
+            'awaiting_accept' => __('Supervisor: confirm queue placement. Operator and machine can be assigned if needed.'),
+            'awaiting_operator' => __('Operator is optional. Assign one if you want them on :stage.', ['stage' => $stage]),
+            'awaiting_machine' => __('Machine is optional. Assign one if you want it on :stage.', ['stage' => $stage]),
+            'ready' => $this->readyToStartCopy($operatorName, $requiresMachine, $machineName, $stage),
             'queued' => __('Waiting in queue.'),
             'in_progress' => __('Operator is running this stage. Pause, report issues, or finish when done.'),
             'on_hold' => __('Job is paused. Resume when ready to continue.'),
@@ -337,7 +311,7 @@ class JobExecutionStateService
         bool $hasMachine,
         ?string $machineName,
     ): array {
-        if (! in_array($phase, ['awaiting_operator', 'awaiting_machine', 'ready', 'awaiting_accept'], true)) {
+        if (! in_array($phase, ['awaiting_operator', 'awaiting_machine', 'ready', 'awaiting_accept', 'queued'], true)) {
             return [];
         }
 
@@ -379,5 +353,28 @@ class JobExecutionStateService
         ];
 
         return $facts;
+    }
+
+    protected function readyToStartCopy(
+        ?string $operatorName,
+        bool $requiresMachine,
+        ?string $machineName,
+        string $stage,
+    ): string {
+        if ($operatorName && $requiresMachine && $machineName) {
+            return __('Ready to start — :name on :machine for :stage.', [
+                'name' => $operatorName,
+                'machine' => $machineName,
+                'stage' => $stage,
+            ]);
+        }
+
+        if ($operatorName) {
+            return __('Ready to start — operator :name assigned. Machine is optional.', [
+                'name' => $operatorName,
+            ]);
+        }
+
+        return __('Ready to start. Operator and machine are optional.');
     }
 }

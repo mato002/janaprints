@@ -168,6 +168,12 @@ class ProductionReleaseReadinessService
         ];
     }
 
+    protected function materialsAreOptional(SalesOrder $salesOrder, ?ProductionJobCard $jobCard = null): bool
+    {
+        return $salesOrder->production_destination !== null
+            || $jobCard?->production_destination !== null;
+    }
+
     /**
      * @param  list<array{key: string, label: string, passed: bool, severity: string, message: ?string}>  $checks
      * @param  list<string>  $blockers
@@ -197,8 +203,23 @@ class ProductionReleaseReadinessService
 
             if (! $materials['has_requirements']) {
                 $message = __('No bill of materials is configured for this product. Production must set up a BOM before this order can be released.');
+
+                if ($this->materialsAreOptional($salesOrder, $jobCard)) {
+                    $warnings[] = __('No BOM yet. Offset, Digital, and Outsourced jobs can go to production from the job card; materials can be added later.');
+                    $checks[] = $this->warningCheck('materials', __('Material availability'), __('BOM is optional for this production lane. Production can add materials on the job card.'));
+
+                    return;
+                }
+
                 $blockers[] = $message;
                 $checks[] = $this->failedCheck('materials', __('Material availability'), $message);
+
+                return;
+            }
+
+            if ($this->materialsAreOptional($salesOrder, $jobCard) && ! $materials['ready']) {
+                $warnings[] = $this->materialReadiness->formatBlockerMessage($materials);
+                $checks[] = $this->warningCheck('materials', __('Material availability'), $materials['detail'] ?? __('Materials can be completed on the job card.'));
 
                 return;
             }
@@ -209,6 +230,14 @@ class ProductionReleaseReadinessService
         }
 
         $materials = $this->materialReadiness->assess($jobCard);
+
+        if ($this->materialsAreOptional($salesOrder, $jobCard) && ! $materials['ready']) {
+            $warnings[] = $materials['detail'] ?: __('Materials can be completed on the job card.');
+            $checks[] = $this->warningCheck('materials', __('Material availability'), $materials['detail'] ?? __('BOM is optional for this production lane.'));
+
+            return;
+        }
+
         $this->applyMaterialAssessment($checks, $blockers, $warnings, $materials);
     }
 

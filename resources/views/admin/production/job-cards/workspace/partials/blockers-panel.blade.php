@@ -23,6 +23,9 @@
         ProductionJobCardStatus::InProduction,
     ], true);
 
+    $destinationLane = $jobCard->production_destination !== null
+        || $jobCard->salesOrder?->production_destination !== null;
+
     $items = [];
     $seen = [];
     $resolveUrl = null;
@@ -51,27 +54,9 @@
             ? $materialsBase.'#materials-shortages'
             : $materialsBase;
         $items[] = [
-            'severity' => 'error',
+            'severity' => $destinationLane ? 'warning' : 'error',
             'message' => $message,
         ];
-    }
-
-    if ($showMaterialReleaseGate && ($executionState['needs_operator'] ?? false)) {
-        $message = __('Operator not assigned');
-        if (! isset($seen[$message])) {
-            $seen[$message] = true;
-            $items[] = ['severity' => 'error', 'message' => $message];
-            $resolveUrl ??= route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-operator';
-        }
-    }
-
-    if ($showMaterialReleaseGate && ($executionState['needs_machine'] ?? false)) {
-        $message = __('Machine not assigned');
-        if (! isset($seen[$message])) {
-            $seen[$message] = true;
-            $items[] = ['severity' => 'error', 'message' => $message];
-            $resolveUrl ??= route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-machine';
-        }
     }
 
     if ($showDownstreamRequirements) {

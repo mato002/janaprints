@@ -32,6 +32,8 @@ class ProductionJobCardService
             $priority = $attributes['priority']
                 ?? ($salesOrder->priority?->value ?? ProductionPriority::Normal->value);
 
+            $destinationAttributes = $salesOrder->productionJobAttributes();
+
             $jobCard = ProductionJobCard::query()->create([
                 'company_id' => $salesOrder->company_id,
                 'branch_id' => $salesOrder->branch_id,
@@ -47,7 +49,12 @@ class ProductionJobCardService
                     $salesOrder->company_id,
                     $salesOrder->branch_id,
                 ),
-                'production_type' => $attributes['production_type'] ?? ProductionType::Mixed->value,
+                'production_type' => $attributes['production_type']
+                    ?? $destinationAttributes['production_type']
+                    ?? ProductionType::Mixed->value,
+                'production_destination' => $attributes['production_destination']
+                    ?? $destinationAttributes['production_destination']
+                    ?? null,
                 'priority' => $priority,
                 'planned_start_date' => $attributes['planned_start_date'] ?? null,
                 'planned_end_date' => $attributes['planned_end_date'] ?? $salesOrder->required_date,

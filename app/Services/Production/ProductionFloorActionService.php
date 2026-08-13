@@ -63,37 +63,6 @@ class ProductionFloorActionService
             return $this->action(__('Resume'), 'post', route('admin.production.job-cards.resume', $jobCard), 'primary');
         }
 
-        // Supervisor path: jobs already released from Sales stay Queued until assigned.
-        if (
-            $state['needs_operator']
-            && $state['queue_id']
-            && ($user->can('schedule', $jobCard) || $user->can('update', $jobCard))
-        ) {
-            if ($forFloor) {
-                return $this->floorModal(__('Assign operator'), 'operator', $jobCard, 'primary');
-            }
-
-            return $this->action(
-                __('Assign operator'),
-                'link',
-                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-operator',
-                'primary',
-            );
-        }
-
-        if ($state['needs_machine'] && $user->can('machines.assign')) {
-            if ($forFloor) {
-                return $this->floorModal(__('Assign machine'), 'machine', $jobCard, 'primary');
-            }
-
-            return $this->action(
-                __('Assign machine'),
-                'link',
-                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-machine',
-                'primary',
-            );
-        }
-
         // Only Draft jobs with no queue still need planning entry points.
         if (
             ! $forFloor
@@ -128,12 +97,9 @@ class ProductionFloorActionService
             return $this->action(__('Start work'), 'post', route('admin.production.job-cards.start', $jobCard), 'primary');
         }
 
-        // Operator/machine ready but materials block start — surface the gate in the CTA.
         if (
             $user->can('start', $jobCard)
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)
-            && ($state['has_operator'] ?? false)
-            && ! ($state['needs_machine'] ?? false)
             && ! ($state['is_ready_to_start'] ?? false)
         ) {
             $assessment = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
@@ -237,6 +203,28 @@ class ProductionFloorActionService
         $user ??= auth()->user();
         $actions = [];
         $state = $this->execution->state($jobCard);
+
+        if (
+            ($state['needs_operator'] ?? false)
+            && ($state['queue_id'] ?? null)
+            && ($user?->can('schedule', $jobCard) || $user?->can('update', $jobCard))
+        ) {
+            $actions[] = $this->action(
+                __('Assign operator'),
+                'link',
+                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-operator',
+                'ghost',
+            );
+        }
+
+        if (($state['needs_machine'] ?? false) && $user?->can('machines.assign')) {
+            $actions[] = $this->action(
+                __('Assign machine'),
+                'link',
+                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']).'#assign-machine',
+                'ghost',
+            );
+        }
 
         if ($user?->can('transition', $jobCard) && $jobCard->status === ProductionJobCardStatus::InProduction) {
             $actions[] = $this->action(__('Pause'), 'post', route('admin.production.job-cards.pause', $jobCard), 'ghost');
