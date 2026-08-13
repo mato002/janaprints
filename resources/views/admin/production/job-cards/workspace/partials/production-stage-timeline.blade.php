@@ -23,8 +23,13 @@
     }
 
     $operationsItem = $checklist->firstWhere('key', 'operations');
-    $productionDone = ($operationsItem['state'] ?? null) === 'passed'
-        || in_array($jobCard?->status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch, ProductionJobCardStatus::QualityCheck], true);
+    $productionDone = in_array($operationsItem['state'] ?? null, ['passed', 'warning'], true);
+    $productionCurrent = ! $productionDone && in_array($jobCard?->status, [
+        ProductionJobCardStatus::InProduction,
+        ProductionJobCardStatus::QualityCheck,
+        ProductionJobCardStatus::Completed,
+        ProductionJobCardStatus::ReadyForDispatch,
+    ], true);
 
     $qcItem = $checklist->firstWhere('key', 'qc');
     $qcDone = ($qcItem['state'] ?? null) === 'passed';
@@ -54,7 +59,7 @@
 
     $stages = [
         ['label' => __('MAT'), 'full' => __('Materials'), 'state' => $materialsState, 'theme' => 'materials'],
-        ['label' => __('PROD'), 'full' => __('Production'), 'state' => $productionDone ? 'completed' : (in_array($jobCard?->status, [ProductionJobCardStatus::InProduction], true) ? 'current' : 'future'), 'theme' => 'production'],
+        ['label' => __('PROD'), 'full' => __('Production'), 'state' => $productionDone ? 'completed' : ($productionCurrent ? 'current' : 'future'), 'theme' => 'production'],
         ['label' => __('QC'), 'full' => __('QC'), 'state' => $qcDone ? 'completed' : ($jobCard?->status === ProductionJobCardStatus::QualityCheck ? 'current' : 'future'), 'theme' => 'qc'],
         ['label' => __('FG'), 'full' => __('Finished goods'), 'state' => $fgState, 'theme' => 'slate'],
         ['label' => __('DISP'), 'full' => __('Dispatch'), 'state' => $dispatchState, 'theme' => 'dispatch'],

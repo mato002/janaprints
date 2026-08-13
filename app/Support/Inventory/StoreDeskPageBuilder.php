@@ -106,6 +106,10 @@ class StoreDeskPageBuilder
         return [
             'registerTitle' => __('Products'),
             'registerDescription' => __('Every inventory item and its stock role. Use this list when production needs an item classified as a finished good.'),
+            'registerCreateUrl' => route('admin.inventory.items.create', ['from' => 'store-desk']),
+            'registerCreateLabel' => __('New item'),
+            'registerCanCreate' => $request->user()?->can('create', InventoryItem::class) ?? false,
+            'registerCreateModal' => true,
             'items' => $items,
             'stockRole' => $stockRole ?: 'all',
             'stockRoles' => InventoryStockRole::cases(),

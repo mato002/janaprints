@@ -82,6 +82,7 @@ class ProductionOperationController extends Controller
         abort_unless($operation->production_job_card_id === $jobCard->id, 404);
 
         $operation->update([
+            'started_at' => $operation->started_at ?? now(),
             'ended_at' => now(),
             'remarks' => $request->input('remarks', $operation->remarks),
         ]);

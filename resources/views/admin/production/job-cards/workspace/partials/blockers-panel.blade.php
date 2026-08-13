@@ -102,8 +102,13 @@
             continue;
         }
 
-        $seen[$message] = true;
         $lower = strtolower($message);
+
+        if (str_contains($lower, 'operation') && collect($items)->contains(fn (array $item) => str_contains(strtolower($item['message'] ?? ''), 'operation'))) {
+            continue;
+        }
+
+        $seen[$message] = true;
 
         if ($resolveUrl === null) {
             $resolveUrl = match (true) {

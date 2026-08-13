@@ -565,6 +565,13 @@ class Job360WorkspaceService
             'machine_options' => $this->assignableMachines(),
             'outsource' => $this->outsourceContext($jobCard),
             'queue' => $this->queueContext($jobCard),
+            'open_operations' => ProductionOperation::query()
+                ->where('production_job_card_id', $jobCard->id)
+                ->whereNull('ended_at')
+                ->with(['workCenter:id,name', 'stage:id,name', 'assignedEmployee:id,first_name,last_name'])
+                ->orderBy('started_at')
+                ->get(),
+            'can_complete_op' => auth()->user()?->can('complete', $jobCard) ?? false,
         ];
     }
 

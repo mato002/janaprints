@@ -12,6 +12,7 @@
                 'jobCard' => $jobCard,
                 'executionState' => $executionState ?? [],
                 'assignableMachines' => $assignableMachines ?? collect(),
+                'tabData' => $tabData ?? [],
             ])
         </x-admin.job-module-card>
 

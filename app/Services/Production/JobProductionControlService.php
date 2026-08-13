@@ -505,8 +505,8 @@ SQL;
                     'status_label' => __('Not ready for dispatch'),
                 ],
                 'operations' => [
-                    'label' => __('Complete operations'),
-                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'overview']),
+                    'label' => __('Finish remaining operations'),
+                    'url' => route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']).'#open-operations',
                     'status_label' => __('Operations incomplete'),
                 ],
                 'qc' => [

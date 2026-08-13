@@ -101,6 +101,37 @@
             </div>
         </dl>
 
+        @php
+            $openOperations = $tabData['open_operations'] ?? collect();
+            $canCompleteOp = (bool) ($tabData['can_complete_op'] ?? false);
+        @endphp
+
+        @if ($openOperations->isNotEmpty())
+            <div id="open-operations" class="mt-3 space-y-2 border-t border-erp-border pt-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Open operations') }}</p>
+                <ul class="space-y-2">
+                    @foreach ($openOperations as $op)
+                        <li class="flex flex-wrap items-center justify-between gap-2 rounded-md bg-slate-50 px-2 py-1.5 text-sm">
+                            <span>
+                                {{ $op->stage?->name ?? $op->workCenter?->name ?? __('Operation') }}
+                                @if ($op->started_at)
+                                    <span class="text-slate-500">· {{ __('In progress') }}</span>
+                                @else
+                                    <span class="text-slate-500">· {{ __('Not started') }}</span>
+                                @endif
+                            </span>
+                            @if ($canCompleteOp)
+                                <form method="POST" action="{{ route('admin.production.operations.complete', [$jobCard, $op]) }}" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                                    @csrf
+                                    <button type="submit" class="erp-btn-primary text-xs">{{ __('Complete') }}</button>
+                                </form>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         @if ($showSchedule)
             <form method="POST" action="{{ route('admin.production.job-cards.schedule', $jobCard) }}" class="job-360-zone__inline-form" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                 @csrf

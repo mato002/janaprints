@@ -31,12 +31,16 @@
     $hasDispatch = ! empty($dispatchSummaryState['has_delivery_note']);
     $dispatchActions = $dispatchSummaryState['actions'] ?? ['primary' => null, 'secondary' => [], 'danger' => []];
     $workflowNextStep = $executionState['workflow_next_step'] ?? null;
+    $operationsNext = filled($workflowNextStep['url'] ?? null)
+        && str_contains((string) $workflowNextStep['url'], 'tab=operations');
 
     $heroAction = $hasDispatch
         ? ($dispatchActions['primary'] ?? null)
-        : ($workflowNextStep
-            ? ['label' => $workflowNextStep['label'], 'type' => 'link', 'url' => $workflowNextStep['url'], 'variant' => 'primary']
-            : $primaryAction);
+        : ($operationsNext
+            ? null
+            : ($workflowNextStep
+                ? ['label' => $workflowNextStep['label'], 'type' => 'link', 'url' => $workflowNextStep['url'], 'variant' => 'primary']
+                : $primaryAction));
 
     $linkTurboAttrs = WorkspaceEmbed::leaveWorkspaceLinkAttributes();
     $formTurboAttrs = WorkspaceEmbed::mainFormAttributes();

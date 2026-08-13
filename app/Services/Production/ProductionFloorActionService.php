@@ -187,6 +187,15 @@ class ProductionFloorActionService
             }
         }
 
+        if ($this->controls->hasIncompleteOperations($jobCard) && $user->can('complete', $jobCard)) {
+            return $this->action(
+                __('Finish remaining operations'),
+                'link',
+                route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']).'#open-operations',
+                'primary',
+            );
+        }
+
         if (
             $user->can('complete', $jobCard)
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::ReadyForDispatch)

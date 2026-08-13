@@ -197,19 +197,21 @@ class JobWorkflowPresentationService
         $blockerCodes = $completion['blocker_codes'] ?? [];
         $fgWarehouse = $completion['fg_warehouse'] ?? null;
 
-        $productionPassed = ($operations['state'] ?? null) === 'passed'
-            || in_array($jobCard->status, [
-                ProductionJobCardStatus::Completed,
-                ProductionJobCardStatus::ReadyForDispatch,
-            ], true);
+        $productionPassed = in_array($operations['state'] ?? null, ['passed', 'warning'], true);
 
         $items = [];
 
         $items[] = [
             'passed' => $productionPassed,
-            'label' => __('Production complete'),
-            'action' => null,
-            'action_label' => null,
+            'label' => $productionPassed
+                ? __('Operations complete')
+                : (($operations['detail'] ?? null)
+                    ? __('Operations incomplete (:detail)', ['detail' => $operations['detail']])
+                    : __('Operations incomplete')),
+            'action' => ! $productionPassed
+                ? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'operations']).'#open-operations'
+                : null,
+            'action_label' => __('Open operations'),
             'hint' => null,
         ];
 
@@ -285,7 +287,8 @@ class JobWorkflowPresentationService
         }
 
         $dispatchWorkflow = $this->controls->deliveryNoteWorkflow($jobCard);
-        if ($hasPostedOutput && ! $dispatchWorkflow['eligible']) {
+        $operationsBlockDispatch = in_array('operations', $dispatchWorkflow['blocker_codes'] ?? [], true);
+        if ($hasPostedOutput && ! $dispatchWorkflow['eligible'] && ! $operationsBlockDispatch) {
             $nextStep = $dispatchWorkflow['next_step'] ?? null;
             $items[] = [
                 'passed' => false,
@@ -326,8 +329,7 @@ class JobWorkflowPresentationService
 
         $materialsDone = in_array($materials['state'] ?? null, ['passed', 'warning'], true)
             || ($jobCard->material_consumptions_count ?? 0) > 0;
-        $productionDone = ($operations['state'] ?? null) === 'passed'
-            || in_array($jobCard->status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch, ProductionJobCardStatus::QualityCheck], true);
+        $productionDone = in_array($operations['state'] ?? null, ['passed', 'warning'], true);
         $qcDone = ($qc['state'] ?? null) === 'passed';
         $fgDone = $hasPostedOutput;
         $dispatchDone = $hasDeliveryNote && in_array($dispatchSummary['workflow_phase'] ?? '', ['delivered', 'closed'], true);

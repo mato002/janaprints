@@ -114,7 +114,7 @@
     @endif
 </div>
 
-<x-admin.card>
+<x-admin.card id="open-operations">
     <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Operations log') }}</h3>
     @if ($operations && $operations->count() > 0)
         <div class="overflow-x-auto">
@@ -177,7 +177,7 @@
                                         <button type="submit" class="erp-btn-secondary text-xs">{{ __('Assign') }}</button>
                                     </form>
                                 @endif
-                                @if (($tabData['can_complete_op'] ?? false) && $op->started_at && ! $op->ended_at)
+                                @if (($tabData['can_complete_op'] ?? false) && ! $op->ended_at)
                                     <form method="POST" action="{{ route('admin.production.operations.complete', [$jobCard, $op]) }}" class="inline mt-1">
                                         @csrf
                                         <button type="submit" class="erp-btn-primary text-xs">{{ __('Complete') }}</button>
