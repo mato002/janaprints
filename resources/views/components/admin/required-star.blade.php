@@ -1,3 +1,3 @@
 @if ($required ?? false)
-    <span class="text-erp-accent" aria-hidden="true">*</span>
+    <span class="erp-required-star" aria-hidden="true">*</span>
 @endif

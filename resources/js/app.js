@@ -3893,6 +3893,28 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('bomFormLines', (initialLines = [], materials = []) => ({
+        lines: Array.isArray(initialLines) && initialLines.length
+            ? initialLines.map((line) => ({
+                inventory_item_id: line.inventory_item_id != null ? String(line.inventory_item_id) : '',
+                quantity_per_unit: line.quantity_per_unit ?? '',
+                waste_factor_percent: line.waste_factor_percent ?? 0,
+                notes: line.notes ?? '',
+            }))
+            : [{ inventory_item_id: '', quantity_per_unit: '', waste_factor_percent: 0, notes: '' }],
+        materials: Array.isArray(materials) ? materials : [],
+        addLine() {
+            this.lines.push({ inventory_item_id: '', quantity_per_unit: '', waste_factor_percent: 0, notes: '' });
+        },
+        removeLine(index) {
+            if (this.lines.length <= 1) {
+                return;
+            }
+
+            this.lines.splice(index, 1);
+        },
+    }));
+
     Alpine.data('erpShell', (searchIndex = [], discoveryIndex = []) => ({
         sidebarCollapsed: localStorage.getItem('erp.sidebarCollapsed') === '1',
         mobileNavOpen: false,

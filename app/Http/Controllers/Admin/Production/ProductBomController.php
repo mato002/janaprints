@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers\Admin\Production;
 
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductBom;
+use App\Models\Production\ProductionJobCard;
 use App\Support\Production\ProductBomService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProductBomController extends Controller
 {
-    use ScopesToTenant;
+    use HandlesModalFormResponses, ScopesToTenant;
 
     public function __construct(
         protected ProductBomService $bomService,
@@ -35,29 +38,47 @@ class ProductBomController extends Controller
         return view('admin.production.boms.index', compact('boms'));
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         $this->authorize('create', ProductBom::class);
 
-        return view('admin.production.boms.create', $this->formMeta());
+        $jobCard = $this->resolveReturnJobCard($request);
+
+        return view('admin.production.boms.create', array_merge($this->formMeta(), [
+            'preselectedFinishedItemId' => $request->integer('finished_item_id') ?: null,
+            'prefilledName' => $request->string('name')->toString() ?: null,
+            'returnJobCard' => $jobCard,
+        ]));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', ProductBom::class);
 
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
         [$header, $lines] = $this->validatePayload($request, $companyId, $branchId);
+        $jobCard = $this->resolveReturnJobCard($request);
 
         try {
             $bom = $this->bomService->create($companyId, $branchId, (int) auth()->id(), $header, $lines);
         } catch (ValidationException $e) {
-            return back()->withInput()->withErrors($e->errors());
+            throw $e;
         }
 
-        return redirect()
-            ->route('admin.production.boms.edit', $bom)
-            ->with('status', __('Bill of materials created.'));
+        if ($jobCard) {
+            return $this->modalOrRedirect(
+                __('Bill of materials created. Generate material requirements to continue.'),
+                redirect()->route('admin.production.job-cards.show', [
+                    'jobCard' => $jobCard,
+                    'tab' => 'materials',
+                ]),
+            );
+        }
+
+        return $this->modalOrRedirect(
+            __('Bill of materials created.'),
+            redirect()->route('admin.production.boms.edit', $bom),
+        );
     }
 
     public function show(ProductBom $bom): RedirectResponse
@@ -104,6 +125,29 @@ class ProductBomController extends Controller
         return redirect()
             ->route('admin.production.boms.index')
             ->with('status', __('Bill of materials removed.'));
+    }
+
+    protected function resolveReturnJobCard(Request $request): ?ProductionJobCard
+    {
+        if (! $request->filled('job_card_id')) {
+            return null;
+        }
+
+        $jobCard = ProductionJobCard::query()
+            ->forTenant()
+            ->where(function ($query) use ($request) {
+                $query->where('public_id', $request->input('job_card_id'))
+                    ->orWhere('id', $request->input('job_card_id'));
+            })
+            ->first();
+
+        if ($jobCard === null) {
+            return null;
+        }
+
+        $this->authorize('view', $jobCard);
+
+        return $jobCard;
     }
 
     /**

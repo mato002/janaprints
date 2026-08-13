@@ -617,6 +617,44 @@ class MaterialRequirementsService
         return $sources;
     }
 
+    /**
+     * Finished products on this job that still need an active BOM.
+     *
+     * @return Collection<int, array{finished_item_id: int, quantity: float, sales_order_item_id: ?int, item_name: string|null, sku: string|null}>
+     */
+    public function missingBomSources(ProductionJobCard $jobCard): Collection
+    {
+        $sources = $this->resolveSources($jobCard);
+        if ($sources->isEmpty()) {
+            return collect();
+        }
+
+        $itemIds = $sources->pluck('finished_item_id')->unique()->values();
+        $items = InventoryItem::query()
+            ->whereIn('id', $itemIds)
+            ->get(['id', 'sku', 'item_name'])
+            ->keyBy('id');
+
+        return $sources
+            ->unique('finished_item_id')
+            ->values()
+            ->filter(fn (array $source) => $this->bomService->findActiveForFinishedItem(
+                $jobCard->company_id,
+                $jobCard->branch_id,
+                (int) $source['finished_item_id'],
+            ) === null)
+            ->map(function (array $source) use ($items) {
+                $item = $items->get($source['finished_item_id']);
+
+                return [
+                    ...$source,
+                    'sku' => $item?->sku,
+                    'item_name' => $item?->item_name,
+                ];
+            })
+            ->values();
+    }
+
     protected function resolveSources(ProductionJobCard $jobCard): Collection
     {
         $jobCard->loadMissing(['salesOrder.items', 'salesOrder.inventoryItem']);

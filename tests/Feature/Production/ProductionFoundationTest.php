@@ -79,7 +79,7 @@ class ProductionFoundationTest extends TestCase
             ->withHeader('Turbo-Frame', 'erp-form-modal')
             ->get(route('admin.production.job-cards.create'))
             ->assertOk()
-            ->assertSee(__('Nothing ready to start here — resolve the blocker without leaving this screen.'), false)
+            ->assertSee(__('No sales order ready for a new job card'), false)
             ->assertSee(__('No confirmed orders yet. Ask Sales to create and release an order, then check again.'), false)
             ->assertDontSee('erp-lookup-select__add', false)
             ->assertSee(__('Check again'), false)

@@ -10,7 +10,7 @@
 @endphp
 
 @if ($erp)
-    <label class="erp-label" for="code">{{ __('Code') }}</label>
+    <label @class(['erp-label', 'required' => $isEdit]) for="code">{{ __('Code') }}<x-admin.required-star :required="$isEdit" /></label>
     <input
         id="code"
         name="code"
@@ -21,7 +21,7 @@
         @if ($isEdit) required @endif
     />
 @else
-    <x-input-label for="code" :value="__('Code')" />
+    <x-input-label for="code" :value="__('Code')" :required="$isEdit" />
     <x-text-input
         id="code"
         name="code"

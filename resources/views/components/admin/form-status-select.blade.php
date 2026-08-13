@@ -75,11 +75,14 @@
     {{ $attributes->except(['id', 'class'])->merge(['class' => ($showLabel ? 'erp-form-field ' : '').($canCreate ? 'erp-lookup-select' : '')]) }}
 >
     @if ($showLabel)
-        <label for="{{ $inputId }}" class="text-sm font-medium text-slate-700">
-            {{ $label }}
-            @if ($required && ! $allowEmpty)
-                <span class="text-red-500">*</span>
-            @endif
+        <label
+            for="{{ $inputId }}"
+            @class([
+                'text-sm font-medium text-slate-700',
+                'required' => $required && ! $allowEmpty,
+            ])
+        >
+            {{ $label }}<x-admin.required-star :required="$required && ! $allowEmpty" />
         </label>
     @endif
     <div @class(['erp-lookup-select__row mt-1 flex items-stretch gap-2' => $canCreate, 'mt-1' => ! $canCreate && $showLabel])>

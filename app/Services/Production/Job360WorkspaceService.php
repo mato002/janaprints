@@ -966,13 +966,34 @@ class Job360WorkspaceService
      */
     protected function materialsTab(ProductionJobCard $jobCard): array
     {
-        $requirements = app(\App\Support\Production\MaterialRequirementsService::class)->panelRows($jobCard);
+        $requirementsService = app(\App\Support\Production\MaterialRequirementsService::class);
+        $requirements = $requirementsService->panelRows($jobCard);
         $costs = app(\App\Support\Production\ProductionMaterialCostVisibilityService::class)->summary($jobCard);
+        $missingBoms = $requirements->isEmpty()
+            ? $requirementsService->missingBomSources($jobCard)
+            : collect();
+        $canCreateBom = auth()->user()?->can('create', \App\Models\Production\ProductBom::class) ?? false;
+
+        $missingBomActions = $missingBoms->map(function (array $source) use ($jobCard, $canCreateBom) {
+            return [
+                'finished_item_id' => $source['finished_item_id'],
+                'label' => trim(($source['sku'] ?? '').' — '.($source['item_name'] ?? __('Finished product'))),
+                'create_url' => $canCreateBom
+                    ? route('admin.production.boms.create', [
+                        'finished_item_id' => $source['finished_item_id'],
+                        'job_card_id' => $jobCard->getRouteKey(),
+                        'name' => trim(($source['item_name'] ?? 'BOM').' BOM'),
+                    ])
+                    : null,
+            ];
+        })->values()->all();
 
         return [
             'requirements' => $requirements,
             'costs' => $costs,
             'has_requirements' => $requirements->isNotEmpty(),
+            'missing_boms' => $missingBomActions,
+            'can_create_bom' => $canCreateBom && count($missingBomActions) > 0,
             'can_generate' => auth()->user()?->can('production.materials.generate') ?? false,
             'can_reserve' => auth()->user()?->can('production.materials.reserve') ?? false,
             'can_consume' => $this->userCanRecordMaterialConsumption(),

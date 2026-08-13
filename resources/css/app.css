@@ -885,13 +885,33 @@ body.erp-navigating {
         @apply grid grid-cols-1 gap-4 md:grid-cols-2;
     }
 
+    .erp-label {
+        @apply mb-1 block text-sm font-medium text-erp-primary;
+    }
+
     .erp-form-field label {
         @apply mb-1 block text-sm font-medium text-erp-primary;
     }
 
-    .erp-form-field .required::after {
+    /*
+     * Required-field indicator (red asterisk) for every admin form.
+     * 1) Labels marked with .required (input-label, lookup-select, etc.)
+     * 2) Auto-detect common wrappers that contain a required control
+     */
+    label.required:not(:has(.erp-required-star))::after,
+    .erp-label.required:not(:has(.erp-required-star))::after {
         content: ' *';
-        @apply text-erp-accent;
+        @apply font-semibold text-rose-600;
+    }
+
+    .erp-required-star {
+        @apply ml-0.5 font-semibold text-rose-600;
+    }
+
+    *:has(> label:not(.required)):has([required]:not([disabled]):not([type='hidden'])) > label:not(.required):not(:has(.erp-required-star))::after,
+    *:has(> .erp-label:not(.required)):has([required]:not([disabled]):not([type='hidden'])) > .erp-label:not(.required):not(:has(.erp-required-star))::after {
+        content: ' *';
+        @apply font-semibold text-rose-600;
     }
 
     .erp-form-field input[readonly],

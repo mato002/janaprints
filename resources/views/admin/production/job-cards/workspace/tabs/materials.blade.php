@@ -1,6 +1,11 @@
 @php
     $requirements = $tabData['requirements'] ?? collect();
     $costs = $tabData['costs'] ?? [];
+    $missingBoms = $tabData['missing_boms'] ?? [];
+    $canCreateBom = (bool) ($tabData['can_create_bom'] ?? false);
+    $emptyDescription = $canCreateBom
+        ? __('Create a BOM for the finished product, then generate requirements.')
+        : __('Requirements are snapshotted from the product catalog BOM when the job card is created, or can be generated manually.');
 @endphp
 
 <x-admin.card class="mb-4">
@@ -12,6 +17,33 @@
         <div><dt class="text-slate-500">{{ __('Waste') }}</dt><dd class="font-medium tabular-nums">{{ number_format((float) ($costs['waste_cost'] ?? 0), 2) }}</dd></div>
     </dl>
 </x-admin.card>
+
+@if ($canCreateBom && count($missingBoms) > 0)
+    <x-admin.card class="mb-4 border-amber-200 bg-amber-50/60">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div class="min-w-0">
+                <h3 class="text-sm font-semibold text-amber-950">{{ __('No active BOM for this job’s finished product') }}</h3>
+                <p class="mt-1 text-xs text-amber-900/80">
+                    {{ __('Add the bill of materials here, then generate requirements — no need to leave Job 360.') }}
+                </p>
+                <ul class="mt-2 space-y-1 text-xs text-amber-950">
+                    @foreach ($missingBoms as $missing)
+                        <li class="truncate">{{ $missing['label'] }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            <div class="flex shrink-0 flex-wrap gap-2">
+                @foreach ($missingBoms as $missing)
+                    @if (! empty($missing['create_url']))
+                        <a href="{{ $missing['create_url'] }}" class="erp-btn-primary text-sm" data-erp-modal-open>
+                            {{ count($missingBoms) === 1 ? __('Add BOM') : __('Add BOM: :item', ['item' => $missing['label']]) }}
+                        </a>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+    </x-admin.card>
+@endif
 
 @if (($tabData['can_generate'] ?? false) && ! ($tabData['has_requirements'] ?? false))
     <x-admin.card class="mb-4">
@@ -25,8 +57,13 @@
                     @endforeach
                 </select>
             </div>
-            <button type="submit" class="erp-btn-primary text-sm">{{ __('Generate requirements') }}</button>
+            <button type="submit" class="erp-btn-primary text-sm" @disabled($canCreateBom && count($missingBoms) > 0)>
+                {{ __('Generate requirements') }}
+            </button>
         </form>
+        @if ($canCreateBom && count($missingBoms) > 0)
+            <p class="mt-2 text-xs text-slate-500">{{ __('Generate requirements after the BOM is created.') }}</p>
+        @endif
     </x-admin.card>
 @endif
 
@@ -104,6 +141,9 @@
             </table>
         </div>
     @else
-        <x-admin.empty-state :title="__('No material requirements')" :description="__('Requirements are snapshotted from the product catalog BOM when the job card is created, or can be generated manually.')" />
+        <x-admin.empty-state
+            :title="__('No material requirements')"
+            :description="$emptyDescription"
+        />
     @endif
 </x-admin.card>

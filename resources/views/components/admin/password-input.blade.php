@@ -7,7 +7,7 @@
 ])
 
 <div>
-    <label for="{{ $id }}" class="erp-label">{{ $label }}</label>
+    <label for="{{ $id }}" @class(['erp-label', 'required' => $required])>{{ $label }}<x-admin.required-star :required="$required" /></label>
     <div class="relative mt-1" x-data="{ visible: false }">
         <input
             :type="visible ? 'text' : 'password'"

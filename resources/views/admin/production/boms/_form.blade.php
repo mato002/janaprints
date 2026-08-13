@@ -1,87 +1,94 @@
-@php($bom = $bom ?? null)
-@php($lineRows = old('lines', $bom ? $bom->lines->map(fn ($line) => [
-    'inventory_item_id' => $line->inventory_item_id,
-    'quantity_per_unit' => $line->quantity_per_unit,
-    'waste_factor_percent' => $line->waste_factor_percent,
-    'notes' => $line->notes,
-])->all() : [['inventory_item_id' => '', 'quantity_per_unit' => '', 'waste_factor_percent' => 0, 'notes' => '']])))
+@php
+    $bom = $bom ?? null;
+    $defaultLines = [['inventory_item_id' => '', 'quantity_per_unit' => '', 'waste_factor_percent' => 0, 'notes' => '']];
+    $lineRows = old('lines', $bom
+        ? $bom->lines->map(fn ($line) => [
+            'inventory_item_id' => (string) $line->inventory_item_id,
+            'quantity_per_unit' => $line->quantity_per_unit,
+            'waste_factor_percent' => $line->waste_factor_percent,
+            'notes' => $line->notes,
+        ])->all()
+        : $defaultLines);
+    $finishedItemValue = old('finished_item_id', $bom?->finished_item_id ?? $preselectedFinishedItemId ?? null);
+    $nameValue = old('name', $bom?->name ?? $prefilledName ?? '');
+    $materialOptions = collect($rawMaterials)->map(fn ($material) => [
+        'id' => (string) $material->id,
+        'label' => $material->sku.' — '.$material->item_name,
+    ])->values()->all();
+@endphp
 
-<x-admin.card class="mb-4">
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div>
-            <label class="erp-label">{{ __('Finished product') }}</label>
-            <select name="finished_item_id" class="erp-input" required @disabled($bom)>
-                <option value="">{{ __('Select product') }}</option>
-                @foreach ($finishedItems as $item)
-                    <option value="{{ $item->id }}" @selected((int) old('finished_item_id', $bom?->finished_item_id) === $item->id)>{{ $item->sku }} — {{ $item->item_name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="erp-label">{{ __('BOM name') }}</label>
-            <input type="text" name="name" class="erp-input" value="{{ old('name', $bom?->name ?? '') }}" required>
-        </div>
-        <div>
-            <label class="erp-label">{{ __('Version') }}</label>
-            <input type="number" name="version" min="1" class="erp-input" value="{{ old('version', $bom?->version ?? 1) }}">
-        </div>
-        <div class="flex items-end">
-            <label class="inline-flex items-center gap-2 text-sm">
-                <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1" class="rounded" @checked(old('is_active', $bom?->is_active ?? true))>
-                {{ __('Active') }}
-            </label>
-        </div>
-        <div class="md:col-span-2">
-            <label class="erp-label">{{ __('Notes') }}</label>
-            <textarea name="notes" class="erp-input" rows="2">{{ old('notes', $bom?->notes ?? '') }}</textarea>
-        </div>
-    </div>
-</x-admin.card>
-
-<x-admin.card>
-    <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Raw materials') }}</h3>
-    <div class="space-y-3" id="bom-lines">
-        @foreach ($lineRows as $index => $line)
-            <div class="grid grid-cols-1 gap-2 rounded border border-slate-200 p-3 md:grid-cols-5">
-                <div class="md:col-span-2">
-                    <label class="erp-label">{{ __('Material') }}</label>
-                    <select name="lines[{{ $index }}][inventory_item_id]" class="erp-input" required>
-                        <option value="">{{ __('Select material') }}</option>
-                        @foreach ($rawMaterials as $material)
-                            <option value="{{ $material->id }}" @selected((int) ($line['inventory_item_id'] ?? 0) === $material->id)>{{ $material->sku }} — {{ $material->item_name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Qty / unit') }}</label>
-                    <input type="number" step="0.0001" min="0.0001" name="lines[{{ $index }}][quantity_per_unit]" class="erp-input" value="{{ $line['quantity_per_unit'] ?? '' }}" required>
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Waste %') }}</label>
-                    <input type="number" step="0.01" min="0" max="100" name="lines[{{ $index }}][waste_factor_percent]" class="erp-input" value="{{ $line['waste_factor_percent'] ?? 0 }}">
-                </div>
-                <div>
-                    <label class="erp-label">{{ __('Notes') }}</label>
-                    <input type="text" name="lines[{{ $index }}][notes]" class="erp-input" value="{{ $line['notes'] ?? '' }}">
-                </div>
+<div class="space-y-4" x-data="bomFormLines(@js($lineRows), @js($materialOptions))">
+    <x-admin.card>
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+                <label class="erp-label">{{ __('Finished product') }}</label>
+                <select name="finished_item_id" class="erp-input" required @disabled($bom)>
+                    <option value="">{{ __('Select product') }}</option>
+                    @foreach ($finishedItems as $item)
+                        <option value="{{ $item->id }}" @selected((int) $finishedItemValue === $item->id)>{{ $item->sku }} — {{ $item->item_name }}</option>
+                    @endforeach
+                </select>
+                @if ($bom)
+                    <input type="hidden" name="finished_item_id" value="{{ $bom->finished_item_id }}">
+                @endif
             </div>
-        @endforeach
-    </div>
-    <button type="button" class="erp-btn-secondary mt-3 text-sm" onclick="addBomLine()">{{ __('Add line') }}</button>
-</x-admin.card>
+            <div>
+                <label class="erp-label">{{ __('BOM name') }}</label>
+                <input type="text" name="name" class="erp-input" value="{{ $nameValue }}" required>
+            </div>
+            <div>
+                <label class="erp-label">{{ __('Version') }}</label>
+                <input type="number" name="version" min="1" class="erp-input" value="{{ old('version', $bom?->version ?? 1) }}">
+            </div>
+            <div class="flex items-end">
+                <label class="inline-flex items-center gap-2 text-sm">
+                    <input type="hidden" name="is_active" value="0">
+                    <input type="checkbox" name="is_active" value="1" class="rounded" @checked(old('is_active', $bom?->is_active ?? true))>
+                    {{ __('Active') }}
+                </label>
+            </div>
+            <div class="md:col-span-2">
+                <label class="erp-label">{{ __('Notes') }}</label>
+                <textarea name="notes" class="erp-input" rows="2">{{ old('notes', $bom?->notes ?? '') }}</textarea>
+            </div>
+        </div>
+    </x-admin.card>
 
-<script>
-    function addBomLine() {
-        const container = document.getElementById('bom-lines');
-        const index = container.children.length;
-        const template = container.children[0]?.cloneNode(true);
-        if (!template) return;
-        template.querySelectorAll('[name]').forEach((input) => {
-            input.name = input.name.replace(/\[\d+\]/, `[${index}]`);
-            if (input.tagName === 'SELECT') input.selectedIndex = 0;
-            else input.value = input.name.includes('waste_factor_percent') ? '0' : '';
-        });
-        container.appendChild(template);
-    }
-</script>
+    <x-admin.card>
+        <div class="mb-3 flex items-center justify-between gap-2">
+            <h3 class="text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Raw materials') }}</h3>
+            <button type="button" class="erp-btn-secondary text-sm" @click="addLine()">{{ __('Add line') }}</button>
+        </div>
+
+        <div class="space-y-3">
+            <template x-for="(line, index) in lines" :key="index">
+                <div class="grid grid-cols-1 gap-2 rounded border border-slate-200 p-3 md:grid-cols-5">
+                    <div class="md:col-span-2">
+                        <label class="erp-label">{{ __('Material') }}</label>
+                        <select class="erp-input" :name="`lines[${index}][inventory_item_id]`" x-model="line.inventory_item_id" required>
+                            <option value="">{{ __('Select material') }}</option>
+                            <template x-for="material in materials" :key="material.id">
+                                <option :value="material.id" x-text="material.label"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="erp-label">{{ __('Qty / unit') }}</label>
+                        <input type="number" step="0.0001" min="0.0001" class="erp-input" :name="`lines[${index}][quantity_per_unit]`" x-model="line.quantity_per_unit" required>
+                    </div>
+                    <div>
+                        <label class="erp-label">{{ __('Waste %') }}</label>
+                        <input type="number" step="0.01" min="0" max="100" class="erp-input" :name="`lines[${index}][waste_factor_percent]`" x-model="line.waste_factor_percent">
+                    </div>
+                    <div>
+                        <label class="erp-label">{{ __('Notes') }}</label>
+                        <div class="flex gap-2">
+                            <input type="text" class="erp-input" :name="`lines[${index}][notes]`" x-model="line.notes">
+                            <button type="button" class="erp-btn-ghost text-xs text-red-600" x-show="lines.length > 1" @click="removeLine(index)">{{ __('Remove') }}</button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </x-admin.card>
+</div>

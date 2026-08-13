@@ -105,7 +105,7 @@ class ProductionJobCardEligibilityService
      *     blocked_artwork: list<array{id: int, label: string, resolve_url: string|null, resolve_label: string}>
      * }
      */
-    public function resolutionContext(int $limit = 6): array
+    public function resolutionContext(int $limit = 5): array
     {
         $summary = $this->eligibilitySummary();
 
