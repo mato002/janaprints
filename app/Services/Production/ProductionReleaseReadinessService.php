@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Models\ActivityLog;
 use App\Support\Production\MaterialReadinessService;
 use App\Support\Production\MaterialRequirementsService;
-use App\Support\Sales\DirectCustomerSalesOrderService;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 
 class ProductionReleaseReadinessService
@@ -389,8 +388,7 @@ class ProductionReleaseReadinessService
     protected function artworkRequired(SalesOrder $salesOrder): bool
     {
         if ($salesOrder->is_direct_order) {
-            return app(DirectCustomerSalesOrderService::class)
-                ->productRequiresArtwork($salesOrder->inventoryItem);
+            return false;
         }
 
         return $salesOrder->artwork_request_id !== null;

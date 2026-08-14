@@ -1549,6 +1549,76 @@ class QuickCreateLookupController extends Controller
         return $this->lookupForm('admin.lookups.quick-create.print-specification', $this->printSpecificationQuickCreateFormData($customer));
     }
 
+    public function editPrintSpecification(CustomerPrintSpecification $printSpecification): View
+    {
+        $printSpecification->loadMissing(['customer', 'inventoryItem', 'activeArtworkVersion']);
+        $customer = $printSpecification->customer;
+        $this->authorize('update', $customer);
+
+        if ($printSpecification->isReadOnly()) {
+            abort(403, __('This specification cannot be edited.'));
+        }
+
+        return $this->lookupForm(
+            'admin.lookups.quick-create.print-specification',
+            $this->printSpecificationQuickCreateFormData($customer, $printSpecification),
+        );
+    }
+
+    public function updatePrintSpecification(
+        Request $request,
+        CustomerPrintSpecification $printSpecification,
+        CustomerPrintSpecificationService $specifications,
+        CustomerArtworkService $artworks,
+    ): JsonResponse|Response {
+        $printSpecification->loadMissing('customer');
+        $customer = $printSpecification->customer;
+        $this->authorize('update', $customer);
+
+        try {
+            $catalog = app(\App\Support\Crm\CustomerArtworkTypeCatalog::class);
+
+            $validated = $request->validate(array_merge([
+                'customer_id' => ['required', 'integer', 'exists:customers,id'],
+                'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
+                'name' => ['required', 'string', 'max:255'],
+                'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
+                'default_quantity' => ['nullable', 'numeric', 'min:0'],
+                'default_unit_price' => ['nullable', 'numeric', 'min:0'],
+                'artwork_file' => ['nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
+                'artwork_type' => $catalog->validationRules((int) $customer->company_id),
+            ], app(\App\Support\Production\PrintSpecificationJobFields::class)->validationRules()));
+        } catch (ValidationException $exception) {
+            return $this->lookupValidationResponse(
+                $request,
+                $exception,
+                'admin.lookups.quick-create.print-specification',
+                $this->printSpecificationQuickCreateFormData($customer, $printSpecification),
+            );
+        }
+
+        abort_unless((int) $validated['customer_id'] === (int) $customer->id, 422);
+
+        InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
+
+        $spec = $specifications->update($printSpecification, $validated, (int) auth()->id());
+
+        if ($request->hasFile('artwork_file')) {
+            $artworks->uploadVersionForSpecification(
+                $spec,
+                $request->file('artwork_file'),
+                (int) auth()->id(),
+                null,
+                $validated['artwork_type'] ?? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->defaultCode(),
+            );
+            $spec = $spec->fresh(['inventoryItem', 'activeArtworkVersion']);
+        }
+
+        $label = trim($spec->specification_code.' · '.$spec->name);
+
+        return $this->quickCreateResponse($spec->id, $label, __('Print specification updated.'));
+    }
+
     public function storePrintSpecification(
         Request $request,
         CustomerPrintSpecificationService $specifications,
@@ -1605,18 +1675,29 @@ class QuickCreateLookupController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function printSpecificationQuickCreateFormData(?Customer $customer): array
-    {
+    protected function printSpecificationQuickCreateFormData(
+        ?Customer $customer,
+        ?CustomerPrintSpecification $specification = null,
+    ): array {
+        $destination = old(
+            'production_destination',
+            $specification?->production_destination?->value ?? request('production_destination'),
+        );
+
         return [
-            'title' => __('Create print specification'),
-            'action' => route('admin.crm.print-specifications.quick-store'),
+            'title' => $specification ? __('Edit print specification') : __('Create print specification'),
+            'action' => $specification
+                ? route('admin.crm.print-specifications.quick-update', $specification)
+                : route('admin.crm.print-specifications.quick-store'),
             'customer' => $customer,
+            'specification' => $specification,
             'statuses' => CustomerPrintSpecificationStatus::cases(),
             'artworkTypes' => $customer
                 ? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id)
                 : [],
-            'defaultStatus' => CustomerPrintSpecificationStatus::Active->value,
-            'preselectedDestination' => old('production_destination', request('production_destination')),
+            'defaultStatus' => $specification?->status?->value
+                ?? CustomerPrintSpecificationStatus::Active->value,
+            'preselectedDestination' => $destination,
         ];
     }
 }

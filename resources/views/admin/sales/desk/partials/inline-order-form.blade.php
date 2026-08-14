@@ -99,8 +99,7 @@
                 </div>
                 <div>
                     <label class="erp-label" for="desk-order-date">{{ __('Required date') }}</label>
-                    <input id="desk-order-date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" value="{{ old('required_date') }}">
-                    <p class="mt-1 text-xs text-slate-500">{{ __('Cannot be earlier than today.') }}</p>
+                    <input id="desk-order-date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" value="{{ old('required_date', now()->toDateString()) }}">
                 </div>
                 <div>
                     <label class="erp-label" for="desk-order-priority">{{ __('Priority') }}</label>

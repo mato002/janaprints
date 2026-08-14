@@ -27,7 +27,7 @@
             form: {
                 quantity: @js(old('quantity', '1')),
                 unit_price: @js(old('unit_price', '0')),
-                required_date: @js(old('required_date', '')),
+                required_date: @js(old('required_date', now()->toDateString())),
                 notes: @js(old('notes', '')),
                 priority: @js(old('priority', 'normal')),
                 fulfilment_method: @js(old('fulfilment_method', 'collection')),
@@ -53,15 +53,20 @@
                 }
                 return specs.filter((spec) => !spec.production_destination || spec.production_destination === dest);
             },
+            get submitBlocker() {
+                if (!this.customerId) {
+                    return @js(__('Select a customer.'));
+                }
+                if (!this.form.production_destination) {
+                    return @js(__('Select Digital, Offset, or Outsourced.'));
+                }
+                if (!this.selectedSpecId) {
+                    return @js(__('Create or pick a specification.'));
+                }
+                return null;
+            },
             get canSubmit() {
-                if (!this.customerId || !this.selectedSpecId || !this.form.production_destination) {
-                    return false;
-                }
-                const spec = this.selectedSpec;
-                if (spec?.artwork_required && !spec?.has_active_artwork) {
-                    return false;
-                }
-                return true;
+                return !this.submitBlocker;
             },
             onCustomerChanged(id) {
                 this.customerId = String(id ?? '');
@@ -200,23 +205,34 @@
 
                 window.erpLookupManager.open(url, {
                     title: @js(__('Create print specification')),
-                    onSuccess: async (record) => {
-                        await this.loadContext();
-
-                        if (!record?.value) {
-                            return;
-                        }
-
-                        this.selectedSpecId = String(record.value);
-                        const spec = this.context?.print_specifications?.find(
-                            (item) => String(item.id) === String(record.value),
-                        );
-
-                        if (spec) {
-                            this.selectSpecification(spec);
-                        }
-                    },
+                    onSuccess: (record) => this.afterSpecificationSaved(record?.value),
                 });
+            },
+            openEditSpecification(spec) {
+                if (!spec?.edit_url || !window.erpLookupManager) {
+                    return;
+                }
+
+                window.erpLookupManager.open(spec.edit_url, {
+                    title: @js(__('Edit print specification')),
+                    onSuccess: (record) => this.afterSpecificationSaved(record?.value ?? spec.id),
+                });
+            },
+            async afterSpecificationSaved(specId) {
+                await this.loadContext();
+
+                if (!specId) {
+                    return;
+                }
+
+                this.selectedSpecId = String(specId);
+                const spec = this.context?.print_specifications?.find(
+                    (item) => String(item.id) === String(specId),
+                );
+
+                if (spec) {
+                    this.selectSpecification(spec);
+                }
             },
         }"
         x-init="
@@ -373,6 +389,7 @@
                                         <th>{{ __('Artwork version') }}</th>
                                         <th>{{ __('Price') }}</th>
                                         <th>{{ __('Last used') }}</th>
+                                        <th class="erp-table-actions-col text-right">{{ __('Actions') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -388,10 +405,20 @@
                                             <td class="text-xs whitespace-nowrap" x-text="spec.current_artwork_label ?? '—'"></td>
                                             <td class="font-mono text-xs" x-text="spec.default_unit_price ?? '—'"></td>
                                             <td class="text-xs whitespace-nowrap" x-text="spec.last_used_at ?? '—'"></td>
+                                            <td class="erp-table-actions-col whitespace-nowrap" @click.stop>
+                                                @if ($canCreateSpecification ?? false)
+                                                    <button
+                                                        type="button"
+                                                        class="erp-btn-secondary text-xs py-1 px-2"
+                                                        x-show="spec.can_edit && spec.edit_url"
+                                                        @click="openEditSpecification(spec)"
+                                                    >{{ __('Edit') }}</button>
+                                                @endif
+                                            </td>
                                         </tr>
                                     </template>
                                     <tr x-show="visibleSpecs.length === 0">
-                                        <td colspan="6" class="py-6 text-center text-slate-500">
+                                        <td colspan="7" class="py-6 text-center text-slate-500">
                                             {{ __('No specifications yet.') }}
                                         </td>
                                     </tr>
@@ -413,7 +440,6 @@
                     <div>
                         <label class="erp-label" for="required_date">{{ __('Required date') }}</label>
                         <input id="required_date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" x-model="form.required_date">
-                        <p class="mt-1 text-xs text-slate-500">{{ __('Cannot be earlier than today.') }}</p>
                     </div>
                     <div>
                         <label class="erp-label" for="priority">{{ __('Priority') }}</label>
@@ -456,6 +482,7 @@
                 </div>
 
                 <x-admin.form-modal-actions class="erp-form-modal__actions--sticky">
+                    <p class="w-full text-sm text-red-600 sm:flex-1" x-show="submitBlocker" x-text="submitBlocker" x-cloak></p>
                     <button
                         type="submit"
                         class="erp-btn-primary min-h-[2.75rem] w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-50"

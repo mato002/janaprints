@@ -457,6 +457,10 @@ class CustomerPrintSpecificationService
             'commercial_notes' => $spec->commercial_notes,
             'customer_instructions' => $spec->customer_instructions,
             'last_used_at' => $lastUsedAt,
+            'can_edit' => ! $spec->isReadOnly(),
+            'edit_url' => $spec->isReadOnly()
+                ? null
+                : route('admin.crm.print-specifications.quick-edit', $spec),
             ...app(PrintSpecificationJobFields::class)->orderContextFields($spec),
         ];
     }

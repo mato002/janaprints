@@ -29,15 +29,10 @@ class ProductionJobCardValidator
             $artworkOk = ($salesOrder->uses_existing_artwork && $salesOrder->customer_artwork_id)
                 || ($salesOrder->artworkRequest && $salesOrder->artworkRequest->status === ArtworkRequestStatus::Approved);
 
-            if (! $artworkOk) {
-                $requiresArtwork = app(\App\Support\Sales\DirectCustomerSalesOrderService::class)
-                    ->productRequiresArtwork($salesOrder->inventoryItem);
-
-                if ($requiresArtwork) {
-                    throw ValidationException::withMessages([
-                        'sales_order_id' => __('This specification has no active artwork version. Job card cannot be created.'),
-                    ]);
-                }
+            if (! $artworkOk && $salesOrder->artwork_request_id) {
+                throw ValidationException::withMessages([
+                    'sales_order_id' => __('This specification has no active artwork version. Job card cannot be created.'),
+                ]);
             }
         } else {
             if (! $salesOrder->customer_id || ! $salesOrder->quotation_id) {

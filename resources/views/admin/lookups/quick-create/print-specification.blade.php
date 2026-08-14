@@ -6,12 +6,19 @@
 @endphp
 
 <x-admin.lookup-nested-form :title="$title" :action="$action" enctype="multipart/form-data" max-width="5xl">
+    @php
+        $spec = $specification ?? null;
+    @endphp
     @if ($customer)
         <input type="hidden" name="customer_id" value="{{ $customer->id }}">
         <input type="hidden" name="status" value="{{ old('status', $defaultStatus ?? CustomerPrintSpecificationStatus::Active->value) }}">
         <p class="text-sm text-slate-600">
             <span class="font-medium text-slate-800">{{ __('Customer') }}:</span>
             {{ $customer->company_name }}
+            @if ($spec)
+                <span class="text-slate-400">·</span>
+                <span class="font-mono text-xs">{{ $spec->specification_code }}</span>
+            @endif
         </p>
     @else
         <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -26,7 +33,7 @@
             id="name"
             name="name"
             class="erp-input w-full"
-            value="{{ old('name') }}"
+            value="{{ old('name', $spec?->name) }}"
             maxlength="255"
             placeholder="{{ __('e.g. Fortress Receipt Book') }}"
             @required((bool) $customer)
@@ -37,8 +44,8 @@
     <x-admin.lookup-select
         name="inventory_item_id"
         :label="__('Product')"
-        :options="[]"
-        :value="old('inventory_item_id')"
+        :options="$spec?->inventoryItem ? [['id' => $spec->inventoryItem->id, 'name' => $spec->inventoryItem->item_name]] : []"
+        :value="old('inventory_item_id', $spec?->inventory_item_id)"
         :required="(bool) $customer"
         :disabled="! $customer"
         create-route="admin.inventory.items.quick-create"
@@ -53,6 +60,7 @@
     @if ($customer)
         @include('admin.crm.customers.print-specifications.partials.job-fields', [
             'customer' => $customer,
+            'specification' => $spec,
             'preselectedDestination' => $preselectedDestination ?? old('production_destination', request('production_destination')),
             'lockDestination' => filled($preselectedDestination ?? old('production_destination', request('production_destination'))),
             'idPrefix' => 'quick-spec',
@@ -69,7 +77,7 @@
                 id="default_quantity"
                 name="default_quantity"
                 class="erp-input w-full"
-                value="{{ old('default_quantity', '1') }}"
+                value="{{ old('default_quantity', $spec?->default_quantity ?? '1') }}"
                 @disabled(! $customer)
             >
         </div>
@@ -82,7 +90,7 @@
                 id="default_unit_price"
                 name="default_unit_price"
                 class="erp-input w-full"
-                value="{{ old('default_unit_price') }}"
+                value="{{ old('default_unit_price', $spec?->default_unit_price) }}"
                 @disabled(! $customer)
             >
         </div>
@@ -93,7 +101,7 @@
             name="artwork_type"
             :label="__('Artwork type')"
             :options="$artworkTypes"
-            :value="old('artwork_type', $defaultArtworkType)"
+            :value="old('artwork_type', $spec?->activeArtworkVersion?->artwork_type ?? $defaultArtworkType)"
             create-route="admin.crm.artwork-types.quick-create"
             refresh-route="admin.lookups.artwork_types"
             permission="crm.customers.edit"
@@ -112,6 +120,9 @@
                 accept=".jpg,.jpeg,.png,.webp,.pdf"
                 @disabled(! $customer)
             >
+            @if ($spec?->activeArtworkVersion)
+                <p class="mt-1 text-xs text-slate-500">{{ __('Current') }}: {{ $spec->activeArtworkVersion->versionLabel() }}</p>
+            @endif
         </div>
     </div>
 </x-admin.lookup-nested-form>

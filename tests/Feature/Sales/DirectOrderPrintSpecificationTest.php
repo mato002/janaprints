@@ -203,7 +203,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
             ->assertSessionHasErrors('customer_print_specification_id');
     }
 
-    public function test_missing_artwork_blocks_when_artwork_required(): void
+    public function test_missing_artwork_does_not_block_direct_order(): void
     {
         $spec = CustomerPrintSpecification::query()->create([
             'company_id' => $this->company->id,
@@ -224,7 +224,12 @@ class DirectOrderPrintSpecificationTest extends TestCase
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
             ])
-            ->assertSessionHasErrors('customer_print_specification_id');
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('sales_orders', [
+            'customer_print_specification_id' => $spec->id,
+            'is_direct_order' => true,
+        ]);
     }
 
     public function test_missing_artwork_allowed_for_non_finished_product(): void

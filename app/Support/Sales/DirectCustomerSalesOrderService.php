@@ -54,7 +54,6 @@ class DirectCustomerSalesOrderService
 
             $artwork = $specification->activeArtworkVersion;
             $usesArtwork = $artwork !== null;
-            $this->assertArtworkRequirements($specification, $usesArtwork);
 
             $billingDefaults = $this->billingDefaults->resolveForCustomer($specification->customer);
             $billingType = $payload['billing_type']
@@ -189,19 +188,6 @@ class DirectCustomerSalesOrderService
         }
 
         return $item->stock_role === InventoryStockRole::FinishedGood;
-    }
-
-    public function assertArtworkRequirements(CustomerPrintSpecification $specification, bool $hasArtwork): void
-    {
-        if ($hasArtwork) {
-            return;
-        }
-
-        if ($this->productRequiresArtwork($specification->inventoryItem)) {
-            throw ValidationException::withMessages([
-                'customer_print_specification_id' => __('This specification has no active artwork version.'),
-            ]);
-        }
     }
 
     /**

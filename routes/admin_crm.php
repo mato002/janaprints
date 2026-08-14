@@ -67,6 +67,8 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::post('customer-artworks/quick-create', [QuickCreateLookupController::class, 'storeCustomerArtwork'])->name('customer-artworks.quick-store');
             Route::get('print-specifications/quick-create', [QuickCreateLookupController::class, 'createPrintSpecification'])->name('print-specifications.quick-create');
             Route::post('print-specifications/quick-create', [QuickCreateLookupController::class, 'storePrintSpecification'])->name('print-specifications.quick-store');
+            Route::get('print-specifications/{printSpecification}/quick-edit', [QuickCreateLookupController::class, 'editPrintSpecification'])->name('print-specifications.quick-edit');
+            Route::post('print-specifications/{printSpecification}/quick-edit', [QuickCreateLookupController::class, 'updatePrintSpecification'])->name('print-specifications.quick-update');
             // Static segments (create/store) must be registered before {printSpecification}
             // so "create" is not bound as a specification id.
             Route::get('customers/{customer}/print-specifications/create', [CustomerPrintSpecificationController::class, 'create'])->name('customers.print-specifications.create');
