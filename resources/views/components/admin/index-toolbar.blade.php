@@ -28,10 +28,10 @@
     @if ($embedded)
         <input type="hidden" name="embedded" value="1">
     @endif
-    <div class="erp-index-toolbar border-b border-erp-border bg-white px-4 py-3">
+    <div class="erp-index-toolbar border-b border-erp-border bg-white px-3 py-2 sm:px-4 sm:py-3">
         <div @class(['flex items-center gap-2', 'erp-index-toolbar-row' => $compact])>
             <div @class([
-                'flex min-w-0 flex-1 items-center gap-1.5',
+                'flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto',
                 'flex-nowrap' => $compact,
                 'flex-wrap' => ! $compact,
             ])>
@@ -44,7 +44,14 @@
                     />
                 @endif
 
-                {{ $slot }}
+                @if ($slot->isNotEmpty() || isset($secondary))
+                    <x-admin.filter-sheet>
+                        {{ $slot }}
+                        @isset($secondary)
+                            {{ $secondary }}
+                        @endisset
+                    </x-admin.filter-sheet>
+                @endif
 
                 @if ($showReset)
                     <button
@@ -70,11 +77,5 @@
                 @endisset
             </div>
         </div>
-
-        @isset($secondary)
-            <div class="mt-2 flex w-full flex-wrap items-center gap-2 border-t border-erp-border/60 pt-2">
-                {{ $secondary }}
-            </div>
-        @endisset
     </div>
 </form>

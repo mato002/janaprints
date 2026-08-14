@@ -3,7 +3,7 @@
 @endphp
 
 <x-admin.card :padding="false">
-    <form method="GET" action="{{ $indexUrl }}" x-data="erpIndexFilterForm()" @change="onFieldChange($event)" class="border-b border-erp-border px-4 py-3" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">
+    <form method="GET" action="{{ $indexUrl }}" class="erp-index-toolbar-form border-b border-erp-border px-3 py-2 sm:px-4" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">
         <div class="flex flex-wrap items-center gap-2">
             <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="erp-toolbar-input min-w-[12rem] flex-1" placeholder="{{ __('Work center name or code…') }}" aria-label="{{ __('Search') }}" data-erp-auto-search>
             <x-admin.status-pills
@@ -11,18 +11,20 @@
                 param="status"
                 :current="$filters['status'] ?? ''"
             />
-            <select name="stage_id" class="erp-toolbar-select" aria-label="{{ __('Stage / process area') }}">
-                <option value="">{{ __('All stages') }}</option>
-                @foreach ($filterOptions['stages'] ?? [] as $stage)
-                    <option value="{{ $stage->id }}" @selected(($filters['stage_id'] ?? null) == $stage->id)>{{ $stage->name }}</option>
-                @endforeach
-            </select>
-            <select name="load" class="erp-toolbar-select" aria-label="{{ __('Load') }}">
-                <option value="">{{ __('All load levels') }}</option>
-                @foreach ($filterOptions['load_options'] ?? [] as $value => $label)
-                    <option value="{{ $value }}" @selected(($filters['load'] ?? '') === $value)>{{ $label }}</option>
-                @endforeach
-            </select>
+            <x-admin.filter-sheet>
+                <select name="stage_id" class="erp-toolbar-select" aria-label="{{ __('Stage / process area') }}">
+                    <option value="">{{ __('All stages') }}</option>
+                    @foreach ($filterOptions['stages'] ?? [] as $stage)
+                        <option value="{{ $stage->id }}" @selected(($filters['stage_id'] ?? null) == $stage->id)>{{ $stage->name }}</option>
+                    @endforeach
+                </select>
+                <select name="load" class="erp-toolbar-select" aria-label="{{ __('Load') }}">
+                    <option value="">{{ __('All load levels') }}</option>
+                    @foreach ($filterOptions['load_options'] ?? [] as $value => $label)
+                        <option value="{{ $value }}" @selected(($filters['load'] ?? '') === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </x-admin.filter-sheet>
             <a href="{{ $indexUrl }}" class="erp-btn-ghost py-1 text-xs text-slate-500" data-turbo-frame="{{ \App\Support\Navigation\WorkspaceEmbed::turboFrame() }}">{{ __('Reset') }}</a>
         </div>
     </form>

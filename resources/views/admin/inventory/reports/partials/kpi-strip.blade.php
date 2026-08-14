@@ -2,7 +2,7 @@
 
 <section class="mb-6">
     <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Inventory Dashboard') }}</h2>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div class="erp-kpi-grid">
         @foreach ($kpis as $kpi)
             <x-admin.kpi-widget
                 :label="$kpi['label']"

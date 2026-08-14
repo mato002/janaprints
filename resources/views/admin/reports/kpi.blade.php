@@ -18,7 +18,7 @@
     @forelse ($kpi_groups as $groupKey => $cards)
         <section class="mb-8">
             <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $group_labels[$groupKey] ?? ucfirst($groupKey) }}</h2>
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="erp-kpi-grid">
                 @foreach ($cards as $card)
                     <x-admin.card :padding="false" class="erp-kpi relative overflow-hidden">
                         <div class="flex items-start justify-between gap-2 px-3 py-2.5">

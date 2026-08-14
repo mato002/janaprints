@@ -25,7 +25,7 @@
         </x-admin.index-toolbar>
     </x-admin.card>
 
-    <div class="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+    <div class="mb-6 erp-kpi-grid">
         @foreach ($widgets as $widget)
             <x-admin.kpi-widget
                 :label="$widget['label']"

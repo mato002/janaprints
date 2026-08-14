@@ -30,10 +30,10 @@
     @endif
 </div>
 
-<h3 class="mt-4 text-base font-semibold text-erp-primary group-hover:text-erp-accent">
+<h3 class="mt-3 text-sm font-semibold text-erp-primary group-hover:text-erp-accent sm:mt-4 sm:text-base">
     {{ $title }}
 </h3>
-<p class="mt-1 flex-1 text-sm leading-relaxed text-slate-500">
+<p class="mt-1 line-clamp-2 text-sm leading-relaxed text-slate-500 max-sm:hidden">
     {{ $description }}
 </p>
 

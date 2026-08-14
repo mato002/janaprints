@@ -37,7 +37,7 @@
         @foreach ($workspace['groups'] as $group)
             <section class="mb-4" x-show="groupVisible(@js($group['label']))" x-cloak>
                 <h2 class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{{ $group['label'] }}</h2>
-                <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="erp-card-grid">
                     @foreach ($group['items'] as $item)
                         <div x-show="cardVisible(@js($item['id']))" x-cloak>
                             @include('admin.settings.partials.settings-tile', [

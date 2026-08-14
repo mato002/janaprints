@@ -244,6 +244,176 @@ body.erp-navigating {
         @apply min-w-0;
     }
 
+    .erp-card-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .erp-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    @media (min-width: 640px) {
+        .erp-card-grid {
+            gap: 0.75rem;
+        }
+
+        .erp-kpi-grid {
+            gap: 0.75rem;
+        }
+    }
+
+    @media (min-width: 768px) {
+        .erp-card-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .erp-card-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .erp-kpi-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .erp-card-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .erp-kpi-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+
+    .workspace-hub .grid.grid-cols-1 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    @media (min-width: 640px) {
+        .workspace-hub .grid.grid-cols-1 {
+            gap: 0.75rem;
+        }
+    }
+
+    @media (min-width: 1280px) {
+        .workspace-hub .grid.grid-cols-1.xl\:grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    body.erp-filter-sheet-open {
+        overflow: hidden;
+    }
+
+    .erp-filter-sheet {
+        @apply relative inline-flex min-w-0 shrink-0 items-center gap-1.5;
+    }
+
+    .erp-filter-sheet__inline {
+        @apply flex min-w-0 items-center gap-1.5;
+    }
+
+    .erp-filter-sheet__inline:empty {
+        display: none;
+    }
+
+    .erp-filter-sheet__trigger {
+        @apply inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-erp-border bg-white px-2.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-erp-accent/40 hover:bg-slate-50;
+    }
+
+    .erp-filter-sheet__trigger[aria-expanded="true"] {
+        @apply border-erp-accent/40 bg-erp-accent/5 text-erp-primary;
+    }
+
+    .erp-filter-sheet__trigger-label {
+        @apply hidden sm:inline;
+    }
+
+    .erp-filter-sheet__badge {
+        @apply inline-flex min-w-[1.15rem] items-center justify-center rounded-full bg-erp-accent px-1 text-[10px] font-semibold leading-5 text-white;
+    }
+
+    .erp-filter-sheet__layer {
+        @apply pointer-events-none;
+    }
+
+    .erp-filter-sheet__overlay {
+        @apply pointer-events-auto fixed inset-0 z-[80] bg-erp-primary/40 backdrop-blur-[1px];
+    }
+
+    .erp-filter-sheet__panel {
+        @apply pointer-events-auto fixed inset-x-0 bottom-0 z-[81] flex max-h-[85vh] flex-col rounded-t-2xl border border-erp-border bg-white shadow-2xl;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .erp-filter-sheet__handle {
+        @apply mx-auto mt-2 h-1 w-10 rounded-full bg-slate-300 md:hidden;
+    }
+
+    .erp-filter-sheet__header {
+        @apply flex items-center justify-between gap-3 border-b border-erp-border px-4 py-3;
+    }
+
+    .erp-filter-sheet__title {
+        @apply text-sm font-semibold text-erp-primary;
+    }
+
+    .erp-filter-sheet__close {
+        @apply inline-flex h-8 w-8 items-center justify-center rounded-lg text-lg leading-none text-slate-500 hover:bg-slate-100 hover:text-slate-800;
+    }
+
+    .erp-filter-sheet__body {
+        @apply grid min-h-0 flex-1 gap-3 overflow-y-auto px-4 py-3;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .erp-filter-sheet__field {
+        @apply min-w-0;
+    }
+
+    .erp-filter-sheet__label {
+        @apply mb-1 block text-[11px] font-medium text-slate-600;
+    }
+
+    .erp-filter-sheet__body .erp-toolbar-select,
+    .erp-filter-sheet__body .erp-toolbar-input,
+    .erp-filter-sheet__body .erp-input,
+    .erp-filter-sheet__body .erp-select,
+    .erp-filter-sheet__body select,
+    .erp-filter-sheet__body input:not([type='hidden']):not([type='checkbox']):not([type='radio']) {
+        @apply w-full min-w-0 max-w-none;
+    }
+
+    .erp-filter-sheet__footer {
+        @apply flex items-center justify-between gap-2 border-t border-erp-border bg-white px-4 py-3;
+    }
+
+    @media (min-width: 768px) {
+        .erp-filter-sheet__overlay {
+            @apply bg-erp-primary/40;
+        }
+
+        .erp-filter-sheet__panel {
+            @apply inset-auto left-1/2 top-1/2 w-[36rem] max-h-[min(36rem,80vh)] -translate-x-1/2 -translate-y-1/2 rounded-xl;
+        }
+
+        .erp-filter-sheet__body {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .erp-filter-sheet__body > label {
+            grid-column: 1 / -1;
+        }
+    }
+
     .erp-table-toolbar {
         @apply shrink-0;
     }
@@ -7584,7 +7754,7 @@ body.erp-navigating {
     }
 
     .mfg-dashboard__grid {
-        @apply grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3;
+        @apply grid grid-cols-2 gap-3 xl:grid-cols-3;
     }
 
     .mfg-dashboard__footer {

@@ -83,7 +83,7 @@
         <section class="mb-6">
             <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $section['title'] }}</h2>
             @if (! empty($section['kpis']))
-                <div class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                <div class="mb-4 erp-kpi-grid">
                     @foreach ($section['kpis'] as $item)
                         <x-admin.kpi-widget :label="$item['label']" :value="$item['value']" :icon="$item['icon'] ?? 'chart-pie'" :hint="$item['hint']" />
                     @endforeach

@@ -34,7 +34,7 @@
         · {{ __('As of') }} {{ $dashboard['context']['as_of_date'] }}
     </p>
 
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="erp-kpi-grid">
         @foreach ($dashboard['cards'] as $card)
             <x-admin.kpi-widget
                 :label="$card['label']"

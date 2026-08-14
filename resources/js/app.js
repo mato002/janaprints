@@ -3701,6 +3701,13 @@ function bindIndexFilterFormListeners() {
             return;
         }
 
+        if (event.target?.closest?.('.erp-filter-sheet__body')) {
+            event.target.closest('[data-erp-filter-sheet]')
+                ?.dispatchEvent(new CustomEvent('erp-filter-sheet:change', { bubbles: true }));
+
+            return;
+        }
+
         getIndexFilterFormController(form).onFieldChange(event);
     }, true);
 
@@ -6462,6 +6469,189 @@ document.addEventListener('alpine:init', () => {
                 console.error('erpCategorySubcategoryFilter.loadSubcategories', error);
                 this.subcategories = [];
             }
+        },
+    }));
+
+    Alpine.data('erpFilterSheet', (options = {}) => ({
+        open: false,
+        count: Number(options.count ?? 0),
+        hasFields: true,
+        bodyLocked: false,
+
+        init() {
+            this.promoteInlineFields();
+            this.decorateFields();
+            this.refreshCount();
+            this.hasFields = this.panelHasVisibleFields();
+
+            this.$el.addEventListener('erp-filter-sheet:change', () => this.refreshCount());
+            this.$watch('open', (value) => this.lockBody(value));
+        },
+
+        destroy() {
+            this.lockBody(false);
+        },
+
+        toggle() {
+            this.open = ! this.open;
+
+            if (this.open) {
+                this.$nextTick(() => {
+                    this.$refs.fields
+                        ?.querySelector('select, input:not([type="hidden"]), textarea')
+                        ?.focus();
+                });
+            }
+        },
+
+        close() {
+            this.open = false;
+        },
+
+        apply() {
+            this.refreshCount();
+            this.close();
+
+            const form = this.$el.closest('form');
+
+            if (! form) {
+                return;
+            }
+
+            const controller = getIndexFilterFormController(form);
+
+            if (controller) {
+                controller.submitFilterForm();
+
+                return;
+            }
+
+            if (typeof form.requestSubmit === 'function') {
+                form.requestSubmit();
+
+                return;
+            }
+
+            form.submit();
+        },
+
+        lockBody(locked) {
+            if (locked === this.bodyLocked) {
+                return;
+            }
+
+            this.bodyLocked = locked;
+            document.body.classList.toggle('erp-filter-sheet-open', locked);
+        },
+
+        promoteInlineFields() {
+            const fields = this.$refs.fields;
+            const inline = this.$refs.inline;
+
+            if (! fields || ! inline) {
+                return;
+            }
+
+            [...fields.children].forEach((el) => {
+                if (this.shouldKeepInline(el)) {
+                    inline.appendChild(el);
+                }
+            });
+        },
+
+        shouldKeepInline(el) {
+            if (! (el instanceof Element)) {
+                return false;
+            }
+
+            if (el.matches('.erp-table-chips, [data-erp-keep-inline]')) {
+                return true;
+            }
+
+            if (el.matches('input[type="search"]')) {
+                return true;
+            }
+
+            const search = el.querySelector?.('input[type="search"]');
+            const extra = el.querySelector?.('select, textarea, input[type="date"], input[type="number"], input[type="checkbox"], input[type="radio"]');
+
+            return Boolean(search) && ! extra;
+        },
+
+        decorateFields() {
+            const fields = this.$refs.fields;
+
+            if (! fields) {
+                return;
+            }
+
+            [...fields.querySelectorAll('select, input[type="date"], input[type="number"], input[type="text"]')].forEach((el) => {
+                if (el.closest('label, .erp-filter-sheet__field')) {
+                    return;
+                }
+
+                const caption = el.getAttribute('aria-label') || el.getAttribute('placeholder');
+
+                if (! caption) {
+                    return;
+                }
+
+                const wrap = document.createElement('div');
+                wrap.className = 'erp-filter-sheet__field';
+
+                const label = document.createElement('span');
+                label.className = 'erp-filter-sheet__label';
+                label.textContent = caption;
+
+                el.parentNode?.insertBefore(wrap, el);
+                wrap.appendChild(label);
+                wrap.appendChild(el);
+            });
+        },
+
+        panelHasVisibleFields() {
+            return Boolean(
+                this.$refs.fields?.querySelector('select, textarea, input:not([type="hidden"]):not([type="search"])'),
+            );
+        },
+
+        refreshCount() {
+            const ignored = new Set(['embedded', 'page', '_token', '_method', 'search', 'q', 'desk', 'tab', 'sort', 'direction', 'per_page']);
+            const root = this.$refs.fields;
+
+            if (! root) {
+                return;
+            }
+
+            let count = 0;
+
+            root.querySelectorAll('input[name], select[name], textarea[name]').forEach((field) => {
+                if (ignored.has(field.name) || field.type === 'search' || field.type === 'hidden') {
+                    return;
+                }
+
+                if (field.type === 'checkbox' || field.type === 'radio') {
+                    if (field.checked && field.value !== '') {
+                        count += 1;
+                    }
+
+                    return;
+                }
+
+                if (field.tagName === 'SELECT') {
+                    if (field.value && field.value !== 'all' && field.selectedIndex > 0) {
+                        count += 1;
+                    }
+
+                    return;
+                }
+
+                if (String(field.value ?? '').trim() !== '') {
+                    count += 1;
+                }
+            });
+
+            this.count = count;
         },
     }));
 

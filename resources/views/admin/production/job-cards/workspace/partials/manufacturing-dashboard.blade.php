@@ -52,7 +52,7 @@
             <p class="text-xs text-slate-500">{{ __('Click a module for details') }}</p>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="erp-card-grid">
             @foreach ($cards as $card)
                 @php
                     $tone = $card['tone'] ?? 'neutral';

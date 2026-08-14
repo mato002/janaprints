@@ -10,7 +10,7 @@
         :description="__('Manage people and what they can access.')"
     />
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="erp-card-grid">
         @if ($canViewUsers)
             @include('admin.settings.partials.control-center-card', [
                 'title' => __('Users'),

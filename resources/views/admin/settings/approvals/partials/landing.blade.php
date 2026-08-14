@@ -13,7 +13,7 @@
     ];
 @endphp
 
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+<div class="erp-card-grid">
     @foreach ($rows as $row)
         @php
             $tierCount = count($row['tiers'] !== [] ? $row['tiers'] : ($row['company_tiers'] ?? []));

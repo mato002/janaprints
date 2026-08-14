@@ -1,14 +1,14 @@
-<div class="flex h-full min-w-0 gap-2.5">
+<div class="settings-tile-inner flex h-full min-w-0 gap-2 sm:gap-2.5">
     <span @class([
-        'flex h-8 w-8 shrink-0 items-center justify-center rounded-md',
+        'flex h-7 w-7 shrink-0 items-center justify-center rounded-md sm:h-8 sm:w-8',
         'bg-erp-page text-slate-500 group-hover:bg-erp-accent/10 group-hover:text-erp-accent' => ! ($comingSoon ?? false),
         'bg-erp-page/80 text-slate-400' => ($comingSoon ?? false),
     ])>
-        <x-admin.icon :name="$icon" class="h-4 w-4" />
+        <x-admin.icon :name="$icon" class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
     </span>
 
     <div class="min-w-0 flex-1">
-        <h3 class="text-sm font-semibold leading-snug text-erp-primary group-hover:text-erp-accent [overflow-wrap:anywhere]">
+        <h3 class="text-xs font-semibold leading-snug text-erp-primary group-hover:text-erp-accent [overflow-wrap:anywhere] sm:text-sm">
             {{ $title }}
         </h3>
 
@@ -18,7 +18,7 @@
             </span>
         @endif
 
-        <p class="mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">
+        <p class="settings-tile-desc mt-1.5 line-clamp-2 text-[11px] leading-snug text-slate-500">
             {{ $description }}
         </p>
 

@@ -53,13 +53,11 @@
 >
     <x-admin.card :padding="false" class="min-w-0">
         @if ($searchable || $showFilters || $exportable || $selectable || isset($toolbar) || isset($bulk) || count($chipPayload) > 1)
-            <details class="workspace-filter-panel">
-                <summary>{{ __('Search & filters') }}</summary>
-                <div class="erp-table-toolbar border-b border-erp-border bg-white px-3 py-3 sm:px-4">
-                <div class="erp-table-toolbar__layout flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div class="erp-table-toolbar border-b border-erp-border bg-white px-3 py-2 sm:px-4 sm:py-3">
+                <div class="erp-table-toolbar__layout flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <div class="erp-table-toolbar__primary flex min-w-0 flex-1 flex-wrap items-center gap-2">
                         @if (count($chipPayload) > 1)
-                            <div class="erp-table-chips flex flex-wrap gap-1.5">
+                            <div class="erp-table-chips flex flex-nowrap gap-1.5 overflow-x-auto">
                                 @foreach ($chipPayload as $chip)
                                     <button
                                         type="button"
@@ -87,7 +85,9 @@
                         @endif
 
                         @if ($showFilters && isset($filters))
-                            {{ $filters }}
+                            <x-admin.filter-sheet>
+                                {{ $filters }}
+                            </x-admin.filter-sheet>
                         @endif
 
                         <label class="flex items-center gap-2 text-xs font-medium text-slate-500">
@@ -175,7 +175,6 @@
                     </div>
                 </div>
                 </div>
-            </details>
         @endif
 
         <div class="erp-table-scroll max-w-full">

@@ -18,17 +18,15 @@
         </x-admin.card>
     @endif
 
-    <details class="workspace-filter-panel c360-timeline__toolbar-panel">
-        <summary>{{ __('Timeline filters') }}</summary>
     <form
         method="GET"
         action="{{ route('admin.production.job-cards.show', $jobCard) }}"
-        class="c360-timeline__toolbar mb-4 space-y-3 px-3 pt-2"
+        class="c360-timeline__toolbar mb-4 space-y-3"
         data-turbo-frame="erp-main"
     >
         <input type="hidden" name="tab" value="timeline">
 
-        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex flex-wrap items-center gap-2">
             <div class="relative min-w-0 flex-1 max-w-xl">
                 <x-admin.icon name="search" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
@@ -43,7 +41,7 @@
             <button type="submit" class="erp-btn-primary text-sm">{{ __('Apply') }}</button>
         </div>
 
-        <div class="c360-timeline__filters flex flex-wrap gap-1.5" role="tablist" aria-label="{{ __('Timeline filters') }}">
+        <div class="c360-timeline__filters flex flex-nowrap gap-1.5 overflow-x-auto" role="tablist" aria-label="{{ __('Timeline filters') }}">
             @foreach ($filters as $option)
                 @php($active = $filter === $option['value'])
                 <a
@@ -60,7 +58,6 @@
             @endforeach
         </div>
     </form>
-    </details>
 
     <x-admin.card :padding="false" class="overflow-hidden">
         <div class="c360-timeline__feed px-4 py-3">
