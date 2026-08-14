@@ -2,13 +2,12 @@
     $panel = ($variant ?? 'card') === 'panel';
 @endphp
 
-@if ($panel)
-    <x-admin.card>
+<x-admin.card @class(['mb-6' => ! $panel])>
+    @if ($panel)
         <h2 class="mb-4 font-medium text-slate-900">{{ __('Artwork & print specifications') }}</h2>
-@else
-    <x-admin.card class="mb-6">
+    @else
         <h3 class="font-medium mb-3">{{ __('Artwork') }}</h3>
-@endif
+    @endif
 
     @if ($artworkLink['linked'])
         <dl class="mb-4 space-y-3 text-sm">
@@ -38,7 +37,7 @@
 
     @can('linkArtwork', $quotation)
         @if ($artworkLink['can_link'] && (count($artworkLink['library']) > 0 || count($artworkLink['requests']) > 0))
-            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="mt-4 space-y-4 border-t border-erp-border pt-4" x-data="{ source: '{{ count($artworkLink['library']) > 0 ? 'library' : 'request' }}' }">
+            <form method="POST" action="{{ route('admin.quotations.link-artwork', $quotation) }}" class="mt-4 space-y-4 border-t border-erp-border pt-4" x-data="{ source: @js(count($artworkLink['library']) > 0 ? 'library' : 'request') }">
                 @csrf
                 <div>
                     <label class="erp-label">{{ __('Artwork source') }}</label>
