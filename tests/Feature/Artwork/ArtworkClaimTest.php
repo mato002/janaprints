@@ -54,8 +54,6 @@ class ArtworkClaimTest extends TestCase
         $this->actingAs($designer)
             ->post(route('admin.artwork.claim', $request), [
                 'from' => 'designer-desk',
-                '_erp_modal' => '1',
-                '_erp_modal_return' => route('admin.artwork.desk', ['request' => $request->public_id]),
             ])
             ->assertOk()
             ->assertJsonPath('ok', true);
@@ -196,13 +194,20 @@ class ArtworkClaimTest extends TestCase
             'current_version' => 0,
         ]);
 
-        $this->actingAs($designer)
+        $response = $this->actingAs($designer)
             ->post(route('admin.artwork.claim', $request), [
                 'from' => 'designer-desk',
             ])
             ->assertOk()
             ->assertJsonPath('ok', true)
             ->assertJsonStructure(['ok', 'message', 'redirect']);
+
+        $expectedRedirect = route('admin.workspaces.designer.section', [
+            'section' => 'design',
+            'tab' => 'designer-desk',
+            'request' => $request->fresh()->public_id,
+        ]);
+        $this->assertSame($expectedRedirect, $response->json('redirect'));
 
         $request->refresh();
         $this->assertSame($designer->id, $request->assigned_designer_id);

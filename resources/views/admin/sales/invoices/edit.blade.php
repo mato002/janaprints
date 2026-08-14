@@ -16,7 +16,7 @@
                 </div>
                 <div>
                     <label class="erp-label">{{ __('Due date') }}</label>
-                    <input type="date" name="due_date" value="{{ old('due_date', $invoice->due_date?->toDateString()) }}" class="erp-input w-full">
+                    <input type="date" name="due_date" value="{{ old('due_date', $invoice->due_date?->toDateString()) }}" min="{{ now()->toDateString() }}" class="erp-input w-full">
                 </div>
             </div>
             <div class="mt-4">

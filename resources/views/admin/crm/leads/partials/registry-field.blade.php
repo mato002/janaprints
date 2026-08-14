@@ -143,6 +143,7 @@
                     :value="$value"
                     :required="$required"
                     :readonly="$readOnly"
+                    @if ($fieldKey === 'expected_close_date') min="{{ now()->toDateString() }}" @endif
                 />
             @endif
             <x-admin.field-error :name="$fieldKey" />

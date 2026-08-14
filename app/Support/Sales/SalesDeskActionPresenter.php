@@ -3,9 +3,11 @@
 namespace App\Support\Sales;
 
 use App\Enums\CustomerInvoiceStatus;
+use App\Enums\QuotationStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerPayment;
+use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Services\Production\ProductionReleaseReadinessService;
 
@@ -423,6 +425,181 @@ class SalesDeskActionPresenter
                 'action' => route('admin.sales-orders.destroy', $salesOrder),
                 'method' => 'DELETE',
                 'confirm' => __('Delete this draft sales order?'),
+                'variant' => 'danger',
+            ];
+        }
+
+        return $actions;
+    }
+
+    /**
+     * Status-aware register actions the current user may take on this quotation.
+     *
+     * @return list<array{
+     *     key: string,
+     *     label: string,
+     *     href?: string,
+     *     action?: string,
+     *     method?: string,
+     *     confirm?: string|null,
+     *     variant?: string,
+     *     modal?: bool,
+     *     new_tab?: bool
+     * }>
+     */
+    public function quotationRowActions(Quotation $quotation): array
+    {
+        $user = auth()->user();
+
+        if (! $user?->can('view', $quotation)) {
+            return [];
+        }
+
+        $quotation->loadMissing(['customer', 'salesOrder']);
+
+        $from = request()->routeIs('admin.sales.desk') || request('from') === 'sales-desk' || request('view') === SalesDeskViews::QUOTES
+            ? ['from' => 'sales-desk']
+            : [];
+        $status = $quotation->status;
+        $canTransition = $user->can('transition', $quotation);
+        $actions = [];
+
+        $actions[] = [
+            'key' => 'view',
+            'label' => __('View'),
+            'href' => route('admin.quotations.show', [$quotation, ...$from]),
+        ];
+
+        if ($user->can('update', $quotation)) {
+            $actions[] = [
+                'key' => 'edit',
+                'label' => __('Edit'),
+                'href' => route('admin.quotations.edit', [$quotation, ...$from]),
+                'modal' => true,
+            ];
+        }
+
+        if ($canTransition && $status->canTransitionTo(QuotationStatus::PendingApproval)) {
+            $actions[] = [
+                'key' => 'submit_approval',
+                'label' => __('Submit for approval'),
+                'action' => route('admin.quotations.submit-approval', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Submit this quotation for approval?'),
+            ];
+        }
+
+        if ($user->can('approve', $quotation)) {
+            $actions[] = [
+                'key' => 'approve',
+                'label' => __('Approve & send'),
+                'action' => route('admin.quotations.approve', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Approve this quotation and send it to the customer?'),
+            ];
+        }
+
+        if ($user->can('send', $quotation) && $status->canTransitionTo(QuotationStatus::Sent)) {
+            $actions[] = [
+                'key' => 'send',
+                'label' => __('Send'),
+                'action' => route('admin.quotations.send', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Mark this quotation as sent to the customer?'),
+            ];
+        }
+
+        if ($canTransition && $status->canTransitionTo(QuotationStatus::Viewed)) {
+            $actions[] = [
+                'key' => 'mark_viewed',
+                'label' => __('Mark viewed'),
+                'action' => route('admin.quotations.mark-viewed', $quotation),
+                'method' => 'POST',
+            ];
+        }
+
+        if ($canTransition && $status->canTransitionTo(QuotationStatus::Accepted)) {
+            $actions[] = [
+                'key' => 'accept',
+                'label' => __('Accept'),
+                'action' => route('admin.quotations.accept', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Mark this quotation as accepted by the customer?'),
+            ];
+        }
+
+        if ($user->can('convert', $quotation) && $status === QuotationStatus::Accepted) {
+            $actions[] = [
+                'key' => 'convert',
+                'label' => __('Convert to sales order'),
+                'href' => route('admin.sales-orders.create', [
+                    'quotation_id' => $quotation->id,
+                    'tab' => 'quotation',
+                    'customer_id' => $quotation->customer_id,
+                    ...$from,
+                ]),
+                'modal' => true,
+            ];
+            $actions[] = [
+                'key' => 'quick_convert',
+                'label' => __('Quick convert'),
+                'action' => route('admin.quotations.convert', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Convert this quotation to a sales order now?'),
+            ];
+        }
+
+        if ($canTransition && $status->canTransitionTo(QuotationStatus::Rejected)) {
+            $actions[] = [
+                'key' => 'reject',
+                'label' => __('Reject'),
+                'action' => route('admin.quotations.reject', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Reject this quotation?'),
+                'variant' => 'danger',
+            ];
+        }
+
+        if ($canTransition && $status->canTransitionTo(QuotationStatus::Expired)) {
+            $actions[] = [
+                'key' => 'expire',
+                'label' => __('Mark expired'),
+                'action' => route('admin.quotations.expire', $quotation),
+                'method' => 'POST',
+                'confirm' => __('Mark this quotation as expired?'),
+                'variant' => 'danger',
+            ];
+        }
+
+        $salesOrder = $quotation->salesOrder;
+        if ($salesOrder && $user->can('view', $salesOrder)) {
+            $actions[] = [
+                'key' => 'view_sales_order',
+                'label' => __('View sales order'),
+                'href' => route('admin.sales-orders.show', [$salesOrder, ...$from]),
+            ];
+        }
+
+        $actions[] = [
+            'key' => 'document',
+            'label' => __('View document'),
+            'href' => route('admin.quotations.document', $quotation),
+            'new_tab' => true,
+        ];
+        $actions[] = [
+            'key' => 'pdf',
+            'label' => __('Download PDF'),
+            'href' => route('admin.quotations.document.pdf', $quotation),
+            'new_tab' => true,
+        ];
+
+        if ($user->can('delete', $quotation)) {
+            $actions[] = [
+                'key' => 'delete',
+                'label' => __('Delete'),
+                'action' => route('admin.quotations.destroy', $quotation),
+                'method' => 'DELETE',
+                'confirm' => __('Delete this draft quotation?'),
                 'variant' => 'danger',
             ];
         }

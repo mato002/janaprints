@@ -7,6 +7,7 @@ use App\Enums\RecruitmentPipelineStage;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\JobApplication;
 use App\Models\Hr\OfferLetter;
+use App\Rules\DateNotInThePast;
 use App\Support\Hr\RecruitmentApplicationService;
 use App\Support\Hr\RecruitmentDashboardService;
 use App\Support\Hr\VacancyService;
@@ -139,7 +140,7 @@ class JobApplicationController extends Controller
         $this->authorize('update', $jobApplication);
 
         $validated = $request->validate([
-            'scheduled_at' => ['required', 'date'],
+            'scheduled_at' => ['required', 'date', new DateNotInThePast],
             'duration_minutes' => ['nullable', 'integer', 'min:15', 'max:480'],
             'location' => ['nullable', 'string', 'max:255'],
             'meeting_link' => ['nullable', 'string', 'max:500'],
@@ -178,7 +179,7 @@ class JobApplicationController extends Controller
 
         $validated = $request->validate([
             'salary_offered' => ['nullable', 'numeric', 'min:0'],
-            'start_date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date', new DateNotInThePast],
             'terms' => ['nullable', 'string', 'max:2000'],
         ]);
 

@@ -181,6 +181,7 @@
                     type="date"
                     :label="__('Planned end')"
                     :value="old('planned_end_date')"
+                    min="{{ now()->toDateString() }}"
                 />
             </div>
 

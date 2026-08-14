@@ -260,11 +260,14 @@ final class OperatorModeRegistry
         return $user->hasRole($mode->role);
     }
 
+    /**
+     * @param  array<string, mixed>  $params
+     */
     public static function homeUrl(OperatorModeKey $key, array $params = []): string
     {
         $mode = self::definition($key);
 
-        return route($mode->homeRoute, $params !== [] ? $params : $mode->homeRouteParams);
+        return route($mode->homeRoute, array_merge($mode->homeRouteParams, $params));
     }
 
     public static function resolveHomeUrl(?User $user): ?string

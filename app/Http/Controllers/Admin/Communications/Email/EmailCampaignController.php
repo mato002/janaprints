@@ -54,7 +54,7 @@ class EmailCampaignController extends Controller
             'body' => ['required', 'string'],
             'to' => ['required', 'string'],
             'communication_template_id' => ['nullable', 'exists:communication_templates,id'],
-            'scheduled_at' => ['nullable', 'date'],
+            'scheduled_at' => ['nullable', 'date', 'after:now'],
         ]);
 
         $campaign = $this->campaigns->create($this->requireCompanyId(), $request->user()->id, [

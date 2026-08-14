@@ -40,7 +40,7 @@
             </div>
             <div>
                 <label class="erp-label" for="due_date">{{ __('Due Date') }}</label>
-                <input id="due_date" type="date" name="due_date" value="{{ old('due_date') }}" class="erp-input w-full">
+                <input id="due_date" type="date" name="due_date" value="{{ old('due_date') }}" min="{{ now()->toDateString() }}" class="erp-input w-full">
             </div>
             <div>
                 <label class="erp-label" for="notes">{{ __('Notes') }}</label>

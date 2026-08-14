@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Hr\EmployeeDocument;
 use App\Models\Hr\EmployeeDocumentVersion;
 use App\Support\Hr\EmployeeDocumentService;
+use App\Rules\DateNotInThePast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -58,7 +59,7 @@ class EmployeeDocumentController extends Controller
             'category' => ['required', Rule::enum(EmployeeDocumentCategory::class)],
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
-            'expires_at' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date', new DateNotInThePast],
             'renewal_reminder_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'file' => ['required', 'file', 'max:10240'],

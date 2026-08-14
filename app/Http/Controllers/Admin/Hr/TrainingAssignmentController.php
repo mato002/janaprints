@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin\Hr;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\EmployeeTrainingAssignment;
 use App\Support\Hr\TrainingAssignmentService;
+use App\Rules\DateNotInThePast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -58,7 +59,7 @@ class TrainingAssignmentController extends Controller
                 'required',
                 Rule::exists('training_programs', 'id')->where('company_id', $companyId),
             ],
-            'due_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date', new DateNotInThePast],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 

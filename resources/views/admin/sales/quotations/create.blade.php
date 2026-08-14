@@ -55,7 +55,7 @@
             @if(($fields['valid_until']['visible'] ?? true))
             <div>
                 <label class="erp-label">{{ __('Valid until') }}</label>
-                <input type="date" name="valid_until" class="erp-input" value="{{ old('valid_until', $fields['valid_until']['default'] ?? '') }}" @required($fields['valid_until']['required'] ?? false) @readonly($fields['valid_until']['read_only'] ?? false)>
+                <input type="date" name="valid_until" class="erp-input" min="{{ now()->toDateString() }}" value="{{ old('valid_until', $fields['valid_until']['default'] ?? '') }}" @required($fields['valid_until']['required'] ?? false) @readonly($fields['valid_until']['read_only'] ?? false)>
             </div>
             @endif
             @if(($fields['currency']['visible'] ?? true))

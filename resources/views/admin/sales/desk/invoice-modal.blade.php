@@ -33,7 +33,7 @@
             </div>
             <div>
                 <label class="erp-label">{{ __('Due date') }}</label>
-                <input type="date" name="due_date" value="{{ old('due_date') }}" class="erp-input w-full">
+                <input type="date" name="due_date" value="{{ old('due_date') }}" min="{{ now()->toDateString() }}" class="erp-input w-full">
             </div>
             <div x-show="billingType === 'deposit'" x-cloak>
                 <label class="erp-label">{{ __('Deposit amount') }}</label>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\Procurement\Concerns\ResolvesProcurementTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\PurchaseOrder;
+use App\Rules\DateNotInThePast;
 use App\Models\Procurement\Vendor;
 use App\Support\Procurement\PurchaseOrderService;
 use App\Support\Procurement\ProcurementDeskViews;
@@ -89,7 +90,7 @@ class PurchaseOrderController extends Controller
     {
         $this->authorize('update', $order);
 
-        $header = $this->validateHeader($request, $order->company_id, $order->branch_id);
+        $header = $this->validateHeader($request, $order->company_id, $order->branch_id, $order);
         $lines = $this->validateLines($request, $order->company_id, $order->branch_id);
         $totals = $this->totalsFromLines($lines, $header);
 
@@ -182,12 +183,12 @@ class PurchaseOrderController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function validateHeader(Request $request, int $companyId, int $branchId): array
+    protected function validateHeader(Request $request, int $companyId, int $branchId, ?PurchaseOrder $existing = null): array
     {
         return $request->validate([
             'vendor_id' => ['required', Rule::exists('vendors', 'id')->where('company_id', $companyId)],
             'order_date' => ['required', 'date'],
-            'expected_delivery_date' => ['nullable', 'date'],
+            'expected_delivery_date' => ['nullable', 'date', new DateNotInThePast($existing?->expected_delivery_date)],
             'tax_amount' => ['nullable', 'numeric', 'min:0'],
             'discount_amount' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],

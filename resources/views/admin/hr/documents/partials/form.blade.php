@@ -23,7 +23,7 @@
     </div>
     <div>
         <label class="erp-label" for="expires_at">{{ __('Expiry Date') }}</label>
-        <input id="expires_at" type="date" name="expires_at" value="{{ old('expires_at') }}" class="erp-input w-full">
+        <input id="expires_at" type="date" name="expires_at" value="{{ old('expires_at') }}" min="{{ now()->toDateString() }}" class="erp-input w-full">
         @error('expires_at')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
     </div>
     <div>

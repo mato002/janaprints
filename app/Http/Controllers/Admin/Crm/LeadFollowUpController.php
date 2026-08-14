@@ -6,6 +6,7 @@ use App\Enums\FollowUpStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Crm\Lead;
 use App\Models\Crm\LeadFollowUp;
+use App\Rules\DateNotInThePast;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,7 +19,7 @@ class LeadFollowUpController extends Controller
 
         $data = $request->validate([
             'assigned_to' => ['nullable', 'exists:users,id'],
-            'scheduled_at' => ['required', 'date'],
+            'scheduled_at' => ['required', 'date', new DateNotInThePast],
             'notes' => ['nullable', 'string'],
         ]);
 

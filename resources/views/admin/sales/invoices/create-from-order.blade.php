@@ -78,7 +78,7 @@
             </div>
             <div>
                 <label class="erp-label">{{ __('Due date') }}</label>
-                <input type="date" name="due_date" value="{{ old('due_date', $salesOrder->payment_terms_days ? now()->addDays((int) $salesOrder->payment_terms_days)->toDateString() : '') }}" class="erp-input w-full">
+                <input type="date" name="due_date" value="{{ old('due_date', $salesOrder->payment_terms_days ? now()->addDays((int) $salesOrder->payment_terms_days)->toDateString() : '') }}" min="{{ now()->toDateString() }}" class="erp-input w-full">
             </div>
             <div x-show="billingType === 'progress'" x-cloak>
                 <label class="erp-label">{{ __('Progress %') }}</label>

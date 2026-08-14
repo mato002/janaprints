@@ -19,7 +19,7 @@
                 </div>
                 <div>
                     <x-input-label for="valid_until" :value="__('Valid until')" />
-                    <x-text-input id="valid_until" name="valid_until" type="date" class="mt-1 block w-full" value="{{ $quotation->valid_until?->toDateString() }}" />
+                    <x-text-input id="valid_until" name="valid_until" type="date" class="mt-1 block w-full" min="{{ now()->toDateString() }}" value="{{ $quotation->valid_until?->toDateString() }}" />
                 </div>
             </div>
             @include('admin.procurement.partials.line-items-form', [

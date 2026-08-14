@@ -26,6 +26,7 @@ use App\Support\Hr\EmployeeRosterQuery;
 use App\Support\Organization\JobTitleService;
 use App\Support\Platform\FormSettingsService;
 use App\Models\User;
+use App\Rules\MinimumAge;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -219,7 +220,7 @@ class EmployeeController extends Controller
             'middle_name' => ['nullable', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', Rule::enum(Gender::class)],
-            'date_of_birth' => ['nullable', 'date', 'before:today'],
+            'date_of_birth' => ['nullable', 'date', new MinimumAge(18, 100, $employee?->date_of_birth)],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => [
                 $employee ? 'nullable' : 'required',

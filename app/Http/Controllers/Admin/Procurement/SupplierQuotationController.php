@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\Procurement\Concerns\ResolvesProcurementTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\SupplierQuotation;
+use App\Rules\DateNotInThePast;
 use App\Models\Procurement\Vendor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -128,7 +129,7 @@ class SupplierQuotationController extends Controller
         return $request->validate([
             'vendor_id' => ['required', Rule::exists('vendors', 'id')->where('company_id', $companyId)],
             'quotation_date' => ['required', 'date'],
-            'valid_until' => ['nullable', 'date'],
+            'valid_until' => ['nullable', 'date', 'after_or_equal:quotation_date', new DateNotInThePast],
             'notes' => ['nullable', 'string'],
         ]);
     }

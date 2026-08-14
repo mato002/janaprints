@@ -86,7 +86,7 @@
                     </div>
                     <div>
                         <label class="erp-label" for="start_date">{{ __('Start Date') }}</label>
-                        <input type="date" id="start_date" name="start_date" class="erp-input w-full">
+                        <input type="date" id="start_date" name="start_date" class="erp-input w-full" min="{{ now()->toDateString() }}">
                     </div>
                     <div>
                         <label class="erp-label" for="terms">{{ __('Terms') }}</label>

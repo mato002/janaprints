@@ -14,10 +14,20 @@
             <button class="erp-btn-secondary">{{ __('Send') }}</button></form>
     @endcan
 @endif
+@if ($quotation->status === App\Enums\QuotationStatus::Approved)
+    @can('send', $quotation)
+        <form method="POST" action="{{ route('admin.quotations.send', $quotation) }}" class="inline">@csrf
+            <button class="erp-btn-primary">{{ __('Send') }}</button></form>
+    @endcan
+@endif
 @if ($quotation->status === App\Enums\QuotationStatus::Sent)
     @can('transition', $quotation)
         <form method="POST" action="{{ route('admin.quotations.mark-viewed', $quotation) }}" class="inline">@csrf
             <button class="erp-btn-secondary">{{ __('Mark viewed') }}</button></form>
+        <form method="POST" action="{{ route('admin.quotations.reject', $quotation) }}" class="inline">@csrf
+            <button class="erp-btn-secondary text-red-600">{{ __('Reject') }}</button></form>
+        <form method="POST" action="{{ route('admin.quotations.expire', $quotation) }}" class="inline">@csrf
+            <button class="erp-btn-secondary">{{ __('Mark expired') }}</button></form>
     @endcan
 @endif
 @if ($quotation->status === App\Enums\QuotationStatus::Viewed)
@@ -26,6 +36,8 @@
             <button class="erp-btn-primary">{{ __('Accept') }}</button></form>
         <form method="POST" action="{{ route('admin.quotations.reject', $quotation) }}" class="inline">@csrf
             <button class="erp-btn-secondary text-red-600">{{ __('Reject') }}</button></form>
+        <form method="POST" action="{{ route('admin.quotations.expire', $quotation) }}" class="inline">@csrf
+            <button class="erp-btn-secondary">{{ __('Mark expired') }}</button></form>
     @endcan
 @endif
 @if ($quotation->status === App\Enums\QuotationStatus::Accepted)

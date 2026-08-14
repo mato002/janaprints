@@ -70,7 +70,7 @@
 @if(($fields['due_date']['visible'] ?? true))
 <div>
     <label class="erp-label">{{ __('Due date') }}</label>
-    <input type="date" name="due_date" class="erp-input w-full" value="{{ old('due_date', $model?->due_date?->format('Y-m-d') ?? ($fields['due_date']['default'] ?? '')) }}" @required($fields['due_date']['required'] ?? false) @readonly($fields['due_date']['read_only'] ?? false)>
+    <input type="date" name="due_date" class="erp-input w-full" min="{{ now()->toDateString() }}" value="{{ old('due_date', $model?->due_date?->format('Y-m-d') ?? ($fields['due_date']['default'] ?? '')) }}" @required($fields['due_date']['required'] ?? false) @readonly($fields['due_date']['read_only'] ?? false)>
 </div>
 @endif
 

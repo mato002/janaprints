@@ -43,12 +43,7 @@
                     <td class="tabular-nums">{{ $quotation->currency }} {{ number_format($quotation->total_amount, 2) }}</td>
                     <td><x-admin.enum-status-badge :status="$quotation->status->value" /></td>
                     <td class="erp-table-actions-col">
-                        <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.quotations.show', $quotation)">{{ __('View') }}</x-admin.table-row-action>
-                            @can('update', $quotation)
-                                <x-admin.table-row-action :href="route('admin.quotations.edit', $quotation)" data-erp-modal-open>{{ __('Edit') }}</x-admin.table-row-action>
-                            @endcan
-                        </x-admin.table-row-actions>
+                        @include('admin.sales.quotations.partials.row-actions', ['quotation' => $quotation])
                     </td>
                 </tr>
             @empty

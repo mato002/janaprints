@@ -17,6 +17,7 @@ use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Crm\Lead;
 use App\Models\Sales\Quotation;
+use App\Rules\DateNotInThePast;
 use App\Enums\ApprovalRuleType;
 use App\Enums\DocumentModule;
 use App\Support\Platform\ApprovalDelegationService;
@@ -274,7 +275,7 @@ class QuotationController extends Controller
     {
         $this->authorize('send', $quotation);
 
-        if ($quotation->status === QuotationStatus::PendingApproval) {
+        if ($quotation->status->canTransitionTo(QuotationStatus::Sent)) {
             $quotation->transitionTo(QuotationStatus::Sent);
         }
 
@@ -406,7 +407,7 @@ class QuotationController extends Controller
             'customer_id' => [Rule::exists('customers', 'id')->where('company_id', $companyId)],
             'lead_id' => [Rule::exists('leads', 'id')->where('company_id', $companyId)],
             'quotation_date' => ['date'],
-            'valid_until' => ['date', 'after_or_equal:quotation_date'],
+            'valid_until' => ['date', 'after_or_equal:quotation_date', new DateNotInThePast($quotation?->valid_until)],
             'currency' => ['string', 'size:3'],
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],

@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\SalesOrder;
+use App\Rules\DateNotInThePast;
 use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use App\Support\Sales\CustomerInvoiceService;
 use App\Support\Sales\ReturnsToSalesDesk;
@@ -106,7 +107,7 @@ class CustomerInvoiceController extends Controller
 
         $header = $request->validate([
             'invoice_date' => ['required', 'date'],
-            'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date', new DateNotInThePast($invoice->due_date)],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -263,7 +264,7 @@ class CustomerInvoiceController extends Controller
         $validated = $request->validate([
             'invoice_type' => ['required', 'in:standard,partial,deposit,progress'],
             'invoice_date' => ['required', 'date'],
-            'due_date' => ['nullable', 'date'],
+            'due_date' => ['nullable', 'date', 'after_or_equal:invoice_date', new DateNotInThePast],
             'notes' => ['nullable', 'string'],
             'billing_percent' => ['nullable', 'numeric', 'min:1', 'max:100'],
             'deposit_amount' => ['nullable', 'numeric', 'min:0.01'],

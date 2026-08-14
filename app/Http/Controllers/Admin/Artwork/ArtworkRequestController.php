@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\Crm\Concerns\ResolvesCrmTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Artwork\ArtworkApproval;
 use App\Models\Artwork\ArtworkRequest;
+use App\Rules\DateNotInThePast;
 use App\Models\Crm\Customer;
 use App\Models\Sales\Quotation;
 use App\Models\User;
@@ -408,7 +409,7 @@ class ArtworkRequestController extends Controller
             'title' => ['string', 'max:255'],
             'description' => ['string'],
             'priority' => [Rule::enum(ArtworkPriority::class)],
-            'due_date' => ['date'],
+            'due_date' => ['date', new DateNotInThePast($existing?->due_date)],
             'assigned_designer_id' => ['exists:users,id'],
         ], $companyId, $branchId);
     }

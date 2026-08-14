@@ -38,7 +38,7 @@
     </div>
     <div>
         <label class="erp-label" for="scheduled_start_date">{{ __('Scheduled Start') }}</label>
-        <input id="scheduled_start_date" type="date" name="scheduled_start_date" value="{{ old('scheduled_start_date', $program?->scheduled_start_date?->format('Y-m-d')) }}" class="erp-input w-full @error('scheduled_start_date') border-red-500 @enderror">
+        <input id="scheduled_start_date" type="date" name="scheduled_start_date" value="{{ old('scheduled_start_date', $program?->scheduled_start_date?->format('Y-m-d')) }}" min="{{ now()->toDateString() }}" class="erp-input w-full @error('scheduled_start_date') border-red-500 @enderror">
         @error('scheduled_start_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
     </div>
     <div>

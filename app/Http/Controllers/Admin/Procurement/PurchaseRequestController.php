@@ -11,6 +11,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Procurement\PurchaseRequest;
+use App\Rules\DateNotInThePast;
 use App\Models\Procurement\Vendor;
 use App\Support\Procurement\PurchaseRequestService;
 use App\Support\Procurement\ProcurementDeskViews;
@@ -98,7 +99,7 @@ class PurchaseRequestController extends Controller
     {
         $this->authorize('update', $purchaseRequest);
 
-        $header = $this->validateHeader($request, $purchaseRequest->company_id);
+        $header = $this->validateHeader($request, $purchaseRequest->company_id, $purchaseRequest);
         $lines = $this->validateLines($request, $purchaseRequest->company_id, $purchaseRequest->branch_id);
 
         $purchaseRequest->update($header);
@@ -188,11 +189,11 @@ class PurchaseRequestController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function validateHeader(Request $request, int $companyId): array
+    protected function validateHeader(Request $request, int $companyId, ?PurchaseRequest $existing = null): array
     {
         return $request->validate([
             'department_id' => ['nullable', Rule::exists('departments', 'id')->where('company_id', $companyId)],
-            'required_date' => ['nullable', 'date'],
+            'required_date' => ['nullable', 'date', new DateNotInThePast($existing?->required_date)],
             'reason' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
         ]);

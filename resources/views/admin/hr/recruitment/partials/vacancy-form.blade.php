@@ -17,6 +17,10 @@
         <input id="positions" type="number" name="positions" value="{{ old('positions', 1) }}" min="1" class="erp-input w-full">
     </div>
     <div>
+        <label class="erp-label" for="closing_date">{{ __('Closing date') }}</label>
+        <input id="closing_date" type="date" name="closing_date" value="{{ old('closing_date') }}" min="{{ now()->toDateString() }}" class="erp-input w-full">
+    </div>
+    <div>
         <label class="erp-label" for="department_id">{{ __('Department') }}</label>
         <select id="department_id" name="department_id" class="erp-input w-full">
             <option value="">{{ __('Select') }}</option>

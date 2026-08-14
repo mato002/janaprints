@@ -36,6 +36,7 @@ use App\Models\Inventory\Warehouse;
 use App\Models\Procurement\Vendor;
 use App\Models\Platform\SettingsGovernance;
 use App\Models\Sales\Quotation;
+use App\Rules\DateNotInThePast;
 use App\Support\Catalogue\CatalogueService;
 use App\Support\Catalogue\ItemAttributeService;
 use App\Support\Crm\CustomerArtworkService;
@@ -1228,7 +1229,7 @@ class QuickCreateLookupController extends Controller
             'email' => ['email'],
             'estimated_value' => ['numeric', 'min:0'],
             'probability' => ['integer', 'min:0', 'max:100'],
-            'expected_close_date' => ['date'],
+            'expected_close_date' => ['date', new DateNotInThePast],
             'status' => $this->statusOptions->validationRules('lead', $companyId, $branchId, false),
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],
@@ -1333,7 +1334,7 @@ class QuickCreateLookupController extends Controller
             'customer_id' => [Rule::exists('customers', 'id')->where('company_id', $companyId)],
             'lead_id' => [Rule::exists('leads', 'id')->where('company_id', $companyId)],
             'quotation_date' => ['date'],
-            'valid_until' => ['date', 'after_or_equal:quotation_date'],
+            'valid_until' => ['date', 'after_or_equal:quotation_date', new DateNotInThePast],
             'currency' => ['string', 'size:3'],
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],

@@ -215,7 +215,7 @@
             </div>
             <div>
                 <label class="block text-[11px] uppercase tracking-wide text-slate-500">{{ __('Planned end') }}</label>
-                <input type="date" name="planned_end_date" class="erp-input text-sm py-1" value="{{ $jobCard->planned_end_date?->format('Y-m-d') }}" required>
+                <input type="date" name="planned_end_date" class="erp-input text-sm py-1" min="{{ now()->toDateString() }}" value="{{ $jobCard->planned_end_date?->format('Y-m-d') }}" required>
             </div>
             <button type="submit" class="erp-btn-secondary text-sm py-1">{{ __('Update schedule') }}</button>
         </form>

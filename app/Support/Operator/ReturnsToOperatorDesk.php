@@ -20,8 +20,6 @@ trait ReturnsToOperatorDesk
      */
     protected function operatorDeskUrl(OperatorModeKey $mode, array $params = []): string
     {
-        $config = OperatorModeRegistry::returnConfig($mode);
-
-        return route($config['route'], $params);
+        return OperatorModeRegistry::homeUrl($mode, $params);
     }
 }

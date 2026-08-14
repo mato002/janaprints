@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Assets\FixedAsset;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
+use App\Rules\DateNotInThePast;
 use App\Services\Assets\MachineJobAssignmentService;
 use App\Services\Production\Job360WorkspaceService;
 use App\Services\Production\ProductionFloorService;
@@ -96,7 +97,7 @@ class ProductionJobCardController extends Controller
             'production_type' => ['required', Rule::enum(ProductionType::class)],
             'priority' => ['required', Rule::enum(ProductionPriority::class)],
             'planned_start_date' => ['nullable', 'date'],
-            'planned_end_date' => ['nullable', 'date', 'after_or_equal:planned_start_date'],
+            'planned_end_date' => ['nullable', 'date', 'after_or_equal:planned_start_date', new DateNotInThePast],
         ]);
 
         $salesOrder = SalesOrder::query()->forTenant()->findOrFail($validated['sales_order_id']);
@@ -165,7 +166,7 @@ class ProductionJobCardController extends Controller
             'production_type' => ['required', Rule::enum(ProductionType::class)],
             'priority' => ['required', Rule::enum(ProductionPriority::class)],
             'planned_start_date' => ['nullable', 'date'],
-            'planned_end_date' => ['nullable', 'date'],
+            'planned_end_date' => ['nullable', 'date', 'after_or_equal:planned_start_date', new DateNotInThePast($jobCard->planned_end_date)],
         ]));
 
         return redirect()
@@ -351,7 +352,7 @@ class ProductionJobCardController extends Controller
 
         $jobCard->update($request->validate([
             'planned_start_date' => ['required', 'date'],
-            'planned_end_date' => ['required', 'date', 'after_or_equal:planned_start_date'],
+            'planned_end_date' => ['required', 'date', 'after_or_equal:planned_start_date', new DateNotInThePast($jobCard->planned_end_date)],
         ]));
 
         return $this->redirectAfterProductionFloorAction($jobCard, __('Schedule updated.'));

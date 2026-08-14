@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Hr;
 
 use App\Http\Controllers\Controller;
 use App\Models\Hr\Vacancy;
+use App\Rules\DateNotInThePast;
 use App\Support\Hr\RecruitmentDashboardService;
 use App\Support\Hr\VacancyService;
 use Illuminate\Http\RedirectResponse;
@@ -93,7 +94,7 @@ class VacancyController extends Controller
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:2000'],
             'positions' => ['nullable', 'integer', 'min:1', 'max:99'],
-            'closing_date' => ['nullable', 'date'],
+            'closing_date' => ['nullable', 'date', new DateNotInThePast],
         ]);
     }
 }

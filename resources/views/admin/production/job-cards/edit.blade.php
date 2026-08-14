@@ -32,7 +32,7 @@
                 </div>
                 <div>
                     <label class="erp-label">{{ __('Planned end') }}</label>
-                    <input type="date" name="planned_end_date" class="erp-input w-full" value="{{ old('planned_end_date', $jobCard->planned_end_date?->format('Y-m-d')) }}">
+                    <input type="date" name="planned_end_date" class="erp-input w-full" min="{{ now()->toDateString() }}" value="{{ old('planned_end_date', $jobCard->planned_end_date?->format('Y-m-d')) }}">
                 </div>
             </div>
             <button type="submit" class="erp-btn-primary">{{ __('Save') }}</button>

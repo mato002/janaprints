@@ -6,6 +6,7 @@ use App\Enums\TrainingProgramStatus;
 use App\Enums\TrainingType;
 use App\Http\Controllers\Controller;
 use App\Models\Hr\TrainingProgram;
+use App\Rules\DateNotInThePast;
 use App\Support\Hr\TrainingProgramService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -199,7 +200,7 @@ class TrainingProgramController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'duration_hours' => ['nullable', 'numeric', 'min:0', 'max:9999'],
             'budget_amount' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
-            'scheduled_start_date' => ['nullable', 'date'],
+            'scheduled_start_date' => ['nullable', 'date', new DateNotInThePast($program?->scheduled_start_date)],
             'scheduled_end_date' => ['nullable', 'date', 'after_or_equal:scheduled_start_date'],
             'requires_certification' => ['nullable', 'boolean'],
             'certificate_validity_days' => ['nullable', 'integer', 'min:1', 'max:3650'],

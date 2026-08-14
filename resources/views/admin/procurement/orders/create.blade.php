@@ -24,7 +24,7 @@
                 </div>
                 <div>
                     <x-input-label for="expected_delivery_date" :value="__('Expected delivery')" />
-                    <x-text-input id="expected_delivery_date" name="expected_delivery_date" type="date" class="mt-1 block w-full" :value="old('expected_delivery_date')" />
+                    <x-text-input id="expected_delivery_date" name="expected_delivery_date" type="date" class="mt-1 block w-full" min="{{ now()->toDateString() }}" :value="old('expected_delivery_date')" />
                 </div>
             </div>
             @include('admin.procurement.partials.line-items-form', ['items' => $items, 'mode' => 'order'])

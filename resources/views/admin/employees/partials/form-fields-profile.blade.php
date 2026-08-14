@@ -16,13 +16,22 @@
 
     <div>
         <x-input-label for="date_of_birth" :value="__('Date of birth')" />
+    @php
+        $dobMax = now()->subYears(18)->toDateString();
+        if ($employee?->date_of_birth && $employee->date_of_birth->gt(now()->subYears(18))) {
+            $dobMax = $employee->date_of_birth->toDateString();
+        }
+    @endphp
         <input
             id="date_of_birth"
             name="date_of_birth"
             type="date"
             class="erp-input mt-1 w-full"
+            min="{{ now()->subYears(100)->toDateString() }}"
+            max="{{ $dobMax }}"
             value="{{ old('date_of_birth', $employee?->date_of_birth?->toDateString()) }}"
         />
+        <p class="mt-1 text-xs text-slate-500">{{ __('Must be at least 18 years old.') }}</p>
     </div>
 
     <div>

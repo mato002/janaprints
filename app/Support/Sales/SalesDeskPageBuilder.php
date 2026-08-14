@@ -145,7 +145,7 @@ class SalesDeskPageBuilder
             SalesDeskViews::QUOTES => [
                 'registerTitle' => __('Quotations'),
                 'quotations' => $this->scopeToTenant(
-                    Quotation::query()->with(['customer', 'branch', 'preparer'])
+                    Quotation::query()->with(['customer', 'branch', 'preparer', 'salesOrder'])
                 )->latest('quotation_date')->paginate(15)->withQueryString(),
             ],
             SalesDeskViews::ORDERS => [

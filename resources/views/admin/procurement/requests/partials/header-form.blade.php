@@ -10,7 +10,8 @@
     </div>
     <div>
         <x-input-label for="required_date" :value="__('Required date')" />
-        <x-text-input id="required_date" name="required_date" type="date" class="mt-1 block w-full" :value="old('required_date', optional($purchaseRequest->required_date ?? null)?->format('Y-m-d'))" />
+        <x-text-input id="required_date" name="required_date" type="date" class="mt-1 block w-full" min="{{ now()->toDateString() }}" :value="old('required_date', optional($purchaseRequest->required_date ?? null)?->format('Y-m-d'))" />
+        <p class="mt-1 text-xs text-slate-500">{{ __('Cannot be earlier than today.') }}</p>
     </div>
     <div class="md:col-span-2">
         <x-input-label for="reason" :value="__('Reason')" />

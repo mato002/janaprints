@@ -140,7 +140,7 @@
                 </div>
                 <div class="job-360-zone__form-field">
                     <label>{{ __('Planned end') }}</label>
-                    <input type="date" name="planned_end_date" class="erp-input text-sm" value="{{ $jobCard->planned_end_date?->format('Y-m-d') }}" required>
+                    <input type="date" name="planned_end_date" class="erp-input text-sm" min="{{ now()->toDateString() }}" value="{{ $jobCard->planned_end_date?->format('Y-m-d') }}" required>
                 </div>
                 <button type="submit" class="erp-btn-secondary text-sm">{{ __('Update schedule') }}</button>
             </form>

@@ -12,6 +12,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Crm\Customer;
 use App\Models\Crm\Lead;
+use App\Rules\DateNotInThePast;
 use App\Models\Crm\LeadSource;
 use App\Models\Crm\LeadStage;
 use App\Models\User;
@@ -204,7 +205,7 @@ class LeadController extends Controller
             'email' => ['email'],
             'estimated_value' => ['numeric', 'min:0'],
             'probability' => ['integer', 'min:0', 'max:100'],
-            'expected_close_date' => ['date'],
+            'expected_close_date' => ['date', new DateNotInThePast($lead?->expected_close_date)],
             'status' => $this->statusOptions->validationRules('lead', $companyId, $branchId),
             'notes' => ['string'],
             'company_id' => ['sometimes', 'exists:companies,id'],

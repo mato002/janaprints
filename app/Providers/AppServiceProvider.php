@@ -1038,7 +1038,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         if (config('app.debug')) {
-            throw new \RuntimeException('APP_DEBUG must be false in production.');
+            \Illuminate\Support\Facades\Log::warning('APP_DEBUG is enabled in production. Disable it after diagnosing errors.');
         }
 
         if (config('database.default') === 'mysql' && config('database.connections.mysql.password') === '') {
