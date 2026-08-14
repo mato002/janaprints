@@ -37,7 +37,9 @@ class QuotationConversionService
                     $quotation->branch_id,
                 ),
                 'order_date' => now()->toDateString(),
-                'required_date' => $quotation->valid_until,
+                'required_date' => $quotation->valid_until?->gte(today())
+                    ? $quotation->valid_until
+                    : null,
                 'status' => SalesOrderStatus::Draft,
                 'production_destination' => $attributes['production_destination'] ?? null,
                 'subtotal' => $quotation->subtotal,

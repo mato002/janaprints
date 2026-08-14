@@ -23,15 +23,15 @@
 
 <div class="job-360-materials">
     @if ($showWorkflow)
-        <div class="flex flex-wrap items-start justify-between gap-2">
-            <div>
+        <div class="job-360-materials__intro">
+            <div class="min-w-0">
                 <h3 class="text-sm font-semibold text-erp-primary">{{ __('Materials') }}</h3>
-                <p class="mt-1 text-xs text-slate-600">
+                <p class="mt-1 text-sm text-slate-600">
                     {{ __('Use the highlighted step to add a BOM or generate requirements on this job.') }}
                 </p>
             </div>
             @if (! empty($workflow['blocker']))
-                <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-950">
+                <p class="shrink-0 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-950">
                     {{ $workflow['blocker'] }}
                 </p>
             @endif
@@ -93,7 +93,7 @@
             <form
                 method="POST"
                 action="{{ route('admin.production.job-cards.materials.bom', $jobCard) }}"
-                class="space-y-3"
+                class="w-full min-w-0 space-y-3"
                 data-turbo-frame="erp-main"
             >
                 @csrf
@@ -121,9 +121,9 @@
                 </div>
             </form>
         @elseif ($currentKey === 'bom')
-            <p class="job-360-materials__action text-xs text-amber-800">
-                {{ __('You need permission to create a bill of materials on this job.') }}
-            </p>
+            <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {{ __('You need permission to create a bill of materials on this job. Ask a production manager to add the BOM, then return here to generate requirements.') }}
+            </div>
         @endif
 
         @if ($currentKey === 'generate' && $canShowGenerateForm)
@@ -277,7 +277,7 @@
             @endif
 
             @if (! $hasRequirements && ! $showShortages && ! $showConsume)
-                <x-admin.card>
+                <x-admin.card class="min-w-0">
                     <x-admin.empty-state
                         :title="__('No material requirements')"
                         :description="$emptyDescription"

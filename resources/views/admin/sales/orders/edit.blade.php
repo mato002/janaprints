@@ -12,7 +12,14 @@
                 </div>
                 <div>
                     <label class="erp-label">{{ __('Required date') }}</label>
-                    <input type="date" name="required_date" class="erp-input w-full" value="{{ old('required_date', $salesOrder->required_date?->format('Y-m-d')) }}">
+                    <input
+                        type="date"
+                        name="required_date"
+                        class="erp-input w-full"
+                        @if (! $salesOrder->required_date || $salesOrder->required_date->gte(today())) min="{{ now()->toDateString() }}" @endif
+                        value="{{ old('required_date', $salesOrder->required_date?->format('Y-m-d')) }}"
+                    >
+                    <p class="mt-1 text-xs text-slate-500">{{ __('A new required date cannot be before today.') }}</p>
                 </div>
                 <div>
                     <label class="erp-label">{{ __('Fulfilment method') }}</label>

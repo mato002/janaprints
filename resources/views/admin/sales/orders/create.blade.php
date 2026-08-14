@@ -318,7 +318,8 @@
                             </div>
                             <div>
                                 <label class="erp-label" for="required_date">{{ __('Required date') }}</label>
-                                <input id="required_date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" x-model="form.required_date">
+                                <input id="required_date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" x-model="form.required_date">
+                                <p class="mt-1 text-xs text-slate-500">{{ __('Cannot be earlier than today.') }}</p>
                             </div>
                             <div>
                                 <label class="erp-label" for="priority">{{ __('Priority') }}</label>

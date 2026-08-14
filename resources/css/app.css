@@ -7238,6 +7238,10 @@ body.erp-navigating {
         @apply sticky top-16 z-30 -mx-1 overflow-visible border-b border-erp-border/60 bg-slate-50/95 px-1 py-0.5 backdrop-blur;
     }
 
+    .job-360__panel {
+        @apply w-full min-w-0;
+    }
+
     /* MES dashboard — scrolls away; only tab bar stays fixed */
     .mes-dashboard {
         @apply mb-1 space-y-1;
@@ -7429,15 +7433,19 @@ body.erp-navigating {
     }
 
     .job-360-materials {
-        @apply grid grid-cols-1 gap-3;
+        @apply flex w-full min-w-0 flex-col gap-4;
+    }
+
+    .job-360-materials__intro {
+        @apply flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between;
     }
 
     .job-360-materials__steps {
-        @apply grid grid-cols-1 gap-2 sm:grid-cols-3;
+        @apply grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4;
     }
 
     .job-360-materials__step {
-        @apply rounded-lg border px-3 py-2 text-left;
+        @apply min-w-0 rounded-lg border bg-white px-3 py-3 text-left;
     }
 
     .job-360-materials__step--done {
@@ -7453,39 +7461,43 @@ body.erp-navigating {
     }
 
     .job-360-materials__workspace {
-        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+        @apply grid w-full min-w-0 grid-cols-1 gap-3;
     }
 
     .job-360-materials__action {
-        @apply rounded-lg border border-erp-border bg-white p-3 lg:col-span-12;
+        @apply w-full min-w-0 rounded-lg border border-erp-border bg-white p-4;
     }
 
     .job-360-materials__split {
-        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+        @apply grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-2 lg:items-start;
     }
 
     .job-360-materials__header {
-        @apply rounded-lg border border-erp-border bg-white p-3 lg:col-span-5;
+        @apply min-w-0 rounded-lg border border-erp-border bg-white p-4;
     }
 
     .job-360-materials__lines {
-        @apply rounded-lg border border-erp-border bg-white p-3 lg:col-span-7;
+        @apply min-w-0 rounded-lg border border-erp-border bg-white p-4;
     }
 
     .job-360-materials__meta {
-        @apply grid grid-cols-1 gap-3 lg:grid-cols-12 lg:items-start;
+        @apply grid w-full min-w-0 grid-cols-1 gap-3 lg:grid-cols-3 lg:items-start;
     }
 
     .job-360-materials__costs {
-        @apply lg:col-span-4;
+        @apply min-w-0 lg:col-span-1;
     }
 
     .job-360-materials__alert {
-        @apply lg:col-span-8;
+        @apply min-w-0 lg:col-span-2;
     }
 
     .job-360-materials__table {
-        @apply lg:col-span-12;
+        @apply min-w-0 w-full;
+    }
+
+    .job-360-materials .workspace-empty-state {
+        @apply px-4 py-8;
     }
 
     .inv-product {

@@ -16,6 +16,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Sales\SalesOrder;
 use App\Support\Communications\CommunicationEventDispatcher;
 use App\Support\Platform\NumberingService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -40,6 +41,7 @@ class DirectCustomerSalesOrderService
             $specification->loadMissing(['inventoryItem', 'activeArtworkVersion', 'customer']);
 
             $this->assertSpecificationOrderable($specification);
+            $this->assertRequiredDateNotInThePast($payload['required_date'] ?? null);
 
             $artwork = $specification->activeArtworkVersion;
             $usesArtwork = $artwork !== null;
@@ -245,6 +247,7 @@ class DirectCustomerSalesOrderService
     {
         return DB::transaction(function () use ($source, $createdBy, $overrides) {
             $source->loadMissing(['items', 'customer']);
+            $this->assertRequiredDateNotInThePast($overrides['required_date'] ?? $source->required_date);
 
             $quantity = isset($overrides['quantity']) ? (float) $overrides['quantity'] : null;
             $items = $this->buildRepeatItems($source, $quantity);
@@ -263,7 +266,7 @@ class DirectCustomerSalesOrderService
                 'artwork_confirmed_at' => $source->customer_artwork_id ? now() : null,
                 'order_number' => $this->numbering->next(DocumentType::SalesOrder, $source->company_id, $source->branch_id),
                 'order_date' => now()->toDateString(),
-                'required_date' => $overrides['required_date'] ?? $source->required_date,
+                'required_date' => $this->resolvedRequiredDate($overrides['required_date'] ?? $source->required_date),
                 'status' => SalesOrderStatus::Confirmed,
                 'subtotal' => $totals['subtotal'],
                 'tax_amount' => $totals['tax_amount'],
@@ -296,6 +299,7 @@ class DirectCustomerSalesOrderService
     protected function createLegacyDirectOrder(Customer $customer, array $payload, int $createdBy): SalesOrder
     {
         return DB::transaction(function () use ($customer, $payload, $createdBy) {
+            $this->assertRequiredDateNotInThePast($payload['required_date'] ?? null);
             $items = $this->normalizeItems($payload);
             $totals = $this->totalsFromItems($items, null, $payload);
 
@@ -433,5 +437,29 @@ class DirectCustomerSalesOrderService
             'unit_price' => $unitPrice,
             'line_total' => round($quantity * $unitPrice, 2),
         ]];
+    }
+
+    protected function resolvedRequiredDate(mixed $requiredDate): ?string
+    {
+        if (! filled($requiredDate)) {
+            return null;
+        }
+
+        $this->assertRequiredDateNotInThePast($requiredDate);
+
+        return Carbon::parse($requiredDate)->toDateString();
+    }
+
+    protected function assertRequiredDateNotInThePast(mixed $requiredDate): void
+    {
+        if (! filled($requiredDate)) {
+            return;
+        }
+
+        if (Carbon::parse($requiredDate)->startOfDay()->lt(today())) {
+            throw ValidationException::withMessages([
+                'required_date' => __('The required date cannot be before today.'),
+            ]);
+        }
     }
 }

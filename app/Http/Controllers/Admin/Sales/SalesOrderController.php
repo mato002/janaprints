@@ -12,6 +12,7 @@ use App\Models\Crm\Customer;
 use App\Models\Inventory\InventoryItem;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
+use App\Rules\SalesRequiredDateNotInThePast;
 use App\Support\Platform\FormSettingsService;
 use App\Support\QuotationConversionService;
 use App\Support\Sales\DirectCustomerSalesOrderService;
@@ -121,7 +122,7 @@ class SalesOrderController extends Controller
             'customer_print_specification_id' => ['required', 'exists:customer_print_specifications,id'],
             'quantity' => ['required', 'numeric', 'min:0.001'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
-            'required_date' => ['nullable', 'date'],
+            'required_date' => ['nullable', 'date', new SalesRequiredDateNotInThePast],
             'priority' => ['nullable', 'string', 'in:low,normal,high,urgent'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
@@ -281,7 +282,7 @@ class SalesOrderController extends Controller
 
         $header = $request->validate([
             'order_date' => ['required', 'date'],
-            'required_date' => ['nullable', 'date', 'after_or_equal:order_date'],
+            'required_date' => ['nullable', 'date', 'after_or_equal:order_date', new SalesRequiredDateNotInThePast($salesOrder)],
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
             'billing_type' => ['nullable', 'string', 'in:deposit_50,advance_100,net_30'],
             'payment_terms_days' => ['nullable', 'integer', 'min:0', 'max:365'],

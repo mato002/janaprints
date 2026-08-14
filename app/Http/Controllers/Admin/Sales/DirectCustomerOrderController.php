@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Controller;
 use App\Models\Crm\Customer;
 use App\Models\Sales\SalesOrder;
+use App\Rules\SalesRequiredDateNotInThePast;
 use App\Support\Sales\CustomerOrderContextService;
 use App\Support\Sales\DirectCustomerSalesOrderService;
 use Illuminate\Http\JsonResponse;
@@ -51,7 +52,7 @@ class DirectCustomerOrderController extends Controller
         $validated = $request->validate([
             'customer_print_specification_id' => ['nullable', 'exists:customer_print_specifications,id'],
             'quantity' => ['nullable', 'numeric', 'min:0.001'],
-            'required_date' => ['nullable', 'date'],
+            'required_date' => ['nullable', 'date', new SalesRequiredDateNotInThePast],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
