@@ -113,9 +113,13 @@
             @php $active = Nav::navItemIsActive($item); @endphp
             <a
                 href="{{ route($item['route'], $item['route_params'] ?? []) }}"
-                data-turbo-frame="erp-main"
-                data-turbo-action="advance"
-                data-turbo-preload="hover"
+                @if (! empty($item['modal']))
+                    data-erp-modal-open
+                @else
+                    data-turbo-frame="erp-main"
+                    data-turbo-action="advance"
+                    data-turbo-preload="hover"
+                @endif
                 data-nav-route="{{ $item['route'] }}"
                 @if (! empty($item['active_routes']))
                     data-nav-active-routes="{{ implode(',', $item['active_routes']) }}"

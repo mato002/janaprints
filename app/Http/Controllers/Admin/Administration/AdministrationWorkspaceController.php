@@ -27,10 +27,41 @@ class AdministrationWorkspaceController extends Controller
     {
         abort_unless($this->presenter->sectionExists($section), 404);
 
-        $extras = $section === 'website-content'
+        $resolved = $this->presenter->resolveSectionKey($section);
+
+        if ($resolved !== $section) {
+            return redirect()->route('admin.workspaces.administration.section', [
+                'section' => $resolved,
+                ...$request->query(),
+            ]);
+        }
+
+        $extras = in_array($resolved, ['website', 'website-content'], true)
             ? ['showWebsiteCmsSupport' => true]
             : [];
 
-        return $this->renderModuleDesk($request, 'administration', $section, null, $extras);
+        return $this->renderModuleDesk($request, 'administration', $resolved, null, $extras);
+    }
+
+    public function catalog(Request $request, string $section): View
+    {
+        abort_unless($this->presenter->sectionExists($section), 404);
+
+        $resolved = $this->presenter->resolveSectionKey($section);
+        $workspace = $this->presenter->presentSection($resolved);
+
+        abort_unless($workspace !== null, 403);
+
+        $cards = collect($workspace['groups'])
+            ->flatMap(fn (array $group) => collect($group['items'])->map(fn (array $item) => array_merge($item, [
+                'group_label' => $group['label'],
+            ])))
+            ->values()
+            ->all();
+
+        return view('admin.administration.workspaces.section', [
+            'workspace' => $workspace,
+            'cards' => $cards,
+        ]);
     }
 }

@@ -21,10 +21,6 @@ class ProductionWorkspaceController extends Controller
     {
         abort_unless($this->presenter->isVisible(), 403);
 
-        if (ProductionOperatorMode::enabledFor($request->user()) && ! $request->boolean('desk')) {
-            return redirect()->to(ProductionOperatorMode::homeUrl($request->user()));
-        }
-
         return $this->renderModuleDesk($request, 'production');
     }
 
@@ -32,7 +28,13 @@ class ProductionWorkspaceController extends Controller
     {
         abort_unless($this->presenter->sectionExists($section), 404);
 
-        if (ProductionOperatorMode::enabledFor($request->user()) && ! $request->boolean('desk')) {
+        // Keep Floor as the standalone operator register (same arrangement as home).
+        if (
+            $section === 'operations'
+            && ($request->query('tab') === 'production-floor' || $request->query('tab') === null)
+            && ProductionOperatorMode::enabledFor($request->user())
+            && ! $request->boolean('desk')
+        ) {
             return redirect()->to(ProductionOperatorMode::homeUrl($request->user()));
         }
 

@@ -33,7 +33,27 @@ class AdministrationWorkspacePresenter
 
     public function sectionExists(string $section): bool
     {
-        return array_key_exists($section, $this->sectionDefinitions());
+        $definitions = $this->sectionDefinitions();
+
+        if (! array_key_exists($section, $definitions)) {
+            return false;
+        }
+
+        $alias = $definitions[$section]['alias_of'] ?? null;
+
+        if (is_string($alias) && $alias !== '') {
+            return array_key_exists($alias, $definitions);
+        }
+
+        return true;
+    }
+
+    public function resolveSectionKey(string $section): string
+    {
+        $definitions = $this->sectionDefinitions();
+        $alias = $definitions[$section]['alias_of'] ?? null;
+
+        return is_string($alias) && $alias !== '' ? $alias : $section;
     }
 
     /**
@@ -56,7 +76,7 @@ class AdministrationWorkspacePresenter
 
         return [
             'title' => __('Administration'),
-            'description' => __('Access control, organization structure, settings, and audit.'),
+            'description' => __('Security, organization, configuration, operations, and website.'),
             'icon' => 'shield-check',
             'items' => $items,
         ];
@@ -67,9 +87,10 @@ class AdministrationWorkspacePresenter
      */
     public function presentSection(string $section): ?array
     {
+        $section = $this->resolveSectionKey($section);
         $definition = $this->sectionDefinitions()[$section] ?? null;
 
-        if ($definition === null) {
+        if ($definition === null || ! empty($definition['alias_of'])) {
             return null;
         }
 

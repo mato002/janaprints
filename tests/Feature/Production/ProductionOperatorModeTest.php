@@ -34,23 +34,70 @@ class ProductionOperatorModeTest extends TestCase
         $this->assertFalse($admin->prefersProductionOperatorMode());
     }
 
-    public function test_operator_sidebar_only_shows_production_floor(): void
+    public function test_operator_sidebar_shows_permission_visible_workspaces(): void
     {
         $operator = $this->userWithRole('Production');
 
         $html = $this->actingAs($operator)
-            ->get(route('admin.production.floor', ['view' => 'queue']))
+            ->get(ProductionOperatorMode::homeUrl($operator))
             ->assertOk()
             ->getContent();
 
-        $this->assertStringContainsString('Production Floor', $html);
-        $this->assertStringNotContainsString('title="Sales"', $html);
-        $this->assertStringNotContainsString('title="Inventory"', $html);
-        $this->assertStringNotContainsString('title="Printing Intelligence"', $html);
-        $this->assertStringNotContainsString('title="Reports &amp; Intelligence"', $html);
-        $this->assertStringNotContainsString('title="Reports & Intelligence"', $html);
-        $this->assertStringNotContainsString('title="Assets"', $html);
-        $this->assertStringNotContainsString('title="Communications"', $html);
+        $this->assertStringContainsString('title="Production Floor"', $html);
+        $this->assertStringContainsString('title="Production"', $html);
+        $this->assertStringContainsString('title="Inventory"', $html);
+        // Production role has view access to these modules — sidebar must not hide them.
+        $this->assertStringContainsString('title="Sales"', $html);
+        $this->assertStringContainsString('title="Assets"', $html);
+        $this->assertStringContainsString('title="Printing Intelligence"', $html);
+        // No accounting / HR / administration view permissions on Production.
+        $this->assertStringNotContainsString('title="Accounting"', $html);
+        $this->assertStringNotContainsString('title="HR"', $html);
+        $this->assertStringNotContainsString('title="Administration"', $html);
+    }
+
+    public function test_operator_floor_exposes_request_materials_action(): void
+    {
+        $operator = $this->userWithRole('Production');
+
+        $this->actingAs($operator)
+            ->get(ProductionOperatorMode::homeUrl($operator))
+            ->assertOk()
+            ->assertSee(__('Request materials'), false)
+            ->assertSee(route('admin.procurement.requests.create', ['from' => 'production-floor'], false), false)
+            ->assertSee('>Request materials<', false);
+    }
+
+    public function test_operator_can_open_inventory_workspace(): void
+    {
+        $operator = $this->userWithRole('Production');
+
+        $this->actingAs($operator)
+            ->get(route('admin.workspaces.supply-chain'))
+            ->assertRedirect();
+
+        $this->actingAs($operator)
+            ->followingRedirects()
+            ->get(route('admin.workspaces.supply-chain'))
+            ->assertOk()
+            ->assertSee(__('Inventory'), false);
+    }
+
+    public function test_operator_can_open_procurement_buy_desk_with_requests_view(): void
+    {
+        $operator = $this->userWithRole('Production');
+
+        $this->actingAs($operator)
+            ->get(route('admin.procurement.desk', ['view' => 'requests']))
+            ->assertOk();
+
+        $this->actingAs($operator)
+            ->followingRedirects()
+            ->get(route('admin.workspaces.supply-chain.section', [
+                'section' => 'procurement',
+                'tab' => 'buy-desk',
+            ]))
+            ->assertOk();
     }
 
     public function test_production_operator_login_lands_on_floor(): void
@@ -79,12 +126,11 @@ class ProductionOperatorModeTest extends TestCase
     public function test_operator_floor_skips_module_desk_wrapper(): void
     {
         $operator = $this->userWithRole('Production');
-        $floorHome = ProductionOperatorMode::homeUrl();
+        $floorHome = ProductionOperatorMode::homeUrl($operator);
 
         $this->actingAs($operator)
             ->get($floorHome)
             ->assertOk()
-            ->assertSee(__('Operator mode'))
             ->assertSee(__('Operator Floor'));
     }
 
@@ -118,7 +164,7 @@ class ProductionOperatorModeTest extends TestCase
     public function test_operator_production_workspace_redirects_to_floor_without_loop(): void
     {
         $operator = $this->userWithRole('Production');
-        $floorHome = ProductionOperatorMode::homeUrl();
+        $floorHome = ProductionOperatorMode::homeUrl($operator);
 
         $this->actingAs($operator)
             ->get(route('admin.workspaces.production.section', [
@@ -132,6 +178,7 @@ class ProductionOperatorModeTest extends TestCase
             ->get($floorHome)
             ->assertOk();
 
+        // Multi-tab Production desk remains available with ?desk=1.
         $this->actingAs($operator)
             ->get(route('admin.workspaces.production', ['desk' => 1]))
             ->assertRedirect();
@@ -158,10 +205,10 @@ class ProductionOperatorModeTest extends TestCase
         ]);
 
         $this->actingAs($operator)
-            ->get(ProductionOperatorMode::homeUrl())
+            ->get(ProductionOperatorMode::homeUrl($operator))
             ->assertOk()
-            ->assertSee('data-erp-modal-open', false)
-            ->assertSee(__('Preview job'), false);
+            ->assertSee(__('Request materials'), false)
+            ->assertSee('data-erp-modal-open', false);
 
         $this->actingAs($operator)
             ->getJson(route('admin.production.floor.panel', $jobCard))

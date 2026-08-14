@@ -2,100 +2,137 @@
 
 /**
  * Administration workspace hub and section catalogs (presentation only).
- * Root hub shows six workspace cards; features live on section pages.
+ * Flat business areas — not the full permission/engine taxonomy.
  */
 return [
 
     'hub' => [
         [
-            'label' => 'Security & Access',
-            'description' => 'Identity, authentication, authorization and security controls.',
+            'label' => 'Security',
+            'description' => 'Users, roles, and access audit.',
             'route' => 'admin.workspaces.administration.section',
             'route_params' => ['section' => 'security-access'],
             'permission' => 'users.view|roles.view',
             'icon' => 'shield-check',
-            'active_routes' => ['admin.workspaces.administration.section:security-access', 'admin.users.*', 'admin.access-control.*', 'admin.roles.*', 'admin.permissions.*', 'admin.security.sessions.*', 'admin.security.audit.*'],
+            'active_routes' => [
+                'admin.workspaces.administration.section:security-access',
+                'admin.users.*',
+                'admin.access-control.*',
+                'admin.roles.*',
+                'admin.permissions.*',
+                'admin.security.sessions.*',
+                'admin.security.audit.*',
+            ],
         ],
         [
             'label' => 'Organization',
-            'description' => 'Organizational structure and workforce hierarchy.',
+            'description' => 'Company, branches, departments, and teams.',
             'route' => 'admin.workspaces.administration.section',
             'route_params' => ['section' => 'organization'],
             'permission' => 'companies.manage|branches.manage|departments.manage|organization.job_titles.view',
             'icon' => 'building',
-            'active_routes' => ['admin.workspaces.administration.section:organization', 'admin.companies.*', 'admin.branches.*', 'admin.departments.*', 'admin.job-titles.*'],
+            'active_routes' => [
+                'admin.workspaces.administration.section:organization',
+                'admin.companies.*',
+                'admin.branches.*',
+                'admin.departments.*',
+                'admin.job-titles.*',
+            ],
         ],
         [
             'label' => 'Configuration',
-            'description' => 'ERP-wide configuration and behavioral settings.',
+            'description' => 'System settings, numbering, and defaults.',
             'route' => 'admin.workspaces.administration.section',
             'route_params' => ['section' => 'configuration'],
             'permission' => 'settings.view',
             'icon' => 'cog',
-            'active_routes' => ['admin.workspaces.administration.section:configuration', 'admin.settings.index', 'admin.settings.show', 'admin.settings.update', 'admin.settings.branding.*', 'admin.settings.numbering.*', 'admin.settings.forms.*', 'admin.master-data.*'],
+            'active_routes' => [
+                'admin.workspaces.administration.section:configuration',
+                'admin.settings.index',
+                'admin.settings.show',
+                'admin.settings.update',
+                'admin.settings.branding.*',
+                'admin.settings.numbering.*',
+                'admin.settings.forms.*',
+                'admin.master-data.*',
+            ],
         ],
         [
-            'label' => 'Workflow & Governance',
-            'description' => 'Business governance and workflow automation.',
+            'label' => 'Operations',
+            'description' => 'Workflows, integrations, and system operations.',
             'route' => 'admin.workspaces.administration.section',
-            'route_params' => ['section' => 'workflow-governance'],
-            'permission' => 'settings.view',
-            'icon' => 'badge-check',
-            'active_routes' => ['admin.workspaces.administration.section:workflow-governance', 'admin.settings.approvals.*', 'admin.governance.chains.*', 'admin.governance.delegations.*', 'admin.governance.escalations.*', 'admin.governance.workflow-rules.*'],
-        ],
-        [
-            'label' => 'Integrations',
-            'description' => 'External system connectivity and communication channels.',
-            'route' => 'admin.workspaces.administration.section',
-            'route_params' => ['section' => 'integrations'],
-            'permission' => 'integrations.view|integrations.manage',
-            'icon' => 'switch-horizontal',
-            'active_routes' => ['admin.workspaces.administration.section:integrations', 'admin.integrations.*'],
-        ],
-        [
-            'label' => 'System Operations',
-            'description' => 'Monitoring, maintenance and operational controls.',
-            'route' => 'admin.workspaces.administration.section',
-            'route_params' => ['section' => 'system-operations'],
-            'permission' => 'activity_logs.view|operations.health.view|operations.jobs.view|operations.audit.view|operations.backups.view|operations.retention.view',
+            'route_params' => ['section' => 'operations'],
+            'permission' => 'settings.view|integrations.view|integrations.manage|activity_logs.view|operations.health.view|operations.jobs.view|operations.audit.view|operations.backups.view|operations.retention.view',
             'icon' => 'chip',
-            'active_routes' => ['admin.workspaces.administration.section:system-operations', 'admin.activity-logs.*', 'admin.operations.health.*', 'admin.operations.jobs.*', 'admin.operations.audit.*', 'admin.operations.backups.*', 'admin.operations.retention.*'],
+            'active_routes' => [
+                'admin.workspaces.administration.section:operations',
+                'admin.workspaces.administration.section:workflow-governance',
+                'admin.workspaces.administration.section:integrations',
+                'admin.workspaces.administration.section:system-operations',
+                'admin.settings.approvals.*',
+                'admin.governance.*',
+                'admin.integrations.*',
+                'admin.email-identity.*',
+                'admin.activity-logs.*',
+                'admin.operations.*',
+            ],
         ],
         [
-            'label' => 'Website Content',
-            'description' => 'Public storefront gallery, media library, footer/contact settings, and SEO defaults.',
+            'label' => 'Website',
+            'description' => 'Website content and commercial documents.',
             'route' => 'admin.workspaces.administration.section',
-            'route_params' => ['section' => 'website-content'],
-            'permission' => 'website.gallery.view|website.media.view|website.settings.view',
+            'route_params' => ['section' => 'website'],
+            'permission' => 'website.gallery.view|website.media.view|website.settings.view|documents.settings.view',
             'icon' => 'photograph',
-            'active_routes' => ['admin.workspaces.administration.section:website-content', 'admin.website.gallery.*', 'admin.website.media.*', 'admin.website.settings.*'],
-        ],
-        [
-            'label' => 'Commercial Documents',
-            'description' => 'Branding, payment instructions, terms, and footer text on quotations, invoices, and receipts.',
-            'route' => 'admin.workspaces.administration.section',
-            'route_params' => ['section' => 'commercial-documents'],
-            'permission' => 'documents.settings.view',
-            'icon' => 'document-text',
-            'active_routes' => ['admin.workspaces.administration.section:commercial-documents', 'admin.documents.settings.*'],
+            'active_routes' => [
+                'admin.workspaces.administration.section:website',
+                'admin.workspaces.administration.section:website-content',
+                'admin.workspaces.administration.section:commercial-documents',
+                'admin.website.gallery.*',
+                'admin.website.media.*',
+                'admin.website.settings.*',
+                'admin.documents.settings.*',
+            ],
         ],
     ],
 
     'sections' => [
 
         'security-access' => [
-            'title' => 'Security & Access',
-            'description' => 'Identity, authentication, authorization and security controls.',
+            'title' => 'Security',
+            'description' => 'Who can sign in, what they can access, and how access changes are audited.',
             'icon' => 'shield-check',
             'groups' => [
                 [
-                    'label' => 'Security & Access',
+                    'label' => 'Security',
                     'items' => [
-                        ['key' => 'users', 'label' => 'Users', 'description' => 'User accounts, branches, and role assignment.', 'route' => 'admin.users.index', 'permission' => 'users.view', 'icon' => 'users', 'keywords' => ['user', 'accounts', 'identity'], 'active_routes' => ['admin.users.*']],
-                        ['key' => 'roles', 'label' => 'Roles', 'description' => 'Security groups and role governance.', 'route' => 'admin.access-control.roles', 'permission' => 'roles.view', 'icon' => 'shield-check', 'active_routes' => ['admin.access-control.roles', 'admin.roles.*']],
-                        ['key' => 'permissions', 'label' => 'Permissions', 'description' => 'Permission matrix and access rights.', 'route' => 'admin.access-control.matrix', 'permission' => 'roles.view', 'icon' => 'key', 'active_routes' => ['admin.access-control.matrix', 'admin.permissions.*', 'admin.roles.permissions.*']],
-                        ['key' => 'user-sessions', 'label' => 'User Sessions', 'description' => 'Active sessions and sign-in activity.', 'route' => 'admin.security.sessions.index', 'permission' => 'security.sessions.view', 'icon' => 'clock', 'active_routes' => ['admin.security.sessions.*']],
-                        ['key' => 'access-audit', 'label' => 'Access Audit', 'description' => 'Authentication and authorization audit trail.', 'route' => 'admin.security.audit.index', 'permission' => 'security.audit.view', 'icon' => 'document-text', 'active_routes' => ['admin.security.audit.*']],
+                        [
+                            'key' => 'users',
+                            'label' => 'Users',
+                            'description' => 'Accounts, branches, and role assignment.',
+                            'route' => 'admin.users.index',
+                            'permission' => 'users.view',
+                            'icon' => 'users',
+                            'active_routes' => ['admin.users.*'],
+                        ],
+                        [
+                            'key' => 'roles',
+                            'label' => 'Roles',
+                            'description' => 'What each role can access across the business.',
+                            'route' => 'admin.access-control.roles',
+                            'permission' => 'roles.view',
+                            'icon' => 'shield-check',
+                            'active_routes' => ['admin.access-control.roles', 'admin.roles.*', 'admin.access-control.matrix', 'admin.permissions.*'],
+                        ],
+                        [
+                            'key' => 'access-audit',
+                            'label' => 'Access Audit',
+                            'description' => 'Authentication and authorization history.',
+                            'route' => 'admin.security.audit.index',
+                            'permission' => 'security.audit.view',
+                            'icon' => 'document-text',
+                            'active_routes' => ['admin.security.audit.*', 'admin.security.sessions.*'],
+                        ],
                     ],
                 ],
             ],
@@ -103,16 +140,16 @@ return [
 
         'organization' => [
             'title' => 'Organization',
-            'description' => 'Organizational structure and workforce hierarchy.',
+            'description' => 'Company structure and workforce hierarchy.',
             'icon' => 'building',
             'groups' => [
                 [
                     'label' => 'Organization',
                     'items' => [
-                        ['label' => 'Companies', 'description' => 'Legal entities and tenant companies.', 'route' => 'admin.companies.index', 'permission' => 'companies.manage', 'icon' => 'building', 'active_routes' => ['admin.companies.*']],
+                        ['label' => 'Company', 'description' => 'Legal entities and tenant companies.', 'route' => 'admin.companies.index', 'permission' => 'companies.manage', 'icon' => 'building', 'active_routes' => ['admin.companies.*']],
                         ['label' => 'Branches', 'description' => 'Branch locations and defaults.', 'route' => 'admin.branches.index', 'permission' => 'branches.manage', 'icon' => 'location-marker', 'active_routes' => ['admin.branches.*']],
                         ['label' => 'Departments', 'description' => 'Organizational units and hierarchy.', 'route' => 'admin.departments.index', 'permission' => 'departments.manage', 'icon' => 'view-grid', 'active_routes' => ['admin.departments.*']],
-                        ['label' => 'Job Titles', 'description' => 'Position titles and reporting structure.', 'route' => 'admin.job-titles.index', 'permission' => 'organization.job_titles.view', 'icon' => 'badge-check', 'active_routes' => ['admin.job-titles.*']],
+                        ['label' => 'Teams', 'description' => 'Position titles and reporting structure.', 'route' => 'admin.job-titles.index', 'permission' => 'organization.job_titles.view', 'icon' => 'badge-check', 'active_routes' => ['admin.job-titles.*']],
                     ],
                 ],
             ],
@@ -120,71 +157,58 @@ return [
 
         'configuration' => [
             'title' => 'Configuration',
-            'description' => 'ERP-wide configuration and behavioral settings.',
+            'description' => 'System behaviour, numbering, and shared defaults.',
             'icon' => 'cog',
             'groups' => [
                 [
                     'label' => 'Configuration',
                     'items' => [
-                        ['key' => 'system-settings', 'label' => 'System Settings', 'description' => 'Company-wide configuration and preferences.', 'route' => 'admin.settings.show', 'route_params' => ['section' => 'hub'], 'permission' => 'settings.view', 'icon' => 'cog', 'keywords' => ['settings', 'configuration', 'preferences', 'hub'], 'active_routes' => ['admin.settings.index', 'admin.settings.show', 'admin.settings.update', 'admin.settings.branding.*', 'admin.settings.company-email.*']],
-                        ['key' => 'number-series', 'label' => 'Number Series', 'description' => 'Document sequences, prefixes, and numbering rules.', 'route' => 'admin.settings.numbering.index', 'permission' => 'settings.view', 'icon' => 'template', 'keywords' => ['numbering', 'sequence', 'prefix'], 'active_routes' => ['admin.settings.numbering.*']],
-                        ['key' => 'form-controls', 'label' => 'Form Controls', 'description' => 'Required fields and form visibility rules.', 'route' => 'admin.settings.forms.index', 'permission' => 'settings.view', 'icon' => 'clipboard-list', 'keywords' => ['forms', 'fields', 'controls'], 'active_routes' => ['admin.settings.forms.*']],
-                        ['key' => 'master-data', 'label' => 'Master Data', 'description' => 'Shared reference data and lookup values.', 'route' => 'admin.master-data.index', 'permission' => 'configuration.master_data.view', 'icon' => 'template', 'active_routes' => ['admin.master-data.*']],
-                        ['key' => 'document-types', 'label' => 'Document Types', 'description' => 'Document classification and numbering profiles.', 'route' => 'admin.settings.document-types.index', 'permission' => 'configuration.document_types.view', 'icon' => 'document-text', 'active_routes' => ['admin.settings.document-types.*']],
+                        ['key' => 'system-settings', 'label' => 'System Settings', 'description' => 'Company-wide configuration and preferences.', 'route' => 'admin.settings.show', 'route_params' => ['section' => 'hub'], 'permission' => 'settings.view', 'icon' => 'cog', 'active_routes' => ['admin.settings.index', 'admin.settings.show', 'admin.settings.update', 'admin.settings.branding.*', 'admin.settings.company-email.*']],
+                        ['key' => 'business-settings', 'label' => 'Business Settings', 'description' => 'Required fields and form visibility rules.', 'route' => 'admin.settings.forms.index', 'permission' => 'settings.view', 'icon' => 'clipboard-list', 'active_routes' => ['admin.settings.forms.*']],
+                        ['key' => 'number-series', 'label' => 'Numbering', 'description' => 'Document sequences, prefixes, and numbering rules.', 'route' => 'admin.settings.numbering.index', 'permission' => 'settings.view', 'icon' => 'template', 'active_routes' => ['admin.settings.numbering.*']],
+                        ['key' => 'defaults', 'label' => 'Defaults', 'description' => 'Shared reference data and lookup values.', 'route' => 'admin.master-data.index', 'permission' => 'configuration.master_data.view', 'icon' => 'template', 'active_routes' => ['admin.master-data.*', 'admin.settings.document-types.*']],
                     ],
                 ],
             ],
         ],
 
-        'workflow-governance' => [
-            'title' => 'Workflow & Governance',
-            'description' => 'Business governance and workflow automation.',
-            'icon' => 'badge-check',
+        'operations' => [
+            'title' => 'Operations',
+            'description' => 'Workflows, integrations, and system operations.',
+            'icon' => 'chip',
+            // Card hub — do not flatten every feature into the secondary tab strip.
+            'presentation' => 'hub',
+            'hub_route' => 'admin.workspaces.administration.catalog',
+            'hub_route_params' => ['section' => 'operations'],
             'groups' => [
                 [
-                    'label' => 'Workflow & Governance',
+                    'label' => 'Workflows',
                     'items' => [
-                        ['key' => 'approval-rules', 'label' => 'Approval Rules', 'description' => 'Discount, credit, and workflow approvals.', 'route' => 'admin.settings.approvals.index', 'permission' => 'settings.view', 'icon' => 'badge-check', 'keywords' => ['approval', 'approvals'], 'active_routes' => ['admin.settings.approvals.*']],
-                        ['key' => 'approval-chains', 'label' => 'Approval Chains', 'description' => 'Multi-step approval sequences and sign-off paths.', 'route' => 'admin.governance.chains.index', 'permission' => 'governance.chains.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.governance.chains.*']],
-                        ['key' => 'workflow-rules', 'label' => 'Workflow Rules', 'description' => 'Automated business process triggers and actions.', 'route' => 'admin.governance.workflow-rules.index', 'permission' => 'governance.workflow.view', 'icon' => 'cog', 'active_routes' => ['admin.governance.workflow-rules.*']],
+                        ['key' => 'approval-rules', 'label' => 'Approval Rules', 'description' => 'Discount, credit, and workflow approvals.', 'route' => 'admin.settings.approvals.index', 'permission' => 'settings.view', 'icon' => 'badge-check', 'active_routes' => ['admin.settings.approvals.*']],
+                        ['key' => 'approval-chains', 'label' => 'Approval Chains', 'description' => 'Multi-step approval sequences.', 'route' => 'admin.governance.chains.index', 'permission' => 'governance.chains.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.governance.chains.*']],
+                        ['key' => 'workflow-rules', 'label' => 'Workflow Rules', 'description' => 'Automated process triggers and actions.', 'route' => 'admin.governance.workflow-rules.index', 'permission' => 'governance.workflow.view', 'icon' => 'cog', 'active_routes' => ['admin.governance.workflow-rules.*']],
                         ['key' => 'escalations', 'label' => 'Escalations', 'description' => 'Timeout rules and escalation routing.', 'route' => 'admin.governance.escalations.index', 'permission' => 'governance.escalations.view', 'icon' => 'exclamation', 'active_routes' => ['admin.governance.escalations.*']],
-                        ['key' => 'delegations', 'label' => 'Delegations', 'description' => 'Temporary approval authority and substitutes.', 'route' => 'admin.governance.delegations.index', 'permission' => 'governance.delegations.view', 'icon' => 'users', 'active_routes' => ['admin.governance.delegations.*']],
+                        ['key' => 'delegations', 'label' => 'Delegations', 'description' => 'Temporary approval authority.', 'route' => 'admin.governance.delegations.index', 'permission' => 'governance.delegations.view', 'icon' => 'users', 'active_routes' => ['admin.governance.delegations.*']],
                     ],
                 ],
-            ],
-        ],
-
-        'integrations' => [
-            'title' => 'Integrations',
-            'description' => 'External system connectivity and communication channels.',
-            'icon' => 'switch-horizontal',
-            'groups' => [
                 [
                     'label' => 'Integrations',
                     'items' => [
-                        ['label' => 'Email Identity', 'description' => 'Sender addresses, activation settings, and onboarding readiness.', 'route' => 'admin.email-identity.index', 'permission' => 'integrations.view|employees.manage|integrations.manage', 'icon' => 'inbox', 'active_routes' => ['admin.email-identity.*']],
-                        ['label' => 'Email Settings', 'description' => 'SMTP, delivery, and outbound email configuration.', 'route' => 'admin.integrations.email.index', 'permission' => 'integrations.view|integrations.email.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.email.*']],
+                        ['label' => 'Email Identity', 'description' => 'Sender addresses and onboarding readiness.', 'route' => 'admin.email-identity.index', 'permission' => 'integrations.view|employees.manage|integrations.manage', 'icon' => 'inbox', 'active_routes' => ['admin.email-identity.*']],
+                        ['label' => 'Email Settings', 'description' => 'SMTP and outbound email.', 'route' => 'admin.integrations.email.index', 'permission' => 'integrations.view|integrations.email.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.email.*']],
                         ['label' => 'SMS Settings', 'description' => 'SMS provider credentials and routing.', 'route' => 'admin.integrations.sms.index', 'permission' => 'integrations.view|integrations.sms.manage', 'icon' => 'inbox', 'active_routes' => ['admin.integrations.sms.*']],
                         ['label' => 'API Keys', 'description' => 'Developer keys and programmatic access.', 'route' => 'admin.integrations.api-keys.index', 'permission' => 'integrations.view|integrations.api.manage', 'icon' => 'key', 'active_routes' => ['admin.integrations.api-keys.*']],
-                        ['label' => 'Webhooks', 'description' => 'Outbound event subscriptions and callbacks.', 'route' => 'admin.integrations.webhooks.index', 'permission' => 'integrations.view|integrations.webhooks.manage', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.integrations.webhooks.*']],
-                        ['label' => 'Third Party Integrations', 'description' => 'Connectors for external business systems.', 'route' => 'admin.integrations.providers.index', 'permission' => 'integrations.view|integrations.providers.manage', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.integrations.providers.*']],
+                        ['label' => 'Webhooks', 'description' => 'Outbound event subscriptions.', 'route' => 'admin.integrations.webhooks.index', 'permission' => 'integrations.view|integrations.webhooks.manage', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.integrations.webhooks.*']],
+                        ['label' => 'Third Party Integrations', 'description' => 'Connectors for external systems.', 'route' => 'admin.integrations.providers.index', 'permission' => 'integrations.view|integrations.providers.manage', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.integrations.providers.*']],
                     ],
                 ],
-            ],
-        ],
-
-        'system-operations' => [
-            'title' => 'System Operations',
-            'description' => 'Monitoring, maintenance and operational controls.',
-            'icon' => 'chip',
-            'groups' => [
                 [
-                    'label' => 'System Operations',
+                    'label' => 'System',
                     'items' => [
+                        ['label' => 'System Health', 'description' => 'Service status and queues.', 'route' => 'admin.operations.health.index', 'permission' => 'operations.health.view', 'icon' => 'chip', 'active_routes' => ['admin.operations.health.*']],
+                        ['label' => 'Background Jobs', 'description' => 'Queued tasks and schedules.', 'route' => 'admin.operations.jobs.index', 'permission' => 'operations.jobs.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.operations.jobs.*']],
+                        ['label' => 'Activity Logs', 'description' => 'User and system activity trail.', 'route' => 'admin.activity-logs.index', 'permission' => 'activity_logs.view', 'icon' => 'clock', 'active_routes' => ['admin.activity-logs.*']],
                         ['label' => 'Audit Logs', 'description' => 'Compliance-grade audit records.', 'route' => 'admin.operations.audit.index', 'permission' => 'operations.audit.view', 'icon' => 'document-text', 'active_routes' => ['admin.operations.audit.*']],
-                        ['label' => 'Activity Logs', 'description' => 'User actions and system activity trail.', 'route' => 'admin.activity-logs.index', 'permission' => 'activity_logs.view', 'icon' => 'clock', 'active_routes' => ['admin.activity-logs.*']],
-                        ['label' => 'Background Jobs', 'description' => 'Queued tasks and scheduled job monitoring.', 'route' => 'admin.operations.jobs.index', 'permission' => 'operations.jobs.view', 'icon' => 'switch-horizontal', 'active_routes' => ['admin.operations.jobs.*']],
-                        ['label' => 'System Health', 'description' => 'Service status, queues, and performance metrics.', 'route' => 'admin.operations.health.index', 'permission' => 'operations.health.view', 'icon' => 'chip', 'active_routes' => ['admin.operations.health.*']],
                         ['label' => 'Backups', 'description' => 'Database and file backup schedules.', 'route' => 'admin.operations.backups.index', 'permission' => 'operations.backups.view', 'icon' => 'archive', 'active_routes' => ['admin.operations.backups.*']],
                         ['label' => 'Data Retention', 'description' => 'Archive policies and purge rules.', 'route' => 'admin.operations.retention.index', 'permission' => 'operations.retention.view', 'icon' => 'archive', 'active_routes' => ['admin.operations.retention.*']],
                     ],
@@ -192,22 +216,33 @@ return [
             ],
         ],
 
-        'commercial-documents' => [
-            'title' => 'Commercial Documents',
-            'description' => 'Configure quotation, invoice, and receipt branding without editing environment files.',
-            'icon' => 'document-text',
+        'website' => [
+            'title' => 'Website',
+            'description' => 'Public website content and commercial document branding.',
+            'icon' => 'photograph',
+            'presentation' => 'hub',
+            'hub_route' => 'admin.workspaces.administration.catalog',
+            'hub_route_params' => ['section' => 'website'],
             'groups' => [
                 [
-                    'label' => 'Document Branding',
+                    'label' => 'Website Content',
+                    'items' => [
+                        ['key' => 'gallery', 'label' => 'Gallery', 'description' => 'Portfolio projects on the public site.', 'route' => 'admin.website.gallery.index', 'permission' => 'website.gallery.view', 'icon' => 'photograph', 'active_routes' => ['admin.website.gallery.*']],
+                        ['key' => 'media-library', 'label' => 'Media Library', 'description' => 'Homepage, service, team, and testimonial images.', 'route' => 'admin.website.media.index', 'permission' => 'website.media.view', 'icon' => 'collection', 'active_routes' => ['admin.website.media.*']],
+                        ['key' => 'footer-contact', 'label' => 'Footer & Contact', 'description' => 'Phone, email, WhatsApp, map, and social links.', 'route' => 'admin.website.settings.footer-contact', 'permission' => 'website.settings.view', 'icon' => 'document-text', 'active_routes' => ['admin.website.settings.footer-contact', 'admin.website.settings.footer-contact.update', 'admin.website.settings.reset']],
+                        ['key' => 'seo-global', 'label' => 'SEO / Global', 'description' => 'Site name, tagline, and default meta.', 'route' => 'admin.website.settings.seo-global', 'permission' => 'website.settings.view', 'icon' => 'globe-alt', 'active_routes' => ['admin.website.settings.seo-global', 'admin.website.settings.seo-global.update', 'admin.website.settings.reset']],
+                    ],
+                ],
+                [
+                    'label' => 'Commercial',
                     'items' => [
                         [
                             'key' => 'document-settings',
-                            'label' => 'Document Settings',
-                            'description' => 'Company details, M-Pesa and bank instructions, terms, footer messages, and tax label.',
+                            'label' => 'Commercial Documents',
+                            'description' => 'Quotation, invoice, and receipt branding.',
                             'route' => 'admin.documents.settings.index',
                             'permission' => 'documents.settings.view',
                             'icon' => 'document-text',
-                            'keywords' => ['invoice', 'quotation', 'receipt', 'payment', 'mpesa', 'bank', 'footer', 'terms'],
                             'active_routes' => ['admin.documents.settings.index', 'admin.documents.settings.update', 'admin.documents.settings.reset'],
                         ],
                     ],
@@ -215,59 +250,38 @@ return [
             ],
         ],
 
-        'website-content' => [
-            'title' => 'Website Content',
-            'description' => 'Manage the public storefront gallery, image slots, footer/contact details, and SEO defaults.',
-            'icon' => 'photograph',
-            'groups' => [
-                [
-                    'label' => 'Public Website',
-                    'items' => [
-                        [
-                            'key' => 'gallery',
-                            'label' => 'Gallery',
-                            'description' => 'Manage portfolio projects shown on the public gallery and homepage recent work preview.',
-                            'route' => 'admin.website.gallery.index',
-                            'permission' => 'website.gallery.view',
-                            'icon' => 'photograph',
-                            'keywords' => ['gallery', 'portfolio', 'projects', 'recent work'],
-                            'active_routes' => ['admin.website.gallery.*'],
-                        ],
-                        [
-                            'key' => 'media-library',
-                            'label' => 'Media Library',
-                            'description' => 'Manage homepage, service, team, workflow and testimonial images.',
-                            'route' => 'admin.website.media.index',
-                            'permission' => 'website.media.view',
-                            'icon' => 'collection',
-                            'keywords' => ['media', 'images', 'hero', 'services', 'team'],
-                            'active_routes' => ['admin.website.media.*'],
-                        ],
-                        [
-                            'key' => 'footer-contact',
-                            'label' => 'Footer & Contact Settings',
-                            'description' => 'Manage phone, email, address, WhatsApp, business hours, map and social links.',
-                            'route' => 'admin.website.settings.footer-contact',
-                            'permission' => 'website.settings.view',
-                            'icon' => 'document-text',
-                            'keywords' => ['footer', 'contact', 'whatsapp', 'map', 'social'],
-                            'active_routes' => ['admin.website.settings.footer-contact', 'admin.website.settings.footer-contact.update', 'admin.website.settings.reset'],
-                        ],
-                        [
-                            'key' => 'seo-global',
-                            'label' => 'SEO / Global Settings',
-                            'description' => 'Manage site name, tagline, default title, description and OG image path.',
-                            'route' => 'admin.website.settings.seo-global',
-                            'permission' => 'website.settings.view',
-                            'icon' => 'globe-alt',
-                            'keywords' => ['seo', 'meta', 'og image', 'global'],
-                            'active_routes' => ['admin.website.settings.seo-global', 'admin.website.settings.seo-global.update', 'admin.website.settings.reset'],
-                        ],
-                    ],
-                ],
-            ],
+        // Legacy section keys — keep for deep links / bookmarks; same catalogs as Operations / Website.
+        'workflow-governance' => [
+            'title' => 'Operations',
+            'description' => 'Workflows, integrations, and system operations.',
+            'icon' => 'chip',
+            'groups' => [], // filled at boot via alias — see AdministrationWorkspacePresenter
+            'alias_of' => 'operations',
         ],
-
+        'integrations' => [
+            'title' => 'Operations',
+            'description' => 'Workflows, integrations, and system operations.',
+            'icon' => 'chip',
+            'alias_of' => 'operations',
+        ],
+        'system-operations' => [
+            'title' => 'Operations',
+            'description' => 'Workflows, integrations, and system operations.',
+            'icon' => 'chip',
+            'alias_of' => 'operations',
+        ],
+        'website-content' => [
+            'title' => 'Website',
+            'description' => 'Public website content and commercial document branding.',
+            'icon' => 'photograph',
+            'alias_of' => 'website',
+        ],
+        'commercial-documents' => [
+            'title' => 'Website',
+            'description' => 'Public website content and commercial document branding.',
+            'icon' => 'photograph',
+            'alias_of' => 'website',
+        ],
     ],
 
 ];

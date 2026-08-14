@@ -46,7 +46,7 @@ return [
             'description' => 'Buy desk — requests, suppliers, RFQs, orders, and receipts.',
             'route' => 'admin.workspaces.supply-chain.section',
             'route_params' => ['section' => 'procurement'],
-            'permission' => 'procurement.vendors.view',
+            'permission' => 'procurement.vendors.view|procurement.requests.view',
             'icon' => 'truck',
             'active_routes' => ['admin.workspaces.supply-chain.section:procurement', 'admin.procurement.*'],
         ],
@@ -281,7 +281,7 @@ return [
             'description' => 'Buy desk for requests, sourcing, orders, and receipts. Supplier performance lives under Reports.',
             'icon' => 'truck',
             'quick_actions' => [
-                ['label' => 'Open Buy Desk', 'route' => 'admin.workspaces.supply-chain.section', 'route_params' => ['section' => 'procurement', 'tab' => 'buy-desk'], 'permission' => 'procurement.vendors.view'],
+                ['label' => 'Open Buy Desk', 'route' => 'admin.workspaces.supply-chain.section', 'route_params' => ['section' => 'procurement', 'tab' => 'buy-desk'], 'permission' => 'procurement.vendors.view|procurement.requests.view'],
                 ['label' => 'New Request', 'route' => 'admin.procurement.requests.create', 'permission' => 'procurement.requests.create'],
                 ['label' => 'New Supplier', 'route' => 'admin.procurement.vendors.create', 'permission' => 'procurement.vendors.create'],
             ],
@@ -295,7 +295,7 @@ return [
                             'description' => 'Requests, suppliers, RFQs, orders, receipts, and approvals — one buying command center.',
                             'route' => 'admin.workspaces.supply-chain.section',
                             'route_params' => ['section' => 'procurement', 'tab' => 'buy-desk'],
-                            'permission' => 'procurement.vendors.view',
+                            'permission' => 'procurement.vendors.view|procurement.requests.view',
                             'icon' => 'truck',
                             'active_routes' => [
                                 'admin.procurement.desk',
@@ -342,6 +342,7 @@ return [
                                     'label' => 'Suppliers',
                                     'route' => 'admin.procurement.desk',
                                     'route_params' => ['view' => 'suppliers'],
+                                    'permission' => 'procurement.vendors.view',
                                     'active_routes' => ['admin.procurement.vendors.*'],
                                 ],
                                 [

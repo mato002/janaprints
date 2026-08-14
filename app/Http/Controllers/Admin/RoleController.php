@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\Concerns\ExportsTabularIndex;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\AccessControl\PermissionCatalog;
+use App\Support\AccessControl\RoleAccessWorkspace;
 use App\Support\AccessControl\RoleDeactivationRegistry;
 use App\Support\AccessControl\RoleGovernancePresenter;
 use App\Support\ActivityLogger;
@@ -41,8 +42,6 @@ class RoleController extends Controller
 
         return view('admin.roles.index', [
             'roles' => $roles,
-            'panel' => $this->governance->governancePanel(),
-            'insights' => $this->governance->governanceInsights(),
             'profiles' => $this->governance->profilesForPage($roles, $usersByRole),
         ]);
     }
@@ -138,6 +137,7 @@ class RoleController extends Controller
             'role' => $role,
             'assignedUsers' => $assignedUsers,
             'workspace' => $this->catalog->workspacePayload($assigned),
+            'access' => app(RoleAccessWorkspace::class)->payload($assigned),
             'roleSummary' => $this->catalog->roleSummaryStats($assigned),
             'canAssignPermissions' => auth()->user()->can('assignPermissions', $role),
             'canUpdate' => auth()->user()->can('update', $role),

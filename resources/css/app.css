@@ -1073,6 +1073,30 @@ body.erp-navigating {
         @apply text-xs;
     }
 
+    .role-module-matrix {
+        @apply gap-px rounded-md border border-erp-border bg-erp-border;
+    }
+
+    .role-module-matrix__cell {
+        @apply bg-white px-3 py-2.5 text-sm text-erp-primary;
+    }
+
+    .role-module-matrix__cell--head {
+        @apply bg-slate-50 text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .role-module-matrix__cell--center {
+        @apply text-center;
+    }
+
+    .role-module-matrix__section {
+        @apply bg-slate-50 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .role-module-matrix__advanced {
+        @apply bg-slate-50/90 px-4 py-3;
+    }
+
     .permission-matrix-grid-row {
         @apply grid border-b border-erp-border bg-white;
     }
@@ -7292,6 +7316,130 @@ body.erp-navigating {
 
     .job-360-materials__table {
         @apply lg:col-span-12;
+    }
+
+    .inv-product {
+        @apply space-y-4;
+    }
+
+    .inv-product__header {
+        @apply mb-2 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between;
+    }
+
+    .inv-product__eyebrow {
+        @apply text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+    }
+
+    .inv-product__title-row {
+        @apply mt-1 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between;
+    }
+
+    .inv-product__title {
+        @apply text-dashboard-title text-erp-primary truncate;
+    }
+
+    .inv-product__sku {
+        @apply mt-0.5 font-mono text-sm text-slate-500;
+    }
+
+    .inv-product__path {
+        @apply mt-1 text-sm text-slate-600;
+    }
+
+    .inv-product__summary {
+        @apply flex shrink-0 flex-wrap items-center gap-3 lg:flex-col lg:items-end lg:gap-2;
+    }
+
+    .inv-product__stock {
+        @apply text-right;
+    }
+
+    .inv-product__stock-label {
+        @apply block text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .inv-product__stock-value {
+        @apply text-sm font-semibold text-slate-900;
+    }
+
+    .inv-product__actions {
+        @apply flex shrink-0 flex-wrap items-center gap-2;
+    }
+
+    .inv-product__workspace {
+        @apply grid grid-cols-1 gap-4 xl:grid-cols-12 xl:items-start;
+    }
+
+    .inv-product__details {
+        @apply xl:col-span-7;
+    }
+
+    .inv-product__media {
+        @apply xl:col-span-5;
+    }
+
+    .inv-product__panel {
+        @apply w-full;
+    }
+
+    .inv-product__section-title {
+        @apply mb-3 text-xs font-semibold uppercase tracking-wide text-erp-primary;
+    }
+
+    .inv-product__subsection-title {
+        @apply mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-slate-700;
+    }
+
+    .inv-product__attr-grid {
+        @apply grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3;
+    }
+
+    .inv-product__attr-grid--metrics {
+        @apply sm:grid-cols-2 lg:grid-cols-4;
+    }
+
+    .inv-product__attr-grid dt {
+        @apply text-[10px] font-semibold uppercase tracking-wide text-slate-500;
+    }
+
+    .inv-product__attr-grid dd {
+        @apply mt-0.5 text-sm font-medium text-slate-900;
+    }
+
+    .inv-product__dropzone {
+        @apply flex cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/80 px-4 py-8 text-center transition hover:border-erp-accent/50 hover:bg-erp-accent/5;
+    }
+
+    .inv-product__dropzone-icon {
+        @apply mb-2 text-slate-400;
+    }
+
+    .inv-product__dropzone-title {
+        @apply text-sm font-semibold text-slate-800;
+    }
+
+    .inv-product__dropzone-hint {
+        @apply mt-1 max-w-xs text-xs text-slate-500;
+    }
+
+    .inv-product__thumbs {
+        @apply mt-4 grid grid-cols-2 gap-3;
+    }
+
+    .inv-product__thumb {
+        @apply rounded-md border border-erp-border bg-white p-2;
+    }
+
+    .inv-product__thumb-img {
+        @apply aspect-square w-full rounded object-cover;
+    }
+
+    .inv-product__thumb-actions {
+        @apply mt-2 flex flex-wrap items-center gap-1;
+    }
+
+    .inv-product__media-empty {
+        @apply col-span-2 rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-3 py-4 text-center text-xs text-slate-500;
     }
 
     .job-360-zone {

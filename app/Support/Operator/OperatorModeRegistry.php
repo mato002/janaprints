@@ -35,6 +35,8 @@ final class OperatorModeRegistry
                 homeRoute: 'admin.production.floor',
                 fromKey: 'production-floor',
                 returnQueryFlag: 'production_floor_return',
+                // Home stays Production Floor. Sidebar keeps permission-visible workspaces
+                // (Production, Inventory, …) so hubs can show permitted tables.
                 navRemap: [
                     'dashboard' => [
                         'label' => 'Production Floor',
@@ -51,29 +53,8 @@ final class OperatorModeRegistry
                             'admin.production.outputs.*',
                         ],
                     ],
-                    'production' => [
-                        'label' => 'Production Floor',
-                        'route' => 'admin.production.floor',
-                        'route_params' => ['view' => 'queue'],
-                        'icon' => 'cog',
-                        'active_routes' => [
-                            'admin.workspaces.production.section:operations',
-                            'admin.production.floor',
-                            'admin.production.home',
-                            'admin.production.floor.*',
-                            'admin.production.job-cards.*',
-                            'admin.production.queue.*',
-                            'admin.production.outputs.*',
-                        ],
-                    ],
                 ],
                 homeRouteParams: ['view' => 'queue'],
-                sidebarAllowedRoutes: [
-                    'admin.production.floor',
-                    'admin.production.home',
-                    'admin.workspaces.production',
-                    'admin.workspaces.production.section',
-                ],
             ),
             new OperatorModeDefinition(
                 key: OperatorModeKey::Designer,

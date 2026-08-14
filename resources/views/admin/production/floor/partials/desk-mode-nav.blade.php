@@ -70,33 +70,59 @@
 
 @if ($modes->count() > 1)
     @if ($persona->usesDepartmentOperationsModes())
-        <nav class="production-floor-dept-segments" aria-label="{{ __('Production floor modes') }}">
-            @foreach ($modes as $mode)
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <nav class="production-floor-dept-segments" aria-label="{{ __('Production floor modes') }}">
+                @foreach ($modes as $mode)
+                    <a
+                        href="{{ WorkspaceEmbed::url($mode['url']) }}"
+                        @class([
+                            'production-floor-dept-segment',
+                            'production-floor-dept-segment--'.$mode['key'] => filled($mode['key'] ?? null),
+                            'production-floor-dept-segment--active' => $mode['active'] ?? ($mode['key'] === $active),
+                        ])
+                        data-turbo-frame="{{ $frame }}"
+                        data-turbo-action="advance"
+                    >{{ $mode['label'] }}</a>
+                @endforeach
+            </nav>
+            @can('create', \App\Models\Procurement\PurchaseRequest::class)
                 <a
-                    href="{{ WorkspaceEmbed::url($mode['url']) }}"
-                    @class([
-                        'production-floor-dept-segment',
-                        'production-floor-dept-segment--'.$mode['key'] => filled($mode['key'] ?? null),
-                        'production-floor-dept-segment--active' => $mode['active'] ?? ($mode['key'] === $active),
-                    ])
-                    data-turbo-frame="{{ $frame }}"
-                    data-turbo-action="advance"
-                >{{ $mode['label'] }}</a>
-            @endforeach
-        </nav>
+                    href="{{ route('admin.procurement.requests.create', ['from' => 'production-floor']) }}"
+                    class="erp-btn-secondary text-sm"
+                    data-erp-modal-open
+                >{{ __('Request materials') }}</a>
+            @endcan
+        </div>
     @else
-        <nav class="workspace-context-tabs" aria-label="{{ __('Production floor modes') }}">
-            @foreach ($modes as $mode)
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <nav class="workspace-context-tabs" aria-label="{{ __('Production floor modes') }}">
+                @foreach ($modes as $mode)
+                    <a
+                        href="{{ WorkspaceEmbed::url($mode['url']) }}"
+                        @class([
+                            'workspace-context-tab',
+                            'workspace-context-tab--active' => $mode['active'] ?? ($mode['key'] === $active),
+                        ])
+                        data-turbo-frame="{{ $frame }}"
+                        data-turbo-action="advance"
+                    >{{ $mode['label'] }}</a>
+                @endforeach
+            </nav>
+            @can('create', \App\Models\Procurement\PurchaseRequest::class)
                 <a
-                    href="{{ WorkspaceEmbed::url($mode['url']) }}"
-                    @class([
-                        'workspace-context-tab',
-                        'workspace-context-tab--active' => $mode['active'] ?? ($mode['key'] === $active),
-                    ])
-                    data-turbo-frame="{{ $frame }}"
-                    data-turbo-action="advance"
-                >{{ $mode['label'] }}</a>
-            @endforeach
-        </nav>
+                    href="{{ route('admin.procurement.requests.create', ['from' => 'production-floor']) }}"
+                    class="erp-btn-secondary text-sm"
+                    data-erp-modal-open
+                >{{ __('Request materials') }}</a>
+            @endcan
+        </div>
     @endif
+@elseif ($user?->can('create', \App\Models\Procurement\PurchaseRequest::class))
+    <div class="mb-2 flex justify-end">
+        <a
+            href="{{ route('admin.procurement.requests.create', ['from' => 'production-floor']) }}"
+            class="erp-btn-secondary text-sm"
+            data-erp-modal-open
+        >{{ __('Request materials') }}</a>
+    </div>
 @endif

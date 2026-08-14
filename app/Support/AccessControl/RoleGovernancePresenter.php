@@ -209,6 +209,10 @@ class RoleGovernancePresenter
             'modules_display' => $moduleLabels !== []
                 ? implode(' • ', $moduleLabels)
                 : __('None'),
+            'access_summary' => app(RoleAccessWorkspace::class)->summarizeAccess(
+                $moduleLabels,
+                count($moduleCoverage),
+            ),
             'module_coverage' => $moduleCoverage,
             'users_count' => $role->users_count,
             'permissions_count' => $role->permissions_count,

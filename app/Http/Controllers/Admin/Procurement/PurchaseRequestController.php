@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Procurement;
 
 use App\Enums\DocumentType;
 use App\Enums\PurchaseRequestStatus;
+use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use App\Http\Controllers\Admin\Procurement\Concerns\ResolvesProcurementTenant;
 use App\Http\Controllers\Controller;
@@ -13,15 +14,17 @@ use App\Models\Procurement\PurchaseRequest;
 use App\Models\Procurement\Vendor;
 use App\Support\Procurement\PurchaseRequestService;
 use App\Support\Procurement\ProcurementDeskViews;
+use App\Support\Production\ProductionOperatorMode;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class PurchaseRequestController extends Controller
 {
-    use ResolvesProcurementTenant, ScopesToTenant;
+    use HandlesModalFormResponses, ResolvesProcurementTenant, ScopesToTenant;
 
     public function index(): RedirectResponse
     {
@@ -34,10 +37,12 @@ class PurchaseRequestController extends Controller
     {
         $this->authorize('create', PurchaseRequest::class);
 
-        return view('admin.procurement.requests.create', $this->formMeta());
+        return view('admin.procurement.requests.create', array_merge($this->formMeta(), [
+            'purchaseRequest' => null,
+        ]));
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request): RedirectResponse|Response
     {
         $this->authorize('create', PurchaseRequest::class);
 
@@ -58,7 +63,11 @@ class PurchaseRequestController extends Controller
             $purchaseRequest->items()->create($line);
         }
 
-        return redirect()->route('admin.procurement.requests.show', $purchaseRequest)->with('status', __('Purchase request created.'));
+        $redirect = $request->input('from') === 'production-floor'
+            ? redirect()->to(ProductionOperatorMode::homeUrl())
+            : redirect()->route('admin.procurement.requests.show', $purchaseRequest);
+
+        return $this->modalOrRedirect(__('Purchase request created.'), $redirect);
     }
 
     public function show(PurchaseRequest $request): View

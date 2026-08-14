@@ -6948,6 +6948,256 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('roleAccessList', () => ({
+        query: '',
+
+        matches(text) {
+            if (! this.query.trim()) {
+                return true;
+            }
+
+            return String(text).toLowerCase().includes(this.query.trim().toLowerCase());
+        },
+    }));
+
+    Alpine.data('roleAccessWorkspace', (config = {}) => ({
+        modules: Array.isArray(config.modules) ? config.modules : [],
+        columns: Array.isArray(config.columns) ? config.columns : [],
+        granted: new Set(Array.isArray(config.granted) ? config.granted : []),
+        uncatalogued: Array.isArray(config.uncatalogued) ? config.uncatalogued : [],
+        editable: Boolean(config.editable),
+        roleName: config.roleName || '',
+        activeModule: null,
+        moduleQuery: '',
+        capabilityQuery: '',
+        expanded: {},
+        snapshotBeforeFull: null,
+        accessLevelChoice: null,
+
+        init() {
+            if (config.initialModule) {
+                this.openModule(config.initialModule);
+            }
+        },
+
+        get grantedList() {
+            return Array.from(this.granted);
+        },
+
+        get matrixLocked() {
+            if (! this.activeModule) {
+                return true;
+            }
+
+            if (this.accessLevelChoice === 'none') {
+                return true;
+            }
+
+            if (this.accessLevelChoice === 'custom' || this.accessLevelChoice === 'full') {
+                return false;
+            }
+
+            return this.moduleStatus(this.activeModule) === 'none';
+        },
+
+        get filteredModules() {
+            const query = this.moduleQuery.trim().toLowerCase();
+            if (! query) {
+                return this.modules;
+            }
+
+            return this.modules.filter((module) => String(module.label).toLowerCase().includes(query));
+        },
+
+        get matrixGridStyle() {
+            const count = Math.max(this.columns.length, 1);
+
+            return `display: grid; grid-template-columns: minmax(14rem, 1.6fr) repeat(${count}, 4.5rem);`;
+        },
+
+        get matrixRows() {
+            if (! this.activeModule) {
+                return [];
+            }
+
+            const query = this.capabilityQuery.trim().toLowerCase();
+            const rows = [];
+
+            (this.activeModule.sections || []).forEach((section) => {
+                const capabilities = (section.capabilities || []).filter((capability) => {
+                    if (! query) {
+                        return true;
+                    }
+
+                    const haystack = [
+                        capability.label,
+                        ...(capability.advanced || []).map((action) => action.label),
+                    ].join(' ').toLowerCase();
+
+                    return haystack.includes(query);
+                });
+
+                if (capabilities.length === 0) {
+                    return;
+                }
+
+                if (this.activeModule.show_section_headers) {
+                    rows.push({
+                        rowKey: `section-${section.key}`,
+                        type: 'section',
+                        label: section.label,
+                    });
+                }
+
+                capabilities.forEach((capability) => {
+                    rows.push({
+                        rowKey: `cap-${capability.key}`,
+                        type: 'capability',
+                        key: capability.key,
+                        label: capability.label,
+                        cells: capability.cells || {},
+                        advanced: capability.advanced || [],
+                    });
+
+                    if (this.isExpanded(capability.key) && (capability.advanced || []).length) {
+                        rows.push({
+                            rowKey: `adv-${capability.key}`,
+                            type: 'advanced',
+                            advanced: capability.advanced || [],
+                        });
+                    }
+                });
+            });
+
+            return rows;
+        },
+
+        openModule(key) {
+            this.activeModule = this.modules.find((module) => module.key === key) || null;
+            this.capabilityQuery = '';
+            this.expanded = {};
+            this.snapshotBeforeFull = null;
+            this.accessLevelChoice = this.activeModule
+                ? this.moduleStatus(this.activeModule)
+                : null;
+
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', 'modules');
+            if (key) {
+                url.searchParams.set('module', key);
+            } else {
+                url.searchParams.delete('module');
+            }
+            window.history.replaceState({}, '', url);
+        },
+
+        closeModule() {
+            this.activeModule = null;
+            this.accessLevelChoice = null;
+            const url = new URL(window.location.href);
+            url.searchParams.set('tab', 'modules');
+            url.searchParams.delete('module');
+            window.history.replaceState({}, '', url);
+        },
+
+        moduleStatus(module) {
+            const permissions = module?.permissions || [];
+            if (permissions.length === 0) {
+                return 'none';
+            }
+
+            let enabled = 0;
+            permissions.forEach((permission) => {
+                if (this.granted.has(permission)) {
+                    enabled += 1;
+                }
+            });
+
+            if (enabled === 0) {
+                return 'none';
+            }
+
+            return enabled >= permissions.length ? 'full' : 'partial';
+        },
+
+        moduleCounts(module) {
+            const permissions = module?.permissions || [];
+            let enabled = 0;
+            permissions.forEach((permission) => {
+                if (this.granted.has(permission)) {
+                    enabled += 1;
+                }
+            });
+
+            return `${enabled} / ${permissions.length}`;
+        },
+
+        isGranted(permission) {
+            return permission ? this.granted.has(permission) : false;
+        },
+
+        setGranted(permission, enabled) {
+            if (! this.editable || ! permission || this.matrixLocked) {
+                return;
+            }
+
+            if (enabled) {
+                this.granted.add(permission);
+            } else {
+                this.granted.delete(permission);
+            }
+
+            this.granted = new Set(this.granted);
+            this.snapshotBeforeFull = null;
+            this.accessLevelChoice = this.moduleStatus(this.activeModule) === 'full' ? 'full' : 'custom';
+        },
+
+        setAccessLevel(level) {
+            if (! this.editable || ! this.activeModule) {
+                return;
+            }
+
+            const permissions = this.activeModule.permissions || [];
+            this.accessLevelChoice = level === 'partial' ? 'custom' : level;
+
+            if (level === 'none') {
+                permissions.forEach((permission) => this.granted.delete(permission));
+                this.granted = new Set(this.granted);
+                this.snapshotBeforeFull = null;
+
+                return;
+            }
+
+            if (level === 'full') {
+                if (this.moduleStatus(this.activeModule) !== 'full') {
+                    this.snapshotBeforeFull = permissions.filter((permission) => this.granted.has(permission));
+                }
+                permissions.forEach((permission) => this.granted.add(permission));
+                this.granted = new Set(this.granted);
+
+                return;
+            }
+
+            // Custom: unlock matrix. If currently full and we have a snapshot, restore it.
+            if (this.moduleStatus(this.activeModule) === 'full' && Array.isArray(this.snapshotBeforeFull)) {
+                permissions.forEach((permission) => this.granted.delete(permission));
+                this.snapshotBeforeFull.forEach((permission) => this.granted.add(permission));
+                this.granted = new Set(this.granted);
+            }
+        },
+
+        isExpanded(key) {
+            return Boolean(this.expanded[key]);
+        },
+
+        toggleExpanded(key) {
+            this.expanded = {
+                ...this.expanded,
+                [key]: ! this.expanded[key],
+            };
+        },
+    }));
+
     Alpine.data('roleGovernanceDashboard', () => ({
         query: '',
         drawerOpen: false,

@@ -579,6 +579,7 @@ class ModuleShellPresenter
         $contextWorkspaces = $activeSecondary['modes'] ?? [];
         $activeContext = $this->resolveActiveContext($contextWorkspaces, $this->resolveContextModeKey($request));
         $contentUrl = ($activeContext['content_href'] ?? null)
+            ?? $this->resolveHubSectionFeatureContentUrl($catalog, $activePrimary, $tabKey, $module, $moduleKey)
             ?? $this->resolveContentUrl($activeSecondary)
             ?? $this->resolveSectionHubContentUrl($catalog, $activePrimary)
             ?? $this->resolvePrimaryContentUrl($catalog, $activePrimary, $module);
@@ -1216,6 +1217,47 @@ class ModuleShellPresenter
 
         // Never fall back to the desk href — frame src must stay on embedded feature URLs.
         return $activeSecondary['content_href'] ?? null;
+    }
+
+    /**
+     * Hub sections keep features off the tab strip. A ?tab=feature-key still embeds that feature.
+     *
+     * @param  array<string, mixed>  $catalog
+     * @param  array<string, mixed>|null  $activePrimary
+     * @param  array<string, mixed>|null  $module
+     */
+    protected function resolveHubSectionFeatureContentUrl(
+        array $catalog,
+        ?array $activePrimary,
+        ?string $tabKey,
+        ?array $module = null,
+        ?string $moduleKey = null,
+    ): ?string {
+        if ($activePrimary === null || $tabKey === null || $tabKey === '') {
+            return null;
+        }
+
+        $section = $catalog['sections'][$activePrimary['key'] ?? ''] ?? null;
+
+        if ($section === null || ($section['presentation'] ?? '') !== 'hub') {
+            return null;
+        }
+
+        foreach ($section['groups'] ?? [] as $group) {
+            foreach ($group['items'] ?? [] as $item) {
+                if ($this->itemKey($item) !== $tabKey) {
+                    continue;
+                }
+
+                if (! $this->itemIsAccessible($item, includeComingSoon: false)) {
+                    return null;
+                }
+
+                return $this->resolveSecondaryHref($item, (string) $activePrimary['key'], $module);
+            }
+        }
+
+        return null;
     }
 
     /**

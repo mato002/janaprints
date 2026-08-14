@@ -7,8 +7,6 @@ use App\Support\AccessControl\PermissionCatalog;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -18,42 +16,33 @@ class PermissionController extends Controller
         protected PermissionCatalog $catalog,
     ) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', Role::class);
 
-        $roles = Role::query()
-            ->where('guard_name', 'web')
-            ->orderBy('name')
-            ->get(['id', 'name']);
-
-        $selectedRole = null;
-        $workspace = null;
-        $roleSummary = null;
-
         if ($request->filled('role')) {
-            $selectedRole = Role::query()
+            $role = Role::query()
                 ->where('guard_name', 'web')
                 ->where('name', $request->input('role'))
                 ->firstOrFail();
-            $assigned = $selectedRole->permissions->pluck('name')->all();
-            $workspace = $this->catalog->workspacePayload($assigned);
-            $roleSummary = $this->catalog->roleSummaryStats($assigned);
+
+            return redirect()->route('admin.roles.show', [
+                'role' => $role,
+                'tab' => 'modules',
+            ]);
         }
 
-        return view('admin.permissions.matrix', [
-            'roles' => $roles,
-            'selectedRole' => $selectedRole,
-            'workspace' => $workspace,
-            'roleSummary' => $roleSummary ?? null,
-        ]);
+        return redirect()->route('admin.access-control.roles');
     }
 
     public function edit(Role $role): RedirectResponse
     {
         $this->authorize('assignPermissions', $role);
 
-        return redirect()->route('admin.roles.show', $role);
+        return redirect()->route('admin.roles.show', [
+            'role' => $role,
+            'tab' => 'modules',
+        ]);
     }
 
     public function update(Request $request, Role $role): RedirectResponse
@@ -79,7 +68,11 @@ class PermissionController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.roles.show', $role)
+            ->route('admin.roles.show', array_filter([
+                'role' => $role,
+                'tab' => 'modules',
+                'module' => $request->query('module') ?: $request->input('_module'),
+            ]))
             ->with('status', __('Role access rights updated.'));
     }
 }

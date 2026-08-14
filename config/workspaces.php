@@ -42,6 +42,13 @@ return [
         'managed_by' => 'production_workspaces',
         'quick_create' => [
             ['label' => 'Job Card', 'route' => 'admin.production.job-cards.create', 'permission' => 'production.create'],
+            [
+                'label' => 'Request materials',
+                'route' => 'admin.procurement.requests.create',
+                'route_params' => ['from' => 'production-floor'],
+                'permission' => 'procurement.requests.create',
+                'modal' => true,
+            ],
         ],
         'groups' => [],
     ],

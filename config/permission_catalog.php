@@ -501,6 +501,7 @@ return [
             'entities' => [
                 'jobs' => [
                     'label' => 'Production Jobs',
+                    'group' => 'Execution',
                     'permissions' => [
                         'view' => 'production.view',
                         'create' => 'production.create',
@@ -518,6 +519,7 @@ return [
                 ],
                 'outputs' => [
                     'label' => 'Production Outputs',
+                    'group' => 'Execution',
                     'permissions' => [
                         'view' => 'production.outputs.view',
                         'create' => 'production.outputs.create',
@@ -529,6 +531,7 @@ return [
                 ],
                 'workspaces' => [
                     'label' => 'Production Workspaces',
+                    'group' => 'Planning',
                     'permissions' => [],
                     'extra' => [
                         [
@@ -923,6 +926,7 @@ return [
             'entities' => [
                 'chart_of_accounts' => [
                     'label' => 'Chart of Accounts',
+                    'group' => 'Ledger',
                     'permissions' => [
                         'view' => 'accounting.chart.view',
                         'create' => 'accounting.chart.create',
@@ -935,6 +939,7 @@ return [
                 ],
                 'periods' => [
                     'label' => 'Accounting Periods',
+                    'group' => 'Ledger',
                     'permissions' => [
                         'view' => 'accounting.periods.view',
                         'create' => 'accounting.periods.create',
@@ -948,6 +953,7 @@ return [
                 ],
                 'journals' => [
                     'label' => 'Journals & GL',
+                    'group' => 'Ledger',
                     'permissions' => [
                         'view' => 'accounting.journals.view',
                         'create' => 'accounting.journals.create',
@@ -959,6 +965,7 @@ return [
                 ],
                 'posting' => [
                     'label' => 'Posting Engine',
+                    'group' => 'Ledger',
                     'permissions' => [
                         'view' => 'accounting.posting.view',
                     ],
@@ -971,6 +978,7 @@ return [
                 ],
                 'invoices' => [
                     'label' => 'Customer Invoices',
+                    'group' => 'Receivables',
                     'permissions' => [
                         'view' => 'invoices.view',
                         'create' => 'invoices.create',

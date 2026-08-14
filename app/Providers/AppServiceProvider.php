@@ -707,9 +707,52 @@ class AppServiceProvider extends ServiceProvider
         if ($remap !== null) {
             $items = $this->remapOperatorNav($items, $remap);
             $items = $this->restrictOperatorSidebar($items, $user);
+            $items = $this->appendOperatorSidebarExtras($items, $user);
         }
 
         return $this->applyProductionDeskSidebar($items, $user);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return list<array<string, mixed>>
+     */
+    protected function appendOperatorSidebarExtras(array $items, ?User $user): array
+    {
+        if ($user === null) {
+            return $items;
+        }
+
+        foreach (\App\Support\Operator\OperatorModeRegistry::modes() as $mode) {
+            if (! \App\Support\Operator\OperatorModeRegistry::enabledFor($user, $mode->key)) {
+                continue;
+            }
+
+            foreach ($mode->sidebarExtraItems as $extra) {
+                $permission = $extra['permission'] ?? null;
+                if (is_string($permission) && $permission !== '' && ! $user->can($permission)) {
+                    continue;
+                }
+
+                $route = (string) ($extra['route'] ?? '');
+                if ($route === '' || collect($items)->contains(fn (array $item): bool => ($item['route'] ?? null) === $route)) {
+                    continue;
+                }
+
+                $items[] = [
+                    'label' => $extra['label'] ?? $route,
+                    'route' => $route,
+                    'route_params' => $extra['route_params'] ?? [],
+                    'icon' => $extra['icon'] ?? 'clipboard-list',
+                    'active_routes' => $extra['active_routes'] ?? [$route],
+                    'modal' => (bool) ($extra['modal'] ?? true),
+                ];
+            }
+
+            return $items;
+        }
+
+        return $items;
     }
 
     /**
@@ -743,37 +786,14 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Production Manager keeps a focused sidebar without deleting modules from the system.
+     * Production staff keep Floor as home; sidebar visibility is permission-based only.
      *
      * @param  list<array<string, mixed>>  $items
      * @return list<array<string, mixed>>
      */
     protected function applyProductionDeskSidebar(array $items, ?User $user): array
     {
-        $persona = \App\Support\Production\ProductionDeskPersona::resolve($user);
-
-        if ($persona->isAdmin() || $persona->isOperator()) {
-            // Operator already restricted via operator-mode allowlist.
-            return $items;
-        }
-
-        // Manager: Production (+ Dispatch if present). Hide commercial / reports / etc.
-        $allowedWorkspaces = ['production', 'dispatch'];
-
-        return array_values(array_filter($items, function (array $item) use ($allowedWorkspaces): bool {
-            $workspace = $item['workspace'] ?? null;
-
-            if ($workspace !== null) {
-                return in_array($workspace, $allowedWorkspaces, true);
-            }
-
-            $route = (string) ($item['route'] ?? '');
-
-            return str_starts_with($route, 'admin.production.')
-                || str_starts_with($route, 'admin.workspaces.production')
-                || str_starts_with($route, 'admin.dispatch.')
-                || str_starts_with($route, 'admin.workspaces.dispatch');
-        }));
+        return $items;
     }
 
     /**

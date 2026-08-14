@@ -89,6 +89,9 @@ Route::middleware(['auth', 'admin.auth', 'verified', 'tenant', \App\Http\Middlew
 
         Route::get('workspaces/administration', [AdministrationWorkspaceController::class, 'hub'])
             ->name('workspaces.administration');
+        Route::get('workspaces/administration/{section}/catalog', [AdministrationWorkspaceController::class, 'catalog'])
+            ->where('section', implode('|', array_keys(config('administration_workspaces.sections', []))))
+            ->name('workspaces.administration.catalog');
         Route::get('workspaces/administration/{section}', [AdministrationWorkspaceController::class, 'section'])
             ->where('section', implode('|', array_keys(config('administration_workspaces.sections', []))))
             ->name('workspaces.administration.section');

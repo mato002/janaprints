@@ -873,6 +873,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'dispatch.view',
             'inventory.view', 'inventory.issue',
             'catalogue.view',
+            'procurement.requests.view', 'procurement.requests.create',
             'communications.notifications.view',
         ],
         'Dispatch' => [
