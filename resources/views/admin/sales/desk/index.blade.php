@@ -408,7 +408,7 @@
                         <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
                             <div>
                                 <h2 class="text-sm font-semibold text-slate-900">{{ __('3. Order details') }}</h2>
-                                <p class="text-xs text-slate-600">{{ __('Enter quantity and price for this order. Delivery, priority, and billing come next — customer and specification stay locked.') }}</p>
+                                <p class="text-xs text-slate-600">{{ __('Choose Digital, Offset, or Outsourced. Each destination opens the matching job fields before you create the order.') }}</p>
                             </div>
                         </div>
 

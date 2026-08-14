@@ -4,7 +4,7 @@
         ['label' => __('Sales Orders'), 'url' => route('admin.sales-orders.index')],
         ['label' => __('New sales order')],
     ]"
-    maxWidth="4xl"
+    maxWidth="5xl"
 >
     @php
         $fields = $formFields ?? [];
@@ -33,6 +33,9 @@
                 fulfilment_method: @js(old('fulfilment_method', 'collection')),
                 billing_type: @js(old('billing_type', '')),
                 production_destination: @js(old('production_destination', '')),
+                job_sheet: @js($jobSheetForm ?? \App\Support\Production\OffsetJobSheetService::emptyForm(old('job_sheet', []))),
+                outsource: @js($outsourceForm ?? \App\Support\Production\OutsourceSpecificationService::emptyForm(old('outsource', []))),
+                digital: @js($digitalForm ?? \App\Support\Production\DigitalSpecificationService::emptyForm(old('digital', []))),
             },
             get selectedSpec() {
                 if (!this.context?.print_specifications || !this.selectedSpecId) {
@@ -41,6 +44,14 @@
                 return this.context.print_specifications.find(
                     (spec) => String(spec.id) === String(this.selectedSpecId),
                 ) ?? null;
+            },
+            get visibleSpecs() {
+                const specs = this.context?.print_specifications ?? [];
+                const dest = this.form.production_destination;
+                if (!dest) {
+                    return specs;
+                }
+                return specs.filter((spec) => !spec.production_destination || spec.production_destination === dest);
             },
             get canSubmit() {
                 if (!this.customerId || !this.selectedSpecId || !this.form.production_destination) {
@@ -108,6 +119,61 @@
                 this.form.unit_price = String(spec.default_unit_price ?? 0);
                 this.form.billing_type = spec.default_billing_type ?? this.context?.billing_defaults?.billing_type ?? '';
                 this.form.fulfilment_method = spec.default_fulfilment_method ?? 'collection';
+                if (spec.production_destination) {
+                    this.form.production_destination = spec.production_destination;
+                }
+                if (spec.job_sheet) {
+                    this.form.job_sheet = { ...this.form.job_sheet, ...spec.job_sheet };
+                }
+                if (spec.digital) {
+                    this.form.digital = { ...this.form.digital, ...spec.digital };
+                }
+                if (spec.outsource) {
+                    this.form.outsource = { ...this.form.outsource, ...spec.outsource };
+                }
+                if (!this.form.job_sheet.product_description) {
+                    this.form.job_sheet.product_description = spec.name ?? '';
+                }
+                if (!this.form.outsource.description) {
+                    this.form.outsource.description = spec.name ?? '';
+                }
+                if (!this.form.digital.description) {
+                    this.form.digital.description = spec.name ?? '';
+                }
+                if (!this.form.digital.price) {
+                    this.form.digital.price = String(spec.default_unit_price ?? this.form.unit_price ?? '');
+                }
+                this.syncOutsourceSellingPriceFromUnit();
+                this.syncDigitalSheets();
+            },
+            syncOutsourceSellingPrice() {
+                const qty = Number(this.form.quantity) || 0;
+                const selling = Number(this.form.outsource.selling_price) || 0;
+                if (qty > 0 && selling > 0) {
+                    this.form.unit_price = (selling / qty).toFixed(2);
+                }
+            },
+            syncOutsourceSellingPriceFromUnit() {
+                const qty = Number(this.form.quantity) || 0;
+                const price = Number(this.form.unit_price) || 0;
+                if (!this.form.outsource.selling_price && qty > 0 && price > 0) {
+                    this.form.outsource.selling_price = (qty * price).toFixed(2);
+                }
+            },
+            syncDigitalSheets() {
+                const qty = Number(this.form.quantity) || 0;
+                const ups = Number(this.form.digital.ups) || 0;
+                if (qty > 0 && ups > 0) {
+                    this.form.digital.sheets = String(Math.ceil(qty / ups));
+                }
+            },
+            digitalAmountDisplay() {
+                const qty = Number(this.form.quantity) || 0;
+                const price = Number(this.form.digital.price || this.form.unit_price) || 0;
+                if (qty <= 0 || price <= 0) {
+                    return '';
+                }
+                return (qty * price).toFixed(2);
             },
             openCreateSpecification() {
                 if (!this.customerId) {
@@ -116,11 +182,21 @@
                     return;
                 }
 
+                if (!this.form.production_destination) {
+                    window.erpModalManager?.showToast?.(@js(__('Select Digital, Offset, or Outsourced first.')), 'error');
+
+                    return;
+                }
+
                 if (!window.erpLookupManager) {
                     return;
                 }
 
-                const url = @js($createSpecificationUrl) + '?' + new URLSearchParams({ customer_id: this.customerId }).toString();
+                const params = new URLSearchParams({ customer_id: this.customerId });
+                if (this.form.production_destination) {
+                    params.set('production_destination', this.form.production_destination);
+                }
+                const url = @js($createSpecificationUrl) + '?' + params.toString();
 
                 window.erpLookupManager.open(url, {
                     title: @js(__('Create print specification')),
@@ -244,6 +320,15 @@
                     'value' => old('production_destination'),
                     'required' => true,
                 ])
+                <p class="text-xs text-slate-500" x-show="form.production_destination === 'digital'" x-cloak>
+                    {{ __('Create or pick a Digital specification.') }}
+                </p>
+                <p class="text-xs text-slate-500" x-show="form.production_destination === 'offset'" x-cloak>
+                    {{ __('Create or pick an Offset specification.') }}
+                </p>
+                <p class="text-xs text-slate-500" x-show="form.production_destination === 'outsource'" x-cloak>
+                    {{ __('Create or pick an Outsourced specification.') }}
+                </p>
 
                 <template x-if="loadingContext">
                     <p class="text-sm text-slate-400">{{ __('Loading…') }}</p>
@@ -254,114 +339,121 @@
                 </template>
 
                 <template x-if="context && !loadingContext">
-                    <div class="space-y-4">
-                        <div>
-                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                <h3 class="text-sm font-semibold text-slate-900">{{ __('Print specifications') }}</h3>
-                                @if ($canCreateSpecification ?? false)
-                                    <button
-                                        type="button"
-                                        class="erp-btn-secondary text-xs"
-                                        x-show="customerId"
-                                        @click="openCreateSpecification()"
-                                    >{{ __('Create new') }}</button>
-                                @endif
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-sm font-semibold text-slate-900">{{ __('Print specification') }}</h3>
                             </div>
-                            @if ($salesDeskLocked ?? false)
-                                <p class="mb-2 text-xs text-slate-500">{{ __('Specification is pre-selected. Choose another from the list or create new if needed.') }}</p>
+                            @if ($canCreateSpecification ?? false)
+                                <button
+                                    type="button"
+                                    class="erp-btn-secondary text-xs"
+                                    x-show="customerId && form.production_destination"
+                                    @click="openCreateSpecification()"
+                                >{{ __('Create new') }}</button>
                             @endif
-                            <div class="overflow-x-auto rounded-lg border border-erp-border">
-                                <table class="erp-table w-full text-sm">
-                                    <thead>
-                                        <tr>
-                                            <th>{{ __('Code') }}</th>
-                                            <th>{{ __('Name') }}</th>
-                                            <th>{{ __('Product') }}</th>
-                                            <th>{{ __('Artwork version') }}</th>
-                                            <th>{{ __('Price') }}</th>
-                                            <th>{{ __('Last used') }}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <template x-for="spec in context.print_specifications" :key="spec.id">
-                                            <tr
-                                                class="cursor-pointer hover:bg-slate-50"
-                                                :class="selectedSpecId == spec.id ? 'bg-erp-accent/5' : ''"
-                                                @click="selectSpecification(spec)"
-                                            >
-                                                <td class="font-mono text-xs whitespace-nowrap" x-text="spec.specification_code"></td>
-                                                <td class="font-medium" x-text="spec.name"></td>
-                                                <td x-text="spec.product_name ?? '—'"></td>
-                                                <td class="text-xs whitespace-nowrap" x-text="spec.current_artwork_label ?? '—'"></td>
-                                                <td class="font-mono text-xs" x-text="spec.default_unit_price ?? '—'"></td>
-                                                <td class="text-xs whitespace-nowrap" x-text="spec.last_used_at ?? '—'"></td>
-                                            </tr>
-                                        </template>
-                                        <tr x-show="!context.print_specifications?.length">
-                                            <td colspan="6" class="py-6 text-center text-slate-500">
-                                                {{ __('No active print specifications for this customer.') }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
                         </div>
-
-                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" x-show="selectedSpec">
-                            <div>
-                                <label class="erp-label" for="quantity">{{ __('Quantity') }}</label>
-                                <input id="quantity" type="number" name="quantity" class="erp-input w-full min-h-[2.75rem]" min="0.001" step="any" x-model="form.quantity" required>
-                            </div>
-                            <div>
-                                <label class="erp-label" for="unit_price">{{ __('Unit price') }}</label>
-                                <input id="unit_price" type="number" name="unit_price" class="erp-input w-full min-h-[2.75rem]" min="0" step="0.01" x-model="form.unit_price">
-                            </div>
-                            <div>
-                                <label class="erp-label" for="required_date">{{ __('Required date') }}</label>
-                                <input id="required_date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" x-model="form.required_date">
-                                <p class="mt-1 text-xs text-slate-500">{{ __('Cannot be earlier than today.') }}</p>
-                            </div>
-                            <div>
-                                <label class="erp-label" for="priority">{{ __('Priority') }}</label>
-                                <select id="priority" name="priority" class="erp-input w-full min-h-[2.75rem]" x-model="form.priority">
-                                    @foreach ($priorities as $priority)
-                                        <option value="{{ $priority->value }}">{{ ucfirst($priority->value) }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="erp-label" for="fulfilment_method">{{ __('Fulfilment') }}</label>
-                                <select id="fulfilment_method" name="fulfilment_method" class="erp-input w-full min-h-[2.75rem]" x-model="form.fulfilment_method">
-                                    @foreach (\App\Enums\FulfilmentMethod::cases() as $method)
-                                        <option value="{{ $method->value }}">{{ $method->label() }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div>
-                                <label class="erp-label" for="billing_type">{{ __('Billing type') }}</label>
-                                <select id="billing_type" name="billing_type" class="erp-input w-full min-h-[2.75rem]" x-model="form.billing_type">
-                                    <option value="">{{ __('Use customer default') }}</option>
-                                    @foreach (\App\Enums\SalesOrderBillingType::cases() as $type)
-                                        <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="sm:col-span-2">
-                                <label class="erp-label" for="direct_notes">{{ __('Notes') }}</label>
-                                <textarea id="direct_notes" name="notes" class="erp-input w-full" rows="2" x-model="form.notes"></textarea>
-                            </div>
-                            @if ($canSendToProduction ?? false)
-                                <div class="sm:col-span-2">
-                                    <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                                        <input type="checkbox" name="send_to_production" value="1" class="rounded border-erp-border" @checked(old('send_to_production'))>
-                                        {{ __('Send to production') }}
-                                    </label>
-                                    <p class="mt-1 text-xs text-slate-500">{{ __('Creates a production job card immediately. Leave unchecked to release production manually from the sales order later.') }}</p>
-                                </div>
-                            @endif
+                        @if ($salesDeskLocked ?? false)
+                            <p class="text-xs text-slate-500">{{ __('Specification is pre-selected. Choose another from the list or create new if needed.') }}</p>
+                        @endif
+                        <div
+                            class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                            x-show="form.production_destination && !selectedSpecId"
+                            x-cloak
+                        >
+                            {{ __('Create or pick a specification.') }}
+                        </div>
+                        <div class="overflow-x-auto rounded-lg border border-erp-border">
+                            <table class="erp-table w-full text-sm">
+                                <thead>
+                                    <tr>
+                                        <th>{{ __('Code') }}</th>
+                                        <th>{{ __('Name') }}</th>
+                                        <th>{{ __('Product') }}</th>
+                                        <th>{{ __('Artwork version') }}</th>
+                                        <th>{{ __('Price') }}</th>
+                                        <th>{{ __('Last used') }}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="spec in visibleSpecs" :key="spec.id">
+                                        <tr
+                                            class="cursor-pointer hover:bg-slate-50"
+                                            :class="selectedSpecId == spec.id ? 'bg-erp-accent/5' : ''"
+                                            @click="selectSpecification(spec)"
+                                        >
+                                            <td class="font-mono text-xs whitespace-nowrap" x-text="spec.specification_code"></td>
+                                            <td class="font-medium" x-text="spec.name"></td>
+                                            <td x-text="spec.product_name ?? '—'"></td>
+                                            <td class="text-xs whitespace-nowrap" x-text="spec.current_artwork_label ?? '—'"></td>
+                                            <td class="font-mono text-xs" x-text="spec.default_unit_price ?? '—'"></td>
+                                            <td class="text-xs whitespace-nowrap" x-text="spec.last_used_at ?? '—'"></td>
+                                        </tr>
+                                    </template>
+                                    <tr x-show="visibleSpecs.length === 0">
+                                        <td colspan="6" class="py-6 text-center text-slate-500">
+                                            {{ __('No specifications yet.') }}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </template>
+
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" x-show="form.production_destination" x-cloak>
+                    <div>
+                        <label class="erp-label" for="quantity">{{ __('Quantity') }}</label>
+                        <input id="quantity" type="number" name="quantity" class="erp-input w-full min-h-[2.75rem]" min="0.001" step="any" x-model="form.quantity" required>
+                    </div>
+                    <div>
+                        <label class="erp-label" for="unit_price">{{ __('Unit price') }}</label>
+                        <input id="unit_price" type="number" name="unit_price" class="erp-input w-full min-h-[2.75rem]" min="0" step="0.01" x-model="form.unit_price">
+                    </div>
+                    <div>
+                        <label class="erp-label" for="required_date">{{ __('Required date') }}</label>
+                        <input id="required_date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" x-model="form.required_date">
+                        <p class="mt-1 text-xs text-slate-500">{{ __('Cannot be earlier than today.') }}</p>
+                    </div>
+                    <div>
+                        <label class="erp-label" for="priority">{{ __('Priority') }}</label>
+                        <select id="priority" name="priority" class="erp-input w-full min-h-[2.75rem]" x-model="form.priority">
+                            @foreach ($priorities as $priority)
+                                <option value="{{ $priority->value }}">{{ ucfirst($priority->value) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="erp-label" for="fulfilment_method">{{ __('Fulfilment') }}</label>
+                        <select id="fulfilment_method" name="fulfilment_method" class="erp-input w-full min-h-[2.75rem]" x-model="form.fulfilment_method">
+                            @foreach (\App\Enums\FulfilmentMethod::cases() as $method)
+                                <option value="{{ $method->value }}">{{ $method->label() }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="erp-label" for="billing_type">{{ __('Billing type') }}</label>
+                        <select id="billing_type" name="billing_type" class="erp-input w-full min-h-[2.75rem]" x-model="form.billing_type">
+                            <option value="">{{ __('Use customer default') }}</option>
+                            @foreach (\App\Enums\SalesOrderBillingType::cases() as $type)
+                                <option value="{{ $type->value }}">{{ $type->label() }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="erp-label" for="direct_notes">{{ __('Notes') }}</label>
+                        <textarea id="direct_notes" name="notes" class="erp-input w-full" rows="2" x-model="form.notes"></textarea>
+                    </div>
+                    @if ($canSendToProduction ?? false)
+                        <div class="sm:col-span-2">
+                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
+                                <input type="checkbox" name="send_to_production" value="1" class="rounded border-erp-border" @checked(old('send_to_production'))>
+                                {{ __('Send to production') }}
+                            </label>
+                            <p class="mt-1 text-xs text-slate-500">{{ __('Creates a production job card immediately. Leave unchecked to release production manually from the sales order later.') }}</p>
+                        </div>
+                    @endif
+                </div>
 
                 <x-admin.form-modal-actions class="erp-form-modal__actions--sticky">
                     <button

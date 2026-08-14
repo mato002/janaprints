@@ -241,7 +241,7 @@ class CustomerPrintSpecificationController extends Controller
      */
     protected function validateSpecification(Request $request, Customer $customer, ?CustomerPrintSpecification $existing = null): array
     {
-        return $request->validate([
+        return $request->validate(array_merge([
             'inventory_item_id' => ['required', 'exists:inventory_items,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
@@ -258,7 +258,7 @@ class CustomerPrintSpecificationController extends Controller
             'artwork_change_notes' => ['nullable', 'string', 'max:2000'],
             'serial_prefix' => ['nullable', 'string', 'max:30'],
             'serial_padding_length' => ['nullable', 'integer', 'min:1', 'max:12'],
-        ]);
+        ], app(\App\Support\Production\PrintSpecificationJobFields::class)->validationRules()));
     }
 
     protected function assertInventoryItemForTenant(int $inventoryItemId): void

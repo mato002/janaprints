@@ -16,6 +16,10 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Sales\SalesOrder;
 use App\Support\Communications\CommunicationEventDispatcher;
 use App\Support\Platform\NumberingService;
+use App\Support\Production\DigitalSpecificationService;
+use App\Support\Production\OffsetJobSheetService;
+use App\Support\Production\OutsourceSpecificationService;
+use App\Support\Production\PrintSpecificationJobFields;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -27,6 +31,9 @@ class DirectCustomerSalesOrderService
         protected NumberingService $numbering,
         protected CommunicationEventDispatcher $communications,
         protected CustomerOrderBillingDefaultsService $billingDefaults,
+        protected OffsetJobSheetService $offsetJobSheets,
+        protected OutsourceSpecificationService $outsourceSpecs,
+        protected DigitalSpecificationService $digitalSpecs,
     ) {}
 
     /**
@@ -42,6 +49,8 @@ class DirectCustomerSalesOrderService
 
             $this->assertSpecificationOrderable($specification);
             $this->assertRequiredDateNotInThePast($payload['required_date'] ?? null);
+
+            $payload = app(PrintSpecificationJobFields::class)->hydrateOrderPayload($payload, $specification);
 
             $artwork = $specification->activeArtworkVersion;
             $usesArtwork = $artwork !== null;
@@ -97,6 +106,10 @@ class DirectCustomerSalesOrderService
                 ...$lineItem,
                 'sort_order' => 1,
             ]);
+
+            $this->offsetJobSheets->attachToOrder($order->fresh(['items', 'customerPrintSpecification']), $payload, $createdBy);
+            $this->outsourceSpecs->attachToOrder($order->fresh(['items', 'customerPrintSpecification']), $payload, $createdBy);
+            $this->digitalSpecs->attachToOrder($order->fresh(['items', 'customerPrintSpecification']), $payload, $createdBy);
 
             $this->billingDefaults->applyToOrder($order, $specification->customer);
             $this->communications->dispatch(

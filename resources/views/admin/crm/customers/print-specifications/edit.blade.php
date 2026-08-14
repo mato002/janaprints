@@ -5,7 +5,7 @@
         ['label' => $customer->company_name, 'url' => route('admin.crm.customers.show', ['customer' => $customer, 'tab' => 'print-specifications'])],
         ['label' => $specification->name],
     ]"
-    maxWidth="3xl"
+    maxWidth="5xl"
 >
     <x-admin.artwork-preview-lightbox>
         <x-admin.form-shell :action="route('admin.crm.customers.print-specifications.update', [$customer, $specification])" method="PUT">

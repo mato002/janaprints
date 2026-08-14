@@ -23,6 +23,39 @@ class AdministrationWorkspaceEmbeddedTest extends TestCase
         $this->seed(OrganizationFoundationSeeder::class);
     }
 
+    public function test_operations_hub_does_not_flatten_features_into_secondary_tabs(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.administration.section', ['section' => 'operations']))
+            ->assertOk()
+            ->assertSee(route('admin.workspaces.administration.catalog', [
+                'section' => 'operations',
+                'embedded' => '1',
+            ]), false)
+            ->assertDontSee('module-workspace-switcher--secondary', false)
+            ->assertDontSee('data-workspace-tab-key="approval-rules"', false)
+            ->assertDontSee('data-workspace-tab-key="email-settings"', false)
+            ->assertDontSee('data-workspace-tab-key="background-jobs"', false);
+    }
+
+    public function test_operations_feature_tab_embeds_without_secondary_strip(): void
+    {
+        $user = $this->companyAdmin();
+
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'approval-rules',
+            ]))
+            ->assertOk()
+            ->assertSee(route('admin.settings.approvals.index', ['embedded' => '1']), false)
+            ->assertDontSee('module-workspace-switcher--secondary', false)
+            ->assertDontSee('data-workspace-tab-key="webhooks"', false)
+            ->assertDontSee('data-workspace-tab-key="data-retention"', false);
+    }
+
     public function test_configuration_section_renders_embedded_system_settings_frame_src(): void
     {
         $user = $this->companyAdmin();

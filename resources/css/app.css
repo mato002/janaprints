@@ -965,6 +965,114 @@ body.erp-navigating {
         background: #d97706;
     }
 
+    /* Store desk mode ribbon — block tabs (Desk, Products, …) */
+    .store-desk-ribbon {
+        overflow: visible;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background: #fff;
+        box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
+    }
+
+    .store-desk-ribbon__tabs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+        overflow: hidden;
+        border-radius: 0.375rem;
+    }
+
+    .store-desk-ribbon__tab {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 2.75rem;
+        border-right: 1px solid #e2e8f0;
+        background: #f8fafc;
+        padding: 0.625rem 0.5rem;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        line-height: 1.2;
+        text-decoration: none;
+        text-transform: uppercase;
+        transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .store-desk-ribbon__tab:last-child {
+        border-right: 0;
+    }
+
+    .store-desk-ribbon__tab:hover {
+        background: #fff;
+        color: #31339c;
+    }
+
+    .store-desk-ribbon__tab--active,
+    .store-desk-ribbon__tab--active:hover {
+        background: #31339c;
+        color: #fff;
+        box-shadow: inset 0 -3px 0 rgb(255 255 255 / 0.2);
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--products,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--products:hover {
+        background: #0d9488;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--balances,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--balances:hover {
+        background: #0284c7;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--receipts,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--receipts:hover {
+        background: #16a34a;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--issues,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--issues:hover {
+        background: #d41484;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--transfers,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--transfers:hover {
+        background: #4f46e5;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--adjustments,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--adjustments:hover {
+        background: #d97706;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--movements,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--movements:hover {
+        background: #475569;
+    }
+
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--alerts,
+    .store-desk-ribbon__tab--active.store-desk-ribbon__tab--alerts:hover {
+        background: #dc2626;
+    }
+
+    @media (max-width: 1279px) {
+        .store-desk-ribbon {
+            overflow: hidden;
+        }
+
+        .store-desk-ribbon__tabs {
+            display: flex;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+
+        .store-desk-ribbon__tab {
+            flex: 1 0 auto;
+            min-width: 5.75rem;
+        }
+    }
+
     /* Compact KPI strip — ~80–90px row */
     .workspace-kpi-strip,
     .module-kpi-strip {

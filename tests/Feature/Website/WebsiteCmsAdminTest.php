@@ -39,14 +39,20 @@ class WebsiteCmsAdminTest extends TestCase
         $user = $this->adminUser();
 
         $this->actingAs($user)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'website-content']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'website']))
             ->assertOk()
             ->assertSee('Gallery')
             ->assertSee('Media Library')
-            ->assertSee('Footer & Contact Settings')
-            ->assertSee('SEO / Global Settings')
-            ->assertSee(route('admin.website.gallery.index'), false)
-            ->assertSee(route('admin.website.media.index'), false);
+            ->assertSee('Footer & Contact')
+            ->assertSee('SEO / Global')
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'gallery',
+            ]), false)
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'media-library',
+            ]), false);
     }
 
     public function test_workspace_hides_cards_without_permission(): void
@@ -54,6 +60,7 @@ class WebsiteCmsAdminTest extends TestCase
         [, , $user] = $this->tenantUser(['users.view']);
 
         $this->actingAs($user)
+            ->followingRedirects()
             ->get(route('admin.workspaces.administration.section', ['section' => 'website-content']))
             ->assertOk()
             ->assertDontSee(route('admin.website.gallery.index'), false)
@@ -210,6 +217,7 @@ class WebsiteCmsAdminTest extends TestCase
         $checklistLabel = __('Deployment Checklist');
 
         $workspace = $this->actingAs($editor)
+            ->followingRedirects()
             ->get(route('admin.workspaces.administration.section', ['section' => 'website-content']))
             ->assertOk()
             ->assertSee($guideLabel, false)

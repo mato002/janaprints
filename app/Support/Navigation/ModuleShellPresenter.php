@@ -804,6 +804,10 @@ class ModuleShellPresenter
             return [];
         }
 
+        if (! $this->sectionHasSecondaryTabs($catalog, $primaryKey)) {
+            return [];
+        }
+
         $section = $catalog['sections'][$primaryKey] ?? null;
 
         if ($section === null) {
@@ -1423,7 +1427,7 @@ class ModuleShellPresenter
 
         $section = $catalog['sections'][$primaryKey] ?? null;
 
-        if ($section === null) {
+        if ($section === null || ! $this->sectionHasSecondaryTabs($catalog, $primaryKey)) {
             return null;
         }
 

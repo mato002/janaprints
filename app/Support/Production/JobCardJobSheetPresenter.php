@@ -69,12 +69,16 @@ class JobCardJobSheetPresenter
      */
     protected function printingRows(?ProductionSpecification $spec, string $description, mixed $quantity): array
     {
-        $paperStock = $spec?->paperInventoryItem?->item_name
+        $sheet = is_array($spec?->job_sheet_payload) ? $spec->job_sheet_payload : [];
+        $paperStock = $sheet['paper_stock']
+            ?? $spec?->paperInventoryItem?->item_name
             ?? $spec?->materialInventoryItem?->item_name
             ?? '—';
-        $ink = collect([$spec?->colour_mode, $spec?->ink_type?->label()])
-            ->filter()
-            ->implode(' / ') ?: '—';
+        $ink = $sheet['ink']
+            ?? collect([$spec?->colour_mode, $spec?->ink_type?->label()])
+                ->filter()
+                ->implode(' / ')
+            ?: '—';
 
         $ncrColours = $this->ncrColours($spec);
 
@@ -85,8 +89,8 @@ class JobCardJobSheetPresenter
             'dup' => $ncrColours['dup'],
             'tri' => $ncrColours['tri'],
             'quad' => $ncrColours['quad'],
-            'paper_stock' => $paperStock,
-            'ink' => $ink,
+            'paper_stock' => $paperStock !== '' ? $paperStock : '—',
+            'ink' => $ink !== '' ? $ink : '—',
         ]];
     }
 
@@ -95,14 +99,17 @@ class JobCardJobSheetPresenter
      */
     protected function ncrColours(?ProductionSpecification $spec): array
     {
+        $sheet = is_array($spec?->job_sheet_payload) ? $spec->job_sheet_payload : [];
         $payload = is_array($spec?->snapshot_payload) ? $spec->snapshot_payload : [];
-        $colours = is_array($payload['ncr_colours'] ?? null) ? $payload['ncr_colours'] : [];
+        $colours = is_array($sheet['ncr_colours'] ?? null)
+            ? $sheet['ncr_colours']
+            : (is_array($payload['ncr_colours'] ?? null) ? $payload['ncr_colours'] : []);
 
         return [
-            'orig' => (string) ($colours['orig'] ?? $colours['original'] ?? '—'),
-            'dup' => (string) ($colours['dup'] ?? $colours['duplicate'] ?? '—'),
-            'tri' => (string) ($colours['tri'] ?? $colours['triplicate'] ?? '—'),
-            'quad' => (string) ($colours['quad'] ?? $colours['quadruplicate'] ?? '—'),
+            'orig' => $this->sheetValue($colours['orig'] ?? $colours['original'] ?? null),
+            'dup' => $this->sheetValue($colours['dup'] ?? $colours['duplicate'] ?? null),
+            'tri' => $this->sheetValue($colours['tri'] ?? $colours['triplicate'] ?? null),
+            'quad' => $this->sheetValue($colours['quad'] ?? $colours['quadruplicate'] ?? null),
         ];
     }
 
@@ -111,6 +118,11 @@ class JobCardJobSheetPresenter
         $allocation = $jobCard->serialAllocation;
         if ($allocation) {
             return $allocation->formatSerial($allocation->serial_start);
+        }
+
+        $sheet = is_array($spec?->job_sheet_payload) ? $spec->job_sheet_payload : [];
+        if (filled($sheet['serial_number'] ?? null)) {
+            return (string) $sheet['serial_number'];
         }
 
         if ($spec?->numbering_required) {
@@ -140,6 +152,23 @@ class JobCardJobSheetPresenter
             return $requirements;
         }
 
+        $sheet = is_array($jobCard->productionSpecification?->job_sheet_payload)
+            ? $jobCard->productionSpecification->job_sheet_payload
+            : [];
+        $captured = collect($sheet['material_rows'] ?? [])
+            ->filter(fn ($row) => is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty())
+            ->map(fn (array $row) => [
+                'paper_type' => $row['paper_type'] ?? '',
+                'sheets_a4_a3' => $row['sheets_a4_a3'] ?? '',
+                'sheets_a1' => $row['sheets_a1'] ?? '',
+            ])
+            ->values()
+            ->all();
+
+        if ($captured !== []) {
+            return $captured;
+        }
+
         return array_fill(0, 4, [
             'paper_type' => '',
             'sheets_a4_a3' => '',
@@ -149,6 +178,11 @@ class JobCardJobSheetPresenter
 
     protected function pagesPerPadLabel(?ProductionSpecification $spec): string
     {
+        $sheet = is_array($spec?->job_sheet_payload) ? $spec->job_sheet_payload : [];
+        if (filled($sheet['pages_per_pad'] ?? null)) {
+            return (string) $sheet['pages_per_pad'];
+        }
+
         if (! $spec) {
             return '—';
         }
@@ -158,5 +192,16 @@ class JobCardJobSheetPresenter
         }
 
         return $spec->production_notes ?: '—';
+    }
+
+    protected function sheetValue(mixed $value): string
+    {
+        if (! filled($value)) {
+            return '—';
+        }
+
+        $string = trim((string) $value);
+
+        return $string === '' ? '—' : $string;
     }
 }

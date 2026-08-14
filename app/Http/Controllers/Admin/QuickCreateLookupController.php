@@ -1558,7 +1558,7 @@ class QuickCreateLookupController extends Controller
             $customer = Customer::query()->forTenant()->findOrFail($request->integer('customer_id'));
             $catalog = app(\App\Support\Crm\CustomerArtworkTypeCatalog::class);
 
-            $validated = $request->validate([
+            $validated = $request->validate(array_merge([
                 'customer_id' => ['required', 'integer', 'exists:customers,id'],
                 'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
                 'name' => ['required', 'string', 'max:255'],
@@ -1567,7 +1567,7 @@ class QuickCreateLookupController extends Controller
                 'default_unit_price' => ['nullable', 'numeric', 'min:0'],
                 'artwork_file' => ['nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
                 'artwork_type' => $catalog->validationRules((int) $customer->company_id),
-            ]);
+            ], app(\App\Support\Production\PrintSpecificationJobFields::class)->validationRules()));
         } catch (ValidationException $exception) {
             $customer = Customer::query()->forTenant()->find($request->integer('customer_id'));
 
@@ -1616,6 +1616,7 @@ class QuickCreateLookupController extends Controller
                 ? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id)
                 : [],
             'defaultStatus' => CustomerPrintSpecificationStatus::Active->value,
+            'preselectedDestination' => old('production_destination', request('production_destination')),
         ];
     }
 }

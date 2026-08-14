@@ -217,10 +217,13 @@ class ApprovalChainsCenterTest extends TestCase
         $admin = $this->chainsAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'workflow-governance']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.governance.chains.index'), false)
-            ->assertSee(__('Approval Chains'));
+            ->assertSee(__('Approval Chains'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'approval-chains',
+            ]), false);
     }
 
     public function test_admin_can_create_and_activate_chain(): void

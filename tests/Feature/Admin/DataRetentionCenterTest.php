@@ -160,10 +160,13 @@ class DataRetentionCenterTest extends TestCase
         $admin = $this->companyAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'system-operations']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.operations.retention.index'), false)
-            ->assertSee(__('Data Retention'));
+            ->assertSee(__('Data Retention'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'data-retention',
+            ]), false);
     }
 
     protected function companyAdmin(): User

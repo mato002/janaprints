@@ -175,6 +175,7 @@ class SalesOperatorModeTest extends TestCase
             ->post(route('admin.sales-orders.store'), [
                 'from' => 'sales-desk',
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 100,

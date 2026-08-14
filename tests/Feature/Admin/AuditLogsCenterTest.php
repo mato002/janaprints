@@ -129,10 +129,13 @@ class AuditLogsCenterTest extends TestCase
         $admin = $this->companyAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'system-operations']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.operations.audit.index'), false)
-            ->assertSee(__('Audit Logs'));
+            ->assertSee(__('Audit Logs'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'audit-logs',
+            ]), false);
     }
 
     public function test_audit_detail_endpoint_returns_change_tracking(): void

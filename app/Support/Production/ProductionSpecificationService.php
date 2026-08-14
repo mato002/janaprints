@@ -60,6 +60,7 @@ class ProductionSpecificationService
             'delivery_notes' => ['nullable', 'string', 'max:10000'],
             'approval_status' => ['nullable', Rule::enum(ProductionSpecificationApprovalStatus::class)],
             'print_product_template_id' => ['nullable', 'integer', 'exists:print_product_templates,id'],
+            'job_sheet_payload' => ['nullable', 'array'],
         ];
     }
 
@@ -105,6 +106,10 @@ class ProductionSpecificationService
             throw ValidationException::withMessages([
                 'sales_order_item_id' => [__('A production specification already exists for this line item.')],
             ]);
+        }
+
+        if (! array_key_exists('approval_status', $data) || $data['approval_status'] === null) {
+            $data['approval_status'] = ProductionSpecificationApprovalStatus::Approved->value;
         }
 
         $spec = ProductionSpecification::query()->create([
@@ -237,6 +242,16 @@ class ProductionSpecificationService
             $derived = ProductionImpositionCalculator::estimateSheets($quantity, $ups, $storedSheets > 0 ? $storedSheets : null);
             if ($derived !== null) {
                 $payload['estimated_sheets'] = $derived;
+            }
+        }
+
+        if (array_key_exists('job_sheet_payload', $payload) && is_array($payload['job_sheet_payload'])) {
+            $rows = $payload['job_sheet_payload']['material_rows'] ?? [];
+            if (is_array($rows)) {
+                $payload['job_sheet_payload']['material_rows'] = collect($rows)
+                    ->filter(fn ($row) => is_array($row) && collect($row)->filter(fn ($value) => filled($value))->isNotEmpty())
+                    ->values()
+                    ->all();
             }
         }
 

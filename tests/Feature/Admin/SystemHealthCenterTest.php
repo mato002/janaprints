@@ -137,10 +137,13 @@ class SystemHealthCenterTest extends TestCase
         $admin = $this->companyAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'system-operations']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.operations.health.index'), false)
-            ->assertSee(__('System Health'));
+            ->assertSee(__('System Health'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'system-health',
+            ]), false);
     }
 
     public function test_snapshot_endpoint_returns_json_payload(): void

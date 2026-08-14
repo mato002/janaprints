@@ -115,8 +115,13 @@
             select-class="erp-input w-full"
             :empty-option="false"
         />
-        <p class="mt-2 text-xs text-slate-500">{{ __('Manufacturing defaults (BOM, route, QC, serial capability) come from the catalogue product.') }}</p>
     </section>
+
+    @include('admin.crm.customers.print-specifications.partials.job-fields', [
+        'customer' => $customer,
+        'specification' => $spec,
+        'idPrefix' => $spec ? 'crm-spec-'.$spec->id : 'crm-spec-new',
+    ])
 
     @if ($showArtworkUpload)
         <section class="rounded-lg border border-erp-border p-4">

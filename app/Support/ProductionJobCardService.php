@@ -10,6 +10,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
 use App\Support\Platform\NumberingService;
 use App\Support\Production\JobCardPrintSpecificationSnapshotService;
+use App\Support\Production\OutsourceSpecificationService;
 use App\Support\Production\ProductionGovernanceBootstrapService;
 use App\Support\Production\JobCardSpecificationBridgeService;
 use Illuminate\Support\Facades\DB;
@@ -74,6 +75,9 @@ class ProductionJobCardService
                 $jobCard->fresh(),
                 $salesOrder,
             );
+
+            app(OutsourceSpecificationService::class)
+                ->applyToJobCard($jobCard->fresh(['productionSpecification']));
 
             return $jobCard->fresh(['productionSpecification', 'serialAllocation', 'inventoryItem']);
         });

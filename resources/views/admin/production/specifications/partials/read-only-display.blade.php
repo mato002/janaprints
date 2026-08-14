@@ -9,7 +9,7 @@
     </x-admin.card>
 @else
     <div class="mb-4 flex flex-wrap items-center gap-2">
-        @if (! empty($specData['approval_status_label']))
+        @if (! ($hideApprovalStatus ?? false) && ! empty($specData['approval_status_label']))
             <x-admin.status-badge :variant="$specData['approval_status_variant'] ?? 'neutral'">
                 {{ $specData['approval_status_label'] }}
             </x-admin.status-badge>
@@ -33,6 +33,9 @@
                             'imposition' => __('Imposition'),
                             'artwork' => __('Artwork'),
                             'notes' => __('Notes'),
+                            'job_sheet' => __('Job sheet'),
+                            'outsource' => __('Outsourced'),
+                            'digital' => __('Digital'),
                             default => ucfirst(str_replace('_', ' ', $sectionKey)),
                         } }}
                     </h3>

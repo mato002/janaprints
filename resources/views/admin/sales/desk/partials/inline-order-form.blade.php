@@ -65,6 +65,9 @@
             data-erp-desk-form
             data-erp-desk-success-message="{{ __('Order created.') }}"
             data-erp-desk-submitting-message="{{ __('Creating order…') }}"
+            x-data="{
+                productionDestination: @js(old('production_destination', $specification->production_destination?->value ?? '')),
+            }"
         >
             @csrf
             <input type="hidden" name="from" value="sales-desk">
@@ -73,9 +76,11 @@
             <input type="hidden" name="customer_print_specification_id" value="{{ $specification->id }}">
 
             @include('admin.sales.orders.partials.production-destination-picker', [
-                'value' => old('production_destination'),
+                'alpineModel' => 'productionDestination',
+                'value' => old('production_destination', $specification->production_destination?->value),
                 'required' => true,
             ])
+            <p class="text-xs text-slate-500">{{ __('Job details come from the specification you already selected. This order only needs quantity, price, and fulfilment.') }}</p>
 
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>

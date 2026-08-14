@@ -169,10 +169,13 @@ class BackgroundJobsCenterTest extends TestCase
         $admin = $this->companyAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'system-operations']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.operations.jobs.index'), false)
-            ->assertSee(__('Background Jobs'));
+            ->assertSee(__('Background Jobs'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'background-jobs',
+            ]), false);
     }
 
     protected function companyAdmin(): User

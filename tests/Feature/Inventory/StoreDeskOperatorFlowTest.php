@@ -91,7 +91,10 @@ class StoreDeskOperatorFlowTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.store.desk'))
-            ->assertOk();
+            ->assertOk()
+            ->assertSee('store-desk-ribbon', false)
+            ->assertSee('store-desk-ribbon__tab--desk', false)
+            ->assertSee('store-desk-ribbon__tab--active', false);
     }
 
     public function test_storekeeper_can_open_inline_register_modes_on_desk(): void

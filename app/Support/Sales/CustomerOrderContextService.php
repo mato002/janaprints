@@ -24,6 +24,7 @@ class CustomerOrderContextService
     public function buildForDirectOrder(Customer $customer): array
     {
         return [
+            'customer_name' => $customer->company_name ?? $customer->name,
             'print_specifications' => $this->printSpecifications->selectableForOrderContext($customer),
             'print_specification_summary' => $this->printSpecifications->orderSelectionSummary($customer),
             'billing_defaults' => app(CustomerOrderBillingDefaultsService::class)->resolveForCustomer($customer),

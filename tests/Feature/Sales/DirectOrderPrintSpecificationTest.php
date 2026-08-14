@@ -92,6 +92,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'quantity' => 100,
             ])
@@ -107,6 +108,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 500,
@@ -136,6 +138,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -159,6 +162,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $response = $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -191,6 +195,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -214,6 +219,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -246,6 +252,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -266,6 +273,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -305,6 +313,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $otherSpec->id,
                 'quantity' => 10,
@@ -330,6 +339,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,
@@ -346,6 +356,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 100,
@@ -358,6 +369,7 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->actingAs($this->user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $this->customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 250,

@@ -26,6 +26,9 @@ class ProductionSpecificationPresenter
                 'imposition' => $this->impositionSection($spec),
                 'artwork' => $this->artworkSection($spec),
                 'notes' => $this->notesSection($spec),
+                'job_sheet' => $this->jobSheetSection($spec),
+                'outsource' => $this->outsourceSection($spec),
+                'digital' => $this->digitalSection($spec),
             ],
             'links' => [
                 'sales_order_id' => $spec->sales_order_id,
@@ -52,8 +55,11 @@ class ProductionSpecificationPresenter
             'quantity' => $spec->quantity !== null ? (float) $spec->quantity : null,
             'unit' => $spec->unit,
             'size' => $spec->size,
-            'paper' => $spec->paperInventoryItem?->item_name,
-            'ink' => $spec->ink_type?->label() ?? $spec->colour_mode,
+            'paper' => $spec->paperInventoryItem?->item_name
+                ?? (is_array($spec->job_sheet_payload) ? ($spec->job_sheet_payload['paper_stock'] ?? $spec->job_sheet_payload['paper_type'] ?? null) : null),
+            'ink' => (is_array($spec->job_sheet_payload) ? ($spec->job_sheet_payload['ink'] ?? null) : null)
+                ?? $spec->ink_type?->label()
+                ?? $spec->colour_mode,
             'binding' => $spec->binding_type,
             'finishing' => $spec->finishing_type,
             'ups' => $spec->ups,
@@ -185,6 +191,110 @@ class ProductionSpecificationPresenter
             __('Production notes') => $spec->production_notes,
             __('Delivery notes') => $spec->delivery_notes,
         ]);
+    }
+
+    /**
+     * @return list<array{label: string, value: mixed}>
+     */
+    protected function jobSheetSection(ProductionSpecification $spec): array
+    {
+        $sheet = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+
+        if (in_array($sheet['kind'] ?? null, ['outsource', 'digital'], true)) {
+            return [];
+        }
+
+        $colours = is_array($sheet['ncr_colours'] ?? null) ? $sheet['ncr_colours'] : [];
+        $ncr = collect([
+            filled($colours['orig'] ?? null) ? __('ORIG').': '.$colours['orig'] : null,
+            filled($colours['dup'] ?? null) ? __('DUP').': '.$colours['dup'] : null,
+            filled($colours['tri'] ?? null) ? __('TRI').': '.$colours['tri'] : null,
+            filled($colours['quad'] ?? null) ? __('QUAD').': '.$colours['quad'] : null,
+        ])->filter()->implode(' · ');
+
+        $materials = collect($sheet['material_rows'] ?? [])
+            ->filter(fn ($row) => is_array($row) && filled($row['paper_type'] ?? null))
+            ->map(function (array $row) {
+                $qty = collect([$row['sheets_a4_a3'] ?? null, $row['sheets_a1'] ?? null])
+                    ->filter(fn ($value) => filled($value))
+                    ->implode(' / ');
+
+                return trim($row['paper_type'].($qty !== '' ? ' ('.$qty.')' : ''));
+            })
+            ->filter()
+            ->implode(', ');
+
+        return collect($this->fields([
+            __('Paper colour') => $ncr !== '' ? $ncr : null,
+            __('Paper stock') => $sheet['paper_stock'] ?? null,
+            __('Ink') => $sheet['ink'] ?? null,
+            __('Number') => $sheet['serial_number'] ?? null,
+            __('Pages / pad') => $sheet['pages_per_pad'] ?? null,
+            __('Material requisition') => $materials !== '' ? $materials : null,
+        ]))->filter(fn (array $field) => filled($field['value']))->values()->all();
+    }
+
+    /**
+     * @return list<array{label: string, value: mixed}>
+     */
+    protected function outsourceSection(ProductionSpecification $spec): array
+    {
+        $sheet = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+
+        if (($sheet['kind'] ?? null) !== 'outsource') {
+            return [];
+        }
+
+        $payment = $sheet['payment_status'] ?? null;
+        $status = $sheet['status'] ?? null;
+
+        return collect($this->fields([
+            __('Type of printing') => filled($sheet['printing_type'] ?? null)
+                ? str_replace('_', ' ', ucfirst((string) $sheet['printing_type']))
+                : null,
+            __('Service provider') => $sheet['vendor_name'] ?? null,
+            __('Cost') => isset($sheet['cost']) && $sheet['cost'] !== null
+                ? number_format((float) $sheet['cost'], 2)
+                : null,
+            __('Selling price') => isset($sheet['selling_price']) && $sheet['selling_price'] !== null
+                ? number_format((float) $sheet['selling_price'], 2)
+                : null,
+            __('Payment status') => $payment ? (OutsourceSpecificationService::paymentStatuses()[$payment] ?? $payment) : null,
+            __('Status') => $status ? (OutsourceSpecificationService::jobStatuses()[$status] ?? $status) : null,
+            __('Date sent out') => $sheet['date_sent_out'] ?? null,
+            __('Due date / time') => $sheet['due_at'] ?? null,
+        ]))->filter(fn (array $field) => filled($field['value']))->values()->all();
+    }
+
+    /**
+     * @return list<array{label: string, value: mixed}>
+     */
+    protected function digitalSection(ProductionSpecification $spec): array
+    {
+        $sheet = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+
+        if (($sheet['kind'] ?? null) !== 'digital') {
+            return [];
+        }
+
+        $payment = $sheet['payment_status'] ?? null;
+        $status = $sheet['status'] ?? null;
+
+        return collect($this->fields([
+            __('Paper type') => $sheet['paper_type'] ?? null,
+            __('No. of ups') => $sheet['ups'] ?? $spec->ups,
+            __('No. of sheets') => $sheet['sheets'] ?? $spec->estimated_sheets,
+            __('Finishing') => $sheet['finishing'] ?? $spec->finishing_type,
+            __('Price') => isset($sheet['price']) && $sheet['price'] !== null
+                ? number_format((float) $sheet['price'], 2)
+                : null,
+            __('Amount') => isset($sheet['amount']) && $sheet['amount'] !== null
+                ? number_format((float) $sheet['amount'], 2)
+                : null,
+            __('Due date') => $sheet['due_date'] ?? null,
+            __('Payment status') => $payment ? (DigitalSpecificationService::paymentStatuses()[$payment] ?? $payment) : null,
+            __('Status') => $status ? (DigitalSpecificationService::jobStatuses()[$status] ?? $status) : null,
+        ]))->filter(fn (array $field) => filled($field['value']))->values()->all();
     }
 
     /**

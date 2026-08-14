@@ -307,12 +307,24 @@ class WebsiteCmsFoundationTest extends TestCase
         $user = $this->adminUser();
 
         $this->actingAs($user)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'website-content']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'website']))
             ->assertOk()
-            ->assertSee(route('admin.website.gallery.index'), false)
-            ->assertSee(route('admin.website.media.index'), false)
-            ->assertSee(route('admin.website.settings.footer-contact'), false)
-            ->assertSee(route('admin.website.settings.seo-global'), false);
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'gallery',
+            ]), false)
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'media-library',
+            ]), false)
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'footer-contact',
+            ]), false)
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'seo-global',
+            ]), false);
     }
 
     public function test_new_permissions_are_seeded(): void

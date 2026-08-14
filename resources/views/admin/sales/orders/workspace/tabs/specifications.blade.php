@@ -46,6 +46,7 @@
 
             @include('admin.production.specifications.partials.read-only-display', [
                 'specification' => $specDisplay,
+                'hideApprovalStatus' => true,
             ])
         </section>
     @empty

@@ -44,9 +44,17 @@ class ProductionReleaseReadinessTest extends TestCase
         $this->assertDatabaseMissing('production_job_cards', ['sales_order_id' => $order->id]);
     }
 
-    public function test_release_blocked_when_spec_exists_but_not_approved(): void
+    public function test_release_ready_when_spec_is_draft(): void
     {
         [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Draft);
+
+        $assessment = app(ProductionReleaseReadinessService::class)->assess($order->fresh(), $user);
+        $this->assertTrue($assessment['ready']);
+    }
+
+    public function test_release_blocked_when_spec_is_rejected(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Rejected);
 
         $assessment = app(ProductionReleaseReadinessService::class)->assess($order->fresh(), $user);
         $this->assertFalse($assessment['ready']);

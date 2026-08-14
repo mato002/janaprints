@@ -5,7 +5,7 @@
         ['label' => $customer->company_name, 'url' => route('admin.crm.customers.show', $customer)],
         ['label' => __('Create print specification')],
     ]"
-    maxWidth="3xl"
+    maxWidth="5xl"
 >
     <x-admin.form-shell :action="route('admin.crm.customers.print-specifications.store', $customer)" enctype="multipart/form-data">
         @if (request('from') === 'sales-desk')

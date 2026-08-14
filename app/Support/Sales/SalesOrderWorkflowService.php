@@ -4,6 +4,7 @@ namespace App\Support\Sales;
 
 use App\Enums\ArtworkRequestStatus;
 use App\Enums\ProductionJobCardStatus;
+use App\Enums\ProductionSpecificationApprovalStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
@@ -35,6 +36,7 @@ class SalesOrderWorkflowService
 
         $user = \App\Models\User::query()->find($userId);
         $this->releaseReadiness->assertReady($salesOrder, $user);
+        $this->markSpecificationReady($salesOrder);
 
         if (! $salesOrder->production_destination) {
             throw ValidationException::withMessages([
@@ -187,6 +189,30 @@ class SalesOrderWorkflowService
 
             return [...$step, 'state' => 'upcoming'];
         }, $steps);
+    }
+
+    protected function markSpecificationReady(SalesOrder $salesOrder): void
+    {
+        $salesOrder->loadMissing(['productionSpecifications', 'items.productionSpecification']);
+
+        $specs = $salesOrder->productionSpecifications
+            ->concat($salesOrder->items->map->productionSpecification)
+            ->filter()
+            ->unique('id');
+
+        foreach ($specs as $spec) {
+            if ($spec->approval_status === ProductionSpecificationApprovalStatus::Rejected) {
+                continue;
+            }
+
+            if ($spec->approval_status === ProductionSpecificationApprovalStatus::Approved) {
+                continue;
+            }
+
+            $spec->update([
+                'approval_status' => ProductionSpecificationApprovalStatus::Approved,
+            ]);
+        }
     }
 
     protected function statusRank(SalesOrderStatus $status): int

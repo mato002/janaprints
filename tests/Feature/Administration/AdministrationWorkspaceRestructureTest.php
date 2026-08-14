@@ -65,22 +65,47 @@ class AdministrationWorkspaceRestructureTest extends TestCase
     {
         $user = $this->companyAdmin();
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.administration.section', ['section' => 'workflow-governance']));
+        $this->actingAs($user)
+            ->followingRedirects()
+            ->get(route('admin.workspaces.administration.section', ['section' => 'workflow-governance']))
+            ->assertOk()
+            ->assertSee(route('admin.workspaces.administration.catalog', [
+                'section' => 'operations',
+                'embedded' => '1',
+            ]), false);
 
-        $response->assertOk();
-        $response->assertSee(route('admin.governance.delegations.index'), false);
-        $response->assertSee(route('admin.settings.approvals.index'), false);
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
+            ->assertOk()
+            ->assertSee(__('Delegations'), false)
+            ->assertSee(__('Approval Rules'), false)
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'delegations',
+            ]), false)
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'approval-rules',
+            ]), false);
     }
 
     public function test_website_content_section_lists_gallery(): void
     {
         $user = $this->companyAdmin();
 
-        $response = $this->actingAs($user)->get(route('admin.workspaces.administration.section', ['section' => 'website-content']));
+        $this->actingAs($user)
+            ->followingRedirects()
+            ->get(route('admin.workspaces.administration.section', ['section' => 'website-content']))
+            ->assertOk();
 
-        $response->assertOk();
-        $response->assertSeeText(__('Website Content'));
-        $response->assertSee(route('admin.website.gallery.index'), false);
+        $this->actingAs($user)
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'website']))
+            ->assertOk()
+            ->assertSeeText(__('Website Content'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'website',
+                'tab' => 'gallery',
+            ]), false);
     }
 
     public function test_existing_administration_feature_routes_remain_registered(): void

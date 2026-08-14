@@ -6,16 +6,20 @@
     $selected = old($name, $value ?? '');
     $required = $required ?? true;
     $editable = $editable ?? true;
+    $legend = $legend ?? __('Where is this order going?');
+    $hint = $hint ?? '';
 @endphp
 
 <fieldset class="space-y-2">
     <legend class="erp-label">
-        {{ __('Where is this order going?') }}
+        {{ $legend }}
         @if ($required)
             <span class="text-red-600">*</span>
         @endif
     </legend>
-    <p class="text-xs text-slate-500">{{ __('Production is Digital, Offset, or Outsourced. Choose the lane before creating the order.') }}</p>
+    @if ($hint !== '')
+        <p class="text-xs text-slate-500">{{ $hint }}</p>
+    @endif
 
     @if ($alpineModel)
         <input type="hidden" name="{{ $name }}" :value="{{ $alpineModel }}">

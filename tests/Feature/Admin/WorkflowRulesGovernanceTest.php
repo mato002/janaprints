@@ -205,10 +205,13 @@ class WorkflowRulesGovernanceTest extends TestCase
         $admin = $this->workflowAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'workflow-governance']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.governance.workflow-rules.index'), false)
-            ->assertSee(__('Workflow Rules'));
+            ->assertSee(__('Workflow Rules'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'workflow-rules',
+            ]), false);
     }
 
     protected function workflowAdmin(): User

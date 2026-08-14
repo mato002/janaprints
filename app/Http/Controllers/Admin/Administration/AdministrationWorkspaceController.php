@@ -52,6 +52,20 @@ class AdministrationWorkspaceController extends Controller
 
         abort_unless($workspace !== null, 403);
 
+        foreach ($workspace['groups'] as $groupIndex => $group) {
+            foreach ($group['items'] as $itemIndex => $item) {
+                if (! empty($item['comingSoon'])) {
+                    continue;
+                }
+
+                $tabKey = $item['key'] ?? \Illuminate\Support\Str::slug((string) ($item['label'] ?? 'item'));
+                $workspace['groups'][$groupIndex]['items'][$itemIndex]['href'] = route(
+                    'admin.workspaces.administration.section',
+                    ['section' => $resolved, 'tab' => $tabKey],
+                );
+            }
+        }
+
         $cards = collect($workspace['groups'])
             ->flatMap(fn (array $group) => collect($group['items'])->map(fn (array $item) => array_merge($item, [
                 'group_label' => $group['label'],

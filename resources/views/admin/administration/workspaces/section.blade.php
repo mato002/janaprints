@@ -1,8 +1,10 @@
 <x-admin-layout :title="$workspace['title']">
-    <x-admin.page-header
-        :title="$workspace['title']"
-        :description="$workspace['description']"
-    />
+    @unless (\App\Support\Navigation\WorkspaceEmbed::inWorkspaceContext())
+        <x-admin.page-header
+            :title="$workspace['title']"
+            :description="$workspace['description']"
+        />
+    @endunless
 
     <div
         x-data="workspaceHub(@js($cards))"

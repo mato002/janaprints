@@ -5,6 +5,7 @@ namespace App\Support\Crm;
 use App\Enums\CustomerPrintSpecificationStatus;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
+use App\Support\Production\PrintSpecificationJobFields;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,8 @@ class CustomerPrintSpecificationService
     public function create(Customer $customer, array $data, int $userId): CustomerPrintSpecification
     {
         return DB::transaction(function () use ($customer, $data, $userId) {
+            $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
+
             $spec = CustomerPrintSpecification::query()->create([
                 'company_id' => $customer->company_id,
                 'branch_id' => $customer->branch_id,
@@ -38,6 +41,8 @@ class CustomerPrintSpecificationService
                 'default_unit_price' => $data['default_unit_price'] ?? null,
                 'default_billing_type' => $data['default_billing_type'] ?? null,
                 'default_fulfilment_method' => $data['default_fulfilment_method'] ?? null,
+                'production_destination' => $data['production_destination'] ?? null,
+                'job_sheet_payload' => $data['job_sheet_payload'] ?? null,
                 'created_by' => $userId,
                 'updated_by' => $userId,
             ]);
@@ -57,6 +62,8 @@ class CustomerPrintSpecificationService
     public function update(CustomerPrintSpecification $spec, array $data, int $userId): CustomerPrintSpecification
     {
         return DB::transaction(function () use ($spec, $data, $userId) {
+            $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
+
             $this->lifecycle->assertSafeUpdate($spec, $data);
 
             $nextStatus = isset($data['status'])
@@ -92,6 +99,8 @@ class CustomerPrintSpecificationService
                     'default_unit_price',
                     'default_billing_type',
                     'default_fulfilment_method',
+                    'production_destination',
+                    'job_sheet_payload',
                 ])->all(),
                 'updated_by' => $userId,
             ]);
@@ -448,6 +457,7 @@ class CustomerPrintSpecificationService
             'commercial_notes' => $spec->commercial_notes,
             'customer_instructions' => $spec->customer_instructions,
             'last_used_at' => $lastUsedAt,
+            ...app(PrintSpecificationJobFields::class)->orderContextFields($spec),
         ];
     }
 }

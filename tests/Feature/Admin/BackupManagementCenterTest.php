@@ -159,10 +159,13 @@ class BackupManagementCenterTest extends TestCase
         $admin = $this->companyAdmin();
 
         $this->actingAs($admin)
-            ->get(route('admin.workspaces.administration.section', ['section' => 'system-operations']))
+            ->get(route('admin.workspaces.administration.catalog', ['section' => 'operations']))
             ->assertOk()
-            ->assertSee(route('admin.operations.backups.index'), false)
-            ->assertSee(__('Backups'));
+            ->assertSee(__('Backups'))
+            ->assertSee(route('admin.workspaces.administration.section', [
+                'section' => 'operations',
+                'tab' => 'backups',
+            ]), false);
     }
 
     protected function companyAdmin(): User

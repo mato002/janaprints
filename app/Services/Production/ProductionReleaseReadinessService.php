@@ -92,14 +92,15 @@ class ProductionReleaseReadinessService
         );
 
         if ($spec !== null) {
+            $rejected = $spec->approval_status === ProductionSpecificationApprovalStatus::Rejected;
             $this->runCheck(
                 $checks,
                 $blockers,
                 $warnings,
                 'spec_approval',
-                __('Production specification approved'),
-                $spec->approval_status === ProductionSpecificationApprovalStatus::Approved,
-                __('Production specification must be approved before production release.'),
+                __('Production specification ready'),
+                ! $rejected,
+                __('This specification was rejected. Edit it before sending to production.'),
             );
         } elseif ($hasSpecSource) {
             $warnings[] = __('Production specification will be generated automatically when the job card is created.');

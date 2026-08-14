@@ -60,6 +60,7 @@ class HybridSalesOrderC2aTest extends TestCase
         $this->actingAs($user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 250,
@@ -93,6 +94,7 @@ class HybridSalesOrderC2aTest extends TestCase
         $this->actingAs($user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'repeat_source_sales_order_id' => $source->id,
@@ -124,6 +126,7 @@ class HybridSalesOrderC2aTest extends TestCase
         $this->actingAs($user)
             ->post(route('admin.sales-orders.store'), [
                 'entry_mode' => 'direct',
+                'production_destination' => 'digital',
                 'customer_id' => $customer->id,
                 'customer_print_specification_id' => $spec->id,
                 'quantity' => 10,

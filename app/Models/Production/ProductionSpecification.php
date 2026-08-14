@@ -73,6 +73,7 @@ class ProductionSpecification extends Model
         'delivery_notes',
         'approval_status',
         'snapshot_payload',
+        'job_sheet_payload',
         'created_by',
         'updated_by',
     ];
@@ -98,7 +99,16 @@ class ProductionSpecification extends Model
             'numbering_required' => 'boolean',
             'eyelets' => 'boolean',
             'snapshot_payload' => 'array',
+            'job_sheet_payload' => 'array',
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function jobSheet(): array
+    {
+        return is_array($this->job_sheet_payload) ? $this->job_sheet_payload : [];
     }
 
     public function customer(): BelongsTo

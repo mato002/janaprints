@@ -48,7 +48,9 @@ class SalesOrderProductionBridgeService
         if ($destination?->isOutsource()) {
             if ($jobCard->status === ProductionJobCardStatus::Draft
                 && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
-                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+                ProductionQueueService::withoutQueueEnforcement(
+                    fn () => $jobCard->transitionTo(ProductionJobCardStatus::Queued),
+                );
                 $jobCard = $jobCard->fresh();
             }
 
@@ -101,14 +103,12 @@ class SalesOrderProductionBridgeService
             return $jobCard;
         }
 
-        if ($destination !== null) {
-            if ($jobCard->status === ProductionJobCardStatus::Draft
-                && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
-                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
-                $jobCard = $jobCard->fresh();
-            }
+        $workCenter = app(DepartmentQueueRoutingService::class)->recommendedWorkCenter($jobCard);
 
-            $this->syncSalesOrderStatus($jobCard, $jobCard->status);
+        if ($workCenter !== null) {
+            $queues->enqueue($jobCard, $workCenter->id);
+            $jobCard = $jobCard->fresh();
+            $this->syncSalesOrderStatus($jobCard, ProductionJobCardStatus::Queued);
 
             return $jobCard;
         }

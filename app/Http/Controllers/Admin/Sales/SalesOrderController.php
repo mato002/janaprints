@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Sales;
 
+use App\Enums\ProductionDestination;
 use App\Enums\SalesOrderStatus;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
@@ -18,6 +19,10 @@ use App\Support\QuotationConversionService;
 use App\Support\Sales\DirectCustomerSalesOrderService;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Production\ReturnsToProductionFloor;
+use App\Support\Production\PrintSpecificationJobFields;
+use App\Support\Production\DigitalSpecificationService;
+use App\Support\Production\OffsetJobSheetService;
+use App\Support\Production\OutsourceSpecificationService;
 use App\Support\Sales\SalesOrderWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +39,10 @@ class SalesOrderController extends Controller
         protected FormSettingsService $formSettings,
         protected DirectCustomerSalesOrderService $directOrders,
         protected SalesOrderWorkflowService $workflow,
+        protected OffsetJobSheetService $offsetJobSheets,
+        protected OutsourceSpecificationService $outsourceSpecs,
+        protected DigitalSpecificationService $digitalSpecs,
+        protected PrintSpecificationJobFields $jobFields,
     ) {}
 
     public function index(): RedirectResponse
@@ -58,6 +67,10 @@ class SalesOrderController extends Controller
             'priorities' => \App\Enums\ProductionPriority::cases(),
             'canSendToProduction' => auth()->user()?->can('sales_orders.production') ?? false,
             'canCreateSpecification' => auth()->user()?->can('crm.customers.edit') ?? false,
+            'jobSheetForm' => OffsetJobSheetService::emptyForm(old('job_sheet', [])),
+            'outsourceForm' => OutsourceSpecificationService::emptyForm(old('outsource', [])),
+            'digitalForm' => DigitalSpecificationService::emptyForm(old('digital', [])),
+            'productionVendors' => $this->outsourceSpecs->productionVendors(),
         ]);
     }
 
@@ -117,6 +130,15 @@ class SalesOrderController extends Controller
 
     protected function storeDirectOrder(Request $request): RedirectResponse|Response
     {
+        $specification = \App\Models\Crm\CustomerPrintSpecification::query()
+            ->forTenant()
+            ->where('customer_id', $request->integer('customer_id'))
+            ->find($request->integer('customer_print_specification_id'));
+
+        if ($specification) {
+            $request->merge($this->jobFields->hydrateOrderPayload($request->all(), $specification));
+        }
+
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
             'customer_print_specification_id' => ['required', 'exists:customer_print_specifications,id'],
@@ -128,9 +150,15 @@ class SalesOrderController extends Controller
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
             'billing_type' => ['nullable', 'string', 'in:deposit_50,advance_100,net_30'],
             'repeat_source_sales_order_id' => ['nullable', 'exists:sales_orders,id'],
-            'production_destination' => ['required', \Illuminate\Validation\Rule::enum(\App\Enums\ProductionDestination::class)],
+            'production_destination' => ['required', \Illuminate\Validation\Rule::enum(ProductionDestination::class)],
             'send_to_production' => ['sometimes', 'boolean'],
+            'job_sheet' => ['nullable', 'array'],
+            'digital' => ['nullable', 'array'],
+            'outsource' => ['nullable', 'array'],
         ]);
+
+        $validated = $this->outsourceSpecs->applyCommercialOverrides($validated);
+        $validated = $this->digitalSpecs->applyCommercialOverrides($validated);
 
         $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
         $this->authorize('view', $customer);

@@ -38,6 +38,8 @@ class CustomerPrintSpecification extends Model
         'default_unit_price',
         'default_billing_type',
         'default_fulfilment_method',
+        'production_destination',
+        'job_sheet_payload',
         'created_by',
         'updated_by',
     ];
@@ -50,6 +52,8 @@ class CustomerPrintSpecification extends Model
             'default_unit_price' => 'decimal:2',
             'default_billing_type' => SalesOrderBillingType::class,
             'default_fulfilment_method' => FulfilmentMethod::class,
+            'production_destination' => \App\Enums\ProductionDestination::class,
+            'job_sheet_payload' => 'array',
         ];
     }
 
