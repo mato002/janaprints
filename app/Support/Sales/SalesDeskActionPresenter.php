@@ -52,9 +52,9 @@ class SalesDeskActionPresenter
             'unit_price' => $line?->unit_price !== null
                 ? number_format((float) $line->unit_price, 2)
                 : null,
-            'product_name' => $salesOrder->inventoryItem?->item_name
-                ?? $line?->item_name
-                ?? $salesOrder->customerPrintSpecification?->name,
+            'product_name' => $salesOrder->customerPrintSpecification?->productLabel()
+                ?? $salesOrder->inventoryItem?->item_name
+                ?? $line?->item_name,
             'specification_name' => $salesOrder->customerPrintSpecification?->name,
             'required_date' => ($salesOrder->required_date ?? null)?->format('d M Y'),
             'priority' => $salesOrder->priority?->value

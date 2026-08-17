@@ -91,7 +91,9 @@ class CustomerPrintSpecificationController extends Controller
         $this->authorize('update', $customer);
 
         $validated = $this->validateSpecification($request, $customer);
-        $this->assertInventoryItemForTenant($validated['inventory_item_id']);
+        if (! empty($validated['inventory_item_id'])) {
+            $this->assertInventoryItemForTenant((int) $validated['inventory_item_id']);
+        }
 
         $spec = $this->specifications->create($customer, $validated, (int) auth()->id());
 
@@ -152,7 +154,9 @@ class CustomerPrintSpecificationController extends Controller
         $this->lifecycle->assertEditable($printSpecification);
 
         $validated = $this->validateSpecification($request, $customer, $printSpecification);
-        $this->assertInventoryItemForTenant($validated['inventory_item_id']);
+        if (! empty($validated['inventory_item_id'])) {
+            $this->assertInventoryItemForTenant((int) $validated['inventory_item_id']);
+        }
 
         $this->specifications->update($printSpecification, $validated, (int) auth()->id());
 
@@ -242,7 +246,8 @@ class CustomerPrintSpecificationController extends Controller
     protected function validateSpecification(Request $request, Customer $customer, ?CustomerPrintSpecification $existing = null): array
     {
         return $request->validate(array_merge([
-            'inventory_item_id' => ['required', 'exists:inventory_items,id'],
+            'product_name' => ['required', 'string', 'max:255'],
+            'inventory_item_id' => ['nullable', 'integer', 'exists:inventory_items,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
@@ -308,7 +313,7 @@ class CustomerPrintSpecificationController extends Controller
      */
     protected function saveSerialProfile(Customer $customer, CustomerPrintSpecification $spec, array $validated): void
     {
-        if (empty($validated['serial_prefix']) || empty($validated['serial_padding_length'])) {
+        if (empty($validated['serial_prefix']) || empty($validated['serial_padding_length']) || ! $spec->inventory_item_id) {
             return;
         }
 

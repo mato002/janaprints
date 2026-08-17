@@ -61,7 +61,6 @@
                     @foreach ($printSpecifications as $spec)
                         @php
                             $activeArt = $spec->activeArtworkVersion;
-                            $item = $spec->inventoryItem;
                         @endphp
                         <tr>
                             <td><code class="text-xs">{{ $spec->specification_code }}</code></td>
@@ -70,7 +69,7 @@
                                     {{ $spec->name }}
                                 </a>
                             </td>
-                            <td>{{ $item?->item_name ?? '—' }}</td>
+                            <td>{{ $spec->productLabel() }}</td>
                             <td>{{ $activeArt?->versionLabel() ?? '—' }}</td>
                             <td><span class="erp-badge">{{ $spec->status->label() }}</span></td>
                             <td class="text-right tabular-nums">{{ $spec->orders_count ?? 0 }}</td>
@@ -114,7 +113,7 @@
         <x-admin.empty-state
             icon="document-text"
             :title="__('No print specifications yet')"
-            :description="__('Create a specification to link a catalogue product, artwork versions, and serial settings for this customer.')"
+            :description="__('Create a specification for a finished product — for example a book, brochure, or flyer.')"
         >
             @can('update', $customer)
                 <x-slot:action>

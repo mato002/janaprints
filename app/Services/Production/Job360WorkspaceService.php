@@ -247,7 +247,9 @@ class Job360WorkspaceService
             'priority' => $jobCard->priority,
             'customer_name' => $jobCard->customer?->company_name,
             'customer_id' => $jobCard->customer_id,
-            'product_name' => $jobCard->inventoryItem?->item_name,
+            'product_name' => $jobCard->inventoryItem?->item_name
+                ?? $jobCard->productionSpecification?->product_description
+                ?? $jobCard->specification_name,
             'product_sku' => $jobCard->inventoryItem?->sku,
             'sales_order_number' => $jobCard->salesOrder?->order_number,
             'sales_order_id' => $jobCard->sales_order_id,
@@ -944,7 +946,9 @@ class Job360WorkspaceService
             'specification_name' => $jobCard->specification_name,
             'specification_label' => $specLabel,
             'artwork_version' => $jobCard->artwork_version_number,
-            'product_name' => $jobCard->inventoryItem?->item_name,
+            'product_name' => $jobCard->inventoryItem?->item_name
+                ?? $jobCard->productionSpecification?->product_description
+                ?? $jobCard->specification_name,
             'production_notes' => $jobCard->production_notes_snapshot,
             'commercial_notes' => $jobCard->commercial_notes_snapshot,
             'customer_instructions' => $jobCard->customer_instructions_snapshot,

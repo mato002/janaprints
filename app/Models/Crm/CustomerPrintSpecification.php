@@ -27,6 +27,7 @@ class CustomerPrintSpecification extends Model
         'branch_id',
         'customer_id',
         'inventory_item_id',
+        'product_name',
         'specification_code',
         'name',
         'description',
@@ -103,7 +104,19 @@ class CustomerPrintSpecification extends Model
     public function isSelectableForOrders(): bool
     {
         return $this->status->isSelectableForOrders()
-            && $this->inventory_item_id !== null;
+            && $this->hasProduct();
+    }
+
+    public function hasProduct(): bool
+    {
+        return $this->inventory_item_id !== null
+            || filled($this->product_name);
+    }
+
+    public function productLabel(): string
+    {
+        return $this->inventoryItem?->item_name
+            ?: (string) ($this->product_name ?: $this->name);
     }
 
     public function isReadOnly(): bool

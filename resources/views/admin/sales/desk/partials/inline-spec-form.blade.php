@@ -81,20 +81,10 @@
             <input id="desk-spec-name" type="text" name="name" class="erp-input w-full" maxlength="255" placeholder="{{ __('e.g. Fortress Receipt Book') }}" required>
         </div>
 
-        <x-admin.lookup-select
-            name="inventory_item_id"
-            :label="__('Product / inventory item')"
-            :options="$inventoryItemOptions ?? []"
-            :value="null"
-            :required="true"
-            create-route="admin.inventory.items.quick-create"
-            refresh-route="admin.lookups.items"
-            permission="catalogue.create"
-            :modal-title="__('Create product')"
-            select-class="erp-input w-full"
-            :empty-option="true"
-            :placeholder="__('Select product')"
-        />
+        @include('admin.crm.customers.print-specifications.partials.product-field', [
+            'customer' => $customer,
+            'idPrefix' => 'desk-spec-product',
+        ])
 
         <input type="hidden" name="default_quantity" value="1">
 

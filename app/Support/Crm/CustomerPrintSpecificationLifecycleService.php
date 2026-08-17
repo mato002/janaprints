@@ -69,11 +69,15 @@ class CustomerPrintSpecificationLifecycleService
             return;
         }
 
-        if (array_key_exists('inventory_item_id', $data)
-            && (int) $data['inventory_item_id'] !== (int) $spec->inventory_item_id) {
-            throw ValidationException::withMessages([
-                'inventory_item_id' => __('Product link cannot change after this specification has been used in orders or production.'),
-            ]);
+        if (array_key_exists('inventory_item_id', $data)) {
+            $incoming = filled($data['inventory_item_id']) ? (int) $data['inventory_item_id'] : null;
+            $current = $spec->inventory_item_id ? (int) $spec->inventory_item_id : null;
+
+            if ($incoming !== $current) {
+                throw ValidationException::withMessages([
+                    'inventory_item_id' => __('Product link cannot change after this specification has been used in orders or production.'),
+                ]);
+            }
         }
     }
 

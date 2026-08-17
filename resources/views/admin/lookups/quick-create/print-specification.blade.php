@@ -41,21 +41,13 @@
         >
     </div>
 
-    <x-admin.lookup-select
-        name="inventory_item_id"
-        :label="__('Product')"
-        :options="$spec?->inventoryItem ? [['id' => $spec->inventoryItem->id, 'name' => $spec->inventoryItem->item_name]] : []"
-        :value="old('inventory_item_id', $spec?->inventory_item_id)"
-        :required="(bool) $customer"
-        :disabled="! $customer"
-        create-route="admin.inventory.items.quick-create"
-        refresh-route="admin.lookups.items"
-        permission="catalogue.create"
-        :modal-title="__('Create product')"
-        select-class="erp-input w-full"
-        :empty-option="false"
-        :placeholder="__('Select product')"
-    />
+    @include('admin.crm.customers.print-specifications.partials.product-field', [
+        'customer' => $customer,
+        'specification' => $spec,
+        'idPrefix' => 'quick-spec-product',
+        'disabled' => ! $customer,
+        'required' => (bool) $customer,
+    ])
 
     @if ($customer)
         @include('admin.crm.customers.print-specifications.partials.job-fields', [

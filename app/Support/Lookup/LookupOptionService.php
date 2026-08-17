@@ -527,13 +527,16 @@ class LookupOptionService
             ->forTenant()
             ->where('customer_id', $customer->id)
             ->where('status', CustomerPrintSpecificationStatus::Active)
-            ->whereNotNull('inventory_item_id')
+            ->where(function ($query) {
+                $query->whereNotNull('inventory_item_id')
+                    ->orWhere(fn ($inner) => $inner->whereNotNull('product_name')->where('product_name', '!=', ''));
+            })
             ->with('inventoryItem:id,item_name,sku')
             ->orderBy('name')
-            ->get(['id', 'specification_code', 'name', 'inventory_item_id'])
+            ->get(['id', 'specification_code', 'name', 'inventory_item_id', 'product_name'])
             ->map(fn (CustomerPrintSpecification $spec) => [
                 'value' => $spec->id,
-                'label' => trim($spec->specification_code.' · '.$spec->name.($spec->inventoryItem?->item_name ? ' · '.$spec->inventoryItem->item_name : '')),
+                'label' => trim($spec->specification_code.' · '.$spec->name.' · '.$spec->productLabel()),
             ])
             ->values()
             ->all();

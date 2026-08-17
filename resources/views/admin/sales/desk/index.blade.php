@@ -396,7 +396,6 @@
                         <div x-show="specMode === 'new'" style="{{ $defaultSpecMode === 'new' ? '' : 'display: none' }}">
                             @include('admin.sales.desk.partials.inline-spec-form', [
                                 'customer' => $customer,
-                                'inventoryItemOptions' => $inventoryItemOptions ?? [],
                             ])
                         </div>
                         </div>

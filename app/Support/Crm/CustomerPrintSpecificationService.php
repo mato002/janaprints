@@ -3,8 +3,10 @@
 namespace App\Support\Crm;
 
 use App\Enums\CustomerPrintSpecificationStatus;
+use App\Enums\InventoryStockRole;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
+use App\Models\Inventory\InventoryItem;
 use App\Support\Production\PrintSpecificationJobFields;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
@@ -24,12 +26,14 @@ class CustomerPrintSpecificationService
     {
         return DB::transaction(function () use ($customer, $data, $userId) {
             $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
+            $data = $this->resolveProductFields($data, $customer);
 
             $spec = CustomerPrintSpecification::query()->create([
                 'company_id' => $customer->company_id,
                 'branch_id' => $customer->branch_id,
                 'customer_id' => $customer->id,
-                'inventory_item_id' => $data['inventory_item_id'],
+                'inventory_item_id' => $data['inventory_item_id'] ?? null,
+                'product_name' => $data['product_name'] ?? null,
                 'specification_code' => $this->nextSpecificationCode($customer->company_id),
                 'name' => $data['name'],
                 'description' => $data['description'] ?? null,
@@ -63,6 +67,7 @@ class CustomerPrintSpecificationService
     {
         return DB::transaction(function () use ($spec, $data, $userId) {
             $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
+            $data = $this->resolveProductFields($data, $spec->customer ?? $spec->customer()->firstOrFail());
 
             $this->lifecycle->assertSafeUpdate($spec, $data);
 
@@ -78,7 +83,8 @@ class CustomerPrintSpecificationService
 
             if ($spec->status === CustomerPrintSpecificationStatus::Active) {
                 $spec->fill([
-                    'inventory_item_id' => $data['inventory_item_id'] ?? $spec->inventory_item_id,
+                    'inventory_item_id' => $data['inventory_item_id'] ?? null,
+                    'product_name' => $data['product_name'] ?? $spec->product_name,
                 ]);
                 $this->assertCanActivate($spec);
             }
@@ -90,6 +96,7 @@ class CustomerPrintSpecificationService
             $spec->update([
                 ...collect($data)->only([
                     'inventory_item_id',
+                    'product_name',
                     'name',
                     'description',
                     'production_notes',
@@ -210,11 +217,83 @@ class CustomerPrintSpecificationService
 
     public function assertCanActivate(CustomerPrintSpecification $spec): void
     {
-        if (! $spec->inventory_item_id) {
+        if (! $spec->hasProduct()) {
             throw ValidationException::withMessages([
-                'inventory_item_id' => __('A product link is required before activating a print specification.'),
+                'product_name' => __('Enter the finished product — for example a book, brochure, or flyer.'),
             ]);
         }
+    }
+
+    /**
+     * @return list<array{value: int, label: string, name: string}>
+     */
+    public function finishedProductOptions(Customer $customer): array
+    {
+        return InventoryItem::query()
+            ->forTenant()
+            ->where('company_id', $customer->company_id)
+            ->where('branch_id', $customer->branch_id)
+            ->where('is_active', true)
+            ->where('stock_role', InventoryStockRole::FinishedGood)
+            ->orderBy('item_name')
+            ->get(['id', 'item_name', 'sku'])
+            ->map(fn (InventoryItem $item) => [
+                'value' => $item->id,
+                'name' => $item->item_name,
+                'label' => trim($item->item_name.($item->sku ? ' ('.$item->sku.')' : '')),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function resolveProductFields(array $data, Customer $customer): array
+    {
+        $typed = trim((string) ($data['product_name'] ?? ''));
+        $itemId = filled($data['inventory_item_id'] ?? null) ? (int) $data['inventory_item_id'] : null;
+        $item = null;
+
+        if ($itemId) {
+            $item = InventoryItem::query()
+                ->forTenant()
+                ->where('company_id', $customer->company_id)
+                ->where('branch_id', $customer->branch_id)
+                ->whereKey($itemId)
+                ->first();
+
+            if (! $item) {
+                throw ValidationException::withMessages([
+                    'inventory_item_id' => __('The selected product is invalid for this branch.'),
+                ]);
+            }
+
+            if ($item->stock_role !== InventoryStockRole::FinishedGood) {
+                $item = null;
+            }
+        } elseif ($typed !== '') {
+            $item = InventoryItem::query()
+                ->forTenant()
+                ->where('company_id', $customer->company_id)
+                ->where('branch_id', $customer->branch_id)
+                ->where('is_active', true)
+                ->where('stock_role', InventoryStockRole::FinishedGood)
+                ->whereRaw('LOWER(item_name) = ?', [mb_strtolower($typed)])
+                ->first();
+        }
+
+        $data['inventory_item_id'] = $item?->id;
+        $data['product_name'] = $typed !== '' ? $typed : ($item?->item_name);
+
+        if (! filled($data['product_name'])) {
+            throw ValidationException::withMessages([
+                'product_name' => __('Enter the finished product — for example a book, brochure, or flyer.'),
+            ]);
+        }
+
+        return $data;
     }
 
     /**
@@ -364,13 +443,13 @@ class CustomerPrintSpecificationService
                 CustomerPrintSpecificationStatus::Draft,
                 CustomerPrintSpecificationStatus::Active,
             ])
-            ->get(['id', 'status', 'inventory_item_id']);
+            ->get(['id', 'status', 'inventory_item_id', 'product_name']);
 
         return [
             'on_record' => $onRecord->count(),
             'selectable' => count($this->selectableForOrderContext($customer)),
             'draft' => $onRecord->where('status', CustomerPrintSpecificationStatus::Draft)->count(),
-            'missing_product' => $onRecord->whereNull('inventory_item_id')->count(),
+            'missing_product' => $onRecord->filter(fn ($spec) => $spec->inventory_item_id === null && ! filled($spec->product_name))->count(),
         ];
     }
 
@@ -383,14 +462,15 @@ class CustomerPrintSpecificationService
             ->forTenant()
             ->where('customer_id', $customer->id)
             ->where('status', CustomerPrintSpecificationStatus::Active)
-            ->whereNotNull('inventory_item_id')
             ->with([
                 'inventoryItem:id,item_name,sku,uses_serial_numbers,serial_prefix,serial_padding_length,stock_role',
                 'activeArtworkVersion:id,customer_print_specification_id,version_number,original_file_name,file_name',
                 'customer:id',
             ])
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->filter(fn (CustomerPrintSpecification $spec) => $spec->hasProduct())
+            ->values();
 
         if ($specs->isEmpty()) {
             return [];
@@ -441,7 +521,7 @@ class CustomerPrintSpecificationService
             'name' => $spec->name,
             'status' => $spec->status->value,
             'inventory_item_id' => $spec->inventory_item_id,
-            'product_name' => $item?->item_name,
+            'product_name' => $spec->productLabel(),
             'product_sku' => $item?->sku,
             'current_artwork_version_id' => $activeArtwork?->id,
             'current_artwork_version' => $activeArtwork?->version_number,

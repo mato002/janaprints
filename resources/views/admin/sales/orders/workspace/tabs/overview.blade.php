@@ -1,7 +1,8 @@
 @php
     $firstItem = $salesOrder->items->first();
     $itemCount = $salesOrder->items->count();
-    $productLabel = $salesOrder->inventoryItem?->item_name
+    $productLabel = $salesOrder->customerPrintSpecification?->productLabel()
+        ?? $salesOrder->inventoryItem?->item_name
         ?? $firstItem?->item_name
         ?? __('No product linked');
 @endphp

@@ -98,7 +98,7 @@ class CustomerPrintSpecificationWorkspaceService
             'name' => $spec->name,
             'status' => $spec->status->label(),
             'status_value' => $spec->status->value,
-            'product_name' => $spec->inventoryItem?->item_name,
+            'product_name' => $spec->productLabel(),
             'artwork_version' => $activeArt?->versionLabel(),
             'orders_count' => $usageMetrics['orders_count'],
             'total_revenue' => $usageMetrics['total_revenue'],

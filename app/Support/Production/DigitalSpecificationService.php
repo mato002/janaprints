@@ -137,7 +137,7 @@ class DigitalSpecificationService
             'production_type' => ProductionType::Digital->value,
             'product_description' => $description !== ''
                 ? $description
-                : ($order->items->first()?->item_name ?? $order->customerPrintSpecification?->name),
+                : ($order->items->first()?->item_name ?? $order->customerPrintSpecification?->productLabel()),
             'quantity' => $quantity,
             'ups' => $ups,
             'estimated_sheets' => $sheets,

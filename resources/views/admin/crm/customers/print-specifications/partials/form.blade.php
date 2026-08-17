@@ -13,7 +13,6 @@
 
 @php
     $spec = $specification;
-    $item = $spec?->inventoryItem;
     $statusValue = old('status', $spec?->status?->value ?? $defaultStatus);
 @endphp
 
@@ -98,23 +97,11 @@
     </section>
 
     <section class="rounded-lg border border-erp-border p-4">
-        <h3 class="mb-3 text-sm font-semibold text-slate-900">{{ __('Product / Inventory Item') }}</h3>
-        <x-admin.lookup-select
-            name="inventory_item_id"
-            :label="__('Product / Inventory Item')"
-            :options="collect(old('inventory_item_id', $spec?->inventory_item_id) ? [[
-                'value' => old('inventory_item_id', $spec?->inventory_item_id),
-                'label' => $item?->item_name ? $item->item_name.' ('.$item->sku.')' : __('Selected product'),
-            ]] : [])"
-            :value="old('inventory_item_id', $spec?->inventory_item_id)"
-            :required="true"
-            create-route="admin.inventory.items.quick-create"
-            refresh-route="admin.lookups.items"
-            permission="catalogue.create"
-            :modal-title="__('Create product')"
-            select-class="erp-input w-full"
-            :empty-option="false"
-        />
+        @include('admin.crm.customers.print-specifications.partials.product-field', [
+            'customer' => $customer,
+            'specification' => $spec,
+            'idPrefix' => 'crm-spec-product',
+        ])
     </section>
 
     @include('admin.crm.customers.print-specifications.partials.job-fields', [

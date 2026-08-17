@@ -111,7 +111,7 @@ class OffsetJobSheetService
             'production_type' => ProductionType::Offset->value,
             'product_description' => $description !== ''
                 ? $description
-                : ($order->items->first()?->item_name ?? $order->customerPrintSpecification?->name),
+                : ($order->items->first()?->item_name ?? $order->customerPrintSpecification?->productLabel()),
             'quantity' => $payload['quantity'] ?? $order->items->first()?->quantity,
             'size' => $this->nullableString($sheet['size'] ?? null),
             'finished_size' => $this->nullableString($sheet['size'] ?? null),

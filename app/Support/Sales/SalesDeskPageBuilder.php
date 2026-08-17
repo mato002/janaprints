@@ -10,7 +10,6 @@ use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Support\Commercial\CommercialApprovalQueueService;
 use App\Support\Crm\CustomerPrintSpecificationService;
-use App\Support\Lookup\LookupOptionService;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
 use Illuminate\Http\Request;
 
@@ -22,7 +21,6 @@ class SalesDeskPageBuilder
         protected SalesDeskService $desk,
         protected CustomerPrintSpecificationService $printSpecifications,
         protected SalesDeskWorkQueueService $workQueue,
-        protected LookupOptionService $lookups,
         protected SalesDeskWalkInPanelPresenter $walkInPanel,
         protected CommercialApprovalQueueService $approvalQueue,
     ) {}
@@ -97,11 +95,6 @@ class SalesDeskPageBuilder
         $deskUrls = $this->desk->deskUrls($customer, $specification);
         $customerContext = $this->desk->presentCustomerContext($customer, $specification);
 
-        // Product options for inline spec create (same source as lookup refresh — no extra round-trip).
-        $inventoryItemOptions = $step === 2 && $customer
-            ? $this->lookups->options('items', $request)
-            : [];
-
         return [
             'operatorMode' => SalesOperatorMode::enabledFor($user),
             'activeSalesView' => SalesDeskViews::DESK,
@@ -128,7 +121,6 @@ class SalesDeskPageBuilder
             'searchUrl' => route('admin.sales.desk.customers.search'),
             'orderPriorities' => ProductionPriority::cases(),
             'canSendToProduction' => $user?->can('sales_orders.production') ?? false,
-            'inventoryItemOptions' => $inventoryItemOptions,
             'fullCommercialDeskUrl' => route('admin.workspaces.commercial.section', [
                 'section' => 'sales',
                 'tab' => 'sales-desk',

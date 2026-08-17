@@ -174,9 +174,9 @@ class DirectCustomerSalesOrderService
             ]);
         }
 
-        if (! $specification->inventory_item_id) {
+        if (! $specification->hasProduct()) {
             throw ValidationException::withMessages([
-                'customer_print_specification_id' => __('Print specification must be linked to a catalogue product.'),
+                'customer_print_specification_id' => __('Print specification must include a finished product.'),
             ]);
         }
     }
@@ -184,7 +184,7 @@ class DirectCustomerSalesOrderService
     public function productRequiresArtwork(?InventoryItem $item): bool
     {
         if (! $item) {
-            return true;
+            return false;
         }
 
         return $item->stock_role === InventoryStockRole::FinishedGood;
@@ -199,7 +199,7 @@ class DirectCustomerSalesOrderService
         float $quantity,
         float $unitPrice,
     ): array {
-        $productName = $specification->inventoryItem?->item_name ?? $specification->name;
+        $productName = $specification->productLabel();
 
         return [
             'inventory_item_id' => $specification->inventory_item_id,

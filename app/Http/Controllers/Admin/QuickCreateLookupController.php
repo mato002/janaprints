@@ -1580,7 +1580,8 @@ class QuickCreateLookupController extends Controller
 
             $validated = $request->validate(array_merge([
                 'customer_id' => ['required', 'integer', 'exists:customers,id'],
-                'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
+                'product_name' => ['required', 'string', 'max:255'],
+                'inventory_item_id' => ['nullable', 'integer', 'exists:inventory_items,id'],
                 'name' => ['required', 'string', 'max:255'],
                 'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
                 'default_quantity' => ['nullable', 'numeric', 'min:0'],
@@ -1599,7 +1600,9 @@ class QuickCreateLookupController extends Controller
 
         abort_unless((int) $validated['customer_id'] === (int) $customer->id, 422);
 
-        InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
+        if (! empty($validated['inventory_item_id'])) {
+            InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
+        }
 
         $spec = $specifications->update($printSpecification, $validated, (int) auth()->id());
 
@@ -1630,7 +1633,8 @@ class QuickCreateLookupController extends Controller
 
             $validated = $request->validate(array_merge([
                 'customer_id' => ['required', 'integer', 'exists:customers,id'],
-                'inventory_item_id' => ['required', 'integer', 'exists:inventory_items,id'],
+                'product_name' => ['required', 'string', 'max:255'],
+                'inventory_item_id' => ['nullable', 'integer', 'exists:inventory_items,id'],
                 'name' => ['required', 'string', 'max:255'],
                 'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
                 'default_quantity' => ['nullable', 'numeric', 'min:0'],
@@ -1652,7 +1656,9 @@ class QuickCreateLookupController extends Controller
         $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
         $this->authorize('update', $customer);
 
-        InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
+        if (! empty($validated['inventory_item_id'])) {
+            InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
+        }
 
         $spec = $specifications->create($customer, $validated, (int) auth()->id());
 

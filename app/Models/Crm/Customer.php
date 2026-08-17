@@ -125,7 +125,6 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerPrintSpecification::class)
             ->where('status', \App\Enums\CustomerPrintSpecificationStatus::Active)
-            ->whereNotNull('inventory_item_id')
             ->orderBy('name');
     }
 }

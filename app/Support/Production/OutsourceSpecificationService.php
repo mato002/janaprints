@@ -168,7 +168,7 @@ class OutsourceSpecificationService
             'production_type' => $printingType,
             'product_description' => $description !== ''
                 ? $description
-                : ($order->items->first()?->item_name ?? $order->customerPrintSpecification?->name),
+                : ($order->items->first()?->item_name ?? $order->customerPrintSpecification?->productLabel()),
             'quantity' => $payload['quantity'] ?? $order->items->first()?->quantity,
             'production_notes' => $notes !== '' ? $notes : null,
             'job_sheet_payload' => [

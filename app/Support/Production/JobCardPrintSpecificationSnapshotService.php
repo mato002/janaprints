@@ -81,10 +81,10 @@ class JobCardPrintSpecificationSnapshotService
         ];
 
         if ($line->customer_print_specification_id) {
-            $line->loadMissing('customerPrintSpecification');
+            $line->loadMissing('customerPrintSpecification.inventoryItem');
             $crmSpec = $line->customerPrintSpecification;
-            if ($crmSpec?->name) {
-                $payload['product_description'] = $crmSpec->name;
+            if ($crmSpec?->hasProduct()) {
+                $payload['product_description'] = $crmSpec->productLabel();
             }
         }
 
