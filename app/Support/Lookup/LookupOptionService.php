@@ -523,17 +523,30 @@ class LookupOptionService
             return [];
         }
 
-        return CustomerPrintSpecification::query()
+        $query = CustomerPrintSpecification::query()
             ->forTenant()
             ->where('customer_id', $customer->id)
-            ->where('status', CustomerPrintSpecificationStatus::Active)
-            ->where(function ($query) {
-                $query->whereNotNull('inventory_item_id')
-                    ->orWhere(fn ($inner) => $inner->whereNotNull('product_name')->where('product_name', '!=', ''));
-            })
+            ->where('status', CustomerPrintSpecificationStatus::Active);
+
+        if (CustomerPrintSpecification::hasProductNameColumn()) {
+            $query->where(function ($inner) {
+                $inner->whereNotNull('inventory_item_id')
+                    ->orWhere(fn ($named) => $named->whereNotNull('product_name')->where('product_name', '!=', ''));
+            });
+        } else {
+            $query->whereNotNull('inventory_item_id');
+        }
+
+        $columns = ['id', 'specification_code', 'name', 'inventory_item_id'];
+
+        if (CustomerPrintSpecification::hasProductNameColumn()) {
+            $columns[] = 'product_name';
+        }
+
+        return $query
             ->with('inventoryItem:id,item_name,sku')
             ->orderBy('name')
-            ->get(['id', 'specification_code', 'name', 'inventory_item_id', 'product_name'])
+            ->get($columns)
             ->map(fn (CustomerPrintSpecification $spec) => [
                 'value' => $spec->id,
                 'label' => trim($spec->specification_code.' · '.$spec->name.' · '.$spec->productLabel()),

@@ -436,6 +436,12 @@ class CustomerPrintSpecificationService
      */
     public function orderSelectionSummary(Customer $customer): array
     {
+        $columns = ['id', 'status', 'inventory_item_id'];
+
+        if (CustomerPrintSpecification::hasProductNameColumn()) {
+            $columns[] = 'product_name';
+        }
+
         $onRecord = CustomerPrintSpecification::query()
             ->forTenant()
             ->where('customer_id', $customer->id)
@@ -443,7 +449,7 @@ class CustomerPrintSpecificationService
                 CustomerPrintSpecificationStatus::Draft,
                 CustomerPrintSpecificationStatus::Active,
             ])
-            ->get(['id', 'status', 'inventory_item_id', 'product_name']);
+            ->get($columns);
 
         return [
             'on_record' => $onRecord->count(),

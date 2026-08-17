@@ -23,10 +23,29 @@ class CustomerOrderContextService
      */
     public function buildForDirectOrder(Customer $customer): array
     {
+        try {
+            $specs = $this->printSpecifications->selectableForOrderContext($customer);
+        } catch (\Throwable $exception) {
+            report($exception);
+            $specs = [];
+        }
+
+        try {
+            $summary = $this->printSpecifications->orderSelectionSummary($customer);
+        } catch (\Throwable $exception) {
+            report($exception);
+            $summary = [
+                'on_record' => count($specs),
+                'selectable' => count($specs),
+                'draft' => 0,
+                'missing_product' => 0,
+            ];
+        }
+
         return [
             'customer_name' => $customer->company_name ?? $customer->name,
-            'print_specifications' => $this->printSpecifications->selectableForOrderContext($customer),
-            'print_specification_summary' => $this->printSpecifications->orderSelectionSummary($customer),
+            'print_specifications' => $specs,
+            'print_specification_summary' => $summary,
             'billing_defaults' => app(CustomerOrderBillingDefaultsService::class)->resolveForCustomer($customer),
         ];
     }

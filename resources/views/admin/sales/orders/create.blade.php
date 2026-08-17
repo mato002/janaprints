@@ -354,7 +354,7 @@
                     <p class="text-sm text-red-600" x-text="contextError"></p>
                 </template>
 
-                <template x-if="context && !loadingContext">
+                <template x-if="!loadingContext && customerId">
                     <div class="space-y-2">
                         <div class="flex flex-wrap items-center justify-between gap-2">
                             <div>

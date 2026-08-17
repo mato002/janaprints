@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Facades\Schema;
 
 class CustomerPrintSpecification extends Model
 {
@@ -111,6 +112,13 @@ class CustomerPrintSpecification extends Model
     {
         return $this->inventory_item_id !== null
             || filled($this->product_name);
+    }
+
+    public static function hasProductNameColumn(): bool
+    {
+        static $exists;
+
+        return $exists ??= Schema::hasColumn((new static)->getTable(), 'product_name');
     }
 
     public function productLabel(): string
