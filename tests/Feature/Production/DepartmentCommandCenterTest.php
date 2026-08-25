@@ -120,6 +120,69 @@ class DepartmentCommandCenterTest extends TestCase
             ->assertSee('Annual report', false);
     }
 
+    public function test_digital_queue_shows_typed_paper_quantity_ups_and_sheets(): void
+    {
+        [$company, $branch, $user, $workCenter] = $this->commandCentreContext('digital');
+
+        $salesOrder = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'created_by' => $user->id,
+        ]);
+
+        $item = \App\Models\Sales\SalesOrderItem::query()->create([
+            'sales_order_id' => $salesOrder->id,
+            'item_name' => 'Raelly 500ML ZINGA',
+            'quantity' => 960,
+            'unit_price' => 2.5,
+            'line_total' => 2400,
+            'sort_order' => 1,
+        ]);
+
+        $jobCard = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sales_order_id' => $salesOrder->id,
+            'production_type' => ProductionType::Digital,
+            'created_by' => $user->id,
+        ]);
+
+        app(ProductionSpecificationService::class)->createForSalesOrderItem($item, [
+            'production_type' => ProductionType::Digital->value,
+            'product_description' => 'Raelly 500ML ZINGA',
+            'quantity' => 960,
+            'ups' => 8,
+            'estimated_sheets' => 120,
+            'job_sheet_payload' => [
+                'kind' => 'digital',
+                'paper_type' => 'Gloss 150gsm',
+                'ups' => 8,
+                'sheets' => 120,
+            ],
+        ], $user)->update(['production_job_card_id' => $jobCard->id]);
+
+        ProductionQueue::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_job_card_id' => $jobCard->id,
+            'work_center_id' => $workCenter->id,
+            'queue_position' => 1,
+            'status' => ProductionQueueStatus::Queued,
+        ]);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('digital')
+            ->assertOk()
+            ->assertSee(__('Paper'), false)
+            ->assertSee(__('Quantity'), false)
+            ->assertSee(__('No. of ups'), false)
+            ->assertSee(__('No. of sheets'), false)
+            ->assertSee('Gloss 150gsm', false)
+            ->assertSee('960', false)
+            ->assertSee('8', false)
+            ->assertSee('120', false);
+    }
+
     public function test_export_respects_department_scope(): void
     {
         [$company, $branch, $user, $digitalCenter] = $this->commandCentreContext('digital');

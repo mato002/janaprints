@@ -55,15 +55,14 @@ class ProductionSpecificationPresenter
             'quantity' => $spec->quantity !== null ? (float) $spec->quantity : null,
             'unit' => $spec->unit,
             'size' => $spec->size,
-            'paper' => $spec->paperInventoryItem?->item_name
-                ?? (is_array($spec->job_sheet_payload) ? ($spec->job_sheet_payload['paper_stock'] ?? $spec->job_sheet_payload['paper_type'] ?? null) : null),
+            'paper' => $this->paperLabel($spec),
             'ink' => (is_array($spec->job_sheet_payload) ? ($spec->job_sheet_payload['ink'] ?? null) : null)
                 ?? $spec->ink_type?->label()
                 ?? $spec->colour_mode,
             'binding' => $spec->binding_type,
             'finishing' => $spec->finishing_type,
-            'ups' => $spec->ups,
-            'estimated_sheets' => $spec->estimated_sheets,
+            'ups' => $this->upsValue($spec),
+            'estimated_sheets' => $this->sheetsValue($spec),
             'approval_status_label' => $spec->approval_status?->label(),
         ];
     }
@@ -78,6 +77,130 @@ class ProductionSpecificationPresenter
             'message' => __('No structured production specification yet.'),
             'sections' => [],
         ];
+    }
+
+    public function paperLabel(?ProductionSpecification $spec): ?string
+    {
+        if (! $spec) {
+            return null;
+        }
+
+        $fromCatalogue = $spec->paperInventoryItem?->item_name
+            ?? $spec->materialInventoryItem?->item_name;
+
+        if (filled($fromCatalogue)) {
+            return (string) $fromCatalogue;
+        }
+
+        $payload = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+
+        if (filled($payload['paper_type'] ?? null)) {
+            return trim((string) $payload['paper_type']);
+        }
+
+        if (filled($payload['paper_stock'] ?? null)) {
+            return trim((string) $payload['paper_stock']);
+        }
+
+        $fromRows = collect($payload['material_rows'] ?? [])
+            ->filter(fn ($row) => is_array($row) && filled($row['paper_type'] ?? null))
+            ->map(fn (array $row) => trim((string) $row['paper_type']))
+            ->unique()
+            ->values();
+
+        return $fromRows->isNotEmpty() ? $fromRows->implode(', ') : null;
+    }
+
+    public function quantityValue(?ProductionSpecification $spec, mixed $fallback = null): ?float
+    {
+        if ($spec?->quantity !== null && $spec->quantity !== '') {
+            return (float) $spec->quantity;
+        }
+
+        if ($fallback !== null && $fallback !== '') {
+            return (float) $fallback;
+        }
+
+        return null;
+    }
+
+    public function displayQuantity(?ProductionSpecification $spec, mixed $fallback = null): string
+    {
+        $quantity = $this->quantityValue($spec, $fallback);
+
+        if ($quantity === null) {
+            return '—';
+        }
+
+        $formatted = number_format($quantity, 3, '.', '');
+        $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+        return $formatted === '' ? '—' : $formatted;
+    }
+
+    public function upsValue(?ProductionSpecification $spec): ?int
+    {
+        if (! $spec) {
+            return null;
+        }
+
+        if ($spec->ups) {
+            return (int) $spec->ups;
+        }
+
+        $payload = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+
+        if (isset($payload['ups']) && $payload['ups'] !== '' && $payload['ups'] !== null) {
+            return (int) $payload['ups'];
+        }
+
+        return null;
+    }
+
+    public function displayUps(?ProductionSpecification $spec): string
+    {
+        $ups = $this->upsValue($spec);
+
+        return $ups ? (string) $ups : '—';
+    }
+
+    public function sheetsValue(?ProductionSpecification $spec, mixed $fallbackQuantity = null): ?int
+    {
+        if (! $spec) {
+            return ProductionImpositionCalculator::estimateSheets($fallbackQuantity, null, null);
+        }
+
+        $payload = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+        $stored = null;
+
+        if (isset($payload['sheets']) && $payload['sheets'] !== '' && $payload['sheets'] !== null) {
+            $stored = (int) $payload['sheets'];
+        } elseif ($spec->estimated_sheets) {
+            $stored = (int) $spec->estimated_sheets;
+        } else {
+            $rowSheets = collect($payload['material_rows'] ?? [])
+                ->filter(fn ($row) => is_array($row))
+                ->map(fn (array $row) => $row['sheets_a4_a3'] ?? $row['sheets_a1'] ?? null)
+                ->filter(fn ($value) => filled($value) && is_numeric($value))
+                ->sum(fn ($value) => (int) $value);
+
+            if ($rowSheets > 0) {
+                $stored = (int) $rowSheets;
+            }
+        }
+
+        return ProductionImpositionCalculator::estimateSheets(
+            $this->quantityValue($spec, $fallbackQuantity),
+            $this->upsValue($spec),
+            $stored,
+        );
+    }
+
+    public function displaySheets(?ProductionSpecification $spec, mixed $fallbackQuantity = null): string
+    {
+        $sheets = $this->sheetsValue($spec, $fallbackQuantity);
+
+        return $sheets === null ? '—' : (string) $sheets;
     }
 
     /**
@@ -114,7 +237,7 @@ class ProductionSpecificationPresenter
     protected function materialsSection(ProductionSpecification $spec): array
     {
         return $this->fields([
-            __('Paper') => $spec->paperInventoryItem?->item_name,
+            __('Paper') => $this->paperLabel($spec),
             __('Material') => $spec->materialInventoryItem?->item_name,
         ]);
     }
@@ -163,8 +286,8 @@ class ProductionSpecificationPresenter
     protected function impositionSection(ProductionSpecification $spec): array
     {
         return $this->fields([
-            __('Ups') => $spec->ups,
-            __('Estimated sheets') => $spec->estimated_sheets,
+            __('Ups') => $this->upsValue($spec),
+            __('Estimated sheets') => $this->sheetsValue($spec),
             __('Waste allowance') => $spec->waste_allowance_percent !== null
                 ? number_format((float) $spec->waste_allowance_percent, 1).'%'
                 : null,

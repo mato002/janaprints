@@ -11,7 +11,6 @@ use App\Services\Accounting\DeliveryInvoiceService;
 use App\Support\Production\DepartmentQueueRegistry;
 use App\Support\Production\JobCardOutsourceService;
 use App\Support\Production\JobCardPrintUrl;
-use App\Support\Production\ProductionImpositionCalculator;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -55,17 +54,17 @@ class DepartmentCommandCenterService
     {
         $definitions = [
             'all' => [
-                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'finished_size',
-                'paper_material', 'colour_mode', 'due_date', 'operator_name', 'machine_name',
+                'date', 'job_card_number', 'customer_name', 'product', 'quantity', 'ups', 'estimated_sheets',
+                'finished_size', 'paper_material', 'colour_mode', 'due_date', 'operator_name', 'machine_name',
                 'production_status', 'payment_status',
             ],
             'offset' => [
                 'date', 'job_card_number', 'customer_name', 'product', 'ink_colour', 'paper_type',
-                'estimated_sheets', 'due_date', 'progress', 'production_status',
+                'quantity', 'ups', 'estimated_sheets', 'due_date', 'progress', 'production_status',
             ],
             'digital' => [
                 'date', 'job_card_number', 'customer_name', 'product', 'paper_material', 'quantity',
-                'due_date', 'progress', 'production_status',
+                'ups', 'estimated_sheets', 'due_date', 'progress', 'production_status',
             ],
             'outsource' => [
                 'date', 'job_card_number', 'customer_name', 'vendor_name', 'date_sent', 'expected_return',
@@ -199,30 +198,32 @@ class DepartmentCommandCenterService
             : null;
         $invoice = $job ? app(DeliveryInvoiceService::class)->billingStatusForJob($job->id) : null;
         $lineItem = $job?->salesOrder?->items?->first();
+        $specDisplay = app(\App\Support\Production\ProductionSpecificationPresenter::class);
+        $paper = $specDisplay->paperLabel($spec);
+        $quantityDisplay = $specDisplay->displayQuantity($spec, $lineItem?->quantity);
+        $upsDisplay = $specDisplay->displayUps($spec);
+        $sheetCount = $specDisplay->displaySheets($spec, $lineItem?->quantity);
         $unitPrice = $lineItem?->unit_price;
-        $lineAmount = $lineItem?->line_total ?? ($unitPrice && $spec?->quantity
-            ? round((float) $unitPrice * (float) $spec->quantity, 2)
+        $lineAmount = $lineItem?->line_total ?? ($unitPrice && $specDisplay->quantityValue($spec, $lineItem?->quantity)
+            ? round((float) $unitPrice * $specDisplay->quantityValue($spec, $lineItem?->quantity), 2)
             : null);
         $sellingPrice = $job?->salesOrder?->total_amount ?? $lineAmount;
         $vendorCost = $job?->outsource_actual_cost ?? $job?->outsource_quoted_cost;
         $dimensions = $this->parseDimensions($spec?->finished_size ?? $spec?->size);
         $legacyStatus = $this->legacyOrderStatus($job, $dispatch);
-        $sheetCount = ProductionImpositionCalculator::displaySheets(
-            $spec?->quantity ?? $lineItem?->quantity,
-            $spec?->ups,
-            $spec?->estimated_sheets,
-        );
 
         return array_merge($row, [
             'date' => $queue->created_at?->format('d/m/Y'),
             'completion_date' => $job?->actual_end_date?->format('Y-m-d')
                 ?? (($job?->status === ProductionJobCardStatus::Completed) ? $job->updated_at?->format('Y-m-d') : '—'),
             'client' => $row['customer_name'],
-            'paper_type' => $spec?->paperInventoryItem?->item_name,
+            'quantity' => $quantityDisplay,
+            'paper_type' => $paper ?? '—',
+            'paper_material' => $paper ?? '—',
             'paper_size' => $spec?->sheet_size,
-            'material' => $spec?->materialInventoryItem?->item_name ?? $spec?->paperInventoryItem?->item_name,
+            'material' => $paper ?? $spec?->materialInventoryItem?->item_name ?? '—',
             'lamination' => $spec?->lamination ? __('Yes') : ($spec ? __('No') : '—'),
-            'ups' => $spec?->ups,
+            'ups' => $upsDisplay,
             'estimated_sheets' => $sheetCount,
             'job_type' => $this->resolveJobType($spec, $lineItem),
             'ink_colour' => $this->resolveInkColour($spec),

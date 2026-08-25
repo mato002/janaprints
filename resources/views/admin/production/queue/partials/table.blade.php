@@ -175,6 +175,9 @@
             <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-600">
                 <div><dt class="inline">{{ __('Due') }}:</dt> <dd class="inline font-medium">{{ $row['due_date'] ?? '—' }}</dd></div>
                 <div><dt class="inline">{{ __('Qty') }}:</dt> <dd class="inline font-medium">{{ $row['quantity'] ?? '—' }}</dd></div>
+                <div><dt class="inline">{{ __('Paper') }}:</dt> <dd class="inline font-medium">{{ $row['paper_material'] ?? $row['paper_type'] ?? '—' }}</dd></div>
+                <div><dt class="inline">{{ __('Ups') }}:</dt> <dd class="inline font-medium">{{ $row['ups'] ?? '—' }}</dd></div>
+                <div><dt class="inline">{{ __('Sheets') }}:</dt> <dd class="inline font-medium">{{ $row['estimated_sheets'] ?? '—' }}</dd></div>
                 <div><dt class="inline">{{ __('Operator') }}:</dt> <dd class="inline font-medium">{{ $row['operator_name'] }}</dd></div>
                 <div><dt class="inline">{{ __('Machine') }}:</dt> <dd class="inline font-medium">{{ $row['machine_name'] }}</dd></div>
             </dl>

@@ -14,6 +14,7 @@ use App\Support\Production\DepartmentQueueRegistry;
 use App\Support\Production\DepartmentQueueRoutingService;
 use App\Support\Production\JobCardPrintUrl;
 use App\Support\Production\ProductionQueueOrderingService;
+use App\Support\Production\ProductionSpecificationPresenter;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -153,7 +154,7 @@ class ProductionQueueWorkspaceService
                 'jobCard.salesOrder:id,public_id,order_number,status,required_date,total_amount',
                 'jobCard.salesOrder.items:id,sales_order_id,item_name,quantity,unit_price,line_total',
                 'jobCard.outsourceVendor:id,vendor_name',
-                'jobCard.productionSpecification:id,production_job_card_id,product_description,size,finished_size,sheet_size,quantity,unit,ups,estimated_sheets,paper_inventory_item_id,material_inventory_item_id,colour_mode,ink_type,binding_type,lamination,finishing_type,production_type,print_product_template_id,numbering_required,spot_uv,foiling,embossing,die_cutting,eyelets',
+                'jobCard.productionSpecification:id,production_job_card_id,product_description,size,finished_size,sheet_size,quantity,unit,ups,estimated_sheets,paper_inventory_item_id,material_inventory_item_id,colour_mode,ink_type,binding_type,lamination,finishing_type,production_type,print_product_template_id,numbering_required,spot_uv,foiling,embossing,die_cutting,eyelets,job_sheet_payload',
                 'jobCard.serialAllocation:id,production_job_card_id,serial_prefix,serial_padding_length,serial_start,serial_end',
                 'jobCard.productionSpecification.paperInventoryItem:id,item_name',
                 'jobCard.productionSpecification.materialInventoryItem:id,item_name',
@@ -190,6 +191,13 @@ class ProductionQueueWorkspaceService
             ? route('admin.production.job-cards.show', $jobCard)
             : null;
 
+        $specDisplay = app(ProductionSpecificationPresenter::class);
+        $lineQuantity = $jobCard?->salesOrder?->items?->first()?->quantity;
+        $paper = $specDisplay->paperLabel($spec);
+        $quantity = $specDisplay->displayQuantity($spec, $lineQuantity);
+        $ups = $specDisplay->displayUps($spec);
+        $sheets = $specDisplay->displaySheets($spec, $lineQuantity);
+
         return [
             'id' => $queue->id,
             'queue_position' => $queue->queue_position,
@@ -205,11 +213,13 @@ class ProductionQueueWorkspaceService
             'customer_id' => $jobCard?->customer_id,
             'product' => $spec?->product_description ?? $jobCard?->inventoryItem?->item_name ?? '—',
             'description' => $spec?->product_description ?? $jobCard?->inventoryItem?->item_name,
-            'quantity' => $spec?->quantity,
+            'quantity' => $quantity,
             'unit' => $spec?->unit,
             'finished_size' => $spec?->finished_size ?? $spec?->size,
-            'paper_material' => $spec?->paperInventoryItem?->item_name
-                ?? $spec?->materialInventoryItem?->item_name,
+            'paper_material' => $paper ?? '—',
+            'paper_type' => $paper ?? '—',
+            'ups' => $ups,
+            'estimated_sheets' => $sheets,
             'colour_mode' => $spec?->colour_mode,
             'binding' => $spec?->binding_type,
             'finishing' => $this->finishingSummary($spec),
@@ -232,9 +242,9 @@ class ProductionQueueWorkspaceService
             'spec_summary' => $spec ? [
                 'product' => $spec->product_description ?? $jobCard?->inventoryItem?->item_name,
                 'size' => $spec->size,
-                'paper' => $spec->paperInventoryItem?->item_name,
-                'ups' => $spec->ups,
-                'estimated_sheets' => $spec->estimated_sheets,
+                'paper' => $paper,
+                'ups' => $specDisplay->upsValue($spec),
+                'estimated_sheets' => $specDisplay->sheetsValue($spec, $lineQuantity),
             ] : null,
             'job_360_url' => $job360Url,
             'work_center_url' => ($user?->can('production.work-centers.view') && $queue->workCenter)
