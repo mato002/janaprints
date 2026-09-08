@@ -86,6 +86,21 @@ class JobCardPrintSpecificationSnapshotService
             if ($crmSpec?->hasProduct()) {
                 $payload['product_description'] = $crmSpec->productLabel();
             }
+
+            $sheet = is_array($crmSpec?->job_sheet_payload) ? $crmSpec->job_sheet_payload : [];
+            if ($sheet !== []) {
+                $payload['job_sheet_payload'] = $sheet;
+                $finishing = trim((string) ($sheet['finishing'] ?? ''));
+                if ($finishing !== '' && strcasecmp($finishing, 'N/A') !== 0) {
+                    $payload['finishing_type'] = $finishing;
+                }
+                if (isset($sheet['ups']) && $sheet['ups'] !== '' && $sheet['ups'] !== null) {
+                    $payload['ups'] = (int) $sheet['ups'];
+                }
+                if (isset($sheet['sheets']) && $sheet['sheets'] !== '' && $sheet['sheets'] !== null) {
+                    $payload['estimated_sheets'] = (int) $sheet['sheets'];
+                }
+            }
         }
 
         $spec = $this->specifications->createForSalesOrderItem($line, $payload, $user);

@@ -64,7 +64,7 @@ class DepartmentCommandCenterService
             ],
             'digital' => [
                 'date', 'job_card_number', 'customer_name', 'product', 'paper_material', 'quantity',
-                'ups', 'estimated_sheets', 'due_date', 'progress', 'production_status',
+                'ups', 'estimated_sheets', 'finishing', 'due_date', 'progress', 'production_status',
             ],
             'outsource' => [
                 'date', 'job_card_number', 'customer_name', 'vendor_name', 'date_sent', 'expected_return',
@@ -189,7 +189,7 @@ class DepartmentCommandCenterService
         $job = $queue->jobCard;
         $spec = $job?->productionSpecification;
         $spec?->loadMissing(['paperInventoryItem', 'materialInventoryItem', 'printProductTemplate']);
-        $job?->loadMissing(['outsourceVendor', 'salesOrder.items', 'costSheet', 'deliveryNotes', 'serialAllocation']);
+        $job?->loadMissing(['outsourceVendor', 'salesOrder.items', 'costSheet', 'deliveryNotes', 'serialAllocation', 'customerPrintSpecification']);
 
         $qc = $job ? $this->controls->qcStatusSummary($job) : ['label' => '—', 'status' => 'none'];
         $dispatch = $job ? $this->dispatchStatusLabel($job) : '—';
@@ -225,6 +225,7 @@ class DepartmentCommandCenterService
             'lamination' => $spec?->lamination ? __('Yes') : ($spec ? __('No') : '—'),
             'ups' => $upsDisplay,
             'estimated_sheets' => $sheetCount,
+            'finishing' => $row['finishing'] ?? $specDisplay->displayFinishing($spec),
             'job_type' => $this->resolveJobType($spec, $lineItem),
             'ink_colour' => $this->resolveInkColour($spec),
             'serial_start' => $this->resolveSerialStart($job, $spec),

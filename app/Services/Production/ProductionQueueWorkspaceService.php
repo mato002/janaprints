@@ -149,11 +149,12 @@ class ProductionQueueWorkspaceService
         return $this->ordering
             ->applyPriorityOrdering($query)
             ->with([
-                'jobCard:id,public_id,company_id,branch_id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at,actual_end_date,updated_at',
+                'jobCard:id,public_id,company_id,branch_id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at,actual_end_date,updated_at,customer_print_specification_id',
                 'jobCard.customer:id,public_id,company_name',
                 'jobCard.salesOrder:id,public_id,order_number,status,required_date,total_amount',
                 'jobCard.salesOrder.items:id,sales_order_id,item_name,quantity,unit_price,line_total',
                 'jobCard.outsourceVendor:id,vendor_name',
+                'jobCard.customerPrintSpecification:id,job_sheet_payload,production_destination',
                 'jobCard.productionSpecification:id,production_job_card_id,product_description,size,finished_size,sheet_size,quantity,unit,ups,estimated_sheets,paper_inventory_item_id,material_inventory_item_id,colour_mode,ink_type,binding_type,lamination,finishing_type,production_type,print_product_template_id,numbering_required,spot_uv,foiling,embossing,die_cutting,eyelets,job_sheet_payload',
                 'jobCard.serialAllocation:id,production_job_card_id,serial_prefix,serial_padding_length,serial_start,serial_end',
                 'jobCard.productionSpecification.paperInventoryItem:id,item_name',
@@ -193,10 +194,14 @@ class ProductionQueueWorkspaceService
 
         $specDisplay = app(ProductionSpecificationPresenter::class);
         $lineQuantity = $jobCard?->salesOrder?->items?->first()?->quantity;
+        $crmPayload = is_array($jobCard?->customerPrintSpecification?->job_sheet_payload)
+            ? $jobCard->customerPrintSpecification->job_sheet_payload
+            : null;
         $paper = $specDisplay->paperLabel($spec);
         $quantity = $specDisplay->displayQuantity($spec, $lineQuantity);
         $ups = $specDisplay->displayUps($spec);
         $sheets = $specDisplay->displaySheets($spec, $lineQuantity);
+        $finishing = $specDisplay->displayFinishing($spec, $crmPayload);
 
         return [
             'id' => $queue->id,
@@ -222,7 +227,7 @@ class ProductionQueueWorkspaceService
             'estimated_sheets' => $sheets,
             'colour_mode' => $spec?->colour_mode,
             'binding' => $spec?->binding_type,
-            'finishing' => $this->finishingSummary($spec),
+            'finishing' => $finishing,
             'due_date' => $dueDate?->format('Y-m-d'),
             'days_remaining' => $daysRemaining,
             'operator_name' => $queue->assignedOperator?->name ?? '—',
@@ -245,6 +250,7 @@ class ProductionQueueWorkspaceService
                 'paper' => $paper,
                 'ups' => $specDisplay->upsValue($spec),
                 'estimated_sheets' => $specDisplay->sheetsValue($spec, $lineQuantity),
+                'finishing' => $specDisplay->finishingLabel($spec, $crmPayload),
             ] : null,
             'job_360_url' => $job360Url,
             'work_center_url' => ($user?->can('production.work-centers.view') && $queue->workCenter)
@@ -526,21 +532,6 @@ class ProductionQueueWorkspaceService
         return 'default';
     }
 
-    protected function finishingSummary($spec): ?string
-    {
-        if (! $spec) {
-            return null;
-        }
-
-        $parts = array_filter([
-            $spec->finishing_type,
-            $spec->binding_type,
-            $spec->lamination ? __('Lamination') : null,
-        ]);
-
-        return $parts !== [] ? implode(', ', $parts) : null;
-    }
-
     protected function scopedBaseQuery(?Request $request, ?string $department): Builder
     {
         $query = ProductionQueue::query()->forTenant();
@@ -564,6 +555,7 @@ class ProductionQueueWorkspaceService
             'jobCard.customer',
             'jobCard.salesOrder.items',
             'jobCard.outsourceVendor',
+            'jobCard.customerPrintSpecification',
             'jobCard.productionSpecification.paperInventoryItem',
             'jobCard.productionSpecification.materialInventoryItem',
             'jobCard.productionSpecification.printProductTemplate',

@@ -60,7 +60,7 @@ class ProductionSpecificationPresenter
                 ?? $spec->ink_type?->label()
                 ?? $spec->colour_mode,
             'binding' => $spec->binding_type,
-            'finishing' => $spec->finishing_type,
+            'finishing' => $this->finishingLabel($spec),
             'ups' => $this->upsValue($spec),
             'estimated_sheets' => $this->sheetsValue($spec),
             'approval_status_label' => $spec->approval_status?->label(),
@@ -109,6 +109,33 @@ class ProductionSpecificationPresenter
             ->values();
 
         return $fromRows->isNotEmpty() ? $fromRows->implode(', ') : null;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $fallbackPayload
+     */
+    public function finishingLabel(?ProductionSpecification $spec, ?array $fallbackPayload = null): ?string
+    {
+        $candidates = [
+            $spec?->finishing_type,
+            is_array($spec?->job_sheet_payload) ? ($spec->job_sheet_payload['finishing'] ?? null) : null,
+            is_array($fallbackPayload) ? ($fallbackPayload['finishing'] ?? null) : null,
+        ];
+
+        foreach ($candidates as $value) {
+            $label = trim((string) $value);
+
+            if ($label !== '' && strcasecmp($label, 'N/A') !== 0) {
+                return $label;
+            }
+        }
+
+        return null;
+    }
+
+    public function displayFinishing(?ProductionSpecification $spec, ?array $fallbackPayload = null): string
+    {
+        return $this->finishingLabel($spec, $fallbackPayload) ?? '—';
     }
 
     public function quantityValue(?ProductionSpecification $spec, mixed $fallback = null): ?float
@@ -275,7 +302,7 @@ class ProductionSpecificationPresenter
 
         return $this->fields([
             __('Binding') => $spec->binding_type,
-            __('Finishing type') => $spec->finishing_type,
+            __('Finishing type') => $this->finishingLabel($spec),
             __('Finishing options') => $options !== [] ? implode(', ', $options) : null,
         ]);
     }

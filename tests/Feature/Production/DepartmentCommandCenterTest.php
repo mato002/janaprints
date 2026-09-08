@@ -153,11 +153,13 @@ class DepartmentCommandCenterTest extends TestCase
             'quantity' => 960,
             'ups' => 8,
             'estimated_sheets' => 120,
+            'finishing_type' => 'UV',
             'job_sheet_payload' => [
                 'kind' => 'digital',
                 'paper_type' => 'Gloss 150gsm',
                 'ups' => 8,
                 'sheets' => 120,
+                'finishing' => 'UV',
             ],
         ], $user)->update(['production_job_card_id' => $jobCard->id]);
 
@@ -177,10 +179,12 @@ class DepartmentCommandCenterTest extends TestCase
             ->assertSee(__('Quantity'), false)
             ->assertSee(__('No. of ups'), false)
             ->assertSee(__('No. of sheets'), false)
+            ->assertSee(__('Finishing'), false)
             ->assertSee('Gloss 150gsm', false)
             ->assertSee('960', false)
             ->assertSee('8', false)
-            ->assertSee('120', false);
+            ->assertSee('120', false)
+            ->assertSee('UV', false);
     }
 
     public function test_export_respects_department_scope(): void

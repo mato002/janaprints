@@ -178,6 +178,7 @@
                 <div><dt class="inline">{{ __('Paper') }}:</dt> <dd class="inline font-medium">{{ $row['paper_material'] ?? $row['paper_type'] ?? '—' }}</dd></div>
                 <div><dt class="inline">{{ __('Ups') }}:</dt> <dd class="inline font-medium">{{ $row['ups'] ?? '—' }}</dd></div>
                 <div><dt class="inline">{{ __('Sheets') }}:</dt> <dd class="inline font-medium">{{ $row['estimated_sheets'] ?? '—' }}</dd></div>
+                <div><dt class="inline">{{ __('Finishing') }}:</dt> <dd class="inline font-medium">{{ $row['finishing'] ?? '—' }}</dd></div>
                 <div><dt class="inline">{{ __('Operator') }}:</dt> <dd class="inline font-medium">{{ $row['operator_name'] }}</dd></div>
                 <div><dt class="inline">{{ __('Machine') }}:</dt> <dd class="inline font-medium">{{ $row['machine_name'] }}</dd></div>
             </dl>
