@@ -424,7 +424,7 @@ class SalesDeskActionPresenter
                 'label' => __('Delete'),
                 'action' => route('admin.sales-orders.destroy', $salesOrder),
                 'method' => 'DELETE',
-                'confirm' => __('Delete this draft sales order?'),
+                'confirm' => __('Delete this sales order? A linked job card will also be removed.'),
                 'variant' => 'danger',
             ];
         }

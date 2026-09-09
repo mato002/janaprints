@@ -350,6 +350,57 @@ class SalesOrderFoundationTest extends TestCase
         $this->assertLessThan($olderPosition, $newerPosition);
     }
 
+    public function test_ready_for_production_order_can_be_deleted(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'sales_orders.view', 'sales_orders.delete',
+        ]);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'status' => SalesOrderStatus::ReadyForProduction,
+        ]);
+
+        $this->actingAs($user);
+        $this->assertTrue($user->can('delete', $order));
+
+        $deskUrl = route('admin.sales.desk', ['view' => 'orders']);
+
+        $this->from($deskUrl)
+            ->delete(route('admin.sales-orders.destroy', $order))
+            ->assertRedirect($deskUrl);
+
+        $this->assertDatabaseMissing('sales_orders', ['id' => $order->id]);
+    }
+
+    public function test_in_production_order_cannot_be_deleted(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'sales_orders.view', 'sales_orders.delete',
+        ]);
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'status' => SalesOrderStatus::InProduction,
+        ]);
+
+        $this->actingAs($user);
+        $this->assertFalse($user->can('delete', $order));
+
+        $this->delete(route('admin.sales-orders.destroy', $order))
+            ->assertForbidden();
+
+        $this->assertDatabaseHas('sales_orders', ['id' => $order->id]);
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2: Customer, 3: User}
      */

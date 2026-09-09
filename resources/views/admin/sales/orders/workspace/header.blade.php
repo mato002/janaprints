@@ -15,6 +15,7 @@
     $onHold = $salesOrder->status === SalesOrderStatus::OnHold;
     $canHold = $canTransition && $salesOrder->status->canTransitionTo(SalesOrderStatus::OnHold);
     $canCancel = $canTransition && $salesOrder->status->canTransitionTo(SalesOrderStatus::Cancelled);
+    $canDelete = auth()->user()?->can('delete', $salesOrder);
 
     $primary = null;
     if ($canConfirm) {
@@ -160,6 +161,13 @@
                         <form method="POST" action="{{ route('admin.sales-orders.cancel', $salesOrder) }}">
                             @csrf
                             <button type="submit" class="so-360__more-item so-360__more-item--danger">{{ __('Cancel') }}</button>
+                        </form>
+                    @endif
+                    @if ($canDelete)
+                        <form method="POST" action="{{ route('admin.sales-orders.destroy', $salesOrder) }}" onsubmit="return confirm(@js(__('Delete this sales order? A linked job card will also be removed.')))">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="so-360__more-item so-360__more-item--danger">{{ __('Delete') }}</button>
                         </form>
                     @endif
                     @if ($salesOrder->jobCard)

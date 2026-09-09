@@ -413,8 +413,16 @@ class SalesOrderController extends Controller
 
         $salesOrder->delete();
 
+        $showUrl = route('admin.sales-orders.show', $salesOrder);
+        $previous = url()->previous();
+        $fallback = route('admin.sales-orders.index');
+
+        if ($previous === $showUrl || str_contains($previous, '/sales-orders/list/'.$salesOrder->getRouteKey())) {
+            return redirect()->to($fallback)->with('status', __('Sales order deleted.'));
+        }
+
         return redirect()
-            ->route('admin.sales-orders.index')
+            ->to($previous !== url()->current() ? $previous : $fallback)
             ->with('status', __('Sales order deleted.'));
     }
 

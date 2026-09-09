@@ -2,6 +2,8 @@
 
 namespace App\Policies;
 
+use App\Enums\CustomerInvoiceStatus;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\SalesOrderStatus;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
@@ -46,9 +48,47 @@ class SalesOrderPolicy
 
     public function delete(User $user, SalesOrder $salesOrder): bool
     {
-        return $user->can('sales_orders.delete')
-            && $this->sameTenant($user, $salesOrder)
-            && $salesOrder->status === SalesOrderStatus::Draft;
+        if (! $user->can('sales_orders.delete') || ! $this->sameTenant($user, $salesOrder)) {
+            return false;
+        }
+
+        $salesOrder->loadMissing(['jobCard', 'invoices']);
+
+        $hasBlockingInvoice = $salesOrder->invoices->contains(
+            fn ($invoice) => $invoice->status !== CustomerInvoiceStatus::Cancelled,
+        );
+
+        if ($hasBlockingInvoice) {
+            return false;
+        }
+
+        if (in_array($salesOrder->status, [
+            SalesOrderStatus::Cancelled,
+            SalesOrderStatus::Completed,
+        ], true)) {
+            return true;
+        }
+
+        if (! in_array($salesOrder->status, [
+            SalesOrderStatus::Draft,
+            SalesOrderStatus::Confirmed,
+            SalesOrderStatus::ReadyForProduction,
+            SalesOrderStatus::OnHold,
+        ], true)) {
+            return false;
+        }
+
+        $job = $salesOrder->jobCard;
+        if ($job && ! in_array($job->status, [
+            ProductionJobCardStatus::Draft,
+            ProductionJobCardStatus::Queued,
+            ProductionJobCardStatus::OnHold,
+            ProductionJobCardStatus::Cancelled,
+        ], true)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function confirm(User $user, SalesOrder $salesOrder): bool
