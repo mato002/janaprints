@@ -5962,8 +5962,13 @@ body.erp-navigating {
     }
 
     /* Production floor — operational control room (scoped to .production-floor-shell) */
+    .module-workspace-embedded:has(.production-floor-shell) {
+        overflow: hidden;
+    }
+
     .production-floor-shell {
         --production-floor-sticky-offset: 0px;
+        --production-floor-table-sticky-offset: 0px;
     }
 
     .production-floor-shell--dense {
@@ -6099,21 +6104,12 @@ body.erp-navigating {
         box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
     }
 
-    .production-queue-ribbon__bar {
-        display: flex;
-        min-width: 0;
-        align-items: stretch;
-        border-bottom: 1px solid #e2e8f0;
-    }
-
     .production-queue-ribbon__tabs {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-        flex: 1 1 50%;
         overflow: hidden;
-        border-bottom: 0;
-        border-right: 1px solid #e2e8f0;
-        border-radius: 0.375rem 0 0 0;
+        border-bottom: 1px solid #e2e8f0;
+        border-radius: 0.375rem 0.375rem 0 0;
     }
 
     .production-queue-ribbon__tab {
@@ -6181,29 +6177,10 @@ body.erp-navigating {
 
     .production-queue-ribbon__stats--buckets {
         display: grid;
-        flex: 1 1 50%;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0;
         min-height: 0;
-        border-bottom: 0;
         padding: 0;
-    }
-
-    @media (max-width: 767px) {
-        .production-queue-ribbon__bar {
-            flex-direction: column;
-        }
-
-        .production-queue-ribbon__tabs {
-            flex-basis: auto;
-            border-right: 0;
-            border-bottom: 1px solid #e2e8f0;
-            border-radius: 0.375rem 0.375rem 0 0;
-        }
-
-        .production-queue-ribbon__stats--buckets {
-            flex-basis: auto;
-        }
     }
 
     .production-queue-ribbon__stats--buckets .production-queue-ribbon__stat {
@@ -6481,7 +6458,7 @@ body.erp-navigating {
     }
 
     .production-floor-command-sticky {
-        @apply sticky top-0 z-40 border-b border-erp-border/60 bg-erp-page pb-1;
+        @apply border-b border-erp-border/60 bg-erp-page pb-1;
     }
 
     .production-floor-board__card .text-card-title {
@@ -6519,6 +6496,7 @@ body.erp-navigating {
     /* Fit all queue columns on one screen — wrap long text instead of horizontal scroll */
     .production-floor-shell .production-floor-register__table.erp-table-scroll {
         overflow-x: visible;
+        overflow-y: visible;
     }
 
     .production-floor-shell .production-floor-register__table > .production-floor-queue-table {
@@ -6847,7 +6825,7 @@ body.erp-navigating {
     }
 
     .production-floor-shell .production-floor-register__table .erp-table thead th {
-        top: var(--production-floor-table-sticky-offset, var(--production-floor-sticky-offset));
+        top: var(--production-floor-table-sticky-offset, 0px);
     }
 
     .production-floor-shell .erp-table tbody tr.production-floor-row--selected .production-floor-col-select,

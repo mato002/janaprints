@@ -60,43 +60,41 @@
 @endphp
 
 <div class="production-queue-ribbon sticky top-0 z-30 shrink-0">
-    <div class="production-queue-ribbon__bar">
-        @if (count($departmentTabs) > 0)
-            <nav class="production-queue-ribbon__tabs" aria-label="{{ __('Departments') }}">
-                @foreach ($departmentTabs as $tab)
-                    <a
-                        href="{{ WorkspaceEmbed::url($tab['url']) }}"
-                        @class([
-                            'production-queue-ribbon__tab',
-                            'production-queue-ribbon__tab--'.$tab['key'] => filled($tab['key'] ?? null),
-                            'production-queue-ribbon__tab--active' => $tab['active'] ?? false,
-                        ])
-                        data-turbo-frame="{{ WorkspaceEmbed::turboFrame() }}"
-                        data-turbo-action="advance"
-                    >{{ $tab['label'] }}</a>
-                @endforeach
-            </nav>
-        @endif
-
-        <div class="production-queue-ribbon__stats production-queue-ribbon__stats--buckets" role="tablist" aria-label="{{ __('Job lists') }}">
-            @foreach ($statFilters as $stat)
+    @if (count($departmentTabs) > 0)
+        <nav class="production-queue-ribbon__tabs" aria-label="{{ __('Departments') }}">
+            @foreach ($departmentTabs as $tab)
                 <a
-                    href="{{ $stat['url'] }}"
+                    href="{{ WorkspaceEmbed::url($tab['url']) }}"
                     @class([
-                        'production-queue-ribbon__stat',
-                        'production-queue-ribbon__stat--active' => $stat['active'],
-                        'production-queue-ribbon__stat--danger' => ($stat['danger'] ?? false) && ! $stat['active'],
+                        'production-queue-ribbon__tab',
+                        'production-queue-ribbon__tab--'.$tab['key'] => filled($tab['key'] ?? null),
+                        'production-queue-ribbon__tab--active' => $tab['active'] ?? false,
                     ])
-                    role="tab"
-                    aria-selected="{{ $stat['active'] ? 'true' : 'false' }}"
                     data-turbo-frame="{{ WorkspaceEmbed::turboFrame() }}"
                     data-turbo-action="advance"
-                >
-                    {{ $stat['label'] }}
-                    <strong class="tabular-nums">{{ $stat['count'] }}</strong>
-                </a>
+                >{{ $tab['label'] }}</a>
             @endforeach
-        </div>
+        </nav>
+    @endif
+
+    <div class="production-queue-ribbon__stats production-queue-ribbon__stats--buckets" role="tablist" aria-label="{{ __('Job lists') }}">
+        @foreach ($statFilters as $stat)
+            <a
+                href="{{ $stat['url'] }}"
+                @class([
+                    'production-queue-ribbon__stat',
+                    'production-queue-ribbon__stat--active' => $stat['active'],
+                    'production-queue-ribbon__stat--danger' => ($stat['danger'] ?? false) && ! $stat['active'],
+                ])
+                role="tab"
+                aria-selected="{{ $stat['active'] ? 'true' : 'false' }}"
+                data-turbo-frame="{{ WorkspaceEmbed::turboFrame() }}"
+                data-turbo-action="advance"
+            >
+                {{ $stat['label'] }}
+                <strong class="tabular-nums">{{ $stat['count'] }}</strong>
+            </a>
+        @endforeach
     </div>
 
     <div class="production-queue-ribbon__filters">

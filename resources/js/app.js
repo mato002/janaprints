@@ -5551,36 +5551,37 @@ document.addEventListener('alpine:init', () => {
             this.$nextTick(() => {
                 this.updateStickyOffset();
 
-                if (typeof ResizeObserver === 'undefined' || ! this.$refs.commandBar) {
+                if (typeof ResizeObserver === 'undefined') {
+                    return;
+                }
+
+                const batchBar = this.$refs.batchBar;
+
+                if (! batchBar) {
                     return;
                 }
 
                 this.stickyObserver?.disconnect();
                 this.stickyObserver = new ResizeObserver(() => this.updateStickyOffset());
-                this.stickyObserver.observe(this.$refs.commandBar);
+                this.stickyObserver.observe(batchBar);
             });
         },
 
         updateStickyOffset() {
-            const bar = this.$refs.commandBar;
             const batchBar = this.$refs.batchBar;
             const shell = this.$el?.closest('.production-floor-shell');
 
-            if (! bar || ! shell) {
+            if (! shell) {
                 return;
             }
-
-            shell.style.setProperty('--production-floor-sticky-offset', `${bar.offsetHeight}px`);
 
             const batchHeight = batchBar && this.selectedJobs.length > 0 && batchBar.offsetHeight
                 ? batchBar.offsetHeight
                 : 0;
 
+            shell.style.setProperty('--production-floor-sticky-offset', '0px');
             shell.style.setProperty('--production-floor-batch-height', `${batchHeight}px`);
-            shell.style.setProperty(
-                '--production-floor-table-sticky-offset',
-                `${bar.offsetHeight + batchHeight}px`,
-            );
+            shell.style.setProperty('--production-floor-table-sticky-offset', `${batchHeight}px`);
         },
 
         toggleJobSelection(jobKey, checked) {
