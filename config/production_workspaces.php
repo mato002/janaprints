@@ -27,15 +27,6 @@ return [
             'active_routes' => ['admin.workspaces.production.section:planning', 'admin.production.scheduling.*', 'admin.production.work-centers.*', 'admin.production.boms.*', 'admin.production.print-templates.*'],
         ],
         [
-            'label' => 'Quality',
-            'description' => 'QC inspections and rework follow-up.',
-            'route' => 'admin.workspaces.production.section',
-            'route_params' => ['section' => 'quality'],
-            'permission' => 'production.quality.view',
-            'icon' => 'badge-check',
-            'active_routes' => ['admin.workspaces.production.section:quality', 'admin.production.quality.*'],
-        ],
-        [
             'label' => 'Dispatch',
             'description' => 'Ready for dispatch, delivery notes, and exceptions.',
             'route' => 'admin.workspaces.production.section',

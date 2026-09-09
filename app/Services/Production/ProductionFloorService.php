@@ -296,7 +296,6 @@ class ProductionFloorService
         $openCount = (int) ($snapshot->get('open')['value'] ?? 0);
         $onPressCount = (int) ($snapshot->get('in_production')['value'] ?? 0);
         $atVendorCount = ProductionJobCard::query()->forTenant()->where('status', ProductionJobCardStatus::Outsourced)->count();
-        $qcCount = (int) ($snapshot->get('awaiting_qc')['value'] ?? 0);
         $readyCount = (int) ($snapshot->get('ready_for_dispatch')['value'] ?? 0);
         $overdueCount = (int) ($snapshot->get('delayed')['value'] ?? 0);
 
@@ -321,13 +320,6 @@ class ProductionFloorService
                 'value' => (string) $atVendorCount,
                 'hint' => __('Jobs Outsourced'),
                 'filter' => ['stage' => ProductionFloorStage::AtVendor->value],
-            ],
-            [
-                'key' => 'awaiting_qc',
-                'label' => __('QC'),
-                'value' => (string) $qcCount,
-                'hint' => __('Waiting Inspection'),
-                'filter' => ['stage' => ProductionFloorStage::Qc->value],
             ],
             [
                 'key' => 'ready_for_dispatch',
