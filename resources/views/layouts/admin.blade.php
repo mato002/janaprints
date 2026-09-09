@@ -103,7 +103,7 @@
             <main @class([
                 'flex min-h-0 min-w-0 flex-1 flex-col',
                 'overflow-hidden p-2' => $compactPage,
-                'overflow-hidden p-2 sm:p-3' => ! $compactPage && $compactWorkspace,
+                'overflow-hidden p-1.5 sm:p-2' => ! $compactPage && $compactWorkspace,
                 'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
             ])>
                 @unless ($compactPage || $compactWorkspace)

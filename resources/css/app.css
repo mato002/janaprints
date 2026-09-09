@@ -597,6 +597,11 @@ body.erp-navigating {
         @apply w-full sm:w-auto;
     }
 
+    /* Tabs already name the workspace — drop the extra title row. */
+    .compact-workspace-header--with-primary {
+        display: none;
+    }
+
     .module-workspace-search__input-wrap {
         @apply w-full;
     }
@@ -629,7 +634,7 @@ body.erp-navigating {
         @apply justify-center px-3 py-1.5 text-xs;
     }
 
-    /* Layer 1 — full-width application tabs (48–56px) */
+    /* Layer 1 — full-width application tabs */
     .module-workspace-switcher--primary .module-workspace-switcher__track,
     .workspace-pill-tabs.module-workspace-switcher--primary .workspace-pill-tabs__track {
         display: flex;
@@ -658,9 +663,9 @@ body.erp-navigating {
         justify-content: center;
         gap: 0.375rem;
         min-width: 0;
-        min-height: 52px;
+        min-height: 2.125rem;
         margin: 0;
-        padding: 0.5rem 0.75rem;
+        padding: 0.25rem 0.5rem;
         border: 0;
         border-right: 1px solid #e5e7eb;
         border-radius: 0;
@@ -703,7 +708,7 @@ body.erp-navigating {
         color: #ffffff;
     }
 
-    /* Layer 2 — workspace tabs (40–44px), distinct from L1 */
+    /* Layer 2 — workspace tabs, distinct from L1 */
     .module-workspace-switcher--secondary .module-workspace-switcher__track,
     .workspace-pill-tabs.module-workspace-switcher--secondary .workspace-pill-tabs__track {
         display: flex;
@@ -726,15 +731,15 @@ body.erp-navigating {
         justify-content: center;
         gap: 0.375rem;
         min-width: 0;
-        min-height: 42px;
+        min-height: 1.875rem;
         margin: 0;
-        padding: 0.5rem 1rem;
+        padding: 0.25rem 0.75rem;
         border: 0;
         border-bottom: 2px solid transparent;
         border-radius: 0;
         background: transparent;
         color: #475569;
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
         font-weight: 500;
         line-height: 1.2;
         text-decoration: none;
@@ -789,7 +794,7 @@ body.erp-navigating {
         min-width: 0;
         align-items: stretch;
         gap: 0;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.25rem;
         overflow-x: auto;
         border-bottom: 1px solid #e5e7eb;
         -webkit-overflow-scrolling: touch;
@@ -6094,24 +6099,33 @@ body.erp-navigating {
         box-shadow: 0 1px 3px rgb(15 23 42 / 0.06);
     }
 
+    .production-queue-ribbon__bar {
+        display: flex;
+        min-width: 0;
+        align-items: stretch;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
     .production-queue-ribbon__tabs {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+        flex: 1 1 50%;
         overflow: hidden;
-        border-bottom: 1px solid #e2e8f0;
-        border-radius: 0.375rem 0.375rem 0 0;
+        border-bottom: 0;
+        border-right: 1px solid #e2e8f0;
+        border-radius: 0.375rem 0 0 0;
     }
 
     .production-queue-ribbon__tab {
         display: flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.875rem;
+        min-height: 2rem;
         border-right: 1px solid #e2e8f0;
         background: #f8fafc;
-        padding: 0.625rem 0.75rem;
+        padding: 0.25rem 0.5rem;
         color: #64748b;
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 700;
         letter-spacing: 0.06em;
         line-height: 1.2;
@@ -6167,19 +6181,38 @@ body.erp-navigating {
 
     .production-queue-ribbon__stats--buckets {
         display: grid;
+        flex: 1 1 50%;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0;
         min-height: 0;
+        border-bottom: 0;
         padding: 0;
+    }
+
+    @media (max-width: 767px) {
+        .production-queue-ribbon__bar {
+            flex-direction: column;
+        }
+
+        .production-queue-ribbon__tabs {
+            flex-basis: auto;
+            border-right: 0;
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 0.375rem 0.375rem 0 0;
+        }
+
+        .production-queue-ribbon__stats--buckets {
+            flex-basis: auto;
+        }
     }
 
     .production-queue-ribbon__stats--buckets .production-queue-ribbon__stat {
         justify-content: center;
-        min-height: 2.5rem;
+        min-height: 2rem;
         border-right: 1px solid #e2e8f0;
         border-radius: 0;
-        padding: 0.5rem 0.75rem;
-        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.6875rem;
         font-weight: 600;
     }
 
@@ -6245,8 +6278,8 @@ body.erp-navigating {
     }
 
     .production-queue-ribbon__filters .erp-index-toolbar-form--dense .erp-index-toolbar {
-        padding-top: 0.375rem;
-        padding-bottom: 0.375rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
     }
 
     .production-queue-ribbon__filters .erp-toolbar-export-btn + div,
@@ -6439,8 +6472,8 @@ body.erp-navigating {
     }
 
     .production-queue-workspace--dense .erp-index-toolbar {
-        padding-top: 0.375rem;
-        padding-bottom: 0.375rem;
+        padding-top: 0.25rem;
+        padding-bottom: 0.25rem;
     }
 
     .production-floor-shell--dense .workspace-context-tabs {

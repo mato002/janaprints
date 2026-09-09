@@ -95,7 +95,7 @@
         </div>
     @endif
 
-    <div class="production-queue-workspace__table mt-2 min-h-0 flex-1 overflow-hidden rounded-md border border-erp-border bg-white shadow-sm">
+    <div class="production-queue-workspace__table mt-1 min-h-0 flex-1 overflow-hidden rounded-md border border-erp-border bg-white shadow-sm">
         @include('admin.production.queue.partials.table', [
             'queues' => $queues,
             'workspace' => $workspace,

@@ -24,7 +24,7 @@
         <input type="hidden" name="queue_bucket" value="{{ $filters['queue_bucket'] }}">
     @endif
 
-    <div class="erp-index-toolbar border-b border-erp-border bg-white px-2 py-1.5 sm:px-3">
+    <div class="erp-index-toolbar border-b border-erp-border bg-white px-2 py-1 sm:px-3">
         <div class="erp-index-toolbar-row flex items-center gap-1.5">
             <div class="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto">
                 <input

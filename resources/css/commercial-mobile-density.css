@@ -621,15 +621,15 @@
     }
 
     .workspace-wrapper .module-workspace-switcher--primary .workspace-pill.workspace-pill--primary {
-        min-height: 48px;
-        padding: 0.5rem 0.5rem;
+        min-height: 2.125rem;
+        padding: 0.25rem 0.5rem;
         font-size: 0.6875rem;
         letter-spacing: 0.05em;
     }
 
     .workspace-wrapper .module-workspace-switcher--secondary .workspace-pill.workspace-pill--secondary {
-        min-height: 40px;
-        padding: 0.5rem 0.75rem;
+        min-height: 1.875rem;
+        padding: 0.25rem 0.75rem;
         font-size: 0.8125rem;
     }
 

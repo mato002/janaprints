@@ -15,9 +15,13 @@
 <div
     x-data="moduleWorkspaceShell()"
     @module-workspace-search.window="query = $event.detail?.query ?? ''"
-    {{ $attributes->merge(['class' => 'module-shell workspace-content-shell flex min-h-0 w-full min-w-0 flex-1 flex-col gap-2 overflow-hidden']) }}
+    {{ $attributes->merge(['class' => 'module-shell workspace-content-shell flex min-h-0 w-full min-w-0 flex-1 flex-col gap-1 overflow-hidden']) }}
 >
-    <x-admin.compact-workspace-header :title="$title" :description="$description">
+    <x-admin.compact-workspace-header
+        :title="$title"
+        :description="$description"
+        @class(['compact-workspace-header--with-primary' => count($primaryWorkspaces) > 0])
+    >
         @isset($search)
             <x-slot:search>{{ $search }}</x-slot:search>
         @endisset
