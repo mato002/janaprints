@@ -290,6 +290,8 @@ class DepartmentCommandCenterTest extends TestCase
             ->assertRedirect();
 
         $this->assertEquals(ProductionQueueStatus::Completed, $queue->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Completed, $job->fresh()->status);
+        $this->assertNotEquals(ProductionJobCardStatus::QualityCheck, $job->fresh()->status);
 
         $this->actingAs($user)
             ->getDepartmentQueue('digital')
@@ -304,6 +306,30 @@ class DepartmentCommandCenterTest extends TestCase
             ]))
             ->assertOk()
             ->assertSee($job->job_card_number, false);
+    }
+
+    public function test_queued_job_can_be_deleted_from_department_register(): void
+    {
+        [$company, $branch, $user, $workCenter] = $this->commandCentreContext('digital');
+        $job = $this->queueJob($company, $branch, $user, $workCenter, ProductionType::Digital);
+        $job->update(['status' => ProductionJobCardStatus::Queued]);
+        $job->refresh();
+
+        $this->actingAs($user);
+        $this->assertTrue($user->can('production.delete'));
+        $this->assertTrue($user->can('delete', $job));
+
+        $this->actingAs($user)
+            ->get(route('admin.production.job-cards.show', $job))
+            ->assertOk()
+            ->assertSee(__('Delete job'), false);
+
+        $this->actingAs($user)
+            ->from(ProductionFloorDeskViews::queueIndexUrl('digital', ['embedded' => '1']))
+            ->delete(route('admin.production.job-cards.destroy', $job))
+            ->assertRedirect(route('admin.production.job-cards.index'));
+
+        $this->assertDatabaseMissing('production_job_cards', ['id' => $job->id]);
     }
 
     public function test_command_centre_forbidden_without_permission(): void
@@ -352,6 +378,7 @@ class DepartmentCommandCenterTest extends TestCase
             'production.view',
             'production.work-centers.view',
             'production.complete',
+            'production.delete',
         ]);
         $user->assignRole('Production');
 

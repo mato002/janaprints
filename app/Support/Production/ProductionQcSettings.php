@@ -14,7 +14,7 @@ class ProductionQcSettings
     {
         return (bool) $this->settings->get(
             'production_qc_required',
-            true,
+            false,
             $companyId,
             $branchId,
         );

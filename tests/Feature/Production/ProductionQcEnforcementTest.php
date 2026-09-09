@@ -94,7 +94,7 @@ class ProductionQcEnforcementTest extends TestCase
         $this->assertEquals(ProductionJobCardStatus::Rework, $jobCard->fresh()->status);
     }
 
-    public function test_mark_complete_blocked_when_qc_required_without_pass(): void
+    public function test_mark_complete_allowed_without_qc_pass(): void
     {
         [$company, $branch, , $user, $salesOrder] = $this->productionContext([
             'production.view', 'production.create', 'production.complete',
@@ -108,9 +108,9 @@ class ProductionQcEnforcementTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('admin.production.job-cards.complete', $jobCard))
-            ->assertForbidden();
+            ->assertRedirect();
 
-        $this->assertEquals(ProductionJobCardStatus::QualityCheck, $jobCard->fresh()->status);
+        $this->assertEquals(ProductionJobCardStatus::Completed, $jobCard->fresh()->status);
     }
 
     public function test_mark_complete_allowed_when_qc_not_required(): void

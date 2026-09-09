@@ -113,8 +113,8 @@ class ProductionFloorActionService
             }
         }
 
-        if ($user->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)) {
-            return $this->action(__('Complete stage'), 'post', route('admin.production.job-cards.send-to-qc', $jobCard), 'primary');
+        if ($user->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)) {
+            return $this->action(__('Complete'), 'post', route('admin.production.job-cards.complete', $jobCard), 'primary');
         }
 
         if ($user->can('update', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced)) {
@@ -133,7 +133,10 @@ class ProductionFloorActionService
             return $this->action(__('Mark returned'), 'panel', route('admin.production.floor.panel', $jobCard).'#outsource', 'primary');
         }
 
-        if ($user->can('create', [\App\Models\Production\QualityCheck::class, $jobCard]) && $jobCard->status === ProductionJobCardStatus::QualityCheck) {
+        if ($this->qcSettings->qcRequired($jobCard->company_id, $jobCard->branch_id)
+            && $user->can('create', [\App\Models\Production\QualityCheck::class, $jobCard])
+            && $jobCard->status === ProductionJobCardStatus::QualityCheck
+        ) {
             if ($forFloor) {
                 return $this->floorModal(__('QC'), 'qc', $jobCard, 'primary');
             }
@@ -240,11 +243,20 @@ class ProductionFloorActionService
             $actions[] = $this->action(__('Hold'), 'post', route('admin.production.job-cards.hold', $jobCard), 'ghost');
         }
 
-        if ($user?->can('complete', $jobCard) && $jobCard->status === ProductionJobCardStatus::QualityCheck) {
+        if (
+            $this->qcSettings->qcRequired($jobCard->company_id, $jobCard->branch_id)
+            && $user?->can('complete', $jobCard)
+            && $jobCard->status === ProductionJobCardStatus::QualityCheck
+        ) {
             $actions[] = $this->action(__('Quick pass QC'), 'post', route('admin.production.floor.quick-pass-qc', $jobCard), 'ghost');
         }
 
-        if ($user?->can('complete', $jobCard) && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)) {
+        if (
+            $user?->can('complete', $jobCard)
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)
+            && $jobCard->status !== ProductionJobCardStatus::InProduction
+            && $jobCard->status !== ProductionJobCardStatus::QualityCheck
+        ) {
             $actions[] = $this->action(__('Complete'), 'post', route('admin.production.job-cards.complete', $jobCard), 'ghost');
         }
 

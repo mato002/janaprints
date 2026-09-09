@@ -51,7 +51,11 @@ class ProductionJobCardPolicy
     {
         return $user->can('production.delete')
             && $this->sameTenant($user, $jobCard)
-            && $jobCard->status === ProductionJobCardStatus::Draft;
+            && in_array($jobCard->status, [
+                ProductionJobCardStatus::Draft,
+                ProductionJobCardStatus::Queued,
+                ProductionJobCardStatus::OnHold,
+            ], true);
     }
 
     public function schedule(User $user, ProductionJobCard $jobCard): bool

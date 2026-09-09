@@ -283,7 +283,8 @@ class CommercialQuotationReportQueries
                 'quotations.total_amount',
                 'quotations.status',
             ])
-            ->orderByDesc('quotations.quotation_date');
+            ->orderByDesc('quotations.created_at')
+            ->orderByDesc('quotations.id');
 
         if ($statusFilter === 'open') {
             $query->whereIn('quotations.status', $this->openStatuses());

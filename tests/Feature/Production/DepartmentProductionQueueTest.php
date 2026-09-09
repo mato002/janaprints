@@ -214,6 +214,34 @@ class DepartmentProductionQueueTest extends TestCase
             ->assertDontSee($overdueJob->job_card_number, false);
     }
 
+    public function test_department_queue_lists_newest_jobs_first(): void
+    {
+        [$company, $branch, $user, $digitalCenter] = $this->departmentContext();
+
+        $olderJob = $this->queueJob($company, $branch, $user, $digitalCenter, ProductionType::Digital);
+        $newerJob = $this->queueJob($company, $branch, $user, $digitalCenter, ProductionType::Digital);
+
+        ProductionQueue::query()
+            ->where('production_job_card_id', $olderJob->id)
+            ->update(['created_at' => now()->subHour()]);
+
+        ProductionQueue::query()
+            ->where('production_job_card_id', $newerJob->id)
+            ->update(['created_at' => now()]);
+
+        $html = $this->actingAs($user)
+            ->getDepartmentQueue('digital')
+            ->assertOk()
+            ->getContent();
+
+        $newerPosition = strpos($html, $newerJob->job_card_number);
+        $olderPosition = strpos($html, $olderJob->job_card_number);
+
+        $this->assertNotFalse($newerPosition);
+        $this->assertNotFalse($olderPosition);
+        $this->assertLessThan($olderPosition, $newerPosition);
+    }
+
     public function test_invalid_department_redirects_to_main_queue(): void
     {
         [, , $user] = $this->departmentContext();

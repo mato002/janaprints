@@ -9,6 +9,7 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\SalesOrder;
 use App\Support\Crm\CustomerPrintSpecificationService;
+use App\Support\NewestFirst;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -84,17 +85,18 @@ class CustomerOrderContextService
      */
     public function previousOrders(Customer $customer, int $limit = 15): Collection
     {
-        return SalesOrder::query()
-            ->where('customer_id', $customer->id)
-            ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
-            ->with([
-                'inventoryItem:id,item_name,sku',
-                'customerArtwork:id,artwork_name,version_number',
-                'customerPrintSpecification:id,name,specification_code',
-                'items',
-                'jobCard:id,sales_order_id',
-            ])
-            ->latest('order_date')
+        return NewestFirst::apply(
+            SalesOrder::query()
+                ->where('customer_id', $customer->id)
+                ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
+                ->with([
+                    'inventoryItem:id,item_name,sku',
+                    'customerArtwork:id,artwork_name,version_number',
+                    'customerPrintSpecification:id,name,specification_code',
+                    'items',
+                    'jobCard:id,sales_order_id',
+                ])
+        )
             ->limit($limit)
             ->get();
     }

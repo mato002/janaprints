@@ -11,6 +11,7 @@ use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Services\Production\ProductionReleaseReadinessService;
 use App\Support\Crm\CustomerPrintSpecificationService;
+use App\Support\NewestFirst;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -78,20 +79,21 @@ class SalesDeskService
                 ]);
             });
 
-        Quotation::query()
-            ->forTenant()
-            ->where(function ($builder) use ($query) {
-                $builder
-                    ->where('quotation_number', 'like', "%{$query}%")
-                    ->orWhereHas('customer', function ($customer) use ($query) {
-                        $customer
-                            ->where('company_name', 'like', "%{$query}%")
-                            ->orWhere('contact_person', 'like', "%{$query}%")
-                            ->orWhere('phone', 'like', "%{$query}%");
-                    });
-            })
-            ->with('customer:id,company_name,contact_person,public_id')
-            ->latest('quotation_date')
+        NewestFirst::apply(
+            Quotation::query()
+                ->forTenant()
+                ->where(function ($builder) use ($query) {
+                    $builder
+                        ->where('quotation_number', 'like', "%{$query}%")
+                        ->orWhereHas('customer', function ($customer) use ($query) {
+                            $customer
+                                ->where('company_name', 'like', "%{$query}%")
+                                ->orWhere('contact_person', 'like', "%{$query}%")
+                                ->orWhere('phone', 'like', "%{$query}%");
+                        });
+                })
+                ->with('customer:id,company_name,contact_person,public_id')
+        )
             ->limit(5)
             ->get()
             ->each(function (Quotation $quote) use ($results) {
@@ -106,20 +108,21 @@ class SalesDeskService
                 ]);
             });
 
-        SalesOrder::query()
-            ->forTenant()
-            ->where(function ($builder) use ($query) {
-                $builder
-                    ->where('order_number', 'like', "%{$query}%")
-                    ->orWhereHas('customer', function ($customer) use ($query) {
-                        $customer
-                            ->where('company_name', 'like', "%{$query}%")
-                            ->orWhere('contact_person', 'like', "%{$query}%")
-                            ->orWhere('phone', 'like', "%{$query}%");
-                    });
-            })
-            ->with('customer:id,company_name,contact_person,public_id')
-            ->latest('order_date')
+        NewestFirst::apply(
+            SalesOrder::query()
+                ->forTenant()
+                ->where(function ($builder) use ($query) {
+                    $builder
+                        ->where('order_number', 'like', "%{$query}%")
+                        ->orWhereHas('customer', function ($customer) use ($query) {
+                            $customer
+                                ->where('company_name', 'like', "%{$query}%")
+                                ->orWhere('contact_person', 'like', "%{$query}%")
+                                ->orWhere('phone', 'like', "%{$query}%");
+                        });
+                })
+                ->with('customer:id,company_name,contact_person,public_id')
+        )
             ->limit(5)
             ->get()
             ->each(function (SalesOrder $order) use ($results) {
@@ -142,20 +145,21 @@ class SalesDeskService
                 ]);
             });
 
-        ProductionJobCard::query()
-            ->forTenant()
-            ->where(function ($builder) use ($query) {
-                $builder
-                    ->where('job_card_number', 'like', "%{$query}%")
-                    ->orWhereHas('customer', function ($customer) use ($query) {
-                        $customer
-                            ->where('company_name', 'like', "%{$query}%")
-                            ->orWhere('contact_person', 'like', "%{$query}%")
-                            ->orWhere('phone', 'like', "%{$query}%");
-                    });
-            })
-            ->with('customer:id,company_name,contact_person,public_id')
-            ->latest('created_at')
+        NewestFirst::apply(
+            ProductionJobCard::query()
+                ->forTenant()
+                ->where(function ($builder) use ($query) {
+                    $builder
+                        ->where('job_card_number', 'like', "%{$query}%")
+                        ->orWhereHas('customer', function ($customer) use ($query) {
+                            $customer
+                                ->where('company_name', 'like', "%{$query}%")
+                                ->orWhere('contact_person', 'like', "%{$query}%")
+                                ->orWhere('phone', 'like', "%{$query}%");
+                        });
+                })
+                ->with('customer:id,company_name,contact_person,public_id')
+        )
             ->limit(5)
             ->get()
             ->each(function (ProductionJobCard $job) use ($results) {

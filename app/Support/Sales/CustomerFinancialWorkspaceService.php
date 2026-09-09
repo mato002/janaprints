@@ -50,6 +50,7 @@ class CustomerFinancialWorkspaceService
                 ->where('company_id', $customer->company_id)
                 ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
                 ->latest('invoice_date')
+                ->latest('id')
                 ->paginate(15, pageName: 'invoices_page');
 
             $data['credit_notes'] = CustomerInvoice::query()
@@ -57,6 +58,7 @@ class CustomerFinancialWorkspaceService
                 ->where('company_id', $customer->company_id)
                 ->where('invoice_type', CustomerInvoiceType::CreditNote)
                 ->latest('invoice_date')
+                ->latest('id')
                 ->paginate(15, pageName: 'credit_notes_page');
         }
 
@@ -66,6 +68,7 @@ class CustomerFinancialWorkspaceService
                 ->where('company_id', $customer->company_id)
                 ->withSum('allocations as allocated_sum', 'amount')
                 ->latest('payment_date')
+                ->latest('id')
                 ->paginate(15, pageName: 'payments_page');
 
             $data['deposits'] = $profile['credit_wallet']['deposits'];
@@ -77,6 +80,7 @@ class CustomerFinancialWorkspaceService
                     ->where('status', CustomerPaymentStatus::Posted)
                     ->whereNotNull('receipt_number')
                     ->latest('payment_date')
+                    ->latest('id')
                     ->paginate(15, pageName: 'receipts_page');
             }
         }

@@ -147,7 +147,7 @@ class ProductionQueueWorkspaceService
         $query = $this->filteredQuery($request, $department);
 
         return $this->ordering
-            ->applyPriorityOrdering($query)
+            ->applyNewestFirstOrdering($query)
             ->with([
                 'jobCard:id,public_id,company_id,branch_id,job_card_number,customer_id,status,planned_end_date,required_date,priority,created_at,sales_order_id,inventory_item_id,production_type,assigned_machine_asset_id,artwork_request_id,estimated_duration_minutes,outsource_vendor_id,outsource_issue_date,outsource_expected_return,outsource_quoted_cost,outsource_actual_cost,outsource_notes,outsourced_at,returned_at,actual_end_date,updated_at,customer_print_specification_id',
                 'jobCard.customer:id,public_id,company_name',
@@ -307,6 +307,17 @@ class ProductionQueueWorkspaceService
                 'type' => $secondary['type'] ?? 'post',
                 'method' => 'post',
                 'variant' => $secondary['variant'] ?? 'ghost',
+            ];
+        }
+
+        if ($user?->can('production.delete') && $jobCard->status->isEditable()) {
+            $actions[] = [
+                'label' => __('Delete job'),
+                'url' => route('admin.production.job-cards.destroy', $jobCard),
+                'type' => 'post',
+                'method' => 'delete',
+                'variant' => 'ghost',
+                'confirm' => __('Permanently delete this job card? This cannot be undone.'),
             ];
         }
 
@@ -576,7 +587,7 @@ class ProductionQueueWorkspaceService
     {
         $query = $this->filteredQuery($request, $department);
 
-        return $this->ordering->applyPriorityOrdering($query)->with([
+        return $this->ordering->applyNewestFirstOrdering($query)->with([
             'jobCard.customer',
             'jobCard.salesOrder.items',
             'jobCard.outsourceVendor',

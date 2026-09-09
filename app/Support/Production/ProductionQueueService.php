@@ -211,18 +211,11 @@ class ProductionQueueService
         }
 
         if (
-            $jobCard->status === ProductionJobCardStatus::InProduction
-            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)
-        ) {
-            $jobCard->transitionTo(ProductionJobCardStatus::QualityCheck);
-            app(ProductQcChecklistService::class)->snapshotForJobCard($jobCard);
-            $jobCard->refresh();
-        }
-
-        if (
-            $jobCard->status === ProductionJobCardStatus::QualityCheck
+            in_array($jobCard->status, [
+                ProductionJobCardStatus::InProduction,
+                ProductionJobCardStatus::QualityCheck,
+            ], true)
             && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)
-            && ! app(ProductionQcSettings::class)->qcRequired($jobCard->company_id, $jobCard->branch_id)
         ) {
             $jobCard->update([
                 'status' => ProductionJobCardStatus::Completed,

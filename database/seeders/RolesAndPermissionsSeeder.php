@@ -826,7 +826,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'maintenance.view', 'maintenance.create', 'maintenance.assign', 'maintenance.complete', 'maintenance.calendar.view',
             'assets.custody.view', 'assets.assign',
             'assets.360.view', 'assets.analytics.view', 'assets.health.view', 'assets.lifecycle.view',
-            'production.view', 'production.create', 'production.edit',
+            'production.view', 'production.create', 'production.edit', 'production.delete',
             'production.schedule', 'production.start', 'production.complete', 'production.qc',
             'production.queue.view', 'production.scheduling.view', 'production.quality.view', 'production.work-centers.view',
             'production.costing.view',
@@ -863,7 +863,7 @@ class RolesAndPermissionsSeeder extends Seeder
         'Production Manager' => [
             'sales_orders.view',
             'assets.view', 'machines.view', 'machines.assign',
-            'production.view', 'production.create', 'production.edit',
+            'production.view', 'production.create', 'production.edit', 'production.delete',
             'production.schedule', 'production.start', 'production.complete', 'production.qc',
             'production.queue.view', 'production.scheduling.view', 'production.quality.view', 'production.work-centers.view',
             'production.costing.view',

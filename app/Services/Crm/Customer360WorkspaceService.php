@@ -20,6 +20,7 @@ use App\Enums\Dispatch\DeliveryNoteStatus;
 use App\Models\Sales\SalesOrder;
 use App\Support\Sales\CustomerFinancialIntelligenceService;
 use App\Support\Sales\CustomerFinancialWorkspaceService;
+use App\Support\NewestFirst;
 use App\Services\Accounting\DeliveryInvoiceEligibilityService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -522,9 +523,10 @@ class Customer360WorkspaceService
             return collect();
         }
 
-        return $this->customerScoped(Quotation::query(), $customer)
-            ->select(['id', 'quotation_number', 'quotation_date', 'status', 'total_amount', 'currency'])
-            ->latest('quotation_date')
+        return NewestFirst::apply(
+            $this->customerScoped(Quotation::query(), $customer)
+                ->select(['id', 'quotation_number', 'quotation_date', 'status', 'total_amount', 'currency'])
+        )
             ->limit(5)
             ->get();
     }
@@ -538,9 +540,10 @@ class Customer360WorkspaceService
             return collect();
         }
 
-        return $this->customerScoped(SalesOrder::query(), $customer)
-            ->select(['id', 'order_number', 'order_date', 'status', 'total_amount'])
-            ->latest('order_date')
+        return NewestFirst::apply(
+            $this->customerScoped(SalesOrder::query(), $customer)
+                ->select(['id', 'order_number', 'order_date', 'status', 'total_amount'])
+        )
             ->limit(5)
             ->get();
     }
@@ -586,7 +589,7 @@ class Customer360WorkspaceService
             return ['restricted' => true];
         }
 
-        $quotations = $this->customerScoped(
+        $quotations = NewestFirst::apply($this->customerScoped(
             Quotation::query()
                 ->select([
                     'id', 'quotation_number', 'quotation_date', 'status',
@@ -594,8 +597,7 @@ class Customer360WorkspaceService
                 ])
                 ->withExists('salesOrder'),
             $customer,
-        )
-            ->latest('quotation_date')
+        ))
             ->paginate(25, pageName: 'quotations_page');
 
         return ['quotations' => $quotations];
@@ -610,15 +612,14 @@ class Customer360WorkspaceService
             return ['restricted' => true];
         }
 
-        $orders = $this->customerScoped(
+        $orders = NewestFirst::apply($this->customerScoped(
             SalesOrder::query()
                 ->select([
                     'id', 'order_number', 'order_date', 'status', 'total_amount', 'customer_id',
                 ])
                 ->with(['jobCard:id,sales_order_id,status']),
             $customer,
-        )
-            ->latest('order_date')
+        ))
             ->paginate(25, pageName: 'orders_page');
 
         return ['orders' => $orders];

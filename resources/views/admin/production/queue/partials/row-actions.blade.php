@@ -113,8 +113,11 @@
                 }
             @endphp
             @if (($action['type'] ?? 'link') === 'post')
-                <form method="POST" action="{{ $action['url'] }}" class="inline" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                <form method="POST" action="{{ $action['url'] }}" class="inline" @if (! empty($action['confirm'])) onsubmit="return confirm(@js($action['confirm']))" @endif @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                     @csrf
+                    @if (($action['method'] ?? 'post') === 'delete')
+                        @method('DELETE')
+                    @endif
                     <button type="submit" class="{{ $btnClass }}">{{ $action['label'] }}</button>
                 </form>
             @else
@@ -137,8 +140,11 @@
                 <div class="production-queue-row-actions__menu">
                     @foreach ($moreActions as $action)
                         @if (($action['type'] ?? 'link') === 'post')
-                            <form method="POST" action="{{ $action['url'] }}" class="block" @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
+                            <form method="POST" action="{{ $action['url'] }}" class="block" @if (! empty($action['confirm'])) onsubmit="return confirm(@js($action['confirm']))" @endif @foreach ($formTurboAttrs as $attr => $val) {{ $attr }}="{{ $val }}" @endforeach>
                                 @csrf
+                                @if (($action['method'] ?? 'post') === 'delete')
+                                    @method('DELETE')
+                                @endif
                                 <button type="submit" class="production-queue-row-actions__menu-item">{{ $action['label'] }}</button>
                             </form>
                         @else

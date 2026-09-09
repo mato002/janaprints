@@ -8,6 +8,7 @@ use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
 use App\Models\Inventory\InventoryItem;
 use App\Support\Production\PrintSpecificationJobFields;
+use App\Support\NewestFirst;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -137,8 +138,7 @@ class CustomerPrintSpecificationService
 
         $this->applySearchFilters($query, $filters, $customer);
 
-        $paginator = $query
-            ->latest('updated_at')
+        $paginator = NewestFirst::apply($query)
             ->paginate($perPage, ['*'], 'spec_page')
             ->withQueryString();
 
@@ -464,16 +464,17 @@ class CustomerPrintSpecificationService
      */
     public function selectableForOrderContext(Customer $customer): array
     {
-        $specs = CustomerPrintSpecification::query()
-            ->forTenant()
-            ->where('customer_id', $customer->id)
-            ->where('status', CustomerPrintSpecificationStatus::Active)
-            ->with([
-                'inventoryItem:id,item_name,sku,uses_serial_numbers,serial_prefix,serial_padding_length,stock_role',
-                'activeArtworkVersion:id,customer_print_specification_id,version_number,original_file_name,file_name',
-                'customer:id',
-            ])
-            ->orderBy('name')
+        $specs = NewestFirst::apply(
+            CustomerPrintSpecification::query()
+                ->forTenant()
+                ->where('customer_id', $customer->id)
+                ->where('status', CustomerPrintSpecificationStatus::Active)
+                ->with([
+                    'inventoryItem:id,item_name,sku,uses_serial_numbers,serial_prefix,serial_padding_length,stock_role',
+                    'activeArtworkVersion:id,customer_print_specification_id,version_number,original_file_name,file_name',
+                    'customer:id',
+                ])
+        )
             ->get()
             ->filter(fn (CustomerPrintSpecification $spec) => $spec->hasProduct())
             ->values();

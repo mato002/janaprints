@@ -15,6 +15,7 @@ use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Services\Commercial\PublicQuoteRequestCountService;
+use App\Support\NewestFirst;
 use Illuminate\Http\Request;
 
 class SalesDeskWorkQueueService
@@ -119,11 +120,12 @@ class SalesDeskWorkQueueService
                 });
         }
 
-        Quotation::query()
-            ->forTenant()
-            ->where('status', QuotationStatus::Sent)
-            ->with('customer:id,company_name,public_id')
-            ->latest('quotation_date')
+        NewestFirst::apply(
+            Quotation::query()
+                ->forTenant()
+                ->where('status', QuotationStatus::Sent)
+                ->with('customer:id,company_name,public_id')
+        )
             ->limit(3)
             ->get()
             ->each(function (Quotation $quote) use ($items) {
@@ -138,15 +140,16 @@ class SalesDeskWorkQueueService
             });
 
         if ($walkInsPendingRelease > 0) {
-            SalesOrder::query()
-                ->forTenant()
-                ->where('status', SalesOrderStatus::Confirmed)
-                ->where(function ($query) {
-                    $query->whereDoesntHave('jobCard')
-                        ->orWhereHas('jobCard', fn ($job) => $job->where('status', ProductionJobCardStatus::Draft));
-                })
-                ->with('customer:id,company_name,public_id')
-                ->latest('updated_at')
+            NewestFirst::apply(
+                SalesOrder::query()
+                    ->forTenant()
+                    ->where('status', SalesOrderStatus::Confirmed)
+                    ->where(function ($query) {
+                        $query->whereDoesntHave('jobCard')
+                            ->orWhereHas('jobCard', fn ($job) => $job->where('status', ProductionJobCardStatus::Draft));
+                    })
+                    ->with('customer:id,company_name,public_id')
+            )
                 ->limit(5)
                 ->get()
                 ->each(function (SalesOrder $order) use ($items) {
@@ -170,12 +173,13 @@ class SalesDeskWorkQueueService
                 });
         }
 
-        SalesOrder::query()
-            ->forTenant()
-            ->where('status', SalesOrderStatus::ReadyForProduction)
-            ->whereDoesntHave('jobCard')
-            ->with('customer:id,company_name,public_id')
-            ->latest('order_date')
+        NewestFirst::apply(
+            SalesOrder::query()
+                ->forTenant()
+                ->where('status', SalesOrderStatus::ReadyForProduction)
+                ->whereDoesntHave('jobCard')
+                ->with('customer:id,company_name,public_id')
+        )
             ->limit(3)
             ->get()
             ->each(function (SalesOrder $order) use ($items) {

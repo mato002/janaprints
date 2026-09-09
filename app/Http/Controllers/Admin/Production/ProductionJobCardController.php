@@ -257,21 +257,8 @@ class ProductionJobCardController extends Controller
     public function markCompleted(ProductionJobCard $jobCard): RedirectResponse
     {
         $this->authorize('complete', $jobCard);
-
-        if ($jobCard->status === ProductionJobCardStatus::QualityCheck) {
-            $qcRequired = app(\App\Support\Production\ProductionQcSettings::class)
-                ->qcRequired($jobCard->company_id, $jobCard->branch_id);
-
-            if ($qcRequired) {
-                abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed), 403);
-            } elseif ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)) {
-                $jobCard->transitionTo(ProductionJobCardStatus::Completed);
-
-                return $this->redirectAfterProductionFloorAction($jobCard, __('Production complete — post finished goods to release for dispatch.'));
-            }
-        }
-
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed), 403);
+
         $jobCard->update([
             'status' => ProductionJobCardStatus::Completed,
             'actual_end_date' => now(),

@@ -9,6 +9,7 @@ use App\Models\Procurement\PurchaseOrder;
 use App\Models\Procurement\PurchaseRequest;
 use App\Models\Procurement\Rfq;
 use App\Models\Procurement\Vendor;
+use App\Support\NewestFirst;
 use Illuminate\Http\Request;
 
 class BuyDeskPageBuilder
@@ -61,8 +62,10 @@ class BuyDeskPageBuilder
         return match ($view) {
             ProcurementDeskViews::REQUESTS => [
                 'registerTitle' => __('Purchase Requests'),
-                'requests' => $this->scopeToTenant(
-                    PurchaseRequest::query()->with(['requester', 'department'])->latest()
+                'requests' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        PurchaseRequest::query()->with(['requester', 'department'])
+                    )
                 )->paginate(config('platform.pagination.default', 15))->withQueryString(),
             ],
             ProcurementDeskViews::SUPPLIERS => [
@@ -74,20 +77,26 @@ class BuyDeskPageBuilder
             ],
             ProcurementDeskViews::RFQS => [
                 'registerTitle' => __('Requests For Quotation'),
-                'rfqs' => $this->scopeToTenant(
-                    Rfq::query()->with(['purchaseRequest', 'awardedVendor'])->latest()
+                'rfqs' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        Rfq::query()->with(['purchaseRequest', 'awardedVendor'])
+                    )
                 )->paginate(config('platform.pagination.default', 15))->withQueryString(),
             ],
             ProcurementDeskViews::ORDERS => [
                 'registerTitle' => __('Purchase Orders'),
-                'orders' => $this->scopeToTenant(
-                    PurchaseOrder::query()->with(['vendor'])->latest('order_date')
+                'orders' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        PurchaseOrder::query()->with(['vendor'])
+                    )
                 )->paginate(config('platform.pagination.default', 15))->withQueryString(),
             ],
             ProcurementDeskViews::RECEIPTS => [
                 'registerTitle' => __('Goods Receipts'),
-                'receipts' => $this->scopeToTenant(
-                    GoodsReceipt::query()->with(['purchaseOrder.vendor', 'receiver'])->latest('receipt_date')
+                'receipts' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        GoodsReceipt::query()->with(['purchaseOrder.vendor', 'receiver'])
+                    )
                 )->paginate(config('platform.pagination.default', 15))->withQueryString(),
             ],
             ProcurementDeskViews::APPROVALS => $this->approvalsPayload($request, $companyId, $branchId),

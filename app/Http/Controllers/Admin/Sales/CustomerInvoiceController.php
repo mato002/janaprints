@@ -17,6 +17,7 @@ use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use App\Support\Sales\CustomerInvoiceService;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Sales\SalesDocumentEmailService;
+use App\Support\NewestFirst;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -35,11 +36,11 @@ class CustomerInvoiceController extends Controller
     {
         $this->authorize('viewAny', CustomerInvoice::class);
 
-        $invoices = $this->scopeToTenant(
+        $invoices = NewestFirst::apply($this->scopeToTenant(
             CustomerInvoice::query()
                 ->with(['customer', 'salesOrder'])
                 ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
-        )->latest('invoice_date')->latest('id')->paginate(20);
+        ))->paginate(20);
 
         return view('admin.sales.invoices.index', compact('invoices'));
     }
@@ -48,11 +49,11 @@ class CustomerInvoiceController extends Controller
     {
         $this->authorize('viewAny', CustomerInvoice::class);
 
-        $creditNotes = $this->scopeToTenant(
+        $creditNotes = NewestFirst::apply($this->scopeToTenant(
             CustomerInvoice::query()
                 ->with(['customer', 'salesOrder', 'creditedInvoice'])
                 ->where('invoice_type', CustomerInvoiceType::CreditNote)
-        )->latest('invoice_date')->latest('id')->paginate(20);
+        ))->paginate(20);
 
         return view('admin.sales.invoices.credit-notes-index', ['creditNotes' => $creditNotes]);
     }
@@ -194,9 +195,7 @@ class CustomerInvoiceController extends Controller
             $query->where('customer_id', $customerId);
         }
 
-        $orders = $query
-            ->latest('order_date')
-            ->latest('id')
+        $orders = NewestFirst::apply($query)
             ->limit(200)
             ->get()
             ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)

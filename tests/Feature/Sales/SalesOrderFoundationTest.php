@@ -311,6 +311,45 @@ class SalesOrderFoundationTest extends TestCase
         $this->assertEquals(SalesOrderStatus::Delivered, $order->fresh()->status);
     }
 
+    public function test_sales_desk_orders_register_lists_newest_first(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'sales_orders.view', 'sales_orders.create', 'crm.customers.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $older = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'order_date' => now()->toDateString(),
+            'created_at' => now()->subHour(),
+        ]);
+
+        $newer = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'order_date' => now()->toDateString(),
+            'created_at' => now(),
+        ]);
+
+        $html = $this->actingAs($user)
+            ->get(route('admin.sales.desk', ['view' => 'orders']))
+            ->assertOk()
+            ->getContent();
+
+        $newerPosition = strpos($html, $newer->order_number);
+        $olderPosition = strpos($html, $older->order_number);
+
+        $this->assertNotFalse($newerPosition);
+        $this->assertNotFalse($olderPosition);
+        $this->assertLessThan($olderPosition, $newerPosition);
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2: Customer, 3: User}
      */

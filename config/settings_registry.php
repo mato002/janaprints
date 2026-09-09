@@ -208,7 +208,7 @@ return [
                     'description' => 'A passed quality check is required before completing a job card.',
                     'type' => 'boolean',
                     'scopes' => ['company'],
-                    'default' => true,
+                    'default' => false,
                 ],
             ],
         ],

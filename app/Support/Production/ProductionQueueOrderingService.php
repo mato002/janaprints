@@ -11,6 +11,16 @@ use Illuminate\Database\Eloquent\Builder;
 class ProductionQueueOrderingService
 {
     /**
+     * Newest jobs first for Operator Floor / department registers.
+     */
+    public function applyNewestFirstOrdering(Builder $query): Builder
+    {
+        return $query
+            ->orderByDesc('production_queues.created_at')
+            ->orderByDesc('production_queues.id');
+    }
+
+    /**
      * Apply priority → due date → created date ordering for queue listings.
      */
     public function applyPriorityOrdering(Builder $query, string $jobCardTable = 'production_job_cards'): Builder

@@ -325,7 +325,8 @@ class CommercialSalesOrderReportQueries
                 'quotations.quotation_number',
                 'quotations.quotation_date',
             )
-            ->orderByDesc('sales_orders.order_date')
+            ->orderByDesc('sales_orders.created_at')
+            ->orderByDesc('sales_orders.id')
             ->paginate(self::PER_PAGE, ['*'], 'page', $scope->page);
 
         return $this->mapOrderPaginator($paginator, includeQuotation: true);
@@ -521,7 +522,8 @@ class CommercialSalesOrderReportQueries
                 'sales_orders.required_date',
                 'sales_orders.total_amount',
             )
-            ->orderByDesc('sales_orders.order_date')
+            ->orderByDesc('sales_orders.created_at')
+            ->orderByDesc('sales_orders.id')
             ->paginate(self::PER_PAGE, ['*'], 'page', $scope->page);
 
         return $this->mapOrderPaginator($paginator);

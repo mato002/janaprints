@@ -266,27 +266,29 @@ SQL;
             ];
         }
 
-        if ($qc['status'] === 'none') {
-            $items[] = [
-                'key' => 'qc',
-                'label' => __('QC passed'),
-                'state' => 'warning',
-                'detail' => __('No QC checks recorded'),
-            ];
-        } elseif ($this->hasUnresolvedQcFailure($jobCard)) {
+        if ($this->hasUnresolvedQcFailure($jobCard)) {
             $items[] = [
                 'key' => 'qc',
                 'label' => __('QC passed'),
                 'state' => 'failed',
                 'detail' => $qc['label'],
             ];
-        } else {
-            $items[] = [
-                'key' => 'qc',
-                'label' => __('QC passed'),
-                'state' => 'passed',
-                'detail' => $qc['label'],
-            ];
+        } elseif (app(\App\Support\Production\ProductionQcSettings::class)->qcRequired($jobCard->company_id, $jobCard->branch_id)) {
+            if ($qc['status'] === 'none') {
+                $items[] = [
+                    'key' => 'qc',
+                    'label' => __('QC passed'),
+                    'state' => 'warning',
+                    'detail' => __('No QC checks recorded'),
+                ];
+            } else {
+                $items[] = [
+                    'key' => 'qc',
+                    'label' => __('QC passed'),
+                    'state' => 'passed',
+                    'detail' => $qc['label'],
+                ];
+            }
         }
 
         $materialsState = $this->materialsReadinessState($jobCard, $consumptionCount);

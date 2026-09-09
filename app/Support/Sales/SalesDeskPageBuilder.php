@@ -11,6 +11,7 @@ use App\Models\Sales\SalesOrder;
 use App\Support\Commercial\CommercialApprovalQueueService;
 use App\Support\Crm\CustomerPrintSpecificationService;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
+use App\Support\NewestFirst;
 use Illuminate\Http\Request;
 
 class SalesDeskPageBuilder
@@ -136,21 +137,27 @@ class SalesDeskPageBuilder
         return match ($view) {
             SalesDeskViews::QUOTES => [
                 'registerTitle' => __('Quotations'),
-                'quotations' => $this->scopeToTenant(
-                    Quotation::query()->with(['customer', 'branch', 'preparer', 'salesOrder'])
-                )->latest('quotation_date')->paginate(15)->withQueryString(),
+                'quotations' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        Quotation::query()->with(['customer', 'branch', 'preparer', 'salesOrder'])
+                    )
+                )->paginate(15)->withQueryString(),
             ],
             SalesDeskViews::ORDERS => [
                 'registerTitle' => __('Sales orders'),
-                'orders' => $this->scopeToTenant(
-                    SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator', 'jobCard', 'invoices'])
-                )->latest('order_date')->paginate(15)->withQueryString(),
+                'orders' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator', 'jobCard', 'invoices'])
+                    )
+                )->paginate(15)->withQueryString(),
             ],
             SalesDeskViews::ARTWORK => [
                 'registerTitle' => __('Artwork requests'),
-                'requests' => $this->scopeToTenant(
-                    ArtworkRequest::query()->with(['customer', 'branch', 'requester', 'assignedDesigner'])
-                )->latest()->paginate(15)->withQueryString(),
+                'requests' => NewestFirst::apply(
+                    $this->scopeToTenant(
+                        ArtworkRequest::query()->with(['customer', 'branch', 'requester', 'assignedDesigner'])
+                    )
+                )->paginate(15)->withQueryString(),
             ],
             SalesDeskViews::APPROVALS => $this->approvalsPayload($request),
             default => [],
