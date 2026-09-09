@@ -13,6 +13,7 @@ use App\Models\Production\WorkCenter;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
 use App\Support\Production\DepartmentQueueRoutingService;
+use App\Support\Production\ProductionFloorDeskViews;
 use App\Support\Production\ProductionSpecificationService;
 use App\Support\TenantContext;
 use Database\Seeders\ProductionFoundationSeeder;
@@ -152,7 +153,7 @@ class DepartmentProductionQueueTest extends TestCase
         $futureJob->update(['required_date' => now()->addWeek()]);
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.department', ['department' => 'digital', 'due' => 'overdue', 'embedded' => '1']))
+            ->getDepartmentQueue('digital', ['due' => 'overdue'])
             ->assertOk()
             ->assertSee($overdueJob->job_card_number, false)
             ->assertDontSee($futureJob->job_card_number, false);
@@ -165,12 +166,52 @@ class DepartmentProductionQueueTest extends TestCase
         $this->queueJob($company, $branch, $user, $digitalCenter, ProductionType::Digital);
 
         $this->actingAs($user)
-            ->get(route('admin.production.queue.department', 'digital').'?embedded=1')
+            ->getDepartmentQueue('digital')
             ->assertOk()
-            ->assertSee(__('Waiting jobs'), false)
-            ->assertSee(__('Open Job 360'), false)
-            ->assertSee(__('Department operational register'), false)
-            ->assertSee(__('More filters'), false);
+            ->assertSee(__("Today's Jobs"))
+            ->assertSee(__('Overdue Jobs'))
+            ->assertSee(__('Completed Jobs'))
+            ->assertDontSee(__('Waiting jobs'));
+    }
+
+    public function test_department_queue_splits_today_overdue_and_completed_jobs(): void
+    {
+        [$company, $branch, $user, $digitalCenter] = $this->departmentContext();
+
+        $todayJob = $this->queueJob($company, $branch, $user, $digitalCenter, ProductionType::Digital);
+        $todayJob->update(['required_date' => now()]);
+
+        $overdueJob = $this->queueJob($company, $branch, $user, $digitalCenter, ProductionType::Digital);
+        $overdueJob->update(['required_date' => now()->subDay()]);
+
+        $completedJob = $this->queueJob($company, $branch, $user, $digitalCenter, ProductionType::Digital);
+        ProductionQueue::query()
+            ->where('production_job_card_id', $completedJob->id)
+            ->update([
+                'status' => ProductionQueueStatus::Completed,
+                'updated_at' => now(),
+            ]);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('digital')
+            ->assertOk()
+            ->assertSee($todayJob->job_card_number, false)
+            ->assertDontSee($overdueJob->job_card_number, false)
+            ->assertDontSee($completedJob->job_card_number, false);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('digital', ['queue_bucket' => 'overdue'])
+            ->assertOk()
+            ->assertSee($overdueJob->job_card_number, false)
+            ->assertDontSee($todayJob->job_card_number, false)
+            ->assertDontSee($completedJob->job_card_number, false);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('digital', ['queue_bucket' => 'completed'])
+            ->assertOk()
+            ->assertSee($completedJob->job_card_number, false)
+            ->assertDontSee($todayJob->job_card_number, false)
+            ->assertDontSee($overdueJob->job_card_number, false);
     }
 
     public function test_invalid_department_redirects_to_main_queue(): void
@@ -243,6 +284,16 @@ class DepartmentProductionQueueTest extends TestCase
         app()->instance(TenantContext::class, new TenantContext($company, $branch, false));
 
         return [$company, $branch, $user, $digitalCenter, $offsetCenter];
+    }
+
+    /**
+     * @param  array<string, mixed>  $query
+     * @return \Illuminate\Testing\TestResponse
+     */
+    protected function getDepartmentQueue(string $department, array $query = [])
+    {
+        return $this->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(ProductionFloorDeskViews::queueIndexUrl($department, array_merge(['embedded' => '1'], $query)));
     }
 
     protected function queueJob(

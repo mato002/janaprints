@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\ProductionQueueStatus;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionQueue;
 use App\Models\User;
@@ -30,6 +31,19 @@ class ProductionQueuePolicy
     {
         return $user->can('production.schedule')
             && $this->sameTenant($user, $queue->jobCard);
+    }
+
+    public function complete(User $user, ProductionQueue $queue): bool
+    {
+        $jobCard = $queue->jobCard;
+
+        if ($jobCard === null) {
+            return false;
+        }
+
+        return $user->can('production.complete')
+            && $this->sameTenant($user, $jobCard)
+            && in_array($queue->status, ProductionQueueStatus::activeStatuses(), true);
     }
 
     public function delete(User $user, ProductionQueue $queue): bool

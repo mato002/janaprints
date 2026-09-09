@@ -159,6 +159,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:production.complete')->group(function () {
+            Route::post('job-cards/{jobCard}/queues/{queue}/complete', [ProductionQueueController::class, 'complete'])->name('queues.complete');
             Route::post('job-cards/{jobCard}/send-to-qc', [ProductionJobCardController::class, 'sendToQc'])->name('job-cards.send-to-qc');
             Route::post('job-cards/{jobCard}/complete', [ProductionJobCardController::class, 'markCompleted'])->name('job-cards.complete');
             Route::post('job-cards/{jobCard}/ready-for-dispatch', [ProductionJobCardController::class, 'readyForDispatch'])->name('job-cards.ready-for-dispatch');

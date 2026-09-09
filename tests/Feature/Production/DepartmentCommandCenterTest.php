@@ -49,21 +49,20 @@ class DepartmentCommandCenterTest extends TestCase
         $this->actingAs($user)
             ->getDepartmentQueue($department)
             ->assertOk()
-            ->assertSee($titleFragment, false)
+            ->assertSee($titleFragment)
             ->assertSee($job->job_card_number, false)
-            ->assertSee(__('Department operational register'), false)
-            ->assertSee(__('Waiting jobs'), false)
-            ->assertSee(__('Visible jobs'), false);
+            ->assertSee(__("Today's Jobs"))
+            ->assertSee(__('Overdue Jobs'))
+            ->assertSee(__('Completed Jobs'))
+            ->assertDontSee(__('Waiting jobs'));
     }
 
     public static function commandCentreProvider(): array
     {
         return [
-            'digital' => ['digital', 'Digital Command Centre'],
-            'offset' => ['offset', 'Offset Command Centre'],
-            'outsource' => ['outsource', 'Outsourced Command Centre'],
-            'large_format' => ['large_format', 'Large Format Command Centre'],
-            'finishing' => ['finishing', 'Finishing Command Centre'],
+            'digital' => ['digital', 'Digital'],
+            'offset' => ['offset', 'Offset'],
+            'outsource' => ['outsource', 'Outsourced'],
         ];
     }
 
@@ -271,6 +270,42 @@ class DepartmentCommandCenterTest extends TestCase
         $this->assertArrayNotHasKey('finishing', $available);
     }
 
+    public function test_department_register_completes_job_instead_of_starting_work(): void
+    {
+        [$company, $branch, $user, $workCenter] = $this->commandCentreContext('digital');
+        $user->givePermissionTo('production.start');
+        $job = $this->queueJob($company, $branch, $user, $workCenter, ProductionType::Digital);
+        $job->update(['status' => ProductionJobCardStatus::Queued]);
+        $queue = $job->queues()->firstOrFail();
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('digital')
+            ->assertOk()
+            ->assertDontSee(__('Start work'), false)
+            ->assertSee(route('admin.production.queues.complete', [$job, $queue]), false);
+
+        $this->actingAs($user)
+            ->from(ProductionFloorDeskViews::queueIndexUrl('digital', ['embedded' => '1']))
+            ->post(route('admin.production.queues.complete', [$job, $queue]))
+            ->assertRedirect();
+
+        $this->assertEquals(ProductionQueueStatus::Completed, $queue->fresh()->status);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('digital')
+            ->assertOk()
+            ->assertDontSee($job->job_card_number, false);
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(ProductionFloorDeskViews::queueIndexUrl('digital', [
+                'embedded' => '1',
+                'queue_bucket' => 'completed',
+            ]))
+            ->assertOk()
+            ->assertSee($job->job_card_number, false);
+    }
+
     public function test_command_centre_forbidden_without_permission(): void
     {
         [$company, $branch] = array_slice($this->commandCentreContext('digital'), 0, 2);
@@ -312,7 +347,12 @@ class DepartmentCommandCenterTest extends TestCase
             'is_active' => true,
         ]);
         $role = Role::findByName('Production', 'web');
-        $role->syncPermissions(['production.queue.view', 'production.view', 'production.work-centers.view']);
+        $role->syncPermissions([
+            'production.queue.view',
+            'production.view',
+            'production.work-centers.view',
+            'production.complete',
+        ]);
         $user->assignRole('Production');
 
         $this->seed(ProductionFoundationSeeder::class);

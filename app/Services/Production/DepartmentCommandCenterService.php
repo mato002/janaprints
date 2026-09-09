@@ -99,14 +99,9 @@ class DepartmentCommandCenterService
         $scoped = fn () => ProductionQueue::query()->forTenant()
             ->when($department, fn ($q) => $this->departments->applyDepartmentScope($q, $department));
 
-        $dueToday = (clone $scoped())->whereHas('jobCard', function ($q) {
-            $q->whereDate('required_date', today())
-                ->whereNotIn('status', [
-                    ProductionJobCardStatus::Completed,
-                    ProductionJobCardStatus::ReadyForDispatch,
-                    ProductionJobCardStatus::Cancelled,
-                ]);
-        })->count();
+        $jobsToday = $this->queues->constrainToTodayJobs((clone $scoped()))->count();
+        $jobsOverdue = $this->queues->constrainToOverdueJobs((clone $scoped()))->count();
+        $jobsCompleted = $this->queues->constrainToCompletedJobs((clone $scoped()))->count();
 
         $machineUtilisation = $this->machineUtilisationForDepartment($department);
 
@@ -116,7 +111,10 @@ class DepartmentCommandCenterService
             : (int) round($operatorCount->avg('workload'), 0);
 
         return array_merge($base, [
-            'jobs_due_today' => $dueToday,
+            'jobs_today' => $jobsToday,
+            'jobs_due_today' => $jobsToday,
+            'jobs_overdue' => $jobsOverdue,
+            'jobs_completed_today' => $jobsCompleted,
             'machine_utilisation_percent' => $machineUtilisation,
             'operator_utilisation' => $operatorUtilisation,
             'average_completion_hours' => $base['average_queue_age_hours'],

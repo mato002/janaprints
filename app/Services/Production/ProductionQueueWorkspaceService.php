@@ -256,14 +256,14 @@ class ProductionQueueWorkspaceService
             'work_center_url' => ($user?->can('production.work-centers.view') && $queue->workCenter)
                 ? route('admin.production.work-centers.show', $queue->workCenter)
                 : null,
-            'quick_actions' => $jobCard ? $this->quickActions($jobCard, $user) : [],
+            'quick_actions' => $jobCard ? $this->quickActions($jobCard, $user, $queue) : [],
         ];
     }
 
     /**
      * @return list<array<string, mixed>>
      */
-    public function quickActions(ProductionJobCard $jobCard, ?User $user = null): array
+    public function quickActions(ProductionJobCard $jobCard, ?User $user = null, ?ProductionQueue $queue = null): array
     {
         $user ??= auth()->user();
         $actions = [];
@@ -272,8 +272,21 @@ class ProductionQueueWorkspaceService
             $actions[] = ['label' => __('Open Job 360'), 'url' => route('admin.production.job-cards.show', $jobCard), 'type' => 'link'];
         }
 
+        $queueIsActive = $queue !== null
+            && in_array($queue->status, ProductionQueueStatus::activeStatuses(), true);
+
+        if ($queueIsActive && $user?->can('complete', $queue) && Route::has('admin.production.queues.complete')) {
+            $actions[] = [
+                'label' => __('Complete'),
+                'url' => route('admin.production.queues.complete', [$jobCard, $queue]),
+                'type' => 'post',
+                'method' => 'post',
+                'variant' => 'primary',
+            ];
+        }
+
         $primary = $this->floorActions->primaryAction($jobCard, $user);
-        if ($primary) {
+        if ($primary && ! $this->isQueueSuppressedAction($primary['label'] ?? '')) {
             $actions[] = [
                 'label' => $primary['label'],
                 'url' => $primary['url'],
@@ -284,6 +297,10 @@ class ProductionQueueWorkspaceService
         }
 
         foreach ($this->floorActions->secondaryActions($jobCard, $user) as $secondary) {
+            if ($this->isQueueSuppressedAction($secondary['label'] ?? '')) {
+                continue;
+            }
+
             $actions[] = [
                 'label' => $secondary['label'],
                 'url' => $secondary['url'],
@@ -326,6 +343,14 @@ class ProductionQueueWorkspaceService
         }
 
         return $actions;
+    }
+
+    protected function isQueueSuppressedAction(string $label): bool
+    {
+        $normalized = strtolower($label);
+
+        return str_contains($normalized, 'start')
+            || str_contains($normalized, 'complete');
     }
 
     public function statusLabel(ProductionQueueStatus $status): string
@@ -576,7 +601,84 @@ class ProductionQueueWorkspaceService
             $this->departments->applyDepartmentScope($query, $department);
         }
 
+        if (
+            ! $request->filled('queue_bucket')
+            && $request->query('status') !== 'completed'
+            && ProductionQueueStatus::tryFromFilter($request->query('status')) !== ProductionQueueStatus::Completed
+        ) {
+            $query->whereNotIn(self::STATUS_COLUMN, [
+                ProductionQueueStatus::Completed,
+                ProductionQueueStatus::Cancelled,
+            ]);
+        }
+
         return $this->applySharedFilters($query, $request, true, $department);
+    }
+
+    /**
+     * Open jobs due today, or logged today that are not overdue.
+     */
+    public function constrainToTodayJobs(Builder $query): Builder
+    {
+        $today = today()->toDateString();
+        $closed = $this->closedJobCardStatuses();
+
+        return $query
+            ->whereNotIn(self::STATUS_COLUMN, [
+                ProductionQueueStatus::Completed,
+                ProductionQueueStatus::Cancelled,
+            ])
+            ->where(function (Builder $jobs) use ($today, $closed) {
+                $jobs
+                    ->whereHas('jobCard', function (Builder $q) use ($today, $closed) {
+                        $q->whereNotIn('status', $closed)
+                            ->whereDate('required_date', $today);
+                    })
+                    ->orWhere(function (Builder $loggedToday) use ($today, $closed) {
+                        $loggedToday
+                            ->whereDate('production_queues.created_at', $today)
+                            ->whereHas('jobCard', function (Builder $q) use ($today, $closed) {
+                                $q->whereNotIn('status', $closed)
+                                    ->where(function (Builder $due) use ($today) {
+                                        $due->whereNull('required_date')
+                                            ->orWhereDate('required_date', '>=', $today);
+                                    });
+                            });
+                    });
+            });
+    }
+
+    public function constrainToOverdueJobs(Builder $query): Builder
+    {
+        return $query
+            ->whereNotIn(self::STATUS_COLUMN, [
+                ProductionQueueStatus::Completed,
+                ProductionQueueStatus::Cancelled,
+            ])
+            ->whereHas('jobCard', function (Builder $q) {
+                $q->whereNotNull('required_date')
+                    ->whereDate('required_date', '<', today()->toDateString())
+                    ->whereNotIn('status', $this->closedJobCardStatuses());
+            });
+    }
+
+    public function constrainToCompletedJobs(Builder $query): Builder
+    {
+        return $query
+            ->where(self::STATUS_COLUMN, ProductionQueueStatus::Completed)
+            ->whereDate('production_queues.updated_at', today());
+    }
+
+    /**
+     * @return list<ProductionJobCardStatus>
+     */
+    protected function closedJobCardStatuses(): array
+    {
+        return [
+            ProductionJobCardStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch,
+            ProductionJobCardStatus::Cancelled,
+        ];
     }
 
     protected function applySharedFilters(Builder $query, Request $request, bool $includeDepartmentPresets, ?string $department = null): Builder
@@ -597,15 +699,15 @@ class ProductionQueueWorkspaceService
 
         if ($bucket = $request->query('queue_bucket')) {
             match ($bucket) {
+                'today' => $this->constrainToTodayJobs($query),
+                'overdue' => $this->constrainToOverdueJobs($query),
                 'waiting' => $query->whereIn(self::STATUS_COLUMN, [
                     ProductionQueueStatus::Waiting,
                     ProductionQueueStatus::Queued,
                 ]),
                 'running' => $query->where(self::STATUS_COLUMN, ProductionQueueStatus::InProgress),
                 'paused' => $query->where(self::STATUS_COLUMN, ProductionQueueStatus::Paused),
-                'completed_today' => $query
-                    ->where(self::STATUS_COLUMN, ProductionQueueStatus::Completed)
-                    ->whereDate('updated_at', today()),
+                'completed', 'completed_today' => $this->constrainToCompletedJobs($query),
                 default => null,
             };
         }
@@ -650,7 +752,7 @@ class ProductionQueueWorkspaceService
 
         if (
             $includeDepartmentPresets
-            && in_array($department, ['digital', 'offset'], true)
+            && filled($department)
             && ! $request->boolean('all_dates')
             && ! $request->filled('from_date')
             && ! $request->filled('to_date')
@@ -659,9 +761,7 @@ class ProductionQueueWorkspaceService
             && ! $request->filled('status')
             && ! $request->filled('queue_bucket')
         ) {
-            $today = today()->toDateString();
-            $query->whereDate('production_queues.created_at', '>=', $today)
-                ->whereDate('production_queues.created_at', '<=', $today);
+            $this->constrainToTodayJobs($query);
         }
 
         if ($vendorId = $request->integer('vendor_id')) {
@@ -669,22 +769,21 @@ class ProductionQueueWorkspaceService
         }
 
         if ($includeDepartmentPresets && $due = $request->query('due')) {
-            $query->whereHas('jobCard', function (Builder $q) use ($due) {
-                $column = 'required_date';
-                match ($due) {
-                    'today' => $q->whereDate($column, today()),
-                    'tomorrow' => $q->whereDate($column, today()->addDay()),
-                    'week' => $q->whereBetween($column, [today(), today()->addDays(7)]),
-                    'month' => $q->whereBetween($column, [today()->startOfMonth(), today()->endOfMonth()]),
-                    'overdue' => $q->whereDate($column, '<', today())
-                        ->whereNotIn('status', [
-                            ProductionJobCardStatus::Completed,
-                            ProductionJobCardStatus::ReadyForDispatch,
-                            ProductionJobCardStatus::Cancelled,
-                        ]),
-                    default => null,
-                };
-            });
+            if ($due === 'overdue') {
+                $this->constrainToOverdueJobs($query);
+            } elseif ($due === 'today') {
+                $this->constrainToTodayJobs($query);
+            } else {
+                $query->whereHas('jobCard', function (Builder $q) use ($due) {
+                    $column = 'required_date';
+                    match ($due) {
+                        'tomorrow' => $q->whereDate($column, today()->addDay()),
+                        'week' => $q->whereBetween($column, [today(), today()->addDays(7)]),
+                        'month' => $q->whereBetween($column, [today()->startOfMonth(), today()->endOfMonth()]),
+                        default => null,
+                    };
+                });
+            }
         }
 
         if ($search = trim((string) $request->query('search'))) {

@@ -20,6 +20,9 @@
     @if ($embedded)
         <input type="hidden" name="embedded" value="1">
     @endif
+    @if (filled($filters['queue_bucket'] ?? null))
+        <input type="hidden" name="queue_bucket" value="{{ $filters['queue_bucket'] }}">
+    @endif
 
     <div class="erp-index-toolbar border-b border-erp-border bg-white px-2 py-1.5 sm:px-3">
         <div class="erp-index-toolbar-row flex items-center gap-1.5">

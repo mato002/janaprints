@@ -114,6 +114,16 @@ class ProductionQueueController extends Controller
         return back()->with('status', __('Queue entry updated.'));
     }
 
+    public function complete(ProductionJobCard $jobCard, ProductionQueue $queue, ProductionQueueService $queues): RedirectResponse
+    {
+        abort_unless($queue->production_job_card_id === $jobCard->id, 404);
+        $this->authorize('complete', $queue);
+
+        $queues->completeEntry($queue);
+
+        return back()->with('status', __('Job moved to completed jobs.'));
+    }
+
     public function destroy(ProductionJobCard $jobCard, ProductionQueue $queue, ProductionQueueService $queues): RedirectResponse
     {
         $this->authorize('delete', $queue);

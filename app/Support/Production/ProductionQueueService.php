@@ -174,6 +174,63 @@ class ProductionQueueService
         }
     }
 
+    public function completeEntry(ProductionQueue $queue): void
+    {
+        $jobCard = $queue->jobCard;
+
+        if ($jobCard === null) {
+            return;
+        }
+
+        if (in_array($queue->status, [ProductionQueueStatus::Completed, ProductionQueueStatus::Cancelled], true)) {
+            return;
+        }
+
+        DB::transaction(function () use ($queue, $jobCard) {
+            $queue->update(['status' => ProductionQueueStatus::Completed]);
+
+            if ($this->hasActiveQueue($jobCard)) {
+                return;
+            }
+
+            $this->advanceJobAfterQueueComplete($jobCard->fresh());
+        });
+    }
+
+    protected function advanceJobAfterQueueComplete(ProductionJobCard $jobCard): void
+    {
+        if (
+            $jobCard->status === ProductionJobCardStatus::Queued
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::InProduction)
+        ) {
+            $jobCard->update([
+                'status' => ProductionJobCardStatus::InProduction,
+                'actual_start_date' => $jobCard->actual_start_date ?? now(),
+            ]);
+            $jobCard->refresh();
+        }
+
+        if (
+            $jobCard->status === ProductionJobCardStatus::InProduction
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck)
+        ) {
+            $jobCard->transitionTo(ProductionJobCardStatus::QualityCheck);
+            app(ProductQcChecklistService::class)->snapshotForJobCard($jobCard);
+            $jobCard->refresh();
+        }
+
+        if (
+            $jobCard->status === ProductionJobCardStatus::QualityCheck
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)
+            && ! app(ProductionQcSettings::class)->qcRequired($jobCard->company_id, $jobCard->branch_id)
+        ) {
+            $jobCard->update([
+                'status' => ProductionJobCardStatus::Completed,
+                'actual_end_date' => now(),
+            ]);
+        }
+    }
+
     public function remove(ProductionQueue $queue): void
     {
         $jobCard = $queue->jobCard;

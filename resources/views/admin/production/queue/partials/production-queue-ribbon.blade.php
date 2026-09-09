@@ -8,62 +8,53 @@
     $activeDepartment = $activeDepartment ?? null;
     $indexRoute = $indexRoute ?? ProductionFloorDeskViews::queueIndexUrl($activeDepartment ?: null);
 
-    $waiting = $commandMetrics['jobs_waiting'] ?? 0;
-    $running = $commandMetrics['jobs_running'] ?? 0;
-    $paused = $commandMetrics['jobs_paused'] ?? 0;
-    $completed = $commandMetrics['jobs_completed_today'] ?? 0;
+    $todayCount = $commandMetrics['jobs_today'] ?? $commandMetrics['jobs_due_today'] ?? 0;
     $overdue = $commandMetrics['jobs_overdue'] ?? 0;
-    $dueToday = $commandMetrics['jobs_due_today'] ?? 0;
-    $machine = isset($commandMetrics['machine_utilisation_percent']) ? $commandMetrics['machine_utilisation_percent'].'%' : '—';
-    $operator = isset($commandMetrics['operator_utilisation']) ? $commandMetrics['operator_utilisation'].'%' : '—';
-    $avgHours = $commandMetrics['average_completion_hours'] ?? null;
-    $visibleCount = ($summary ?? [])['total_visible'] ?? null;
+    $completed = $commandMetrics['jobs_completed_today'] ?? 0;
 
     $chipUrl = function (array $query) use ($activeDepartment): string {
-        $params = array_merge(['all_dates' => 1], $query);
         if ($activeDepartment) {
-            $params['department'] = $activeDepartment;
+            $query['department'] = $activeDepartment;
         }
 
-        return WorkspaceEmbed::url(ProductionFloorDeskViews::queueIndexUrl($activeDepartment, $params))
-            ?? ProductionFloorDeskViews::queueIndexUrl($activeDepartment, $params);
+        return WorkspaceEmbed::url(ProductionFloorDeskViews::queueIndexUrl($activeDepartment, $query))
+            ?? ProductionFloorDeskViews::queueIndexUrl($activeDepartment, $query);
     };
 
-    $activeBucket = $filters['queue_bucket'] ?? null;
+    $requestedBucket = $filters['queue_bucket'] ?? null;
     $activeDue = $filters['due'] ?? null;
-    $activeStatus = $filters['status'] ?? null;
+    $hasExplicitList = filled($requestedBucket) || filled($activeDue) || filled($filters['status'] ?? null);
+
+    $activeBucket = match (true) {
+        $activeDue === 'overdue' || $requestedBucket === 'overdue' => 'overdue',
+        in_array($requestedBucket, ['completed', 'completed_today'], true) => 'completed',
+        $activeDue === 'today' || $requestedBucket === 'today' => 'today',
+        ! $hasExplicitList => 'today',
+        default => $requestedBucket,
+    };
 
     $statFilters = [
         [
-            'label' => __('Jobs'),
-            'count' => $visibleCount,
-            'active' => ! filled($activeBucket) && ! filled($activeDue) && ! filled($activeStatus),
-            'url' => $chipUrl([]),
+            'key' => 'today',
+            'label' => __("Today's Jobs"),
+            'count' => $todayCount,
+            'active' => $activeBucket === 'today',
+            'url' => $chipUrl(['queue_bucket' => 'today']),
         ],
         [
-            'label' => __('Waiting'),
-            'count' => $waiting,
-            'active' => $activeBucket === 'waiting',
-            'url' => $chipUrl(['queue_bucket' => 'waiting']),
-        ],
-        [
-            'label' => __('Running'),
-            'count' => $running,
-            'active' => $activeBucket === 'running',
-            'url' => $chipUrl(['queue_bucket' => 'running']),
-        ],
-        [
-            'label' => __('Paused'),
-            'count' => $paused,
-            'active' => $activeBucket === 'paused',
-            'url' => $chipUrl(['queue_bucket' => 'paused']),
-        ],
-        [
-            'label' => __('Overdue'),
+            'key' => 'overdue',
+            'label' => __('Overdue Jobs'),
             'count' => $overdue,
-            'active' => $activeDue === 'overdue',
-            'url' => $chipUrl(['due' => 'overdue']),
+            'active' => $activeBucket === 'overdue',
+            'url' => $chipUrl(['queue_bucket' => 'overdue']),
             'danger' => (int) $overdue > 0,
+        ],
+        [
+            'key' => 'completed',
+            'label' => __('Completed Jobs'),
+            'count' => $completed,
+            'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
+            'url' => $chipUrl(['queue_bucket' => 'completed']),
         ],
     ];
 @endphp
@@ -86,11 +77,8 @@
         </nav>
     @endif
 
-    <div class="production-queue-ribbon__stats" role="group" aria-label="{{ __('Queue summary') }}">
-        @foreach ($statFilters as $index => $stat)
-            @if ($index > 0)
-                <span class="production-queue-ribbon__stat-sep" aria-hidden="true">•</span>
-            @endif
+    <div class="production-queue-ribbon__stats production-queue-ribbon__stats--buckets" role="tablist" aria-label="{{ __('Job lists') }}">
+        @foreach ($statFilters as $stat)
             <a
                 href="{{ $stat['url'] }}"
                 @class([
@@ -98,34 +86,15 @@
                     'production-queue-ribbon__stat--active' => $stat['active'],
                     'production-queue-ribbon__stat--danger' => ($stat['danger'] ?? false) && ! $stat['active'],
                 ])
+                role="tab"
+                aria-selected="{{ $stat['active'] ? 'true' : 'false' }}"
                 data-turbo-frame="{{ WorkspaceEmbed::turboFrame() }}"
                 data-turbo-action="advance"
             >
                 {{ $stat['label'] }}
-                @if ($stat['count'] !== null)
-                    <strong class="tabular-nums">{{ $stat['count'] }}</strong>
-                @endif
+                <strong class="tabular-nums">{{ $stat['count'] }}</strong>
             </a>
         @endforeach
-
-        <span class="production-queue-ribbon__stat-sep hidden sm:inline" aria-hidden="true">•</span>
-        <span class="production-queue-ribbon__stat-meta hidden sm:inline">
-            {{ __('Due today') }} <strong class="tabular-nums">{{ $dueToday }}</strong>
-        </span>
-        <span class="production-queue-ribbon__stat-sep hidden md:inline" aria-hidden="true">•</span>
-        <span class="production-queue-ribbon__stat-meta hidden md:inline">
-            {{ __('Machine') }} <strong>{{ $machine }}</strong>
-        </span>
-        <span class="production-queue-ribbon__stat-sep hidden lg:inline" aria-hidden="true">•</span>
-        <span class="production-queue-ribbon__stat-meta hidden lg:inline">
-            {{ __('Operator') }} <strong>{{ $operator }}</strong>
-        </span>
-        @if (filled($avgHours) && $avgHours !== '—')
-            <span class="production-queue-ribbon__stat-sep hidden xl:inline" aria-hidden="true">•</span>
-            <span class="production-queue-ribbon__stat-meta hidden xl:inline">
-                {{ __('Avg') }} <strong>{{ $avgHours }}h</strong>
-            </span>
-        @endif
     </div>
 
     <div class="production-queue-ribbon__filters">
