@@ -246,6 +246,13 @@ class ProductionJobCardController extends Controller
 
     public function sendToQc(ProductionJobCard $jobCard): RedirectResponse
     {
+        $qcRequired = app(\App\Support\Production\ProductionQcSettings::class)
+            ->qcRequired($jobCard->company_id, $jobCard->branch_id);
+
+        if (! $qcRequired) {
+            return $this->markCompleted($jobCard);
+        }
+
         $this->authorize('complete', $jobCard);
         abort_unless($jobCard->status->canTransitionTo(ProductionJobCardStatus::QualityCheck), 403);
         $jobCard->transitionTo(ProductionJobCardStatus::QualityCheck);

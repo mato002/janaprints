@@ -509,23 +509,11 @@ class ProductionJobCardIndexService
 
         if (
             $user?->can('complete', $jobCard)
-            && $jobCard->status === ProductionJobCardStatus::InProduction
-            && Route::has('admin.production.job-cards.send-to-qc')
-        ) {
-            $actions[] = [
-                'label' => __('Send To QC'),
-                'type' => 'post',
-                'url' => route('admin.production.job-cards.send-to-qc', $jobCard),
-            ];
-        }
-
-        if (
-            $user?->can('complete', $jobCard)
-            && $jobCard->status === ProductionJobCardStatus::QualityCheck
+            && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Completed)
             && Route::has('admin.production.job-cards.complete')
         ) {
             $actions[] = [
-                'label' => __('Mark Complete'),
+                'label' => __('Complete'),
                 'type' => 'post',
                 'url' => route('admin.production.job-cards.complete', $jobCard),
             ];

@@ -9,6 +9,7 @@ use App\Models\Sales\Quotation;
 use App\Support\Documents\QuotationDocumentService;
 use App\Support\Governance\WorkflowRulesService;
 use App\Support\QuotationRevisionService;
+use App\Support\NewestFirst;
 use App\Enums\WorkflowRuleTrigger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -27,10 +28,11 @@ class ClientQuotationController extends Controller
     {
         $customer = $this->clientCustomer();
 
-        $quotations = Quotation::query()
-            ->where('customer_id', $customer->id)
-            ->whereNotIn('status', [QuotationStatus::Draft, QuotationStatus::PendingApproval])
-            ->latest('quotation_date')
+        $quotations = NewestFirst::apply(
+            Quotation::query()
+                ->where('customer_id', $customer->id)
+                ->whereNotIn('status', [QuotationStatus::Draft, QuotationStatus::PendingApproval])
+        )
             ->paginate(12);
 
         return view('client.quotations.index', compact('customer', 'quotations'));

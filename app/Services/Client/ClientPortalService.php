@@ -16,6 +16,7 @@ use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Support\Sales\CustomerLedgerService;
 use App\Support\Sales\CustomerPaymentReceiptService;
+use App\Support\NewestFirst;
 
 class ClientPortalService
 {
@@ -81,10 +82,11 @@ class ClientPortalService
      */
     public function recentQuotations(int $customerId, int $limit = 5): array
     {
-        return Quotation::query()
-            ->where('customer_id', $customerId)
-            ->whereNotIn('status', [QuotationStatus::Draft, QuotationStatus::PendingApproval])
-            ->latest('quotation_date')
+        return NewestFirst::apply(
+            Quotation::query()
+                ->where('customer_id', $customerId)
+                ->whereNotIn('status', [QuotationStatus::Draft, QuotationStatus::PendingApproval])
+        )
             ->limit($limit)
             ->get()
             ->all();
@@ -95,10 +97,11 @@ class ClientPortalService
      */
     public function recentOrders(int $customerId, int $limit = 5): array
     {
-        return SalesOrder::query()
-            ->where('customer_id', $customerId)
-            ->where('status', '!=', SalesOrderStatus::Draft)
-            ->latest('order_date')
+        return NewestFirst::apply(
+            SalesOrder::query()
+                ->where('customer_id', $customerId)
+                ->where('status', '!=', SalesOrderStatus::Draft)
+        )
             ->limit($limit)
             ->get()
             ->all();
@@ -109,10 +112,11 @@ class ClientPortalService
      */
     public function recentInvoices(int $customerId, int $limit = 5): array
     {
-        return CustomerInvoice::query()
-            ->where('customer_id', $customerId)
-            ->where('status', CustomerInvoiceStatus::Posted)
-            ->latest('invoice_date')
+        return NewestFirst::apply(
+            CustomerInvoice::query()
+                ->where('customer_id', $customerId)
+                ->where('status', CustomerInvoiceStatus::Posted)
+        )
             ->limit($limit)
             ->get()
             ->all();
@@ -123,10 +127,11 @@ class ClientPortalService
      */
     public function recentPayments(int $customerId, int $limit = 5): array
     {
-        return CustomerPayment::query()
-            ->where('customer_id', $customerId)
-            ->where('status', CustomerPaymentStatus::Posted)
-            ->latest('payment_date')
+        return NewestFirst::apply(
+            CustomerPayment::query()
+                ->where('customer_id', $customerId)
+                ->where('status', CustomerPaymentStatus::Posted)
+        )
             ->limit($limit)
             ->get()
             ->map(fn (CustomerPayment $payment) => [

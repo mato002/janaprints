@@ -12,6 +12,7 @@ use App\Models\Sales\CustomerPayment;
 use App\Models\Sales\SalesOrder;
 use App\Support\Sales\CustomerPaymentService;
 use App\Support\Sales\ReturnsToSalesDesk;
+use App\Support\NewestFirst;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -29,11 +30,9 @@ class CustomerPaymentController extends Controller
     {
         $this->authorize('viewAny', CustomerPayment::class);
 
-        $payments = $this->scopeToTenant(
+        $payments = NewestFirst::apply($this->scopeToTenant(
             CustomerPayment::query()->with(['customer'])
-        )
-            ->orderByDesc('payment_date')
-            ->orderByDesc('id')
+        ))
             ->paginate(20);
 
         return view('admin.sales.payments.index', compact('payments'));

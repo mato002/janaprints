@@ -8,6 +8,7 @@ use App\Models\Client\ClientPortalRepeatRequest;
 use App\Models\Crm\Customer;
 use App\Models\Sales\SalesOrder;
 use App\Models\User;
+use App\Support\NewestFirst;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -15,11 +16,12 @@ class ClientPortalRepeatOrderService
 {
   public function paginateEligibleOrders(Customer $customer, int $perPage = 12): LengthAwarePaginator
   {
-    return SalesOrder::query()
-      ->where('customer_id', $customer->id)
-      ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
-      ->with(['items'])
-      ->latest('order_date')
+    return NewestFirst::apply(
+      SalesOrder::query()
+        ->where('customer_id', $customer->id)
+        ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
+        ->with(['items'])
+    )
       ->paginate($perPage);
   }
 

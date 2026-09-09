@@ -11,6 +11,7 @@ use App\Services\Accounting\DeliveryInvoiceEligibilityService;
 use App\Services\Dispatch\DeliveryNoteAuthority;
 use App\Services\Dispatch\DeliveryNoteService;
 use App\Support\Sales\CustomerInvoiceCreationAuthority;
+use App\Support\NewestFirst;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,13 +31,12 @@ class DeliveryNoteController extends Controller
     {
         $this->authorize('viewAny', DeliveryNote::class);
 
-        $notes = $this->scopeToTenant(
-            DeliveryNote::query()
-                ->with(['customer:id,company_name', 'productionJobCard:id,job_card_number', 'salesOrder:id,order_number'])
+        $notes = NewestFirst::apply(
+            $this->scopeToTenant(
+                DeliveryNote::query()
+                    ->with(['customer:id,company_name', 'productionJobCard:id,job_card_number', 'salesOrder:id,order_number'])
+            )->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
         )
-            ->when($request->query('status'), fn ($q, $status) => $q->where('status', $status))
-            ->latest('delivery_date')
-            ->latest('id')
             ->paginate(20)
             ->withQueryString();
 

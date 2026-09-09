@@ -7,6 +7,7 @@ use App\Http\Controllers\Client\Concerns\ResolvesClientCustomer;
 use App\Http\Controllers\Controller;
 use App\Models\Sales\SalesOrder;
 use App\Services\Client\ClientPortalOrderTrackingService;
+use App\Support\NewestFirst;
 use Illuminate\View\View;
 
 class ClientOrderController extends Controller
@@ -21,11 +22,12 @@ class ClientOrderController extends Controller
     {
         $customer = $this->clientCustomer();
 
-        $orders = SalesOrder::query()
-            ->where('customer_id', $customer->id)
-            ->where('status', '!=', SalesOrderStatus::Draft)
-            ->with(['jobCard.fulfilment'])
-            ->latest('order_date')
+        $orders = NewestFirst::apply(
+            SalesOrder::query()
+                ->where('customer_id', $customer->id)
+                ->where('status', '!=', SalesOrderStatus::Draft)
+                ->with(['jobCard.fulfilment'])
+        )
             ->paginate(12);
 
         $orders->getCollection()->transform(function (SalesOrder $order) {

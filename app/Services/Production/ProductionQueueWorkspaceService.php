@@ -675,9 +675,7 @@ class ProductionQueueWorkspaceService
 
     public function constrainToCompletedJobs(Builder $query): Builder
     {
-        return $query
-            ->where(self::STATUS_COLUMN, ProductionQueueStatus::Completed)
-            ->whereDate('production_queues.updated_at', today());
+        return $query->where(self::STATUS_COLUMN, ProductionQueueStatus::Completed);
     }
 
     /**

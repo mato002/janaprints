@@ -12,6 +12,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\Quotation;
 use App\Models\Sales\SalesOrder;
 use App\Services\Crm\CustomerTimelineService;
+use App\Support\NewestFirst;
 
 class SalesDeskCustomerContextService
 {
@@ -174,14 +175,15 @@ class SalesDeskCustomerContextService
      */
     protected function openQuotations(Customer $customer): array
     {
-        return Quotation::query()
-            ->where('customer_id', $customer->id)
-            ->whereIn('status', [
-                QuotationStatus::Draft,
-                QuotationStatus::Sent,
-                QuotationStatus::Accepted,
-            ])
-            ->latest('quotation_date')
+        return NewestFirst::apply(
+            Quotation::query()
+                ->where('customer_id', $customer->id)
+                ->whereIn('status', [
+                    QuotationStatus::Draft,
+                    QuotationStatus::Sent,
+                    QuotationStatus::Accepted,
+                ])
+        )
             ->limit(5)
             ->get(['id', 'quotation_number', 'status', 'total_amount', 'quotation_date'])
             ->map(fn (Quotation $quote) => [
