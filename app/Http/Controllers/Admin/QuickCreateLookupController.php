@@ -7,9 +7,12 @@ use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Enums\DocumentType;
 use App\Enums\EmploymentStatus;
+use App\Enums\FulfilmentMethod;
 use App\Enums\Gender;
 use App\Enums\LeadStatus;
+use App\Enums\ProductionPriority;
 use App\Enums\QuotationStatus;
+use App\Enums\SalesOrderBillingType;
 use App\Enums\VendorStatus;
 use App\Enums\VendorType;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
@@ -1586,6 +1589,10 @@ class QuickCreateLookupController extends Controller
                 'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
                 'default_quantity' => ['nullable', 'numeric', 'min:0'],
                 'default_unit_price' => ['nullable', 'numeric', 'min:0'],
+                'default_billing_type' => ['nullable', Rule::enum(SalesOrderBillingType::class)],
+                'default_fulfilment_method' => ['nullable', Rule::enum(FulfilmentMethod::class)],
+                'default_priority' => ['nullable', Rule::enum(ProductionPriority::class)],
+                'customer_instructions' => ['nullable', 'string'],
                 'artwork_file' => ['nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
                 'artwork_type' => $catalog->validationRules((int) $customer->company_id),
             ], app(\App\Support\Production\PrintSpecificationJobFields::class)->validationRules()));
@@ -1639,6 +1646,10 @@ class QuickCreateLookupController extends Controller
                 'status' => ['required', Rule::enum(CustomerPrintSpecificationStatus::class)],
                 'default_quantity' => ['nullable', 'numeric', 'min:0'],
                 'default_unit_price' => ['nullable', 'numeric', 'min:0'],
+                'default_billing_type' => ['nullable', Rule::enum(SalesOrderBillingType::class)],
+                'default_fulfilment_method' => ['nullable', Rule::enum(FulfilmentMethod::class)],
+                'default_priority' => ['nullable', Rule::enum(ProductionPriority::class)],
+                'customer_instructions' => ['nullable', 'string'],
                 'artwork_file' => ['nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
                 'artwork_type' => $catalog->validationRules((int) $customer->company_id),
             ], app(\App\Support\Production\PrintSpecificationJobFields::class)->validationRules()));
@@ -1701,6 +1712,9 @@ class QuickCreateLookupController extends Controller
             'artworkTypes' => $customer
                 ? app(\App\Support\Crm\CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id)
                 : [],
+            'billingTypes' => SalesOrderBillingType::cases(),
+            'fulfilmentMethods' => FulfilmentMethod::cases(),
+            'priorities' => ProductionPriority::cases(),
             'defaultStatus' => $specification?->status?->value
                 ?? CustomerPrintSpecificationStatus::Active->value,
             'preselectedDestination' => $destination,

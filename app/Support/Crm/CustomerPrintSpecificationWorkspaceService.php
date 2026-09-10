@@ -252,6 +252,7 @@ class CustomerPrintSpecificationWorkspaceService
                 'default_unit_price' => $spec->default_unit_price,
                 'default_billing_type' => $spec->default_billing_type?->label(),
                 'default_fulfilment_method' => $spec->default_fulfilment_method?->label(),
+                'default_priority' => $spec->default_priority?->label(),
             ],
             self::TAB_TIMELINE => [
                 'events' => $this->timelineEvents($spec),

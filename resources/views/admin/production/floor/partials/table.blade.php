@@ -54,9 +54,16 @@
                     data-print-path="{{ $row['print_path'] ?? 'job-sheet' }}"
                     data-filter-search="{{ strtolower(implode(' ', array_filter([
                         $row['job_number'] ?? '',
+                        $row['sales_order_number'] ?? '',
                         $row['customer'] ?? '',
                         $row['product'] ?? '',
                         $row['sku'] ?? '',
+                        $row['stage_label'] ?? '',
+                        $row['machine'] ?? '',
+                        $row['vendor'] ?? '',
+                        $row['work_center'] ?? '',
+                        $row['required_date'] ?? '',
+                        $row['priority_label'] ?? '',
                     ]))) }}"
                     data-filter-stage="{{ $row['stage'] }}"
                     data-filter-machine-id="{{ $row['machine_id'] ?? '' }}"

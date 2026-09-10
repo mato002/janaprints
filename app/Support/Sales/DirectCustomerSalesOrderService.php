@@ -82,8 +82,10 @@ class DirectCustomerSalesOrderService
                     $specification->branch_id,
                 ),
                 'order_date' => $payload['order_date'] ?? now()->toDateString(),
-                'required_date' => $payload['required_date'] ?? null,
-                'priority' => $payload['priority'] ?? ProductionPriority::Normal->value,
+                'required_date' => $payload['required_date'] ?? now()->toDateString(),
+                'priority' => $payload['priority']
+                    ?? $specification->default_priority?->value
+                    ?? ProductionPriority::Normal->value,
                 'production_destination' => $payload['production_destination'] ?? null,
                 'status' => SalesOrderStatus::Confirmed,
                 'subtotal' => $lineItem['line_total'],

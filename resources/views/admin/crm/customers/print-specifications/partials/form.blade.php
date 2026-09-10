@@ -6,6 +6,7 @@
     'statuses' => [],
     'billingTypes' => [],
     'fulfilmentMethods' => [],
+    'priorities' => [],
     'artworkTypes' => [],
     'showArtworkUpload' => true,
     'defaultStatus' => 'draft',
@@ -57,44 +58,16 @@
                     <input class="erp-input w-full bg-slate-50" readonly value="{{ $spec->specification_code }}">
                 </div>
             @endif
-            <div>
-                <label class="erp-label" for="default_quantity">{{ __('Default quantity') }}</label>
-                <input type="number" step="0.001" min="0" id="default_quantity" name="default_quantity" class="erp-input w-full"
-                    value="{{ old('default_quantity', $spec?->default_quantity) }}">
-            </div>
-            <div>
-                <label class="erp-label" for="default_unit_price">{{ __('Default unit price') }}</label>
-                <input type="number" step="0.01" min="0" id="default_unit_price" name="default_unit_price" class="erp-input w-full"
-                    value="{{ old('default_unit_price', $spec?->default_unit_price) }}">
-            </div>
-            <div>
-                <label class="erp-label" for="default_billing_type">{{ __('Default billing type') }}</label>
-                <select id="default_billing_type" name="default_billing_type" class="erp-input w-full">
-                    <option value="">{{ __('—') }}</option>
-                    @foreach ($billingTypes as $type)
-                        <option value="{{ $type->value }}" @selected(old('default_billing_type', $spec?->default_billing_type?->value) === $type->value)>
-                            {{ $type->label() }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="erp-label" for="default_fulfilment_method">{{ __('Default fulfilment') }}</label>
-                <select id="default_fulfilment_method" name="default_fulfilment_method" class="erp-input w-full">
-                    <option value="">{{ __('—') }}</option>
-                    @foreach ($fulfilmentMethods as $method)
-                        <option value="{{ $method->value }}" @selected(old('default_fulfilment_method', $spec?->default_fulfilment_method?->value) === $method->value)>
-                            {{ $method->label() }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="md:col-span-2">
-                <label class="erp-label" for="customer_instructions">{{ __('Customer instructions') }}</label>
-                <textarea id="customer_instructions" name="customer_instructions" class="erp-input w-full" rows="2">{{ old('customer_instructions', $spec?->customer_instructions) }}</textarea>
-            </div>
         </div>
     </section>
+
+    @include('admin.crm.customers.print-specifications.partials.commercial-order-fields', [
+        'specification' => $spec,
+        'billingTypes' => $billingTypes,
+        'fulfilmentMethods' => $fulfilmentMethods,
+        'priorities' => $priorities,
+        'idPrefix' => 'crm-spec',
+    ])
 
     <section class="rounded-lg border border-erp-border p-4">
         @include('admin.crm.customers.print-specifications.partials.product-field', [

@@ -114,7 +114,30 @@ class CustomerPrintSpecificationTest extends TestCase
             ->get(route('admin.crm.customers.print-specifications.create', $this->customer))
             ->assertOk()
             ->assertSee('Create print specification', false)
-            ->assertSee('Save specification', false);
+            ->assertSee('Save specification', false)
+            ->assertSee('Order details', false)
+            ->assertSee('name="default_priority"', false);
+    }
+
+    public function test_specification_persists_order_details(): void
+    {
+        $spec = app(CustomerPrintSpecificationService::class)->create($this->customer, [
+            'inventory_item_id' => $this->product->id,
+            'product_name' => $this->product->item_name,
+            'name' => 'Order details spec',
+            'status' => CustomerPrintSpecificationStatus::Draft->value,
+            'default_quantity' => 500,
+            'default_unit_price' => 12.5,
+            'default_priority' => 'urgent',
+            'default_fulfilment_method' => 'delivery',
+            'customer_instructions' => 'Call before delivery',
+        ], $this->user->id);
+
+        $this->assertSame(500.0, (float) $spec->default_quantity);
+        $this->assertSame(12.5, (float) $spec->default_unit_price);
+        $this->assertSame('urgent', $spec->default_priority?->value);
+        $this->assertSame('delivery', $spec->default_fulfilment_method?->value);
+        $this->assertSame('Call before delivery', $spec->customer_instructions);
     }
 
     public function test_product_link_is_required(): void

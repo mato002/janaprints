@@ -45,6 +45,8 @@ class ProductionFloorService
                 'assignedMachine:id,public_id,asset_name,asset_number',
                 'fulfilment:id,production_job_card_id,status',
                 'salesOrder:id,public_id,order_number,required_date',
+                'salesOrder.items:id,sales_order_id,item_name,description',
+                'productionSpecification:id,production_job_card_id,product_description,size,finished_size',
                 'queues.workCenter:id,public_id,name',
             ])
             ->latest('created_at')
@@ -73,6 +75,8 @@ class ProductionFloorService
             'customer:id,public_id,company_name,customer_code',
             'inventoryItem:id,item_name,sku',
             'salesOrder:id,public_id,order_number,required_date,fulfilment_method,status',
+            'salesOrder.items:id,sales_order_id,item_name,description',
+            'productionSpecification:id,production_job_card_id,product_description,size,finished_size',
             'outsourceVendor:id,vendor_name',
             'assignedMachine:id,public_id,asset_name',
             'fulfilment',
@@ -170,12 +174,7 @@ class ProductionFloorService
         }
 
         if ($filters['search'] !== '') {
-            $search = $filters['search'];
-            $query->where(function (Builder $q) use ($search) {
-                $q->where('job_card_number', 'like', "%{$search}%")
-                    ->orWhereHas('customer', fn (Builder $c) => $c->where('company_name', 'like', "%{$search}%"))
-                    ->orWhereHas('inventoryItem', fn (Builder $i) => $i->where('item_name', 'like', "%{$search}%"));
-            });
+            $this->applySearch($query, $filters['search']);
         }
 
         if ($filters['machine_id'] !== '') {
@@ -202,6 +201,78 @@ class ProductionFloorService
         }
 
         return $query;
+    }
+
+    protected function applySearch(Builder $query, string $search): void
+    {
+        $like = '%'.addcslashes($search, '%_\\').'%';
+        $needle = mb_strtolower(trim($search));
+
+        $matchingStages = array_values(array_filter(
+            ProductionFloorStage::cases(),
+            function (ProductionFloorStage $stage) use ($needle) {
+                $label = mb_strtolower($stage->label());
+
+                return $needle === $label
+                    || $needle === $stage->value
+                    || (mb_strlen($needle) >= 3 && (
+                        str_contains($label, $needle)
+                        || str_contains($stage->value, str_replace(' ', '_', $needle))
+                    ));
+            },
+        ));
+
+        $matchingPriorities = array_values(array_filter(
+            ProductionPriority::cases(),
+            fn (ProductionPriority $priority) => $needle === $priority->value
+                || (mb_strlen($needle) >= 3 && str_contains($priority->value, $needle)),
+        ));
+
+        $query->where(function (Builder $q) use ($like, $matchingStages, $matchingPriorities) {
+            $q->where('job_card_number', 'like', $like)
+                ->orWhere('production_type', 'like', $like)
+                ->orWhere('required_date', 'like', $like)
+                ->orWhereHas('customer', function (Builder $customer) use ($like) {
+                    $customer->where('company_name', 'like', $like)
+                        ->orWhere('customer_code', 'like', $like);
+                })
+                ->orWhereHas('inventoryItem', function (Builder $item) use ($like) {
+                    $item->where('item_name', 'like', $like)
+                        ->orWhere('sku', 'like', $like);
+                })
+                ->orWhereHas('salesOrder', function (Builder $order) use ($like) {
+                    $order->where('order_number', 'like', $like);
+                })
+                ->orWhereHas('salesOrder.items', function (Builder $items) use ($like) {
+                    $items->where('item_name', 'like', $like)
+                        ->orWhere('description', 'like', $like);
+                })
+                ->orWhereHas('assignedMachine', function (Builder $machine) use ($like) {
+                    $machine->where('asset_name', 'like', $like)
+                        ->orWhere('asset_number', 'like', $like);
+                })
+                ->orWhereHas('outsourceVendor', fn (Builder $vendor) => $vendor->where('vendor_name', 'like', $like))
+                ->orWhereHas('queues.workCenter', fn (Builder $workCenter) => $workCenter->where('name', 'like', $like))
+                ->orWhereHas('productionSpecification', function (Builder $spec) use ($like) {
+                    $spec->where('product_description', 'like', $like)
+                        ->orWhere('size', 'like', $like)
+                        ->orWhere('finished_size', 'like', $like)
+                        ->orWhere('production_notes', 'like', $like);
+                });
+
+            foreach ($matchingStages as $stage) {
+                $q->orWhere(function (Builder $stageQuery) use ($stage) {
+                    $this->applyStageFilter($stageQuery, $stage);
+                });
+            }
+
+            if ($matchingPriorities !== []) {
+                $q->orWhereIn('priority', array_map(
+                    fn (ProductionPriority $priority) => $priority->value,
+                    $matchingPriorities,
+                ));
+            }
+        });
     }
 
     protected function applyStageFilter(Builder $query, ProductionFloorStage $stage): void
@@ -261,8 +332,10 @@ class ProductionFloorService
             'public_id' => $jobCard->public_id,
             'job_number' => $jobCard->job_card_number,
             'customer' => $jobCard->customer?->company_name,
-            'product' => $jobCard->inventoryItem?->item_name,
+            'product' => $jobCard->inventoryItem?->item_name
+                ?: $jobCard->productionSpecification?->product_description,
             'sku' => $jobCard->inventoryItem?->sku,
+            'sales_order_number' => $jobCard->salesOrder?->order_number,
             'stage' => $stage->value,
             'stage_label' => $stage->label(),
             'status' => $jobCard->status->value,

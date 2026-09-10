@@ -71,7 +71,7 @@
         <span class="font-medium text-slate-800">{{ __('Customer') }}:</span>
         {{ $customer->company_name ?? $customer->name }}
     </p>
-    <p class="text-xs text-slate-500">{{ __('Quantity and price are set on the next step for this order. Spec defaults can still be edited later in Customer 360.') }}</p>
+    <p class="text-xs text-slate-500">{{ __('Set quantity, price, and fulfilment here. The order form will use these values.') }}</p>
 
     <form class="space-y-3" x-on:submit.prevent="submit($el)" enctype="multipart/form-data">
         <input type="hidden" name="customer_id" value="{{ $customer->id }}">
@@ -86,7 +86,10 @@
             'idPrefix' => 'desk-spec-product',
         ])
 
-        <input type="hidden" name="default_quantity" value="1">
+        @include('admin.crm.customers.print-specifications.partials.commercial-order-fields', [
+            'idPrefix' => 'desk-spec',
+            'showHeading' => false,
+        ])
 
         <div>
             <label class="erp-label" for="desk-spec-status">{{ __('Status') }}</label>

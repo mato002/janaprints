@@ -59,34 +59,15 @@
         ])
     @endif
 
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div>
-            <label class="erp-label" for="default_quantity">{{ __('Default quantity') }}</label>
-            <input
-                type="number"
-                step="0.001"
-                min="0"
-                id="default_quantity"
-                name="default_quantity"
-                class="erp-input w-full"
-                value="{{ old('default_quantity', $spec?->default_quantity ?? '1') }}"
-                @disabled(! $customer)
-            >
-        </div>
-        <div>
-            <label class="erp-label" for="default_unit_price">{{ __('Unit price') }}</label>
-            <input
-                type="number"
-                step="0.01"
-                min="0"
-                id="default_unit_price"
-                name="default_unit_price"
-                class="erp-input w-full"
-                value="{{ old('default_unit_price', $spec?->default_unit_price) }}"
-                @disabled(! $customer)
-            >
-        </div>
-    </div>
+    @include('admin.crm.customers.print-specifications.partials.commercial-order-fields', [
+        'specification' => $spec,
+        'billingTypes' => $billingTypes ?? [],
+        'fulfilmentMethods' => $fulfilmentMethods ?? [],
+        'priorities' => $priorities ?? [],
+        'disabled' => ! $customer,
+        'idPrefix' => 'quick-spec',
+        'showHeading' => false,
+    ])
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <x-admin.lookup-select

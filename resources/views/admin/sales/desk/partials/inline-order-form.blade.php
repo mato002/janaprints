@@ -1,7 +1,6 @@
 @php
     use App\Enums\FulfilmentMethod;
     use App\Enums\InventoryStockRole;
-    use App\Enums\SalesOrderBillingType;
     use App\Support\Navigation\WorkspaceEmbed;
 
     $deskFrame = WorkspaceEmbed::turboFrame();
@@ -80,66 +79,36 @@
                 'value' => old('production_destination', $specification->production_destination?->value),
                 'required' => true,
             ])
-            <p class="text-xs text-slate-500">{{ __('Job details come from the specification you already selected. This order only needs quantity, price, and fulfilment.') }}</p>
+            <p class="text-xs text-slate-500">{{ __('Quantity, price, priority, fulfilment, billing, and notes come from the specification.') }}</p>
 
-            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                    <label class="erp-label" for="desk-order-qty">{{ __('Order quantity') }}</label>
-                    <input id="desk-order-qty" type="number" name="quantity" class="erp-input w-full min-h-[2.75rem]" min="0.001" step="any" value="{{ old('quantity', $specification->default_quantity ?? 1) }}" required>
-                    @if ($specification->default_quantity)
-                        <p class="mt-1 text-xs text-slate-500">{{ __('Pre-filled from specification default — change only if this order differs.') }}</p>
+            <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('From specification') }}</p>
+                <p class="mt-1">
+                    {{ $specification->default_quantity ?? 1 }}
+                    <span class="text-slate-400">{{ __('qty') }}</span>
+                    <span class="text-slate-400">·</span>
+                    {{ $specification->default_unit_price !== null ? number_format((float) $specification->default_unit_price, 2) : '0' }}
+                    <span class="text-slate-400">{{ __('unit price') }}</span>
+                    <span class="text-slate-400">·</span>
+                    {{ $specification->default_priority?->label() ?? __('Normal') }}
+                    @if ($specification->default_fulfilment_method)
+                        <span class="text-slate-400">·</span>
+                        {{ $specification->default_fulfilment_method->label() }}
                     @endif
-                </div>
-                <div>
-                    <label class="erp-label" for="desk-order-price">{{ __('Order unit price') }}</label>
-                    <input id="desk-order-price" type="number" name="unit_price" class="erp-input w-full min-h-[2.75rem]" min="0" step="0.01" value="{{ old('unit_price', $specification->default_unit_price) }}">
-                    @if ($specification->default_unit_price !== null)
-                        <p class="mt-1 text-xs text-slate-500">{{ __('Pre-filled from specification default — change only if this order differs.') }}</p>
+                    @if ($specification->default_billing_type)
+                        <span class="text-slate-400">·</span>
+                        {{ $specification->default_billing_type->label() }}
                     @endif
-                </div>
-                <div>
-                    <label class="erp-label" for="desk-order-date">{{ __('Required date') }}</label>
-                    <input id="desk-order-date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" value="{{ old('required_date', now()->toDateString()) }}">
-                </div>
-                <div>
-                    <label class="erp-label" for="desk-order-priority">{{ __('Priority') }}</label>
-                    <select id="desk-order-priority" name="priority" class="erp-input w-full min-h-[2.75rem]">
-                        @foreach ($orderPriorities as $priority)
-                            <option value="{{ $priority->value }}" @selected(old('priority', 'normal') === $priority->value)>{{ ucfirst($priority->value) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label" for="desk-order-fulfilment">{{ __('Fulfilment') }}</label>
-                    <select id="desk-order-fulfilment" name="fulfilment_method" class="erp-input w-full min-h-[2.75rem]">
-                        @foreach (FulfilmentMethod::cases() as $method)
-                            <option value="{{ $method->value }}" @selected(old('fulfilment_method') === $method->value)>{{ $method->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="erp-label" for="desk-order-billing">{{ __('Billing type') }}</label>
-                    <select id="desk-order-billing" name="billing_type" class="erp-input w-full min-h-[2.75rem]">
-                        <option value="">{{ __('Use customer default') }}</option>
-                        @foreach (SalesOrderBillingType::cases() as $type)
-                            <option value="{{ $type->value }}" @selected(old('billing_type') === $type->value)>{{ $type->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="sm:col-span-2">
-                    <label class="erp-label" for="desk-order-notes">{{ __('Notes') }}</label>
-                    <textarea id="desk-order-notes" name="notes" class="erp-input w-full" rows="2">{{ old('notes') }}</textarea>
-                </div>
-                @if ($canSendToProduction ?? false)
-                    <div class="sm:col-span-2">
-                        <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                            <input type="checkbox" name="send_to_production" value="1" class="rounded border-erp-border" @checked(old('send_to_production'))>
-                            {{ __('Send to production') }}
-                        </label>
-                        <p class="mt-1 text-xs text-slate-500">{{ __('Creates a production job card immediately. Leave unchecked to release from the next step.') }}</p>
-                    </div>
-                @endif
+                </p>
             </div>
+
+            <input type="hidden" name="quantity" value="{{ old('quantity', $specification->default_quantity ?? 1) }}">
+            <input type="hidden" name="unit_price" value="{{ old('unit_price', $specification->default_unit_price ?? 0) }}">
+            <input type="hidden" name="required_date" value="{{ old('required_date', now()->toDateString()) }}">
+            <input type="hidden" name="priority" value="{{ old('priority', $specification->default_priority?->value ?? 'normal') }}">
+            <input type="hidden" name="fulfilment_method" value="{{ old('fulfilment_method', $specification->default_fulfilment_method?->value ?? FulfilmentMethod::Collection->value) }}">
+            <input type="hidden" name="billing_type" value="{{ old('billing_type', $specification->default_billing_type?->value) }}">
+            <input type="hidden" name="notes" value="{{ old('notes', $specification->customer_instructions) }}">
 
             <div class="flex flex-wrap justify-end gap-2 pt-1">
                 <button type="submit" class="erp-btn-primary">{{ __('Create order') }}</button>

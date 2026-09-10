@@ -7,7 +7,9 @@ use App\Enums\CustomerArtworkType;
 use App\Enums\CustomerPrintSpecificationStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\DomainCommunicationEvent;
+use App\Enums\FulfilmentMethod;
 use App\Enums\InventoryStockRole;
+use App\Enums\ProductionPriority;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
 use App\Events\Communications\DomainCommunicationEventRaised;
@@ -151,6 +153,54 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->assertNull($order->quotation_id);
         $this->assertTrue($order->is_direct_order);
         $this->assertEquals(SalesOrderStatus::Confirmed, $order->status);
+    }
+
+    public function test_direct_order_create_form_does_not_show_commercial_fields(): void
+    {
+        $this->actingAs($this->user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.sales-orders.create', [
+                'customer_id' => $this->customer->id,
+                'tab' => 'direct',
+            ]))
+            ->assertOk()
+            ->assertDontSee(__('Send to production'), false)
+            ->assertDontSee('id="required_date"', false)
+            ->assertDontSee('id="quantity"', false)
+            ->assertSee(__('Create or pick a specification.'), false);
+    }
+
+    public function test_direct_order_uses_specification_commercial_defaults(): void
+    {
+        Event::fake([DomainCommunicationEventRaised::class]);
+
+        [$spec] = $this->activeSpecificationWithArtwork();
+        $spec->update([
+            'default_quantity' => 250,
+            'default_unit_price' => 8.5,
+            'default_priority' => ProductionPriority::Urgent,
+            'default_fulfilment_method' => FulfilmentMethod::Delivery,
+            'default_billing_type' => SalesOrderBillingType::Advance100,
+        ]);
+
+        $this->actingAs($this->user)
+            ->post(route('admin.sales-orders.store'), [
+                'entry_mode' => 'direct',
+                'production_destination' => 'digital',
+                'customer_id' => $this->customer->id,
+                'customer_print_specification_id' => $spec->id,
+            ])
+            ->assertRedirect();
+
+        $order = SalesOrder::query()->latest('id')->firstOrFail();
+        $item = $order->items->first();
+
+        $this->assertEquals(250, (float) $item->quantity);
+        $this->assertEquals(8.5, (float) $item->unit_price);
+        $this->assertSame(ProductionPriority::Urgent, $order->priority);
+        $this->assertSame(FulfilmentMethod::Delivery, $order->fulfilment_method);
+        $this->assertSame(SalesOrderBillingType::Advance100, $order->billing_type);
+        $this->assertSame(now()->toDateString(), $order->required_date?->toDateString());
     }
 
     public function test_send_to_production_checkbox_creates_job_card(): void

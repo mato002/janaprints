@@ -134,9 +134,10 @@
                                 type="search"
                                 name="search"
                                 value="{{ $filters['search'] }}"
-                                class="erp-toolbar-input min-w-[12rem] flex-1"
-                                placeholder="{{ __('Job or product…') }}"
-                                aria-label="{{ __('Search') }}"
+                                class="erp-toolbar-input min-w-[14rem] flex-1"
+                                placeholder="{{ __('Job, customer, product, machine…') }}"
+                                aria-label="{{ __('Search jobs by number, customer, product, machine, vendor, operator, or stage') }}"
+                                autocomplete="off"
                                 data-erp-auto-search
                             >
                             <select name="stage" class="erp-toolbar-select" aria-label="{{ __('Stage') }}" data-erp-auto-submit>

@@ -124,6 +124,8 @@
                 this.form.unit_price = String(spec.default_unit_price ?? 0);
                 this.form.billing_type = spec.default_billing_type ?? this.context?.billing_defaults?.billing_type ?? '';
                 this.form.fulfilment_method = spec.default_fulfilment_method ?? 'collection';
+                this.form.priority = spec.default_priority ?? 'normal';
+                this.form.notes = spec.customer_instructions ?? '';
                 if (spec.production_destination) {
                     this.form.production_destination = spec.production_destination;
                 }
@@ -428,58 +430,32 @@
                     </div>
                 </template>
 
-                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" x-show="form.production_destination" x-cloak>
-                    <div>
-                        <label class="erp-label" for="quantity">{{ __('Quantity') }}</label>
-                        <input id="quantity" type="number" name="quantity" class="erp-input w-full min-h-[2.75rem]" min="0.001" step="any" x-model="form.quantity" required>
-                    </div>
-                    <div>
-                        <label class="erp-label" for="unit_price">{{ __('Unit price') }}</label>
-                        <input id="unit_price" type="number" name="unit_price" class="erp-input w-full min-h-[2.75rem]" min="0" step="0.01" x-model="form.unit_price">
-                    </div>
-                    <div>
-                        <label class="erp-label" for="required_date">{{ __('Required date') }}</label>
-                        <input id="required_date" type="date" name="required_date" class="erp-input w-full min-h-[2.75rem]" min="{{ now()->toDateString() }}" x-model="form.required_date">
-                    </div>
-                    <div>
-                        <label class="erp-label" for="priority">{{ __('Priority') }}</label>
-                        <select id="priority" name="priority" class="erp-input w-full min-h-[2.75rem]" x-model="form.priority">
-                            @foreach ($priorities as $priority)
-                                <option value="{{ $priority->value }}">{{ ucfirst($priority->value) }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="erp-label" for="fulfilment_method">{{ __('Fulfilment') }}</label>
-                        <select id="fulfilment_method" name="fulfilment_method" class="erp-input w-full min-h-[2.75rem]" x-model="form.fulfilment_method">
-                            @foreach (\App\Enums\FulfilmentMethod::cases() as $method)
-                                <option value="{{ $method->value }}">{{ $method->label() }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="erp-label" for="billing_type">{{ __('Billing type') }}</label>
-                        <select id="billing_type" name="billing_type" class="erp-input w-full min-h-[2.75rem]" x-model="form.billing_type">
-                            <option value="">{{ __('Use customer default') }}</option>
-                            @foreach (\App\Enums\SalesOrderBillingType::cases() as $type)
-                                <option value="{{ $type->value }}">{{ $type->label() }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="sm:col-span-2">
-                        <label class="erp-label" for="direct_notes">{{ __('Notes') }}</label>
-                        <textarea id="direct_notes" name="notes" class="erp-input w-full" rows="2" x-model="form.notes"></textarea>
-                    </div>
-                    @if ($canSendToProduction ?? false)
-                        <div class="sm:col-span-2">
-                            <label class="inline-flex items-center gap-2 text-sm text-slate-700">
-                                <input type="checkbox" name="send_to_production" value="1" class="rounded border-erp-border" @checked(old('send_to_production'))>
-                                {{ __('Send to production') }}
-                            </label>
-                            <p class="mt-1 text-xs text-slate-500">{{ __('Creates a production job card immediately. Leave unchecked to release production manually from the sales order later.') }}</p>
-                        </div>
-                    @endif
+                <div x-show="selectedSpec" x-cloak class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('From specification') }}</p>
+                    <p class="mt-1">
+                        <span x-text="selectedSpec?.default_quantity ?? 1"></span>
+                        <span class="text-slate-400">{{ __('qty') }}</span>
+                        <span class="text-slate-400">·</span>
+                        <span x-text="selectedSpec?.default_unit_price ?? 0"></span>
+                        <span class="text-slate-400">{{ __('unit price') }}</span>
+                        <span class="text-slate-400">·</span>
+                        <span x-text="(selectedSpec?.default_priority || 'normal')"></span>
+                        <template x-if="selectedSpec?.default_fulfilment_method">
+                            <span>
+                                <span class="text-slate-400">·</span>
+                                <span x-text="selectedSpec.default_fulfilment_method"></span>
+                            </span>
+                        </template>
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">{{ __('Edit quantity, price, priority, fulfilment, billing, and notes on the specification.') }}</p>
                 </div>
+                <input type="hidden" name="quantity" x-model="form.quantity">
+                <input type="hidden" name="unit_price" x-model="form.unit_price">
+                <input type="hidden" name="required_date" x-model="form.required_date">
+                <input type="hidden" name="priority" x-model="form.priority">
+                <input type="hidden" name="fulfilment_method" x-model="form.fulfilment_method">
+                <input type="hidden" name="billing_type" x-model="form.billing_type">
+                <input type="hidden" name="notes" x-model="form.notes">
 
                 <x-admin.form-modal-actions class="erp-form-modal__actions--sticky">
                     <p class="w-full text-sm text-red-600 sm:flex-1" x-show="submitBlocker" x-text="submitBlocker" x-cloak></p>

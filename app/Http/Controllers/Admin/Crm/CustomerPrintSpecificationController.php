@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin\Crm;
 
 use App\Enums\CustomerPrintSpecificationStatus;
 use App\Enums\FulfilmentMethod;
+use App\Enums\ProductionPriority;
 use App\Enums\SalesOrderBillingType;
 use App\Http\Controllers\Admin\Concerns\HandlesModalFormResponses;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
@@ -82,6 +83,7 @@ class CustomerPrintSpecificationController extends Controller
             'statuses' => CustomerPrintSpecificationStatus::cases(),
             'billingTypes' => SalesOrderBillingType::cases(),
             'fulfilmentMethods' => FulfilmentMethod::cases(),
+            'priorities' => ProductionPriority::cases(),
             'artworkTypes' => app(CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id),
         ]);
     }
@@ -143,6 +145,7 @@ class CustomerPrintSpecificationController extends Controller
             'statuses' => CustomerPrintSpecificationStatus::cases(),
             'billingTypes' => SalesOrderBillingType::cases(),
             'fulfilmentMethods' => FulfilmentMethod::cases(),
+            'priorities' => ProductionPriority::cases(),
             'artworkTypes' => app(CustomerArtworkTypeCatalog::class)->optionsForCompany((int) $customer->company_id),
         ]);
     }
@@ -258,6 +261,7 @@ class CustomerPrintSpecificationController extends Controller
             'default_unit_price' => ['nullable', 'numeric', 'min:0'],
             'default_billing_type' => ['nullable', Rule::enum(SalesOrderBillingType::class)],
             'default_fulfilment_method' => ['nullable', Rule::enum(FulfilmentMethod::class)],
+            'default_priority' => ['nullable', Rule::enum(ProductionPriority::class)],
             'artwork_file' => [$existing ? 'nullable' : 'nullable', 'file', 'max:20480', 'mimes:jpg,jpeg,png,webp,pdf'],
             'artwork_type' => app(CustomerArtworkTypeCatalog::class)->validationRules((int) $customer->company_id),
             'artwork_change_notes' => ['nullable', 'string', 'max:2000'],

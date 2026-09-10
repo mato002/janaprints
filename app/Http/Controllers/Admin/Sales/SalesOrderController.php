@@ -137,6 +137,7 @@ class SalesOrderController extends Controller
 
         if ($specification) {
             $request->merge($this->jobFields->hydrateOrderPayload($request->all(), $specification));
+            $request->merge($this->commercialDefaultsFromSpecification($specification, $request));
         }
 
         $validated = $request->validate([
@@ -579,6 +580,43 @@ class SalesOrderController extends Controller
         }
 
         return back()->withErrors(['workflow' => $message]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function commercialDefaultsFromSpecification(
+        \App\Models\Crm\CustomerPrintSpecification $specification,
+        Request $request,
+    ): array {
+        $defaults = [];
+
+        if (! filled($request->input('quantity'))) {
+            $defaults['quantity'] = $specification->default_quantity ?? 1;
+        }
+
+        if ($request->input('unit_price') === null || $request->input('unit_price') === '') {
+            $defaults['unit_price'] = $specification->default_unit_price ?? 0;
+        }
+
+        if (! filled($request->input('priority'))) {
+            $defaults['priority'] = $specification->default_priority?->value ?? 'normal';
+        }
+
+        if (! filled($request->input('fulfilment_method'))) {
+            $defaults['fulfilment_method'] = $specification->default_fulfilment_method?->value
+                ?? \App\Enums\FulfilmentMethod::Collection->value;
+        }
+
+        if (! filled($request->input('billing_type')) && $specification->default_billing_type) {
+            $defaults['billing_type'] = $specification->default_billing_type->value;
+        }
+
+        if (! filled($request->input('required_date'))) {
+            $defaults['required_date'] = now()->toDateString();
+        }
+
+        return $defaults;
     }
 
     /**
