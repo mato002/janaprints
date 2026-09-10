@@ -76,15 +76,18 @@ class OffsetJobSheetService
         }
 
         $existing = $this->specifications->findForSalesOrderItem($item);
-
-        if ($existing) {
-            return $existing;
-        }
-
         $user = User::query()->find($createdBy);
 
         if (! $user) {
-            return null;
+            return $existing;
+        }
+
+        if ($existing) {
+            return $this->specifications->update(
+                $existing,
+                $this->specificationAttributes($payload, $order),
+                $user,
+            );
         }
 
         return $this->specifications->createForSalesOrderItem(

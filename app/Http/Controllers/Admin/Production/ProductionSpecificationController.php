@@ -53,7 +53,13 @@ class ProductionSpecificationController extends Controller
 
         $validated = $this->validatedSpecificationPayload($request);
 
-        $this->specifications->createForSalesOrderItem($salesOrderItem, $validated, $request->user());
+        $existing = $this->specifications->findForSalesOrderItem($salesOrderItem);
+
+        if ($existing) {
+            $this->specifications->update($existing, $validated, $request->user());
+        } else {
+            $this->specifications->createForSalesOrderItem($salesOrderItem, $validated, $request->user());
+        }
 
         return redirect()
             ->route('admin.sales-orders.show', ['salesOrder' => $salesOrder, 'tab' => 'specifications'])

@@ -126,6 +126,7 @@
                             :action="route('admin.production.floor')"
                             :reset-url="route('admin.production.floor')"
                             data-production-floor-live-filters
+                            x-on:submit.prevent="applyLiveFilters()"
                         >
                             @if (request('desk'))
                                 <input type="hidden" name="desk" value="{{ request('desk') }}">

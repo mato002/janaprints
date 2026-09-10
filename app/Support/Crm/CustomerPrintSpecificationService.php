@@ -29,6 +29,12 @@ class CustomerPrintSpecificationService
             $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
             $data = $this->resolveProductFields($data, $customer);
 
+            $reusable = $this->findReusableSpecification($customer, $data);
+
+            if ($reusable) {
+                return $this->update($reusable, $data, $userId);
+            }
+
             $spec = CustomerPrintSpecification::query()->create([
                 'company_id' => $customer->company_id,
                 'branch_id' => $customer->branch_id,
@@ -553,5 +559,27 @@ class CustomerPrintSpecificationService
                 : route('admin.crm.print-specifications.quick-edit', $spec),
             ...app(PrintSpecificationJobFields::class)->orderContextFields($spec),
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function findReusableSpecification(Customer $customer, array $data): ?CustomerPrintSpecification
+    {
+        $name = trim((string) ($data['name'] ?? ''));
+
+        if ($name === '') {
+            return null;
+        }
+
+        return CustomerPrintSpecification::query()
+            ->where('customer_id', $customer->id)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->whereNotIn('status', [
+                CustomerPrintSpecificationStatus::Archived->value,
+                CustomerPrintSpecificationStatus::Superseded->value,
+            ])
+            ->orderByDesc('id')
+            ->first();
     }
 }

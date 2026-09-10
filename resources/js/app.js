@@ -3535,6 +3535,141 @@ function isProductionFloorLiveFilterForm(form) {
     );
 }
 
+function findLiveSearchTable(origin) {
+    const start = origin instanceof Element ? origin : null;
+
+    if (! start) {
+        return null;
+    }
+
+    const form = start.closest?.('form') ?? (start.tagName === 'FORM' ? start : null);
+    const scopes = [
+        start.closest?.('[data-erp-live-search-scope]'),
+        start.closest?.('.production-floor'),
+        start.closest?.('.erp-data-grid'),
+        form?.closest?.('.erp-card')?.parentElement,
+        form?.closest?.('.erp-card'),
+        form?.parentElement,
+        start.closest?.('#module-workspace-content'),
+        start.closest?.('main'),
+    ].filter(Boolean);
+
+    for (const scope of scopes) {
+        const table = scope.querySelector('table.erp-table, table');
+
+        if (table?.tBodies?.[0]) {
+            return table;
+        }
+    }
+
+    return null;
+}
+
+function isLiveSearchDataRow(row) {
+    if (! (row instanceof HTMLTableRowElement)) {
+        return false;
+    }
+
+    if (row.hasAttribute('data-floor-row')) {
+        return true;
+    }
+
+    if (
+        row.hasAttribute('data-erp-live-search-empty')
+        || row.classList.contains('production-floor-live-empty')
+        || row.classList.contains('production-floor-group-header')
+    ) {
+        return false;
+    }
+
+    const cells = row.querySelectorAll(':scope > td');
+
+    if (cells.length === 0) {
+        return false;
+    }
+
+    if (cells.length === 1 && cells[0].hasAttribute('colspan') && ! row.querySelector('a, button, input, select')) {
+        return false;
+    }
+
+    return true;
+}
+
+function ensureLiveSearchEmptyRow(table) {
+    const tbody = table.tBodies[0];
+
+    if (! tbody) {
+        return null;
+    }
+
+    const existing = tbody.querySelector('[data-erp-live-search-empty], .production-floor-live-empty');
+
+    if (existing) {
+        return existing;
+    }
+
+    const columnCount = table.tHead?.rows?.[0]?.cells?.length
+        || table.querySelector('tr')?.cells?.length
+        || 1;
+    const row = document.createElement('tr');
+    row.setAttribute('data-erp-live-search-empty', '1');
+    row.hidden = true;
+    row.innerHTML = `<td colspan="${columnCount}" class="py-10 text-center text-slate-500">No rows match the current search.</td>`;
+    tbody.appendChild(row);
+
+    return row;
+}
+
+function applyLiveSearchFromInput(input) {
+    const table = findLiveSearchTable(input);
+
+    if (! table) {
+        return false;
+    }
+
+    const needle = String(input.value ?? '').trim().toLowerCase();
+    const rows = table.tBodies[0]?.querySelectorAll('tr') ?? [];
+    let visibleCount = 0;
+
+    rows.forEach((row) => {
+        if (! isLiveSearchDataRow(row)) {
+            return;
+        }
+
+        const haystack = `${row.dataset.filterSearch ?? ''} ${row.innerText ?? ''}`.toLowerCase();
+        const visible = needle === '' || haystack.includes(needle);
+        row.hidden = ! visible;
+
+        if (visible) {
+            visibleCount += 1;
+        }
+    });
+
+    const emptyRow = ensureLiveSearchEmptyRow(table);
+
+    if (emptyRow && ! emptyRow.classList.contains('production-floor-live-empty')) {
+        emptyRow.hidden = visibleCount > 0 || needle === '';
+    }
+
+    table.tBodies[0]?.querySelectorAll('.production-floor-group-header').forEach((header) => {
+        let sibling = header.nextElementSibling;
+        let groupVisible = false;
+
+        while (sibling && ! sibling.classList.contains('production-floor-group-header')) {
+            if (sibling.hasAttribute('data-floor-row') && ! sibling.hidden) {
+                groupVisible = true;
+                break;
+            }
+
+            sibling = sibling.nextElementSibling;
+        }
+
+        header.hidden = ! groupVisible;
+    });
+
+    return true;
+}
+
 function createIndexFilterFormController(form) {
     return {
         form,
@@ -3563,6 +3698,13 @@ function createIndexFilterFormController(form) {
         },
 
         submitFilterForm() {
+            if (isProductionFloorLiveFilterForm(this.form)) {
+                const search = this.form.querySelector('[data-erp-auto-search], input[type="search"], select[name]');
+                search?.dispatchEvent(new Event('input', { bubbles: true }));
+
+                return;
+            }
+
             ensureIndexFilterFormContext(this.form);
 
             const temporarilyDisabled = [];
@@ -3608,11 +3750,23 @@ function createIndexFilterFormController(form) {
             });
 
             this.resetFilterFormAction();
+
+            if (isProductionFloorLiveFilterForm(this.form)) {
+                const search = this.form.querySelector('[data-erp-auto-search], input[type="search"]');
+                search?.dispatchEvent(new Event('input', { bubbles: true }));
+
+                return;
+            }
+
             this.submitFilterForm();
         },
 
         onFieldChange(event) {
             const target = event.target;
+
+            if (isProductionFloorLiveFilterForm(this.form)) {
+                return;
+            }
 
             if (! target?.name || target.hasAttribute('data-erp-auto-search')) {
                 return;
@@ -3716,15 +3870,29 @@ function bindIndexFilterFormListeners() {
             return;
         }
 
+        if (applyLiveSearchFromInput(event.target)) {
+            return;
+        }
+
         const form = event.target.closest('form.erp-index-toolbar-form');
 
-        if (! form) {
+        if (! form || isProductionFloorLiveFilterForm(form)) {
             return;
         }
 
         const controller = getIndexFilterFormController(form);
         clearTimeout(controller.debounceTimer);
         controller.debounceTimer = setTimeout(() => controller.submitFilterForm(), 300);
+    }, true);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' || ! event.target?.hasAttribute?.('data-erp-auto-search')) {
+            return;
+        }
+
+        if (applyLiveSearchFromInput(event.target)) {
+            event.preventDefault();
+        }
     }, true);
 }
 
@@ -5341,7 +5509,6 @@ document.addEventListener('alpine:init', () => {
         qcDecision: 'passed',
         modalTitles: config.modalTitles ?? {},
         stickyObserver: null,
-        serverFilterTimer: null,
 
         get visibleJobKeys() {
             const tbody = this.$refs.queueBody;
@@ -5385,6 +5552,11 @@ document.addEventListener('alpine:init', () => {
 
                 if (form && ! form.dataset.productionFloorLiveFiltersBound) {
                     form.dataset.productionFloorLiveFiltersBound = '1';
+
+                    form.addEventListener('submit', (event) => {
+                        event.preventDefault();
+                        this.applyLiveFilters();
+                    });
 
                     form.addEventListener('change', (event) => {
                         if (event.target?.name) {
@@ -5520,9 +5692,6 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.applyLiveFilters();
-
-            const delay = event.target.hasAttribute('data-erp-auto-search') ? 400 : 150;
-            this.scheduleServerFilter(delay);
         },
 
         onLiveFilterChange(event) {
@@ -5531,20 +5700,6 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.applyLiveFilters();
-            this.scheduleServerFilter(120);
-        },
-
-        scheduleServerFilter(delay = 200) {
-            clearTimeout(this.serverFilterTimer);
-            this.serverFilterTimer = setTimeout(() => {
-                const form = this.getFilterForm();
-
-                if (! form) {
-                    return;
-                }
-
-                getIndexFilterFormController(form)?.submitFilterForm();
-            }, delay);
         },
 
         initStickyOffset() {

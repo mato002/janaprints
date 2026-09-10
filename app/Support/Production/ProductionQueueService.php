@@ -51,6 +51,15 @@ class ProductionQueueService
             ->exists();
     }
 
+    public function activeQueue(ProductionJobCard $jobCard): ?ProductionQueue
+    {
+        return ProductionQueue::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->whereIn('status', $this->activeQueueStatusValues())
+            ->orderByDesc('id')
+            ->first();
+    }
+
     public function enqueue(
         ProductionJobCard $jobCard,
         int $workCenterId,
@@ -59,25 +68,47 @@ class ProductionQueueService
     ): ProductionQueue {
         $this->assertWorkCenterForJob($jobCard, $workCenterId);
 
-        $duplicate = ProductionQueue::query()
-            ->where('production_job_card_id', $jobCard->id)
-            ->where('work_center_id', $workCenterId)
-            ->whereIn('status', $this->activeQueueStatusValues())
-            ->exists();
-
-        if ($duplicate) {
-            throw ValidationException::withMessages([
-                'work_center_id' => __('Job is already queued on this work center.'),
-            ]);
-        }
-
         $workCenter = WorkCenter::query()->findOrFail($workCenterId);
-        $position = $queuePosition ?? $this->nextQueuePosition($workCenter);
-        $status = $assignedOperatorId !== null
-            ? ProductionQueueStatus::Assigned
-            : ProductionQueueStatus::Waiting;
 
-        return DB::transaction(function () use ($jobCard, $workCenterId, $position, $assignedOperatorId, $status, $workCenter) {
+        return DB::transaction(function () use ($jobCard, $workCenterId, $queuePosition, $assignedOperatorId, $workCenter) {
+            $existing = $this->activeQueue($jobCard);
+
+            if ($existing) {
+                $this->collapseActiveQueues($jobCard, $existing->id);
+
+                $updates = [];
+
+                if ((int) $existing->work_center_id !== $workCenterId) {
+                    $updates['work_center_id'] = $workCenterId;
+                    $updates['queue_position'] = $queuePosition ?? $this->nextQueuePosition($workCenter);
+                } elseif ($queuePosition !== null) {
+                    $updates['queue_position'] = $queuePosition;
+                }
+
+                if ($assignedOperatorId !== null) {
+                    $updates['assigned_operator_id'] = $assignedOperatorId;
+                    if ($existing->status === ProductionQueueStatus::Waiting) {
+                        $updates['status'] = ProductionQueueStatus::Assigned;
+                    }
+                }
+
+                if ($updates !== []) {
+                    $existing->update($updates);
+                    $this->ordering->reorderWorkCenter($workCenter);
+                }
+
+                if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
+                    $jobCard->fresh()->transitionTo(ProductionJobCardStatus::Queued);
+                }
+
+                return $existing->fresh(['workCenter', 'assignedOperator']);
+            }
+
+            $position = $queuePosition ?? $this->nextQueuePosition($workCenter);
+            $status = $assignedOperatorId !== null
+                ? ProductionQueueStatus::Assigned
+                : ProductionQueueStatus::Waiting;
+
             $entry = ProductionQueue::query()->create([
                 'company_id' => $jobCard->company_id,
                 'branch_id' => $jobCard->branch_id,
@@ -88,6 +119,7 @@ class ProductionQueueService
                 'status' => $status,
             ]);
 
+            $this->collapseActiveQueues($jobCard, $entry->id);
             $this->ordering->reorderWorkCenter($workCenter);
 
             if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
@@ -96,6 +128,21 @@ class ProductionQueueService
 
             return $entry->fresh(['workCenter', 'assignedOperator']);
         });
+    }
+
+    public function collapseActiveQueues(ProductionJobCard $jobCard, ?int $keepId = null): void
+    {
+        $keepId ??= $this->activeQueue($jobCard)?->id;
+
+        if ($keepId === null) {
+            return;
+        }
+
+        ProductionQueue::query()
+            ->where('production_job_card_id', $jobCard->id)
+            ->where('id', '!=', $keepId)
+            ->whereIn('status', $this->activeQueueStatusValues())
+            ->update(['status' => ProductionQueueStatus::Cancelled->value]);
     }
 
     /**

@@ -580,7 +580,7 @@ class ProductionQueueWorkspaceService
             $query = $this->applySharedFilters($query, $request, false);
         }
 
-        return $query;
+        return $this->constrainToOneQueuePerJobCard($query);
     }
 
     public function filteredQueryForExport(Request $request, ?string $department = null): \Illuminate\Database\Eloquent\Builder
@@ -623,7 +623,29 @@ class ProductionQueueWorkspaceService
             ]);
         }
 
-        return $this->applySharedFilters($query, $request, true, $department);
+        return $this->constrainToOneQueuePerJobCard(
+            $this->applySharedFilters($query, $request, true, $department),
+        );
+    }
+
+    protected function constrainToOneQueuePerJobCard(Builder $query): Builder
+    {
+        $active = array_map(
+            fn (ProductionQueueStatus $status) => $status->value,
+            ProductionQueueStatus::activeStatuses(),
+        );
+        $placeholders = implode(',', array_fill(0, count($active), '?'));
+
+        return $query->whereRaw(
+            "production_queues.id = (
+                SELECT pq_one.id
+                FROM production_queues AS pq_one
+                WHERE pq_one.production_job_card_id = production_queues.production_job_card_id
+                ORDER BY CASE WHEN pq_one.status IN ({$placeholders}) THEN 0 ELSE 1 END ASC, pq_one.id DESC
+                LIMIT 1
+            )",
+            $active,
+        );
     }
 
     /**

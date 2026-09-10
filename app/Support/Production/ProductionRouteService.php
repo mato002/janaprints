@@ -53,6 +53,12 @@ class ProductionRouteService
             return collect();
         }
 
+        $existingSteps = $jobCard->routeSteps()->orderBy('sequence')->get();
+
+        if ($existingSteps->isNotEmpty()) {
+            return $existingSteps;
+        }
+
         return DB::transaction(function () use ($jobCard, $steps) {
             $created = collect();
 

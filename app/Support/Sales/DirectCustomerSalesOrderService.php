@@ -7,6 +7,7 @@ use App\Enums\DocumentType;
 use App\Enums\DomainCommunicationEvent;
 use App\Enums\FulfilmentMethod;
 use App\Enums\InventoryStockRole;
+use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionPriority;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
@@ -16,10 +17,12 @@ use App\Models\Inventory\InventoryItem;
 use App\Models\Sales\SalesOrder;
 use App\Support\Communications\CommunicationEventDispatcher;
 use App\Support\Platform\NumberingService;
+use App\Support\Production\DepartmentQueueRoutingService;
 use App\Support\Production\DigitalSpecificationService;
 use App\Support\Production\OffsetJobSheetService;
 use App\Support\Production\OutsourceSpecificationService;
 use App\Support\Production\PrintSpecificationJobFields;
+use App\Support\Production\ProductionQueueService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -44,6 +47,14 @@ class DirectCustomerSalesOrderService
         array $payload,
         int $createdBy,
     ): SalesOrder {
+        if (empty($payload['repeat_source_sales_order_id'])) {
+            $open = $this->findOpenOrderForSpecification($specification, $payload);
+
+            if ($open) {
+                return $this->updateFromPrintSpecification($open, $specification, $payload, $createdBy);
+            }
+        }
+
         return DB::transaction(function () use ($specification, $payload, $createdBy) {
             $specification->loadMissing(['inventoryItem', 'activeArtworkVersion', 'customer']);
 

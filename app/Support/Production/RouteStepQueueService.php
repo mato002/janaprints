@@ -28,9 +28,7 @@ class RouteStepQueueService
         }
 
         DB::transaction(function () use ($jobCard, $steps) {
-            foreach ($steps as $step) {
-                $this->createQueueForStep($jobCard, $step);
-            }
+            $this->createQueueForStep($jobCard, $steps->first());
         });
     }
 
@@ -45,7 +43,22 @@ class RouteStepQueueService
             ->first();
 
         if ($existing) {
+            $this->queues->collapseActiveQueues($jobCard, $existing->id);
+
             return $existing;
+        }
+
+        $active = $this->queues->activeQueue($jobCard);
+
+        if ($active) {
+            if ($active->job_card_route_step_id === null) {
+                $active->update([
+                    'job_card_route_step_id' => $step->id,
+                    'work_center_id' => $step->work_center_id ?: $active->work_center_id,
+                ]);
+            }
+
+            return $active->fresh(['workCenter']);
         }
 
         $workCenter = WorkCenter::query()->findOrFail($step->work_center_id);
