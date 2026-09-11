@@ -7,7 +7,6 @@ use App\Enums\DocumentType;
 use App\Enums\DomainCommunicationEvent;
 use App\Enums\FulfilmentMethod;
 use App\Enums\InventoryStockRole;
-use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionPriority;
 use App\Enums\SalesOrderStatus;
 use App\Models\Crm\Customer;
@@ -46,14 +45,6 @@ class DirectCustomerSalesOrderService
         array $payload,
         int $createdBy,
     ): SalesOrder {
-        if (empty($payload['repeat_source_sales_order_id']) && ! empty($payload['sales_order_id'])) {
-            $open = $this->findOpenOrderForSpecification($specification, $payload);
-
-            if ($open) {
-                return $this->updateFromPrintSpecification($open, $specification, $payload, $createdBy);
-            }
-        }
-
         return DB::transaction(function () use ($specification, $payload, $createdBy) {
             $specification->loadMissing(['inventoryItem', 'activeArtworkVersion', 'customer']);
 
@@ -535,44 +526,6 @@ class DirectCustomerSalesOrderService
 
             return $order->fresh(['items', 'customer', 'customerPrintSpecification', 'customerArtwork', 'jobCard']);
         });
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    protected function findOpenOrderForSpecification(
-        CustomerPrintSpecification $specification,
-        array $payload,
-    ): ?SalesOrder {
-        $order = SalesOrder::query()
-            ->where('customer_id', $specification->customer_id)
-            ->whereKey((int) $payload['sales_order_id'])
-            ->first();
-
-        return $order && $this->orderIsOpenForEdit($order) ? $order : null;
-    }
-
-    protected function orderIsOpenForEdit(SalesOrder $order): bool
-    {
-        if (in_array($order->status, [
-            SalesOrderStatus::Delivered,
-            SalesOrderStatus::Closed,
-            SalesOrderStatus::Cancelled,
-        ], true)) {
-            return false;
-        }
-
-        $jobCard = $order->jobCard;
-
-        if ($jobCard === null) {
-            return true;
-        }
-
-        return ! in_array($jobCard->status, [
-            ProductionJobCardStatus::Completed,
-            ProductionJobCardStatus::ReadyForDispatch,
-            ProductionJobCardStatus::Cancelled,
-        ], true);
     }
 
     protected function syncOpenJobCard(SalesOrder $order): void

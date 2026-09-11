@@ -350,6 +350,38 @@ class SalesOrderFoundationTest extends TestCase
         $this->assertLessThan($olderPosition, $newerPosition);
     }
 
+    public function test_sales_desk_orders_register_offers_edit_for_ready_for_production(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext([
+            'sales_orders.view', 'sales_orders.create', 'sales_orders.edit', 'crm.customers.create',
+        ]);
+
+        session(['active_company_id' => $company->id, 'active_branch_id' => $branch->id]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'status' => SalesOrderStatus::ReadyForProduction,
+        ]);
+
+        $this->actingAs($user);
+
+        $this->assertTrue($user->can('update', $order));
+
+        $editUrl = route('admin.sales-orders.edit', $order);
+
+        $this->get(route('admin.sales.desk', ['view' => 'orders']))
+            ->assertOk()
+            ->assertSee('>'.__('Edit').'<', false)
+            ->assertSee($editUrl, false);
+
+        $this->get($editUrl)
+            ->assertOk()
+            ->assertSee(__('Edit sales order'), false);
+    }
+
     public function test_ready_for_production_order_can_be_deleted(): void
     {
         [$company, $branch, $customer, $user] = $this->salesContext([

@@ -56,10 +56,12 @@ class ProductionSpecificationController extends Controller
         $existing = $this->specifications->findForSalesOrderItem($salesOrderItem);
 
         if ($existing) {
-            $this->specifications->update($existing, $validated, $request->user());
-        } else {
-            $this->specifications->createForSalesOrderItem($salesOrderItem, $validated, $request->user());
+            return redirect()
+                ->route('admin.sales-orders.items.specification.edit', [$salesOrder, $salesOrderItem, $existing])
+                ->with('status', __('This line already has a production specification. Edit it instead of creating another.'));
         }
+
+        $this->specifications->createForSalesOrderItem($salesOrderItem, $validated, $request->user());
 
         return redirect()
             ->route('admin.sales-orders.show', ['salesOrder' => $salesOrder, 'tab' => 'specifications'])

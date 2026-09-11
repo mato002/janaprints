@@ -14,6 +14,6 @@ final class NewestFirst
         $created = $table ? "{$table}.created_at" : 'created_at';
         $id = $table ? "{$table}.id" : 'id';
 
-        return $query->orderByDesc($created)->orderByDesc($id);
+        return $query->reorder()->orderByDesc($created)->orderByDesc($id);
     }
 }

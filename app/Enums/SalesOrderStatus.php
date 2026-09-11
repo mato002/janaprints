@@ -40,6 +40,6 @@ enum SalesOrderStatus: string
 
     public function isEditable(): bool
     {
-        return $this === self::Draft;
+        return ! in_array($this, [self::Closed, self::Cancelled], true);
     }
 }

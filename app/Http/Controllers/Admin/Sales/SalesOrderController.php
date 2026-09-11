@@ -187,13 +187,20 @@ class SalesOrderController extends Controller
             $validated['repeat_source_sales_order_id'] = $source->id;
         }
 
-        $salesOrder = $this->directOrders->createFromPrintSpecification(
-            $specification,
-            $validated,
-            (int) $request->user()->id,
-        );
+        $wasUpdate = $existingOrder !== null;
 
-        $wasUpdate = filled($validated['sales_order_id'] ?? null);
+        $salesOrder = $wasUpdate
+            ? $this->directOrders->updateFromPrintSpecification(
+                $existingOrder,
+                $specification,
+                $validated,
+                (int) $request->user()->id,
+            )
+            : $this->directOrders->createFromPrintSpecification(
+                $specification,
+                $validated,
+                (int) $request->user()->id,
+            );
         $message = $wasUpdate ? __('Direct sales order updated.') : __('Direct sales order created.');
         $released = false;
         $releaseError = null;

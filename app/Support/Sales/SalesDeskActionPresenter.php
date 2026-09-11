@@ -87,7 +87,7 @@ class SalesDeskActionPresenter
             ] : null,
             'show_url' => route('admin.sales-orders.show', [$salesOrder, 'from' => 'sales-desk']),
             'edit_url' => auth()->user()?->can('update', $salesOrder)
-                ? route('admin.sales-orders.edit', [$salesOrder, 'from' => 'sales-desk'])
+                ? route('admin.sales-orders.edit', $salesOrder)
                 : null,
             'job_url' => $salesOrder->jobCard && auth()->user()?->can('view', $salesOrder->jobCard)
                 ? route('admin.production.job-cards.show', [
@@ -283,6 +283,15 @@ class SalesDeskActionPresenter
             'href' => route('admin.sales-orders.show', [$salesOrder, ...$from]),
         ];
 
+        if ($user->can('update', $salesOrder)) {
+            $actions[] = [
+                'key' => 'edit',
+                'label' => __('Edit'),
+                'href' => route('admin.sales-orders.edit', $salesOrder),
+                'no_modal' => true,
+            ];
+        }
+
         if (($workflow['can_confirm'] ?? false) && $user->can('confirm', $salesOrder)) {
             $actions[] = [
                 'key' => 'confirm',
@@ -300,14 +309,6 @@ class SalesDeskActionPresenter
                 'action' => route('admin.sales-orders.release-to-production', $salesOrder),
                 'method' => 'POST',
                 'confirm' => __('Send this order to production?'),
-            ];
-        }
-
-        if ($user->can('update', $salesOrder)) {
-            $actions[] = [
-                'key' => 'edit',
-                'label' => __('Edit'),
-                'href' => route('admin.sales-orders.edit', [$salesOrder, ...$from]),
             ];
         }
 

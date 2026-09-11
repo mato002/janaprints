@@ -25,6 +25,12 @@
                 :variant="$action['variant'] ?? 'default'"
                 data-erp-modal-open
             >{{ $action['label'] }}</x-admin.table-row-action>
+        @elseif (! empty($action['no_modal']))
+            <x-admin.table-row-action
+                :href="$action['href']"
+                :variant="$action['variant'] ?? 'default'"
+                data-no-modal
+            >{{ $action['label'] }}</x-admin.table-row-action>
         @else
             <x-admin.table-row-action
                 :href="$action['href']"

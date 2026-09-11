@@ -141,7 +141,7 @@ class SalesDeskPageBuilder
                     $this->scopeToTenant(
                         Quotation::query()->with(['customer', 'branch', 'preparer', 'salesOrder'])
                     )
-                )->paginate(15)->withQueryString(),
+                )->paginate(preferred_per_page(25))->withQueryString(),
             ],
             SalesDeskViews::ORDERS => [
                 'registerTitle' => __('Sales orders'),
@@ -149,7 +149,7 @@ class SalesDeskPageBuilder
                     $this->scopeToTenant(
                         SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator:id,name', 'jobCard', 'invoices'])
                     )
-                )->paginate(15)->withQueryString(),
+                )->paginate(preferred_per_page(25))->withQueryString(),
             ],
             SalesDeskViews::ARTWORK => [
                 'registerTitle' => __('Artwork requests'),
@@ -157,7 +157,7 @@ class SalesDeskPageBuilder
                     $this->scopeToTenant(
                         ArtworkRequest::query()->with(['customer', 'branch', 'requester', 'assignedDesigner'])
                     )
-                )->paginate(15)->withQueryString(),
+                )->paginate(preferred_per_page(25))->withQueryString(),
             ],
             SalesDeskViews::APPROVALS => $this->approvalsPayload($request),
             default => [],
