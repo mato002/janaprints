@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Concerns\UsesPreferredPageSize;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Company extends Model
 {
     /** @use HasFactory<CompanyFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, UsesPreferredPageSize;
 
     protected function casts(): array
     {

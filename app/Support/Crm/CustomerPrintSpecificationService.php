@@ -26,11 +26,6 @@ class CustomerPrintSpecificationService
     public function create(Customer $customer, array $data, int $userId): CustomerPrintSpecification
     {
         $data = $this->prepareSpecificationData($data, $customer);
-        $reusable = $this->findReusableSpecification($customer, $data);
-
-        if ($reusable) {
-            return $this->update($reusable, $data, $userId);
-        }
 
         return DB::transaction(function () use ($customer, $data, $userId) {
             $spec = CustomerPrintSpecification::query()->create($this->persistableAttributes(
@@ -634,28 +629,5 @@ class CustomerPrintSpecificationService
                 : route('admin.crm.print-specifications.quick-edit', $spec),
             ...app(PrintSpecificationJobFields::class)->orderContextFields($spec),
         ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    protected function findReusableSpecification(Customer $customer, array $data): ?CustomerPrintSpecification
-    {
-        $name = trim((string) ($data['name'] ?? ''));
-
-        if ($name === '') {
-            return null;
-        }
-
-        return CustomerPrintSpecification::query()
-            ->forTenant()
-            ->where('customer_id', $customer->id)
-            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
-            ->whereNotIn('status', [
-                CustomerPrintSpecificationStatus::Archived->value,
-                CustomerPrintSpecificationStatus::Superseded->value,
-            ])
-            ->orderByDesc('id')
-            ->first();
     }
 }

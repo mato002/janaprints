@@ -147,7 +147,7 @@ class SalesDeskPageBuilder
                 'registerTitle' => __('Sales orders'),
                 'orders' => NewestFirst::apply(
                     $this->scopeToTenant(
-                        SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator', 'jobCard', 'invoices'])
+                        SalesOrder::query()->with(['customer', 'branch', 'quotation', 'creator:id,name', 'jobCard', 'invoices'])
                     )
                 )->paginate(15)->withQueryString(),
             ],

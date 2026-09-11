@@ -111,7 +111,7 @@
             <input type="hidden" name="notes" value="{{ old('notes', $specification->customer_instructions) }}">
 
             <div class="flex flex-wrap justify-end gap-2 pt-1">
-                <button type="submit" class="erp-btn-primary">{{ __('Create order') }}</button>
+                <button type="submit" class="erp-btn-primary">{{ __('Create and send to production') }}</button>
             </div>
         </form>
     @endif

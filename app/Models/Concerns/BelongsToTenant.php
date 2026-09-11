@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 trait BelongsToTenant
 {
+    use UsesPreferredPageSize;
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

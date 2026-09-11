@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 trait BelongsToCompany
 {
+    use UsesPreferredPageSize;
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

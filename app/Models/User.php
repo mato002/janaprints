@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
+use App\Models\Concerns\UsesPreferredPageSize;
 use App\Models\Crm\Customer;
 use App\Models\Inventory\Warehouse;
 
@@ -32,7 +33,7 @@ use App\Models\Inventory\Warehouse;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasRoles, Notifiable;
+    use HasFactory, HasRoles, Notifiable, UsesPreferredPageSize;
 
     protected function casts(): array
     {

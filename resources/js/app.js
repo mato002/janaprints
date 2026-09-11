@@ -5045,6 +5045,72 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    const ERP_TABLE_PAGE_SIZES = [10, 25, 50, 100];
+    const ERP_TABLE_PAGE_KEYS = [
+        'page',
+        'spec_page',
+        'pending_page',
+        'approved_page',
+        'posted_page',
+        'invoices_page',
+        'credit_notes_page',
+        'payments_page',
+        'receipts_page',
+    ];
+
+    function readStoredTablePageSize(config = {}) {
+        const candidates = [
+            config.pageSize,
+            localStorage.getItem('erp.table.pageSize'),
+            config.tableId ? localStorage.getItem(`erp.table.${config.tableId}.pageSize`) : null,
+        ];
+
+        for (const raw of candidates) {
+            const size = Number(raw);
+            if (ERP_TABLE_PAGE_SIZES.includes(size)) {
+                return size;
+            }
+        }
+
+        return 25;
+    }
+
+    function applyPreferredTablePageSize(size, root = null) {
+        const pageSize = Number(size);
+
+        if (! ERP_TABLE_PAGE_SIZES.includes(pageSize)) {
+            return;
+        }
+
+        localStorage.setItem('erp.table.pageSize', String(pageSize));
+
+        let url;
+
+        try {
+            url = new URL(window.location.href);
+        } catch {
+            return;
+        }
+
+        const current = Number(url.searchParams.get('per_page'));
+        if (current === pageSize) {
+            return;
+        }
+
+        url.searchParams.set('per_page', String(pageSize));
+        ERP_TABLE_PAGE_KEYS.forEach((key) => url.searchParams.delete(key));
+
+        const frame = root?.closest?.('turbo-frame')?.id
+            || document.querySelector('turbo-frame#module-workspace-content:not([hidden])')?.id
+            || 'erp-main';
+
+        if (window.Turbo) {
+            window.Turbo.visit(url.toString(), { frame, action: 'advance' });
+        } else {
+            window.location.assign(url.toString());
+        }
+    }
+
     Alpine.data('erpDataTable', (config = {}) => ({
         query: '',
         debouncedQuery: '',
@@ -5052,7 +5118,7 @@ document.addEventListener('alpine:init', () => {
         activeChip: config.chips?.[0]?.id ?? 'all',
         filterValues: {},
         filterOpen: false,
-        pageSize: Number(localStorage.getItem(`erp.table.${config.tableId ?? 'default'}.pageSize`) || 25),
+        pageSize: readStoredTablePageSize(config),
         currentPage: 1,
         exportOpen: false,
         exportLoading: false,
@@ -5201,7 +5267,7 @@ document.addEventListener('alpine:init', () => {
         setPageSize(size) {
             this.pageSize = Number(size);
             this.currentPage = 1;
-            localStorage.setItem(`erp.table.${this.tableId ?? 'default'}.pageSize`, String(this.pageSize));
+            applyPreferredTablePageSize(this.pageSize, this.$el);
         },
 
         nextPage() {

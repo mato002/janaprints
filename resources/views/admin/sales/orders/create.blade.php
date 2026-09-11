@@ -463,7 +463,7 @@
                         type="submit"
                         class="erp-btn-primary min-h-[2.75rem] w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-50"
                         :disabled="!canSubmit"
-                    >{{ __('Create direct order') }}</button>
+                    >{{ __('Create and send to production') }}</button>
                 </x-admin.form-modal-actions>
             </x-admin.form-shell>
         </div>

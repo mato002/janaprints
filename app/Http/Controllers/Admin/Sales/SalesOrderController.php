@@ -28,6 +28,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 use App\Support\Sales\SalesDeskViews;
 use Illuminate\View\View;
 
@@ -192,39 +193,53 @@ class SalesOrderController extends Controller
             (int) $request->user()->id,
         );
 
-        $message = __('Direct sales order created.');
-        $redirect = redirect()->route('admin.sales-orders.show', $salesOrder);
+        $wasUpdate = filled($validated['sales_order_id'] ?? null);
+        $message = $wasUpdate ? __('Direct sales order updated.') : __('Direct sales order created.');
+        $released = false;
+        $releaseError = null;
 
-        if ($this->wantsSalesDeskReturn($request)) {
+        if ($salesOrder->jobCard === null) {
+            try {
+                $this->authorize('production', $salesOrder);
+                $this->workflow->releaseToProduction($salesOrder, (int) $request->user()->id);
+                $released = true;
+                $message = $wasUpdate
+                    ? __('Direct sales order updated and sent to production.')
+                    : __('Direct sales order created and sent to production.');
+            } catch (ValidationException $exception) {
+                $releaseError = collect($exception->errors())->flatten()->first();
+                $message = $wasUpdate
+                    ? __('Direct sales order updated. It could not be sent to production yet.')
+                    : __('Direct sales order created. It could not be sent to production yet.');
+                if (is_string($releaseError) && $releaseError !== '') {
+                    $message .= ' '.$releaseError;
+                }
+            } catch (\Illuminate\Auth\Access\AuthorizationException) {
+                $releaseError = __('You do not have permission to send orders to production.');
+                $message .= ' '.$releaseError;
+            }
+        }
+
+        $salesOrder = $salesOrder->fresh('jobCard');
+        $jobCard = $salesOrder->jobCard;
+        $ordersList = redirect()->to(SalesDeskViews::ordersUrl());
+
+        if ($this->isModalFormRequest()) {
+            $redirect = $ordersList;
+        } elseif ($this->wantsSalesDeskReturn($request)) {
             $redirect = redirect()->route('admin.sales.desk', [
                 'customer' => $customer->getRouteKey(),
                 'order' => $salesOrder->getRouteKey(),
-                'step' => 4,
+                'step' => $released ? 5 : 4,
             ]);
+        } elseif ($released && $jobCard !== null) {
+            $redirect = redirect()->route('admin.production.job-cards.show', $jobCard);
+        } else {
+            $redirect = $ordersList;
         }
 
-        if ($request->boolean('send_to_production')) {
-            $this->authorize('production', $salesOrder);
-
-            try {
-                $this->workflow->releaseToProduction($salesOrder, (int) $request->user()->id);
-                $message = __('Direct sales order created and sent to production.');
-
-                $jobCard = $salesOrder->fresh('jobCard')->jobCard;
-                if ($this->wantsSalesDeskReturn($request)) {
-                    $redirect = redirect()->route('admin.sales.desk', [
-                        'customer' => $customer->getRouteKey(),
-                        'order' => $salesOrder->fresh()->getRouteKey(),
-                        'step' => 5,
-                    ]);
-                } elseif ($jobCard !== null) {
-                    $redirect = redirect()->route('admin.production.job-cards.show', $jobCard);
-                }
-            } catch (\Illuminate\Validation\ValidationException $exception) {
-                return $redirect
-                    ->with('status', $message)
-                    ->withErrors($exception->errors());
-            }
+        if ($releaseError) {
+            $redirect = $redirect->withErrors(['production' => $releaseError]);
         }
 
         return $this->modalOrRedirect($message, $redirect);

@@ -46,7 +46,7 @@ class DirectCustomerSalesOrderService
         array $payload,
         int $createdBy,
     ): SalesOrder {
-        if (empty($payload['repeat_source_sales_order_id'])) {
+        if (empty($payload['repeat_source_sales_order_id']) && ! empty($payload['sales_order_id'])) {
             $open = $this->findOpenOrderForSpecification($specification, $payload);
 
             if ($open) {
@@ -544,34 +544,9 @@ class DirectCustomerSalesOrderService
         CustomerPrintSpecification $specification,
         array $payload,
     ): ?SalesOrder {
-        if (! empty($payload['sales_order_id'])) {
-            $order = SalesOrder::query()
-                ->where('customer_id', $specification->customer_id)
-                ->whereKey((int) $payload['sales_order_id'])
-                ->first();
-
-            return $order && $this->orderIsOpenForEdit($order) ? $order : null;
-        }
-
         $order = SalesOrder::query()
-            ->where('customer_print_specification_id', $specification->id)
             ->where('customer_id', $specification->customer_id)
-            ->whereNotIn('status', [
-                SalesOrderStatus::Delivered,
-                SalesOrderStatus::Closed,
-                SalesOrderStatus::Cancelled,
-            ])
-            ->where(function ($query) {
-                $query->whereDoesntHave('jobCard')
-                    ->orWhereHas('jobCard', function ($job) {
-                        $job->whereNotIn('status', [
-                            ProductionJobCardStatus::Completed,
-                            ProductionJobCardStatus::ReadyForDispatch,
-                            ProductionJobCardStatus::Cancelled,
-                        ]);
-                    });
-            })
-            ->latest('id')
+            ->whereKey((int) $payload['sales_order_id'])
             ->first();
 
         return $order && $this->orderIsOpenForEdit($order) ? $order : null;

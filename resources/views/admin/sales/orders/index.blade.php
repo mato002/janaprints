@@ -25,6 +25,8 @@
                 <th scope="col">{{ __('Order') }}</th>
                 <th scope="col">{{ __('Customer') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Quotation') }}</th>
+                <th scope="col">{{ __('Created') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Created by') }}</th>
                 <th scope="col">{{ __('Status') }}</th>
                 <th scope="col">{{ __('Total') }}</th>
                 <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
@@ -33,7 +35,7 @@
         <x-slot name="body">
             @forelse ($orders as $order)
                 @php
-                    $search = strtolower($order->order_number.' '.($order->customer?->company_name ?? '').' '.($order->quotation?->quotation_number ?? '').' '.$order->status->value);
+                    $search = strtolower($order->order_number.' '.($order->customer?->company_name ?? '').' '.($order->quotation?->quotation_number ?? '').' '.$order->status->value.' '.($order->creator?->name ?? ''));
                     $chip = strtolower($order->status->value);
                 @endphp
                 <tr x-show="rowVisible(@js($search), @js($chip))">
@@ -47,6 +49,10 @@
                     </td>
                     <td>{{ $order->customer?->company_name ?? '—' }}</td>
                     <td class="hidden lg:table-cell">{{ $order->quotation?->quotation_number ?? '—' }}</td>
+                    <td class="whitespace-nowrap text-xs tabular-nums text-slate-600">
+                        {{ $order->created_at?->format('d M Y H:i') ?? '—' }}
+                    </td>
+                    <td class="hidden md:table-cell">{{ $order->creator?->name ?? '—' }}</td>
                     <td><x-admin.enum-status-badge :status="$order->status->value" /></td>
                     <td class="tabular-nums">{{ number_format($order->total_amount, 2) }}</td>
                     <td class="erp-table-actions-col">
@@ -54,7 +60,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="6"><x-admin.empty-state icon="clipboard-list" :title="__('No sales orders yet')" /></td></tr>
+                <tr><td colspan="8"><x-admin.empty-state icon="clipboard-list" :title="__('No sales orders yet')" /></td></tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$orders" /></x-slot>

@@ -160,7 +160,7 @@ class CommercialApprovalQueueService
     protected function paginateItems(int $companyId, ?int $branchId, array $filters): LengthAwarePaginator
     {
         $page = max(1, (int) request()->integer('page', 1));
-        $perPage = self::PER_PAGE;
+        $perPage = \App\Support\Pagination\PreferredPageSize::apply(self::PER_PAGE);
 
         $union = $this->unionQuery($companyId, $branchId, $filters);
         $total = (clone $union)->count();

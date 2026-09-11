@@ -44,6 +44,7 @@
         'hasClientExport' => $hasClientExport,
         'brandingLogoUrl' => app(\App\Support\Branding\BrandingAssets::class)->logoUrl(),
         'tableExportUrl' => route('admin.exports.table'),
+        'pageSize' => preferred_per_page(25),
     ];
 @endphp
 

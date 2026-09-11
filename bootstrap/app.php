@@ -70,6 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RedirectToModuleWorkspaceShell::class,
             \App\Http\Middleware\HandleModalFormResponse::class,
             \App\Http\Middleware\EnsureAdminMutationFlash::class,
+            \App\Http\Middleware\RememberPreferredPageSize::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
