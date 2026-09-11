@@ -29,7 +29,7 @@
 @if (! ($embeddedInDesk ?? false))
     <x-admin.page-header :title="__('Sales approvals')" :description="__('Needs attention now — then searchable approval history.')" />
 @else
-    <div class="mb-3">
+    <div class="sales-desk-register__heading mb-3 shrink-0">
         <h2 class="text-sm font-semibold text-erp-primary">{{ $registerTitle ?? __('Sales approvals') }}</h2>
         @if (! empty($registerDescription))
             <p class="text-xs text-slate-600">{{ $registerDescription }}</p>

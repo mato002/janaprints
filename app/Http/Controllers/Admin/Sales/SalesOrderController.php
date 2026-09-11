@@ -308,7 +308,7 @@ class SalesOrderController extends Controller
     {
         $this->authorize('update', $salesOrder);
 
-        $salesOrder->load('items');
+        $salesOrder->load(['items.productionSpecification', 'customerPrintSpecification', 'customer']);
 
         app(\App\Support\Sales\SalesOrderFinancialStatusService::class)->syncDepositAmounts($salesOrder);
 
@@ -323,6 +323,8 @@ class SalesOrderController extends Controller
         $payload = [
             'salesOrder' => $salesOrder,
             'customerArtworks' => $customerArtworks,
+            'jobFieldSpecification' => $this->jobFieldSource($salesOrder),
+            'productionVendors' => $this->outsourceSpecs->productionVendors(),
             'catalogueItems' => \App\Models\Inventory\InventoryItem::query()
                 ->forTenant()
                 ->where('is_active', true)
@@ -342,7 +344,7 @@ class SalesOrderController extends Controller
     {
         $this->authorize('update', $salesOrder);
 
-        $header = $request->validate([
+        $header = $request->validate(array_merge([
             'order_date' => ['required', 'date'],
             'required_date' => ['nullable', 'date', 'after_or_equal:order_date', new SalesRequiredDateNotInThePast($salesOrder)],
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
@@ -352,7 +354,7 @@ class SalesOrderController extends Controller
             'inventory_item_id' => ['nullable', 'exists:inventory_items,id'],
             'uses_existing_artwork' => ['boolean'],
             'customer_artwork_id' => ['nullable', 'exists:customer_artworks,id'],
-        ]);
+        ], $this->jobFields->validationRules(false)));
 
         $header['uses_existing_artwork'] = $request->boolean('uses_existing_artwork');
 
@@ -365,10 +367,29 @@ class SalesOrderController extends Controller
             $header['artwork_confirmed_at'] = null;
         }
 
-        ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
+        $salesOrder->update(collect($header)->except([
+            'production_destination',
+            'job_sheet',
+            'digital',
+            'outsource',
+        ])->all());
 
-        $salesOrder->update($header);
-        $this->syncItems($salesOrder, $items, $totals);
+        if ($request->has('items')) {
+            ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
+            $this->syncItems($salesOrder, $items, $totals);
+        }
+
+        $this->directOrders->syncProductionSpecifications(
+            $salesOrder->fresh(['items']),
+            [
+                'production_destination' => $request->input('production_destination'),
+                'job_sheet' => $request->input('job_sheet', []),
+                'digital' => $request->input('digital', []),
+                'outsource' => $request->input('outsource', []),
+                'quantity' => $salesOrder->fresh('items')->items->first()?->quantity,
+            ],
+            (int) $request->user()->id,
+        );
 
         app(\App\Support\Sales\SalesOrderFinancialStatusService::class)->syncDepositAmounts($salesOrder->fresh());
 
@@ -650,6 +671,23 @@ class SalesOrderController extends Controller
         }
 
         return $defaults;
+    }
+
+    /**
+     * @return object{production_destination: mixed, job_sheet_payload: array<string, mixed>}
+     */
+    protected function jobFieldSource(SalesOrder $salesOrder): object
+    {
+        $lineSpec = $salesOrder->items->first()?->productionSpecification;
+        $printSpec = $salesOrder->customerPrintSpecification;
+        $linePayload = is_array($lineSpec?->job_sheet_payload) ? $lineSpec->job_sheet_payload : [];
+        $printPayload = is_array($printSpec?->job_sheet_payload) ? $printSpec->job_sheet_payload : [];
+
+        return (object) [
+            'production_destination' => $salesOrder->production_destination
+                ?? $printSpec?->production_destination,
+            'job_sheet_payload' => $linePayload !== [] ? $linePayload : $printPayload,
+        ];
     }
 
     /**

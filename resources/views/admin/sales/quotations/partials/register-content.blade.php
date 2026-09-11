@@ -5,7 +5,7 @@
         @endcan
     </x-admin.page-header>
 @else
-    <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div class="sales-desk-register__heading mb-3 flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <h2 class="text-sm font-semibold text-erp-primary">{{ __('Quotations') }}</h2>
             <p class="text-xs text-slate-600">{{ __('Quote register for this branch.') }}</p>
@@ -17,6 +17,7 @@
 @endif
 
 <x-admin.data-table
+    @class(['erp-data-grid--locked' => $embeddedInDesk ?? false])
     :search-placeholder="__('Search quotations…')"
     export-filename="quotations"
     :chips="[

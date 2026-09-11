@@ -528,6 +528,32 @@ class DirectCustomerSalesOrderService
         });
     }
 
+    /**
+     * Persist Digital / Offset / Outsource specification fields onto this order's line.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function syncProductionSpecifications(SalesOrder $order, array $payload, int $userId): void
+    {
+        $destination = $payload['production_destination'] ?? null;
+
+        if (! filled($destination)) {
+            return;
+        }
+
+        $order->update([
+            'production_destination' => $destination,
+        ]);
+
+        $order = $order->fresh(['items', 'customerPrintSpecification', 'jobCard']);
+
+        $this->offsetJobSheets->attachToOrder($order, $payload, $userId);
+        $this->outsourceSpecs->attachToOrder($order, $payload, $userId);
+        $this->digitalSpecs->attachToOrder($order, $payload, $userId);
+
+        $this->syncOpenJobCard($order->fresh(['jobCard', 'items']));
+    }
+
     protected function syncOpenJobCard(SalesOrder $order): void
     {
         $jobCard = $order->jobCard;

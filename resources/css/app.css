@@ -415,7 +415,39 @@ body.erp-navigating {
     }
 
     .erp-table-toolbar {
-        @apply shrink-0;
+        @apply shrink-0 bg-white;
+    }
+
+    .erp-data-grid--locked {
+        display: flex;
+        min-height: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
+    }
+
+    .erp-data-grid--locked > .rounded-lg {
+        display: flex;
+        min-height: 0;
+        flex: 1 1 auto;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .erp-data-grid--locked .erp-table-toolbar {
+        position: relative;
+        top: auto;
+        z-index: 2;
+    }
+
+    .erp-data-grid--locked .erp-table-scroll {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+        overflow: auto;
+    }
+
+    .erp-data-grid--locked .erp-table thead th {
+        top: 0;
     }
 
     .erp-toolbar-export-btn__label {
@@ -830,7 +862,18 @@ body.erp-navigating {
         font-weight: 600;
     }
 
-    /* Sales desk mode ribbon — block tabs (Walk-in, Quotes, …) */
+    /* Pin workspace tab strips so they stay visible while the list scrolls. */
+    .sales-desk-ribbon,
+    .workspace-context-tabs,
+    .module-workspace-switcher,
+    .module-workspace-secondary-bar {
+        position: sticky;
+        top: 0;
+        z-index: 40;
+        flex-shrink: 0;
+        background-color: #fff;
+    }
+
     .sales-desk-ribbon {
         overflow: visible;
         border: 1px solid #e2e8f0;

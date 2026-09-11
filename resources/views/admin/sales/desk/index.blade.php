@@ -22,6 +22,7 @@
 
 <x-admin-layout
     :title="$deskTitle"
+    :compact-workspace="true"
     :breadcrumbs="$operatorMode
         ? [['label' => __('Sales Desk')]]
         : [
@@ -30,7 +31,7 @@
         ]"
 >
     <div
-        class="sales-desk-shell min-w-0 max-w-full"
+        class="sales-desk-shell flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden"
         @unless ($isPanel)
         x-data="salesDeskSearch(@js([
             'searchUrl' => $searchUrl,
@@ -43,8 +44,11 @@
         @endunless
 
         @if ($isPanel)
-            @include('admin.sales.desk.partials.register-panel')
+            <div class="sales-desk-register flex min-h-0 flex-1 flex-col overflow-hidden">
+                @include('admin.sales.desk.partials.register-panel')
+            </div>
         @else
+            <div class="sales-desk-walk-in min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div class="mb-3 flex flex-col gap-2 rounded-lg border border-erp-accent/25 bg-erp-accent/5 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="text-sm font-semibold text-erp-primary">{{ __('Sales desk') }}</p>
@@ -616,6 +620,7 @@
         </div>
 
         @include('admin.sales.desk.partials.work-queue', ['workQueue' => $workQueue])
+        </div>
         @endif
     </div>
 </x-admin-layout>

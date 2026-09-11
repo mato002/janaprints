@@ -1,4 +1,4 @@
-<x-admin.modal-form :title="__('Edit order')" maxWidth="2xl">
+<x-admin.modal-form :title="__('Edit order')" maxWidth="5xl">
     <form method="POST" action="{{ route('admin.sales-orders.update', $salesOrder) }}" class="space-y-4" data-erp-desk-form>
         @csrf
         @method('PUT')
@@ -40,6 +40,25 @@
                 <label class="erp-label">{{ __('Notes') }}</label>
                 <textarea name="notes" class="erp-input w-full" rows="2">{{ old('notes', $salesOrder->notes) }}</textarea>
             </div>
+        </div>
+
+        <div class="space-y-3 rounded-lg border border-erp-border p-4">
+            <div>
+                <h3 class="font-medium">{{ __('Print specifications') }}</h3>
+                <p class="mt-1 text-xs text-slate-500">{{ __('The Digital, Offset, or Outsource details captured when this order was created. Changes apply to this order only.') }}</p>
+            </div>
+            @include('admin.crm.customers.print-specifications.partials.job-fields', [
+                'specification' => $jobFieldSpecification ?? null,
+                'preselectedDestination' => old(
+                    'production_destination',
+                    $salesOrder->production_destination?->value
+                        ?? optional($jobFieldSpecification ?? null)->production_destination?->value
+                ),
+                'lockDestination' => false,
+                'customer' => $salesOrder->customer,
+                'productionVendors' => $productionVendors ?? collect(),
+                'idPrefix' => 'order-job-modal',
+            ])
         </div>
 
         <x-admin.form-modal-actions>
