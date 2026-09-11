@@ -1119,6 +1119,8 @@ class QuickCreateLookupController extends Controller
         string $view,
         array $data,
     ): Response {
+        $request->session()->now('_old_input', $request->except(['artwork_file', '_token']));
+
         return response()->view($view, array_merge($data, [
             'errors' => $exception->validator->errors(),
         ]), 422);
@@ -1611,7 +1613,16 @@ class QuickCreateLookupController extends Controller
             InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
         }
 
-        $spec = $specifications->update($printSpecification, $validated, (int) auth()->id());
+        try {
+            $spec = $specifications->update($printSpecification, $validated, (int) auth()->id());
+        } catch (ValidationException $exception) {
+            return $this->lookupValidationResponse(
+                $request,
+                $exception,
+                'admin.lookups.quick-create.print-specification',
+                $this->printSpecificationQuickCreateFormData($customer, $printSpecification),
+            );
+        }
 
         if ($request->hasFile('artwork_file')) {
             $artworks->uploadVersionForSpecification(
@@ -1671,7 +1682,16 @@ class QuickCreateLookupController extends Controller
             InventoryItem::query()->forTenant()->whereKey($validated['inventory_item_id'])->firstOrFail();
         }
 
-        $spec = $specifications->create($customer, $validated, (int) auth()->id());
+        try {
+            $spec = $specifications->create($customer, $validated, (int) auth()->id());
+        } catch (ValidationException $exception) {
+            return $this->lookupValidationResponse(
+                $request,
+                $exception,
+                'admin.lookups.quick-create.print-specification',
+                $this->printSpecificationQuickCreateFormData($customer),
+            );
+        }
 
         if ($request->hasFile('artwork_file')) {
             $artworks->uploadVersionForSpecification(

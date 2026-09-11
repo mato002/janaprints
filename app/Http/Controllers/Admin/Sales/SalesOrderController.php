@@ -140,12 +140,17 @@ class SalesOrderController extends Controller
             $request->merge($this->commercialDefaultsFromSpecification($specification, $request));
         }
 
+        $existingOrder = $request->filled('sales_order_id')
+            ? SalesOrder::query()->forTenant()->find($request->integer('sales_order_id'))
+            : null;
+
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
             'customer_print_specification_id' => ['required', 'exists:customer_print_specifications,id'],
+            'sales_order_id' => ['nullable', 'exists:sales_orders,id'],
             'quantity' => ['required', 'numeric', 'min:0.001'],
             'unit_price' => ['nullable', 'numeric', 'min:0'],
-            'required_date' => ['nullable', 'date', new SalesRequiredDateNotInThePast],
+            'required_date' => ['nullable', 'date', new SalesRequiredDateNotInThePast($existingOrder)],
             'priority' => ['nullable', 'string', 'in:low,normal,high,urgent'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
@@ -163,6 +168,12 @@ class SalesOrderController extends Controller
 
         $customer = Customer::query()->forTenant()->findOrFail($validated['customer_id']);
         $this->authorize('view', $customer);
+
+        if ($existingOrder) {
+            abort_unless((int) $existingOrder->customer_id === (int) $customer->id, 422);
+            $this->authorize('update', $existingOrder);
+            $validated['sales_order_id'] = $existingOrder->id;
+        }
 
         $specification = \App\Models\Crm\CustomerPrintSpecification::query()
             ->forTenant()

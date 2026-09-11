@@ -117,11 +117,16 @@ class CustomerPrintSpecification extends Model
             || filled($this->product_name);
     }
 
+    public static function hasColumn(string $column): bool
+    {
+        static $cache = [];
+
+        return $cache[$column] ??= Schema::hasColumn((new static)->getTable(), $column);
+    }
+
     public static function hasProductNameColumn(): bool
     {
-        static $exists;
-
-        return $exists ??= Schema::hasColumn((new static)->getTable(), 'product_name');
+        return static::hasColumn('product_name');
     }
 
     public function productLabel(): string

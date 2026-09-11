@@ -25,42 +25,22 @@ class CustomerPrintSpecificationService
      */
     public function create(Customer $customer, array $data, int $userId): CustomerPrintSpecification
     {
+        $data = $this->prepareSpecificationData($data, $customer);
+        $reusable = $this->findReusableSpecification($customer, $data);
+
+        if ($reusable) {
+            return $this->update($reusable, $data, $userId);
+        }
+
         return DB::transaction(function () use ($customer, $data, $userId) {
-            $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
-            $data = $this->resolveProductFields($data, $customer);
+            $spec = CustomerPrintSpecification::query()->create($this->persistableAttributes(
+                $data,
+                $userId,
+                $customer,
+                creating: true,
+            ));
 
-            $reusable = $this->findReusableSpecification($customer, $data);
-
-            if ($reusable) {
-                return $this->update($reusable, $data, $userId);
-            }
-
-            $spec = CustomerPrintSpecification::query()->create([
-                'company_id' => $customer->company_id,
-                'branch_id' => $customer->branch_id,
-                'customer_id' => $customer->id,
-                'inventory_item_id' => $data['inventory_item_id'] ?? null,
-                'product_name' => $data['product_name'] ?? null,
-                'specification_code' => $this->nextSpecificationCode($customer->company_id),
-                'name' => $data['name'],
-                'description' => $data['description'] ?? null,
-                'status' => $data['status'] ?? CustomerPrintSpecificationStatus::Draft,
-                'production_notes' => $data['production_notes'] ?? null,
-                'commercial_notes' => $data['commercial_notes'] ?? null,
-                'customer_instructions' => $data['customer_instructions'] ?? null,
-                'default_quantity' => $data['default_quantity'] ?? null,
-                'default_unit_price' => $data['default_unit_price'] ?? null,
-                'default_billing_type' => $data['default_billing_type'] ?? null,
-                'default_fulfilment_method' => $data['default_fulfilment_method'] ?? null,
-                'default_priority' => $data['default_priority'] ?? null,
-                'production_destination' => $data['production_destination'] ?? null,
-                'job_sheet_payload' => $data['job_sheet_payload'] ?? null,
-                'created_by' => $userId,
-                'updated_by' => $userId,
-            ]);
-
-            if (($data['status'] ?? CustomerPrintSpecificationStatus::Draft) === CustomerPrintSpecificationStatus::Active
-                || ($data['status'] ?? null) === CustomerPrintSpecificationStatus::Active->value) {
+            if ($this->statusFrom($data) === CustomerPrintSpecificationStatus::Active) {
                 $this->assertCanActivate($spec);
             }
 
@@ -74,16 +54,21 @@ class CustomerPrintSpecificationService
     public function update(CustomerPrintSpecification $spec, array $data, int $userId): CustomerPrintSpecification
     {
         return DB::transaction(function () use ($spec, $data, $userId) {
-            $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
-            $data = $this->resolveProductFields($data, $spec->customer ?? $spec->customer()->firstOrFail());
+            $customer = $spec->customer ?? $spec->customer()->firstOrFail();
+            $data = $this->prepareSpecificationData($data, $customer);
+            $data = $this->preserveProductIdentityWhenUsed($spec, $data);
 
             $this->lifecycle->assertSafeUpdate($spec, $data);
 
-            $nextStatus = isset($data['status'])
-                ? ($data['status'] instanceof CustomerPrintSpecificationStatus
-                    ? $data['status']
-                    : CustomerPrintSpecificationStatus::from($data['status']))
+            $nextStatus = array_key_exists('status', $data) && $data['status'] !== null && $data['status'] !== ''
+                ? $this->statusFrom($data)
                 : $spec->status;
+
+            if ($nextStatus === null) {
+                throw ValidationException::withMessages([
+                    'status' => __('Choose a valid specification status.'),
+                ]);
+            }
 
             if ($nextStatus !== $spec->status) {
                 $spec = $this->lifecycle->transition($spec, $nextStatus, $userId);
@@ -101,25 +86,7 @@ class CustomerPrintSpecificationService
                 return $spec->fresh(['inventoryItem', 'activeArtworkVersion']);
             }
 
-            $spec->update([
-                ...collect($data)->only([
-                    'inventory_item_id',
-                    'product_name',
-                    'name',
-                    'description',
-                    'production_notes',
-                    'commercial_notes',
-                    'customer_instructions',
-                    'default_quantity',
-                    'default_unit_price',
-                    'default_billing_type',
-                    'default_fulfilment_method',
-                    'default_priority',
-                    'production_destination',
-                    'job_sheet_payload',
-                ])->all(),
-                'updated_by' => $userId,
-            ]);
+            $spec->update($this->persistableAttributes($data, $userId, $customer, creating: false));
 
             return $spec->fresh(['inventoryItem', 'activeArtworkVersion']);
         });
@@ -302,6 +269,114 @@ class CustomerPrintSpecificationService
         }
 
         return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function prepareSpecificationData(array $data, Customer $customer): array
+    {
+        $data = $this->normalizeNullableEnums($data);
+        $data = app(PrintSpecificationJobFields::class)->enrichSpecificationData($data);
+
+        return $this->resolveProductFields($data, $customer);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function preserveProductIdentityWhenUsed(CustomerPrintSpecification $spec, array $data): array
+    {
+        if (! $spec->hasOperationalUsage()) {
+            return $data;
+        }
+
+        $data['inventory_item_id'] = $spec->inventory_item_id;
+        $data['product_name'] = $spec->product_name ?: ($data['product_name'] ?? null);
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function persistableAttributes(array $data, int $userId, Customer $customer, bool $creating): array
+    {
+        $attributes = [
+            'inventory_item_id' => $data['inventory_item_id'] ?? null,
+            'name' => $data['name'],
+            'description' => $data['description'] ?? null,
+            'production_notes' => $data['production_notes'] ?? null,
+            'commercial_notes' => $data['commercial_notes'] ?? null,
+            'customer_instructions' => $data['customer_instructions'] ?? null,
+            'default_quantity' => $data['default_quantity'] ?? null,
+            'default_unit_price' => $data['default_unit_price'] ?? null,
+            'default_billing_type' => $data['default_billing_type'] ?? null,
+            'default_fulfilment_method' => $data['default_fulfilment_method'] ?? null,
+            'updated_by' => $userId,
+        ];
+
+        if ($creating) {
+            $attributes['company_id'] = $customer->company_id;
+            $attributes['branch_id'] = $customer->branch_id;
+            $attributes['customer_id'] = $customer->id;
+            $attributes['specification_code'] = $this->nextSpecificationCode($customer->company_id);
+            $attributes['status'] = $this->statusFrom($data) ?? CustomerPrintSpecificationStatus::Draft;
+            $attributes['created_by'] = $userId;
+        }
+
+        foreach ([
+            'product_name' => $data['product_name'] ?? null,
+            'default_priority' => $data['default_priority'] ?? null,
+            'production_destination' => $data['production_destination'] ?? null,
+            'job_sheet_payload' => $data['job_sheet_payload'] ?? null,
+        ] as $column => $value) {
+            if (CustomerPrintSpecification::hasColumn($column)) {
+                $attributes[$column] = $value;
+            }
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function normalizeNullableEnums(array $data): array
+    {
+        foreach (['default_billing_type', 'default_fulfilment_method', 'default_priority', 'production_destination', 'status'] as $key) {
+            if (! array_key_exists($key, $data)) {
+                continue;
+            }
+
+            if ($data[$key] === '' || $data[$key] === false) {
+                $data[$key] = null;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function statusFrom(array $data): ?CustomerPrintSpecificationStatus
+    {
+        $status = $data['status'] ?? null;
+
+        if ($status instanceof CustomerPrintSpecificationStatus) {
+            return $status;
+        }
+
+        if (! is_string($status) || $status === '') {
+            return null;
+        }
+
+        return CustomerPrintSpecificationStatus::tryFrom($status);
     }
 
     /**
@@ -573,6 +648,7 @@ class CustomerPrintSpecificationService
         }
 
         return CustomerPrintSpecification::query()
+            ->forTenant()
             ->where('customer_id', $customer->id)
             ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
             ->whereNotIn('status', [

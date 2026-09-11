@@ -9,7 +9,6 @@ use App\Enums\FulfilmentMethod;
 use App\Enums\InventoryStockRole;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionPriority;
-use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
 use App\Models\Crm\Customer;
 use App\Models\Crm\CustomerPrintSpecification;
@@ -460,6 +459,177 @@ class DirectCustomerSalesOrderService
         $this->assertRequiredDateNotInThePast($requiredDate);
 
         return Carbon::parse($requiredDate)->toDateString();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function updateFromPrintSpecification(
+        SalesOrder $order,
+        CustomerPrintSpecification $specification,
+        array $payload,
+        int $createdBy,
+    ): SalesOrder {
+        return DB::transaction(function () use ($order, $specification, $payload, $createdBy) {
+            $specification->loadMissing(['inventoryItem', 'activeArtworkVersion', 'customer']);
+            $order->loadMissing(['items', 'jobCard']);
+
+            $this->assertSpecificationOrderable($specification);
+
+            $incomingDate = $payload['required_date'] ?? null;
+            $currentDate = $order->required_date?->toDateString();
+            if (filled($incomingDate) && $incomingDate !== $currentDate) {
+                $this->assertRequiredDateNotInThePast($incomingDate);
+            }
+
+            $payload = app(PrintSpecificationJobFields::class)->hydrateOrderPayload($payload, $specification);
+
+            $artwork = $specification->activeArtworkVersion;
+            $usesArtwork = $artwork !== null;
+            $quantity = (float) ($payload['quantity'] ?? $order->items->first()?->quantity ?? $specification->default_quantity ?? 1);
+            $unitPrice = (float) ($payload['unit_price'] ?? $order->items->first()?->unit_price ?? $specification->default_unit_price ?? 0);
+            $lineItem = $this->buildSnapshotLineItem($specification, $artwork, $quantity, $unitPrice);
+
+            $order->update([
+                'customer_print_specification_id' => $specification->id,
+                'inventory_item_id' => $specification->inventory_item_id,
+                'uses_existing_artwork' => $usesArtwork,
+                'customer_artwork_id' => $artwork?->id,
+                'artwork_confirmed_by' => $usesArtwork ? ($order->artwork_confirmed_by ?? $createdBy) : null,
+                'artwork_confirmed_at' => $usesArtwork ? ($order->artwork_confirmed_at ?? now()) : null,
+                'required_date' => $payload['required_date'] ?? $order->required_date,
+                'priority' => $payload['priority']
+                    ?? $order->priority?->value
+                    ?? $specification->default_priority?->value
+                    ?? ProductionPriority::Normal->value,
+                'production_destination' => $payload['production_destination'] ?? $order->production_destination?->value,
+                'subtotal' => $lineItem['line_total'],
+                'total_amount' => $lineItem['line_total'],
+                'fulfilment_method' => $payload['fulfilment_method']
+                    ?? $order->fulfilment_method?->value
+                    ?? $specification->default_fulfilment_method?->value
+                    ?? FulfilmentMethod::Collection->value,
+                'billing_type' => $payload['billing_type'] ?? $order->billing_type?->value,
+                'notes' => array_key_exists('notes', $payload)
+                    ? $this->composeOrderNotes($specification, $payload['notes'] ?? null)
+                    : $order->notes,
+            ]);
+
+            $item = $order->items->first();
+            if ($item) {
+                $item->update($lineItem);
+            } else {
+                $order->items()->create([
+                    ...$lineItem,
+                    'sort_order' => 1,
+                ]);
+            }
+
+            $order = $order->fresh(['items', 'customerPrintSpecification', 'jobCard']);
+
+            $this->offsetJobSheets->attachToOrder($order, $payload, $createdBy);
+            $this->outsourceSpecs->attachToOrder($order, $payload, $createdBy);
+            $this->digitalSpecs->attachToOrder($order, $payload, $createdBy);
+
+            $this->syncOpenJobCard($order->fresh(['jobCard', 'items']));
+
+            return $order->fresh(['items', 'customer', 'customerPrintSpecification', 'customerArtwork', 'jobCard']);
+        });
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function findOpenOrderForSpecification(
+        CustomerPrintSpecification $specification,
+        array $payload,
+    ): ?SalesOrder {
+        if (! empty($payload['sales_order_id'])) {
+            $order = SalesOrder::query()
+                ->where('customer_id', $specification->customer_id)
+                ->whereKey((int) $payload['sales_order_id'])
+                ->first();
+
+            return $order && $this->orderIsOpenForEdit($order) ? $order : null;
+        }
+
+        $order = SalesOrder::query()
+            ->where('customer_print_specification_id', $specification->id)
+            ->where('customer_id', $specification->customer_id)
+            ->whereNotIn('status', [
+                SalesOrderStatus::Delivered,
+                SalesOrderStatus::Closed,
+                SalesOrderStatus::Cancelled,
+            ])
+            ->where(function ($query) {
+                $query->whereDoesntHave('jobCard')
+                    ->orWhereHas('jobCard', function ($job) {
+                        $job->whereNotIn('status', [
+                            ProductionJobCardStatus::Completed,
+                            ProductionJobCardStatus::ReadyForDispatch,
+                            ProductionJobCardStatus::Cancelled,
+                        ]);
+                    });
+            })
+            ->latest('id')
+            ->first();
+
+        return $order && $this->orderIsOpenForEdit($order) ? $order : null;
+    }
+
+    protected function orderIsOpenForEdit(SalesOrder $order): bool
+    {
+        if (in_array($order->status, [
+            SalesOrderStatus::Delivered,
+            SalesOrderStatus::Closed,
+            SalesOrderStatus::Cancelled,
+        ], true)) {
+            return false;
+        }
+
+        $jobCard = $order->jobCard;
+
+        if ($jobCard === null) {
+            return true;
+        }
+
+        return ! in_array($jobCard->status, [
+            ProductionJobCardStatus::Completed,
+            ProductionJobCardStatus::ReadyForDispatch,
+            ProductionJobCardStatus::Cancelled,
+        ], true);
+    }
+
+    protected function syncOpenJobCard(SalesOrder $order): void
+    {
+        $jobCard = $order->jobCard;
+
+        if ($jobCard === null) {
+            return;
+        }
+
+        $attributes = $order->productionJobAttributes();
+        if ($attributes !== []) {
+            $jobCard->update($attributes);
+            $jobCard = $jobCard->fresh();
+        }
+
+        $destination = $jobCard->production_destination ?? $order->production_destination;
+        if ($destination?->isOutsource()) {
+            return;
+        }
+
+        $workCenter = app(DepartmentQueueRoutingService::class)->recommendedWorkCenter($jobCard);
+        if ($workCenter === null) {
+            return;
+        }
+
+        $queues = app(ProductionQueueService::class);
+        if (! $queues->hasActiveQueue($jobCard) && $jobCard->queues()->doesntExist()) {
+            return;
+        }
+
+        $queues->enqueue($jobCard, $workCenter->id);
     }
 
     protected function assertRequiredDateNotInThePast(mixed $requiredDate): void
