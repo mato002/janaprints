@@ -49,7 +49,8 @@ class DigitalSpecificationService
 
         $sheet = is_array($payload['digital'] ?? null) ? $payload['digital'] : [];
 
-        if (! filled($payload['unit_price'] ?? null) && filled($sheet['price'] ?? null)) {
+        $jobFields = app(PrintSpecificationJobFields::class);
+        if ($jobFields->isMissingAmount($payload['unit_price'] ?? null) && ! $jobFields->isMissingAmount($sheet['price'] ?? null)) {
             $payload['unit_price'] = round((float) $sheet['price'], 2);
         }
 

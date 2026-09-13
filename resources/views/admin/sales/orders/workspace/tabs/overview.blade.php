@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <dt>{{ __('Total') }}</dt>
-                    <dd class="font-mono text-base font-semibold text-slate-900">{{ number_format($salesOrder->total_amount, 2) }}</dd>
+                    <dd class="font-mono text-base font-semibold text-slate-900">{{ number_format($salesOrder->billedTotal(), 2) }}</dd>
                 </div>
                 <div>
                     <dt>{{ __('Order date') }}</dt>
@@ -192,7 +192,7 @@
                 </div>
                 <div class="so-360__kpi so-360__kpi--emphasis">
                     <span class="so-360__kpi-label">{{ __('Total') }}</span>
-                    <span class="so-360__kpi-value font-mono">{{ number_format($salesOrder->total_amount, 2) }}</span>
+                    <span class="so-360__kpi-value font-mono">{{ number_format($salesOrder->billedTotal(), 2) }}</span>
                 </div>
             </div>
             @if (! empty($profitability))

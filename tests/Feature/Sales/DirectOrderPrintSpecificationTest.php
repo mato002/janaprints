@@ -155,6 +155,68 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->assertEquals(SalesOrderStatus::Confirmed, $order->status);
     }
 
+    public function test_sales_desk_order_view_modal_includes_print_specification(): void
+    {
+        [$spec, $artwork] = $this->activeSpecificationWithArtwork();
+        $spec->update([
+            'production_destination' => 'digital',
+            'job_sheet_payload' => [
+                'kind' => 'digital',
+                'description' => 'Funeral 500ml Straight',
+                'paper_type' => 'Art 150',
+                'ups' => 2,
+                'sheets' => 250,
+                'finishing' => 'Matt',
+            ],
+        ]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_id' => $this->customer->id,
+            'customer_print_specification_id' => $spec->id,
+            'customer_artwork_id' => $artwork->id,
+            'inventory_item_id' => $this->product->id,
+            'production_destination' => 'digital',
+            'quotation_id' => null,
+            'artwork_request_id' => null,
+            'created_by' => $this->user->id,
+            'status' => SalesOrderStatus::Confirmed,
+            'is_direct_order' => true,
+            'total_amount' => 1800,
+        ]);
+
+        $order->items()->create([
+            'customer_print_specification_id' => $spec->id,
+            'inventory_item_id' => $this->product->id,
+            'customer_artwork_id' => $artwork->id,
+            'specification_code' => $spec->specification_code,
+            'specification_name' => $spec->name,
+            'artwork_version_number' => $artwork->version_number,
+            'item_name' => 'Funeral 500ml Straight',
+            'quantity' => 500,
+            'unit_price' => 3.6,
+            'line_total' => 1800,
+            'sort_order' => 0,
+            'production_notes_snapshot' => $spec->production_notes,
+        ]);
+
+        $this->actingAs($this->user)
+            ->withHeaders(['Turbo-Frame' => 'erp-form-modal'])
+            ->get(route('admin.sales-orders.show', [$order, 'from' => 'sales-desk']))
+            ->assertOk()
+            ->assertSee('data-erp-form-modal-panel', false)
+            ->assertSee($order->order_number, false)
+            ->assertSee(__('Print specification'), false)
+            ->assertSee($spec->name, false)
+            ->assertSee($spec->specification_code, false)
+            ->assertSee('Funeral 500ml Straight', false)
+            ->assertSee('Art 150', false)
+            ->assertSee('Matt', false)
+            ->assertSee($artwork->versionLabel(), false)
+            ->assertSee(__('Job details'), false);
+    }
+
     public function test_direct_order_create_form_does_not_show_commercial_fields(): void
     {
         $this->actingAs($this->user)

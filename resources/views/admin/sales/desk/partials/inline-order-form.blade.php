@@ -8,6 +8,15 @@
     $specProduct = $specification->inventoryItem;
     $specArtworkRequired = $specProduct && $specProduct->stock_role === InventoryStockRole::FinishedGood;
     $specArtworkMissing = $specArtworkRequired && ! $specArtwork;
+    $sheet = is_array($specification->job_sheet_payload) ? $specification->job_sheet_payload : [];
+    $specUnitPrice = $specification->default_unit_price;
+    if ($specUnitPrice === null || (float) $specUnitPrice <= 0) {
+        $specUnitPrice = $sheet['price'] ?? null;
+        if (($specUnitPrice === null || (float) $specUnitPrice <= 0) && ! empty($sheet['selling_price'])) {
+            $qty = (float) ($specification->default_quantity ?? 1);
+            $specUnitPrice = $qty > 0 ? round((float) $sheet['selling_price'] / $qty, 2) : 0;
+        }
+    }
 @endphp
 
 <div class="space-y-4">
@@ -79,31 +88,19 @@
                 'value' => old('production_destination', $specification->production_destination?->value),
                 'required' => true,
             ])
-            <p class="text-xs text-slate-500">{{ __('Quantity, price, priority, fulfilment, billing, and notes come from the specification.') }}</p>
+            <p class="text-xs text-slate-500">{{ __('Quantity and price come from the specification. You can change them for this order.') }}</p>
 
-            <div class="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('From specification') }}</p>
-                <p class="mt-1">
-                    {{ $specification->default_quantity ?? 1 }}
-                    <span class="text-slate-400">{{ __('qty') }}</span>
-                    <span class="text-slate-400">·</span>
-                    {{ $specification->default_unit_price !== null ? number_format((float) $specification->default_unit_price, 2) : '0' }}
-                    <span class="text-slate-400">{{ __('unit price') }}</span>
-                    <span class="text-slate-400">·</span>
-                    {{ $specification->default_priority?->label() ?? __('Normal') }}
-                    @if ($specification->default_fulfilment_method)
-                        <span class="text-slate-400">·</span>
-                        {{ $specification->default_fulfilment_method->label() }}
-                    @endif
-                    @if ($specification->default_billing_type)
-                        <span class="text-slate-400">·</span>
-                        {{ $specification->default_billing_type->label() }}
-                    @endif
-                </p>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                    <label class="erp-label">{{ __('Quantity') }}</label>
+                    <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-full" value="{{ old('quantity', $specification->default_quantity ?? 1) }}" required>
+                </div>
+                <div>
+                    <label class="erp-label">{{ __('Unit price') }}</label>
+                    <input type="number" step="0.01" min="0" name="unit_price" class="erp-input w-full" value="{{ old('unit_price', $specUnitPrice ?? 0) }}" required>
+                </div>
             </div>
 
-            <input type="hidden" name="quantity" value="{{ old('quantity', $specification->default_quantity ?? 1) }}">
-            <input type="hidden" name="unit_price" value="{{ old('unit_price', $specification->default_unit_price ?? 0) }}">
             <input type="hidden" name="required_date" value="{{ old('required_date', now()->toDateString()) }}">
             <input type="hidden" name="priority" value="{{ old('priority', $specification->default_priority?->value ?? 'normal') }}">
             <input type="hidden" name="fulfilment_method" value="{{ old('fulfilment_method', $specification->default_fulfilment_method?->value ?? FulfilmentMethod::Collection->value) }}">

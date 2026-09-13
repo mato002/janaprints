@@ -10087,7 +10087,7 @@ function syncShellFromFrame() {
         return;
     }
 
-    const compact = meta.dataset.compactPage === '1' || meta.dataset.compactWorkspace === '1';
+    const compact = meta.dataset.compactPage === '1';
 
     applyShellLayout(compact);
 

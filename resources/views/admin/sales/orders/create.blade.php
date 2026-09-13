@@ -121,7 +121,15 @@
             selectSpecification(spec) {
                 this.selectedSpecId = String(spec.id);
                 this.form.quantity = String(spec.default_quantity ?? 1);
-                this.form.unit_price = String(spec.default_unit_price ?? 0);
+                const specPrice = Number(spec.default_unit_price)
+                    || Number(spec.digital?.price)
+                    || 0;
+                const selling = Number(spec.outsource?.selling_price) || 0;
+                const qty = Number(this.form.quantity) || 1;
+                this.form.unit_price = String(
+                    specPrice
+                    || (selling > 0 && qty > 0 ? (selling / qty).toFixed(2) : 0)
+                );
                 this.form.billing_type = spec.default_billing_type ?? this.context?.billing_defaults?.billing_type ?? '';
                 this.form.fulfilment_method = spec.default_fulfilment_method ?? 'collection';
                 this.form.priority = spec.default_priority ?? 'normal';
@@ -430,27 +438,17 @@
                     </div>
                 </template>
 
-                <div x-show="selectedSpec" x-cloak class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('From specification') }}</p>
-                    <p class="mt-1">
-                        <span x-text="selectedSpec?.default_quantity ?? 1"></span>
-                        <span class="text-slate-400">{{ __('qty') }}</span>
-                        <span class="text-slate-400">·</span>
-                        <span x-text="selectedSpec?.default_unit_price ?? 0"></span>
-                        <span class="text-slate-400">{{ __('unit price') }}</span>
-                        <span class="text-slate-400">·</span>
-                        <span x-text="(selectedSpec?.default_priority || 'normal')"></span>
-                        <template x-if="selectedSpec?.default_fulfilment_method">
-                            <span>
-                                <span class="text-slate-400">·</span>
-                                <span x-text="selectedSpec.default_fulfilment_method"></span>
-                            </span>
-                        </template>
-                    </p>
-                    <p class="mt-1 text-xs text-slate-500">{{ __('Edit quantity, price, priority, fulfilment, billing, and notes on the specification.') }}</p>
+                <div x-show="selectedSpec" x-cloak class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="erp-label">{{ __('Quantity') }}</label>
+                        <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-full" x-model="form.quantity" required>
+                    </div>
+                    <div>
+                        <label class="erp-label">{{ __('Unit price') }}</label>
+                        <input type="number" step="0.01" min="0" name="unit_price" class="erp-input w-full" x-model="form.unit_price" required>
+                    </div>
+                    <p class="sm:col-span-2 text-xs text-slate-500">{{ __('Copied from the specification. Change them here if this order is different.') }}</p>
                 </div>
-                <input type="hidden" name="quantity" x-model="form.quantity">
-                <input type="hidden" name="unit_price" x-model="form.unit_price">
                 <input type="hidden" name="required_date" x-model="form.required_date">
                 <input type="hidden" name="priority" x-model="form.priority">
                 <input type="hidden" name="fulfilment_method" x-model="form.fulfilment_method">

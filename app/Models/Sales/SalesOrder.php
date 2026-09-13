@@ -167,7 +167,57 @@ class SalesOrder extends Model
 
     public function remainingInvoiceTotal(): float
     {
-        return round(max(0, (float) $this->total_amount - (float) $this->invoiced_total - $this->pendingInvoiceTotal()), 2);
+        return round(max(0, $this->billedTotal() - (float) $this->invoiced_total - $this->pendingInvoiceTotal()), 2);
+    }
+
+    public function billedTotal(): float
+    {
+        $header = round((float) $this->total_amount, 2);
+        $fromLines = 0.0;
+
+        if ($this->relationLoaded('items')) {
+            $fromLines = round((float) $this->items->sum(function ($item) {
+                $line = (float) $item->line_total;
+
+                if ($line > 0) {
+                    return $line;
+                }
+
+                return (float) $item->quantity * (float) $item->unit_price;
+            }), 2);
+        } elseif (isset($this->items_total)) {
+            $fromLines = round((float) $this->items_total, 2);
+        }
+
+        if ($header > 0 || $fromLines > 0) {
+            return max($header, $fromLines);
+        }
+
+        $this->loadMissing('customerPrintSpecification');
+        $spec = $this->customerPrintSpecification;
+
+        if (! $spec) {
+            return 0.0;
+        }
+
+        $quantity = 0.0;
+        if ($this->relationLoaded('items')) {
+            $quantity = (float) ($this->items->first()?->quantity ?? 0);
+        }
+        if ($quantity <= 0) {
+            $quantity = (float) ($spec->default_quantity ?? 1);
+        }
+
+        $price = (float) ($spec->default_unit_price ?? 0);
+        if ($price <= 0) {
+            $sheet = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
+            $price = (float) ($sheet['price'] ?? 0);
+            if ($price <= 0 && isset($sheet['selling_price']) && (float) $sheet['selling_price'] > 0 && $quantity > 0) {
+                $price = round((float) $sheet['selling_price'] / $quantity, 2);
+            }
+        }
+
+        return round($quantity * $price, 2);
     }
 
     /**

@@ -43,8 +43,7 @@
                         <a
                             href="{{ route('admin.sales-orders.show', [$order, 'from' => 'sales-desk']) }}"
                             class="text-erp-accent hover:underline"
-                            data-turbo-frame="erp-main"
-                            data-turbo-action="advance"
+                            data-erp-modal-open
                         >{{ $order->order_number }}</a>
                     </td>
                     <td>{{ $order->customer?->company_name ?? '—' }}</td>
@@ -54,7 +53,7 @@
                     </td>
                     <td class="hidden md:table-cell">{{ $order->creator?->name ?? '—' }}</td>
                     <td><x-admin.enum-status-badge :status="$order->status->value" /></td>
-                    <td class="tabular-nums">{{ number_format($order->total_amount, 2) }}</td>
+                    <td class="tabular-nums">{{ number_format($order->billedTotal(), 2) }}</td>
                     <td class="erp-table-actions-col">
                         @include('admin.sales.orders.partials.row-actions', ['order' => $order])
                     </td>

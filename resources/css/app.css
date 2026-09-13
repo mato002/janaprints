@@ -105,8 +105,11 @@ body.erp-navigating {
     }
 
     /*
-     * Table horizontal scroll lives on .erp-table-scroll so the page shell stays
-     * viewport-width. Vertical sticky thead uses the page / workspace scrollport.
+     * Horizontal table scroll must not use overflow-y: visible. If one axis is
+     * not visible, CSS computes the other to auto and the wrapper becomes a
+     * vertical scrollport that swallows wheel events even when it cannot scroll.
+     * overflow-y: hidden on a height:auto box still grows with rows, so the
+     * page / workspace scrollport handles vertical movement.
      */
     .erp-table-scroll,
     .overflow-x-auto:has(> .erp-table),
@@ -115,9 +118,10 @@ body.erp-navigating {
         @apply relative isolate w-full max-w-full min-w-0;
         max-height: none;
         overflow-x: auto;
-        overflow-y: visible;
+        overflow-y: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-x: contain;
+        overscroll-behavior-y: auto;
         touch-action: pan-x pan-y;
     }
 
@@ -443,7 +447,8 @@ body.erp-navigating {
         flex: 1 1 auto;
         min-height: 0;
         max-height: none;
-        overflow: auto;
+        overflow-x: auto;
+        overflow-y: auto;
     }
 
     .erp-data-grid--locked .erp-table thead th {
@@ -597,7 +602,7 @@ body.erp-navigating {
     }
 
     .module-workspace-content {
-        @apply flex min-h-0 flex-1 flex-col overflow-hidden;
+        @apply flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto;
     }
 
     .module-workspace-embedded {
@@ -1172,7 +1177,7 @@ body.erp-navigating {
     }
 
     .module-workspace-content__frame {
-        @apply flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden;
+        @apply flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto;
     }
 
     .module-workspace-content__loading {

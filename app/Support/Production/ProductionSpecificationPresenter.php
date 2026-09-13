@@ -2,6 +2,8 @@
 
 namespace App\Support\Production;
 
+use App\Enums\ProductionType;
+use App\Models\Procurement\Vendor;
 use App\Models\Production\ProductionSpecification;
 
 class ProductionSpecificationPresenter
@@ -77,6 +79,66 @@ class ProductionSpecificationPresenter
             'message' => __('No structured production specification yet.'),
             'sections' => [],
         ];
+    }
+
+    /**
+     * Present Digital / Offset / Outsource fields stored on a job-sheet payload
+     * (customer print specification or order snapshot) without a production spec row.
+     *
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    public function presentFromPayload(array $payload, array $overrides = []): array
+    {
+        if ($payload === [] && $overrides === []) {
+            return $this->emptyState();
+        }
+
+        if (($payload['kind'] ?? null) === 'outsource'
+            && filled($payload['vendor_id'] ?? null)
+            && ! filled($payload['vendor_name'] ?? null)
+        ) {
+            $payload['vendor_name'] = Vendor::query()->find($payload['vendor_id'])?->vendor_name;
+        }
+
+        $kind = $payload['kind'] ?? null;
+        $productionType = $overrides['production_type'] ?? $payload['printing_type'] ?? null;
+        if (! $productionType && in_array($kind, ['digital', 'offset'], true)) {
+            $productionType = $kind;
+        }
+        if (is_string($productionType) && ProductionType::tryFrom($productionType) === null) {
+            $productionType = null;
+        }
+
+        $spec = new ProductionSpecification([
+            'production_type' => $productionType,
+            'product_description' => $overrides['product_description']
+                ?? $payload['product_description']
+                ?? $payload['description']
+                ?? null,
+            'quantity' => $overrides['quantity'] ?? $payload['quantity'] ?? null,
+            'size' => $payload['size'] ?? null,
+            'ups' => $payload['ups'] ?? null,
+            'binding_type' => $payload['binding_type'] ?? null,
+            'finishing_type' => $payload['finishing'] ?? null,
+            'estimated_sheets' => $payload['sheets'] ?? null,
+            'production_notes' => $payload['production_notes'] ?? $payload['notes'] ?? null,
+            'job_sheet_payload' => $payload,
+        ]);
+
+        $presented = $this->present($spec);
+        $presented['id'] = null;
+        $presented['sections'] = collect($presented['sections'])
+            ->map(fn ($fields) => collect($fields)->filter(fn ($field) => filled($field['value'] ?? null))->values()->all())
+            ->filter()
+            ->all();
+
+        if ($presented['sections'] === []) {
+            return $this->emptyState();
+        }
+
+        return $presented;
     }
 
     public function paperLabel(?ProductionSpecification $spec): ?string

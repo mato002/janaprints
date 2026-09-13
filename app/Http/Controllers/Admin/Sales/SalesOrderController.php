@@ -23,6 +23,7 @@ use App\Support\Production\PrintSpecificationJobFields;
 use App\Support\Production\DigitalSpecificationService;
 use App\Support\Production\OffsetJobSheetService;
 use App\Support\Production\OutsourceSpecificationService;
+use App\Support\Production\ProductionSpecificationService;
 use App\Support\Sales\SalesOrderWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -258,11 +259,17 @@ class SalesOrderController extends Controller
 
         $salesOrder->load([
             'customer', 'quotation', 'artworkRequest', 'branch', 'creator', 'jobCard',
-            'inventoryItem', 'items',
+            'inventoryItem', 'customerArtwork',
+            'customerPrintSpecification.inventoryItem',
+            'customerPrintSpecification.activeArtworkVersion',
+            'items.productionSpecification',
         ]);
 
         if ($this->wantsSalesDeskReturn($request) || $this->wantsProductionFloorReturn($request)) {
-            return view('admin.sales.desk.order-modal', compact('salesOrder'));
+            $jobSpecification = app(ProductionSpecificationService::class)
+                ->presentForSalesOrder($salesOrder);
+
+            return view('admin.sales.desk.order-modal', compact('salesOrder', 'jobSpecification'));
         }
 
         $salesOrder->load([
@@ -645,12 +652,14 @@ class SalesOrderController extends Controller
     ): array {
         $defaults = [];
 
-        if (! filled($request->input('quantity'))) {
-            $defaults['quantity'] = $specification->default_quantity ?? 1;
+        $resolved = $this->jobFields->resolveOrderCommercials($request->all(), $specification);
+
+        if ($this->jobFields->isMissingAmount($request->input('quantity'))) {
+            $defaults['quantity'] = $resolved['quantity'] ?? $specification->default_quantity ?? 1;
         }
 
-        if ($request->input('unit_price') === null || $request->input('unit_price') === '') {
-            $defaults['unit_price'] = $specification->default_unit_price ?? 0;
+        if ($this->jobFields->isMissingAmount($request->input('unit_price'))) {
+            $defaults['unit_price'] = $resolved['unit_price'] ?? $specification->default_unit_price ?? 0;
         }
 
         if (! filled($request->input('priority'))) {

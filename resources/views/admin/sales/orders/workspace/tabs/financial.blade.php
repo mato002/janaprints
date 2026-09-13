@@ -19,7 +19,7 @@
         @endif
 
         <dl class="so-360__dl so-360__dl--compact">
-            <div><dt>{{ __('Order total') }}</dt><dd class="font-mono">{{ number_format($salesOrder->total_amount, 2) }}</dd></div>
+            <div><dt>{{ __('Order total') }}</dt><dd class="font-mono">{{ number_format($salesOrder->billedTotal(), 2) }}</dd></div>
             <div><dt>{{ __('Invoiced') }}</dt><dd class="font-mono">{{ number_format($salesOrder->invoiced_total, 2) }}</dd></div>
             <div><dt>{{ __('Remaining') }}</dt><dd class="font-mono">{{ number_format($salesOrder->remainingInvoiceTotal(), 2) }}</dd></div>
         </dl>

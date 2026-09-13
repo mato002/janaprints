@@ -67,8 +67,8 @@
             data-turbo-action="advance"
             @class([
                 'flex min-h-0 flex-1 flex-col',
-                'overflow-hidden' => $compactPage || $compactWorkspace,
-                'overflow-x-auto overflow-y-auto' => ! $compactPage && ! $compactWorkspace,
+                'overflow-hidden' => $compactPage,
+                'overflow-x-hidden overflow-y-auto' => ! $compactPage,
             ])
         >
             @php
@@ -103,8 +103,8 @@
             <main @class([
                 'flex min-h-0 min-w-0 flex-1 flex-col',
                 'overflow-hidden p-2' => $compactPage,
-                'overflow-hidden p-1.5 sm:p-2' => ! $compactPage && $compactWorkspace,
-                'p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
+                'min-h-0 overflow-x-hidden overflow-y-auto p-1.5 sm:p-2' => ! $compactPage && $compactWorkspace,
+                'overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8' => ! $compactPage && ! $compactWorkspace,
             ])>
                 @unless ($compactPage || $compactWorkspace)
                     @include('admin.partials.breadcrumbs')
@@ -120,7 +120,8 @@
 
                 <div @class([
                     'workspace-wrapper flex min-h-0 min-w-0 flex-1 flex-col',
-                    'overflow-hidden' => $compactPage || $compactWorkspace,
+                    'overflow-hidden' => $compactPage,
+                    'overflow-x-hidden overflow-y-auto' => ! $compactPage,
                 ])>
                     {{ $slot }}
                 </div>

@@ -47,7 +47,7 @@ class SalesDeskActionPresenter
             'order_number' => $salesOrder->order_number,
             'status' => $salesOrder->status->value,
             'status_label' => str_replace('_', ' ', ucfirst($salesOrder->status->value)),
-            'total_amount' => number_format((float) $salesOrder->total_amount, 2),
+            'total_amount' => number_format($salesOrder->billedTotal(), 2),
             'quantity' => $quantity !== null ? rtrim(rtrim(number_format((float) $quantity, 3, '.', ','), '0'), '.') : null,
             'unit_price' => $line?->unit_price !== null
                 ? number_format((float) $line->unit_price, 2)
@@ -281,6 +281,7 @@ class SalesDeskActionPresenter
             'key' => 'view',
             'label' => __('View'),
             'href' => route('admin.sales-orders.show', [$salesOrder, ...$from]),
+            'modal' => true,
         ];
 
         if ($user->can('update', $salesOrder)) {
@@ -621,6 +622,6 @@ class SalesDeskActionPresenter
             ], true))
             ->sum('total_amount');
 
-        return round(max(0, (float) $salesOrder->total_amount - (float) $salesOrder->invoiced_total - $pending), 2);
+        return round(max(0, $salesOrder->billedTotal() - (float) $salesOrder->invoiced_total - $pending), 2);
     }
 }

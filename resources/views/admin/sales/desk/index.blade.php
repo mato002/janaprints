@@ -31,7 +31,7 @@
         ]"
 >
     <div
-        class="sales-desk-shell flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden"
+        class="sales-desk-shell flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto"
         @unless ($isPanel)
         x-data="salesDeskSearch(@js([
             'searchUrl' => $searchUrl,
@@ -44,7 +44,7 @@
         @endunless
 
         @if ($isPanel)
-            <div class="sales-desk-register flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div class="sales-desk-register flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
                 @include('admin.sales.desk.partials.register-panel')
             </div>
         @else

@@ -7,6 +7,7 @@ use App\Enums\ProductionSpecificationApprovalStatus;
 use App\Enums\ProductionType;
 use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionSpecification;
+use App\Models\Sales\SalesOrder;
 use App\Models\Sales\SalesOrderItem;
 use App\Models\User;
 use Illuminate\Support\Arr;
@@ -209,9 +210,35 @@ class ProductionSpecificationService
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * Order-time Digital / Offset / Outsource snapshot for the sales-desk view modal.
+     *
      * @return array<string, mixed>
      */
+    public function presentForSalesOrder(SalesOrder $order): array
+    {
+        $order->loadMissing([
+            'items.productionSpecification.paperInventoryItem',
+            'items.productionSpecification.materialInventoryItem',
+            'items.productionSpecification.inkProfile',
+            'customerPrintSpecification',
+        ]);
+
+        $lineSpec = $order->items->first()?->productionSpecification;
+
+        if ($lineSpec) {
+            return $this->present($lineSpec);
+        }
+
+        $printSpec = $order->customerPrintSpecification;
+        $payload = is_array($printSpec?->job_sheet_payload) ? $printSpec->job_sheet_payload : [];
+
+        return $this->presenter->presentFromPayload($payload, [
+            'product_description' => $printSpec?->productLabel()
+                ?? $order->items->first()?->item_name,
+            'quantity' => $order->items->first()?->quantity,
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $data
      * @param  array<string, mixed>  $context

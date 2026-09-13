@@ -57,7 +57,8 @@ class OutsourceSpecificationService
         $quantity = (float) ($payload['quantity'] ?? 0);
         $selling = $sheet['selling_price'] ?? null;
 
-        if (! filled($payload['unit_price'] ?? null) && filled($selling) && $quantity > 0) {
+        $jobFields = app(PrintSpecificationJobFields::class);
+        if ($jobFields->isMissingAmount($payload['unit_price'] ?? null) && ! $jobFields->isMissingAmount($selling) && $quantity > 0) {
             $payload['unit_price'] = round(((float) $selling) / $quantity, 2);
         }
 

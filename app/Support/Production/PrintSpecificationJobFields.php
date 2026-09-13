@@ -86,7 +86,7 @@ class PrintSpecificationJobFields
         $sheet = is_array($specification->job_sheet_payload) ? $specification->job_sheet_payload : [];
 
         if ($sheet === []) {
-            return $payload;
+            return $this->resolveOrderCommercials($payload, $specification);
         }
 
         $destination = $this->destinationValue(
@@ -115,7 +115,63 @@ class PrintSpecificationJobFields
             );
         }
 
+        return $this->resolveOrderCommercials($payload, $specification);
+    }
+
+    /**
+     * Quantity / unit price for a sales order, preferring submitted values then the specification.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    public function resolveOrderCommercials(array $payload, ?CustomerPrintSpecification $specification = null): array
+    {
+        $digital = is_array($payload['digital'] ?? null) ? $payload['digital'] : [];
+        $outsource = is_array($payload['outsource'] ?? null) ? $payload['outsource'] : [];
+        $sheet = is_array($specification?->job_sheet_payload) ? $specification->job_sheet_payload : [];
+
+        if ($this->isMissingAmount($payload['quantity'] ?? null)) {
+            $payload['quantity'] = $specification?->default_quantity ?? 1;
+        }
+
+        $quantity = (float) $payload['quantity'];
+
+        if (! $this->isMissingAmount($payload['unit_price'] ?? null)) {
+            return $payload;
+        }
+
+        if (! $this->isMissingAmount($specification?->default_unit_price)) {
+            $payload['unit_price'] = round((float) $specification->default_unit_price, 2);
+
+            return $payload;
+        }
+
+        $digitalPrice = $digital['price'] ?? $sheet['price'] ?? null;
+        if (! $this->isMissingAmount($digitalPrice)) {
+            $payload['unit_price'] = round((float) $digitalPrice, 2);
+
+            return $payload;
+        }
+
+        $selling = $outsource['selling_price'] ?? $sheet['selling_price'] ?? null;
+        if (! $this->isMissingAmount($selling) && $quantity > 0) {
+            $payload['unit_price'] = round((float) $selling / $quantity, 2);
+        }
+
         return $payload;
+    }
+
+    public function isMissingAmount(mixed $value): bool
+    {
+        if ($value === null || $value === '' || $value === false) {
+            return true;
+        }
+
+        if (! is_numeric($value)) {
+            return true;
+        }
+
+        return (float) $value <= 0;
     }
 
     /**

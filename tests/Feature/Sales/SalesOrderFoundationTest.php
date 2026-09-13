@@ -372,10 +372,15 @@ class SalesOrderFoundationTest extends TestCase
 
         $editUrl = route('admin.sales-orders.edit', $order);
 
+        $showUrl = route('admin.sales-orders.show', [$order, 'from' => 'sales-desk']);
+
         $this->get(route('admin.sales.desk', ['view' => 'orders']))
             ->assertOk()
             ->assertSee('>'.__('Edit').'<', false)
-            ->assertSee($editUrl, false);
+            ->assertSee($editUrl, false)
+            ->assertSee('>'.__('View').'<', false)
+            ->assertSee('data-erp-modal-open', false)
+            ->assertSee($showUrl, false);
 
         $this->get($editUrl)
             ->assertOk()

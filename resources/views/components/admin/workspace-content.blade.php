@@ -3,12 +3,12 @@
     'frameId' => 'module-workspace-content',
 ])
 
-<div {{ $attributes->merge(['class' => 'module-workspace-content flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden']) }}>
+<div {{ $attributes->merge(['class' => 'module-workspace-content flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto']) }}>
     @if ($url)
         <turbo-frame
             id="{{ $frameId }}"
             src="{{ $url }}"
-            class="module-workspace-content__frame flex min-h-0 flex-1 flex-col overflow-hidden"
+            class="module-workspace-content__frame flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto"
             data-turbo-action="replace"
             data-turbo-cache="false"
         >

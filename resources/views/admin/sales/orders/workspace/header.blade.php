@@ -90,7 +90,7 @@
                 @endif
                 <span class="so-360__total-chip">
                     <span class="so-360__total-label">{{ __('Total') }}</span>
-                    <span class="so-360__total-value font-mono">{{ number_format($salesOrder->total_amount, 2) }}</span>
+                    <span class="so-360__total-value font-mono">{{ number_format($salesOrder->billedTotal(), 2) }}</span>
                 </span>
             </div>
         </div>
