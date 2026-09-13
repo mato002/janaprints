@@ -1,6 +1,7 @@
 <x-admin-layout :title="$invoice->invoice_number" :breadcrumbs="[['label' => __('Invoices'), 'url' => route('admin.invoices.index')], ['label' => $invoice->invoice_number]]">
     <x-admin.page-header :title="$invoice->invoice_number" :description="$invoice->customer?->company_name">
         <x-slot:actions>
+            <x-admin.status-badge :variant="$invoice->collectionStatus()->badgeVariant()">{{ $invoice->collectionStatus()->label() }}</x-admin.status-badge>
             <x-admin.status-badge :variant="match($invoice->status) {
                 App\Enums\CustomerInvoiceStatus::Draft => 'neutral',
                 App\Enums\CustomerInvoiceStatus::Approved => 'info',
@@ -102,9 +103,18 @@
         <x-admin.card>
             <h3 class="font-medium mb-3">{{ __('References') }}</h3>
             <dl class="workspace-meta-grid text-sm space-y-2">
-                @if ($invoice->salesOrder)
+                @php
+                    $linkedOrders = $invoice->salesOrders->isNotEmpty()
+                        ? $invoice->salesOrders
+                        : collect([$invoice->salesOrder])->filter();
+                @endphp
+                @if ($linkedOrders->isNotEmpty())
                     <div><dt class="text-slate-500">{{ __('Sales order') }}</dt>
-                        <dd><a href="{{ route('admin.sales-orders.show', $invoice->salesOrder) }}" class="text-erp-accent">{{ $invoice->salesOrder->order_number }}</a></dd></div>
+                        <dd>
+                            @foreach ($linkedOrders as $linkedOrder)
+                                <a href="{{ route('admin.sales-orders.show', $linkedOrder) }}" class="text-erp-accent">{{ $linkedOrder->order_number }}</a>@if (! $loop->last), @endif
+                            @endforeach
+                        </dd></div>
                 @endif
                 @if ($invoice->jobCard)
                     <div><dt class="text-slate-500">{{ __('Job card') }}</dt>

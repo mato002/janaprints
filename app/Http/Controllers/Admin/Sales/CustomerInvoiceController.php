@@ -32,17 +32,17 @@ class CustomerInvoiceController extends Controller
         protected SalesDocumentEmailService $documentEmails,
     ) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', CustomerInvoice::class);
 
-        $invoices = NewestFirst::apply($this->scopeToTenant(
-            CustomerInvoice::query()
-                ->with(['customer', 'salesOrder'])
-                ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
-        ))->paginate(20);
+        $desk = app(\App\Support\Sales\ReceivablesInvoiceDesk::class)->build(
+            $request,
+            $this->scopeToTenant(CustomerInvoice::query()),
+            $this->scopeToTenant(SalesOrder::query()),
+        );
 
-        return view('admin.sales.invoices.index', compact('invoices'));
+        return view('admin.sales.invoices.index', $desk);
     }
 
     public function creditNotesIndex(): View
@@ -65,6 +65,7 @@ class CustomerInvoiceController extends Controller
         $invoice->load([
             'customer',
             'salesOrder',
+            'salesOrders',
             'jobCard',
             'lines.salesOrderItem',
             'taxLines',
@@ -312,6 +313,46 @@ class CustomerInvoiceController extends Controller
         return redirect()
             ->route('admin.invoices.show', $result->invoice)
             ->with('status', $flash);
+    }
+
+    public function storeFromSalesOrders(Request $request): RedirectResponse
+    {
+        $this->authorize('create', CustomerInvoice::class);
+
+        $validated = $request->validate([
+            'sales_order_ids' => ['required', 'array', 'min:1'],
+            'sales_order_ids.*' => ['required'],
+            'invoice_date' => ['nullable', 'date'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $orders = $this->scopeToTenant(SalesOrder::query())
+            ->where(function ($query) use ($validated) {
+                $query->whereIn('id', $validated['sales_order_ids'])
+                    ->orWhereIn('public_id', $validated['sales_order_ids']);
+            })
+            ->with(['customer', 'items'])
+            ->get();
+
+        if ($orders->count() !== count(array_unique($validated['sales_order_ids']))) {
+            return back()->withErrors([
+                'sales_order_ids' => __('One or more selected orders could not be found.'),
+            ]);
+        }
+
+        foreach ($orders as $order) {
+            $this->authorize('view', $order);
+        }
+
+        $result = $this->invoiceAuthority->createFromSalesOrders($orders->all(), (int) auth()->id(), [
+            'invoice_type' => CustomerInvoiceType::Standard,
+            'invoice_date' => $validated['invoice_date'] ?? now()->toDateString(),
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('admin.invoices.show', $result->invoice)
+            ->with('status', __('Invoice created from :count orders.', ['count' => $orders->count()]));
     }
 
     public function storeFromJobCard(ProductionJobCard $jobCard, Request $request): RedirectResponse

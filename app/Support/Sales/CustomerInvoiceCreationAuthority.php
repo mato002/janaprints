@@ -44,6 +44,33 @@ class CustomerInvoiceCreationAuthority
     }
 
     /**
+     * @param  list<SalesOrder>  $orders
+     * @param  array<string, mixed>  $options
+     */
+    public function createFromSalesOrders(array $orders, int $userId, array $options = []): CustomerInvoiceCreationResult
+    {
+        if (count($orders) === 1) {
+            return $this->createFromSalesOrder($orders[0], $userId, $options);
+        }
+
+        foreach ($orders as $order) {
+            $existing = $this->findOpenStandardInvoiceForSalesOrder($order);
+
+            if ($existing !== null) {
+                throw ValidationException::withMessages([
+                    'sales_order_ids' => __('An open invoice already exists for :order.', [
+                        'order' => $order->order_number,
+                    ]),
+                ]);
+            }
+        }
+
+        $invoice = $this->invoices->createFromSalesOrders($orders, $userId, $options);
+
+        return new CustomerInvoiceCreationResult($invoice);
+    }
+
+    /**
      * @param  array<string, mixed>  $options
      */
     public function createFromJobCard(ProductionJobCard $jobCard, int $userId, array $options = []): CustomerInvoiceCreationResult
@@ -123,7 +150,6 @@ class CustomerInvoiceCreationAuthority
     {
         return CustomerInvoice::query()
             ->where('company_id', $order->company_id)
-            ->where('sales_order_id', $order->id)
             ->where('invoice_type', CustomerInvoiceType::Standard)
             ->whereIn('status', [
                 CustomerInvoiceStatus::Draft,
@@ -131,6 +157,10 @@ class CustomerInvoiceCreationAuthority
                 CustomerInvoiceStatus::Posted,
             ])
             ->whereNull('delivery_note_id')
+            ->where(function ($query) use ($order) {
+                $query->where('sales_order_id', $order->id)
+                    ->orWhereHas('salesOrders', fn ($linked) => $linked->where('sales_orders.id', $order->id));
+            })
             ->orderByDesc('id')
             ->first();
     }

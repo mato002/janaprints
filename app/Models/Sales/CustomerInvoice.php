@@ -2,6 +2,7 @@
 
 namespace App\Models\Sales;
 
+use App\Enums\CustomerInvoiceCollectionStatus;
 use App\Enums\CustomerInvoiceStatus;
 use App\Enums\CustomerInvoiceType;
 use App\Enums\CustomerPaymentStatus;
@@ -14,6 +15,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CustomerInvoice extends Model
@@ -86,6 +88,34 @@ class CustomerInvoice extends Model
     public function salesOrder(): BelongsTo
     {
         return $this->belongsTo(SalesOrder::class);
+    }
+
+    public function salesOrders(): BelongsToMany
+    {
+        return $this->belongsToMany(SalesOrder::class, 'customer_invoice_sales_orders')
+            ->withPivot(['allocated_subtotal', 'allocated_tax', 'allocated_total'])
+            ->withTimestamps();
+    }
+
+    public function collectionStatus(): CustomerInvoiceCollectionStatus
+    {
+        if ($this->status === CustomerInvoiceStatus::Cancelled) {
+            return CustomerInvoiceCollectionStatus::Cancelled;
+        }
+
+        if ($this->status !== CustomerInvoiceStatus::Posted) {
+            return CustomerInvoiceCollectionStatus::Pending;
+        }
+
+        if ((float) $this->balance_due <= 0.01) {
+            return CustomerInvoiceCollectionStatus::Paid;
+        }
+
+        if ((float) $this->amount_paid > 0.01) {
+            return CustomerInvoiceCollectionStatus::Partial;
+        }
+
+        return CustomerInvoiceCollectionStatus::Unpaid;
     }
 
     public function jobCard(): BelongsTo

@@ -5,7 +5,6 @@ namespace App\Models\Sales;
 use App\Enums\FulfilmentMethod;
 use App\Enums\ProductionDestination;
 use App\Enums\ProductionPriority;
-use App\Enums\CustomerInvoiceStatus;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
 use App\Models\Artwork\ArtworkRequest;
@@ -23,6 +22,7 @@ use Database\Factories\Sales\SalesOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -155,14 +155,16 @@ class SalesOrder extends Model
         return $this->hasMany(CustomerInvoice::class);
     }
 
+    public function linkedInvoices(): BelongsToMany
+    {
+        return $this->belongsToMany(CustomerInvoice::class, 'customer_invoice_sales_orders')
+            ->withPivot(['allocated_subtotal', 'allocated_tax', 'allocated_total'])
+            ->withTimestamps();
+    }
+
     public function pendingInvoiceTotal(): float
     {
-        return (float) $this->invoices()
-            ->whereIn('status', [
-                CustomerInvoiceStatus::Draft,
-                CustomerInvoiceStatus::Approved,
-            ])
-            ->sum('total_amount');
+        return app(\App\Support\Sales\CustomerInvoiceService::class)->reservedInvoiceTotal($this);
     }
 
     public function remainingInvoiceTotal(): float

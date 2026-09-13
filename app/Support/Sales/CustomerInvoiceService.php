@@ -60,7 +60,7 @@ class CustomerInvoiceService
             $dueDate = now()->parse($options['invoice_date'] ?? now())->addDays((int) $order->payment_terms_days)->toDateString();
         }
 
-        return $this->finalizeCustomerInvoice($this->createInvoice([
+        $invoice = $this->createInvoice([
             'company_id' => $order->company_id,
             'branch_id' => $order->branch_id,
             'customer_id' => $order->customer_id,
@@ -72,7 +72,88 @@ class CustomerInvoiceService
             'billing_percent' => $type === CustomerInvoiceType::Progress ? ($options['billing_percent'] ?? null) : null,
             'deposit_amount' => $type === CustomerInvoiceType::Deposit ? ($options['deposit_amount'] ?? null) : null,
             'currency' => 'KES',
-        ], $lines, $userId, (float) ($options['header_discount'] ?? 0)), $userId);
+        ], $lines, $userId, (float) ($options['header_discount'] ?? 0));
+
+        $this->syncOrderAllocationsFromLines($invoice, array_map(
+            fn (array $line) => [...$line, 'sales_order_id' => $order->id],
+            $lines,
+        ));
+
+        return $this->finalizeCustomerInvoice($invoice, $userId);
+    }
+
+    /**
+     * @param  list<SalesOrder>  $orders
+     * @param  array<string, mixed>  $options
+     */
+    public function createFromSalesOrders(array $orders, int $userId, array $options = []): CustomerInvoice
+    {
+        $orders = array_values($orders);
+
+        if ($orders === []) {
+            throw ValidationException::withMessages([
+                'sales_order_ids' => __('Select at least one sales order to invoice.'),
+            ]);
+        }
+
+        if (count($orders) === 1) {
+            return $this->createFromSalesOrder($orders[0], $userId, $options);
+        }
+
+        $customerIds = collect($orders)->pluck('customer_id')->unique()->filter()->values();
+        if ($customerIds->count() !== 1) {
+            throw ValidationException::withMessages([
+                'sales_order_ids' => __('All selected orders must belong to the same customer.'),
+            ]);
+        }
+
+        $type = $options['invoice_type'] ?? CustomerInvoiceType::Standard;
+        $lines = [];
+
+        foreach ($orders as $order) {
+            $this->billingEligibility->assertCanInvoice($order, $type);
+            $this->assertOrderBillable($order);
+
+            $orderLines = $this->resolveLinesFromSalesOrder($order, $type, $options);
+
+            foreach ($orderLines as $line) {
+                $line['item_name'] = $order->order_number.' — '.$line['item_name'];
+                $line['description'] = trim(implode(' · ', array_filter([
+                    $line['description'] ?? null,
+                    $order->order_number,
+                ])));
+                $line['sales_order_id'] = $order->id;
+                $lines[] = $line;
+            }
+        }
+
+        $primary = $orders[0];
+        $dueDate = $options['due_date'] ?? null;
+        if ($dueDate === null && $primary->payment_terms_days) {
+            $dueDate = now()->parse($options['invoice_date'] ?? now())->addDays((int) $primary->payment_terms_days)->toDateString();
+        }
+
+        $invoice = $this->createInvoice([
+            'company_id' => $primary->company_id,
+            'branch_id' => $primary->branch_id,
+            'customer_id' => $primary->customer_id,
+            'sales_order_id' => $primary->id,
+            'billing_source' => 'sales_orders',
+            'invoice_type' => $type,
+            'invoice_date' => $options['invoice_date'] ?? now()->toDateString(),
+            'due_date' => $dueDate,
+            'notes' => $options['notes'] ?? __('Combined invoice for :count orders.', ['count' => count($orders)]),
+            'currency' => 'KES',
+            'omit_sales_order_cap' => true,
+        ], $lines, $userId, (float) ($options['header_discount'] ?? 0));
+
+        $this->syncOrderAllocationsFromLines($invoice, $lines);
+
+        foreach ($orders as $order) {
+            $this->validateSalesOrderCap($order->fresh(), $invoice);
+        }
+
+        return $this->finalizeCustomerInvoice($invoice, $userId);
     }
 
     /**
@@ -230,7 +311,10 @@ class CustomerInvoiceService
             $headerDiscount,
         );
 
-        return DB::transaction(function () use ($header, $lineItems, $calculated, $userId, $type) {
+        $omitCap = (bool) ($header['omit_sales_order_cap'] ?? false);
+        unset($header['omit_sales_order_cap']);
+
+        return DB::transaction(function () use ($header, $lineItems, $calculated, $userId, $type, $omitCap) {
             $invoice = CustomerInvoice::query()->create([
                 ...$header,
                 'invoice_number' => $this->numbering->next(
@@ -250,7 +334,7 @@ class CustomerInvoiceService
             $this->syncLines($invoice, $lineItems, $calculated);
             $this->syncTaxLines($invoice, $calculated['tax_summary']);
 
-            if ($invoice->sales_order_id && ! $type->isCredit()) {
+            if ($invoice->sales_order_id && ! $type->isCredit() && ! $omitCap) {
                 $this->validateSalesOrderCap($invoice->salesOrder, $invoice);
             }
 
@@ -345,8 +429,8 @@ class CustomerInvoiceService
             ]);
         }
 
-        if ($invoice->sales_order_id) {
-            $this->validateSalesOrderCap($invoice->salesOrder, including: $invoice);
+        foreach ($this->linkedSalesOrders($invoice) as $order) {
+            $this->validateSalesOrderCap($order, including: $invoice);
         }
 
         return DB::transaction(function () use ($invoice, $userId) {
@@ -380,17 +464,17 @@ class CustomerInvoiceService
                 'amount_paid' => 0,
             ]);
 
-            if ($invoice->sales_order_id && ! $invoice->invoice_type->isCredit()) {
+            if (! $invoice->invoice_type->isCredit()) {
                 $this->applyInvoicedAmounts($invoice);
-            } elseif ($invoice->sales_order_id && $invoice->invoice_type->isCredit()) {
+            } else {
                 $this->reverseInvoicedAmounts($invoice);
             }
 
-            $invoice = $invoice->fresh(['postedJournal', 'poster', 'taxLines', 'customer', 'salesOrder']);
+            $invoice = $invoice->fresh(['postedJournal', 'poster', 'taxLines', 'customer', 'salesOrder', 'salesOrders']);
             $this->taxRecorder->recordCustomerInvoice($invoice);
 
-            if ($invoice->salesOrder) {
-                $this->financialStatus->syncDepositAmounts($invoice->salesOrder);
+            foreach ($this->linkedSalesOrders($invoice) as $order) {
+                $this->financialStatus->syncDepositAmounts($order);
             }
 
             $this->communications()?->dispatch(
@@ -437,24 +521,119 @@ class CustomerInvoiceService
         $invoice->delete();
     }
 
+    public function reservedInvoiceTotal(SalesOrder $order, ?int $excludingInvoiceId = null): float
+    {
+        return $this->pendingInvoiceTotal($order, $excludingInvoiceId);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $lineItems
+     */
+    protected function syncOrderAllocationsFromLines(CustomerInvoice $invoice, array $lineItems): void
+    {
+        $invoice->loadMissing('lines.salesOrderItem');
+        $allocations = [];
+
+        foreach ($invoice->lines as $index => $line) {
+            $orderId = $lineItems[$index]['sales_order_id']
+                ?? $line->salesOrderItem?->sales_order_id
+                ?? $invoice->sales_order_id;
+
+            if (! $orderId) {
+                continue;
+            }
+
+            $allocations[$orderId] ??= [
+                'allocated_subtotal' => 0.0,
+                'allocated_tax' => 0.0,
+                'allocated_total' => 0.0,
+            ];
+            $allocations[$orderId]['allocated_subtotal'] += (float) $line->line_subtotal;
+            $allocations[$orderId]['allocated_tax'] += (float) $line->tax_amount;
+            $allocations[$orderId]['allocated_total'] += (float) $line->line_total;
+        }
+
+        $this->syncOrderAllocations($invoice, $allocations);
+    }
+
+    /**
+     * @param  array<int, array{allocated_subtotal: float, allocated_tax: float, allocated_total: float}>  $allocations
+     */
+    protected function syncOrderAllocations(CustomerInvoice $invoice, array $allocations): void
+    {
+        $payload = [];
+
+        foreach ($allocations as $orderId => $amounts) {
+            $payload[$orderId] = [
+                'allocated_subtotal' => round((float) $amounts['allocated_subtotal'], 2),
+                'allocated_tax' => round((float) $amounts['allocated_tax'], 2),
+                'allocated_total' => round((float) $amounts['allocated_total'], 2),
+            ];
+        }
+
+        $invoice->salesOrders()->sync($payload);
+    }
+
+    /**
+     * @return list<SalesOrder>
+     */
+    protected function linkedSalesOrders(CustomerInvoice $invoice): array
+    {
+        $invoice->loadMissing(['salesOrders', 'salesOrder']);
+
+        if ($invoice->salesOrders->isNotEmpty()) {
+            return $invoice->salesOrders->all();
+        }
+
+        return $invoice->salesOrder ? [$invoice->salesOrder] : [];
+    }
+
+    protected function allocationForOrder(CustomerInvoice $invoice, SalesOrder $order): array
+    {
+        $invoice->loadMissing('salesOrders');
+        $linked = $invoice->salesOrders->firstWhere('id', $order->id);
+
+        if ($linked) {
+            return [
+                'subtotal' => (float) $linked->pivot->allocated_subtotal,
+                'tax' => (float) $linked->pivot->allocated_tax,
+                'total' => (float) $linked->pivot->allocated_total,
+            ];
+        }
+
+        if ((int) $invoice->sales_order_id === (int) $order->id) {
+            return [
+                'subtotal' => (float) $invoice->subtotal,
+                'tax' => (float) $invoice->tax_amount,
+                'total' => (float) $invoice->total_amount,
+            ];
+        }
+
+        return ['subtotal' => 0.0, 'tax' => 0.0, 'total' => 0.0];
+    }
+
     protected function applyInvoicedAmounts(CustomerInvoice $invoice): void
     {
-        $order = $invoice->salesOrder;
-        $order->update([
-            'invoiced_subtotal' => round((float) $order->invoiced_subtotal + (float) $invoice->subtotal, 2),
-            'invoiced_tax_amount' => round((float) $order->invoiced_tax_amount + (float) $invoice->tax_amount, 2),
-            'invoiced_total' => round((float) $order->invoiced_total + (float) $invoice->total_amount, 2),
-        ]);
+        foreach ($this->linkedSalesOrders($invoice) as $order) {
+            $allocation = $this->allocationForOrder($invoice, $order);
+            $order->update([
+                'invoiced_subtotal' => round((float) $order->invoiced_subtotal + $allocation['subtotal'], 2),
+                'invoiced_tax_amount' => round((float) $order->invoiced_tax_amount + $allocation['tax'], 2),
+                'invoiced_total' => round((float) $order->invoiced_total + $allocation['total'], 2),
+            ]);
+        }
     }
 
     protected function reverseInvoicedAmounts(CustomerInvoice $invoice): void
     {
-        $order = $invoice->salesOrder;
-        $order->update([
-            'invoiced_subtotal' => round(max(0, (float) $order->invoiced_subtotal - (float) $invoice->subtotal), 2),
-            'invoiced_tax_amount' => round(max(0, (float) $order->invoiced_tax_amount - (float) $invoice->tax_amount), 2),
-            'invoiced_total' => round(max(0, (float) $order->invoiced_total - (float) $invoice->total_amount), 2),
-        ]);
+        foreach ($this->linkedSalesOrders($invoice) as $order) {
+            $allocation = $this->allocationForOrder($invoice, $order);
+            $order->update([
+                'invoiced_subtotal' => round(max(0, (float) $order->invoiced_subtotal - $allocation['subtotal']), 2),
+                'invoiced_tax_amount' => round(max(0, (float) $order->invoiced_tax_amount - $allocation['tax']), 2),
+                'invoiced_total' => round(max(0, (float) $order->invoiced_total - $allocation['total']), 2),
+            ]);
+        }
     }
 
     protected function validateSalesOrderCap(?SalesOrder $order, ?CustomerInvoice $including = null): void
@@ -463,17 +642,10 @@ class CustomerInvoiceService
             return;
         }
 
-        $pendingTotal = CustomerInvoice::query()
-            ->where('sales_order_id', $order->id)
-            ->whereIn('status', [
-                CustomerInvoiceStatus::Draft->value,
-                CustomerInvoiceStatus::Approved->value,
-            ])
-            ->when($including, fn ($q) => $q->where('id', '!=', $including->id))
-            ->sum('total_amount');
-
-        $projected = (float) $order->invoiced_total + (float) $pendingTotal + (float) ($including?->total_amount ?? 0);
-        $orderTotal = $order->billedTotal();
+        $pendingTotal = $this->pendingInvoiceTotal($order, $including?->id);
+        $includingAmount = $including ? $this->allocationForOrder($including, $order)['total'] : 0;
+        $projected = (float) $order->invoiced_total + (float) $pendingTotal + $includingAmount;
+        $orderTotal = max($order->billedTotal(), (float) $order->total_amount);
 
         if ($projected > $orderTotal + 0.01) {
             $remaining = max(0, $orderTotal - (float) $order->invoiced_total - (float) $pendingTotal);
@@ -489,14 +661,27 @@ class CustomerInvoiceService
 
     protected function pendingInvoiceTotal(SalesOrder $order, ?int $excludingInvoiceId = null): float
     {
-        return (float) CustomerInvoice::query()
+        $legacy = (float) CustomerInvoice::query()
             ->where('sales_order_id', $order->id)
             ->whereIn('status', [
                 CustomerInvoiceStatus::Draft->value,
                 CustomerInvoiceStatus::Approved->value,
             ])
+            ->whereDoesntHave('salesOrders')
             ->when($excludingInvoiceId, fn ($q) => $q->where('id', '!=', $excludingInvoiceId))
             ->sum('total_amount');
+
+        $linked = (float) DB::table('customer_invoice_sales_orders')
+            ->join('customer_invoices', 'customer_invoices.id', '=', 'customer_invoice_sales_orders.customer_invoice_id')
+            ->where('customer_invoice_sales_orders.sales_order_id', $order->id)
+            ->whereIn('customer_invoices.status', [
+                CustomerInvoiceStatus::Draft->value,
+                CustomerInvoiceStatus::Approved->value,
+            ])
+            ->when($excludingInvoiceId, fn ($q) => $q->where('customer_invoices.id', '!=', $excludingInvoiceId))
+            ->sum('customer_invoice_sales_orders.allocated_total');
+
+        return round($legacy + $linked, 2);
     }
 
     protected function remainingBillableTotal(SalesOrder $order, ?int $excludingInvoiceId = null): float

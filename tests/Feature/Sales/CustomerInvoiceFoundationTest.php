@@ -193,7 +193,13 @@ class CustomerInvoiceFoundationTest extends TestCase
             ->withHeader('Turbo-Frame', 'module-workspace-content')
             ->get(route('admin.invoices.index', ['embedded' => '1']))
             ->assertOk()
-            ->assertSee(__('Create invoice'), false);
+            ->assertSee(__('Create invoice'), false)
+            ->assertSee(__('To bill'), false)
+            ->assertSee(__('Digital'), false)
+            ->assertSee(__('Offset'), false)
+            ->assertSee(__('Outsourced'), false)
+            ->assertSee($this->salesOrder->order_number, false)
+            ->assertSee(__('Generate invoice'), false);
 
         $this->actingAs($this->user)
             ->get(route('admin.invoices.create'))
