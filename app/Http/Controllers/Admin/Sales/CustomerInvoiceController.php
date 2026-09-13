@@ -187,7 +187,7 @@ class CustomerInvoiceController extends Controller
 
         $query = $this->scopeToTenant(
             SalesOrder::query()
-                ->with(['customer'])
+                ->with(['customer', 'items.productionSpecification', 'customerPrintSpecification'])
                 ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
         );
 
@@ -207,7 +207,7 @@ class CustomerInvoiceController extends Controller
                 'order_number' => $order->order_number,
                 'customer' => $order->customer?->company_name ?? '',
                 'order_date' => $order->order_date?->format('Y-m-d') ?? '',
-                'total' => number_format((float) $order->total_amount, 2),
+                'total' => number_format($order->billedTotal(), 2),
                 'remaining' => number_format($order->remainingInvoiceTotal(), 2),
                 'status' => ucwords(str_replace('_', ' ', $order->status->value)),
                 'href' => route('admin.invoices.from-sales-order', $order),
@@ -227,6 +227,7 @@ class CustomerInvoiceController extends Controller
         $this->authorize('view', $salesOrder);
 
         $salesOrder->load('items', 'customer', 'jobCard');
+        $salesOrder->syncStoredCommercialsFromLines();
 
         $billingEligibilityService = app(\App\Support\Sales\SalesOrderBillingEligibilityService::class);
 

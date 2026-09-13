@@ -172,38 +172,35 @@ class SalesOrder extends Model
 
     public function billedTotal(): float
     {
+        $this->loadMissing(['items.productionSpecification', 'customerPrintSpecification']);
+
+        if ($this->items->isNotEmpty()) {
+            $fromQtyPrice = round((float) $this->items->sum(
+                fn ($item) => $this->billedQuantityForItem($item) * (float) $item->unit_price
+            ), 2);
+
+            if ($fromQtyPrice > 0) {
+                return $fromQtyPrice;
+            }
+
+            $fromLineTotal = round((float) $this->items->sum('line_total'), 2);
+            if ($fromLineTotal > 0) {
+                return $fromLineTotal;
+            }
+        }
+
         $header = round((float) $this->total_amount, 2);
-        $fromLines = 0.0;
-
-        if ($this->relationLoaded('items')) {
-            $fromLines = round((float) $this->items->sum(function ($item) {
-                $line = (float) $item->line_total;
-
-                if ($line > 0) {
-                    return $line;
-                }
-
-                return (float) $item->quantity * (float) $item->unit_price;
-            }), 2);
-        } elseif (isset($this->items_total)) {
-            $fromLines = round((float) $this->items_total, 2);
+        if ($header > 0) {
+            return $header;
         }
 
-        if ($header > 0 || $fromLines > 0) {
-            return max($header, $fromLines);
-        }
-
-        $this->loadMissing('customerPrintSpecification');
         $spec = $this->customerPrintSpecification;
 
         if (! $spec) {
             return 0.0;
         }
 
-        $quantity = 0.0;
-        if ($this->relationLoaded('items')) {
-            $quantity = (float) ($this->items->first()?->quantity ?? 0);
-        }
+        $quantity = (float) ($this->items->first()?->quantity ?? 0);
         if ($quantity <= 0) {
             $quantity = (float) ($spec->default_quantity ?? 1);
         }
@@ -218,6 +215,82 @@ class SalesOrder extends Model
         }
 
         return round($quantity * $price, 2);
+    }
+
+    public function syncStoredCommercialsFromLines(): void
+    {
+        $this->loadMissing(['items.productionSpecification', 'customerPrintSpecification']);
+
+        if ($this->items->isEmpty()) {
+            return;
+        }
+
+        foreach ($this->items as $item) {
+            $quantity = $this->billedQuantityForItem($item);
+            $expected = round($quantity * (float) $item->unit_price, 2);
+            $updates = [];
+
+            if (abs((float) $item->quantity - $quantity) > 0.0005) {
+                $updates['quantity'] = $quantity;
+            }
+
+            if (round((float) $item->line_total, 2) !== $expected) {
+                $updates['line_total'] = $expected;
+            }
+
+            if ($updates !== []) {
+                $item->forceFill($updates)->saveQuietly();
+            }
+        }
+
+        $this->unsetRelation('items');
+        $this->recalculateTotalsFromItems();
+    }
+
+    public function recalculateTotalsFromItems(): void
+    {
+        $this->loadMissing('items');
+
+        $subtotal = round((float) $this->items->sum(
+            fn ($item) => (float) $item->quantity * (float) $item->unit_price
+        ), 2);
+
+        $this->items->each(function ($item) {
+            $expected = round((float) $item->quantity * (float) $item->unit_price, 2);
+            if (round((float) $item->line_total, 2) !== $expected) {
+                $item->forceFill(['line_total' => $expected])->saveQuietly();
+            }
+        });
+
+        if (round((float) $this->subtotal, 2) !== $subtotal || round((float) $this->total_amount, 2) !== $subtotal) {
+            $this->forceFill([
+                'subtotal' => $subtotal,
+                'total_amount' => $subtotal,
+            ])->saveQuietly();
+        }
+    }
+
+    protected function billedQuantityForItem(SalesOrderItem $item): float
+    {
+        $quantity = (float) $item->quantity;
+        $price = (float) $item->unit_price;
+
+        if ($quantity > 1 || $price <= 0) {
+            return max($quantity, 0);
+        }
+
+        $stored = (float) ($item->line_total ?: $this->total_amount);
+        $looksUnmultiplied = $stored <= 0 || abs($stored - $price) < 0.02;
+
+        if (! $looksUnmultiplied) {
+            return max($quantity, 0);
+        }
+
+        $productionQty = (float) ($item->productionSpecification?->quantity ?? 0);
+        $specQty = (float) ($this->customerPrintSpecification?->default_quantity ?? 0);
+        $candidate = $productionQty > 1 ? $productionQty : $specQty;
+
+        return $candidate > 1 ? $candidate : max($quantity, 0);
     }
 
     /**

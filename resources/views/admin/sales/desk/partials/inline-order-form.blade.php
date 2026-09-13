@@ -75,6 +75,13 @@
             data-erp-desk-submitting-message="{{ __('Creating order…') }}"
             x-data="{
                 productionDestination: @js(old('production_destination', $specification->production_destination?->value ?? '')),
+                quantity: @js((string) old('quantity', $specification->default_quantity ?? 1)),
+                unitPrice: @js((string) old('unit_price', $specUnitPrice ?? 0)),
+                get orderTotal() {
+                    const qty = Number(this.quantity) || 0;
+                    const price = Number(this.unitPrice) || 0;
+                    return (qty * price).toFixed(2);
+                },
             }"
         >
             @csrf
@@ -93,11 +100,16 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                     <label class="erp-label">{{ __('Quantity') }}</label>
-                    <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-full" value="{{ old('quantity', $specification->default_quantity ?? 1) }}" required>
+                    <input type="number" step="0.001" min="0.001" name="quantity" class="erp-input w-full" x-model="quantity" required>
                 </div>
                 <div>
                     <label class="erp-label">{{ __('Unit price') }}</label>
-                    <input type="number" step="0.01" min="0" name="unit_price" class="erp-input w-full" value="{{ old('unit_price', $specUnitPrice ?? 0) }}" required>
+                    <input type="number" step="0.01" min="0" name="unit_price" class="erp-input w-full" x-model="unitPrice" required>
+                </div>
+                <div class="sm:col-span-2 rounded-lg border border-erp-border bg-slate-50 px-4 py-3">
+                    <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Total') }}</p>
+                    <p class="mt-1 text-lg font-semibold tabular-nums text-erp-primary" x-text="orderTotal"></p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ __('Quantity × unit price') }}</p>
                 </div>
             </div>
 

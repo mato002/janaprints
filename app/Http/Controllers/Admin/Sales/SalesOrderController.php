@@ -264,6 +264,7 @@ class SalesOrderController extends Controller
             'customerPrintSpecification.activeArtworkVersion',
             'items.productionSpecification',
         ]);
+        $salesOrder->syncStoredCommercialsFromLines();
 
         if ($this->wantsSalesDeskReturn($request) || $this->wantsProductionFloorReturn($request)) {
             $jobSpecification = app(ProductionSpecificationService::class)

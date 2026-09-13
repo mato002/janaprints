@@ -37,7 +37,7 @@ class SalesDeskCustomerContextService
                 'key' => $order->getRouteKey(),
                 'order_number' => $order->order_number,
                 'status' => str_replace('_', ' ', $order->status->value),
-                'total_amount' => number_format((float) $order->total_amount, 2),
+                'total_amount' => number_format($order->billedTotal(), 2),
                 'order_date' => $order->order_date?->format('d M Y'),
                 'product' => $order->inventoryItem?->item_name ?? $order->items->first()?->item_name,
                 'desk_url' => route('admin.sales.desk', [

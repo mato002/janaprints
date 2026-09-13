@@ -222,7 +222,7 @@ class CustomerOrderContextService
             'artwork_version' => $order->customerArtwork?->version_number,
             'quantity' => (float) ($firstItem?->quantity ?? 0),
             'unit_price' => (float) ($firstItem?->unit_price ?? 0),
-            'total_amount' => (float) $order->total_amount,
+            'total_amount' => $order->billedTotal(),
             'is_direct_order' => (bool) $order->is_direct_order,
         ];
     }

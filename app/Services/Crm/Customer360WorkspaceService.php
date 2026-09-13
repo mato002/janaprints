@@ -614,10 +614,11 @@ class Customer360WorkspaceService
 
         $orders = NewestFirst::apply($this->customerScoped(
             SalesOrder::query()
-                ->select([
-                    'id', 'order_number', 'order_date', 'status', 'total_amount', 'customer_id',
-                ])
-                ->with(['jobCard:id,sales_order_id,status']),
+                ->with([
+                    'jobCard:id,sales_order_id,status',
+                    'items.productionSpecification',
+                    'customerPrintSpecification',
+                ]),
             $customer,
         ))
             ->paginate(25, pageName: 'orders_page');

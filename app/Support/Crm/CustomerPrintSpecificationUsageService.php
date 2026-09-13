@@ -111,10 +111,16 @@ class CustomerPrintSpecificationUsageService
             ->forTenant()
             ->where('customer_print_specification_id', $spec->id)
             ->whereNotIn('status', $cancelled)
-            ->with(['customer:id,company_name', 'jobCard:id,job_card_number,sales_order_id'])
+            ->with([
+                'customer:id,company_name',
+                'jobCard:id,job_card_number,sales_order_id',
+                'items.productionSpecification',
+                'customerPrintSpecification',
+            ])
             ->select([
                 'id', 'order_number', 'order_date', 'status', 'total_amount',
                 'customer_id', 'is_direct_order', 'repeat_source_sales_order_id',
+                'customer_print_specification_id', 'subtotal',
             ])
             ->latest('order_date')
             ->paginate($perPage, ['*'], 'orders_page');
@@ -146,8 +152,8 @@ class CustomerPrintSpecificationUsageService
             ->where('customer_print_specification_id', $spec->id)
             ->whereNotNull('repeat_source_sales_order_id')
             ->whereNotIn('status', $cancelled)
-            ->with(['repeatSource:id,order_number'])
-            ->select(['id', 'order_number', 'order_date', 'repeat_source_sales_order_id', 'total_amount'])
+            ->with(['repeatSource:id,order_number', 'items.productionSpecification', 'customerPrintSpecification'])
+            ->select(['id', 'order_number', 'order_date', 'repeat_source_sales_order_id', 'total_amount', 'customer_print_specification_id', 'subtotal'])
             ->latest('order_date')
             ->paginate($perPage, ['*'], 'repeat_page');
 

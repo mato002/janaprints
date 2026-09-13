@@ -9,7 +9,7 @@
                         <tr>
                             <td><a class="text-erp-accent hover:underline" href="{{ route('admin.sales-orders.show', $order) }}">{{ $order->order_number }}</a></td>
                             <td>{{ $order->order_date?->format('Y-m-d') }}</td>
-                            <td class="tabular-nums">{{ number_format((float) $order->total_amount, 2) }}</td>
+                            <td class="tabular-nums">{{ number_format($order->billedTotal(), 2) }}</td>
                             <td>{{ $order->status->label() }}</td>
                         </tr>
                     @empty
@@ -76,7 +76,7 @@
                             <td><a class="text-erp-accent hover:underline" href="{{ route('admin.sales-orders.show', $order) }}">{{ $order->order_number }}</a></td>
                             <td>{{ $order->repeatSource?->order_number ?? '—' }}</td>
                             <td>{{ $order->order_date?->format('Y-m-d') }}</td>
-                            <td class="tabular-nums">{{ number_format((float) $order->total_amount, 2) }}</td>
+                            <td class="tabular-nums">{{ number_format($order->billedTotal(), 2) }}</td>
                         </tr>
                     @empty
                         <tr><td colspan="4" class="text-center text-slate-500">{{ __('No repeat orders yet.') }}</td></tr>

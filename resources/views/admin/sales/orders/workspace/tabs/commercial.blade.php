@@ -42,7 +42,7 @@
         <div class="so-360__kpi-row">
             <div class="so-360__kpi">
                 <span class="so-360__kpi-label">{{ __('Subtotal') }}</span>
-                <span class="so-360__kpi-value font-mono">{{ number_format($salesOrder->subtotal, 2) }}</span>
+                <span class="so-360__kpi-value font-mono">{{ number_format($salesOrder->billedTotal(), 2) }}</span>
             </div>
             <div class="so-360__kpi">
                 <span class="so-360__kpi-label">{{ __('Tax') }}</span>

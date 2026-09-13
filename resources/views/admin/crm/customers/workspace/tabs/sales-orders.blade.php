@@ -27,7 +27,7 @@
                             <span class="text-slate-400">—</span>
                         @endif
                     </td>
-                    <td class="text-end tabular-nums">{{ number_format($order->total_amount, 2) }}</td>
+                    <td class="text-end tabular-nums">{{ number_format($order->billedTotal(), 2) }}</td>
                 </tr>
             @empty
                 <tr><td colspan="5" class="text-center text-slate-500 py-6">{{ __('No sales orders for this customer.') }}</td></tr>

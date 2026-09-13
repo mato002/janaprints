@@ -183,8 +183,8 @@ class ActualProductionCostResolver
             return (float) $jobCard->quotation->total_amount;
         }
 
-        if ($jobCard->salesOrder !== null && (float) $jobCard->salesOrder->total_amount > 0) {
-            return (float) $jobCard->salesOrder->total_amount;
+        if ($jobCard->salesOrder !== null && $jobCard->salesOrder->billedTotal() > 0) {
+            return $jobCard->salesOrder->billedTotal();
         }
 
         if ((float) $sheet->revenue > 0) {

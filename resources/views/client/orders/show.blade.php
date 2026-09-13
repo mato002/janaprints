@@ -4,7 +4,7 @@
             <p><strong>{{ __('Order date') }}:</strong> {{ $order->order_date?->format('F j, Y') }}</p>
             <p><strong>{{ __('Expected completion') }}:</strong> {{ $tracking['expected_completion']?->format('F j, Y') ?: '—' }}</p>
             <p><strong>{{ __('Status') }}:</strong> @include('client.partials.status-badge', ['label' => $tracking['status_label']])</p>
-            <p><strong>{{ __('Total') }}:</strong> KES {{ number_format((float) $order->total_amount, 0) }}</p>
+            <p><strong>{{ __('Total') }}:</strong> KES {{ number_format($order->billedTotal(), 0) }}</p>
             @if ($order->quotation)
                 <p><strong>{{ __('Quote reference') }}:</strong> {{ $order->quotation->quotation_number }}</p>
             @endif

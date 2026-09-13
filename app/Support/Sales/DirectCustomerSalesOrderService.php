@@ -114,9 +114,11 @@ class DirectCustomerSalesOrderService
             $this->digitalSpecs->attachToOrder($order->fresh(['items', 'customerPrintSpecification']), $payload, $createdBy);
 
             $this->billingDefaults->applyToOrder($order, $specification->customer);
+            $created = $order->fresh(['items', 'customer']);
+            $created?->recalculateTotalsFromItems();
             $this->communications->dispatch(
                 DomainCommunicationEvent::SalesOrderCreated,
-                $order->fresh(['items', 'customer']),
+                $created,
             );
 
             return $order->fresh(['items', 'customer', 'customerPrintSpecification', 'customerArtwork']);
@@ -523,6 +525,7 @@ class DirectCustomerSalesOrderService
             $this->digitalSpecs->attachToOrder($order, $payload, $createdBy);
 
             $this->syncOpenJobCard($order->fresh(['jobCard', 'items']));
+            $order->fresh(['items'])?->recalculateTotalsFromItems();
 
             return $order->fresh(['items', 'customer', 'customerPrintSpecification', 'customerArtwork', 'jobCard']);
         });

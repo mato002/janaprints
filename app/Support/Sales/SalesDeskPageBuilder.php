@@ -145,20 +145,23 @@ class SalesDeskPageBuilder
             ],
             SalesDeskViews::ORDERS => [
                 'registerTitle' => __('Sales orders'),
-                'orders' => NewestFirst::apply(
-                    $this->scopeToTenant(
-                        SalesOrder::query()->with([
-                            'customer',
-                            'branch',
-                            'quotation',
-                            'creator:id,name',
-                            'jobCard',
-                            'invoices',
-                            'items:id,sales_order_id,quantity,unit_price,line_total',
-                            'customerPrintSpecification',
-                        ])
-                    )
-                )->paginate(preferred_per_page(25))->withQueryString(),
+                'orders' => tap(
+                    NewestFirst::apply(
+                        $this->scopeToTenant(
+                            SalesOrder::query()->with([
+                                'customer',
+                                'branch',
+                                'quotation',
+                                'creator:id,name',
+                                'jobCard',
+                                'invoices',
+                                'items.productionSpecification',
+                                'customerPrintSpecification',
+                            ])
+                        )
+                    )->paginate(preferred_per_page(25))->withQueryString(),
+                    fn ($orders) => $orders->getCollection()->each->syncStoredCommercialsFromLines()
+                ),
             ],
             SalesDeskViews::ARTWORK => [
                 'registerTitle' => __('Artwork requests'),

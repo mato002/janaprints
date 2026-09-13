@@ -473,13 +473,14 @@ class CustomerInvoiceService
             ->sum('total_amount');
 
         $projected = (float) $order->invoiced_total + (float) $pendingTotal + (float) ($including?->total_amount ?? 0);
+        $orderTotal = $order->billedTotal();
 
-        if ($projected > (float) $order->total_amount + 0.01) {
-            $remaining = max(0, (float) $order->total_amount - (float) $order->invoiced_total - (float) $pendingTotal);
+        if ($projected > $orderTotal + 0.01) {
+            $remaining = max(0, $orderTotal - (float) $order->invoiced_total - (float) $pendingTotal);
 
             throw ValidationException::withMessages([
                 'total_amount' => __('Invoiced amount would exceed the sales order total (:max). Remaining billable: :remaining.', [
-                    'max' => number_format($order->total_amount, 2),
+                    'max' => number_format($orderTotal, 2),
                     'remaining' => number_format($remaining, 2),
                 ]),
             ]);
@@ -500,7 +501,7 @@ class CustomerInvoiceService
 
     protected function remainingBillableTotal(SalesOrder $order, ?int $excludingInvoiceId = null): float
     {
-        return round(max(0, (float) $order->total_amount - (float) $order->invoiced_total - $this->pendingInvoiceTotal($order, $excludingInvoiceId)), 2);
+        return round(max(0, $order->billedTotal() - (float) $order->invoiced_total - $this->pendingInvoiceTotal($order, $excludingInvoiceId)), 2);
     }
 
     /**
@@ -609,7 +610,7 @@ class CustomerInvoiceService
             }
 
             $remaining = $this->remainingBillableTotal($order);
-            $targetTotal = round(((float) $order->total_amount * $percent / 100), 2);
+            $targetTotal = round(($order->billedTotal() * $percent / 100), 2);
             $billAmount = min($targetTotal, $remaining);
 
             if ($billAmount <= 0) {
@@ -662,7 +663,7 @@ class CustomerInvoiceService
                 ]);
             }
 
-            $unpostedRemaining = max(0, (float) $order->total_amount - (float) $order->invoiced_total);
+            $unpostedRemaining = max(0, $order->billedTotal() - (float) $order->invoiced_total);
 
             if ((float) $order->invoiced_total > 0.01 || $billable < $unpostedRemaining - 0.01) {
                 return $this->balanceLines(

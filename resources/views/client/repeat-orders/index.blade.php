@@ -20,7 +20,7 @@
           <tr>
             <td>{{ $order->order_number }}</td>
             <td>{{ $order->order_date?->format('M j, Y') }}</td>
-            <td>KES {{ number_format((float) $order->total_amount, 0) }}</td>
+            <td>KES {{ number_format($order->billedTotal(), 0) }}</td>
             <td>
               <form method="post" action="{{ route('client.repeat-orders.store', $order) }}">
                 @csrf

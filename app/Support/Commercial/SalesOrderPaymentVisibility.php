@@ -28,7 +28,7 @@ class SalesOrderPaymentVisibility
                 'label' => __('Uninvoiced'),
                 'variant' => 'neutral',
                 'amount_paid' => 0.0,
-                'amount_outstanding' => (float) $order->total_amount,
+                'amount_outstanding' => $order->billedTotal(),
                 'amount_invoiced' => 0.0,
             ];
         }

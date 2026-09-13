@@ -97,7 +97,7 @@ class SalesOrderFinancialStatusService
 
         $postedInvoices = $this->postedInvoices($order);
         $invoicedTotal = (float) $order->invoiced_total;
-        $orderTotal = (float) $order->total_amount;
+        $orderTotal = $order->billedTotal();
 
         if ($invoicedTotal <= 0) {
             return SalesOrderFinancialStatus::NotInvoiced;
@@ -134,7 +134,7 @@ class SalesOrderFinancialStatusService
                 : SalesOrderBillingType::tryFrom((string) $order->billing_type)?->depositPercent();
 
             if ($percent !== null) {
-                $required = round((float) $order->total_amount * $percent / 100, 2);
+                $required = round($order->billedTotal() * $percent / 100, 2);
             }
         }
 
@@ -167,7 +167,7 @@ class SalesOrderFinancialStatusService
 
         $billingType = $order->billing_type ?? SalesOrderBillingType::Net30;
         $required = (float) ($billingType->depositPercent() !== null
-            ? round((float) $order->total_amount * $billingType->depositPercent() / 100, 2)
+            ? round($order->billedTotal() * $billingType->depositPercent() / 100, 2)
             : 0);
 
         $order->update([

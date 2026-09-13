@@ -438,6 +438,73 @@ class SalesOrderFoundationTest extends TestCase
         $this->assertDatabaseHas('sales_orders', ['id' => $order->id]);
     }
 
+    public function test_billed_total_multiplies_quantity_when_header_stored_the_unit_price(): void
+    {
+        $order = SalesOrder::factory()->create([
+            'subtotal' => 2.5,
+            'total_amount' => 2.5,
+        ]);
+
+        $order->items()->create([
+            'item_name' => 'Blurain cards',
+            'quantity' => 100,
+            'unit_price' => 2.5,
+            'line_total' => 2.5,
+        ]);
+
+        $fresh = SalesOrder::query()->findOrFail($order->id);
+
+        $this->assertSame(250.0, $fresh->billedTotal());
+
+        $fresh->syncStoredCommercialsFromLines();
+
+        $this->assertEquals(250.0, (float) $fresh->fresh()->total_amount);
+        $this->assertEquals(250.0, (float) $fresh->items()->first()?->line_total);
+    }
+
+    public function test_billed_total_uses_print_spec_quantity_when_line_qty_was_saved_as_one(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext(['sales_orders.view']);
+
+        $spec = \App\Models\Crm\CustomerPrintSpecification::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'specification_code' => 'CPS-QTY-FIX-01',
+            'name' => 'Qty fix spec',
+            'status' => \App\Enums\CustomerPrintSpecificationStatus::Active,
+            'default_quantity' => 100,
+            'default_unit_price' => 2.5,
+            'created_by' => $user->id,
+        ]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'customer_print_specification_id' => $spec->id,
+            'subtotal' => 2.5,
+            'total_amount' => 2.5,
+        ]);
+
+        $order->items()->create([
+            'item_name' => 'Blurain cards',
+            'quantity' => 1,
+            'unit_price' => 2.5,
+            'line_total' => 2.5,
+        ]);
+
+        $fresh = SalesOrder::query()->findOrFail($order->id);
+
+        $this->assertSame(250.0, $fresh->billedTotal());
+
+        $fresh->syncStoredCommercialsFromLines();
+
+        $this->assertEquals(100.0, (float) $fresh->items()->first()?->quantity);
+        $this->assertEquals(250.0, (float) $fresh->fresh()->total_amount);
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2: Customer, 3: User}
      */

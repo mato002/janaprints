@@ -457,7 +457,7 @@ class Job360WorkspaceService
             'sales_order' => $salesOrder ? [
                 'number' => $salesOrder->order_number,
                 'status' => $salesOrder->status->value,
-                'total' => $salesOrder->total_amount ?? null,
+                'total' => $salesOrder->billedTotal(),
                 'currency' => config('accounting.base_currency', 'KES'),
             ] : null,
             'cost_summary' => ($canViewCosting && $costSheet) ? [

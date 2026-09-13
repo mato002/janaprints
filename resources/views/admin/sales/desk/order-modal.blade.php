@@ -50,11 +50,11 @@
             </div>
             <div>
                 <dt class="text-slate-500">{{ __('Subtotal') }}</dt>
-                <dd class="font-mono">{{ number_format((float) $salesOrder->subtotal, 2) }}</dd>
+                <dd class="font-mono">{{ number_format($salesOrder->billedTotal(), 2) }}</dd>
             </div>
             <div>
                 <dt class="text-slate-500">{{ __('Total') }}</dt>
-                <dd class="font-mono font-medium">{{ number_format((float) $salesOrder->total_amount, 2) }}</dd>
+                <dd class="font-mono font-medium">{{ number_format($salesOrder->billedTotal(), 2) }}</dd>
             </div>
             <div>
                 <dt class="text-slate-500">{{ __('Job') }}</dt>

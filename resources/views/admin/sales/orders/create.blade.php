@@ -37,6 +37,11 @@
                 outsource: @js($outsourceForm ?? \App\Support\Production\OutsourceSpecificationService::emptyForm(old('outsource', []))),
                 digital: @js($digitalForm ?? \App\Support\Production\DigitalSpecificationService::emptyForm(old('digital', []))),
             },
+            get orderTotal() {
+                const qty = Number(this.form.quantity) || 0;
+                const price = Number(this.form.unit_price) || 0;
+                return (qty * price).toFixed(2);
+            },
             get selectedSpec() {
                 if (!this.context?.print_specifications || !this.selectedSpecId) {
                     return null;
@@ -446,6 +451,11 @@
                     <div>
                         <label class="erp-label">{{ __('Unit price') }}</label>
                         <input type="number" step="0.01" min="0" name="unit_price" class="erp-input w-full" x-model="form.unit_price" required>
+                    </div>
+                    <div class="sm:col-span-2 rounded-lg border border-erp-border bg-slate-50 px-4 py-3">
+                        <p class="text-xs font-medium uppercase tracking-wide text-slate-500">{{ __('Total') }}</p>
+                        <p class="mt-1 text-lg font-semibold tabular-nums text-erp-primary" x-text="orderTotal"></p>
+                        <p class="mt-0.5 text-xs text-slate-500">{{ __('Quantity × unit price') }}</p>
                     </div>
                     <p class="sm:col-span-2 text-xs text-slate-500">{{ __('Copied from the specification. Change them here if this order is different.') }}</p>
                 </div>
