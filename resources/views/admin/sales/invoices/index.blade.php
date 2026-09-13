@@ -9,7 +9,7 @@
     <x-admin.page-header :title="__('Customer invoices')" :description="__('Unbilled orders that need invoicing, plus issued invoices and their payment status.')">
         @can('create', App\Models\Sales\CustomerInvoice::class)
             <x-slot name="actions">
-                <a href="{{ route('admin.invoices.create') }}" class="erp-btn-primary" data-turbo-frame="erp-main" data-turbo-action="advance">
+                <a href="{{ route('admin.invoices.create', ['from' => 'receivables']) }}" class="erp-btn-primary" data-erp-modal-open>
                     {{ __('Create invoice') }}
                 </a>
             </x-slot>
@@ -56,6 +56,7 @@
 
     <form id="merge-invoice-form" method="POST" action="{{ route('admin.invoices.store-from-sales-orders') }}" class="hidden">
         @csrf
+        <input type="hidden" name="from" value="receivables">
         <input type="hidden" name="invoice_date" value="{{ now()->toDateString() }}">
     </form>
 
@@ -154,11 +155,11 @@
                         <td class="erp-table-actions-col">
                             <x-admin.table-row-actions>
                                 @can('create', App\Models\Sales\CustomerInvoice::class)
-                                    <x-admin.table-row-action :href="route('admin.invoices.from-sales-order', $order)">
+                                    <x-admin.table-row-action :href="route('admin.invoices.from-sales-order', [$order, 'from' => 'receivables'])" data-erp-modal-open>
                                         {{ __('Create invoice') }}
                                     </x-admin.table-row-action>
                                 @endcan
-                                <x-admin.table-row-action :href="route('admin.sales-orders.show', $order)">
+                                <x-admin.table-row-action :href="route('admin.sales-orders.show', [$order, 'from' => 'receivables'])" data-erp-modal-open>
                                     {{ __('View order') }}
                                 </x-admin.table-row-action>
                             </x-admin.table-row-actions>
@@ -226,7 +227,7 @@
                 @endphp
                 <tr x-show="rowVisible(@js(strtolower($invoice->invoice_number.' '.($invoice->customer?->company_name ?? '').' '.$collection->value.' '.$orderNumbers.' '.$departmentLabel)), @js($collection->value))">
                     <td>
-                        <a href="{{ route('admin.invoices.show', $invoice) }}" class="font-mono text-sm text-erp-accent" data-turbo-frame="erp-main" data-turbo-action="advance">{{ $invoice->invoice_number }}</a>
+                        <a href="{{ route('admin.invoices.show', [$invoice, 'from' => 'receivables']) }}" class="font-mono text-sm text-erp-accent" data-erp-modal-open>{{ $invoice->invoice_number }}</a>
                     </td>
                     <td class="text-sm">{{ $invoice->customer?->company_name }}</td>
                     <td class="text-xs text-slate-600">{{ $orderNumbers }}</td>
@@ -239,7 +240,15 @@
                     </td>
                     <td class="erp-table-actions-col">
                         <x-admin.table-row-actions>
-                            <x-admin.table-row-action :href="route('admin.invoices.show', $invoice)">{{ __('View') }}</x-admin.table-row-action>
+                            <x-admin.table-row-action :href="route('admin.invoices.show', [$invoice, 'from' => 'receivables'])" data-erp-modal-open>{{ __('View') }}</x-admin.table-row-action>
+                            @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Draft)
+                                @can('approve', $invoice)
+                                    <x-admin.table-row-action
+                                        :action="route('admin.invoices.approve', $invoice)"
+                                        method="POST"
+                                    >{{ __('Approve') }}</x-admin.table-row-action>
+                                @endcan
+                            @endif
                             @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Approved)
                                 @can('post', $invoice)
                                     <x-admin.table-row-action
@@ -251,7 +260,7 @@
                             @endif
                             @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Posted && $invoice->balance_due > 0)
                                 @can('create', App\Models\Sales\CustomerPayment::class)
-                                    <x-admin.table-row-action :href="route('admin.payments.create', ['customer_id' => $invoice->customer_id, 'invoice_id' => $invoice->id])">
+                                    <x-admin.table-row-action :href="route('admin.payments.create', ['customer_id' => $invoice->customer_id, 'invoice_id' => $invoice->id, 'from' => 'receivables'])" data-erp-modal-open>
                                         {{ __('Record payment') }}
                                     </x-admin.table-row-action>
                                 @endcan

@@ -1,7 +1,7 @@
 <x-admin.modal-form :title="__('Record payment')" maxWidth="2xl">
     <form method="POST" action="{{ route('admin.payments.store') }}" class="space-y-4" data-erp-desk-form>
         @csrf
-        <input type="hidden" name="from" value="sales-desk">
+        <input type="hidden" name="from" value="{{ request('from', 'sales-desk') }}">
         <input type="hidden" name="customer_id" value="{{ $customer?->id ?? old('customer_id') }}">
         @if ($salesOrder)
             <input type="hidden" name="sales_order_id" value="{{ $salesOrder->id }}">
@@ -9,6 +9,9 @@
 
         <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
             <p class="font-medium text-slate-900">{{ $customer?->company_name ?? __('Customer') }}</p>
+            @if ($sourceInvoice ?? null)
+                <p class="text-xs text-slate-600">{{ __('Invoice') }} {{ $sourceInvoice->invoice_number }} · {{ __('Balance') }} {{ number_format((float) $sourceInvoice->balance_due, 2) }}</p>
+            @endif
             @if ($salesOrder)
                 <p class="text-xs text-slate-600">{{ __('Order') }} {{ $salesOrder->order_number }} · {{ number_format((float) $salesOrder->total_amount, 2) }}</p>
             @endif
@@ -55,7 +58,12 @@
                         <input type="hidden" name="allocations[{{ $index }}][customer_invoice_id]" value="{{ $inv->id }}">
                         <span class="flex-1 font-mono">{{ $inv->invoice_number }}</span>
                         <span class="text-slate-500">{{ number_format($inv->balance_due, 2) }}</span>
-                        <input type="number" name="allocations[{{ $index }}][amount]" step="0.01" min="0" max="{{ $inv->balance_due }}" class="erp-input w-28" placeholder="0.00">
+                        @php
+                            $suggestedAllocation = ($sourceInvoice ?? null) && (int) $inv->id === (int) $sourceInvoice->id
+                                ? min((float) ($defaultAmount ?? $inv->balance_due), (float) $inv->balance_due)
+                                : null;
+                        @endphp
+                        <input type="number" name="allocations[{{ $index }}][amount]" step="0.01" min="0" max="{{ $inv->balance_due }}" class="erp-input w-28" placeholder="0.00" value="{{ old('allocations.'.$index.'.amount', $suggestedAllocation) }}">
                     </div>
                 @endforeach
             </div>

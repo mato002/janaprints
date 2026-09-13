@@ -10,6 +10,7 @@ use App\Models\Crm\Customer;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\CustomerPayment;
 use App\Models\Sales\SalesOrder;
+use App\Support\Accounting\ReturnsToReceivablesDesk;
 use App\Support\Sales\CustomerPaymentService;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\NewestFirst;
@@ -20,7 +21,7 @@ use Illuminate\View\View;
 
 class CustomerPaymentController extends Controller
 {
-    use ResolvesCrmTenant, ReturnsToSalesDesk, ScopesToTenant;
+    use ResolvesCrmTenant, ReturnsToReceivablesDesk, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected CustomerPaymentService $payments,
@@ -68,7 +69,7 @@ class CustomerPaymentController extends Controller
             ?? $sourceInvoice?->balance_due
             ?? $salesOrder?->total_amount;
 
-        if ($this->wantsSalesDeskReturn($request)) {
+        if ($this->wantsSalesDeskReturn($request) || $this->wantsReceivablesReturn($request)) {
             return view('admin.sales.desk.payment-modal', compact(
                 'customer',
                 'customers',
@@ -130,6 +131,12 @@ class CustomerPaymentController extends Controller
             $this->authorize('post', $payment);
             $payment = $this->payments->post($payment, (int) auth()->id());
 
+            if ($this->wantsReceivablesReturn($request)) {
+                return redirect()
+                    ->to($this->receivablesInvoicesUrl())
+                    ->with('status', __('Payment recorded and receipt generated.'));
+            }
+
             if ($this->wantsSalesDeskReturn($request) && $salesOrder) {
                 return redirect()->route('admin.sales.desk', [
                     'customer' => $customer->getRouteKey(),
@@ -142,6 +149,12 @@ class CustomerPaymentController extends Controller
             return redirect()
                 ->route('admin.payments.receipt', $payment)
                 ->with('status', __('Payment recorded and receipt generated.'));
+        }
+
+        if ($this->wantsReceivablesReturn($request)) {
+            return redirect()
+                ->to($this->receivablesInvoicesUrl())
+                ->with('status', __('Payment saved as draft.'));
         }
 
         if ($this->wantsSalesDeskReturn($request) && $salesOrder) {

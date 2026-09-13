@@ -208,6 +208,59 @@ class CustomerInvoiceFoundationTest extends TestCase
             ->assertSee($this->salesOrder->order_number, false);
     }
 
+    public function test_invoice_index_keeps_next_actions_on_the_desk(): void
+    {
+        $invoice = app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder, $this->user->id);
+
+        $this->actingAs($this->user)
+            ->withHeader('Turbo-Frame', 'module-workspace-content')
+            ->get(route('admin.invoices.index', ['embedded' => '1']))
+            ->assertOk()
+            ->assertSee('from=receivables', false)
+            ->assertSee('data-erp-modal-open', false)
+            ->assertSee($invoice->invoice_number, false)
+            ->assertSee(__('Post to AR'), false);
+    }
+
+    public function test_receivables_invoice_and_order_actions_render_as_modals(): void
+    {
+        $invoice = app(CustomerInvoiceService::class)->createFromSalesOrder($this->salesOrder, $this->user->id);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.invoices.show', [$invoice, 'from' => 'receivables']))
+            ->assertOk()
+            ->assertSee($invoice->invoice_number, false)
+            ->assertSee(__('Post to AR'), false)
+            ->assertSee(__('Print invoice'), false);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.sales-orders.show', [$this->salesOrder, 'from' => 'receivables']))
+            ->assertOk()
+            ->assertSee($this->salesOrder->order_number, false)
+            ->assertSee(__('Create invoice'), false);
+
+        $this->actingAs($this->user)
+            ->get(route('admin.payments.create', [
+                'from' => 'receivables',
+                'customer_id' => $invoice->customer_id,
+                'invoice_id' => $invoice->id,
+            ]))
+            ->assertOk()
+            ->assertSee(__('Record payment'), false)
+            ->assertSee($invoice->invoice_number, false);
+    }
+
+    public function test_store_from_sales_order_from_receivables_stays_on_invoices_desk(): void
+    {
+        $this->actingAs($this->user)
+            ->post(route('admin.invoices.store-from-sales-order', $this->salesOrder), [
+                'invoice_type' => 'standard',
+                'invoice_date' => now()->toDateString(),
+                'from' => 'receivables',
+            ])
+            ->assertRedirect(route('admin.invoices.index'));
+    }
+
     public function test_store_from_sales_order_creates_approved_invoice(): void
     {
         $this->actingAs($this->user)

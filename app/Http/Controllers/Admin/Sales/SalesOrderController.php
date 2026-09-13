@@ -17,6 +17,7 @@ use App\Rules\SalesRequiredDateNotInThePast;
 use App\Support\Platform\FormSettingsService;
 use App\Support\QuotationConversionService;
 use App\Support\Sales\DirectCustomerSalesOrderService;
+use App\Support\Accounting\ReturnsToReceivablesDesk;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Production\ReturnsToProductionFloor;
 use App\Support\Production\PrintSpecificationJobFields;
@@ -35,7 +36,7 @@ use Illuminate\View\View;
 
 class SalesOrderController extends Controller
 {
-    use HandlesModalFormResponses, ManagesSalesOrderItems, ResolvesCrmTenant, ReturnsToProductionFloor, ReturnsToSalesDesk, ScopesToTenant;
+    use HandlesModalFormResponses, ManagesSalesOrderItems, ResolvesCrmTenant, ReturnsToProductionFloor, ReturnsToReceivablesDesk, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected FormSettingsService $formSettings,
@@ -266,7 +267,7 @@ class SalesOrderController extends Controller
         ]);
         $salesOrder->syncStoredCommercialsFromLines();
 
-        if ($this->wantsSalesDeskReturn($request) || $this->wantsProductionFloorReturn($request)) {
+        if ($this->wantsSalesDeskReturn($request) || $this->wantsProductionFloorReturn($request) || $this->wantsReceivablesReturn($request)) {
             $jobSpecification = app(ProductionSpecificationService::class)
                 ->presentForSalesOrder($salesOrder);
 

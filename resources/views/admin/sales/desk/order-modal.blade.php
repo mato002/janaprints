@@ -171,6 +171,13 @@
                 @can('create', App\Models\Sales\CustomerInvoice::class)
                     <a href="{{ route('admin.invoices.from-sales-order', [$salesOrder, 'from' => 'sales-desk']) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Create invoice') }}</a>
                 @endcan
+            @elseif (request('from') === 'receivables')
+                @can('create', App\Models\Sales\CustomerInvoice::class)
+                    <a href="{{ route('admin.invoices.from-sales-order', [$salesOrder, 'from' => 'receivables']) }}" class="erp-btn-primary text-sm" data-erp-modal-open>{{ __('Create invoice') }}</a>
+                @endcan
+                @can('create', App\Models\Sales\CustomerPayment::class)
+                    <a href="{{ route('admin.payments.create', ['from' => 'receivables', 'customer_id' => $salesOrder->customer_id, 'sales_order_id' => $salesOrder->id]) }}" class="erp-btn-secondary text-sm" data-erp-modal-open>{{ __('Record payment') }}</a>
+                @endcan
             @elseif (request('from') === 'production-floor')
                 <a href="{{ route('admin.sales-orders.show', $salesOrder) }}" class="erp-btn-secondary text-sm" data-turbo-frame="erp-main" data-turbo-action="advance">{{ __('Open full order') }}</a>
             @endif

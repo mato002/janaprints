@@ -13,6 +13,7 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\SalesOrder;
 use App\Rules\DateNotInThePast;
+use App\Support\Accounting\ReturnsToReceivablesDesk;
 use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use App\Support\Sales\CustomerInvoiceService;
 use App\Support\Sales\ReturnsToSalesDesk;
@@ -24,7 +25,7 @@ use Illuminate\View\View;
 
 class CustomerInvoiceController extends Controller
 {
-    use ManagesInvoiceItems, ResolvesCrmTenant, ReturnsToSalesDesk, ScopesToTenant;
+    use ManagesInvoiceItems, ResolvesCrmTenant, ReturnsToReceivablesDesk, ReturnsToSalesDesk, ScopesToTenant;
 
     public function __construct(
         protected CustomerInvoiceService $invoices,
@@ -78,7 +79,7 @@ class CustomerInvoiceController extends Controller
             'paymentAllocations.payment',
         ]);
 
-        if ($this->wantsSalesDeskReturn($request)) {
+        if ($this->wantsSalesDeskReturn($request) || $this->wantsReceivablesReturn($request)) {
             return view('admin.sales.desk.invoice-show-modal', compact('invoice'));
         }
 
@@ -133,7 +134,7 @@ class CustomerInvoiceController extends Controller
             ->with('status', __('Invoice deleted.'));
     }
 
-    public function approve(CustomerInvoice $invoice): RedirectResponse
+    public function approve(Request $request, CustomerInvoice $invoice): RedirectResponse
     {
         $this->authorize('approve', $invoice);
 
@@ -145,10 +146,16 @@ class CustomerInvoiceController extends Controller
 
         $this->invoices->approve($invoice, (int) auth()->id());
 
+        if ($this->wantsReceivablesReturn($request)) {
+            return redirect()
+                ->to($this->receivablesInvoicesUrl())
+                ->with('status', __('Invoice approved.'));
+        }
+
         return back()->with('status', __('Invoice approved.'));
     }
 
-    public function post(CustomerInvoice $invoice): RedirectResponse
+    public function post(Request $request, CustomerInvoice $invoice): RedirectResponse
     {
         $this->authorize('post', $invoice);
 
@@ -159,6 +166,12 @@ class CustomerInvoiceController extends Controller
         }
 
         $this->invoices->post($invoice, (int) auth()->id());
+
+        if ($this->wantsReceivablesReturn($request)) {
+            return redirect()
+                ->to($this->receivablesInvoicesUrl())
+                ->with('status', __('Invoice posted to accounts receivable.'));
+        }
 
         return back()->with('status', __('Invoice posted to accounts receivable.'));
     }
@@ -202,7 +215,9 @@ class CustomerInvoiceController extends Controller
             ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
             ->values();
 
-        $orderOptions = $orders->map(function (SalesOrder $order) {
+        $from = $request->input('from');
+
+        $orderOptions = $orders->map(function (SalesOrder $order) use ($from) {
             return [
                 'value' => $order->getRouteKey(),
                 'order_number' => $order->order_number,
@@ -211,7 +226,10 @@ class CustomerInvoiceController extends Controller
                 'total' => number_format($order->billedTotal(), 2),
                 'remaining' => number_format($order->remainingInvoiceTotal(), 2),
                 'status' => ucwords(str_replace('_', ' ', $order->status->value)),
-                'href' => route('admin.invoices.from-sales-order', $order),
+                'href' => route('admin.invoices.from-sales-order', array_filter([
+                    $order,
+                    'from' => $from ?: null,
+                ])),
                 'search' => strtolower(trim($order->order_number.' '.($order->customer?->company_name ?? ''))),
             ];
         })->values()->all();
@@ -310,6 +328,12 @@ class CustomerInvoiceController extends Controller
             ])->with('status', $flash);
         }
 
+        if ($this->wantsReceivablesReturn($request)) {
+            return redirect()
+                ->to($this->receivablesInvoicesUrl())
+                ->with('status', $flash);
+        }
+
         return redirect()
             ->route('admin.invoices.show', $result->invoice)
             ->with('status', $flash);
@@ -351,7 +375,7 @@ class CustomerInvoiceController extends Controller
         ]);
 
         return redirect()
-            ->route('admin.invoices.show', $result->invoice)
+            ->to($this->receivablesInvoicesUrl())
             ->with('status', __('Invoice created from :count orders.', ['count' => $orders->count()]));
     }
 

@@ -75,7 +75,7 @@ class CustomerInvoiceMergeTest extends TestCase
                 'sales_order_ids' => [$first->getRouteKey(), $second->getRouteKey()],
                 'invoice_date' => now()->toDateString(),
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('admin.invoices.index'));
 
         $invoice = CustomerInvoice::query()->latest('id')->firstOrFail();
 

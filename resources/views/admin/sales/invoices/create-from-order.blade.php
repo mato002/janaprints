@@ -23,7 +23,11 @@
             <ul class="space-y-1 text-sm">
                 @foreach ($pendingInvoices as $pendingInvoice)
                     <li>
-                        <a href="{{ route('admin.invoices.show', $pendingInvoice) }}" class="font-mono text-erp-accent hover:underline" data-turbo-frame="erp-main">{{ $pendingInvoice->invoice_number }}</a>
+                        <a
+                            href="{{ route('admin.invoices.show', array_filter([$pendingInvoice, 'from' => request('from') ?: null])) }}"
+                            class="font-mono text-erp-accent hover:underline"
+                            @if (request('from')) data-erp-modal-open @else data-turbo-frame="erp-main" @endif
+                        >{{ $pendingInvoice->invoice_number }}</a>
                         <span class="text-slate-500"> — {{ $pendingInvoice->invoice_type->label() }} {{ number_format($pendingInvoice->total_amount, 2) }}</span>
                     </li>
                 @endforeach
@@ -35,6 +39,7 @@
         method="POST"
         action="{{ route('admin.invoices.store-from-sales-order', $salesOrder) }}"
         class="space-y-4"
+        @if (request()->filled('from')) data-erp-desk-form @endif
         x-data="{
             billingType: '{{ old('invoice_type', 'standard') }}',
             eligibility: @js($billingEligibilityByType),
@@ -42,6 +47,9 @@
         }"
     >
         @csrf
+        @if (request()->filled('from'))
+            <input type="hidden" name="from" value="{{ request('from') }}">
+        @endif
         @include('admin.partials.modal-validation-alert')
 
         <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" x-show="! selectedEligibility().eligible" x-cloak>
