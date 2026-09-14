@@ -13,11 +13,16 @@ use App\Models\Production\ProductionJobCard;
 use App\Models\Production\ProductionMaterialRequirement;
 use App\Models\Production\ProductionOperation;
 use App\Models\Production\QualityCheck;
+use App\Support\Production\ProductionProcessControlSettings;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 
 class JobProductionControlService
 {
+    public function __construct(
+        protected ProductionProcessControlSettings $processControls,
+    ) {}
+
     public function operatorAssignmentAvailable(): bool
     {
         return Schema::hasColumn('production_operations', 'assigned_employee_id');
@@ -254,26 +259,33 @@ SQL;
             $items[] = [
                 'key' => 'operations',
                 'label' => __('Operations complete'),
-                'state' => 'warning',
+                'state' => $this->processControls->operationsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id)
+                    ? 'warning'
+                    : 'na',
                 'detail' => __('No operations logged'),
             ];
         } else {
+            $operationsRequired = $this->processControls->operationsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id);
             $items[] = [
                 'key' => 'operations',
                 'label' => __('Operations complete'),
-                'state' => $ops['incomplete'] ? 'failed' : 'passed',
+                'state' => $ops['incomplete']
+                    ? ($operationsRequired ? 'failed' : 'warning')
+                    : 'passed',
                 'detail' => $ops['completed'].' / '.$ops['total'],
             ];
         }
+
+        $qcRequired = $this->processControls->qcRequired($jobCard->company_id, $jobCard->branch_id);
 
         if ($this->hasUnresolvedQcFailure($jobCard)) {
             $items[] = [
                 'key' => 'qc',
                 'label' => __('QC passed'),
-                'state' => 'failed',
+                'state' => $qcRequired ? 'failed' : 'warning',
                 'detail' => $qc['label'],
             ];
-        } elseif (app(\App\Support\Production\ProductionQcSettings::class)->qcRequired($jobCard->company_id, $jobCard->branch_id)) {
+        } elseif ($qcRequired) {
             if ($qc['status'] === 'none') {
                 $items[] = [
                     'key' => 'qc',
@@ -308,10 +320,14 @@ SQL;
         ];
 
         if ($jobCard->artwork_request_id) {
+            $artworkRequired = $this->processControls->artworkApprovalRequired($jobCard->company_id, $jobCard->branch_id);
+            $approved = $this->isArtworkApproved($jobCard);
             $items[] = [
                 'key' => 'artwork',
                 'label' => __('Artwork approved'),
-                'state' => $this->isArtworkApproved($jobCard) ? 'passed' : 'failed',
+                'state' => $approved
+                    ? 'passed'
+                    : ($artworkRequired ? 'failed' : 'warning'),
                 'detail' => $jobCard->artworkRequest?->status->value ?? '—',
             ];
         } else {
@@ -383,15 +399,19 @@ SQL;
             $blockers[] = __('Job status does not allow dispatch.');
         }
 
-        if ($this->hasUnresolvedQcFailure($jobCard)) {
+        if ($this->processControls->qcRequired($jobCard->company_id, $jobCard->branch_id)
+            && $this->hasUnresolvedQcFailure($jobCard)) {
             $blockers[] = __('QC failed — dispatch blocked');
         }
 
-        if ($this->hasIncompleteOperations($jobCard)) {
+        if ($this->processControls->operationsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id)
+            && $this->hasIncompleteOperations($jobCard)) {
             $blockers[] = __('Operations incomplete — dispatch blocked');
         }
 
-        if ($jobCard->artwork_request_id && ! $this->isArtworkApproved($jobCard)) {
+        if ($this->processControls->artworkApprovalRequired($jobCard->company_id, $jobCard->branch_id)
+            && $jobCard->artwork_request_id
+            && ! $this->isArtworkApproved($jobCard)) {
             $blockers[] = __('Artwork not approved — dispatch blocked');
         }
 
@@ -434,12 +454,14 @@ SQL;
             $blockerCodes[] = 'status';
         }
 
-        if ($this->hasIncompleteOperations($jobCard)) {
+        if ($this->processControls->operationsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id)
+            && $this->hasIncompleteOperations($jobCard)) {
             $blockers[] = __('Operations incomplete — delivery note blocked');
             $blockerCodes[] = 'operations';
         }
 
-        if ($this->hasUnresolvedQcFailure($jobCard)) {
+        if ($this->processControls->qcRequired($jobCard->company_id, $jobCard->branch_id)
+            && $this->hasUnresolvedQcFailure($jobCard)) {
             $blockers[] = __('QC failed — delivery note blocked');
             $blockerCodes[] = 'qc';
         }
@@ -451,7 +473,9 @@ SQL;
             $blockerCodes[] = 'finished_goods';
         }
 
-        if ($jobCard->artwork_request_id && ! $this->isArtworkApproved($jobCard)) {
+        if ($this->processControls->artworkApprovalRequired($jobCard->company_id, $jobCard->branch_id)
+            && $jobCard->artwork_request_id
+            && ! $this->isArtworkApproved($jobCard)) {
             $blockers[] = __('Artwork not approved — delivery note blocked');
             $blockerCodes[] = 'artwork';
         }
@@ -690,7 +714,10 @@ SQL;
                 'key' => 'quality',
                 'label' => __('QC status'),
                 'icon' => 'badge-check',
-                'warning' => $this->hasUnresolvedQcFailure($jobCard) ? __('QC failed — dispatch blocked') : null,
+                'warning' => $this->processControls->qcRequired($jobCard->company_id, $jobCard->branch_id)
+                    && $this->hasUnresolvedQcFailure($jobCard)
+                    ? __('QC failed — dispatch blocked')
+                    : null,
                 'metrics' => [
                     ['label' => __('Latest'), 'value' => $qc['label']],
                     ['label' => __('Failed count'), 'value' => (int) $jobCard->failed_qc_count],

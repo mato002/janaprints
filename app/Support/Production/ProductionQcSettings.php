@@ -12,11 +12,14 @@ class ProductionQcSettings
 
     public function qcRequired(int $companyId, ?int $branchId = null): bool
     {
-        return (bool) $this->settings->get(
-            'production_qc_required',
-            false,
-            $companyId,
-            $branchId,
+        return filter_var(
+            $this->settings->get(
+                'production_qc_required',
+                false,
+                $companyId,
+                $branchId,
+            ),
+            FILTER_VALIDATE_BOOLEAN,
         );
     }
 }

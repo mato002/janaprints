@@ -19,8 +19,10 @@ use App\Support\Sales\CustomerInvoiceService;
 use App\Support\Sales\ReturnsToSalesDesk;
 use App\Support\Sales\SalesDocumentEmailService;
 use App\Support\NewestFirst;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CustomerInvoiceController extends Controller
@@ -222,13 +224,17 @@ class CustomerInvoiceController extends Controller
         $from = $request->input('from');
 
         $orderOptions = $orders->map(function (SalesOrder $order) use ($from) {
+            $remaining = $order->remainingInvoiceTotal();
+
             return [
                 'value' => $order->getRouteKey(),
+                'customer_id' => (int) $order->customer_id,
                 'order_number' => $order->order_number,
                 'customer' => $order->customer?->company_name ?? '',
                 'order_date' => $order->order_date?->format('Y-m-d') ?? '',
                 'total' => number_format($order->billedTotal(), 2),
-                'remaining' => number_format($order->remainingInvoiceTotal(), 2),
+                'remaining' => number_format($remaining, 2),
+                'remaining_amount' => round((float) $remaining, 2),
                 'status' => ucwords(str_replace('_', ' ', $order->status->value)),
                 'href' => route('admin.invoices.from-sales-order', array_filter([
                     $order,
@@ -241,6 +247,7 @@ class CustomerInvoiceController extends Controller
         return view('admin.sales.invoices.select-order', [
             'orderOptions' => $orderOptions,
             'customerId' => $customerId,
+            'fromDesk' => $from,
         ]);
     }
 
@@ -345,7 +352,7 @@ class CustomerInvoiceController extends Controller
             ->with('status', $flash);
     }
 
-    public function storeFromSalesOrders(Request $request): RedirectResponse
+    public function storeFromSalesOrders(Request $request): RedirectResponse|JsonResponse
     {
         $this->authorize('create', CustomerInvoice::class);
 
@@ -365,20 +372,29 @@ class CustomerInvoiceController extends Controller
             ->get();
 
         if ($orders->count() !== count(array_unique($validated['sales_order_ids']))) {
-            return back()->withErrors([
-                'sales_order_ids' => __('One or more selected orders could not be found.'),
-            ]);
+            return $this->combinedInvoiceFailure(
+                $request,
+                __('One or more selected orders could not be found.'),
+            );
         }
 
         foreach ($orders as $order) {
             $this->authorize('view', $order);
         }
 
-        $result = $this->invoiceAuthority->createFromSalesOrders($orders->all(), (int) auth()->id(), [
-            'invoice_type' => CustomerInvoiceType::Standard,
-            'invoice_date' => $validated['invoice_date'] ?? now()->toDateString(),
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        try {
+            $result = $this->invoiceAuthority->createFromSalesOrders($orders->all(), (int) auth()->id(), [
+                'invoice_type' => CustomerInvoiceType::Standard,
+                'invoice_date' => $validated['invoice_date'] ?? now()->toDateString(),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+        } catch (ValidationException $exception) {
+            return $this->combinedInvoiceFailure(
+                $request,
+                collect($exception->errors())->flatten()->filter()->first()
+                    ?: __('Unable to create the invoice.'),
+            );
+        }
 
         return redirect()
             ->to($this->receivablesInvoicesUrl([
@@ -428,5 +444,19 @@ class CustomerInvoiceController extends Controller
         return redirect()
             ->route('admin.invoices.show', $creditNote)
             ->with('status', __('Credit note created. Approve and post when ready.'));
+    }
+
+    protected function combinedInvoiceFailure(Request $request, string $message): RedirectResponse|JsonResponse
+    {
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'errors' => ['sales_order_ids' => [$message]],
+            ], 422);
+        }
+
+        return redirect()
+            ->to($this->receivablesJobsUrl())
+            ->with('error', $message);
     }
 }

@@ -15,6 +15,10 @@ use Illuminate\Validation\ValidationException;
 
 class SalesOrderBillingEligibilityService
 {
+    public function __construct(
+        protected InvoiceBillingControlSettings $billingControls,
+    ) {}
+
     /**
      * @return array{eligible: bool, blockers: list<string>, fulfilment_ready: bool, production_complete: bool}
      */
@@ -31,7 +35,12 @@ class SalesOrderBillingEligibilityService
         $type = $invoiceType ?? CustomerInvoiceType::Standard;
         $requiresFulfilment = in_array($type, [CustomerInvoiceType::Standard, CustomerInvoiceType::Partial], true);
 
-        if ($requiresFulfilment && ! $fulfilmentReady && ! $productionComplete) {
+        if (
+            $requiresFulfilment
+            && $this->billingControls->requiredForOrder($order)
+            && ! $fulfilmentReady
+            && ! $productionComplete
+        ) {
             $blockers[] = __('Final invoice requires production completion (finished goods posted) or customer collection/delivery.');
         }
 

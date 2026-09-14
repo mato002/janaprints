@@ -134,8 +134,8 @@ return [
             'description' => 'Artwork request and approval workflow defaults.',
             'settings' => [
                 'artwork_requires_customer_approval' => [
-                    'label' => 'Require customer approval',
-                    'description' => 'Artwork must be approved by the customer before production.',
+                    'label' => 'Require artwork approval before production',
+                    'description' => 'When on, linked artwork must be approved before production release, dispatch, and delivery notes. When off, artwork stays on the job but does not block progress.',
                     'type' => 'boolean',
                     'scopes' => ['company', 'branch'],
                     'default' => true,
@@ -159,7 +159,7 @@ return [
 
         'sales-order' => [
             'label' => 'Sales Order Settings',
-            'description' => 'Sales order confirmation and fulfilment defaults.',
+            'description' => 'Sales order confirmation, fulfilment, and invoicing defaults.',
             'settings' => [
                 'sales_order_default_required_days' => [
                     'label' => 'Default required date (days)',
@@ -182,12 +182,19 @@ return [
                     'scopes' => ['company'],
                     'default' => false,
                 ],
+                'invoices_require_production_or_fulfilment' => [
+                    'label' => 'Require production or fulfilment before final invoice',
+                    'description' => 'When on, standard and partial invoices cannot be created until finished goods are posted or the job is collected/delivered. Turn off to invoice confirmed or completed jobs without those steps.',
+                    'type' => 'boolean',
+                    'scopes' => ['company', 'branch'],
+                    'default' => true,
+                ],
             ],
         ],
 
         'production' => [
             'label' => 'Production Settings',
-            'description' => 'Job card and shop floor defaults.',
+            'description' => 'Job card defaults and process blockers for QC, materials, operations, and dispatch.',
             'settings' => [
                 'production_default_priority' => [
                     'label' => 'Default job priority',
@@ -204,15 +211,22 @@ return [
                     'default' => false,
                 ],
                 'production_qc_required' => [
-                    'label' => 'Quality check required',
-                    'description' => 'Checker mode: a passed quality check is required before completing a job. When off, QC stays available but does not block production.',
+                    'label' => 'Require QC before completing a job',
+                    'description' => 'When on, a passed quality check is required before completing a job, and a failed QC blocks dispatch and delivery notes. When off, QC stays available but does not stop production.',
                     'type' => 'boolean',
-                    'scopes' => ['company'],
+                    'scopes' => ['company', 'branch'],
                     'default' => false,
                 ],
                 'production_inventory_controls_enforced' => [
-                    'label' => 'Enforce inventory process controls',
-                    'description' => 'Checker mode: jobs cannot queue, post finished goods, or dispatch until materials, consumption, and finished-goods posting are recorded. Turn off for companies that do not staff inventory — those steps stay available as optional maker actions and will not block production.',
+                    'label' => 'Require materials, consumption, and finished goods',
+                    'description' => 'When on, jobs cannot queue, complete to stock, or dispatch until materials, consumption, and finished-goods posting are recorded. Turn off for shops that do not staff inventory — those steps stay available but will not block production.',
+                    'type' => 'boolean',
+                    'scopes' => ['company', 'branch'],
+                    'default' => true,
+                ],
+                'production_operations_required_before_dispatch' => [
+                    'label' => 'Require operations complete before dispatch',
+                    'description' => 'When on, open shop-floor operations block ready-for-dispatch and delivery notes. When off, remaining operations are a reminder only.',
                     'type' => 'boolean',
                     'scopes' => ['company', 'branch'],
                     'default' => true,

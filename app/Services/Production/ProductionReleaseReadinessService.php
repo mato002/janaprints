@@ -399,6 +399,11 @@ class ProductionReleaseReadinessService
             return false;
         }
 
+        if (! app(\App\Support\Production\ProductionProcessControlSettings::class)
+            ->artworkApprovalRequired($salesOrder->company_id, $salesOrder->branch_id)) {
+            return false;
+        }
+
         return $salesOrder->artwork_request_id !== null;
     }
 

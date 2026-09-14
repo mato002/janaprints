@@ -106,8 +106,8 @@ class CustomerInvoiceMergeTest extends TestCase
             ->post(route('admin.invoices.store-from-sales-orders'), [
                 'sales_order_ids' => [$first->getRouteKey(), $second->getRouteKey()],
             ])
-            ->assertRedirect(route('admin.invoices.index'))
-            ->assertSessionHasErrors('sales_order_ids');
+            ->assertRedirect(route('admin.invoices.index', ['view' => 'jobs']))
+            ->assertSessionHas('error');
     }
 
     public function test_customer_search_filters_unbilled_orders(): void

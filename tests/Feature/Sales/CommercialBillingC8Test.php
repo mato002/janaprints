@@ -127,9 +127,11 @@ class CommercialBillingC8Test extends TestCase
             'branch_id' => $this->branch->id,
             'sales_order_id' => $this->salesOrder->id,
             'customer_id' => $this->customer->id,
-            'status' => ProductionJobCardStatus::ReadyForDispatch,
+            'status' => ProductionJobCardStatus::InProduction,
             'created_by' => $this->user->id,
         ]);
+
+        $this->salesOrder->update(['status' => SalesOrderStatus::InProduction]);
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
 

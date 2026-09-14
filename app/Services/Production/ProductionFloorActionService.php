@@ -162,7 +162,12 @@ class ProductionFloorActionService
             }
         }
 
-        if ($this->controls->hasIncompleteOperations($jobCard) && $user->can('complete', $jobCard)) {
+        if (
+            app(\App\Support\Production\ProductionProcessControlSettings::class)
+                ->operationsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id)
+            && $this->controls->hasIncompleteOperations($jobCard)
+            && $user->can('complete', $jobCard)
+        ) {
             return $this->action(
                 __('Finish remaining operations'),
                 'link',

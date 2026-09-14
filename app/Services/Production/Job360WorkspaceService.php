@@ -1239,8 +1239,10 @@ class Job360WorkspaceService
             'needs_qc' => $needsQc,
             'qc_summary' => $qcSummary,
             'can_approve_customer' => auth()->user()?->can('approveCustomerHold', $jobCard) ?? false,
-            'qc_blocking' => $this->controls->hasUnresolvedQcFailure($jobCard)
-                || ($qcRequired && ($qcSummary['status'] ?? null) === 'none' && $needsQc),
+            'qc_blocking' => $qcRequired && (
+                $this->controls->hasUnresolvedQcFailure($jobCard)
+                || (($qcSummary['status'] ?? null) === 'none' && $needsQc)
+            ),
             'pending_customer_approval' => $checks->first(fn ($c) => $c->requires_customer_approval
                 && $c->result === \App\Enums\QualityCheckResult::ConditionalPass
                 && $c->customer_approved_at === null),

@@ -6445,25 +6445,127 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
-    Alpine.data('invoiceOrderPicker', (orders = []) => ({
-        orders: Array.isArray(orders) ? orders : [],
-        query: '',
-        selected: null,
+    Alpine.data('invoiceOrderPicker', (config = {}) => {
+        const orders = Array.isArray(config) ? config : (config.orders ?? []);
+        const otherCustomerHint = (! Array.isArray(config) && config.otherCustomerHint)
+            ? config.otherCustomerHint
+            : 'Only :customer jobs can be added to this invoice. Clear the selection to bill a different customer.';
 
-        get filtered() {
-            const needle = this.query.trim().toLowerCase();
+        return {
+            orders,
+            query: '',
+            selectedIds: [],
 
-            if (! needle) {
-                return this.orders;
-            }
+            get filtered() {
+                const needle = this.query.trim().toLowerCase();
 
-            return this.orders.filter((order) => (order.search ?? '').includes(needle));
-        },
+                if (! needle) {
+                    return this.orders;
+                }
 
-        select(order) {
-            this.selected = order;
-        },
-    }));
+                return this.orders.filter((order) => (order.search ?? '').includes(needle));
+            },
+
+            get selectedOrders() {
+                const selected = new Set(this.selectedIds);
+
+                return this.orders.filter((order) => selected.has(order.value));
+            },
+
+            get selectedCount() {
+                return this.selectedOrders.length;
+            },
+
+            get selectedCustomer() {
+                return this.selectedOrders[0]?.customer ?? '';
+            },
+
+            get selectedCustomerId() {
+                const id = this.selectedOrders[0]?.customer_id;
+
+                return id === undefined || id === null || id === '' ? null : Number(id);
+            },
+
+            get remainingTotal() {
+                return this.selectedOrders.reduce(
+                    (sum, order) => sum + Number(order.remaining_amount || 0),
+                    0,
+                );
+            },
+
+            get remainingTotalLabel() {
+                return this.remainingTotal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                });
+            },
+
+            get singleHref() {
+                return this.selectedCount === 1 ? (this.selectedOrders[0]?.href || '#') : '#';
+            },
+
+            get mixedCustomerHint() {
+                if (this.selectedCustomerId === null || this.query.trim() === '') {
+                    return '';
+                }
+
+                const blocked = this.filtered.some(
+                    (order) => Number(order.customer_id) !== this.selectedCustomerId,
+                );
+
+                if (! blocked) {
+                    return '';
+                }
+
+                return otherCustomerHint.replace(':customer', this.selectedCustomer);
+            },
+
+            isSelected(order) {
+                return this.selectedIds.includes(order.value);
+            },
+
+            canSelect(order) {
+                return this.selectedCustomerId === null
+                    || Number(order.customer_id) === this.selectedCustomerId;
+            },
+
+            toggle(order) {
+                if (this.isSelected(order)) {
+                    this.selectedIds = this.selectedIds.filter((id) => id !== order.value);
+
+                    return;
+                }
+
+                if (! this.canSelect(order)) {
+                    return;
+                }
+
+                this.selectedIds = [...this.selectedIds, order.value];
+            },
+
+            selectFilteredForCustomer() {
+                const customerId = this.selectedCustomerId ?? (
+                    this.query.trim() !== '' && this.filtered[0]
+                        ? Number(this.filtered[0].customer_id)
+                        : null
+                );
+
+                if (customerId === null) {
+                    return;
+                }
+
+                const pool = this.query.trim() !== '' ? this.filtered : this.orders;
+
+                this.selectedIds = pool
+                    .filter((order) => Number(order.customer_id) === customerId)
+                    .map((order) => order.value);
+            },
+
+            clearSelection() {
+                this.selectedIds = [];
+            },
+        };
+    });
 
     Alpine.data('salesDeskSearch', (config = {}) => ({
         searchUrl: config.searchUrl ?? '',
