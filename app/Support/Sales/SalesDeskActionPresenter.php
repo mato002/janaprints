@@ -31,8 +31,8 @@ class SalesDeskActionPresenter
             'customer:id,company_name,contact_person,customer_code,phone,email',
             'invoices:id,sales_order_id,invoice_number,status,total_amount,balance_due',
             'inventoryItem:id,item_name,sku',
-            'items:id,sales_order_id,item_name,quantity,unit_price',
-            'customerPrintSpecification:id,name,specification_code',
+            'items:id,sales_order_id,item_name,quantity,unit_price,line_total',
+            'customerPrintSpecification:id,name,specification_code,default_quantity,default_unit_price,job_sheet_payload,production_destination',
         ]);
 
         $readiness = $this->releaseReadiness->assess($salesOrder);

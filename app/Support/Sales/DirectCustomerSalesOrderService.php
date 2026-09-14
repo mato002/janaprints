@@ -61,7 +61,7 @@ class DirectCustomerSalesOrderService
                 ?? $specification->default_billing_type?->value
                 ?? $billingDefaults['billing_type']->value;
 
-            $quantity = (float) ($payload['quantity'] ?? $specification->default_quantity ?? 1);
+            $quantity = app(PrintSpecificationJobFields::class)->resolvedOrderQuantity($payload, $specification);
             $unitPrice = (float) ($payload['unit_price'] ?? $specification->default_unit_price ?? 0);
             $lineItem = $this->buildSnapshotLineItem($specification, $artwork, $quantity, $unitPrice);
 
@@ -479,7 +479,7 @@ class DirectCustomerSalesOrderService
 
             $artwork = $specification->activeArtworkVersion;
             $usesArtwork = $artwork !== null;
-            $quantity = (float) ($payload['quantity'] ?? $order->items->first()?->quantity ?? $specification->default_quantity ?? 1);
+            $quantity = app(PrintSpecificationJobFields::class)->resolvedOrderQuantity($payload, $specification);
             $unitPrice = (float) ($payload['unit_price'] ?? $order->items->first()?->unit_price ?? $specification->default_unit_price ?? 0);
             $lineItem = $this->buildSnapshotLineItem($specification, $artwork, $quantity, $unitPrice);
 

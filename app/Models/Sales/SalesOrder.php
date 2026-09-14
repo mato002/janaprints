@@ -290,11 +290,41 @@ class SalesOrder extends Model
         }
 
         $productionQty = (float) ($item->productionSpecification?->quantity ?? 0);
-        $specQty = (float) ($this->customerPrintSpecification?->default_quantity ?? 0);
+        $specQty = $this->commercialQuantityFromPrintSpec();
         $imposedQty = $this->digitalFinishedQuantityForItem($item);
-        $candidate = max($productionQty, $specQty, $imposedQty);
+
+        if ($specQty > 1) {
+            return $specQty;
+        }
+
+        $candidate = max($productionQty, $imposedQty);
 
         return $candidate > 1 ? $candidate : max($quantity, 0);
+    }
+
+    protected function commercialQuantityFromPrintSpec(): float
+    {
+        if (! $this->customer_print_specification_id) {
+            return 0.0;
+        }
+
+        $this->loadMissing('customerPrintSpecification');
+        $spec = $this->customerPrintSpecification;
+
+        if (! $spec) {
+            return 0.0;
+        }
+
+        if (! array_key_exists('default_quantity', $spec->getAttributes())) {
+            $qty = CustomerPrintSpecification::query()
+                ->whereKey($spec->getKey())
+                ->value('default_quantity');
+            $spec->setAttribute('default_quantity', $qty);
+
+            return (float) ($qty ?? 0);
+        }
+
+        return (float) ($spec->default_quantity ?? 0);
     }
 
     protected function digitalFinishedQuantityForItem(SalesOrderItem $item): float

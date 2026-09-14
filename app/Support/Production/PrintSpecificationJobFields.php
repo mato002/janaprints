@@ -127,6 +127,35 @@ class PrintSpecificationJobFields
     }
 
     /**
+     * Commercial quantity for an order: submitted qty, else the spec default, else digital sheets × ups.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function resolvedOrderQuantity(array $payload, ?CustomerPrintSpecification $specification = null): float
+    {
+        $submitted = (float) ($payload['quantity'] ?? 0);
+        $specQty = (float) ($specification?->default_quantity ?? 0);
+
+        if ($submitted > 1) {
+            return $submitted;
+        }
+
+        if ($specQty > 1) {
+            return $specQty;
+        }
+
+        $digital = is_array($payload['digital'] ?? null) ? $payload['digital'] : [];
+        $sheet = is_array($specification?->job_sheet_payload) ? $specification->job_sheet_payload : [];
+        $imposed = DigitalSpecificationService::finishedQuantityFromSheet($digital !== [] ? $digital : $sheet);
+
+        if ($imposed > 1) {
+            return $imposed;
+        }
+
+        return $submitted > 0 ? $submitted : 1.0;
+    }
+
+    /**
      * Quantity / unit price for a sales order, preferring submitted values then the specification.
      *
      * @param  array<string, mixed>  $payload
@@ -142,18 +171,8 @@ class PrintSpecificationJobFields
             $payload['quantity'] = $specification?->default_quantity ?? 1;
         }
 
+        $payload['quantity'] = $this->resolvedOrderQuantity($payload, $specification);
         $quantity = (float) $payload['quantity'];
-        if ($quantity <= 1) {
-            $digitalSheet = $digital !== [] ? $digital : $sheet;
-            $finished = DigitalSpecificationService::finishedQuantityFromSheet($digitalSheet);
-            if ($finished > 1) {
-                $payload['quantity'] = $finished;
-                $quantity = $finished;
-            } elseif ((float) ($specification?->default_quantity ?? 0) > 1) {
-                $payload['quantity'] = (float) $specification->default_quantity;
-                $quantity = (float) $specification->default_quantity;
-            }
-        }
 
         if (! $this->isMissingAmount($payload['unit_price'] ?? null)) {
             return $payload;
