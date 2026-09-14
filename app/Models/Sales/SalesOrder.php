@@ -175,11 +175,15 @@ class SalesOrder extends Model
 
     public function billedTotal(): float
     {
-        $this->loadMissing(['items.productionSpecification', 'customerPrintSpecification']);
+        $this->loadMissing([
+            'items.productionSpecification',
+            'items.customerPrintSpecification',
+            'customerPrintSpecification',
+        ]);
 
         if ($this->items->isNotEmpty()) {
             $fromQtyPrice = round((float) $this->items->sum(
-                fn ($item) => $this->billedQuantityForItem($item) * (float) $item->unit_price
+                fn ($item) => $this->billedQuantityForItem($item) * $this->billedUnitPriceForItem($item)
             ), 2);
 
             if ($fromQtyPrice > 0) {
@@ -198,31 +202,23 @@ class SalesOrder extends Model
         }
 
         $spec = $this->customerPrintSpecification;
+        $quantity = $this->commercialQuantityFromPrintSpec($this->items->first());
+        $price = (float) ($spec?->default_unit_price ?? 0);
 
-        if (! $spec) {
-            return 0.0;
-        }
-
-        $quantity = (float) ($this->items->first()?->quantity ?? 0);
         if ($quantity <= 0) {
-            $quantity = (float) ($spec->default_quantity ?? 1);
+            $quantity = (float) ($this->items->first()?->quantity ?? 0);
         }
 
-        $price = (float) ($spec->default_unit_price ?? 0);
-        if ($price <= 0) {
-            $sheet = is_array($spec->job_sheet_payload) ? $spec->job_sheet_payload : [];
-            $price = (float) ($sheet['price'] ?? 0);
-            if ($price <= 0 && isset($sheet['selling_price']) && (float) $sheet['selling_price'] > 0 && $quantity > 0) {
-                $price = round((float) $sheet['selling_price'] / $quantity, 2);
-            }
-        }
-
-        return round($quantity * $price, 2);
+        return round(max($quantity, 0) * max($price, 0), 2);
     }
 
     public function syncStoredCommercialsFromLines(): void
     {
-        $this->loadMissing(['items.productionSpecification', 'customerPrintSpecification']);
+        $this->loadMissing([
+            'items.productionSpecification',
+            'items.customerPrintSpecification',
+            'customerPrintSpecification',
+        ]);
 
         if ($this->items->isEmpty()) {
             return;
@@ -230,7 +226,7 @@ class SalesOrder extends Model
 
         foreach ($this->items as $item) {
             $quantity = $this->billedQuantityForItem($item);
-            $expected = round($quantity * (float) $item->unit_price, 2);
+            $expected = round($quantity * $this->billedUnitPriceForItem($item), 2);
             $updates = [];
 
             if (abs((float) $item->quantity - $quantity) > 0.0005) {
@@ -276,55 +272,59 @@ class SalesOrder extends Model
     protected function billedQuantityForItem(SalesOrderItem $item): float
     {
         $quantity = (float) $item->quantity;
-        $price = (float) $item->unit_price;
+        $specQty = $this->commercialQuantityFromPrintSpec($item);
 
-        if ($quantity > 1 || $price <= 0) {
-            return max($quantity, 0);
-        }
-
-        $stored = (float) ($item->line_total ?: $this->total_amount);
-        $looksUnmultiplied = $stored <= 0 || abs($stored - $price) < 0.02;
-
-        if (! $looksUnmultiplied) {
-            return max($quantity, 0);
-        }
-
-        $productionQty = (float) ($item->productionSpecification?->quantity ?? 0);
-        $specQty = $this->commercialQuantityFromPrintSpec();
-        $imposedQty = $this->digitalFinishedQuantityForItem($item);
-
-        if ($specQty > 1) {
+        if ($quantity <= 1 && $specQty > 1) {
             return $specQty;
         }
 
-        $candidate = max($productionQty, $imposedQty);
+        if ($quantity > 1) {
+            return $quantity;
+        }
 
-        return $candidate > 1 ? $candidate : max($quantity, 0);
+        $imposedQty = $this->digitalFinishedQuantityForItem($item);
+
+        return $imposedQty > 1 ? $imposedQty : max($quantity, 0);
     }
 
-    protected function commercialQuantityFromPrintSpec(): float
+    protected function billedUnitPriceForItem(SalesOrderItem $item): float
     {
-        if (! $this->customer_print_specification_id) {
-            return 0.0;
+        $price = (float) $item->unit_price;
+        if ($price > 0) {
+            return $price;
         }
 
-        $this->loadMissing('customerPrintSpecification');
-        $spec = $this->customerPrintSpecification;
+        return (float) ($item->customerPrintSpecification?->default_unit_price
+            ?? $this->customerPrintSpecification?->default_unit_price
+            ?? 0);
+    }
 
-        if (! $spec) {
-            return 0.0;
+    protected function commercialQuantityFromPrintSpec(?SalesOrderItem $item = null): float
+    {
+        foreach ([$item?->customerPrintSpecification, $this->customerPrintSpecification] as $spec) {
+            if (! $spec) {
+                continue;
+            }
+
+            if (! array_key_exists('default_quantity', $spec->getAttributes())) {
+                $qty = CustomerPrintSpecification::query()
+                    ->whereKey($spec->getKey())
+                    ->value('default_quantity');
+                $spec->setAttribute('default_quantity', $qty);
+            }
+
+            $qty = (float) ($spec->default_quantity ?? 0);
+            if ($qty > 1) {
+                return $qty;
+            }
         }
 
-        if (! array_key_exists('default_quantity', $spec->getAttributes())) {
-            $qty = CustomerPrintSpecification::query()
-                ->whereKey($spec->getKey())
-                ->value('default_quantity');
-            $spec->setAttribute('default_quantity', $qty);
-
-            return (float) ($qty ?? 0);
+        $specId = $item?->customer_print_specification_id ?? $this->customer_print_specification_id;
+        if ($specId) {
+            return (float) (CustomerPrintSpecification::query()->whereKey($specId)->value('default_quantity') ?? 0);
         }
 
-        return (float) ($spec->default_quantity ?? 0);
+        return 0.0;
     }
 
     protected function digitalFinishedQuantityForItem(SalesOrderItem $item): float

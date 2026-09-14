@@ -156,6 +156,7 @@ class SalesDeskPageBuilder
                                 'jobCard',
                                 'invoices',
                                 'items.productionSpecification',
+                                'items.customerPrintSpecification',
                                 'customerPrintSpecification',
                             ])
                         )
