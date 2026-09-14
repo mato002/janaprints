@@ -685,7 +685,7 @@ class SalesOrderController extends Controller
     }
 
     /**
-     * @return object{production_destination: mixed, job_sheet_payload: array<string, mixed>}
+     * @return object{production_destination: mixed, job_sheet_payload: array<string, mixed>, product_description: ?string}
      */
     protected function jobFieldSource(SalesOrder $salesOrder): object
     {
@@ -693,11 +693,46 @@ class SalesOrderController extends Controller
         $printSpec = $salesOrder->customerPrintSpecification;
         $linePayload = is_array($lineSpec?->job_sheet_payload) ? $lineSpec->job_sheet_payload : [];
         $printPayload = is_array($printSpec?->job_sheet_payload) ? $printSpec->job_sheet_payload : [];
+        $payload = $linePayload !== [] ? $linePayload : $printPayload;
+
+        $description = $payload['description']
+            ?? $payload['product_description']
+            ?? $lineSpec?->product_description
+            ?? $printSpec?->description
+            ?? $printSpec?->name
+            ?? $salesOrder->items->first()?->description
+            ?? $salesOrder->items->first()?->item_name;
+
+        if (filled($description)) {
+            $payload['description'] ??= $description;
+            $payload['product_description'] ??= $description;
+        }
+
+        if (empty($payload['finishing']) && filled($lineSpec?->finishing_type)) {
+            $payload['finishing'] = $lineSpec->finishing_type;
+        }
+
+        if (! filled($payload['price'] ?? null)) {
+            $unitPrice = $salesOrder->items->first()?->unit_price;
+            if ($unitPrice !== null && (float) $unitPrice > 0) {
+                $payload['price'] = $unitPrice;
+            }
+        }
+
+        if (empty($payload['due_date']) && $salesOrder->required_date) {
+            $payload['due_date'] = $salesOrder->required_date->toDateString();
+        }
+
+        if (empty($payload['kind'])) {
+            $payload['kind'] = $salesOrder->production_destination?->value
+                ?? $printSpec?->production_destination?->value;
+        }
 
         return (object) [
             'production_destination' => $salesOrder->production_destination
                 ?? $printSpec?->production_destination,
-            'job_sheet_payload' => $linePayload !== [] ? $linePayload : $printPayload,
+            'job_sheet_payload' => $payload,
+            'product_description' => $description,
         ];
     }
 

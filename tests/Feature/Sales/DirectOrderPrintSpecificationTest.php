@@ -504,6 +504,65 @@ class DirectOrderPrintSpecificationTest extends TestCase
         $this->assertNull($repeat->quotation_id);
     }
 
+    public function test_edit_form_shows_saved_digital_specification_fields(): void
+    {
+        Event::fake([DomainCommunicationEventRaised::class]);
+
+        [$spec] = $this->activeSpecificationWithArtwork();
+        $dueDate = now()->addDays(3)->toDateString();
+        $spec->update([
+            'production_destination' => 'digital',
+            'job_sheet_payload' => [
+                'kind' => 'digital',
+                'description' => 'Photo sticker pack',
+                'paper_type' => 'Photo sticker',
+                'ups' => 8,
+                'sheets' => 26,
+                'finishing' => 'N/A',
+                'price' => 15,
+                'due_date' => $dueDate,
+                'payment_status' => 'unpaid',
+                'status' => 'pending',
+            ],
+        ]);
+
+        $this->actingAs($this->user)
+            ->post(route('admin.sales-orders.store'), [
+                'entry_mode' => 'direct',
+                'production_destination' => 'digital',
+                'customer_id' => $this->customer->id,
+                'customer_print_specification_id' => $spec->id,
+                'digital' => [
+                    'description' => 'Photo sticker pack',
+                    'paper_type' => 'Photo sticker',
+                    'ups' => 8,
+                    'sheets' => 26,
+                    'finishing' => 'N/A',
+                    'price' => 15,
+                    'due_date' => $dueDate,
+                    'payment_status' => 'unpaid',
+                    'status' => 'pending',
+                ],
+                'quantity' => 200,
+                'unit_price' => 15,
+            ])
+            ->assertRedirect();
+
+        $order = SalesOrder::query()->latest('id')->firstOrFail();
+
+        $this->actingAs($this->user)
+            ->withHeader('Turbo-Frame', 'erp-form-modal')
+            ->get(route('admin.sales-orders.edit', $order))
+            ->assertOk()
+            ->assertSee(__('Due date'), false)
+            ->assertSee(__('Payment status'), false)
+            ->assertSee(__('Price'), false)
+            ->assertSee('Photo sticker pack', false)
+            ->assertSee('Photo sticker', false)
+            ->assertSee('value="8"', false)
+            ->assertSee($dueDate, false);
+    }
+
     /**
      * @return array{0: CustomerPrintSpecification, 1: CustomerArtwork}
      */

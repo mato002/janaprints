@@ -14,6 +14,7 @@ use App\Support\Accounting\InventoryAccountingPostingService;
 use App\Support\Inventory\VirtualWarehouseGuard;
 use App\Support\InventoryMovementService;
 use App\Support\InventoryStockService;
+use App\Support\Production\ProductionInventoryControlSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -22,6 +23,7 @@ class DispatchInventoryService
     public function __construct(
         protected VirtualWarehouseResolverService $virtualWarehouses,
         protected InventoryAccountingPostingService $accounting,
+        protected ProductionInventoryControlSettings $inventoryControls,
     ) {}
 
     /**
@@ -37,7 +39,7 @@ class DispatchInventoryService
             $blockers[] = __('Delivery note must have at least one line item.');
         }
 
-        if ($note->production_job_card_id) {
+        if ($this->inventoryPostingRequired($note) && $note->production_job_card_id) {
             $postedOutputs = ProductionOutput::query()
                 ->where('production_job_card_id', $note->production_job_card_id)
                 ->where('completion_status', ProductionOutputStatus::Posted)
@@ -48,19 +50,21 @@ class DispatchInventoryService
             }
         }
 
-        foreach ($note->items as $line) {
-            if (! $line->inventory_item_id) {
-                $blockers[] = __('Line “:item” is not linked to finished goods inventory.', [
-                    'item' => $line->description,
-                ]);
-            } elseif ((float) $line->quantity <= 0) {
-                $blockers[] = __('Line “:item” must have a quantity greater than zero.', [
-                    'item' => $line->description,
-                ]);
-            } elseif ((float) ($line->unit_cost ?? 0) <= 0) {
-                $blockers[] = __('Line “:item” has no unit cost — post finished goods on the job card to populate cost.', [
-                    'item' => $line->description,
-                ]);
+        if ($this->inventoryPostingRequired($note)) {
+            foreach ($note->items as $line) {
+                if (! $line->inventory_item_id) {
+                    $blockers[] = __('Line “:item” is not linked to finished goods inventory.', [
+                        'item' => $line->description,
+                    ]);
+                } elseif ((float) $line->quantity <= 0) {
+                    $blockers[] = __('Line “:item” must have a quantity greater than zero.', [
+                        'item' => $line->description,
+                    ]);
+                } elseif ((float) ($line->unit_cost ?? 0) <= 0) {
+                    $blockers[] = __('Line “:item” has no unit cost — post finished goods on the job card to populate cost.', [
+                        'item' => $line->description,
+                    ]);
+                }
             }
         }
 
@@ -76,13 +80,17 @@ class DispatchInventoryService
             $note = DeliveryNote::query()->lockForUpdate()->findOrFail($note->id);
             $note->load(['items.inventoryItem', 'items.productionOutput']);
 
-            $this->hydrateInventoryLines($note);
-
             if ($note->items->isEmpty()) {
                 throw ValidationException::withMessages([
                     'items' => __('Delivery note must have at least one line item.'),
                 ]);
             }
+
+            if (! $this->inventoryPostingRequired($note)) {
+                return $note->fresh(['items.inventoryItem', 'items.productionOutput']);
+            }
+
+            $this->hydrateInventoryLines($note);
 
             $fgWarehouse = $this->resolveVirtualWarehouse($note->company_id, VirtualWarehouseRole::FinishedGoods);
             $transitWarehouse = $this->resolveVirtualWarehouse($note->company_id, VirtualWarehouseRole::InTransit);
@@ -104,6 +112,10 @@ class DispatchInventoryService
             $note->load(['items.inventoryItem']);
 
             if (! $this->hasDispatchMovements($note)) {
+                if (! $this->inventoryPostingRequired($note)) {
+                    return $note->fresh(['items.inventoryItem', 'postedJournal']);
+                }
+
                 throw ValidationException::withMessages([
                     'status' => __('Delivery note must be dispatched to in-transit inventory before delivery confirmation.'),
                 ]);
@@ -185,6 +197,28 @@ class DispatchInventoryService
         }
 
         $this->assertAllLinesHaveInventory($note->fresh('items'));
+    }
+
+    protected function inventoryPostingRequired(DeliveryNote $note): bool
+    {
+        $note->loadMissing('items');
+
+        if ($this->inventoryControls->enforced($note->company_id, $note->branch_id)) {
+            return true;
+        }
+
+        if ($note->items->contains(fn (DeliveryNoteItem $line) => filled($line->inventory_item_id))) {
+            return true;
+        }
+
+        if (! $note->production_job_card_id) {
+            return false;
+        }
+
+        return ProductionOutput::query()
+            ->where('production_job_card_id', $note->production_job_card_id)
+            ->where('completion_status', ProductionOutputStatus::Posted)
+            ->exists();
     }
 
     protected function assertAllLinesHaveInventory(DeliveryNote $note): void

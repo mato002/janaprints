@@ -58,6 +58,7 @@
                 'customer' => $salesOrder->customer,
                 'productionVendors' => $productionVendors ?? collect(),
                 'idPrefix' => 'order-job-modal',
+                'compact' => false,
             ])
         </div>
 

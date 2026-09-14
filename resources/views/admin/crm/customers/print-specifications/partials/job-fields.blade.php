@@ -14,6 +14,16 @@
         ? ProductionDestination::tryFrom($preselectedDestination)
         : null;
     $payload = is_array($specification?->job_sheet_payload) ? $specification->job_sheet_payload : [];
+    if (empty($payload['description']) && empty($payload['product_description'])) {
+        $fromModel = $specification?->product_description
+            ?? $specification?->description
+            ?? $specification?->name
+            ?? null;
+        if (filled($fromModel)) {
+            $payload['description'] = $fromModel;
+            $payload['product_description'] = $fromModel;
+        }
+    }
     $kind = $payload['kind'] ?? $specification?->production_destination?->value;
     $jobSheetForm = OffsetJobSheetService::emptyForm(old(
         'job_sheet',
@@ -30,6 +40,7 @@
     $productionVendors = $productionVendors ?? app(OutsourceSpecificationService::class)->productionVendors();
     $idPrefix = $idPrefix ?? 'spec-job';
     $customerName = $customerName ?? ($customer->company_name ?? $customer->name ?? null);
+    $compact = $compact ?? true;
 @endphp
 
 <div
@@ -53,7 +64,7 @@
             @include('admin.sales.orders.partials.digital-specification-fields', [
                 'digitalForm' => $digitalForm,
                 'includeQuantity' => false,
-                'compact' => true,
+                'compact' => $compact,
                 'customerName' => $customerName,
                 'idPrefix' => $idPrefix.'-digital',
             ])
@@ -66,7 +77,7 @@
                 'jobSheetForm' => $jobSheetForm,
                 'includeQuantity' => false,
                 'includeCollectionDate' => false,
-                'compact' => true,
+                'compact' => $compact,
                 'idPrefix' => $idPrefix.'-offset',
             ])
         </div>
@@ -77,7 +88,7 @@
             @include('admin.sales.orders.partials.outsource-specification-fields', [
                 'outsourceForm' => $outsourceForm,
                 'includeQuantity' => false,
-                'compact' => true,
+                'compact' => $compact,
                 'productionVendors' => $productionVendors,
                 'customerName' => $customerName,
                 'idPrefix' => $idPrefix.'-outsource',

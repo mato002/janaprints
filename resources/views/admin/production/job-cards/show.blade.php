@@ -29,6 +29,7 @@
             'secondaryActions' => $workspace['secondary_actions'] ?? [],
             'controlAlerts' => $workspace['control_alerts'] ?? [],
             'materialReadiness' => $workspace['material_readiness'] ?? null,
+            'inventoryControlsEnforced' => $workspace['inventory_controls_enforced'] ?? true,
             'readinessChecklist' => $workspace['readiness_checklist'] ?? [],
             'kpis' => $workspace['kpis'] ?? [],
             'tabData' => $tabData,

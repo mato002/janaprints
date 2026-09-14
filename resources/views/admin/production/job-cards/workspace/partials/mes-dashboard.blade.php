@@ -20,6 +20,7 @@
             'completion' => $completion,
             'hasPostedOutput' => $hasPostedOutput,
             'materialReadiness' => $materialReadiness,
+            'inventoryControlsEnforced' => $inventoryControlsEnforced ?? true,
             'executionState' => $executionState,
             'compact' => true,
         ])

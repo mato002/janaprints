@@ -81,6 +81,41 @@ class ProductionReleaseReadinessTest extends TestCase
         $this->assertFalse($materialsCheck['passed']);
     }
 
+    public function test_draft_job_without_materials_is_ready_when_inventory_controls_are_advisory(): void
+    {
+        [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);
+
+        ProductionJobCard::factory()->create([
+            'company_id' => $order->company_id,
+            'branch_id' => $order->branch_id,
+            'sales_order_id' => $order->id,
+            'customer_id' => $order->customer_id,
+            'status' => ProductionJobCardStatus::Draft,
+            'created_by' => $user->id,
+        ]);
+
+        app(\App\Support\Platform\SystemSettingsService::class)->set(
+            'production_inventory_controls_enforced',
+            false,
+            $order->company_id,
+            $order->branch_id,
+            'boolean',
+        );
+
+        $assessment = app(ProductionReleaseReadinessService::class)->assess($order->fresh(['jobCard']), $user);
+
+        $materialsCheck = collect($assessment['checks'])->firstWhere('key', 'materials');
+        $this->assertNotNull($materialsCheck);
+        $this->assertSame('warning', $materialsCheck['severity'] ?? null);
+        $this->assertFalse(
+            collect($assessment['blockers'])->contains(
+                fn (string $blocker) => str_contains(strtolower($blocker), 'material')
+                    || str_contains(strtolower($blocker), 'bom')
+                    || str_contains(strtolower($blocker), 'stock'),
+            ),
+        );
+    }
+
     public function test_assess_ready_when_prerequisites_pass_without_draft_job(): void
     {
         [$user, $order] = $this->orderWithSpec(ProductionSpecificationApprovalStatus::Approved);

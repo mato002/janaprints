@@ -37,6 +37,7 @@ class ProductionCompletionService
     public function __construct(
         protected VirtualWarehouseResolverService $virtualWarehouses,
         protected InventoryAccountingPostingService $accounting,
+        protected \App\Support\Production\ProductionInventoryControlSettings $inventoryControls,
     ) {}
 
     /**
@@ -71,7 +72,8 @@ class ProductionCompletionService
             $this->pushBlocker($blockers, $blockerCodes, 'status', __('Job must be in production, quality check, completed, or ready for dispatch status.'));
         }
 
-        if ($jobCard->materialConsumptions()->count() === 0) {
+        if ($this->inventoryControls->materialConsumptionRequired($jobCard->company_id, $jobCard->branch_id)
+            && $jobCard->materialConsumptions()->count() === 0) {
             $this->pushBlocker($blockers, $blockerCodes, 'consumption', __('Record material consumption before completing to finished goods.'));
         }
 

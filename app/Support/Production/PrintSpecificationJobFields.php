@@ -66,6 +66,14 @@ class PrintSpecificationJobFields
             $data['default_unit_price'] = $payload['price'] ?? $payload['selling_price'] ?? null;
         }
 
+        $storedQty = (float) ($data['default_quantity'] ?? 0);
+        if ($storedQty <= 1 && is_array($payload) && ($payload['kind'] ?? null) === 'digital') {
+            $finished = DigitalSpecificationService::finishedQuantityFromSheet($payload);
+            if ($finished > 1) {
+                $data['default_quantity'] = $finished;
+            }
+        }
+
         if (! filled($data['production_notes'] ?? null) && is_array($payload)) {
             $data['production_notes'] = $payload['production_notes'] ?? $payload['notes'] ?? null;
         }
@@ -135,6 +143,17 @@ class PrintSpecificationJobFields
         }
 
         $quantity = (float) $payload['quantity'];
+        if ($quantity <= 1) {
+            $digitalSheet = $digital !== [] ? $digital : $sheet;
+            $finished = DigitalSpecificationService::finishedQuantityFromSheet($digitalSheet);
+            if ($finished > 1) {
+                $payload['quantity'] = $finished;
+                $quantity = $finished;
+            } elseif ((float) ($specification?->default_quantity ?? 0) > 1) {
+                $payload['quantity'] = (float) $specification->default_quantity;
+                $quantity = (float) $specification->default_quantity;
+            }
+        }
 
         if (! $this->isMissingAmount($payload['unit_price'] ?? null)) {
             return $payload;

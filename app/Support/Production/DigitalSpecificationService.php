@@ -59,6 +59,13 @@ class DigitalSpecificationService
         }
 
         $quantity = (float) ($payload['quantity'] ?? 0);
+        if ($quantity <= 1) {
+            $finished = self::finishedQuantityFromSheet($sheet);
+            if ($finished > 1) {
+                $payload['quantity'] = $finished;
+                $quantity = $finished;
+            }
+        }
         $ups = isset($sheet['ups']) && $sheet['ups'] !== '' ? (int) $sheet['ups'] : null;
         $sheets = isset($sheet['sheets']) && $sheet['sheets'] !== '' ? (int) $sheet['sheets'] : null;
         $derived = ProductionImpositionCalculator::estimateSheets($quantity, $ups, $sheets);
@@ -148,6 +155,7 @@ class DigitalSpecificationService
             'finishing_type' => $finishing !== '' && strcasecmp($finishing, 'N/A') !== 0 ? $finishing : null,
             'job_sheet_payload' => [
                 'kind' => 'digital',
+                'description' => $description !== '' ? $description : null,
                 'paper_type' => $paperType !== '' ? $paperType : null,
                 'ups' => $ups,
                 'sheets' => $sheets,
@@ -247,6 +255,31 @@ class DigitalSpecificationService
             'in_progress' => __('In progress'),
             'order_complete' => __('Order complete'),
         ];
+    }
+
+    /**
+     * Finished pieces implied by a digital job sheet (sheets × ups, or sheets when ups is blank).
+     *
+     * @param  array<string, mixed>  $sheet
+     */
+    public static function finishedQuantityFromSheet(array $sheet): float
+    {
+        $ups = isset($sheet['ups']) && $sheet['ups'] !== '' && $sheet['ups'] !== null
+            ? (int) $sheet['ups']
+            : 0;
+        $sheets = isset($sheet['sheets']) && $sheet['sheets'] !== '' && $sheet['sheets'] !== null
+            ? (int) $sheet['sheets']
+            : 0;
+
+        if ($sheets > 1 && $ups > 1) {
+            return (float) ($sheets * $ups);
+        }
+
+        if ($sheets > 1) {
+            return (float) $sheets;
+        }
+
+        return 0.0;
     }
 
     protected function amount(mixed $quantity, mixed $price): ?float

@@ -84,6 +84,7 @@
                 'customer' => $salesOrder->customer,
                 'productionVendors' => $productionVendors ?? collect(),
                 'idPrefix' => 'order-job',
+                'compact' => false,
             ])
         </div>
 

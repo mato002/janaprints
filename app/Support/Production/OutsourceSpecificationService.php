@@ -177,6 +177,7 @@ class OutsourceSpecificationService
             'production_notes' => $notes !== '' ? $notes : null,
             'job_sheet_payload' => [
                 'kind' => 'outsource',
+                'description' => $description !== '' ? $description : null,
                 'printing_type' => $printingType,
                 'vendor_id' => $vendor?->id,
                 'vendor_name' => $vendor?->vendor_name,

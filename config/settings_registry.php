@@ -205,10 +205,17 @@ return [
                 ],
                 'production_qc_required' => [
                     'label' => 'Quality check required',
-                    'description' => 'A passed quality check is required before completing a job card.',
+                    'description' => 'Checker mode: a passed quality check is required before completing a job. When off, QC stays available but does not block production.',
                     'type' => 'boolean',
                     'scopes' => ['company'],
                     'default' => false,
+                ],
+                'production_inventory_controls_enforced' => [
+                    'label' => 'Enforce inventory process controls',
+                    'description' => 'Checker mode: jobs cannot queue, post finished goods, or dispatch until materials, consumption, and finished-goods posting are recorded. Turn off for companies that do not staff inventory — those steps stay available as optional maker actions and will not block production.',
+                    'type' => 'boolean',
+                    'scopes' => ['company', 'branch'],
+                    'default' => true,
                 ],
             ],
         ],

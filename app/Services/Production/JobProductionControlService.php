@@ -289,6 +289,13 @@ SQL;
                     'detail' => $qc['label'],
                 ];
             }
+        } else {
+            $items[] = [
+                'key' => 'qc',
+                'label' => __('QC passed'),
+                'state' => 'na',
+                'detail' => __('Not required'),
+            ];
         }
 
         $materialsState = $this->materialsReadinessState($jobCard, $consumptionCount);
@@ -389,11 +396,14 @@ SQL;
         }
 
         $consumptionCount = (int) $jobCard->material_consumptions_count;
-        if ($consumptionCount === 0) {
+        $inventoryControls = app(\App\Support\Production\ProductionInventoryControlSettings::class);
+
+        if ($consumptionCount === 0 && $inventoryControls->materialConsumptionRequired($jobCard->company_id, $jobCard->branch_id)) {
             $warnings[] = __('No material consumption recorded');
         }
 
-        if ($jobCard->status !== ProductionJobCardStatus::ReadyForDispatch
+        if ($inventoryControls->finishedGoodsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id)
+            && $jobCard->status !== ProductionJobCardStatus::ReadyForDispatch
             && ! app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard)) {
             $blockers[] = __('Post finished goods before marking ready for dispatch.');
         }
@@ -434,7 +444,9 @@ SQL;
             $blockerCodes[] = 'qc';
         }
 
-        if (! app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard)) {
+        if (app(\App\Support\Production\ProductionInventoryControlSettings::class)
+            ->finishedGoodsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id)
+            && ! app(ProductionCompletionService::class)->hasPostedFinishedGoods($jobCard)) {
             $blockers[] = __('Post finished goods before creating a delivery note.');
             $blockerCodes[] = 'finished_goods';
         }
@@ -585,6 +597,15 @@ SQL;
     public function materialsReadinessState(ProductionJobCard $jobCard, ?int $consumptionCount = null): array
     {
         $consumptionCount ??= (int) $jobCard->material_consumptions_count;
+
+        if ($consumptionCount === 0
+            && ! app(\App\Support\Production\ProductionInventoryControlSettings::class)
+                ->materialConsumptionRequired($jobCard->company_id, $jobCard->branch_id)) {
+            return [
+                'state' => 'na',
+                'detail' => __('Optional — not required for this company'),
+            ];
+        }
 
         $requirements = ProductionMaterialRequirement::query()
             ->where('production_job_card_id', $jobCard->id)

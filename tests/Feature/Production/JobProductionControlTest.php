@@ -217,6 +217,49 @@ class JobProductionControlTest extends TestCase
         $this->assertNotSame('', $state['detail']);
     }
 
+    public function test_materials_readiness_is_optional_when_inventory_controls_are_advisory(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+
+        app(\App\Support\Platform\SystemSettingsService::class)->set(
+            'production_inventory_controls_enforced',
+            false,
+            $company->id,
+            $branch->id,
+            'boolean',
+        );
+
+        $state = app(JobProductionControlService::class)->materialsReadinessState($jobCard->fresh());
+
+        $this->assertSame('na', $state['state']);
+    }
+
+    public function test_dispatch_is_allowed_without_finished_goods_when_inventory_controls_are_advisory(): void
+    {
+        [$company, $branch, , $user, $salesOrder] = $this->productionContext([
+            'production.view', 'production.create', 'production.complete',
+        ]);
+        $jobCard = $this->createJobCard($salesOrder, $user);
+        $jobCard->update(['status' => ProductionJobCardStatus::Completed]);
+
+        app(\App\Support\Platform\SystemSettingsService::class)->set(
+            'production_inventory_controls_enforced',
+            false,
+            $company->id,
+            $branch->id,
+            'boolean',
+        );
+
+        $controls = app(JobProductionControlService::class);
+
+        $this->assertTrue($controls->dispatchEligibility($jobCard->fresh())['eligible']);
+
+        $jobCard->update(['status' => ProductionJobCardStatus::ReadyForDispatch]);
+
+        $this->assertTrue($controls->deliveryNoteCreationEligibility($jobCard->fresh())['eligible']);
+    }
+
     public function test_wastage_summary_reflects_tracking_availability(): void
     {
         [, , , $user, $salesOrder] = $this->productionContext(['production.view', 'production.create']);

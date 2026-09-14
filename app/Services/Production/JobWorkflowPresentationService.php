@@ -215,21 +215,24 @@ class JobWorkflowPresentationService
             'hint' => null,
         ];
 
+        $qcPassed = in_array($qc['state'] ?? null, ['passed', 'na', null], true);
         $items[] = [
-            'passed' => ($qc['state'] ?? null) === 'passed',
+            'passed' => $qcPassed,
             'label' => __('QC approved'),
-            'action' => ($qc['state'] ?? null) !== 'passed'
+            'action' => ! $qcPassed
                 ? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'quality'])
                 : null,
             'action_label' => __('Open QC'),
             'hint' => null,
         ];
 
-        $materialsPassed = ($materials['state'] ?? null) === 'passed';
+        $materialsPassed = in_array($materials['state'] ?? null, ['passed', 'na'], true);
         $items[] = [
             'passed' => $materialsPassed,
             'label' => $materialsPassed
-                ? __('Material consumption recorded')
+                ? (($materials['state'] ?? null) === 'na'
+                    ? __('Material consumption optional')
+                    : __('Material consumption recorded'))
                 : __('Material consumption missing'),
             'action' => ! $materialsPassed
                 ? route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'materials']).'#materials-consume'
@@ -327,10 +330,10 @@ class JobWorkflowPresentationService
         $operations = $checklist->firstWhere('key', 'operations');
         $qc = $checklist->firstWhere('key', 'qc');
 
-        $materialsDone = in_array($materials['state'] ?? null, ['passed', 'warning'], true)
+        $materialsDone = in_array($materials['state'] ?? null, ['passed', 'warning', 'na'], true)
             || ($jobCard->material_consumptions_count ?? 0) > 0;
         $productionDone = in_array($operations['state'] ?? null, ['passed', 'warning'], true);
-        $qcDone = ($qc['state'] ?? null) === 'passed';
+        $qcDone = in_array($qc['state'] ?? null, ['passed', 'na', null], true);
         $fgDone = $hasPostedOutput;
         $dispatchDone = $hasDeliveryNote && in_array($dispatchSummary['workflow_phase'] ?? '', ['delivered', 'closed'], true);
         $dispatchReady = $dispatchWorkflow['eligible'] ?? false;

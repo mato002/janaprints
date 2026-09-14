@@ -18,6 +18,7 @@ use App\Models\Production\ProductionSpecification;
 use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\User;
+use App\Support\Production\DigitalSpecificationService;
 use Database\Factories\Sales\SalesOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -290,9 +291,35 @@ class SalesOrder extends Model
 
         $productionQty = (float) ($item->productionSpecification?->quantity ?? 0);
         $specQty = (float) ($this->customerPrintSpecification?->default_quantity ?? 0);
-        $candidate = $productionQty > 1 ? $productionQty : $specQty;
+        $imposedQty = $this->digitalFinishedQuantityForItem($item);
+        $candidate = max($productionQty, $specQty, $imposedQty);
 
         return $candidate > 1 ? $candidate : max($quantity, 0);
+    }
+
+    protected function digitalFinishedQuantityForItem(SalesOrderItem $item): float
+    {
+        $production = $item->productionSpecification;
+        $sheet = [];
+
+        if (is_array($production?->job_sheet_payload)) {
+            $sheet = $production->job_sheet_payload;
+        }
+
+        if (($sheet['kind'] ?? null) !== 'digital' && is_array($this->customerPrintSpecification?->job_sheet_payload)) {
+            $sheet = $this->customerPrintSpecification->job_sheet_payload;
+        }
+
+        if ($production) {
+            if (! isset($sheet['ups']) || $sheet['ups'] === '' || $sheet['ups'] === null) {
+                $sheet['ups'] = $production->ups;
+            }
+            if (! isset($sheet['sheets']) || $sheet['sheets'] === '' || $sheet['sheets'] === null) {
+                $sheet['sheets'] = $production->estimated_sheets;
+            }
+        }
+
+        return DigitalSpecificationService::finishedQuantityFromSheet($sheet);
     }
 
     /**

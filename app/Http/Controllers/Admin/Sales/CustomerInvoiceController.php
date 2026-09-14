@@ -148,7 +148,9 @@ class CustomerInvoiceController extends Controller
 
         if ($this->wantsReceivablesReturn($request)) {
             return redirect()
-                ->to($this->receivablesInvoicesUrl())
+                ->to($this->receivablesInvoicesUrl([
+                    'open_invoice' => $invoice->getRouteKey(),
+                ]))
                 ->with('status', __('Invoice approved.'));
         }
 
@@ -169,7 +171,9 @@ class CustomerInvoiceController extends Controller
 
         if ($this->wantsReceivablesReturn($request)) {
             return redirect()
-                ->to($this->receivablesInvoicesUrl())
+                ->to($this->receivablesInvoicesUrl([
+                    'open_invoice' => $invoice->getRouteKey(),
+                ]))
                 ->with('status', __('Invoice posted to accounts receivable.'));
         }
 
@@ -330,7 +334,9 @@ class CustomerInvoiceController extends Controller
 
         if ($this->wantsReceivablesReturn($request)) {
             return redirect()
-                ->to($this->receivablesInvoicesUrl())
+                ->to($this->receivablesInvoicesUrl([
+                    'open_invoice' => $result->invoice->getRouteKey(),
+                ]))
                 ->with('status', $flash);
         }
 
@@ -375,7 +381,9 @@ class CustomerInvoiceController extends Controller
         ]);
 
         return redirect()
-            ->to($this->receivablesInvoicesUrl())
+            ->to($this->receivablesInvoicesUrl([
+                'open_invoice' => $result->invoice->getRouteKey(),
+            ]))
             ->with('status', __('Invoice created from :count orders.', ['count' => $orders->count()]));
     }
 

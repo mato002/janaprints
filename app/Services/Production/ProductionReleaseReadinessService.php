@@ -170,8 +170,16 @@ class ProductionReleaseReadinessService
 
     protected function materialsAreOptional(SalesOrder $salesOrder, ?ProductionJobCard $jobCard = null): bool
     {
-        return $salesOrder->production_destination !== null
-            || $jobCard?->production_destination !== null;
+        if ($salesOrder->production_destination !== null
+            || $jobCard?->production_destination !== null) {
+            return true;
+        }
+
+        $companyId = $jobCard?->company_id ?? $salesOrder->company_id;
+        $branchId = $jobCard?->branch_id ?? $salesOrder->branch_id;
+
+        return ! app(\App\Support\Production\ProductionInventoryControlSettings::class)
+            ->materialReadinessRequired($companyId, $branchId);
     }
 
     /**

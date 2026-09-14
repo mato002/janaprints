@@ -227,7 +227,12 @@
                 @endphp
                 <tr x-show="rowVisible(@js(strtolower($invoice->invoice_number.' '.($invoice->customer?->company_name ?? '').' '.$collection->value.' '.$orderNumbers.' '.$departmentLabel)), @js($collection->value))">
                     <td>
-                        <a href="{{ route('admin.invoices.show', [$invoice, 'from' => 'receivables']) }}" class="font-mono text-sm text-erp-accent" data-erp-modal-open>{{ $invoice->invoice_number }}</a>
+                        <a
+                            href="{{ route('admin.invoices.show', [$invoice, 'from' => 'receivables']) }}"
+                            class="font-mono text-sm text-erp-accent"
+                            data-erp-modal-open
+                            data-open-invoice="{{ $invoice->getRouteKey() }}"
+                        >{{ $invoice->invoice_number }}</a>
                     </td>
                     <td class="text-sm">{{ $invoice->customer?->company_name }}</td>
                     <td class="text-xs text-slate-600">{{ $orderNumbers }}</td>
@@ -244,16 +249,18 @@
                             @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Draft)
                                 @can('approve', $invoice)
                                     <x-admin.table-row-action
-                                        :action="route('admin.invoices.approve', $invoice)"
+                                        :action="route('admin.invoices.approve', [$invoice, 'from' => 'receivables'])"
                                         method="POST"
+                                        turbo-frame="module-workspace-content"
                                     >{{ __('Approve') }}</x-admin.table-row-action>
                                 @endcan
                             @endif
                             @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Approved)
                                 @can('post', $invoice)
                                     <x-admin.table-row-action
-                                        :action="route('admin.invoices.post', $invoice)"
+                                        :action="route('admin.invoices.post', [$invoice, 'from' => 'receivables'])"
                                         method="POST"
+                                        turbo-frame="module-workspace-content"
                                         :confirm="__('Post this invoice to accounts receivable?')"
                                     >{{ __('Post to AR') }}</x-admin.table-row-action>
                                 @endcan
@@ -282,4 +289,18 @@
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$invoices" /></x-slot>
     </x-admin.data-table>
+
+    @if (request()->filled('open_invoice'))
+        <div
+            hidden
+            data-open-invoice-key="{{ request('open_invoice') }}"
+            x-data
+            x-init="
+                $nextTick(() => {
+                    const key = $el.dataset.openInvoiceKey;
+                    document.querySelector('[data-open-invoice=&quot;' + key + '&quot;]')?.click();
+                })
+            "
+        ></div>
+    @endif
 </x-admin-layout>

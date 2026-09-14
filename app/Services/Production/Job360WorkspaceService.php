@@ -171,6 +171,8 @@ class Job360WorkspaceService
             'dispatch_summary' => $dispatchSummary,
             'has_posted_output' => $hasPostedOutput,
             'material_readiness' => $materialReadiness,
+            'inventory_controls_enforced' => app(\App\Support\Production\ProductionInventoryControlSettings::class)
+                ->enforced($jobCard->company_id, $jobCard->branch_id),
             'readiness_checklist' => $this->controls->readinessChecklist($jobCard),
             'kpis' => $this->controls->productionKpis($jobCard),
             'control_alerts' => $controlAlerts,

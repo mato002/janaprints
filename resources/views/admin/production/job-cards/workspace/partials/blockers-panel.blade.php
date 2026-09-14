@@ -25,12 +25,13 @@
 
     $destinationLane = $jobCard->production_destination !== null
         || $jobCard->salesOrder?->production_destination !== null;
+    $inventoryControlsEnforced = (bool) ($inventoryControlsEnforced ?? true);
 
     $items = [];
     $seen = [];
     $resolveUrl = null;
 
-    if ($showMaterialReleaseGate && $materialReadiness && ! ($materialReadiness['ready'] ?? false)) {
+    if ($showMaterialReleaseGate && $inventoryControlsEnforced && $materialReadiness && ! ($materialReadiness['ready'] ?? false)) {
         $hasRequirements = (bool) ($materialReadiness['has_requirements'] ?? false);
         $shortCount = (int) ($materialReadiness['short_count'] ?? 0);
 

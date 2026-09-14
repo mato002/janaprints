@@ -17,6 +17,7 @@ class MaterialReadinessService
 {
     public function __construct(
         protected MaterialRequirementsService $requirements,
+        protected ProductionInventoryControlSettings $inventoryControls,
     ) {}
 
     /**
@@ -136,6 +137,10 @@ class MaterialReadinessService
 
     public function assertReadyToRelease(ProductionJobCard $jobCard): void
     {
+        if (! $this->inventoryControls->materialReadinessRequired($jobCard->company_id, $jobCard->branch_id)) {
+            return;
+        }
+
         $assessment = $this->assess($jobCard);
 
         if ($assessment['ready']) {

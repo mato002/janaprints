@@ -160,4 +160,32 @@ class ProductionCompletionServiceTest extends TestCase
 
         $this->assertSame(1, ProductionOutput::query()->where('production_job_card_id', $jobCard->id)->count());
     }
+
+    public function test_eligibility_blocks_missing_consumption_when_inventory_controls_enforced(): void
+    {
+        [, , , , , , $jobCard] = $this->readyJobForCompletion();
+        $jobCard->materialConsumptions()->delete();
+
+        $eligibility = app(ProductionCompletionService::class)->eligibility($jobCard->fresh());
+
+        $this->assertContains('consumption', $eligibility['blocker_codes']);
+    }
+
+    public function test_eligibility_allows_missing_consumption_when_inventory_controls_are_advisory(): void
+    {
+        [$company, $branch, , , , , $jobCard] = $this->readyJobForCompletion();
+        $jobCard->materialConsumptions()->delete();
+
+        app(\App\Support\Platform\SystemSettingsService::class)->set(
+            'production_inventory_controls_enforced',
+            false,
+            $company->id,
+            $branch->id,
+            'boolean',
+        );
+
+        $eligibility = app(ProductionCompletionService::class)->eligibility($jobCard->fresh());
+
+        $this->assertNotContains('consumption', $eligibility['blocker_codes']);
+    }
 }

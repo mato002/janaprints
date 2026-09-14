@@ -71,8 +71,10 @@ class ProductionFloorActionService
             && $jobCard->status === ProductionJobCardStatus::Draft
         ) {
             $materialsReady = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard)['ready'];
+            $mustResolveMaterials = app(\App\Support\Production\ProductionInventoryControlSettings::class)
+                ->materialReadinessRequired($jobCard->company_id, $jobCard->branch_id);
 
-            if (! $materialsReady) {
+            if (! $materialsReady && $mustResolveMaterials) {
                 return $this->action(
                     __('Resolve materials'),
                     'link',
@@ -103,7 +105,9 @@ class ProductionFloorActionService
             && ! ($state['is_ready_to_start'] ?? false)
         ) {
             $assessment = app(\App\Support\Production\MaterialReadinessService::class)->assess($jobCard);
-            if (! $assessment['ready']) {
+            if (! $assessment['ready']
+                && app(\App\Support\Production\ProductionInventoryControlSettings::class)
+                    ->materialReadinessRequired($jobCard->company_id, $jobCard->branch_id)) {
                 return $this->action(
                     __('Materials blocked'),
                     'link',
@@ -146,13 +150,15 @@ class ProductionFloorActionService
 
         if ($user->can('production.outputs.post') && ! $this->completion->hasPostedFinishedGoods($jobCard)) {
             $outputsUrl = route('admin.production.job-cards.show', ['jobCard' => $jobCard, 'tab' => 'outputs']).'#outputs';
+            $mustPostFg = app(\App\Support\Production\ProductionInventoryControlSettings::class)
+                ->finishedGoodsRequiredBeforeDispatch($jobCard->company_id, $jobCard->branch_id);
 
-            if (in_array($jobCard->status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true)) {
+            if ($mustPostFg && in_array($jobCard->status, [ProductionJobCardStatus::Completed, ProductionJobCardStatus::ReadyForDispatch], true)) {
                 return $this->action(__('Post finished goods'), 'panel', $outputsUrl, 'primary');
             }
 
             if ($this->completion->eligibility($jobCard)['eligible'] ?? false) {
-                return $this->action(__('Post finished goods'), 'panel', $outputsUrl, 'secondary');
+                return $this->action(__('Post finished goods'), 'panel', $outputsUrl, $mustPostFg ? 'secondary' : 'ghost');
             }
         }
 
