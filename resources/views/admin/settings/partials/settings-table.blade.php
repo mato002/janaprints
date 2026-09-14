@@ -1,83 +1,136 @@
-<div class="erp-table-scroll">
-    <table class="erp-table erp-table--grid min-w-full text-sm">
-        <thead>
+@php
+    $hasCompanyScope = $rows->contains(fn ($row) => in_array('company', $row['scopes'], true));
+    $hasBranchScope = $branchId && $rows->contains(fn ($row) => in_array('branch', $row['scopes'], true));
+@endphp
+
+<style>
+    .settings-grid-table {
+        width: 100%;
+        table-layout: fixed;
+        border-collapse: collapse;
+    }
+    .settings-grid-table th,
+    .settings-grid-table td {
+        white-space: normal !important;
+        max-width: none !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        height: auto !important;
+        vertical-align: top;
+        word-break: break-word;
+    }
+    .settings-grid-table .erp-select,
+    .settings-grid-table .erp-input {
+        min-width: 0 !important;
+        width: 100%;
+        max-width: 100%;
+    }
+</style>
+
+<div class="min-w-0 w-full max-w-full">
+<table class="erp-table erp-table--grid settings-grid-table text-sm">
+    <colgroup>
+        <col style="width: {{ $hasBranchScope ? '44%' : '56%' }}">
+        @if ($hasCompanyScope)
+            <col style="width: {{ $hasBranchScope ? '18%' : '24%' }}">
+        @endif
+        @if ($hasBranchScope)
+            <col style="width: 18%">
+        @endif
+        <col style="width: {{ $hasBranchScope ? '20%' : '20%' }}">
+    </colgroup>
+    <thead>
+        <tr>
+            <th scope="col">{{ __('Setting') }}</th>
+            @if ($editable)
+                @if ($hasCompanyScope)
+                    <th scope="col">{{ __('Company') }}</th>
+                @endif
+                @if ($hasBranchScope)
+                    <th scope="col">{{ __('Branch') }}</th>
+                @endif
+            @else
+                <th scope="col">{{ __('Company') }}</th>
+                @if ($branchId)
+                    <th scope="col">{{ __('Branch') }}</th>
+                @endif
+            @endif
+            <th scope="col">{{ __('Now') }}</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach ($rows as $row)
+            @php
+                $companyValue = $row['company_value'] ?? $row['effective_value'];
+            @endphp
             <tr>
-                <th scope="col">{{ __('Setting') }}</th>
+                <td>
+                    <p class="font-medium text-erp-primary">{{ $row['label'] }}</p>
+                    <p class="mt-1 text-xs leading-5 text-slate-500">{{ $row['description'] }}</p>
+                </td>
+
                 @if ($editable)
-                    @if ($rows->contains(fn ($row) => in_array('company', $row['scopes'], true)))
-                        <th scope="col" class="py-3 px-4">{{ __('Company override') }}</th>
+                    @if ($hasCompanyScope)
+                        <td>
+                            @if (in_array('company', $row['scopes'], true))
+                                @include('admin.settings.partials.setting-input', [
+                                    'name' => "settings[{$row['key']}][company]",
+                                    'type' => $row['type'],
+                                    'value' => $companyValue,
+                                    'placeholder' => __('Off / On'),
+                                    'allowInherit' => false,
+                                ])
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
                     @endif
-                    @if ($branchId && $rows->contains(fn ($row) => in_array('branch', $row['scopes'], true)))
-                        <th scope="col" class="py-3 px-4">{{ __('Branch override') }}</th>
+
+                    @if ($hasBranchScope)
+                        <td>
+                            @if (in_array('branch', $row['scopes'], true))
+                                @include('admin.settings.partials.setting-input', [
+                                    'name' => "settings[{$row['key']}][branch]",
+                                    'type' => $row['type'],
+                                    'value' => $row['branch_value'],
+                                    'placeholder' => __('Inherit'),
+                                    'allowInherit' => true,
+                                ])
+                            @else
+                                <span class="text-slate-400">—</span>
+                            @endif
+                        </td>
                     @endif
                 @else
-                    <th scope="col" class="py-3 px-4">{{ __('Company value') }}</th>
+                    <td>
+                        @include('admin.settings.partials.setting-display', [
+                            'value' => $row['company_value'],
+                            'type' => $row['type'],
+                            'empty' => __('Default'),
+                        ])
+                    </td>
                     @if ($branchId)
-                        <th scope="col" class="py-3 px-4">{{ __('Branch value') }}</th>
+                        <td>
+                            @include('admin.settings.partials.setting-display', [
+                                'value' => $row['branch_value'],
+                                'type' => $row['type'],
+                                'empty' => __('Inherit'),
+                            ])
+                        </td>
                     @endif
                 @endif
-                <th scope="col">{{ __('Effective') }}</th>
+
+                <td>
+                    <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
+                        @include('admin.settings.partials.setting-display', [
+                            'value' => $row['effective_value'],
+                            'type' => $row['type'],
+                            'empty' => '—',
+                        ])
+                    </span>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach ($rows as $row)
-                <tr>
-                    <td class="py-4 pr-4 align-top">
-                        <p class="font-medium text-erp-primary">{{ $row['label'] }}</p>
-                        <p class="mt-1 text-xs text-slate-500">{{ $row['description'] }}</p>
-                        <p class="mt-1 font-mono text-[11px] text-slate-400">{{ $row['key'] }}</p>
-                    </td>
-
-                    @if ($editable)
-                        @if ($rows->contains(fn ($r) => in_array('company', $r['scopes'], true)))
-                            <td class="py-4 px-4 align-top">
-                                @if (in_array('company', $row['scopes'], true))
-                                    @include('admin.settings.partials.setting-input', [
-                                        'name' => "settings[{$row['key']}][company]",
-                                        'type' => $row['type'],
-                                        'value' => $row['company_value'],
-                                        'placeholder' => __('Inherit default'),
-                                        'allowInherit' => true,
-                                    ])
-                                @else
-                                    <span class="text-slate-400">—</span>
-                                @endif
-                            </td>
-                        @endif
-
-                        @if ($branchId && $rows->contains(fn ($r) => in_array('branch', $r['scopes'], true)))
-                            <td class="py-4 px-4 align-top">
-                                @if (in_array('branch', $row['scopes'], true))
-                                    @include('admin.settings.partials.setting-input', [
-                                        'name' => "settings[{$row['key']}][branch]",
-                                        'type' => $row['type'],
-                                        'value' => $row['branch_value'],
-                                        'placeholder' => __('Inherit company'),
-                                        'allowInherit' => true,
-                                    ])
-                                @else
-                                    <span class="text-slate-400">—</span>
-                                @endif
-                            </td>
-                        @endif
-                    @else
-                        <td class="py-4 px-4 align-top tabular-nums text-slate-700">
-                            @include('admin.settings.partials.setting-display', ['value' => $row['company_value'], 'type' => $row['type'], 'empty' => __('Default')])
-                        </td>
-                        @if ($branchId)
-                            <td class="py-4 px-4 align-top tabular-nums text-slate-700">
-                                @include('admin.settings.partials.setting-display', ['value' => $row['branch_value'], 'type' => $row['type'], 'empty' => __('Inherit')])
-                            </td>
-                        @endif
-                    @endif
-
-                    <td class="py-4 pl-4 align-top">
-                        <span class="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800">
-                            @include('admin.settings.partials.setting-display', ['value' => $row['effective_value'], 'type' => $row['type'], 'empty' => '—'])
-                        </span>
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+        @endforeach
+    </tbody>
+</table>
 </div>
