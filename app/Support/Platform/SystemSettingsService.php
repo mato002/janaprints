@@ -2,6 +2,7 @@
 
 namespace App\Support\Platform;
 
+use App\Models\Branch;
 use App\Models\Platform\SystemSetting;
 use Illuminate\Support\Facades\Cache;
 
@@ -42,9 +43,22 @@ class SystemSettingsService
             ],
         );
 
-        Cache::forget($this->cacheKey($key, $companyId, $branchId));
+        $this->forgetCached($key, $companyId);
 
         return $setting;
+    }
+
+    public function forgetCached(string $key, ?int $companyId): void
+    {
+        Cache::forget($this->cacheKey($key, $companyId, null));
+
+        if ($companyId === null) {
+            return;
+        }
+
+        foreach (Branch::query()->where('company_id', $companyId)->pluck('id') as $id) {
+            Cache::forget($this->cacheKey($key, $companyId, (int) $id));
+        }
     }
 
     protected function resolve(string $key, mixed $default, ?int $companyId, ?int $branchId): mixed

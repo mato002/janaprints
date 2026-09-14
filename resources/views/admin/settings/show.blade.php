@@ -47,18 +47,34 @@
 
         <x-admin.card>
             @if ($canManage)
-                <form method="POST" action="{{ route('admin.settings.update', $section) }}" class="space-y-6">
+                <form
+                    id="settings-save-form"
+                    method="POST"
+                    action="{{ route('admin.settings.update', $section) }}"
+                    class="space-y-6"
+                    data-turbo="false"
+                    data-turbo-frame="_top"
+                >
                     @csrf
-                    @method('PUT')
                     <input type="hidden" name="company_id" value="{{ $companyId }}">
                     @if ($branchId)
                         <input type="hidden" name="branch_id" value="{{ $branchId }}">
                     @endif
 
+                    @if ($errors->any())
+                        <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                            {{ $errors->first() }}
+                        </div>
+                    @endif
+
+                    @if (session('status'))
+                        <p class="text-sm font-medium text-emerald-700">{{ session('status') }}</p>
+                    @endif
+
                     @include('admin.settings.partials.settings-table', ['editable' => true])
 
                     <div class="border-t border-erp-border pt-6">
-                        <x-primary-button>{{ __('Save settings') }}</x-primary-button>
+                        <x-primary-button form="settings-save-form">{{ __('Save settings') }}</x-primary-button>
                     </div>
                 </form>
             @else

@@ -4,7 +4,6 @@ namespace App\Support\Platform;
 
 use App\Models\Platform\SystemSetting;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 
 class SystemSettingsManager
 {
@@ -87,11 +86,11 @@ class SystemSettingsManager
 
     protected function isEmptyOverride(mixed $value, string $type): bool
     {
-        if ($value === null || $value === '') {
-            return true;
+        if ($type === 'boolean') {
+            return $value === null || $value === '' || $value === 'inherit';
         }
 
-        if ($type === 'boolean' && $value === 'inherit') {
+        if ($value === null || $value === '') {
             return true;
         }
 
@@ -116,11 +115,7 @@ class SystemSettingsManager
             ->where('branch_id', $branchId)
             ->delete();
 
-        Cache::forget($this->cacheKey($key, $companyId, $branchId));
-
-        if ($branchId !== null) {
-            Cache::forget($this->cacheKey($key, $companyId, null));
-        }
+        $this->settings->forgetCached($key, $companyId);
     }
 
     /**
@@ -153,15 +148,5 @@ class SystemSettingsManager
         }
 
         return compact('company', 'branch');
-    }
-
-    protected function cacheKey(string $key, ?int $companyId, ?int $branchId): string
-    {
-        return sprintf(
-            'platform:settings:%s:%s:%s',
-            $companyId ?? 'global',
-            $branchId ?? 'all',
-            $key,
-        );
     }
 }

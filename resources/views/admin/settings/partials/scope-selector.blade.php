@@ -20,10 +20,10 @@
 
 @if ($companies->count() > 1 || $branches->isNotEmpty())
     @if ($compact)
-        <form method="GET" action="{{ $scopeAction }}" class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <form id="settings-scope-form" method="GET" action="{{ $scopeAction }}" class="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
     @else
         <x-admin.card class="mb-4">
-            <form method="GET" action="{{ $scopeAction }}" class="flex flex-wrap items-end gap-4">
+            <form id="settings-scope-form" method="GET" action="{{ $scopeAction }}" class="flex flex-wrap items-end gap-4">
     @endif
             @if ($embedded)
                 <input type="hidden" name="embedded" value="1">

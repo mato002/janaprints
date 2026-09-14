@@ -58,7 +58,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
             Route::put('settings/company-email/password', [CompanyEmailController::class, 'updatePassword'])->name('settings.company-email.update-password');
             Route::put('settings/company-email/quota', [CompanyEmailController::class, 'updateQuota'])->name('settings.company-email.update-quota');
             Route::delete('settings/company-email', [CompanyEmailController::class, 'destroy'])->name('settings.company-email.destroy');
-            Route::put('settings/{section}', [SettingsController::class, 'update'])
+            Route::match(['put', 'post'], 'settings/{section}', [SettingsController::class, 'update'])
                 ->name('settings.update')
                 ->where('section', '^(?!forms$).*');
         });
