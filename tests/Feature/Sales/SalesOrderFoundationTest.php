@@ -505,6 +505,43 @@ class SalesOrderFoundationTest extends TestCase
         $this->assertEquals(250.0, (float) $fresh->fresh()->total_amount);
     }
 
+    public function test_billed_total_uses_item_print_spec_quantity_when_order_header_has_no_spec(): void
+    {
+        [$company, $branch, $customer, $user] = $this->salesContext(['sales_orders.view']);
+
+        $spec = \App\Models\Crm\CustomerPrintSpecification::query()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'specification_code' => 'CPS-QTY-FIX-02',
+            'name' => 'Item spec qty',
+            'status' => \App\Enums\CustomerPrintSpecificationStatus::Active,
+            'default_quantity' => 100,
+            'default_unit_price' => 2.5,
+            'created_by' => $user->id,
+        ]);
+
+        $order = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'customer_id' => $customer->id,
+            'created_by' => $user->id,
+            'customer_print_specification_id' => null,
+            'subtotal' => 2.5,
+            'total_amount' => 2.5,
+        ]);
+
+        $order->items()->create([
+            'item_name' => 'Blurain cards',
+            'customer_print_specification_id' => $spec->id,
+            'quantity' => 1,
+            'unit_price' => 2.5,
+            'line_total' => 2.5,
+        ]);
+
+        $this->assertSame(250.0, SalesOrder::query()->findOrFail($order->id)->billedTotal());
+    }
+
     /**
      * @return array{0: Company, 1: Branch, 2: Customer, 3: User}
      */

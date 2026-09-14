@@ -9,6 +9,18 @@
     $compact = $compact ?? false;
     $idPrefix = $idPrefix ?? 'digital';
     $customerName = $customerName ?? null;
+    $quantityValue = $quantityValue ?? null;
+    $unitPriceValue = $unitPriceValue ?? null;
+    $asOfDate = $asOfDate ?? now();
+    if (($digitalForm['price'] ?? '') === '' && filled($unitPriceValue) && (float) $unitPriceValue > 0) {
+        $digitalForm['price'] = (string) $unitPriceValue;
+    }
+    $qtyForAmount = old('quantity', $quantityValue);
+    $priceForAmount = $digitalForm['price'];
+    $amountPreview = '';
+    if ((float) $qtyForAmount > 0 && (float) $priceForAmount > 0) {
+        $amountPreview = number_format((float) $qtyForAmount * (float) $priceForAmount, 2, '.', '');
+    }
     $inputClass = 'erp-input w-full min-h-[2.25rem] text-sm';
     $paperTypes = DigitalSpecificationService::paperTypes();
     $finishingOptions = DigitalSpecificationService::finishingOptions();
@@ -21,7 +33,7 @@
             digitalQty: @js((string) old('quantity', $quantityValue ?? '1')),
             digitalUps: @js($digitalForm['ups']),
             digitalSheets: @js($digitalForm['sheets']),
-            digitalPrice: @js($digitalForm['price']),
+            digitalPrice: @js($digitalForm['price'] !== '' ? $digitalForm['price'] : (string) ($unitPriceValue ?? '')),
             syncDigitalSheets() {
                 const qty = Number(this.digitalQty) || 0;
                 const ups = Number(this.digitalUps) || 0;
@@ -50,7 +62,7 @@
         @unless ($compact)
             <div>
                 <label class="erp-label">{{ __('Date') }}</label>
-                <input type="text" class="{{ $inputClass }} bg-slate-50" value="{{ now()->format('d/m/Y') }}" readonly>
+                <input type="text" class="{{ $inputClass }} bg-slate-50" value="{{ $asOfDate instanceof \Carbon\CarbonInterface ? $asOfDate->format('d/m/Y') : \Illuminate\Support\Carbon::parse($asOfDate)->format('d/m/Y') }}" readonly>
             </div>
             <div>
                 <label class="erp-label">{{ __('Client name') }}</label>
@@ -208,11 +220,8 @@
                 type="text"
                 class="{{ $inputClass }} bg-slate-50"
                 readonly
-                @if ($alpineDigital)
-                    :value="digitalAmountDisplay()"
-                @else
-                    :value="digitalAmountDisplay()"
-                @endif
+                value="{{ $amountPreview }}"
+                :value="digitalAmountDisplay()"
             >
         </div>
         <div>

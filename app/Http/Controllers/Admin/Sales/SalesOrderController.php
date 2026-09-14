@@ -359,6 +359,9 @@ class SalesOrderController extends Controller
             'fulfilment_method' => ['nullable', 'string', 'in:collection,delivery'],
             'billing_type' => ['nullable', 'string', 'in:deposit_50,advance_100,net_30'],
             'payment_terms_days' => ['nullable', 'integer', 'min:0', 'max:365'],
+            'priority' => ['nullable', 'string', 'in:low,normal,high,urgent'],
+            'quantity' => ['nullable', 'numeric', 'min:0.001'],
+            'unit_price' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'inventory_item_id' => ['nullable', 'exists:inventory_items,id'],
             'uses_existing_artwork' => ['boolean'],
@@ -381,11 +384,26 @@ class SalesOrderController extends Controller
             'job_sheet',
             'digital',
             'outsource',
+            'quantity',
+            'unit_price',
         ])->all());
 
         if ($request->has('items')) {
+            $items = $request->input('items', []);
+            if (isset($items[0]) && is_array($items[0])) {
+                if ($request->filled('quantity')) {
+                    $items[0]['quantity'] = $request->input('quantity');
+                }
+                if ($request->exists('unit_price')) {
+                    $items[0]['unit_price'] = $request->input('unit_price');
+                }
+                $request->merge(['items' => $items]);
+            }
+
             ['items' => $items, 'totals' => $totals] = $this->validatedItems($request);
             $this->syncItems($salesOrder, $items, $totals);
+        } elseif ($request->exists('quantity') || $request->exists('unit_price')) {
+            $this->updatePrimaryLineCommercials($salesOrder, $request);
         }
 
         $this->directOrders->syncProductionSpecifications(
@@ -393,9 +411,10 @@ class SalesOrderController extends Controller
             [
                 'production_destination' => $request->input('production_destination'),
                 'job_sheet' => $request->input('job_sheet', []),
-                'digital' => $request->input('digital', []),
+                'digital' => $this->digitalPayloadForSync($request),
                 'outsource' => $request->input('outsource', []),
-                'quantity' => $salesOrder->fresh('items')->items->first()?->quantity,
+                'quantity' => $request->input('quantity', $salesOrder->fresh('items')->items->first()?->quantity),
+                'unit_price' => $request->input('unit_price', $salesOrder->fresh('items')->items->first()?->unit_price),
             ],
             (int) $request->user()->id,
         );
@@ -416,6 +435,28 @@ class SalesOrderController extends Controller
             __('Sales order updated.'),
             $redirect,
         );
+    }
+
+    protected function updatePrimaryLineCommercials(SalesOrder $salesOrder, Request $request): void
+    {
+        $item = $salesOrder->items()->orderBy('sort_order')->orderBy('id')->first();
+
+        if ($item === null) {
+            return;
+        }
+
+        $quantity = $request->exists('quantity') ? $request->input('quantity') : $item->quantity;
+        $unitPrice = $request->exists('unit_price') ? $request->input('unit_price') : $item->unit_price;
+        $quantity = (float) $quantity;
+        $unitPrice = (float) $unitPrice;
+
+        $item->update([
+            'quantity' => $quantity,
+            'unit_price' => $unitPrice,
+            'line_total' => round($quantity * $unitPrice, 2),
+        ]);
+
+        $salesOrder->fresh('items')?->recalculateTotalsFromItems();
     }
 
     public function updateProductionSetup(Request $request, SalesOrder $salesOrder): RedirectResponse
@@ -693,7 +734,19 @@ class SalesOrderController extends Controller
         $printSpec = $salesOrder->customerPrintSpecification;
         $linePayload = is_array($lineSpec?->job_sheet_payload) ? $lineSpec->job_sheet_payload : [];
         $printPayload = is_array($printSpec?->job_sheet_payload) ? $printSpec->job_sheet_payload : [];
-        $payload = $linePayload !== [] ? $linePayload : $printPayload;
+        $payload = $this->mergeJobSheetPayloads($printPayload, $linePayload);
+
+        $line = $salesOrder->items->first();
+        $quantity = $line?->quantity;
+        $unitPrice = $line?->unit_price;
+
+        if ($unitPrice === null || (float) $unitPrice <= 0) {
+            $unitPrice = $printSpec?->default_unit_price;
+        }
+
+        if (($quantity === null || (float) $quantity <= 0) && $printSpec?->default_quantity) {
+            $quantity = $printSpec->default_quantity;
+        }
 
         $description = $payload['description']
             ?? $payload['product_description']
@@ -712,11 +765,24 @@ class SalesOrderController extends Controller
             $payload['finishing'] = $lineSpec->finishing_type;
         }
 
-        if (! filled($payload['price'] ?? null)) {
-            $unitPrice = $salesOrder->items->first()?->unit_price;
-            if ($unitPrice !== null && (float) $unitPrice > 0) {
-                $payload['price'] = $unitPrice;
+        if (! filled($payload['price'] ?? null) && $unitPrice !== null && (float) $unitPrice > 0) {
+            $payload['price'] = $unitPrice;
+        }
+
+        if (isset($payload['digital']) && is_array($payload['digital'])) {
+            if (! filled($payload['digital']['price'] ?? null) && filled($payload['price'] ?? null)) {
+                $payload['digital']['price'] = $payload['price'];
             }
+        }
+
+        if (
+            (! filled($payload['selling_price'] ?? null))
+            && $unitPrice !== null
+            && $quantity !== null
+            && (float) $unitPrice > 0
+            && (float) $quantity > 0
+        ) {
+            $payload['selling_price'] = round((float) $quantity * (float) $unitPrice, 2);
         }
 
         if (empty($payload['due_date']) && $salesOrder->required_date) {
@@ -734,6 +800,38 @@ class SalesOrderController extends Controller
             'job_sheet_payload' => $payload,
             'product_description' => $description,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function digitalPayloadForSync(Request $request): array
+    {
+        $digital = is_array($request->input('digital')) ? $request->input('digital') : [];
+
+        if (! filled($digital['price'] ?? null) && $request->exists('unit_price')) {
+            $digital['price'] = $request->input('unit_price');
+        }
+
+        return $digital;
+    }
+
+    /**
+     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>  $override
+     * @return array<string, mixed>
+     */
+    protected function mergeJobSheetPayloads(array $base, array $override): array
+    {
+        foreach ($override as $key => $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $base[$key] = $value;
+        }
+
+        return $base;
     }
 
     /**

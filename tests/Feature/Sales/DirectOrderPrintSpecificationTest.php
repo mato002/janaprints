@@ -557,9 +557,16 @@ class DirectOrderPrintSpecificationTest extends TestCase
             ->assertSee(__('Due date'), false)
             ->assertSee(__('Payment status'), false)
             ->assertSee(__('Price'), false)
+            ->assertSee(__('Quantity'), false)
+            ->assertSee(__('Unit price'), false)
+            ->assertSee('name="quantity"', false)
+            ->assertSee('name="unit_price"', false)
             ->assertSee('Photo sticker pack', false)
             ->assertSee('Photo sticker', false)
             ->assertSee('value="8"', false)
+            ->assertSee('value="200.000"', false)
+            ->assertSee('value="15.00"', false)
+            ->assertSee('value="15"', false)
             ->assertSee($dueDate, false);
     }
 

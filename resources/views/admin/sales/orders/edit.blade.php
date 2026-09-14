@@ -47,6 +47,16 @@
                 </select>
             </div>
             <div>
+                <label class="erp-label">{{ __('Priority') }}</label>
+                <select name="priority" class="erp-input w-full">
+                    @foreach (\App\Enums\ProductionPriority::cases() as $priority)
+                        <option value="{{ $priority->value }}" @selected(old('priority', $salesOrder->priority?->value ?? 'normal') === $priority->value)>
+                            {{ $priority->label() }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
                 <label class="erp-label">{{ __('Payment terms (days)') }}</label>
                 <input type="number" name="payment_terms_days" class="erp-input w-full" min="0" max="365"
                     value="{{ old('payment_terms_days', $salesOrder->payment_terms_days ?? 30) }}">
@@ -85,6 +95,11 @@
                 'productionVendors' => $productionVendors ?? collect(),
                 'idPrefix' => 'order-job',
                 'compact' => false,
+                'showCommercials' => true,
+                'salesOrder' => $salesOrder,
+                'quantityValue' => old('quantity', $salesOrder->items->first()?->quantity),
+                'unitPriceValue' => old('unit_price', $salesOrder->items->first()?->unit_price),
+                'asOfDate' => $salesOrder->order_date,
             ])
         </div>
 
@@ -116,8 +131,11 @@
             </div>
         </div>
 
-        <h3 class="font-medium">{{ __('Line items') }}</h3>
-        @include('admin.sales.orders.partials.items-form', ['salesOrder' => $salesOrder])
+        <h3 class="font-medium">{{ __('Additional line items') }}</h3>
+        @include('admin.sales.orders.partials.items-form', [
+            'salesOrder' => $salesOrder,
+            'hidePrimaryCommercials' => true,
+        ])
 
         <x-admin.form-modal-actions class="erp-form-modal__actions--sticky">
             <button type="submit" class="erp-btn-primary">{{ __('Save changes') }}</button>

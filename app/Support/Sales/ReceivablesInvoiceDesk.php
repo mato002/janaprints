@@ -2,22 +2,21 @@
 
 namespace App\Support\Sales;
 
-use App\Enums\CustomerInvoiceStatus;
 use App\Enums\CustomerInvoiceType;
 use App\Enums\SalesOrderStatus;
 use App\Models\Crm\Customer;
-use App\Models\Sales\CustomerInvoice;
 use App\Models\Sales\SalesOrder;
 use App\Support\NewestFirst;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 class ReceivablesInvoiceDesk
 {
     /**
      * @return array{
+     *     activeView: string,
      *     customer: ?Customer,
      *     customers: Collection<int, Customer>,
      *     unbilledOrders: Collection<int, SalesOrder>,
@@ -27,26 +26,35 @@ class ReceivablesInvoiceDesk
      */
     public function build(Request $request, Builder $invoiceQuery, Builder $orderQuery): array
     {
+        $activeView = ReceivablesInvoiceViews::normalize($request->query('view'));
         $customer = $this->resolveCustomer($request);
         $customerQuery = trim($request->string('customer')->toString());
 
-        $orders = NewestFirst::apply(
-            $orderQuery
-                ->with(['customer', 'items'])
-                ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
-                ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
-        )
-            ->limit(200)
-            ->get()
-            ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
-            ->values();
+        $orders = collect();
+        $invoices = new LengthAwarePaginator([], 0, 20, 1, [
+            'path' => $request->url(),
+            'query' => $request->query(),
+        ]);
 
-        $invoices = NewestFirst::apply(
-            $invoiceQuery
-                ->with(['customer', 'salesOrder', 'salesOrders'])
-                ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
-                ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
-        )->paginate(20)->withQueryString();
+        if (ReceivablesInvoiceViews::isJobs($activeView)) {
+            $orders = NewestFirst::apply(
+                $orderQuery
+                    ->with(['customer', 'items'])
+                    ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
+                    ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
+            )
+                ->limit(200)
+                ->get()
+                ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
+                ->values();
+        } else {
+            $invoices = NewestFirst::apply(
+                $invoiceQuery
+                    ->with(['customer', 'salesOrder', 'salesOrders'])
+                    ->whereNot('invoice_type', CustomerInvoiceType::CreditNote)
+                    ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
+            )->paginate(20)->withQueryString();
+        }
 
         $customerIds = $orders->pluck('customer_id')
             ->merge($invoices->getCollection()->pluck('customer_id'))
@@ -54,12 +62,15 @@ class ReceivablesInvoiceDesk
             ->unique()
             ->values();
 
-        $customers = Customer::query()
-            ->whereIn('id', $customerIds)
-            ->orderBy('company_name')
-            ->get(['id', 'public_id', 'company_name']);
+        $customers = $customerIds->isEmpty()
+            ? collect()
+            : Customer::query()
+                ->whereIn('id', $customerIds)
+                ->orderBy('company_name')
+                ->get(['id', 'public_id', 'company_name']);
 
         return [
+            'activeView' => $activeView,
             'customer' => $customer,
             'customers' => $customers,
             'unbilledOrders' => $orders,

@@ -2,6 +2,7 @@
 
 namespace App\Support\Accounting;
 
+use App\Support\Sales\ReceivablesInvoiceViews;
 use Illuminate\Http\Request;
 
 trait ReturnsToReceivablesDesk
@@ -18,6 +19,14 @@ trait ReturnsToReceivablesDesk
      */
     protected function receivablesInvoicesUrl(array $params = []): string
     {
-        return route('admin.invoices.index', $params);
+        return ReceivablesInvoiceViews::invoicesUrl($params);
+    }
+
+    /**
+     * @param  array<string, mixed>  $params
+     */
+    protected function receivablesJobsUrl(array $params = []): string
+    {
+        return ReceivablesInvoiceViews::jobsUrl($params);
     }
 }

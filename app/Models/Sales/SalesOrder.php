@@ -197,19 +197,22 @@ class SalesOrder extends Model
         }
 
         $header = round((float) $this->total_amount, 2);
-        if ($header > 0) {
-            return $header;
+        $first = $this->items->first();
+        $quantity = $this->commercialQuantityFromPrintSpec($first);
+        $price = $first
+            ? $this->billedUnitPriceForItem($first)
+            : (float) ($this->customerPrintSpecification?->default_unit_price ?? 0);
+
+        if ($quantity <= 1) {
+            $quantity = (float) ($first?->quantity ?? 0);
         }
 
-        $spec = $this->customerPrintSpecification;
-        $quantity = $this->commercialQuantityFromPrintSpec($this->items->first());
-        $price = (float) ($spec?->default_unit_price ?? 0);
-
-        if ($quantity <= 0) {
-            $quantity = (float) ($this->items->first()?->quantity ?? 0);
+        $fromSpec = round(max($quantity, 0) * max($price, 0), 2);
+        if ($fromSpec > 0) {
+            return $fromSpec;
         }
 
-        return round(max($quantity, 0) * max($price, 0), 2);
+        return $header;
     }
 
     public function syncStoredCommercialsFromLines(): void
@@ -271,85 +274,115 @@ class SalesOrder extends Model
 
     protected function billedQuantityForItem(SalesOrderItem $item): float
     {
-        $quantity = (float) $item->quantity;
+        $lineQty = max((float) $item->quantity, 0);
+        $price = $this->billedUnitPriceForItem($item);
+        $stored = (float) ($item->line_total ?: $this->total_amount);
         $specQty = $this->commercialQuantityFromPrintSpec($item);
-
-        if ($quantity <= 1 && $specQty > 1) {
-            return $specQty;
-        }
-
-        if ($quantity > 1) {
-            return $quantity;
-        }
-
+        $productionQty = (float) ($item->productionSpecification?->quantity ?? 0);
         $imposedQty = $this->digitalFinishedQuantityForItem($item);
 
-        return $imposedQty > 1 ? $imposedQty : max($quantity, 0);
+        $unmultiplied = $price > 0 && ($stored <= 0 || abs($stored - $price) < 0.02);
+        $lineIsStub = $lineQty <= 1 || $unmultiplied;
+
+        if ($lineIsStub) {
+            if ($specQty > 1) {
+                return $specQty;
+            }
+            if ($productionQty > 1) {
+                return $productionQty;
+            }
+            if ($imposedQty > 1) {
+                return $imposedQty;
+            }
+        }
+
+        if ($lineQty > 1) {
+            return $lineQty;
+        }
+
+        return max($specQty, $productionQty, $imposedQty, $lineQty, 0);
     }
 
-    protected function billedUnitPriceForItem(SalesOrderItem $item): float
+    protected function billedUnitPriceForItem(?SalesOrderItem $item): float
     {
-        $price = (float) $item->unit_price;
+        $price = (float) ($item?->unit_price ?? 0);
         if ($price > 0) {
             return $price;
         }
 
-        return (float) ($item->customerPrintSpecification?->default_unit_price
+        $sheet = is_array($item?->customerPrintSpecification?->job_sheet_payload)
+            ? $item->customerPrintSpecification->job_sheet_payload
+            : (is_array($this->customerPrintSpecification?->job_sheet_payload)
+                ? $this->customerPrintSpecification->job_sheet_payload
+                : []);
+
+        return (float) ($item?->customerPrintSpecification?->default_unit_price
             ?? $this->customerPrintSpecification?->default_unit_price
+            ?? $sheet['price']
             ?? 0);
     }
 
     protected function commercialQuantityFromPrintSpec(?SalesOrderItem $item = null): float
     {
+        $fromModels = 0.0;
+
         foreach ([$item?->customerPrintSpecification, $this->customerPrintSpecification] as $spec) {
-            if (! $spec) {
-                continue;
-            }
-
-            if (! array_key_exists('default_quantity', $spec->getAttributes())) {
-                $qty = CustomerPrintSpecification::query()
-                    ->whereKey($spec->getKey())
-                    ->value('default_quantity');
-                $spec->setAttribute('default_quantity', $qty);
-            }
-
-            $qty = (float) ($spec->default_quantity ?? 0);
-            if ($qty > 1) {
-                return $qty;
+            $qty = (float) ($spec?->default_quantity ?? 0);
+            if ($qty > $fromModels) {
+                $fromModels = $qty;
             }
         }
 
-        $specId = $item?->customer_print_specification_id ?? $this->customer_print_specification_id;
-        if ($specId) {
-            return (float) (CustomerPrintSpecification::query()->whereKey($specId)->value('default_quantity') ?? 0);
+        $ids = array_values(array_unique(array_filter([
+            $item?->customer_print_specification_id,
+            $this->customer_print_specification_id,
+            $item?->customerPrintSpecification?->getKey(),
+            $this->customerPrintSpecification?->getKey(),
+        ])));
+
+        $fromDb = 0.0;
+        if ($ids !== [] && $fromModels <= 1) {
+            $fromDb = (float) (CustomerPrintSpecification::query()
+                ->whereIn('id', $ids)
+                ->max('default_quantity') ?? 0);
         }
 
-        return 0.0;
+        return max($fromModels, $fromDb);
     }
 
     protected function digitalFinishedQuantityForItem(SalesOrderItem $item): float
     {
         $production = $item->productionSpecification;
-        $sheet = [];
+        $sheets = [
+            is_array($item->customerPrintSpecification?->job_sheet_payload)
+                ? $item->customerPrintSpecification->job_sheet_payload
+                : [],
+            is_array($this->customerPrintSpecification?->job_sheet_payload)
+                ? $this->customerPrintSpecification->job_sheet_payload
+                : [],
+            is_array($production?->job_sheet_payload) ? $production->job_sheet_payload : [],
+        ];
 
-        if (is_array($production?->job_sheet_payload)) {
-            $sheet = $production->job_sheet_payload;
-        }
+        $best = 0.0;
 
-        if (($sheet['kind'] ?? null) !== 'digital' && is_array($this->customerPrintSpecification?->job_sheet_payload)) {
-            $sheet = $this->customerPrintSpecification->job_sheet_payload;
-        }
-
-        if ($production) {
-            if (! isset($sheet['ups']) || $sheet['ups'] === '' || $sheet['ups'] === null) {
-                $sheet['ups'] = $production->ups;
+        foreach ($sheets as $sheet) {
+            if ($sheet === []) {
+                continue;
             }
-            if (! isset($sheet['sheets']) || $sheet['sheets'] === '' || $sheet['sheets'] === null) {
-                $sheet['sheets'] = $production->estimated_sheets;
+
+            if ($production) {
+                if (! isset($sheet['ups']) || $sheet['ups'] === '' || $sheet['ups'] === null) {
+                    $sheet['ups'] = $production->ups;
+                }
+                if (! isset($sheet['sheets']) || $sheet['sheets'] === '' || $sheet['sheets'] === null) {
+                    $sheet['sheets'] = $production->estimated_sheets;
+                }
             }
+
+            $best = max($best, DigitalSpecificationService::finishedQuantityFromSheet($sheet));
         }
 
-        return DigitalSpecificationService::finishedQuantityFromSheet($sheet);
+        return $best;
     }
 
     /**

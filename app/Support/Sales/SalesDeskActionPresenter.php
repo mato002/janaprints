@@ -31,7 +31,8 @@ class SalesDeskActionPresenter
             'customer:id,company_name,contact_person,customer_code,phone,email',
             'invoices:id,sales_order_id,invoice_number,status,total_amount,balance_due',
             'inventoryItem:id,item_name,sku',
-            'items:id,sales_order_id,item_name,quantity,unit_price,line_total',
+            'items:id,sales_order_id,customer_print_specification_id,item_name,quantity,unit_price,line_total',
+            'items.customerPrintSpecification:id,default_quantity,default_unit_price,job_sheet_payload',
             'customerPrintSpecification:id,name,specification_code,default_quantity,default_unit_price,job_sheet_payload,production_destination',
         ]);
 

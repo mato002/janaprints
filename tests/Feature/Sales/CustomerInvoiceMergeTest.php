@@ -116,10 +116,11 @@ class CustomerInvoiceMergeTest extends TestCase
 
         $this->actingAs($this->user)
             ->withHeader('Turbo-Frame', 'module-workspace-content')
-            ->get(route('admin.invoices.index', ['embedded' => '1', 'customer' => 'Madinaka']))
+            ->get(route('admin.invoices.index', ['embedded' => '1', 'view' => 'jobs', 'customer' => 'Madinaka']))
             ->assertOk()
             ->assertSee('Madinaka Ltd', false)
-            ->assertSee(__('To bill'), false);
+            ->assertSee(__('Jobs'), false)
+            ->assertSee(__('Generate invoice'), false);
     }
 
     protected function makeOrder(string $itemName, float $quantity, float $unitPrice, ?Customer $customer = null): SalesOrder

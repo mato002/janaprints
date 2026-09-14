@@ -143,6 +143,7 @@ class DigitalSpecificationService
         $quantity = $payload['quantity'] ?? $order->items->first()?->quantity;
         $sheets = isset($sheet['sheets']) && $sheet['sheets'] !== '' ? (int) $sheet['sheets'] : null;
         $sheets = ProductionImpositionCalculator::estimateSheets($quantity, $ups, $sheets);
+        $price = $this->nullableNumber($sheet['price'] ?? $payload['unit_price'] ?? $order->items->first()?->unit_price);
 
         return [
             'production_type' => ProductionType::Digital->value,
@@ -160,8 +161,8 @@ class DigitalSpecificationService
                 'ups' => $ups,
                 'sheets' => $sheets,
                 'finishing' => $finishing !== '' ? $finishing : null,
-                'price' => $this->nullableNumber($sheet['price'] ?? null),
-                'amount' => $this->amount($quantity, $sheet['price'] ?? null),
+                'price' => $price,
+                'amount' => $this->amount($quantity, $price),
                 'due_date' => $this->nullableString($sheet['due_date'] ?? null),
                 'payment_status' => $this->nullableString($sheet['payment_status'] ?? null),
                 'status' => $this->nullableString($sheet['status'] ?? null),
@@ -194,6 +195,12 @@ class DigitalSpecificationService
      */
     public static function formFromPayload(array $payload = []): array
     {
+        if (isset($payload['digital']) && is_array($payload['digital'])) {
+            $payload = array_merge($payload['digital'], $payload);
+        }
+
+        $price = $payload['price'] ?? $payload['unit_price'] ?? '';
+
         return self::emptyForm([
             'description' => $payload['description'] ?? $payload['product_description'] ?? '',
             'paper_type' => $payload['paper_type'] ?? '',
@@ -204,8 +211,8 @@ class DigitalSpecificationService
                 ? (string) $payload['sheets']
                 : '',
             'finishing' => $payload['finishing'] ?? '',
-            'price' => isset($payload['price']) && $payload['price'] !== null && $payload['price'] !== ''
-                ? (string) $payload['price']
+            'price' => isset($price) && $price !== null && $price !== ''
+                ? (string) $price
                 : '',
             'due_date' => $payload['due_date'] ?? '',
             'payment_status' => $payload['payment_status'] ?? '',

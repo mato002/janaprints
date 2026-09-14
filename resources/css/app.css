@@ -943,6 +943,16 @@ body.erp-navigating {
         background: #7c3aed;
     }
 
+    .sales-desk-ribbon__tab--active.sales-desk-ribbon__tab--jobs,
+    .sales-desk-ribbon__tab--active.sales-desk-ribbon__tab--jobs:hover {
+        background: #0d9488;
+    }
+
+    .sales-desk-ribbon__tab--active.sales-desk-ribbon__tab--invoices,
+    .sales-desk-ribbon__tab--active.sales-desk-ribbon__tab--invoices:hover {
+        background: #4f46e5;
+    }
+
     .sales-desk-ribbon__tab--active.sales-desk-ribbon__tab--approvals,
     .sales-desk-ribbon__tab--active.sales-desk-ribbon__tab--approvals:hover {
         background: #d97706;

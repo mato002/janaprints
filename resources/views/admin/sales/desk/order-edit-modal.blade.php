@@ -36,6 +36,14 @@
                     @endforeach
                 </select>
             </div>
+            <div>
+                <label class="erp-label">{{ __('Priority') }}</label>
+                <select name="priority" class="erp-input w-full">
+                    @foreach (\App\Enums\ProductionPriority::cases() as $priority)
+                        <option value="{{ $priority->value }}" @selected(old('priority', $salesOrder->priority?->value ?? 'normal') === $priority->value)>{{ $priority->label() }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="sm:col-span-2">
                 <label class="erp-label">{{ __('Notes') }}</label>
                 <textarea name="notes" class="erp-input w-full" rows="2">{{ old('notes', $salesOrder->notes) }}</textarea>
@@ -59,6 +67,11 @@
                 'productionVendors' => $productionVendors ?? collect(),
                 'idPrefix' => 'order-job-modal',
                 'compact' => false,
+                'showCommercials' => true,
+                'salesOrder' => $salesOrder,
+                'quantityValue' => old('quantity', $salesOrder->items->first()?->quantity),
+                'unitPriceValue' => old('unit_price', $salesOrder->items->first()?->unit_price),
+                'asOfDate' => $salesOrder->order_date,
             ])
         </div>
 

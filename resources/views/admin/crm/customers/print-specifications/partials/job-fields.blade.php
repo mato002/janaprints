@@ -25,6 +25,9 @@
         }
     }
     $kind = $payload['kind'] ?? $specification?->production_destination?->value;
+    if ($kind instanceof ProductionDestination) {
+        $kind = $kind->value;
+    }
     $jobSheetForm = OffsetJobSheetService::emptyForm(old(
         'job_sheet',
         $kind === 'offset' ? OffsetJobSheetService::formFromPayload($payload) : [],
@@ -41,6 +44,24 @@
     $idPrefix = $idPrefix ?? 'spec-job';
     $customerName = $customerName ?? ($customer->company_name ?? $customer->name ?? null);
     $compact = $compact ?? true;
+    $quantityValue = $quantityValue ?? null;
+    $unitPriceValue = $unitPriceValue ?? null;
+    $asOfDate = $asOfDate ?? null;
+    $showCommercials = (bool) ($showCommercials ?? false);
+
+    if ($digitalForm['price'] === '' && filled($unitPriceValue) && (float) $unitPriceValue > 0) {
+        $digitalForm['price'] = (string) $unitPriceValue;
+    }
+
+    if (
+        $outsourceForm['selling_price'] === ''
+        && filled($unitPriceValue)
+        && filled($quantityValue)
+        && (float) $unitPriceValue > 0
+        && (float) $quantityValue > 0
+    ) {
+        $outsourceForm['selling_price'] = (string) round((float) $quantityValue * (float) $unitPriceValue, 2);
+    }
 @endphp
 
 <div
@@ -59,12 +80,27 @@
         ])
     @endif
 
+    @if ($showCommercials)
+        <div>
+            <h4 class="mb-2 text-sm font-medium text-slate-800">{{ __('Quantity and price') }}</h4>
+            @include('admin.sales.orders.partials.order-commercial-fields', [
+                'salesOrder' => $salesOrder ?? null,
+                'quantityValue' => $quantityValue,
+                'unitPriceValue' => $unitPriceValue,
+                'idPrefix' => ($idPrefix ?? 'order').'-commercial',
+            ])
+        </div>
+    @endif
+
     <template x-if="specDestination === 'digital'">
         <div>
             @include('admin.sales.orders.partials.digital-specification-fields', [
                 'digitalForm' => $digitalForm,
                 'includeQuantity' => false,
                 'compact' => $compact,
+                'quantityValue' => $quantityValue,
+                'unitPriceValue' => $unitPriceValue,
+                'asOfDate' => $asOfDate,
                 'customerName' => $customerName,
                 'idPrefix' => $idPrefix.'-digital',
             ])
@@ -78,6 +114,7 @@
                 'includeQuantity' => false,
                 'includeCollectionDate' => false,
                 'compact' => $compact,
+                'quantityValue' => $quantityValue,
                 'idPrefix' => $idPrefix.'-offset',
             ])
         </div>
@@ -89,6 +126,7 @@
                 'outsourceForm' => $outsourceForm,
                 'includeQuantity' => false,
                 'compact' => $compact,
+                'quantityValue' => $quantityValue,
                 'productionVendors' => $productionVendors,
                 'customerName' => $customerName,
                 'idPrefix' => $idPrefix.'-outsource',
