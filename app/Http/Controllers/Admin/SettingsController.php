@@ -10,6 +10,7 @@ use App\Support\Navigation\WorkspaceEmbed;
 use App\Support\Platform\SettingsControlCenterPresenter;
 use App\Support\Platform\SettingsRegistry;
 use App\Support\Platform\SystemSettingsManager;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -66,7 +67,7 @@ class SettingsController extends Controller
         ]);
     }
 
-    public function update(Request $request, string $section): RedirectResponse
+    public function update(Request $request, string $section): RedirectResponse|JsonResponse
     {
         $this->authorize('update', new SettingsGovernance());
         $this->assertSection($section);
@@ -97,12 +98,22 @@ class SettingsController extends Controller
             $branchId,
         );
 
+        $redirect = route('admin.settings.show', WorkspaceEmbed::queryParams([
+            'section' => $section,
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+        ], $request));
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ok' => true,
+                'message' => __('Settings saved.'),
+                'redirect' => $redirect,
+            ]);
+        }
+
         return redirect()
-            ->route('admin.settings.show', WorkspaceEmbed::queryParams([
-                'section' => $section,
-                'company_id' => $companyId,
-                'branch_id' => $branchId,
-            ], $request))
+            ->to($redirect)
             ->with('status', __('Settings saved.'));
     }
 

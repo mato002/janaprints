@@ -53,9 +53,16 @@
                     action="{{ route('admin.settings.update', $section) }}"
                     class="space-y-6"
                     data-turbo="false"
-                    data-turbo-frame="_top"
+                    data-settings-show-url="{{ route('admin.settings.show', WorkspaceEmbed::queryParams([
+                        'section' => $section,
+                        'company_id' => $companyId,
+                        'branch_id' => $branchId,
+                    ])) }}"
                 >
                     @csrf
+                    @if ($embedded)
+                        <input type="hidden" name="embedded" value="1">
+                    @endif
                     <input type="hidden" name="company_id" value="{{ $companyId }}">
                     @if ($branchId)
                         <input type="hidden" name="branch_id" value="{{ $branchId }}">
@@ -74,7 +81,50 @@
                     @include('admin.settings.partials.settings-table', ['editable' => true])
 
                     <div class="border-t border-erp-border pt-6">
-                        <x-primary-button form="settings-save-form">{{ __('Save settings') }}</x-primary-button>
+                        <button
+                            type="button"
+                            id="settings-save-button"
+                            class="erp-btn erp-btn-primary"
+                            onclick="(async (btn) => {
+                                const form = document.getElementById('settings-save-form');
+                                const say = (m, v) => window.showErpSweetAlert ? window.showErpSweetAlert(m, v) : alert(m);
+                                if (! form) { say(@json(__('Save form is missing. Refresh the page.')), 'error'); return; }
+                                const label = btn.textContent;
+                                btn.disabled = true;
+                                btn.textContent = @json(__('Saving…'));
+                                try {
+                                    const res = await fetch(form.action, {
+                                        method: 'POST',
+                                        body: new FormData(form),
+                                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                                        credentials: 'same-origin'
+                                    });
+                                    const data = await res.json().catch(() => ({}));
+                                    if (! res.ok) {
+                                        const msg = data.message || (data.errors ? Object.values(data.errors).flat().join(' ') : @json(__('Unable to save settings. Please try again.')));
+                                        say(msg, 'error');
+                                        return;
+                                    }
+                                    say(data.message || @json(__('Settings saved.')), 'success');
+                                    const next = data.redirect || form.getAttribute('data-settings-show-url');
+                                    const frame = document.getElementById('module-workspace-content');
+                                    if (frame && window.Turbo && next) {
+                                        window.Turbo.visit(next, { frame: 'module-workspace-content' });
+                                    } else if (next) {
+                                        window.location.assign(next);
+                                    } else {
+                                        window.location.reload();
+                                    }
+                                } catch (e) {
+                                    say(@json(__('Unable to save settings. Please try again.')), 'error');
+                                } finally {
+                                    btn.disabled = false;
+                                    btn.textContent = label;
+                                }
+                            })(this)"
+                        >
+                            {{ __('Save settings') }}
+                        </button>
                     </div>
                 </form>
             @else
