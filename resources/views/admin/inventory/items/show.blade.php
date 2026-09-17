@@ -36,6 +36,9 @@
                         @endif
                     </div>
                     <div class="inv-product__summary">
+                        @if ($item->press_process)
+                            <span class="erp-badge {{ $item->press_process->badgeClass() }}">{{ $item->press_process->label() }}</span>
+                        @endif
                         @if ($item->stock_role)
                             <span class="erp-badge {{ $item->stock_role->badgeClass() }}">{{ $item->stock_role->label() }}</span>
                         @endif
@@ -81,6 +84,16 @@
                                     'item' => $item,
                                     'buttonClass' => 'text-xs font-medium text-slate-500 hover:text-erp-primary hover:underline',
                                 ])
+                            @endif
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('Process') }}</dt>
+                        <dd>
+                            @if ($item->press_process)
+                                <span class="erp-badge {{ $item->press_process->badgeClass() }}">{{ $item->press_process->label() }}</span>
+                            @else
+                                {{ __('Not set') }}
                             @endif
                         </dd>
                     </div>

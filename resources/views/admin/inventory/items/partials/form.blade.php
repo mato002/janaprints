@@ -72,6 +72,17 @@
     <p class="mt-1 text-xs text-slate-500">{{ __('Finished products must use Finished good. Raw paper/ink use Raw material.') }}</p>
 </div>
 
+<div>
+    <label class="erp-label">{{ __('Process') }}</label>
+    <select name="press_process" class="erp-select w-full">
+        <option value="">{{ __('Not set') }}</option>
+        @foreach (($pressProcesses ?? []) as $process)
+            <option value="{{ $process->value }}" @selected((string) old('press_process', $m?->press_process?->value) === $process->value)>{{ $process->label() }}</option>
+        @endforeach
+    </select>
+    <p class="mt-1 text-xs text-slate-500">{{ __('Which press this material belongs to. Shared is digital and offset. Outsourced is stock held for vendor jobs.') }}</p>
+</div>
+
 @if(($fields['description']['visible'] ?? true))
 <div><label class="erp-label">{{ __('Description') }}</label><textarea name="description" class="erp-input w-full" @required($fields['description']['required'] ?? false) @readonly($fields['description']['read_only'] ?? false)>{{ old('description', $m?->description ?? ($fields['description']['default'] ?? '')) }}</textarea></div>
 @endif

@@ -8,17 +8,19 @@
     ];
 @endphp
 
-<div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
-    @foreach ($dashboard['kpis'] as $card)
-        @php $wrap = $toneClasses[$card['tone'] ?? 'slate'] ?? $toneClasses['slate']; @endphp
-        @if ($card['clickable'] ?? false)
-            <a href="{{ $card['url'] }}" class="block rounded-xl border {{ $wrap }} transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
-                <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :hint="$card['hint'] ?? null" :icon="$card['icon'] ?? 'chart-pie'" />
-            </a>
-        @else
-            <div class="rounded-xl border {{ $wrap }}">
-                <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :hint="$card['hint'] ?? null" :icon="$card['icon'] ?? 'chart-pie'" />
-            </div>
-        @endif
-    @endforeach
-</div>
+<x-admin.collapsible-summary :title="__('Profitability summary')">
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+        @foreach ($dashboard['kpis'] as $card)
+            @php $wrap = $toneClasses[$card['tone'] ?? 'slate'] ?? $toneClasses['slate']; @endphp
+            @if ($card['clickable'] ?? false)
+                <a href="{{ $card['url'] }}" class="block rounded-xl border {{ $wrap }} transition-opacity hover:opacity-90" data-turbo-frame="erp-main">
+                    <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :hint="$card['hint'] ?? null" :icon="$card['icon'] ?? 'chart-pie'" />
+                </a>
+            @else
+                <div class="rounded-xl border {{ $wrap }}">
+                    <x-admin.kpi-widget :label="$card['label']" :value="$card['value']" :hint="$card['hint'] ?? null" :icon="$card['icon'] ?? 'chart-pie'" />
+                </div>
+            @endif
+        @endforeach
+    </div>
+</x-admin.collapsible-summary>

@@ -1,6 +1,6 @@
 @props(['kpis'])
 
-<x-admin.card class="mb-6">
+<x-admin.collapsible-summary :title="__('HR KPIs')">
     <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         @foreach ($kpis as $kpi)
             <div class="rounded-lg border border-erp-border/70 p-4">
@@ -17,4 +17,4 @@
             </div>
         @endforeach
     </div>
-</x-admin.card>
+</x-admin.collapsible-summary>

@@ -17,6 +17,16 @@
             @endforeach
         </select>
     </label>
+    <label class="text-xs font-medium text-slate-600">
+        {{ __('Process') }}
+        <select name="press_process" class="erp-select mt-1">
+            <option value="all" @selected(($pressProcess ?? 'all') === 'all')>{{ __('All processes') }}</option>
+            @foreach (($pressProcesses ?? []) as $process)
+                <option value="{{ $process->value }}" @selected(($pressProcess ?? 'all') === $process->value)>{{ $process->label() }}</option>
+            @endforeach
+            <option value="unclassified" @selected(($pressProcess ?? 'all') === 'unclassified')>{{ __('Not set') }}</option>
+        </select>
+    </label>
     <button type="submit" class="erp-btn-secondary text-sm">{{ __('Filter') }}</button>
 </form>
 
@@ -24,6 +34,7 @@
     <x-slot name="head">
         <tr>
             <th scope="col">{{ __('Item') }}</th>
+            <th scope="col" class="hidden md:table-cell">{{ __('Process') }}</th>
             <th scope="col" class="hidden md:table-cell">{{ __('Role') }}</th>
             <th scope="col" class="hidden md:table-cell">{{ __('Category') }}</th>
             <th scope="col" class="erp-table-actions-col">{{ __('Actions') }}</th>
@@ -31,10 +42,17 @@
     </x-slot>
     <x-slot name="body">
         @forelse ($items as $item)
-            <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->category?->name ?? '').' '.($item->stock_role?->label() ?? ''))))">
+            <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->press_process?->label() ?? '').' '.($item->category?->name ?? '').' '.($item->stock_role?->label() ?? ''))))">
                 <td>
                     <a href="{{ route('admin.inventory.items.show', $item) }}" class="font-medium text-erp-primary hover:underline" data-turbo-frame="erp-main">{{ $item->item_name }}</a>
                     <div class="font-mono text-[11px] text-slate-500">{{ $item->sku }}</div>
+                </td>
+                <td class="hidden md:table-cell">
+                    @if ($item->press_process)
+                        <span class="erp-badge {{ $item->press_process->badgeClass() }}">{{ $item->press_process->label() }}</span>
+                    @else
+                        —
+                    @endif
                 </td>
                 <td class="hidden md:table-cell">
                     @if ($item->stock_role)
@@ -64,7 +82,7 @@
             </tr>
         @empty
             <tr>
-                <td colspan="4">
+                <td colspan="5">
                     <x-admin.empty-state icon="cube" :title="__('No products found')" />
                 </td>
             </tr>

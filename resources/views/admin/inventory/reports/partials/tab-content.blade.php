@@ -6,16 +6,17 @@
     </x-admin.card>
 @elseif (($tab_data['type'] ?? '') === 'aging')
     <x-admin.card class="mb-6">
-        <h2 class="mb-4 text-sm font-semibold text-erp-primary">{{ __('Stock Aging Buckets') }}</h2>
-        <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            @foreach ($tab_data['buckets'] ?? [] as $bucket)
-                <div class="rounded-xl border border-erp-border bg-erp-page p-4">
-                    <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ $bucket['label'] }}</p>
-                    <p class="mt-1 text-lg font-bold tabular-nums text-erp-primary">{{ $bucket['value'] }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ __(':items items · :qty qty', ['items' => $bucket['items'], 'qty' => $bucket['qty']]) }}</p>
-                </div>
-            @endforeach
-        </div>
+        <x-admin.collapsible-summary class="mb-4 border-0 shadow-none" :title="__('Stock aging buckets')">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                @foreach ($tab_data['buckets'] ?? [] as $bucket)
+                    <div class="rounded-xl border border-erp-border bg-erp-page p-4">
+                        <p class="text-[11px] uppercase tracking-wide text-slate-500">{{ $bucket['label'] }}</p>
+                        <p class="mt-1 text-lg font-bold tabular-nums text-erp-primary">{{ $bucket['value'] }}</p>
+                        <p class="mt-1 text-xs text-slate-500">{{ __(':items items · :qty qty', ['items' => $bucket['items'], 'qty' => $bucket['qty']]) }}</p>
+                    </div>
+                @endforeach
+            </div>
+        </x-admin.collapsible-summary>
 
         @include('admin.inventory.reports.partials.simple-table', [
             'title' => __('Stock Aging Detail'),

@@ -1,7 +1,6 @@
 @props(['kpis'])
 
-<section class="mb-6">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ __('Inventory Dashboard') }}</h2>
+<x-admin.collapsible-summary :title="__('Inventory dashboard')">
     <div class="erp-kpi-grid">
         @foreach ($kpis as $kpi)
             <x-admin.kpi-widget
@@ -12,4 +11,4 @@
             />
         @endforeach
     </div>
-</section>
+</x-admin.collapsible-summary>

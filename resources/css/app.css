@@ -1136,6 +1136,36 @@ body.erp-navigating {
         }
     }
 
+    .erp-summary-fold {
+        @apply mb-3 shrink-0 rounded-lg border border-erp-border bg-white;
+    }
+
+    .erp-summary-fold__summary {
+        @apply flex cursor-pointer list-none items-center gap-2 px-3 py-2 text-sm font-semibold text-erp-primary;
+    }
+
+    .erp-summary-fold__summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .erp-summary-fold__hint {
+        @apply text-[11px] font-normal text-slate-500;
+    }
+
+    .erp-summary-fold__chevron {
+        @apply ml-auto inline-block h-2 w-2 shrink-0 border-b-2 border-r-2 border-slate-400;
+        transform: rotate(45deg);
+        transition: transform 0.15s ease;
+    }
+
+    .erp-summary-fold[open] > .erp-summary-fold__summary .erp-summary-fold__chevron {
+        transform: rotate(-135deg);
+    }
+
+    .erp-summary-fold__body {
+        @apply border-t border-erp-border px-3 py-3;
+    }
+
     /* Compact KPI strip — ~80–90px row */
     .workspace-kpi-strip,
     .module-kpi-strip {

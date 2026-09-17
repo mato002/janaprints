@@ -1,7 +1,6 @@
 @props(['title', 'widgets'])
 
-<section class="mb-6">
-    <h2 class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $title }}</h2>
+<x-admin.collapsible-summary :title="$title">
     <div class="erp-kpi-grid">
         @foreach ($widgets as $widget)
             <x-admin.kpi-widget
@@ -12,4 +11,4 @@
             />
         @endforeach
     </div>
-</section>
+</x-admin.collapsible-summary>

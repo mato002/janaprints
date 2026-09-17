@@ -125,10 +125,11 @@ class SupplyChainListingExporter
             InventoryItem::query()->with(['category', 'subcategory', 'brand', 'images'])
         )->orderBy('item_name')->get();
 
-        $headers = [__('Item'), __('SKU'), __('Category'), __('Brand'), __('Image'), __('Reorder')];
+        $headers = [__('Item'), __('SKU'), __('Process'), __('Category'), __('Brand'), __('Image'), __('Reorder')];
         $rows = $items->map(fn (InventoryItem $item) => [
             $item->item_name,
             $item->sku,
+            $item->press_process?->label() ?? '—',
             $item->category?->name ?? '—',
             $item->brand?->name ?? '—',
             $item->images->isNotEmpty() ? __('Yes') : __('Missing'),

@@ -16,10 +16,7 @@
         : ($summary['operational'] ?? []);
 @endphp
 
-<section class="designer-desk-today mb-3 rounded-xl border border-erp-border bg-white px-3 py-2.5 shadow-sm" aria-label="{{ __('Today') }}">
-    <div class="mb-1.5 flex items-center justify-between gap-2 px-1">
-        <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400">{{ __('Today') }}</p>
-    </div>
+<x-admin.collapsible-summary class="designer-desk-today" :title="__('Today')" :hint="__('Unfold to filter by status')">
     <div class="grid grid-cols-3 gap-1.5 sm:grid-cols-5">
         @foreach ($cards as $card)
             @if (! empty($card['filter']))
@@ -40,4 +37,4 @@
             @endif
         @endforeach
     </div>
-</section>
+</x-admin.collapsible-summary>

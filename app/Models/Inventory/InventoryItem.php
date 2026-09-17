@@ -2,6 +2,7 @@
 
 namespace App\Models\Inventory;
 
+use App\Enums\InventoryPressProcess;
 use App\Enums\InventoryStockRole;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasPublicHash;
@@ -23,7 +24,7 @@ class InventoryItem extends Model
         'company_id', 'branch_id', 'inventory_category_id', 'subcategory_id',
         'brand_id', 'brand_name', 'unit_of_measure_id', 'sku', 'item_name',
         'description',         'reorder_level', 'reorder_quantity', 'standard_cost',
-        'is_active', 'stock_role',
+        'is_active', 'stock_role', 'press_process',
         'uses_serial_numbers', 'serial_prefix', 'serial_padding_length',
         'requires_customer_approval',
     ];
@@ -36,6 +37,7 @@ class InventoryItem extends Model
             'standard_cost' => 'decimal:2',
             'is_active' => 'boolean',
             'stock_role' => InventoryStockRole::class,
+            'press_process' => InventoryPressProcess::class,
             'uses_serial_numbers' => 'boolean',
             'requires_customer_approval' => 'boolean',
             'serial_padding_length' => 'integer',
@@ -92,5 +94,16 @@ class InventoryItem extends Model
         return $this->hasMany(ProductProductionRouteStep::class)
             ->where('is_active', true)
             ->orderBy('sequence');
+    }
+
+    public function catalogueLabel(): string
+    {
+        $press = $this->press_process?->label();
+
+        if ($press === null) {
+            return $this->item_name;
+        }
+
+        return $this->item_name.' ('.$press.')';
     }
 }

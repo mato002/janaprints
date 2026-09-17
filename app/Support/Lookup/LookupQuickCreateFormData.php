@@ -129,6 +129,7 @@ class LookupQuickCreateFormData
             'units' => UnitOfMeasure::query()->forTenant()->where('is_active', true)->orderBy('name')->get(),
             'attributes' => $this->attributesForCategory($companyId, $branchId, $categoryId),
             'stockRoles' => InventoryStockRole::cases(),
+            'pressProcesses' => \App\Enums\InventoryPressProcess::cases(),
         ];
     }
 

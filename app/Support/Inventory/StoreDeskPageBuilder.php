@@ -3,6 +3,7 @@
 namespace App\Support\Inventory;
 
 use App\Enums\InventoryDocumentStatus;
+use App\Enums\InventoryPressProcess;
 use App\Enums\InventoryStockRole;
 use App\Enums\StockIssueDestination;
 use App\Http\Controllers\Admin\Inventory\Concerns\ResolvesInventoryTenant;
@@ -85,6 +86,7 @@ class StoreDeskPageBuilder
     {
         $search = trim((string) $request->query('search', ''));
         $stockRole = $request->string('stock_role')->toString() ?: null;
+        $pressProcess = $request->string('press_process')->toString() ?: null;
 
         $items = InventoryItem::query()
             ->forTenant()
@@ -99,6 +101,11 @@ class StoreDeskPageBuilder
             ->when($stockRole !== null && $stockRole !== '' && $stockRole !== 'all', function ($query) use ($stockRole) {
                 $query->where('stock_role', $stockRole);
             })
+            ->when($pressProcess === 'unclassified', fn ($query) => $query->whereNull('press_process'))
+            ->when(
+                $pressProcess !== null && $pressProcess !== '' && $pressProcess !== 'all' && $pressProcess !== 'unclassified',
+                fn ($query) => $query->where('press_process', $pressProcess),
+            )
             ->orderBy('item_name')
             ->paginate(20)
             ->withQueryString();
@@ -113,6 +120,8 @@ class StoreDeskPageBuilder
             'items' => $items,
             'stockRole' => $stockRole ?: 'all',
             'stockRoles' => InventoryStockRole::cases(),
+            'pressProcess' => $pressProcess ?: 'all',
+            'pressProcesses' => InventoryPressProcess::cases(),
             'search' => $search,
         ];
     }

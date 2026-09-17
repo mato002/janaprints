@@ -1,5 +1,4 @@
-<div>
-    <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-erp-primary">{{ __('Profitability Health') }}</h2>
+<x-admin.collapsible-summary :title="__('Profitability health')">
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
     @foreach ($dashboard['health'] as $item)
         <a
@@ -16,4 +15,4 @@
         </a>
     @endforeach
     </div>
-</div>
+</x-admin.collapsible-summary>

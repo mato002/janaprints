@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin\Inventory;
 
+use App\Enums\InventoryPressProcess;
 use App\Enums\InventoryStockRole;
 use App\Http\Controllers\Admin\Concerns\HandlesFormCustomFields;
 use App\Http\Controllers\Admin\Concerns\ScopesToTenant;
@@ -59,6 +60,7 @@ class InventoryItemController extends Controller
         }
 
         $stockRole = $request->string('stock_role')->toString() ?: null;
+        $pressProcess = $request->string('press_process')->toString() ?: null;
 
         $query = $this->scopeToTenant(
             InventoryItem::query()->with(['category', 'subcategory', 'brand', 'unitOfMeasure', 'images'])
@@ -68,12 +70,20 @@ class InventoryItemController extends Controller
             $query->where('stock_role', $stockRole);
         }
 
+        if ($pressProcess === 'unclassified') {
+            $query->whereNull('press_process');
+        } elseif ($pressProcess !== null && $pressProcess !== '' && $pressProcess !== 'all') {
+            $query->where('press_process', $pressProcess);
+        }
+
         $items = $query->paginate(15)->withQueryString();
 
         return view('admin.inventory.items.index', [
             'items' => $items,
             'stockRole' => $stockRole ?? 'all',
             'stockRoles' => InventoryStockRole::cases(),
+            'pressProcess' => $pressProcess ?? 'all',
+            'pressProcesses' => InventoryPressProcess::cases(),
         ]);
     }
 
@@ -91,6 +101,7 @@ class InventoryItemController extends Controller
         ['companyId' => $companyId, 'branchId' => $branchId] = $this->tenantIds();
 
         $this->normalizeMaterialRequirements($request);
+        $this->normalizePressProcess($request);
 
         $data = $this->validateItem($request, $companyId, $branchId);
         $this->ensureSubcategoryMatchesCategory($data);
@@ -142,6 +153,7 @@ class InventoryItemController extends Controller
         $this->authorize('update', $item);
 
         $this->normalizeMaterialRequirements($request);
+        $this->normalizePressProcess($request);
 
         $data = $this->validateItem($request, $item->company_id, $item->branch_id);
         $this->ensureSubcategoryMatchesCategory($data);
@@ -227,6 +239,7 @@ class InventoryItemController extends Controller
             'standard_cost' => ['numeric', 'min:0'],
             'is_active' => ['boolean'],
             'stock_role' => ['required', Rule::enum(InventoryStockRole::class)],
+            'press_process' => ['nullable', Rule::enum(InventoryPressProcess::class)],
             'uses_serial_numbers' => ['boolean'],
             'requires_customer_approval' => ['boolean'],
             'serial_prefix' => ['nullable', 'string', 'max:30'],
@@ -264,6 +277,14 @@ class InventoryItemController extends Controller
             throw ValidationException::withMessages([
                 'subcategory_id' => __('The selected subcategory does not belong to the chosen category.'),
             ]);
+        }
+    }
+
+    protected function normalizePressProcess(Request $request): void
+    {
+        $value = $request->input('press_process');
+        if ($value === '' || $value === 'all') {
+            $request->merge(['press_process' => null]);
         }
     }
 
@@ -322,6 +343,7 @@ class InventoryItemController extends Controller
                 ->orderBy('name')
                 ->get(),
             'stockRoles' => InventoryStockRole::cases(),
+            'pressProcesses' => InventoryPressProcess::cases(),
             'workCenters' => WorkCenter::query()->forTenant()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'rawMaterials' => InventoryItem::query()->forTenant()->where('is_active', true)->orderBy('item_name')->get(['id', 'sku', 'item_name']),
             'productBomLines' => $item

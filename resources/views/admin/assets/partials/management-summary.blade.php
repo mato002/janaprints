@@ -4,16 +4,18 @@
     $turboFrame = WorkspaceEmbed::turboFrame();
 @endphp
 
-<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-    <x-admin.kpi-widget :label="__('Total Assets')" :value="$stats['total_assets']" icon="chip" />
-    <x-admin.kpi-widget :label="__('Total Asset Value')" :value="number_format($stats['total_asset_value'], 2)" icon="currency-dollar" />
-    <x-admin.kpi-widget :label="__('Total Book Value')" :value="number_format($stats['total_book_value'], 2)" icon="chart-pie" />
-    @can('maintenance.view')
-        <x-admin.kpi-widget :label="__('Open Maintenance')" :value="$stats['maintenance']['open_work_orders'] ?? 0" icon="clipboard-list" />
-        <x-admin.kpi-widget :label="__('Critical Failures')" :value="$stats['maintenance']['critical_failures'] ?? 0" icon="exclamation" />
-        <x-admin.kpi-widget :label="__('Downtime Hours')" :value="$stats['maintenance']['downtime_hours'] ?? 0" icon="pause" />
-    @endcan
-</div>
+<x-admin.collapsible-summary :title="__('Asset summary')">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <x-admin.kpi-widget :label="__('Total Assets')" :value="$stats['total_assets']" icon="chip" />
+        <x-admin.kpi-widget :label="__('Total Asset Value')" :value="number_format($stats['total_asset_value'], 2)" icon="currency-dollar" />
+        <x-admin.kpi-widget :label="__('Total Book Value')" :value="number_format($stats['total_book_value'], 2)" icon="chart-pie" />
+        @can('maintenance.view')
+            <x-admin.kpi-widget :label="__('Open Maintenance')" :value="$stats['maintenance']['open_work_orders'] ?? 0" icon="clipboard-list" />
+            <x-admin.kpi-widget :label="__('Critical Failures')" :value="$stats['maintenance']['critical_failures'] ?? 0" icon="exclamation" />
+            <x-admin.kpi-widget :label="__('Downtime Hours')" :value="$stats['maintenance']['downtime_hours'] ?? 0" icon="pause" />
+        @endcan
+    </div>
+</x-admin.collapsible-summary>
 
 <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
     <x-admin.card>

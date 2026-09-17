@@ -1251,6 +1251,10 @@ class QuickCreateLookupController extends Controller
     {
         $this->formSettings->withoutHiddenInputs($request, 'inventory_item', $companyId, $branchId);
 
+        if ($request->input('press_process') === '') {
+            $request->merge(['press_process' => null]);
+        }
+
         return $request->validate($this->formSettings->mergeValidationRules('inventory_item', [
             'inventory_category_id' => [Rule::exists('inventory_categories', 'id')->where('company_id', $companyId)->where('branch_id', $branchId)],
             'subcategory_id' => [
@@ -1270,6 +1274,7 @@ class QuickCreateLookupController extends Controller
             'standard_cost' => ['numeric', 'min:0'],
             'is_active' => ['boolean'],
             'stock_role' => ['required', Rule::enum(\App\Enums\InventoryStockRole::class)],
+            'press_process' => ['nullable', Rule::enum(\App\Enums\InventoryPressProcess::class)],
         ], $companyId, $branchId));
     }
 

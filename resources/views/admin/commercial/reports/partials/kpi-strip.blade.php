@@ -1,6 +1,6 @@
 @props(['kpis'])
 
-<section class="mb-4">
+<x-admin.collapsible-summary>
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
         @foreach ($kpis as $kpi)
             <x-admin.kpi-widget
@@ -11,4 +11,4 @@
             />
         @endforeach
     </div>
-</section>
+</x-admin.collapsible-summary>

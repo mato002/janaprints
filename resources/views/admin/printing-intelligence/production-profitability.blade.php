@@ -52,16 +52,18 @@
     </div>
 
     @if (($tab ?? 'overview') === 'overview')
-        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8 mb-6">
-            <x-admin.kpi-widget :label="__('Total Revenue')" :value="number_format((float) ($summary['total_revenue'] ?? 0), 2)" icon="currency" />
-            <x-admin.kpi-widget :label="__('Total Cost')" :value="number_format((float) ($summary['total_cost'] ?? 0), 2)" icon="scale" />
-            <x-admin.kpi-widget :label="__('Total Profit')" :value="number_format((float) ($summary['total_profit'] ?? 0), 2)" icon="chart-bar" />
-            <x-admin.kpi-widget :label="__('Average Margin')" :value="($summary['average_margin'] ?? null) !== null ? number_format((float) $summary['average_margin'], 1).'%' : '—'" icon="percent" />
-            <x-admin.kpi-widget :label="__('Excellent Jobs')" :value="$summary['excellent_jobs'] ?? 0" icon="check-circle" />
-            <x-admin.kpi-widget :label="__('Loss-Making Jobs')" :value="$summary['loss_making_jobs'] ?? 0" icon="x-circle" />
-            <x-admin.kpi-widget :label="__('Most Profitable Customer')" :value="$overview['most_profitable_customer']['customer_name'] ?? '—'" icon="users" />
-            <x-admin.kpi-widget :label="__('Most Profitable Machine')" :value="$overview['most_profitable_machine']['machine_name'] ?? '—'" icon="cog" />
-        </div>
+        <x-admin.collapsible-summary :title="__('Profitability summary')">
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+                <x-admin.kpi-widget :label="__('Total Revenue')" :value="number_format((float) ($summary['total_revenue'] ?? 0), 2)" icon="currency" />
+                <x-admin.kpi-widget :label="__('Total Cost')" :value="number_format((float) ($summary['total_cost'] ?? 0), 2)" icon="scale" />
+                <x-admin.kpi-widget :label="__('Total Profit')" :value="number_format((float) ($summary['total_profit'] ?? 0), 2)" icon="chart-bar" />
+                <x-admin.kpi-widget :label="__('Average Margin')" :value="($summary['average_margin'] ?? null) !== null ? number_format((float) $summary['average_margin'], 1).'%' : '—'" icon="percent" />
+                <x-admin.kpi-widget :label="__('Excellent Jobs')" :value="$summary['excellent_jobs'] ?? 0" icon="check-circle" />
+                <x-admin.kpi-widget :label="__('Loss-Making Jobs')" :value="$summary['loss_making_jobs'] ?? 0" icon="x-circle" />
+                <x-admin.kpi-widget :label="__('Most Profitable Customer')" :value="$overview['most_profitable_customer']['customer_name'] ?? '—'" icon="users" />
+                <x-admin.kpi-widget :label="__('Most Profitable Machine')" :value="$overview['most_profitable_machine']['machine_name'] ?? '—'" icon="cog" />
+            </div>
+        </x-admin.collapsible-summary>
 
         <div class="grid gap-4 lg:grid-cols-2 mb-6">
             <x-admin.card>

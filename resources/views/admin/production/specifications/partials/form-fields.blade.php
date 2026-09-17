@@ -76,7 +76,7 @@
                 <select name="paper_inventory_item_id" class="erp-input w-full">
                     <option value="">{{ __('Select paper…') }}</option>
                     @foreach ($paperItems as $item)
-                        <option value="{{ $item->id }}" @selected((string) $value('paper_inventory_item_id') === (string) $item->id)>{{ $item->item_name }}</option>
+                        <option value="{{ $item->id }}" @selected((string) $value('paper_inventory_item_id') === (string) $item->id)>{{ $item->catalogueLabel() }}</option>
                     @endforeach
                 </select>
             </div>
@@ -85,7 +85,7 @@
                 <select name="material_inventory_item_id" class="erp-input w-full">
                     <option value="">{{ __('Select material…') }}</option>
                     @foreach ($materialItems as $item)
-                        <option value="{{ $item->id }}" @selected((string) $value('material_inventory_item_id') === (string) $item->id)>{{ $item->item_name }}</option>
+                        <option value="{{ $item->id }}" @selected((string) $value('material_inventory_item_id') === (string) $item->id)>{{ $item->catalogueLabel() }}</option>
                     @endforeach
                 </select>
             </div>

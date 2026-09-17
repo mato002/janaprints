@@ -25,6 +25,28 @@
         </div>
     @endif
 
+    @php
+        $pressProcess = $pressProcess ?? 'all';
+    @endphp
+    <form method="GET" action="{{ url()->current() }}" class="mb-4 flex flex-wrap items-end gap-3">
+        @foreach (request()->except(['press_process', 'page']) as $key => $value)
+            @if (! is_array($value))
+                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @endif
+        @endforeach
+        <label class="text-xs font-medium text-slate-600">
+            {{ __('Process') }}
+            <select name="press_process" class="erp-select mt-1" onchange="this.form.requestSubmit()">
+                <option value="all" @selected($pressProcess === 'all' || $pressProcess === '')>{{ __('All processes') }}</option>
+                @foreach (($pressProcesses ?? []) as $process)
+                    <option value="{{ $process->value }}" @selected($pressProcess === $process->value)>{{ $process->label() }}</option>
+                @endforeach
+                <option value="unclassified" @selected($pressProcess === 'unclassified')>{{ __('Not set') }}</option>
+            </select>
+        </label>
+        <button type="submit" class="erp-btn-secondary text-sm">{{ __('Filter') }}</button>
+    </form>
+
     <x-admin.data-table
         :search-placeholder="__('Search inventory...')"
         export-route="admin.inventory.exports"
@@ -36,6 +58,7 @@
         <x-slot name="head">
             <tr>
                 <th scope="col">{{ __('Item') }}</th>
+                <th scope="col" class="hidden md:table-cell">{{ __('Process') }}</th>
                 <th scope="col" class="hidden md:table-cell">{{ __('Role') }}</th>
                 <th scope="col" class="hidden md:table-cell">{{ __('Category') }}</th>
                 <th scope="col" class="hidden lg:table-cell">{{ __('Brand') }}</th>
@@ -46,10 +69,17 @@
         </x-slot>
         <x-slot name="body">
             @forelse ($items as $item)
-                <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->category?->name ?? '').' '.($item->subcategory?->name ?? '').' '.($item->brand_name ?? $item->brand?->name ?? ''))))">
+                <tr x-show="rowVisible(@js(strtolower($item->sku.' '.$item->item_name.' '.($item->press_process?->label() ?? '').' '.($item->category?->name ?? '').' '.($item->subcategory?->name ?? '').' '.($item->brand_name ?? $item->brand?->name ?? ''))))">
                     <td>
                         <div class="font-medium">{{ $item->item_name }}</div>
                         <div class="font-mono text-[11px] text-slate-500">{{ $item->sku }}</div>
+                    </td>
+                    <td class="hidden md:table-cell">
+                        @if ($item->press_process)
+                            <span class="erp-badge {{ $item->press_process->badgeClass() }}">{{ $item->press_process->label() }}</span>
+                        @else
+                            <span class="text-slate-400">{{ __('Not set') }}</span>
+                        @endif
                     </td>
                     <td class="hidden md:table-cell">
                         @if($item->stock_role)
@@ -70,7 +100,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="7"><x-admin.empty-state icon="cube" :title="__('No items yet')" /></td></tr>
+                <tr><td colspan="8"><x-admin.empty-state icon="cube" :title="__('No items yet')" /></td></tr>
             @endforelse
         </x-slot>
         <x-slot name="footer"><x-admin.table-pagination :paginator="$items" /></x-slot>

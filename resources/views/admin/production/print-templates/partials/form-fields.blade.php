@@ -64,7 +64,7 @@
                 <select name="default_paper_inventory_item_id" class="erp-input w-full">
                     <option value="">{{ __('None') }}</option>
                     @foreach ($paperItems as $item)
-                        <option value="{{ $item->id }}" @selected((string) $value('default_paper_inventory_item_id') === (string) $item->id)>{{ $item->item_name }}</option>
+                        <option value="{{ $item->id }}" @selected((string) $value('default_paper_inventory_item_id') === (string) $item->id)>{{ $item->catalogueLabel() }}</option>
                     @endforeach
                 </select>
             </div>

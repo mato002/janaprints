@@ -26,24 +26,26 @@
             </header>
         @endunless
 
-        <section class="crm-customers__kpi-strip" aria-label="{{ __('Customer list summary') }}">
-            <div class="crm-customers__kpi">
-                <span class="crm-customers__kpi-label">{{ __('Total customers') }}</span>
-                <span class="crm-customers__kpi-value">{{ number_format($customers->total()) }}</span>
-            </div>
-            <div class="crm-customers__kpi">
-                <span class="crm-customers__kpi-label">{{ __('On this page') }}</span>
-                <span class="crm-customers__kpi-value">{{ $customers->count() }}</span>
-            </div>
-            <div class="crm-customers__kpi">
-                <span class="crm-customers__kpi-label">{{ __('Active (page)') }}</span>
-                <span class="crm-customers__kpi-value">{{ $activeOnPage }}</span>
-            </div>
-            <div class="crm-customers__kpi">
-                <span class="crm-customers__kpi-label">{{ __('Inactive (page)') }}</span>
-                <span class="crm-customers__kpi-value">{{ $inactiveOnPage }}</span>
-            </div>
-        </section>
+        <x-admin.collapsible-summary :title="__('Customer list summary')" :hint="__('Unfold to view counts')">
+            <section class="crm-customers__kpi-strip mb-0" aria-label="{{ __('Customer list summary') }}">
+                <div class="crm-customers__kpi">
+                    <span class="crm-customers__kpi-label">{{ __('Total customers') }}</span>
+                    <span class="crm-customers__kpi-value">{{ number_format($customers->total()) }}</span>
+                </div>
+                <div class="crm-customers__kpi">
+                    <span class="crm-customers__kpi-label">{{ __('On this page') }}</span>
+                    <span class="crm-customers__kpi-value">{{ $customers->count() }}</span>
+                </div>
+                <div class="crm-customers__kpi">
+                    <span class="crm-customers__kpi-label">{{ __('Active (page)') }}</span>
+                    <span class="crm-customers__kpi-value">{{ $activeOnPage }}</span>
+                </div>
+                <div class="crm-customers__kpi">
+                    <span class="crm-customers__kpi-label">{{ __('Inactive (page)') }}</span>
+                    <span class="crm-customers__kpi-value">{{ $inactiveOnPage }}</span>
+                </div>
+            </section>
+        </x-admin.collapsible-summary>
 
         <p class="crm-customers__hint">
             <span aria-hidden="true">↗</span>
