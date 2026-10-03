@@ -14,6 +14,7 @@ use App\Support\Production\DepartmentQueueRegistry;
 use App\Support\Production\DepartmentQueueRoutingService;
 use App\Support\Production\JobCardPrintUrl;
 use App\Support\Production\ProductionQueueOrderingService;
+use App\Support\Production\ProductionQueueService;
 use App\Support\Production\ProductionSpecificationPresenter;
 use App\Support\Sales\SalesOrderFinancialStatusService;
 use Carbon\Carbon;
@@ -39,6 +40,10 @@ class ProductionQueueWorkspaceService
      */
     public function buildIndex(Request $request, ?string $department = null): array
     {
+        if ($department === 'outsource' || $department === null) {
+            app(ProductionQueueService::class)->syncMissingOutsourceQueues();
+        }
+
         return [
             'queues' => $this->paginatedIndex($request, $department),
             'kpis' => $this->kpiCounts($request, $department),
@@ -695,6 +700,18 @@ class ProductionQueueWorkspaceService
             });
     }
 
+    public function constrainToOpenJobs(Builder $query): Builder
+    {
+        return $query
+            ->whereNotIn(self::STATUS_COLUMN, [
+                ProductionQueueStatus::Completed,
+                ProductionQueueStatus::Cancelled,
+            ])
+            ->whereHas('jobCard', function (Builder $q) {
+                $q->whereNotIn('status', $this->closedJobCardStatuses());
+            });
+    }
+
     public function constrainToCompletedJobs(Builder $query): Builder
     {
         return $query->where(self::STATUS_COLUMN, ProductionQueueStatus::Completed);
@@ -731,6 +748,7 @@ class ProductionQueueWorkspaceService
         if ($bucket = $request->query('queue_bucket')) {
             match ($bucket) {
                 'today' => $this->constrainToTodayJobs($query),
+                'open' => $this->constrainToOpenJobs($query),
                 'overdue' => $this->constrainToOverdueJobs($query),
                 'waiting' => $query->whereIn(self::STATUS_COLUMN, [
                     ProductionQueueStatus::Waiting,
@@ -792,7 +810,11 @@ class ProductionQueueWorkspaceService
             && ! $request->filled('status')
             && ! $request->filled('queue_bucket')
         ) {
-            $this->constrainToTodayJobs($query);
+            if ($department === 'outsource') {
+                $this->constrainToOpenJobs($query);
+            } else {
+                $this->constrainToTodayJobs($query);
+            }
         }
 
         if ($vendorId = $request->integer('vendor_id')) {

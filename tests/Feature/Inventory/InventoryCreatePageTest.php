@@ -61,6 +61,8 @@ class InventoryCreatePageTest extends TestCase
             ->assertOk()
             ->assertSee(__('New stock receipt'), false)
             ->assertSee(__('Add line'), false)
+            ->assertSee(__('Select items'), false)
+            ->assertSee(__('Tick several products to add lines, then enter quantity and unit cost.'), false)
             ->assertSee('name="warehouse_id"', false);
     }
 

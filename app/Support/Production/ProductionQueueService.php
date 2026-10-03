@@ -2,6 +2,7 @@
 
 namespace App\Support\Production;
 
+use App\Enums\ProductionDestination;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionQueueStatus;
 use App\Models\Production\ProductionJobCard;
@@ -128,6 +129,71 @@ class ProductionQueueService
 
             return $entry->fresh(['workCenter', 'assignedOperator']);
         });
+    }
+
+    /**
+     * Outsourced jobs are not tied to an in-house work center, but department
+     * registers still read production_queues. Create a floor row without routing
+     * the job onto Digital/Offset.
+     */
+    public function ensureOutsourceQueue(ProductionJobCard $jobCard): ProductionQueue
+    {
+        $existing = $this->activeQueue($jobCard);
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return DB::transaction(function () use ($jobCard) {
+            $position = ((int) ProductionQueue::query()
+                ->where('company_id', $jobCard->company_id)
+                ->where('branch_id', $jobCard->branch_id)
+                ->whereNull('work_center_id')
+                ->max('queue_position')) + 1;
+
+            $entry = ProductionQueue::query()->create([
+                'company_id' => $jobCard->company_id,
+                'branch_id' => $jobCard->branch_id,
+                'production_job_card_id' => $jobCard->id,
+                'work_center_id' => null,
+                'queue_position' => $position,
+                'status' => ProductionQueueStatus::Waiting,
+            ]);
+
+            $this->collapseActiveQueues($jobCard, $entry->id);
+
+            $jobCard = $jobCard->fresh();
+
+            if ($jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Queued);
+            }
+
+            return $entry->fresh(['workCenter', 'assignedOperator']);
+        });
+    }
+
+    public function syncMissingOutsourceQueues(): int
+    {
+        $jobCards = ProductionJobCard::query()
+            ->forTenant()
+            ->where(function ($query) {
+                $query
+                    ->where('production_destination', ProductionDestination::Outsource->value)
+                    ->orWhere('status', ProductionJobCardStatus::Outsourced->value);
+            })
+            ->whereNotIn('status', [
+                ProductionJobCardStatus::Cancelled->value,
+                ProductionJobCardStatus::Completed->value,
+                ProductionJobCardStatus::ReadyForDispatch->value,
+            ])
+            ->whereDoesntHave('queues')
+            ->get();
+
+        foreach ($jobCards as $jobCard) {
+            $this->ensureOutsourceQueue($jobCard);
+        }
+
+        return $jobCards->count();
     }
 
     public function collapseActiveQueues(ProductionJobCard $jobCard, ?int $keepId = null): void

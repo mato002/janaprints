@@ -20,7 +20,7 @@
             'formFields' => $formFields,
             'selectedWarehouseId' => $selectedWarehouseId ?? null,
         ])
-        @include('admin.inventory.partials.line-items', ['items' => $items, 'formFields' => $formFields, 'lineCount' => 5])
+        @include('admin.inventory.partials.line-items', ['items' => $items, 'formFields' => $formFields, 'dynamic' => true])
         <x-admin.form-actions>
             <button type="submit" name="intent" value="draft" class="erp-btn-secondary">{{ __('Save draft') }}</button>
             <button type="submit" name="intent" value="post" class="erp-btn-primary">{{ __('Issue & post to stock') }}</button>

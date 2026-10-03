@@ -77,6 +77,66 @@ class DepartmentProductionQueueTest extends TestCase
             ->assertDontSee($normal->job_card_number, false);
     }
 
+    public function test_outsource_destination_jobs_appear_without_in_house_work_center(): void
+    {
+        [$company, $branch, $user] = $this->departmentContext();
+
+        $salesOrder = SalesOrder::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'created_by' => $user->id,
+            'production_destination' => \App\Enums\ProductionDestination::Outsource,
+            'required_date' => now()->addWeek(),
+        ]);
+
+        $jobCard = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'sales_order_id' => $salesOrder->id,
+            'production_destination' => \App\Enums\ProductionDestination::Outsource,
+            'required_date' => now()->addWeek(),
+            'created_by' => $user->id,
+            'status' => ProductionJobCardStatus::Draft,
+        ]);
+
+        app(\App\Support\Production\SalesOrderProductionBridgeService::class)
+            ->activateJobForProduction($jobCard, $user->id);
+
+        $this->assertDatabaseHas('production_queues', [
+            'production_job_card_id' => $jobCard->id,
+            'work_center_id' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('outsource')
+            ->assertOk()
+            ->assertSee($jobCard->job_card_number, false)
+            ->assertSee(__('Open Jobs'));
+    }
+
+    public function test_existing_outsource_job_cards_without_queue_rows_are_synced_onto_the_register(): void
+    {
+        [$company, $branch, $user] = $this->departmentContext();
+
+        $jobCard = ProductionJobCard::factory()->create([
+            'company_id' => $company->id,
+            'branch_id' => $branch->id,
+            'production_destination' => \App\Enums\ProductionDestination::Outsource,
+            'required_date' => now()->addDays(5),
+            'created_by' => $user->id,
+            'status' => ProductionJobCardStatus::Queued,
+        ]);
+
+        $this->assertDatabaseMissing('production_queues', [
+            'production_job_card_id' => $jobCard->id,
+        ]);
+
+        $this->actingAs($user)
+            ->getDepartmentQueue('outsource')
+            ->assertOk()
+            ->assertSee($jobCard->job_card_number, false);
+    }
+
     public function test_routing_uses_production_specification_template_work_center(): void
     {
         [$company, $branch, $user, $digitalCenter, $offsetCenter] = $this->departmentContext();

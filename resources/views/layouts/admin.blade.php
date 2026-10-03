@@ -172,5 +172,77 @@
     <div id="erp-toast-host" class="erp-toast-host" data-turbo-permanent aria-live="polite"></div>
 
     <x-admin.command-palette />
+    <script>
+        if (! window.__erpSettingsSaveBound) {
+        window.__erpSettingsSaveBound = true;
+        document.addEventListener('click', function (event) {
+            const btn = event.target.closest('[data-erp-settings-save]');
+            if (! btn) {
+                return;
+            }
+
+            event.preventDefault();
+
+            const form = document.getElementById('settings-save-form');
+            const say = function (message, variant) {
+                if (window.showErpSweetAlert) {
+                    window.showErpSweetAlert(message, variant);
+                } else {
+                    window.alert(message);
+                }
+            };
+
+            if (! form) {
+                say(btn.getAttribute('data-missing-form') || 'Save form is missing. Refresh the page.', 'error');
+                return;
+            }
+
+            const label = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = btn.getAttribute('data-saving-label') || 'Saving…';
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            }).then(function (res) {
+                return res.json().catch(function () { return {}; }).then(function (data) {
+                    return { res: res, data: data };
+                });
+            }).then(function (payload) {
+                const res = payload.res;
+                const data = payload.data || {};
+                if (! res.ok) {
+                    var errorMsg = data.message;
+                    if (! errorMsg && data.errors) {
+                        errorMsg = Object.values(data.errors).flat().join(' ');
+                    }
+                    say(errorMsg || btn.getAttribute('data-error-label') || 'Unable to save settings. Please try again.', 'error');
+                    return;
+                }
+
+                say(data.message || btn.getAttribute('data-success-label') || 'Settings saved.', 'success');
+                const next = data.redirect || form.getAttribute('data-settings-show-url');
+                const frame = document.getElementById('module-workspace-content');
+                if (frame && window.Turbo && next) {
+                    window.Turbo.visit(next, { frame: 'module-workspace-content' });
+                } else if (next) {
+                    window.location.assign(next);
+                } else {
+                    window.location.reload();
+                }
+            }).catch(function () {
+                say(btn.getAttribute('data-error-label') || 'Unable to save settings. Please try again.', 'error');
+            }).finally(function () {
+                btn.disabled = false;
+                btn.textContent = label;
+            });
+        });
+        }
+    </script>
 </body>
 </html>

@@ -187,6 +187,31 @@ class PublicHashTierTwoTest extends TestCase
             ->assertOk();
     }
 
+    public function test_warehouse_action_routes_accept_hash(): void
+    {
+        $warehouse = Warehouse::query()
+            ->where('company_id', $this->company->id)
+            ->where('branch_id', $this->branch->id)
+            ->where('is_virtual', false)
+            ->firstOrFail();
+
+        $editUrl = route('admin.inventory.warehouses.edit', $warehouse);
+
+        $this->assertStringContainsString((string) $warehouse->public_id, $editUrl);
+        $this->assertDoesNotMatchRegularExpression('#/warehouses/\d+/edit$#', $editUrl);
+
+        foreach ([
+            route('admin.inventory.warehouses.edit', $warehouse),
+            route('admin.inventory.warehouses.balances', $warehouse),
+            route('admin.inventory.warehouses.managers.edit', $warehouse),
+            route('admin.inventory.warehouses.show', $warehouse),
+        ] as $url) {
+            $status = $this->actingAs($this->user)->get($url)->status();
+
+            $this->assertNotSame(404, $status, $url);
+        }
+    }
+
     public function test_stock_receipt_show_route_accepts_hash(): void
     {
         $receipt = $this->makeStockReceipt();

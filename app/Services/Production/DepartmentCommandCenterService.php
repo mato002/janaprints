@@ -102,6 +102,7 @@ class DepartmentCommandCenterService
         $jobsToday = $this->queues->constrainToTodayJobs((clone $scoped()))->count();
         $jobsOverdue = $this->queues->constrainToOverdueJobs((clone $scoped()))->count();
         $jobsCompleted = $this->queues->constrainToCompletedJobs((clone $scoped()))->count();
+        $jobsOpen = $this->queues->constrainToOpenJobs((clone $scoped()))->count();
 
         $machineUtilisation = $this->machineUtilisationForDepartment($department);
 
@@ -115,6 +116,7 @@ class DepartmentCommandCenterService
             'jobs_due_today' => $jobsToday,
             'jobs_overdue' => $jobsOverdue,
             'jobs_completed_today' => $jobsCompleted,
+            'jobs_open' => $jobsOpen,
             'machine_utilisation_percent' => $machineUtilisation,
             'operator_utilisation' => $operatorUtilisation,
             'average_completion_hours' => $base['average_queue_age_hours'],

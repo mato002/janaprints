@@ -51,7 +51,7 @@ class DepartmentCommandCenterTest extends TestCase
             ->assertOk()
             ->assertSee($titleFragment)
             ->assertSee($job->job_card_number, false)
-            ->assertSee(__("Today's Jobs"))
+            ->assertSee($department === 'outsource' ? __('Open Jobs') : __("Today's Jobs"))
             ->assertSee(__('Overdue Jobs'))
             ->assertSee(__('Completed Jobs'))
             ->assertDontSee(__('Waiting jobs'));

@@ -5,9 +5,11 @@
     $todayCount = $metrics['jobs_today'] ?? $metrics['jobs_due_today'] ?? 0;
     $completed = $metrics['jobs_completed_today'] ?? 0;
     $overdue = $metrics['jobs_overdue'] ?? 0;
+    $openCount = $metrics['jobs_open'] ?? $todayCount;
     $compact = (bool) ($compact ?? false);
     $filters = $filters ?? [];
     $activeDepartment = $activeDepartment ?? null;
+    $isOutsource = $activeDepartment === 'outsource';
 
     $chipUrl = function (array $query) use ($activeDepartment): string {
         if ($activeDepartment) {
@@ -28,30 +30,52 @@
     } elseif ($activeDue === 'today') {
         $activeBucket = 'today';
     } elseif (! $hasExplicitList) {
-        $activeBucket = 'today';
+        $activeBucket = $isOutsource ? 'open' : 'today';
     }
 
-    $chips = [
-        [
-            'label' => __("Today's Jobs"),
-            'count' => $todayCount,
-            'active' => $activeBucket === 'today',
-            'url' => $chipUrl(['queue_bucket' => 'today']),
-        ],
-        [
-            'label' => __('Overdue Jobs'),
-            'count' => $overdue,
-            'active' => $activeBucket === 'overdue',
-            'url' => $chipUrl(['queue_bucket' => 'overdue']),
-            'danger' => (int) $overdue > 0,
-        ],
-        [
-            'label' => __('Completed Jobs'),
-            'count' => $completed,
-            'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
-            'url' => $chipUrl(['queue_bucket' => 'completed']),
-        ],
-    ];
+    $chips = $isOutsource
+        ? [
+            [
+                'label' => __('Open Jobs'),
+                'count' => $openCount,
+                'active' => $activeBucket === 'open',
+                'url' => $chipUrl(['queue_bucket' => 'open']),
+            ],
+            [
+                'label' => __('Overdue Jobs'),
+                'count' => $overdue,
+                'active' => $activeBucket === 'overdue',
+                'url' => $chipUrl(['queue_bucket' => 'overdue']),
+                'danger' => (int) $overdue > 0,
+            ],
+            [
+                'label' => __('Completed Jobs'),
+                'count' => $completed,
+                'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
+                'url' => $chipUrl(['queue_bucket' => 'completed']),
+            ],
+        ]
+        : [
+            [
+                'label' => __("Today's Jobs"),
+                'count' => $todayCount,
+                'active' => $activeBucket === 'today',
+                'url' => $chipUrl(['queue_bucket' => 'today']),
+            ],
+            [
+                'label' => __('Overdue Jobs'),
+                'count' => $overdue,
+                'active' => $activeBucket === 'overdue',
+                'url' => $chipUrl(['queue_bucket' => 'overdue']),
+                'danger' => (int) $overdue > 0,
+            ],
+            [
+                'label' => __('Completed Jobs'),
+                'count' => $completed,
+                'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
+                'url' => $chipUrl(['queue_bucket' => 'completed']),
+            ],
+        ];
 @endphp
 
 @if ($compact)

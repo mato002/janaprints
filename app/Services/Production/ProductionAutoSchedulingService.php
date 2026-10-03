@@ -3,6 +3,7 @@
 namespace App\Services\Production;
 
 use App\Enums\MachineAvailabilityState;
+use App\Enums\ProductionDestination;
 use App\Enums\ProductionJobCardStatus;
 use App\Enums\ProductionQueueStatus;
 use App\Enums\ProductionType;
@@ -33,7 +34,14 @@ class ProductionAutoSchedulingService
 
     public function canQueueDraftJob(ProductionJobCard $jobCard): bool
     {
-        $jobCard->loadMissing(['queues', 'routeSteps']);
+        $jobCard->loadMissing(['queues', 'routeSteps', 'salesOrder']);
+
+        $destination = $jobCard->production_destination
+            ?? $jobCard->salesOrder?->production_destination;
+
+        if ($destination?->isOutsource()) {
+            return true;
+        }
 
         if ($jobCard->queues->isNotEmpty()) {
             return true;
@@ -106,6 +114,23 @@ class ProductionAutoSchedulingService
     public function schedule(ProductionJobCard $jobCard, int $userId): array
     {
         $jobCard->loadMissing(['queues', 'salesOrder', 'routeSteps']);
+
+        $destination = $jobCard->production_destination
+            ?? $jobCard->salesOrder?->production_destination;
+
+        if ($destination?->isOutsource()) {
+            $queue = $this->queues->ensureOutsourceQueue($jobCard);
+
+            return [
+                'scheduled' => true,
+                'reason' => null,
+                'work_center_id' => null,
+                'queue_position' => $queue->queue_position,
+                'planned_start_date' => $jobCard->planned_start_date?->toDateString(),
+                'planned_end_date' => $jobCard->planned_end_date?->toDateString(),
+                'machine_assigned' => false,
+            ];
+        }
 
         if ($jobCard->queues->isEmpty()) {
             $workCenter = $this->resolveWorkCenter($jobCard);

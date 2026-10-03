@@ -41,6 +41,8 @@ class JobCardOutsourceService
 
             $jobCard->transitionTo(ProductionJobCardStatus::Outsourced);
 
+            app(ProductionQueueService::class)->ensureOutsourceQueue($jobCard->fresh());
+
             return $jobCard->fresh(['outsourceVendor:id,vendor_name,vendor_code']);
         });
     }

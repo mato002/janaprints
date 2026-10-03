@@ -175,22 +175,22 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:inventory.view')->group(function () {
-            Route::get('warehouses/{warehouse}', [WarehouseController::class, 'show'])->whereNumber('warehouse')->name('warehouses.show');
-            Route::get('warehouses/{warehouse}/balances', [WarehouseController::class, 'balances'])->whereNumber('warehouse')->name('warehouses.balances');
-            Route::get('transfers/{transfer}', [StoreTransferController::class, 'show'])->whereNumber('transfer')->name('transfers.show');
+            Route::get('warehouses/{warehouse}', [WarehouseController::class, 'show'])->name('warehouses.show');
+            Route::get('warehouses/{warehouse}/balances', [WarehouseController::class, 'balances'])->name('warehouses.balances');
+            Route::get('transfers/{transfer}', [StoreTransferController::class, 'show'])->name('transfers.show');
         });
 
         Route::middleware('permission:inventory.edit')->group(function () {
-            Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->whereNumber('warehouse')->name('warehouses.edit');
-            Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])->whereNumber('warehouse')->name('warehouses.update');
-            Route::patch('warehouses/{warehouse}/deactivate', [WarehouseController::class, 'deactivate'])->whereNumber('warehouse')->name('warehouses.deactivate');
-            Route::patch('warehouses/{warehouse}/reactivate', [WarehouseController::class, 'reactivate'])->whereNumber('warehouse')->name('warehouses.reactivate');
-            Route::get('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'edit'])->whereNumber('warehouse')->name('warehouses.managers.edit');
-            Route::put('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'update'])->whereNumber('warehouse')->name('warehouses.managers.update');
+            Route::get('warehouses/{warehouse}/edit', [WarehouseController::class, 'edit'])->name('warehouses.edit');
+            Route::put('warehouses/{warehouse}', [WarehouseController::class, 'update'])->name('warehouses.update');
+            Route::patch('warehouses/{warehouse}/deactivate', [WarehouseController::class, 'deactivate'])->name('warehouses.deactivate');
+            Route::patch('warehouses/{warehouse}/reactivate', [WarehouseController::class, 'reactivate'])->name('warehouses.reactivate');
+            Route::get('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'edit'])->name('warehouses.managers.edit');
+            Route::put('warehouses/{warehouse}/managers', [WarehouseManagerController::class, 'update'])->name('warehouses.managers.update');
         });
 
         Route::middleware('permission:inventory.delete')->group(function () {
-            Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->whereNumber('warehouse')->name('warehouses.destroy');
+            Route::delete('warehouses/{warehouse}', [WarehouseController::class, 'destroy'])->name('warehouses.destroy');
         });
 
         Route::middleware('permission:inventory.receive')->group(function () {
@@ -206,7 +206,7 @@ Route::middleware(['auth', 'verified', 'tenant'])
         });
 
         Route::middleware('permission:inventory.transfer')->group(function () {
-            Route::post('transfers/{transfer}/post', [StoreTransferController::class, 'post'])->whereNumber('transfer')->name('transfers.post');
+            Route::post('transfers/{transfer}/post', [StoreTransferController::class, 'post'])->name('transfers.post');
         });
 
         Route::middleware('permission:inventory.adjust')->group(function () {

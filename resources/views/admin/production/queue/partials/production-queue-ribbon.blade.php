@@ -11,6 +11,8 @@
     $todayCount = $commandMetrics['jobs_today'] ?? $commandMetrics['jobs_due_today'] ?? 0;
     $overdue = $commandMetrics['jobs_overdue'] ?? 0;
     $completed = $commandMetrics['jobs_completed_today'] ?? 0;
+    $openCount = $commandMetrics['jobs_open'] ?? $todayCount;
+    $isOutsource = ($activeDepartment ?? null) === 'outsource';
 
     $chipUrl = function (array $query) use ($activeDepartment): string {
         if ($activeDepartment) {
@@ -29,34 +31,60 @@
         $activeDue === 'overdue' || $requestedBucket === 'overdue' => 'overdue',
         in_array($requestedBucket, ['completed', 'completed_today'], true) => 'completed',
         $activeDue === 'today' || $requestedBucket === 'today' => 'today',
-        ! $hasExplicitList => 'today',
+        $requestedBucket === 'open' => 'open',
+        ! $hasExplicitList => $isOutsource ? 'open' : 'today',
         default => $requestedBucket,
     };
 
-    $statFilters = [
-        [
-            'key' => 'today',
-            'label' => __("Today's Jobs"),
-            'count' => $todayCount,
-            'active' => $activeBucket === 'today',
-            'url' => $chipUrl(['queue_bucket' => 'today']),
-        ],
-        [
-            'key' => 'overdue',
-            'label' => __('Overdue Jobs'),
-            'count' => $overdue,
-            'active' => $activeBucket === 'overdue',
-            'url' => $chipUrl(['queue_bucket' => 'overdue']),
-            'danger' => (int) $overdue > 0,
-        ],
-        [
-            'key' => 'completed',
-            'label' => __('Completed Jobs'),
-            'count' => $completed,
-            'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
-            'url' => $chipUrl(['queue_bucket' => 'completed']),
-        ],
-    ];
+    $statFilters = $isOutsource
+        ? [
+            [
+                'key' => 'open',
+                'label' => __('Open Jobs'),
+                'count' => $openCount,
+                'active' => $activeBucket === 'open',
+                'url' => $chipUrl(['queue_bucket' => 'open']),
+            ],
+            [
+                'key' => 'overdue',
+                'label' => __('Overdue Jobs'),
+                'count' => $overdue,
+                'active' => $activeBucket === 'overdue',
+                'url' => $chipUrl(['queue_bucket' => 'overdue']),
+                'danger' => (int) $overdue > 0,
+            ],
+            [
+                'key' => 'completed',
+                'label' => __('Completed Jobs'),
+                'count' => $completed,
+                'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
+                'url' => $chipUrl(['queue_bucket' => 'completed']),
+            ],
+        ]
+        : [
+            [
+                'key' => 'today',
+                'label' => __("Today's Jobs"),
+                'count' => $todayCount,
+                'active' => $activeBucket === 'today',
+                'url' => $chipUrl(['queue_bucket' => 'today']),
+            ],
+            [
+                'key' => 'overdue',
+                'label' => __('Overdue Jobs'),
+                'count' => $overdue,
+                'active' => $activeBucket === 'overdue',
+                'url' => $chipUrl(['queue_bucket' => 'overdue']),
+                'danger' => (int) $overdue > 0,
+            ],
+            [
+                'key' => 'completed',
+                'label' => __('Completed Jobs'),
+                'count' => $completed,
+                'active' => in_array($activeBucket, ['completed', 'completed_today'], true),
+                'url' => $chipUrl(['queue_bucket' => 'completed']),
+            ],
+        ];
 @endphp
 
 <div class="production-queue-ribbon sticky top-0 z-30 shrink-0">

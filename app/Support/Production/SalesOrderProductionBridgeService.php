@@ -46,11 +46,14 @@ class SalesOrderProductionBridgeService
             ?? $jobCard->salesOrder?->production_destination;
 
         if ($destination?->isOutsource()) {
-            if ($jobCard->status === ProductionJobCardStatus::Draft
-                && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Queued)) {
-                ProductionQueueService::withoutQueueEnforcement(
-                    fn () => $jobCard->transitionTo(ProductionJobCardStatus::Queued),
-                );
+            app(ProductionQueueService::class)->ensureOutsourceQueue($jobCard);
+            $jobCard = $jobCard->fresh();
+
+            if (
+                filled($jobCard->outsource_vendor_id)
+                && $jobCard->status->canTransitionTo(ProductionJobCardStatus::Outsourced)
+            ) {
+                $jobCard->transitionTo(ProductionJobCardStatus::Outsourced);
                 $jobCard = $jobCard->fresh();
             }
 
@@ -143,6 +146,8 @@ class SalesOrderProductionBridgeService
         return match ($jobCardStatus) {
             ProductionJobCardStatus::Draft => SalesOrderStatus::ReadyForProduction,
             ProductionJobCardStatus::Queued => SalesOrderStatus::ReadyForProduction,
+            ProductionJobCardStatus::Outsourced => SalesOrderStatus::InProduction,
+            ProductionJobCardStatus::Returned => SalesOrderStatus::InProduction,
             ProductionJobCardStatus::InProduction => SalesOrderStatus::InProduction,
             ProductionJobCardStatus::QualityCheck => SalesOrderStatus::InProduction,
             ProductionJobCardStatus::Rework => SalesOrderStatus::InProduction,
