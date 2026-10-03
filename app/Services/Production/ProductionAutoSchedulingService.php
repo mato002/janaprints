@@ -104,10 +104,10 @@ class ProductionAutoSchedulingService
      * @return array{
      *     scheduled: bool,
      *     reason: ?string,
-     *     work_center_id: int,
-     *     queue_position: int,
-     *     planned_start_date: string,
-     *     planned_end_date: string,
+     *     work_center_id: ?int,
+     *     queue_position: ?int,
+     *     planned_start_date: ?string,
+     *     planned_end_date: ?string,
      *     machine_assigned: bool
      * }
      */

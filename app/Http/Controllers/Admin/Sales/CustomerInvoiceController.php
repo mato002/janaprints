@@ -16,7 +16,9 @@ use App\Rules\DateNotInThePast;
 use App\Support\Accounting\ReturnsToReceivablesDesk;
 use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use App\Support\Sales\CustomerInvoiceService;
+use App\Support\Sales\ReceivablesInvoiceViews;
 use App\Support\Sales\ReturnsToSalesDesk;
+use App\Support\Sales\SalesDeskViews;
 use App\Support\Sales\SalesDocumentEmailService;
 use App\Support\NewestFirst;
 use Illuminate\Http\JsonResponse;
@@ -222,8 +224,9 @@ class CustomerInvoiceController extends Controller
             ->values();
 
         $from = $request->input('from');
+        $returnView = $request->input('return_view');
 
-        $orderOptions = $orders->map(function (SalesOrder $order) use ($from) {
+        $orderOptions = $orders->map(function (SalesOrder $order) use ($from, $returnView) {
             $remaining = $order->remainingInvoiceTotal();
 
             return [
@@ -239,6 +242,7 @@ class CustomerInvoiceController extends Controller
                 'href' => route('admin.invoices.from-sales-order', array_filter([
                     $order,
                     'from' => $from ?: null,
+                    'return_view' => $returnView ?: null,
                 ])),
                 'search' => strtolower(trim($order->order_number.' '.($order->customer?->company_name ?? ''))),
             ];
@@ -332,6 +336,12 @@ class CustomerInvoiceController extends Controller
             : __('Invoice created from sales order.');
 
         if ($this->wantsSalesDeskReturn($request)) {
+            if ($request->input('return_view') === SalesDeskViews::TO_BILL) {
+                return redirect()
+                    ->route('admin.invoices.show', [$result->invoice, 'from' => 'sales-desk'])
+                    ->with('status', $flash);
+            }
+
             return redirect()->route('admin.sales.desk', [
                 'customer' => $salesOrder->customer?->getRouteKey(),
                 'order' => $salesOrder->getRouteKey(),
@@ -397,9 +407,7 @@ class CustomerInvoiceController extends Controller
         }
 
         return redirect()
-            ->to($this->receivablesInvoicesUrl([
-                'open_invoice' => $result->invoice->getRouteKey(),
-            ]))
+            ->to($this->combinedInvoiceSuccessUrl($request, $result->invoice))
             ->with('status', __('Invoice created from :count orders.', ['count' => $orders->count()]));
     }
 
@@ -456,7 +464,27 @@ class CustomerInvoiceController extends Controller
         }
 
         return redirect()
-            ->to($this->receivablesJobsUrl())
+            ->to($this->combinedInvoiceFailureUrl($request))
             ->with('error', $message);
+    }
+
+    protected function combinedInvoiceSuccessUrl(Request $request, CustomerInvoice $invoice): string
+    {
+        if ($this->wantsSalesDeskReturn($request) || $request->input('return_view') === SalesDeskViews::TO_BILL) {
+            return route('admin.invoices.show', [$invoice, 'from' => 'sales-desk']);
+        }
+
+        return $this->receivablesInvoicesUrl([
+            'open_invoice' => $invoice->getRouteKey(),
+        ]);
+    }
+
+    protected function combinedInvoiceFailureUrl(Request $request): string
+    {
+        if ($this->wantsSalesDeskReturn($request) || $request->input('return_view') === SalesDeskViews::TO_BILL) {
+            return SalesDeskViews::toBillUrl();
+        }
+
+        return $this->receivablesJobsUrl();
     }
 }

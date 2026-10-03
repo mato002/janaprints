@@ -573,6 +573,8 @@ class DirectCustomerSalesOrderService
 
         $destination = $jobCard->production_destination ?? $order->production_destination;
         if ($destination?->isOutsource()) {
+            app(ProductionQueueService::class)->ensureOutsourceQueue($jobCard);
+
             return;
         }
 

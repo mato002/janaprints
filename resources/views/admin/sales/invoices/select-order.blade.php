@@ -150,6 +150,9 @@
                 @if (filled($fromDesk ?? request('from')))
                     <input type="hidden" name="from" value="{{ $fromDesk ?? request('from') }}">
                 @endif
+                @if (request()->filled('return_view'))
+                    <input type="hidden" name="return_view" value="{{ request('return_view') }}">
+                @endif
                 <input type="hidden" name="invoice_date" value="{{ now()->toDateString() }}">
                 <template x-for="id in selectedIds" :key="id">
                     <input type="hidden" name="sales_order_ids[]" :value="id">

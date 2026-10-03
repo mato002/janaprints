@@ -37,16 +37,7 @@ class ReceivablesInvoiceDesk
         ]);
 
         if (ReceivablesInvoiceViews::isJobs($activeView)) {
-            $orders = NewestFirst::apply(
-                $orderQuery
-                    ->with(['customer', 'items'])
-                    ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
-                    ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
-            )
-                ->limit(200)
-                ->get()
-                ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
-                ->values();
+            $orders = $this->unbilledOrders($orderQuery, $customer);
         } else {
             $invoices = NewestFirst::apply(
                 $invoiceQuery
@@ -79,7 +70,24 @@ class ReceivablesInvoiceDesk
         ];
     }
 
-    protected function resolveCustomer(Request $request): ?Customer
+    /**
+     * @return Collection<int, SalesOrder>
+     */
+    public function unbilledOrders(Builder $orderQuery, ?Customer $customer = null): Collection
+    {
+        return NewestFirst::apply(
+            $orderQuery
+                ->with(['customer', 'items'])
+                ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
+                ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
+        )
+            ->limit(200)
+            ->get()
+            ->filter(fn (SalesOrder $order) => $order->remainingInvoiceTotal() > 0)
+            ->values();
+    }
+
+    public function resolveCustomer(Request $request): ?Customer
     {
         if ($request->filled('customer_id')) {
             return Customer::query()->whereKey($request->integer('customer_id'))->first();

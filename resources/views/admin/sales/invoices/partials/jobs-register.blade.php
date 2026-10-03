@@ -1,5 +1,6 @@
 @php
     $unbilledOrders = $unbilledOrders ?? collect();
+    $invoiceFrom = $invoiceFrom ?? request('from', 'receivables');
     $destinationCounts = [
         'digital' => $unbilledOrders->filter(fn ($order) => $order->production_destination?->value === 'digital')->count(),
         'offset' => $unbilledOrders->filter(fn ($order) => $order->production_destination?->value === 'offset')->count(),
@@ -19,7 +20,10 @@
 
 <form id="merge-invoice-form" method="POST" action="{{ route('admin.invoices.store-from-sales-orders') }}" class="hidden">
     @csrf
-    <input type="hidden" name="from" value="receivables">
+    <input type="hidden" name="from" value="{{ $invoiceFrom }}">
+    @if ($invoiceFrom === 'sales-desk')
+        <input type="hidden" name="return_view" value="to-bill">
+    @endif
     <input type="hidden" name="invoice_date" value="{{ now()->toDateString() }}">
 </form>
 
@@ -99,11 +103,11 @@
                 <td class="erp-table-actions-col">
                     <x-admin.table-row-actions>
                         @can('create', App\Models\Sales\CustomerInvoice::class)
-                            <x-admin.table-row-action :href="route('admin.invoices.from-sales-order', [$order, 'from' => 'receivables'])" data-erp-modal-open>
+                            <x-admin.table-row-action :href="route('admin.invoices.from-sales-order', array_filter([$order, 'from' => $invoiceFrom, 'return_view' => $invoiceFrom === 'sales-desk' ? 'to-bill' : null]))" data-erp-modal-open>
                                 {{ __('Create invoice') }}
                             </x-admin.table-row-action>
                         @endcan
-                        <x-admin.table-row-action :href="route('admin.sales-orders.show', [$order, 'from' => 'receivables'])" data-erp-modal-open>
+                        <x-admin.table-row-action :href="route('admin.sales-orders.show', [$order, 'from' => $invoiceFrom])" data-erp-modal-open>
                             {{ __('View order') }}
                         </x-admin.table-row-action>
                     </x-admin.table-row-actions>

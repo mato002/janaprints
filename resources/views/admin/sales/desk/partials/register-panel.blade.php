@@ -9,6 +9,9 @@
     @case(SalesDeskViews::ORDERS)
         @include('admin.sales.orders.partials.register-content', ['embeddedInDesk' => true])
         @break
+    @case(SalesDeskViews::TO_BILL)
+        @include('admin.sales.desk.partials.to-bill-panel')
+        @break
     @case(SalesDeskViews::ARTWORK)
         @include('admin.artwork.requests.partials.register-content', ['embeddedInDesk' => true])
         @break

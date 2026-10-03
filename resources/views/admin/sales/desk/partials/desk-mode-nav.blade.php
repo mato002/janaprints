@@ -29,6 +29,13 @@
             'visible' => $user?->can('sales_orders.view') ?? false,
         ],
         [
+            'key' => SalesDeskViews::TO_BILL,
+            'label' => __('To invoice'),
+            'url' => SalesDeskViews::toBillUrl(),
+            'visible' => ($user?->can('create', \App\Models\Sales\CustomerInvoice::class) ?? false)
+                || ($user?->can('invoices.create') ?? false),
+        ],
+        [
             'key' => SalesDeskViews::ARTWORK,
             'label' => __('Artwork'),
             'url' => SalesDeskViews::artworkUrl(),

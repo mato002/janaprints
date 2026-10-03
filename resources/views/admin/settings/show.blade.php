@@ -69,20 +69,20 @@
                     @endif
 
                     @if ($errors->any())
-                        <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+                        <div class="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" data-erp-flash-error>
                             {{ $errors->first() }}
                         </div>
                     @endif
 
                     @if (session('status'))
-                        <p class="text-sm font-medium text-emerald-700">{{ session('status') }}</p>
+                        <p class="text-sm font-medium text-emerald-700" data-erp-flash-status>{{ session('status') }}</p>
                     @endif
 
                     @include('admin.settings.partials.settings-table', ['editable' => true])
 
                     <div class="border-t border-erp-border pt-6">
                         <button
-                            type="button"
+                            type="submit"
                             id="settings-save-button"
                             class="erp-btn erp-btn-primary"
                             data-erp-settings-save

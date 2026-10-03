@@ -35,6 +35,10 @@ class SalesDeskPageBuilder
         $activeView = SalesDeskViews::normalize($request->query('view'));
 
         if (SalesDeskViews::isPanelView($activeView)) {
+            if ($activeView === SalesDeskViews::TO_BILL) {
+                abort_unless($user?->can('create', \App\Models\Sales\CustomerInvoice::class) || $user?->can('viewAny', \App\Models\Sales\CustomerInvoice::class), 403);
+            }
+
             return array_merge(
                 $this->basePayload($request, $user, $activeView),
                 $this->panelPayload($activeView, $request),
@@ -164,6 +168,7 @@ class SalesDeskPageBuilder
                     fn ($orders) => $orders->getCollection()->each->syncStoredCommercialsFromLines()
                 ),
             ],
+            SalesDeskViews::TO_BILL => $this->toBillPayload($request),
             SalesDeskViews::ARTWORK => [
                 'registerTitle' => __('Artwork requests'),
                 'requests' => NewestFirst::apply(
@@ -175,6 +180,37 @@ class SalesDeskPageBuilder
             SalesDeskViews::APPROVALS => $this->approvalsPayload($request),
             default => [],
         };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function toBillPayload(Request $request): array
+    {
+        $desk = app(ReceivablesInvoiceDesk::class);
+        $customer = $desk->resolveCustomer($request);
+        $customerQuery = trim($request->string('customer')->toString());
+        $unbilledOrders = $desk->unbilledOrders(
+            $this->scopeToTenant(SalesOrder::query()),
+            $customer,
+        );
+
+        $customers = $unbilledOrders->pluck('customer_id')->filter()->unique()->values();
+        $customerList = $customers->isEmpty()
+            ? collect()
+            : \App\Models\Crm\Customer::query()
+                ->whereIn('id', $customers)
+                ->orderBy('company_name')
+                ->get(['id', 'public_id', 'company_name']);
+
+        return [
+            'registerTitle' => __('Jobs to invoice'),
+            'unbilledOrders' => $unbilledOrders,
+            'customer' => $customer,
+            'customers' => $customerList,
+            'customerQuery' => $customerQuery,
+            'invoiceFrom' => 'sales-desk',
+        ];
     }
 
     /**

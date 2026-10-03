@@ -17,12 +17,14 @@ final class SalesDeskViews
 
     public const APPROVALS = 'approvals';
 
+    public const TO_BILL = 'to-bill';
+
     /**
      * @return list<string>
      */
     public static function all(): array
     {
-        return [self::DESK, self::QUOTES, self::ORDERS, self::ARTWORK, self::APPROVALS];
+        return [self::DESK, self::QUOTES, self::ORDERS, self::TO_BILL, self::ARTWORK, self::APPROVALS];
     }
 
     public static function normalize(?string $view): string
@@ -59,6 +61,11 @@ final class SalesDeskViews
     public static function ordersUrl(array $query = []): string
     {
         return self::deskUrl(self::ORDERS, $query);
+    }
+
+    public static function toBillUrl(array $query = []): string
+    {
+        return self::deskUrl(self::TO_BILL, $query);
     }
 
     public static function artworkUrl(array $query = []): string

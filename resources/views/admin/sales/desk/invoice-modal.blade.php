@@ -6,6 +6,9 @@
     }">
         @csrf
         <input type="hidden" name="from" value="sales-desk">
+        @if (request('return_view') === 'to-bill')
+            <input type="hidden" name="return_view" value="to-bill">
+        @endif
 
         <div class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
             <p class="font-medium text-slate-900">{{ $salesOrder->order_number }}</p>

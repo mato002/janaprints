@@ -211,6 +211,14 @@ return [
                                     'active_routes' => ['admin.sales-orders.*'],
                                 ],
                                 [
+                                    'key' => 'to-bill',
+                                    'label' => 'To invoice',
+                                    'route' => 'admin.sales.desk',
+                                    'route_params' => ['view' => 'to-bill'],
+                                    'permission' => 'invoices.create',
+                                    'active_routes' => ['admin.sales.desk'],
+                                ],
+                                [
                                     'key' => 'artwork',
                                     'label' => 'Artwork',
                                     'route' => 'admin.sales.desk',
