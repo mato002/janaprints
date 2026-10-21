@@ -10,11 +10,11 @@
 <div class="sales-desk-register__heading mb-3 flex shrink-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div>
         <h2 class="text-sm font-semibold text-erp-primary">{{ __('Jobs to invoice') }}</h2>
-        <p class="text-xs text-slate-600">{{ __('Select one or more jobs, then generate a single invoice. Same tools as Accounting, for the salesperson.') }}</p>
+        <p class="text-xs text-slate-600">{{ __('Jobs without an open invoice. After you generate one, open it from Invoices.') }}</p>
     </div>
-    @can('create', App\Models\Sales\CustomerInvoice::class)
-        <a href="{{ route('admin.invoices.create', ['from' => 'sales-desk', 'return_view' => 'to-bill']) }}" class="erp-btn-primary text-xs" data-erp-modal-open>
-            {{ __('Create invoice') }}
+    @can('viewAny', App\Models\Sales\CustomerInvoice::class)
+        <a href="{{ SalesDeskViews::invoicesUrl(array_filter(['embedded' => request()->boolean('embedded') ? 1 : null])) }}" class="erp-btn-secondary text-xs">
+            {{ __('View invoices') }}
         </a>
     @endcan
 </div>

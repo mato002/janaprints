@@ -110,6 +110,31 @@ class CustomerInvoiceMergeTest extends TestCase
             ->assertSessionHas('error');
     }
 
+    public function test_sales_desk_merge_duplicate_invoice_returns_json_instead_of_leaving_the_page(): void
+    {
+        $first = $this->makeOrder('Business cards', 1000, 1);
+        $second = $this->makeOrder('Letterheads', 500, 2);
+
+        app(\App\Support\Sales\CustomerInvoiceCreationAuthority::class)
+            ->createFromSalesOrder($first, $this->user->id);
+
+        $this->actingAs($this->user)
+            ->post(route('admin.invoices.store-from-sales-orders'), [
+                'sales_order_ids' => [$first->getRouteKey(), $second->getRouteKey()],
+                'invoice_date' => now()->toDateString(),
+                'from' => 'sales-desk',
+                'return_view' => 'to-bill',
+            ], [
+                'Accept' => 'application/json',
+                'X-Requested-With' => 'XMLHttpRequest',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('ok', false)
+            ->assertJsonFragment(['message' => __('An open invoice already exists for :order.', [
+                'order' => $first->order_number,
+            ])]);
+    }
+
     public function test_customer_search_filters_unbilled_orders(): void
     {
         $this->makeOrder('Business cards', 1000, 1);

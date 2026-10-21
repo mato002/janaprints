@@ -6,9 +6,12 @@
     $canRelease = ($workflow['can_release'] ?? false) && auth()->user()?->can('production', $salesOrder);
     $canClose = ($workflow['can_close'] ?? false) && auth()->user()?->can('close', $salesOrder);
     $canTransition = auth()->user()?->can('transition', $salesOrder);
+    $openInvoice = $salesOrder->openStandardInvoice();
     $canInvoice = auth()->user()?->can('create', CustomerInvoice::class)
+        && $openInvoice === null
         && $salesOrder->remainingInvoiceTotal() > 0
         && ! in_array($salesOrder->status, [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled], true);
+    $canViewInvoice = $openInvoice && auth()->user()?->can('view', $openInvoice);
     $canUpdate = auth()->user()?->can('update', $salesOrder);
     $canEditProduction = auth()->user()?->can('updateProductionSetup', $salesOrder);
 
@@ -26,6 +29,8 @@
         $primary = ['type' => 'form', 'action' => route('admin.sales-orders.resume', $salesOrder), 'label' => __('Resume'), 'method' => 'POST'];
     } elseif ($canInvoice) {
         $primary = ['type' => 'link', 'url' => route('admin.invoices.from-sales-order', $salesOrder), 'label' => __('Generate invoice'), 'modal' => true];
+    } elseif ($canViewInvoice) {
+        $primary = ['type' => 'link', 'url' => route('admin.invoices.show', $openInvoice), 'label' => __('View invoice'), 'modal' => true];
     } elseif ($canClose) {
         $primary = ['type' => 'form', 'action' => route('admin.sales-orders.close', $salesOrder), 'label' => __('Close order'), 'method' => 'POST'];
     }
@@ -109,9 +114,9 @@
         <div class="so-360__actions so-360__actions--desktop">
             @include('admin.sales.orders.workspace.partials.primary-action', ['primary' => $primary])
 
-            @if ($canInvoice && (! $primary || ($primary['label'] ?? null) !== __('Generate invoice')))
-                <a href="{{ route('admin.invoices.from-sales-order', $salesOrder) }}" class="erp-btn-secondary" data-erp-modal-open>
-                    {{ __('Generate invoice') }}
+            @if ($canViewInvoice && (! $primary || ($primary['label'] ?? null) !== __('View invoice')))
+                <a href="{{ route('admin.invoices.show', $openInvoice) }}" class="erp-btn-secondary" data-erp-modal-open>
+                    {{ __('View invoice') }}
                 </a>
             @endif
 

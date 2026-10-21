@@ -1,3 +1,7 @@
+@php
+    $invoiceFrom = $invoiceFrom ?? 'receivables';
+@endphp
+
 <x-admin.data-table
     :search-placeholder="__('Search invoices…')"
     export-route="admin.accounting.exports"
@@ -46,7 +50,7 @@
             <tr x-show="rowVisible(@js(strtolower($invoice->invoice_number.' '.($invoice->customer?->company_name ?? '').' '.$collection->value.' '.$orderNumbers.' '.$departmentLabel)), @js($collection->value))">
                 <td>
                     <a
-                        href="{{ route('admin.invoices.show', [$invoice, 'from' => 'receivables']) }}"
+                        href="{{ route('admin.invoices.show', [$invoice, 'from' => $invoiceFrom]) }}"
                         class="font-mono text-sm text-erp-accent"
                         data-erp-modal-open
                         data-open-invoice="{{ $invoice->getRouteKey() }}"
@@ -63,7 +67,7 @@
                 </td>
                 <td class="erp-table-actions-col">
                     <x-admin.table-row-actions>
-                        <x-admin.table-row-action :href="route('admin.invoices.show', [$invoice, 'from' => 'receivables'])" data-erp-modal-open>{{ __('View') }}</x-admin.table-row-action>
+                        <x-admin.table-row-action :href="route('admin.invoices.show', [$invoice, 'from' => $invoiceFrom])" data-erp-modal-open>{{ __('View') }}</x-admin.table-row-action>
                         @if ($invoice->status === App\Enums\CustomerInvoiceStatus::Draft)
                             @can('approve', $invoice)
                                 <x-admin.table-row-action
@@ -99,7 +103,7 @@
                     <x-admin.empty-state
                         icon="receipt-tax"
                         :title="__('No invoices yet')"
-                        :description="__('Bill jobs on the Jobs page. Generated invoices appear here.')"
+                        :description="__('Generated invoices appear here after you bill a job.')"
                     />
                 </td>
             </tr>

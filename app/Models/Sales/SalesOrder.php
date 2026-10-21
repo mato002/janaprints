@@ -7,6 +7,8 @@ use App\Enums\ProductionDestination;
 use App\Enums\ProductionPriority;
 use App\Enums\SalesOrderBillingType;
 use App\Enums\SalesOrderStatus;
+use App\Enums\CustomerInvoiceStatus;
+use App\Enums\CustomerInvoiceType;
 use App\Models\Artwork\ArtworkRequest;
 use App\Models\Crm\CustomerArtwork;
 use App\Models\Crm\CustomerPrintSpecification;
@@ -19,6 +21,7 @@ use App\Models\Concerns\LogsActivity;
 use App\Models\Crm\Customer;
 use App\Models\User;
 use App\Support\Production\DigitalSpecificationService;
+use App\Support\Sales\CustomerInvoiceCreationAuthority;
 use Database\Factories\Sales\SalesOrderFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -161,6 +164,41 @@ class SalesOrder extends Model
         return $this->belongsToMany(CustomerInvoice::class, 'customer_invoice_sales_orders')
             ->withPivot(['allocated_subtotal', 'allocated_tax', 'allocated_total'])
             ->withTimestamps();
+    }
+
+    public function openStandardInvoice(): ?CustomerInvoice
+    {
+        $isOpen = function (CustomerInvoice $invoice): bool {
+            $type = $invoice->invoice_type instanceof CustomerInvoiceType
+                ? $invoice->invoice_type
+                : CustomerInvoiceType::tryFrom((string) $invoice->invoice_type);
+
+            $status = $invoice->status instanceof CustomerInvoiceStatus
+                ? $invoice->status
+                : CustomerInvoiceStatus::tryFrom((string) $invoice->status);
+
+            return $type === CustomerInvoiceType::Standard
+                && in_array($status, [
+                    CustomerInvoiceStatus::Draft,
+                    CustomerInvoiceStatus::Approved,
+                    CustomerInvoiceStatus::Posted,
+                ], true)
+                && $invoice->delivery_note_id === null;
+        };
+
+        foreach (['invoices', 'linkedInvoices'] as $relation) {
+            if (! $this->relationLoaded($relation)) {
+                continue;
+            }
+
+            $match = $this->getRelation($relation)->first($isOpen);
+
+            if ($match instanceof CustomerInvoice) {
+                return $match;
+            }
+        }
+
+        return app(CustomerInvoiceCreationAuthority::class)->findOpenStandardInvoiceForSalesOrder($this);
     }
 
     public function pendingInvoiceTotal(): float

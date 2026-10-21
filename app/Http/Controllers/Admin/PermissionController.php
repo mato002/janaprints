@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Support\AccessControl\PermissionCatalog;
 use App\Support\ActivityLogger;
+use App\Support\Navigation\WorkspaceEmbed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
@@ -67,12 +68,14 @@ class PermissionController extends Controller
             'permissions' => $beforePermissions,
         ]);
 
+        $url = route('admin.roles.show', array_filter([
+            'role' => $role,
+            'tab' => 'modules',
+            'module' => $request->query('module') ?: $request->input('_module'),
+        ]));
+
         return redirect()
-            ->route('admin.roles.show', array_filter([
-                'role' => $role,
-                'tab' => 'modules',
-                'module' => $request->query('module') ?: $request->input('_module'),
-            ]))
+            ->to(WorkspaceEmbed::url($url) ?? $url)
             ->with('status', __('Role access rights updated.'));
     }
 }

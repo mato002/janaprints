@@ -18,7 +18,17 @@
     }
 @endphp
 
-<form id="merge-invoice-form" method="POST" action="{{ route('admin.invoices.store-from-sales-orders') }}" class="hidden">
+<form
+    id="merge-invoice-form"
+    method="POST"
+    action="{{ route('admin.invoices.store-from-sales-orders') }}"
+    class="hidden"
+    @if ($invoiceFrom === 'sales-desk')
+        data-erp-desk-form
+        data-turbo="false"
+        data-erp-desk-submitting-message="{{ __('Creating invoice…') }}"
+    @endif
+>
     @csrf
     <input type="hidden" name="from" value="{{ $invoiceFrom }}">
     @if ($invoiceFrom === 'sales-desk')
@@ -27,7 +37,7 @@
     <input type="hidden" name="invoice_date" value="{{ now()->toDateString() }}">
 </form>
 
-<p class="mb-3 text-xs text-slate-500">{{ __('Unbilled jobs by production department. After you generate an invoice, it appears on Invoices.') }}</p>
+<p class="mb-3 text-xs text-slate-500">{{ __('Select jobs that still need an invoice. If a job already has one, use View invoice. Created invoices are on the Invoices tab.') }}</p>
 
 <x-admin.data-table
     :selectable="true"
@@ -42,6 +52,17 @@
                 type="button"
                 class="erp-btn-primary py-1 text-xs"
                 @click="
+                    if (! selected.size) {
+                        window.Swal?.fire({
+                            icon: 'warning',
+                            title: @js(__('Select jobs first')),
+                            text: @js(__('Choose one or more jobs, then generate an invoice.')),
+                            confirmButtonText: @js(__('OK')),
+                            heightAuto: false,
+                            customClass: { container: 'erp-swal-container' },
+                        });
+                        return;
+                    }
                     const form = document.getElementById('merge-invoice-form');
                     form.querySelectorAll('input[name=&quot;sales_order_ids[]&quot;]').forEach((el) => el.remove());
                     selected.forEach((id) => {
@@ -51,7 +72,11 @@
                         input.value = id;
                         form.appendChild(input);
                     });
-                    form.submit();
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        form.submit();
+                    }
                 "
             >{{ __('Generate invoice') }}</button>
         </x-slot>
@@ -75,18 +100,22 @@
             @php
                 $destination = $order->production_destination;
                 $destinationChip = $destination?->value ?? 'unassigned';
+                $openInvoice = $order->openStandardInvoice();
+                $canCreateInvoice = $openInvoice === null;
             @endphp
             <tr
                 data-row-id="{{ $order->getRouteKey() }}"
                 x-show="rowVisible(@js(strtolower($order->order_number.' '.($order->customer?->company_name ?? '').' '.$order->status->value.' '.($destination?->label() ?? ''))), @js($destinationChip))"
             >
                 <td class="erp-table-checkbox-col">
-                    <input
-                        type="checkbox"
-                        value="{{ $order->getRouteKey() }}"
-                        class="row-select rounded border-slate-300"
-                        @change="toggleRow(@js($order->getRouteKey()), $event)"
-                    >
+                    @if ($canCreateInvoice)
+                        <input
+                            type="checkbox"
+                            value="{{ $order->getRouteKey() }}"
+                            class="row-select rounded border-slate-300"
+                            @change="toggleRow(@js($order->getRouteKey()), $event)"
+                        >
+                    @endif
                 </td>
                 <td class="font-mono text-sm">{{ $order->order_number }}</td>
                 <td class="text-sm">{{ $order->customer?->company_name ?? '—' }}</td>
@@ -99,14 +128,28 @@
                 </td>
                 <td class="text-sm">{{ $order->order_date?->format('Y-m-d') ?? '—' }}</td>
                 <td class="font-mono text-sm">{{ number_format($order->remainingInvoiceTotal(), 2) }}</td>
-                <td><x-admin.enum-status-badge :status="$order->status->value" /></td>
+                <td>
+                    @if ($openInvoice)
+                        <span class="erp-badge">{{ __('Invoice :number', ['number' => $openInvoice->invoice_number]) }}</span>
+                    @else
+                        <x-admin.enum-status-badge :status="$order->status->value" />
+                    @endif
+                </td>
                 <td class="erp-table-actions-col">
                     <x-admin.table-row-actions>
-                        @can('create', App\Models\Sales\CustomerInvoice::class)
-                            <x-admin.table-row-action :href="route('admin.invoices.from-sales-order', array_filter([$order, 'from' => $invoiceFrom, 'return_view' => $invoiceFrom === 'sales-desk' ? 'to-bill' : null]))" data-erp-modal-open>
-                                {{ __('Create invoice') }}
-                            </x-admin.table-row-action>
-                        @endcan
+                        @if ($openInvoice)
+                            @can('view', $openInvoice)
+                                <x-admin.table-row-action :href="route('admin.invoices.show', [$openInvoice, 'from' => $invoiceFrom])" data-erp-modal-open>
+                                    {{ __('View invoice') }}
+                                </x-admin.table-row-action>
+                            @endcan
+                        @else
+                            @can('create', App\Models\Sales\CustomerInvoice::class)
+                                <x-admin.table-row-action :href="route('admin.invoices.from-sales-order', array_filter([$order, 'from' => $invoiceFrom, 'return_view' => $invoiceFrom === 'sales-desk' ? 'to-bill' : null]))" data-erp-modal-open>
+                                    {{ __('Create invoice') }}
+                                </x-admin.table-row-action>
+                            @endcan
+                        @endif
                         <x-admin.table-row-action :href="route('admin.sales-orders.show', [$order, 'from' => $invoiceFrom])" data-erp-modal-open>
                             {{ __('View order') }}
                         </x-admin.table-row-action>
@@ -119,7 +162,7 @@
                     <x-admin.empty-state
                         icon="clipboard-list"
                         :title="__('No jobs to bill')"
-                        :description="__('Jobs with a remaining balance appear here. Issued invoices are on the Invoices page.')"
+                        :description="__('Jobs with a remaining balance appear here. Issued invoices are on Invoices.')"
                     />
                 </td>
             </tr>

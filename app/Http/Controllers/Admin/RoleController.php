@@ -11,6 +11,7 @@ use App\Support\AccessControl\RoleDeactivationRegistry;
 use App\Support\AccessControl\RoleGovernancePresenter;
 use App\Support\ActivityLogger;
 use App\Support\Export\TabularExportWriter;
+use App\Support\Navigation\WorkspaceEmbed;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -120,9 +121,20 @@ class RoleController extends Controller
             ->with('status', __('Role created. Assign access rights below.'));
     }
 
-    public function show(Role $role): View
+    public function show(Request $request, Role $role): View|RedirectResponse
     {
         $this->authorize('viewAny', Role::class);
+
+        $deskRedirect = WorkspaceEmbed::redirectStandaloneToDesk(
+            $request,
+            'admin.access-control.roles',
+            [],
+            ['tab' => 'roles'],
+        );
+
+        if ($deskRedirect !== null) {
+            return $deskRedirect;
+        }
 
         $role->loadCount(['permissions', 'users']);
         $assigned = $role->permissions->pluck('name')->all();

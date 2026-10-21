@@ -1,3 +1,10 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $turboAttrs = WorkspaceEmbed::turboLinkAttributes();
+    $turboFrame = WorkspaceEmbed::turboFrame();
+@endphp
+
 <x-admin-layout
     :title="__('Roles')"
     :breadcrumbs="[
@@ -13,7 +20,7 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             @can('create', Spatie\Permission\Models\Role::class)
-                <a href="{{ route('admin.roles.create') }}" data-turbo-frame="erp-main" data-turbo-action="advance" class="erp-btn-primary !px-3 !py-1.5 text-sm">{{ __('New role') }}</a>
+                <a href="{{ WorkspaceEmbed::url(route('admin.roles.create')) }}" data-turbo-action="advance" class="erp-btn-primary !px-3 !py-1.5 text-sm">{{ __('New role') }}</a>
             @endcan
             @can('viewAny', Spatie\Permission\Models\Role::class)
                 <x-admin.export-dropdown
@@ -54,19 +61,18 @@
                         <tr
                             x-show="matches(@js($profile['name'].' '.($profile['access_summary'] ?? '')))"
                             class="transition-colors hover:bg-slate-50/80 {{ ! empty($profile['is_deactivated']) ? 'opacity-60' : '' }}"
-                            data-href="{{ $profile['show_url'] }}"
-                            data-turbo-frame="erp-main"
+                            data-href="{{ WorkspaceEmbed::url($profile['show_url']) }}"
+                            data-turbo-frame="{{ $turboFrame }}"
                             role="link"
                             tabindex="0"
-                            @click="if (! $event.target.closest('a, button, [data-erp-row-actions], form')) { const url = $el.dataset.href; if (window.Turbo) { Turbo.visit(url, { frame: 'erp-main', action: 'advance' }); } else { window.location = url; } }"
+                            @click="if (! $event.target.closest('a, button, [data-erp-row-actions], form')) { const url = $el.dataset.href; const frame = $el.dataset.turboFrame || 'erp-main'; if (window.Turbo) { Turbo.visit(url, { frame, action: 'advance' }); } else { window.location = url; } }"
                             @keydown.enter.prevent="if (! $event.target.closest('a, button, [data-erp-row-actions], form')) { $el.click(); }"
                         >
                             <td class="py-3">
                                 <a
-                                    href="{{ $profile['show_url'] }}"
+                                    href="{{ WorkspaceEmbed::url($profile['show_url']) }}"
                                     class="font-medium text-erp-primary hover:text-erp-accent"
-                                    data-turbo-frame="erp-main"
-                                    data-turbo-action="advance"
+                                    @foreach ($turboAttrs as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach
                                 >{{ $profile['name'] }}</a>
                                 @if (! empty($profile['is_deactivated']))
                                     <span class="ml-2 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{{ __('Deactivated') }}</span>
@@ -76,11 +82,11 @@
                             <td class="py-3 text-slate-600">{{ $profile['access_summary'] ?? $profile['modules_display'] }}</td>
                             <td class="erp-table-actions-col py-3 text-right" @click.stop>
                                 <x-admin.table-row-actions>
-                                    <x-admin.table-row-action :href="$profile['show_url']">
+                                    <x-admin.table-row-action :href="WorkspaceEmbed::url($profile['show_url'])" :data-turbo-frame="$turboFrame">
                                         {{ __('Open') }}
                                     </x-admin.table-row-action>
 
-                                    <x-admin.table-row-action :href="route('admin.roles.show', ['role' => $profile['id'], 'tab' => 'modules'])">
+                                    <x-admin.table-row-action :href="WorkspaceEmbed::url(route('admin.roles.show', ['role' => $profile['id'], 'tab' => 'modules']))" :data-turbo-frame="$turboFrame">
                                         {{ __('Manage access') }}
                                     </x-admin.table-row-action>
 

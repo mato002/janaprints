@@ -255,10 +255,21 @@ class CustomerInvoiceController extends Controller
         ]);
     }
 
-    public function createFromSalesOrder(Request $request, SalesOrder $salesOrder): View
+    public function createFromSalesOrder(Request $request, SalesOrder $salesOrder): View|RedirectResponse
     {
         $this->authorize('create', CustomerInvoice::class);
         $this->authorize('view', $salesOrder);
+
+        $existing = $this->invoiceAuthority->findOpenStandardInvoiceForSalesOrder($salesOrder);
+
+        if ($existing !== null) {
+            return redirect()
+                ->route('admin.invoices.show', array_filter([
+                    $existing,
+                    'from' => $this->wantsSalesDeskReturn($request) ? 'sales-desk' : 'receivables',
+                ]))
+                ->with('status', __('An open invoice already exists for this sales order.'));
+        }
 
         $salesOrder->load('items', 'customer', 'jobCard');
         $salesOrder->syncStoredCommercialsFromLines();

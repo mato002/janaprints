@@ -38,7 +38,7 @@
                 </select>
             </div>
             @if ($selectedRole)
-                <a href="{{ WorkspaceEmbed::url(route('admin.roles.show', $selectedRole)) }}" class="erp-btn-secondary !px-3 !py-1.5 text-xs" data-turbo-action="advance" @if ($embedded) data-turbo-frame="erp-main" @endif>{{ __('Edit access rights') }}</a>
+                <a href="{{ WorkspaceEmbed::url(route('admin.roles.show', $selectedRole)) }}" class="erp-btn-secondary !px-3 !py-1.5 text-xs" @foreach (WorkspaceEmbed::turboLinkAttributes() as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach>{{ __('Edit access rights') }}</a>
             @endif
         </form>
     </x-admin.card>

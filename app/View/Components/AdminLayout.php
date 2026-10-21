@@ -40,8 +40,8 @@ class AdminLayout extends Component
             return false;
         }
 
-        // Settings sections are workspace tab content, not entity detail pages.
-        if ($routeName === 'admin.settings.show') {
+        // Workspace tab content — keep these inside module-workspace-content.
+        if (in_array($routeName, ['admin.settings.show', 'admin.roles.show'], true)) {
             return false;
         }
 

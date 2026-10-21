@@ -4,6 +4,8 @@ import Swal from 'sweetalert2';
 import 'sweetalert2/dist/sweetalert2.min.css';
 import { initDocumentPdfDownload } from './document-pdf-download';
 
+window.Swal = Swal;
+
 const ErpToast = Swal.mixin({
     toast: true,
     position: 'top-end',
@@ -1561,9 +1563,7 @@ const erpModalManager = {
     },
 
     isDeskShellForm(form) {
-        return form instanceof HTMLFormElement
-            && form.hasAttribute('data-erp-desk-form')
-            && Boolean(form.closest('.store-desk-shell, .sales-desk-shell, .designer-desk-shell, .production-floor-shell'));
+        return form instanceof HTMLFormElement && form.hasAttribute('data-erp-desk-form');
     },
 
     completeDeskFormRedirect(form, { redirect = '', html = '', message = '', returnUrl = '', variant = 'success' } = {}) {
@@ -2470,9 +2470,9 @@ const erpModalManager = {
             const deskShell = form.closest('.store-desk-shell, .sales-desk-shell, .designer-desk-shell, .production-floor-shell');
 
             if (
-                deskShell
-                && form.hasAttribute('data-erp-desk-form')
+                form.hasAttribute('data-erp-desk-form')
                 && method !== 'GET'
+                && (deskShell || form.id === 'merge-invoice-form')
             ) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
@@ -7489,8 +7489,9 @@ document.addEventListener('alpine:init', () => {
         accessLevelChoice: null,
 
         init() {
-            if (config.initialModule) {
-                this.openModule(config.initialModule);
+            const initial = config.initialModule || this.modules[0]?.key || null;
+            if (initial) {
+                this.openModule(initial);
             }
         },
 

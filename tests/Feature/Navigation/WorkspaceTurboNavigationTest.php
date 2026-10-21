@@ -383,6 +383,25 @@ class WorkspaceTurboNavigationTest extends TestCase
         $this->assertStringContainsString(route('admin.inventory.intelligence.stockout-risk'), $html);
     }
 
+    public function test_role_show_stays_in_administration_workspace(): void
+    {
+        $user = $this->companyAdmin();
+        $role = \Spatie\Permission\Models\Role::findByName('Accountant', 'web');
+
+        $this->actingAs($user)
+            ->get(route('admin.roles.show', ['role' => $role, 'tab' => 'modules']))
+            ->assertRedirectContains('/admin/workspaces/administration/')
+            ->assertRedirectContains('tab=roles')
+            ->assertRedirectContains('content=');
+
+        $this->actingAs($user)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.roles.show', ['role' => $role, 'tab' => 'modules']))
+            ->assertOk()
+            ->assertSee('id="module-workspace-content"', false)
+            ->assertSee(__('Capability'));
+    }
+
     protected function extractSidebar(string $html): string
     {
         if (! preg_match('/id="erp-sidebar"[^>]*>(.*?)<\/aside>/s', $html, $matches)) {

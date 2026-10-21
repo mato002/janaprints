@@ -1,28 +1,37 @@
+@php
+    use App\Support\Navigation\WorkspaceEmbed;
+
+    $embedded = WorkspaceEmbed::inWorkspaceContext();
+    $turboAttrs = WorkspaceEmbed::turboLinkAttributes();
+    $tab = request()->query('tab', 'overview');
+    if (! in_array($tab, ['overview', 'modules', 'users', 'audit'], true)) {
+        $tab = 'overview';
+    }
+    $initialModule = request()->query('module');
+    if (is_string($initialModule) && $initialModule !== '' && $tab === 'overview') {
+        $tab = 'modules';
+    }
+    if ($tab === 'modules' && (! is_string($initialModule) || $initialModule === '')) {
+        $initialModule = $access['modules'][0]['key'] ?? null;
+    }
+    $rolesIndexUrl = WorkspaceEmbed::url(route('admin.access-control.roles'));
+@endphp
+
 <x-admin-layout
     :title="$role->name"
-    :breadcrumbs="[
+    :breadcrumbs="$embedded ? [] : [
         ['label' => __('Administration')],
         ['label' => __('Security'), 'url' => route('admin.workspaces.administration.section', ['section' => 'security-access'])],
         ['label' => __('Roles'), 'url' => route('admin.access-control.roles')],
         ['label' => $role->name],
     ]"
 >
-    @php
-        $tab = request()->query('tab', 'overview');
-        if (! in_array($tab, ['overview', 'modules', 'users', 'audit'], true)) {
-            $tab = 'overview';
-        }
-        $initialModule = request()->query('module');
-        if (is_string($initialModule) && $initialModule !== '' && $tab === 'overview') {
-            $tab = 'modules';
-        }
-    @endphp
 
     <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div class="min-w-0">
             <a
-                href="{{ route('admin.access-control.roles') }}"
-                data-turbo-action="advance"
+                href="{{ $rolesIndexUrl }}"
+                @foreach ($turboAttrs as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach
                 class="mb-1 inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors hover:text-erp-accent"
             >
                 <x-admin.icon name="chevron-left" class="h-3.5 w-3.5" />
@@ -38,7 +47,7 @@
             </p>
         </div>
         @can('update', $role)
-            <a href="{{ route('admin.roles.edit', $role) }}" class="erp-btn-secondary !px-3 !py-1.5 text-xs" data-turbo-action="advance">{{ __('Rename role') }}</a>
+            <a href="{{ WorkspaceEmbed::url(route('admin.roles.edit', $role)) }}" class="erp-btn-secondary !px-3 !py-1.5 text-xs" data-turbo-action="advance">{{ __('Rename role') }}</a>
         @endcan
     </div>
 
@@ -50,8 +59,8 @@
             'audit' => __('Audit'),
         ] as $key => $label)
             <a
-                href="{{ route('admin.roles.show', ['role' => $role, 'tab' => $key]) }}"
-                data-turbo-action="advance"
+                href="{{ WorkspaceEmbed::url(route('admin.roles.show', ['role' => $role, 'tab' => $key])) }}"
+                @foreach ($turboAttrs as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach
                 class="px-3 py-2 text-sm font-medium transition-colors {{ $tab === $key ? 'border-b-2 border-erp-accent text-erp-accent' : 'text-slate-500 hover:text-erp-primary' }}"
             >{{ $label }}</a>
         @endforeach
@@ -78,9 +87,9 @@
                                 <tr class="cursor-pointer hover:bg-slate-50/80">
                                     <td class="py-2.5">
                                         <a
-                                            href="{{ route('admin.roles.show', ['role' => $role, 'tab' => 'modules', 'module' => $module['key']]) }}"
+                                            href="{{ WorkspaceEmbed::url(route('admin.roles.show', ['role' => $role, 'tab' => 'modules', 'module' => $module['key']])) }}"
                                             class="font-medium text-erp-primary hover:text-erp-accent"
-                                            data-turbo-action="advance"
+                                            @foreach ($turboAttrs as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach
                                         >{{ $module['label'] }}</a>
                                     </td>
                                     <td class="py-2.5">
@@ -110,13 +119,18 @@
                 <h2 class="text-sm font-semibold text-erp-primary">{{ __('Assigned users') }}</h2>
                 <p class="mt-1 text-sm text-slate-500">{{ trans_choice(':count user|:count users', $role->users_count, ['count' => $role->users_count]) }}</p>
                 <div class="mt-4">
-                    <a href="{{ route('admin.roles.show', ['role' => $role, 'tab' => 'users']) }}" class="erp-btn-secondary !px-3 !py-1.5 text-sm" data-turbo-action="advance">{{ __('View users') }}</a>
+                    <a href="{{ WorkspaceEmbed::url(route('admin.roles.show', ['role' => $role, 'tab' => 'users'])) }}" class="erp-btn-secondary !px-3 !py-1.5 text-sm" @foreach ($turboAttrs as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach>{{ __('View users') }}</a>
                 </div>
             </x-admin.card>
         </div>
     @elseif ($tab === 'modules')
         @if ($canAssignPermissions)
-            <form method="POST" action="{{ route('admin.roles.permissions.update', $role) }}" class="space-y-3">
+            <form
+                method="POST"
+                action="{{ WorkspaceEmbed::url(route('admin.roles.permissions.update', $role)) }}"
+                class="space-y-3"
+                @foreach (WorkspaceEmbed::turboFormAttributes() as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach
+            >
                 @csrf
                 @method('PUT')
 
@@ -128,7 +142,7 @@
                 ])
 
                 <div class="sticky bottom-3 z-10 flex justify-end gap-2 rounded-lg border border-erp-border bg-erp-card/95 px-4 py-2 shadow-lg backdrop-blur-sm">
-                    <a href="{{ route('admin.roles.show', ['role' => $role, 'tab' => 'modules']) }}" class="erp-btn-secondary !px-3 !py-1.5 text-sm" data-turbo-action="advance">{{ __('Cancel') }}</a>
+                    <a href="{{ WorkspaceEmbed::url(route('admin.roles.show', ['role' => $role, 'tab' => 'modules'])) }}" class="erp-btn-secondary !px-3 !py-1.5 text-sm" @foreach ($turboAttrs as $attr => $value) {{ $attr }}="{{ $value }}" @endforeach>{{ __('Cancel') }}</a>
                     <x-primary-button class="!px-4 !py-1.5 text-sm">{{ __('Save changes') }}</x-primary-button>
                 </div>
             </form>

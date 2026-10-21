@@ -35,7 +35,7 @@ class SalesDeskPageBuilder
         $activeView = SalesDeskViews::normalize($request->query('view'));
 
         if (SalesDeskViews::isPanelView($activeView)) {
-            if ($activeView === SalesDeskViews::TO_BILL) {
+            if ($activeView === SalesDeskViews::TO_BILL || $activeView === SalesDeskViews::INVOICES) {
                 abort_unless($user?->can('create', \App\Models\Sales\CustomerInvoice::class) || $user?->can('viewAny', \App\Models\Sales\CustomerInvoice::class), 403);
             }
 
@@ -169,6 +169,7 @@ class SalesDeskPageBuilder
                 ),
             ],
             SalesDeskViews::TO_BILL => $this->toBillPayload($request),
+            SalesDeskViews::INVOICES => $this->invoicesPayload($request),
             SalesDeskViews::ARTWORK => [
                 'registerTitle' => __('Artwork requests'),
                 'requests' => NewestFirst::apply(
@@ -206,6 +207,42 @@ class SalesDeskPageBuilder
         return [
             'registerTitle' => __('Jobs to invoice'),
             'unbilledOrders' => $unbilledOrders,
+            'customer' => $customer,
+            'customers' => $customerList,
+            'customerQuery' => $customerQuery,
+            'invoiceFrom' => 'sales-desk',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function invoicesPayload(Request $request): array
+    {
+        $desk = app(ReceivablesInvoiceDesk::class);
+        $customer = $desk->resolveCustomer($request);
+        $customerQuery = trim($request->string('customer')->toString());
+
+        $invoices = NewestFirst::apply(
+            $this->scopeToTenant(
+                \App\Models\Sales\CustomerInvoice::query()
+                    ->with(['customer', 'salesOrder', 'salesOrders'])
+                    ->whereNot('invoice_type', \App\Enums\CustomerInvoiceType::CreditNote)
+                    ->when($customer, fn ($query) => $query->where('customer_id', $customer->id))
+            )
+        )->paginate(preferred_per_page(25))->withQueryString();
+
+        $customerIds = $invoices->getCollection()->pluck('customer_id')->filter()->unique()->values();
+        $customerList = $customerIds->isEmpty()
+            ? collect()
+            : Customer::query()
+                ->whereIn('id', $customerIds)
+                ->orderBy('company_name')
+                ->get(['id', 'public_id', 'company_name']);
+
+        return [
+            'registerTitle' => __('Invoices'),
+            'invoices' => $invoices,
             'customer' => $customer,
             'customers' => $customerList,
             'customerQuery' => $customerQuery,

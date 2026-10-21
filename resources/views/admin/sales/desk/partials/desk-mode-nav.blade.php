@@ -36,6 +36,12 @@
                 || ($user?->can('invoices.create') ?? false),
         ],
         [
+            'key' => SalesDeskViews::INVOICES,
+            'label' => __('Invoices'),
+            'url' => SalesDeskViews::invoicesUrl(),
+            'visible' => $user?->can('viewAny', \App\Models\Sales\CustomerInvoice::class) ?? false,
+        ],
+        [
             'key' => SalesDeskViews::ARTWORK,
             'label' => __('Artwork'),
             'url' => SalesDeskViews::artworkUrl(),

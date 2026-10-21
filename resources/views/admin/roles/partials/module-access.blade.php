@@ -27,7 +27,7 @@
     <div x-show="!activeModule" class="space-y-3">
         <div>
             <h2 class="text-sm font-semibold text-erp-primary">{{ __('Module access') }}</h2>
-            <p class="mt-0.5 text-sm text-slate-500">{{ __('Open one module at a time to manage its permissions.') }}</p>
+            <p class="mt-0.5 text-sm text-slate-500">{{ __('Each module has its own permission matrix. Open a module to grant View, Create, Edit, and related capabilities.') }}</p>
         </div>
 
         <div class="relative max-w-md">
@@ -48,6 +48,7 @@
                         <th>{{ __('Module') }}</th>
                         <th class="w-32">{{ __('Access') }}</th>
                         <th class="w-36">{{ __('Permissions') }}</th>
+                        <th class="w-28 text-right">{{ __('Matrix') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -62,6 +63,9 @@
                             <td class="py-3 tabular-nums text-slate-600">
                                 <span x-show="module.total_count > 0" x-text="moduleCounts(module)"></span>
                                 <span x-show="module.total_count === 0">—</span>
+                            </td>
+                            <td class="py-3 text-right">
+                                <span class="text-xs font-medium text-erp-accent">{{ __('Open') }} →</span>
                             </td>
                         </tr>
                     </template>

@@ -584,6 +584,11 @@ class ModuleShellPresenter
             ?? $this->resolveSectionHubContentUrl($catalog, $activePrimary)
             ?? $this->resolvePrimaryContentUrl($catalog, $activePrimary, $module);
 
+        $contentOverride = WorkspaceEmbed::sanitizeDeskContentPath($request->query('content'));
+        if ($contentOverride !== null && $this->contentOverrideMatchesItem($contentOverride, $activeSecondary)) {
+            $contentUrl = $contentOverride;
+        }
+
         $activeSecondary = $this->resolveActiveSecondaryByContentHref($secondaryWorkspaces, $contentUrl)
             ?? $activeSecondary;
         $contextWorkspaces = $activeSecondary['modes'] ?? [];
@@ -1100,6 +1105,41 @@ class ModuleShellPresenter
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $item
+     */
+    protected function contentOverrideMatchesItem(string $contentUrl, ?array $item): bool
+    {
+        if ($item === null) {
+            return false;
+        }
+
+        $path = parse_url($contentUrl, PHP_URL_PATH);
+
+        if (! is_string($path) || $path === '') {
+            return false;
+        }
+
+        $itemRoute = (string) ($item['route'] ?? '');
+        $itemKey = (string) ($item['key'] ?? '');
+
+        if (str_starts_with($path, '/admin/roles') || str_starts_with($path, '/admin/access-control/roles')) {
+            return $itemKey === 'roles'
+                || str_contains($itemRoute, 'roles')
+                || str_contains($itemRoute, 'access-control.roles');
+        }
+
+        $itemHref = $item['content_href'] ?? $item['href'] ?? null;
+
+        if (! is_string($itemHref) || $itemHref === '') {
+            return false;
+        }
+
+        $itemPath = parse_url($itemHref, PHP_URL_PATH);
+
+        return is_string($itemPath) && ($path === $itemPath || str_starts_with($path, rtrim($itemPath, '/').'/'));
     }
 
     protected function resolveContextModeKey(?Request $request = null): ?string

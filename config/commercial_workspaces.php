@@ -219,6 +219,14 @@ return [
                                     'active_routes' => ['admin.sales.desk'],
                                 ],
                                 [
+                                    'key' => 'invoices',
+                                    'label' => 'Invoices',
+                                    'route' => 'admin.sales.desk',
+                                    'route_params' => ['view' => 'invoices'],
+                                    'permission' => 'invoices.view',
+                                    'active_routes' => ['admin.sales.desk'],
+                                ],
+                                [
                                     'key' => 'artwork',
                                     'label' => 'Artwork',
                                     'route' => 'admin.sales.desk',

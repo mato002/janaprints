@@ -181,4 +181,94 @@ class WorkspaceEmbed
             'data-turbo-frame' => 'erp-main',
         ];
     }
+
+    /**
+     * Full-page visits of nested workspace screens bounce back into the module desk.
+     *
+     * @param  array<string, mixed>  $catalogParams
+     */
+    public static function redirectStandaloneToDesk(
+        Request $request,
+        string $catalogRouteName,
+        array $catalogParams = [],
+        array $deskQuery = [],
+    ): ?\Illuminate\Http\RedirectResponse {
+        if (self::rendersEmbeddedFragment($request) || $request->expectsJson()) {
+            return null;
+        }
+
+        $deskUrl = app(\App\Support\Navigation\ModuleShellPresenter::class)
+            ->deskUrlForFeatureRoute($catalogRouteName, $catalogParams);
+
+        if ($deskUrl === null) {
+            return null;
+        }
+
+        foreach ($deskQuery as $key => $value) {
+            if (is_scalar($value) && $value !== '') {
+                $deskUrl = self::appendQueryParam($deskUrl, (string) $key, (string) $value);
+            }
+        }
+
+        $query = $request->query();
+        unset($query['embedded'], $query['content']);
+
+        $path = '/'.$request->path();
+
+        if (! str_starts_with($path, '/admin')) {
+            return null;
+        }
+
+        $contentPath = $query === [] ? $path : $path.'?'.http_build_query($query);
+
+        return redirect()->to(self::appendQueryParam($deskUrl, 'content', $contentPath));
+    }
+
+    public static function appendQueryParam(string $url, string $key, string $value): string
+    {
+        $parts = parse_url($url);
+
+        if ($parts === false) {
+            return $url;
+        }
+
+        $query = [];
+        if (! empty($parts['query'])) {
+            parse_str($parts['query'], $query);
+        }
+
+        $query[$key] = $value;
+
+        $rebuilt = ($parts['path'] ?? '');
+        if ($query !== []) {
+            $rebuilt .= '?'.http_build_query($query);
+        }
+
+        if (! empty($parts['scheme']) && ! empty($parts['host'])) {
+            $port = isset($parts['port']) ? ':'.$parts['port'] : '';
+
+            return $parts['scheme'].'://'.$parts['host'].$port.$rebuilt;
+        }
+
+        return $rebuilt !== '' ? $rebuilt : $url;
+    }
+
+    public static function sanitizeDeskContentPath(?string $content): ?string
+    {
+        if (! is_string($content) || $content === '') {
+            return null;
+        }
+
+        if (! str_starts_with($content, '/admin/') || str_contains($content, '://') || str_contains($content, '..')) {
+            return null;
+        }
+
+        if (str_contains($content, 'embedded=1')) {
+            return $content;
+        }
+
+        return str_contains($content, '?')
+            ? $content.'&embedded=1'
+            : $content.'?embedded=1';
+    }
 }

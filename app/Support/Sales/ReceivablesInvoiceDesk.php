@@ -2,6 +2,7 @@
 
 namespace App\Support\Sales;
 
+use App\Enums\CustomerInvoiceStatus;
 use App\Enums\CustomerInvoiceType;
 use App\Enums\SalesOrderStatus;
 use App\Models\Crm\Customer;
@@ -75,9 +76,23 @@ class ReceivablesInvoiceDesk
      */
     public function unbilledOrders(Builder $orderQuery, ?Customer $customer = null): Collection
     {
+        $openInvoice = fn (Builder $query) => $query
+            ->where('invoice_type', CustomerInvoiceType::Standard)
+            ->whereIn('status', [
+                CustomerInvoiceStatus::Draft,
+                CustomerInvoiceStatus::Approved,
+                CustomerInvoiceStatus::Posted,
+            ])
+            ->whereNull('delivery_note_id');
+
         return NewestFirst::apply(
             $orderQuery
-                ->with(['customer', 'items'])
+                ->with([
+                    'customer',
+                    'items',
+                    'invoices' => $openInvoice,
+                    'linkedInvoices' => $openInvoice,
+                ])
                 ->whereNotIn('status', [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled])
                 ->when($customer, fn (Builder $query) => $query->where('customer_id', $customer->id))
         )

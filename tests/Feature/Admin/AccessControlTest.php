@@ -132,12 +132,17 @@ class AccessControlTest extends TestCase
         $role = Role::findByName('Sales', 'web');
 
         $this->actingAs($admin)
-            ->get(route('admin.roles.show', $role))
+            ->get(route('admin.roles.show', ['role' => $role, 'tab' => 'modules']))
+            ->assertRedirect();
+
+        $this->actingAs($admin)
+            ->withHeaders(['Turbo-Frame' => 'module-workspace-content'])
+            ->get(route('admin.roles.show', ['role' => $role, 'tab' => 'modules']))
             ->assertOk()
-            ->assertSee(__('Save access rights'))
+            ->assertSee(__('Module access'))
             ->assertSee(__('Capability'))
-            ->assertSee(__('Enable module'))
-            ->assertSee(__('Disable module'))
+            ->assertSee(__('Custom access'))
+            ->assertSee(__('Full access'))
             ->assertSee(__('Users'))
             ->assertSee(__('CRM'));
     }
@@ -175,7 +180,7 @@ class AccessControlTest extends TestCase
             ->put(route('admin.roles.permissions.update', $role), [
                 'permissions' => ['crm.customers.view', 'crm.leads.view'],
             ])
-            ->assertRedirect(route('admin.roles.show', $role));
+            ->assertRedirect(route('admin.roles.show', ['role' => $role, 'tab' => 'modules']));
 
         $this->assertTrue($role->fresh()->hasPermissionTo('crm.customers.view'));
         $this->assertFalse($role->fresh()->hasPermissionTo('crm.customers.create'));

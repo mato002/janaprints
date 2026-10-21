@@ -1,16 +1,22 @@
 @php
     use App\Enums\SalesOrderStatus;
+
+    $openInvoice = $salesOrder->openStandardInvoice();
 @endphp
 
 <div class="so-360__grid so-360__grid--two">
     <article class="so-360__card">
         <div class="so-360__card-head">
             <h2 class="so-360__card-title">{{ __('Invoicing') }}</h2>
-            @can('create', App\Models\Sales\CustomerInvoice::class)
-                @if ($salesOrder->remainingInvoiceTotal() > 0 && ! in_array($salesOrder->status, [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled], true))
-                    <a href="{{ route('admin.invoices.from-sales-order', $salesOrder) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create invoice') }}</a>
-                @endif
-            @endcan
+            @if ($openInvoice)
+                @can('view', $openInvoice)
+                    <a href="{{ route('admin.invoices.show', $openInvoice) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('View invoice') }}</a>
+                @endcan
+            @elseif (auth()->user()?->can('create', App\Models\Sales\CustomerInvoice::class)
+                && $salesOrder->remainingInvoiceTotal() > 0
+                && ! in_array($salesOrder->status, [SalesOrderStatus::Draft, SalesOrderStatus::Cancelled], true))
+                <a href="{{ route('admin.invoices.from-sales-order', $salesOrder) }}" class="erp-btn-primary" data-erp-modal-open>{{ __('Create invoice') }}</a>
+            @endif
         </div>
 
         @if (! empty($financial['billing_eligibility']['blockers']))
